@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package sql;
+
+option go_package="sqlpb";
+
+message Connection {
+	string id = 1;
+	string name = 2;
+	string host = 3;
+	string charset = 4;
+	string driver = 5;
+	string user = 6;
+	string password = 7;
+	int32 port = 8;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+
+service SqlService {
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+}

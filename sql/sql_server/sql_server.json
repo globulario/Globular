@@ -1,0 +1,12 @@
+{
+  "employees_db": {
+    "Id": "employees_db",
+    "Name": "employees",
+    "Host": "localhost",
+    "Charset": "utf8",
+    "Driver": "mysql",
+    "User": "test",
+    "Password": "password",
+    "Port": 3306
+  }
+}
