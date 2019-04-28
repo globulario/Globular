@@ -1,0 +1,7 @@
+{
+  "Name": "sql_server",
+  "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
+  "Port": 50051,
+  "Protocol": "grpc",
+  "Connections": {}
+}

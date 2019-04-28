@@ -24,8 +24,49 @@ message CreateConnectionRsp {
 	bool result = 1;
 }
 
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+// Ping Connection
+message PingConnectionRqst {
+	string id = 1;
+}
+
+message PingConnectionRsp {
+	string result = 1;
+}
+
+message Query {
+	string connectionId = 1; // The connection id.
+	string query = 2; // the query string.
+	string parameters = 3; // because parameters can be of various type I will use a JSON string here.
+}
+
+message QueryContextRqst {
+	Query query = 1;
+}
+
+message QueryContextRsp {
+	string header = 1; // The header contain result columns information and can be usefull to display data.
+	string rows = 2; // The data is alway an array of rows so [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
+}
 
 service SqlService {
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+	
+	// Ping existing connection.
+	rpc Ping(PingConnectionRqst) returns (PingConnectionRsp) {};
+	
+	// That query return zero or more Rows as a reults.
+	rpc QueryContext(QueryContextRqst) returns (stream QueryContextRsp) {};
 }
