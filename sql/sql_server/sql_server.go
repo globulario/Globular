@@ -295,7 +295,10 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	rows, err := db.QueryContext(stream.Context(), query, parameters...)
 
 	if err != nil {
-		log.Fatal(Utility.FileLine(), Utility.FunctionName(), err)
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	defer rows.Close()
@@ -303,15 +306,22 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	// First of all I will get the information about columns
 	columns, err := rows.Columns()
 	if err != nil {
-		log.Fatal(Utility.FileLine(), Utility.FunctionName(), err)
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// The columns type.
 	columnsType, err := rows.ColumnTypes()
 	if err != nil {
-		log.Fatal(Utility.FileLine(), Utility.FunctionName(), err)
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// In header is not guaranty to contain a column type.
 	header := make([]interface{}, len(columns))
 
 	for i := 0; i < len(columnsType); i++ {
@@ -326,18 +336,18 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 		precision, scale, isDecimal := columnsType[i].DecimalSize()
 		if isDecimal {
 			typeInfo["Scale"] = scale
-			typeInfo["precision"] = precision
+			typeInfo["Precision"] = precision
 		}
 
 		length, hasLength := columnsType[i].Length()
 		if hasLength {
-			typeInfo["precision"] = length
+			typeInfo["Precision"] = length
 		}
 
 		isNull, isNullable := columnsType[i].Nullable()
-		typeInfo["isNullable"] = isNullable
+		typeInfo["IsNullable"] = isNullable
 		if isNullable {
-			typeInfo["isNull"] = isNull
+			typeInfo["IsNull"] = isNull
 		}
 
 		header[i] = map[string]interface{}{"name": column, "typeInfo": typeInfo}
@@ -366,23 +376,20 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 		if err != nil {
 			return err
 		}
+
 		for i, v := range values {
-			x := v.([]byte)
-			//NOTE: FROM THE GO BLOG: JSON and GO - 25 Jan 2011:
-			// The json package uses map[string]interface{} and []interface{} values to store arbitrary JSON objects and arrays; it will happily unmarshal any valid JSON blob into a plain interface{} value. The default concrete Go types are:
-			//
-			// bool for JSON booleans,
-			// float64 for JSON numbers,
-			// string for JSON strings, and
-			// nil for JSON null.
-			if nx, ok := strconv.ParseFloat(string(x), 64); ok == nil {
-				row[i] = nx
-			} else if b, ok := strconv.ParseBool(string(x)); ok == nil {
-				row[i] = b
-			} else if "string" == fmt.Sprintf("%T", string(x)) {
-				row[i] = string(x)
+			// So here I will convert the values to Number, Boolean or String
+			if v == nil {
+				row[i] = nil // NULL value.
 			} else {
-				fmt.Printf("Failed on if for type %T of %v\n", x, x)
+				if Utility.IsNumeric(v) {
+					row[i] = Utility.ToNumeric(v)
+				} else if Utility.IsBool(v) {
+					row[i] = Utility.ToBool(v)
+				} else {
+					// here I will simply return the sting value.
+					row[i] = Utility.ToString(v)
+				}
 			}
 		}
 
@@ -406,6 +413,109 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	}
 
 	return nil
+}
+
+// Exec Query SQL CREATE and INSERT. Return the affected rows.
+// Now the execute query.
+func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst) (*sqlpb.ExecContextRsp, error) {
+
+	// Be sure the connection is there.
+	if _, ok := self.Connections[rqst.Query.ConnectionId]; !ok {
+		return nil, errors.New("connection with id " + rqst.Query.ConnectionId + " dosent exist.")
+	}
+
+	// Now I will open the connection.
+	c := self.Connections[rqst.Query.ConnectionId]
+
+	// First of all I will try to
+	db, err := sql.Open(c.Driver, c.getConnectionString())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// The query
+	query := rqst.Query.Query
+
+	// The list of parameters
+	parameters := make([]interface{}, 0)
+	json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
+
+	log.Println("Execute query: ", query, " whit parameters: ", parameters)
+
+	// Execute the query here.
+	var lastId, affectedRows int64
+	var result sql.Result
+
+	if rqst.Tx {
+		// with transaction
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		var execErr error
+		result, execErr = tx.ExecContext(ctx, query, parameters...)
+		if execErr != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				err = errors.New(fmt.Sprint("update failed: %v, unable to rollback: %v\n", execErr, rollbackErr))
+				log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+			err = errors.New(fmt.Sprint("update failed: %v", execErr))
+			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		if err := tx.Commit(); err != nil {
+			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		// without transaction
+		result, err = db.ExecContext(ctx, query, parameters...)
+	}
+
+	if err != nil {
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// So here I will stream affected row if there one.
+	affectedRows, err = result.RowsAffected()
+	if err != nil {
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if affectedRows != 1 {
+		err := errors.New(fmt.Sprint("expected to affect 1 row, affected %d", affectedRows))
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// I will send back the last id and the number of affected rows to the caller.
+	lastId, _ = result.LastInsertId()
+	return &sqlpb.ExecContextRsp{
+		LastId:       lastId,
+		AffectedRows: affectedRows,
+	}, nil
 }
 
 // That service is use to give access to SQL.

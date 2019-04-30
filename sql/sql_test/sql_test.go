@@ -48,7 +48,7 @@ func TestCreateConnection(t *testing.T) {
 	// Create a new client service...
 	c := sqlpb.NewSqlServiceClient(cc)
 
-	rqst := &sqlpb.CreateConnectionRqst{
+	/*rqst := &sqlpb.CreateConnectionRqst{
 		Connection: &sqlpb.Connection{
 			Id:       "employees_db",
 			Name:     "employees",
@@ -57,6 +57,20 @@ func TestCreateConnection(t *testing.T) {
 			Port:     3306,
 			Driver:   "mysql",
 			Host:     "localhost",
+			Charset:  "utf8",
+		},
+	}*/
+
+	// Test with sql server.
+	rqst := &sqlpb.CreateConnectionRqst{
+		Connection: &sqlpb.Connection{
+			Id:       "bris_outil",
+			Name:     "BrisOutil",
+			User:     "dbprog",
+			Password: "dbprog",
+			Port:     1433,
+			Driver:   "odbc",
+			Host:     "mon-sql-v01",
 			Charset:  "utf8",
 		},
 	}
@@ -82,15 +96,17 @@ func TestPingConnection(t *testing.T) {
 	c := sqlpb.NewSqlServiceClient(cc)
 
 	// Here I will try a success case...
+	/*
+		rqst := &sqlpb.PingConnectionRqst{
+			Id: "employees_db",
+		}
+	*/
+
 	rqst := &sqlpb.PingConnectionRqst{
-		Id: "employees_db",
+		Id: "bris_outil",
 	}
 
 	rsp, err := c.Ping(context.Background(), rqst)
-	if err != nil {
-		log.Fatalf("error while CreateConnection: %v", err)
-	}
-
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -123,13 +139,26 @@ func TestQueryContext(t *testing.T) {
 	c := sqlpb.NewSqlServiceClient(cc)
 
 	// The query and all it parameters.
-	query := "SELECT first_name, last_name FROM employees.employees WHERE gender=?"
-	parameters, _ := Utility.ToJson([]string{"F"})
+	/*
+		query := "SELECT first_name, last_name FROM employees.employees WHERE gender=?"
+		parameters, _ := Utility.ToJson([]string{"F"})
 
-	log.Println(parameters)
+		log.Println(parameters)
+		rqst := &sqlpb.QueryContextRqst{
+			Query: &sqlpb.Query{
+				ConnectionId: "employees_db",
+				Query:        query,
+				Parameters:   parameters,
+			},
+		}
+	*/
+
+	query := "SELECT * FROM [BrisOutil].[dbo].[Bris] WHERE product_id LIKE ?"
+	parameters, _ := Utility.ToJson([]string{"50-%"})
+
 	rqst := &sqlpb.QueryContextRqst{
 		Query: &sqlpb.Query{
-			ConnectionId: "employees_db",
+			ConnectionId: "bris_outil",
 			Query:        query,
 			Parameters:   parameters,
 		},
@@ -168,6 +197,106 @@ func TestQueryContext(t *testing.T) {
 	log.Println("---> all data was here ", len(data))
 }
 
+// Test a simple query that return first_name and last_name.
+func TestInsertValue(t *testing.T) {
+	// Test create query...
+	query := "INSERT INTO EmailLst (account_id, product_name) VALUES (?, ?);"
+
+	fmt.Println("Test running a sql query")
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := sqlpb.NewSqlServiceClient(cc)
+
+	parameters, _ := Utility.ToJson([]string{"test", "1212"})
+
+	rqst := &sqlpb.ExecContextRqst{
+		Query: &sqlpb.Query{
+			ConnectionId: "bris_outil",
+			Query:        query,
+			Parameters:   parameters,
+		},
+		Tx: false,
+	}
+
+	rsp, err := c.ExecContext(context.Background(), rqst)
+	if err != nil {
+		log.Fatalln("Fail ExecContext ", err)
+	}
+
+	log.Println("Value insert number of rows affect: ", rsp.AffectedRows, " lastId ", rsp.LastId)
+
+}
+
+// Test upatade value
+func TestUpdateValue(t *testing.T) {
+	// Test create query...
+	query := "UPDATE EmailLst SET product_name=? WHERE account_id = ?;"
+
+	fmt.Println("Test running a sql query")
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := sqlpb.NewSqlServiceClient(cc)
+
+	parameters, _ := Utility.ToJson([]string{"3434", "test"})
+
+	rqst := &sqlpb.ExecContextRqst{
+		Query: &sqlpb.Query{
+			ConnectionId: "bris_outil",
+			Query:        query,
+			Parameters:   parameters,
+		},
+		Tx: false,
+	}
+
+	rsp, err := c.ExecContext(context.Background(), rqst)
+	if err != nil {
+		log.Fatalln("Fail ExecContext ", err)
+	}
+
+	log.Println("Value insert number of rows affect: ", rsp.AffectedRows, " lastId ", rsp.LastId)
+}
+
+// Test delete value
+func TestDeleteValue(t *testing.T) {
+	// Test create query...
+	query := "DELETE FROM EmailLst WHERE account_id = ?;"
+
+	fmt.Println("Test running a sql query")
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := sqlpb.NewSqlServiceClient(cc)
+
+	parameters, _ := Utility.ToJson([]string{"test"})
+
+	rqst := &sqlpb.ExecContextRqst{
+		Query: &sqlpb.Query{
+			ConnectionId: "bris_outil",
+			Query:        query,
+			Parameters:   parameters,
+		},
+		Tx: false,
+	}
+
+	rsp, err := c.ExecContext(context.Background(), rqst)
+	if err != nil {
+		log.Fatalln("Fail ExecContext ", err)
+	}
+
+	log.Println("Value insert number of rows affect: ", rsp.AffectedRows, " lastId ", rsp.LastId)
+}
+
 // Remove the test connection from the service.
 func TestDeleteConnection(t *testing.T) {
 
@@ -180,8 +309,12 @@ func TestDeleteConnection(t *testing.T) {
 	// Create a new client service...
 	c := sqlpb.NewSqlServiceClient(cc)
 
-	rqst := &sqlpb.DeleteConnectionRqst{
+	/*rqst := &sqlpb.DeleteConnectionRqst{
 		Id: "employees_db",
+	}*/
+
+	rqst := &sqlpb.DeleteConnectionRqst{
+		Id: "bris_outil",
 	}
 
 	rsp, err := c.DeleteConnection(context.Background(), rqst)
