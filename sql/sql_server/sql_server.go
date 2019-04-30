@@ -522,6 +522,7 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 // port number must be pass as argument.
 func main() {
 	log.Println("Sql grpc service is starting")
+
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, "sql_service: ", log.LstdFlags))
 
@@ -535,7 +536,6 @@ func main() {
 	}
 
 	// First of all I will creat a listener.
-	//
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -562,24 +562,6 @@ func main() {
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
-
-		/*wrappedServer := grpcweb.WrapServer(grpcServer)
-		handler := func(resp http.ResponseWriter, req *http.Request) {
-			// Redirect gRPC and gRPC-Web requests to the gRPC-Web Websocket Proxy server
-			if req.ProtoMajor == 2 && strings.Contains(req.Header.Get("Content-Type"), "application/grpc") {
-				wrappedServer.ServeHTTP(resp, req)
-				return
-			}
-		}
-
-		httpServer := http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
-			Handler: http.HandlerFunc(handler),
-		}
-
-		if err := httpServer.ListenAndServe(); err != nil {
-			grpclog.Fatalf("failed starting http server: %v", err)
-		}*/
 
 	}()
 
