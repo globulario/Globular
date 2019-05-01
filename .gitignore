@@ -12,3 +12,5 @@
 *.out
 
 node_modules
+spc
+spc_client

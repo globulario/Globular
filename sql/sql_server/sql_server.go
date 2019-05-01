@@ -26,7 +26,6 @@ import (
 	"github.com/davecourtois/Globular/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 
-	//"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"

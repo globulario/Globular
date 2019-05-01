@@ -66,8 +66,10 @@ message SendEmailRsp {
 
 message SendEmailWithAttachementsRqst {
 	string id = 1; 		// The connection id
-	Email email = 2; // Contain the email data
-	Attachement attachements = 3; // Contain attachements data (chunk data...)
+	oneof data {
+		Email email = 2; // Contain the email message data
+		Attachement attachements = 3; // Contain attachements data (chunk data...)
+	}
 }
 
 message SendEmailWithAttachementsRsp {

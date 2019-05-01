@@ -1,0 +1,22 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+
+package echo;
+
+option go_package="echopb";
+
+message EchoRqst {
+	string str = 1;
+}
+
+message EchoRsp {
+	string result = 1;
+}
+
+service EchoService {
+	// Send echo message.
+	rpc Echo(EchoRqst) returns (EchoRsp){};
+	
+}

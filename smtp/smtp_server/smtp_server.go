@@ -190,6 +190,7 @@ func (self *server) sendEmail(id string, from string, to []string, cc []*CarbonC
 	mailer := gomail.NewMailer(config.Host, config.User, config.Password, int(config.Port))
 
 	if err := mailer.Send(msg); err != nil {
+		log.Println("--> 193 fail to send email: ", err)
 		return err
 	}
 	return nil
@@ -230,13 +231,14 @@ func (self *server) SendEmailWithAttachements(stream smtppb.SmtpService_SendEmai
 	var from string
 	var to []string
 	var cc []*CarbonCopy
+	var id string
 
 	// So here I will read the stream until it end...
 	for {
 		rqst, err := stream.Recv()
 		if err == io.EOF {
 			// Here all data is read...
-			err := self.sendEmail(rqst.Id, from, to, cc, subject, body, attachements, bodyType)
+			err := self.sendEmail(id, from, to, cc, subject, body, attachements, bodyType)
 
 			if err != nil {
 				return status.Errorf(
@@ -248,6 +250,8 @@ func (self *server) SendEmailWithAttachements(stream smtppb.SmtpService_SendEmai
 			stream.SendAndClose(&smtppb.SendEmailWithAttachementsRsp{
 				Result: true,
 			})
+
+			return nil
 		}
 
 		if err != nil {
@@ -256,41 +260,45 @@ func (self *server) SendEmailWithAttachements(stream smtppb.SmtpService_SendEmai
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
+		id = rqst.Id
+
 		// Receive message informations.
-		if rqst.Attachements != nil {
+		switch msg := rqst.Data.(type) {
+		case *smtppb.SendEmailWithAttachementsRqst_Email:
+			cc = make([]*CarbonCopy, len(msg.Email.Cc))
+
+			// The email itself.
+			for i := 0; i < len(msg.Email.Cc); i++ {
+				cc[i] = &CarbonCopy{Name: msg.Email.Cc[i].Name, EMail: msg.Email.Cc[i].Address}
+			}
+			bodyType = "text"
+			if msg.Email.BodyType == smtppb.BodyType_HTML {
+				bodyType = "html"
+			}
+			from = msg.Email.From
+			to = msg.Email.To
+			body = msg.Email.Body
+			subject = msg.Email.Subject
+
+		case *smtppb.SendEmailWithAttachementsRqst_Attachements:
 			var lastAttachement *Attachment
 			if len(attachements) > 0 {
 				lastAttachement = attachements[len(attachements)-1]
-				if lastAttachement.FileName != rqst.Attachements.FileName {
+				if lastAttachement.FileName != msg.Attachements.FileName {
 					lastAttachement = new(Attachment)
 					lastAttachement.FileData = make([]byte, 0)
-					lastAttachement.FileName = rqst.Attachements.FileName
+					lastAttachement.FileName = msg.Attachements.FileName
 					attachements = append(attachements, lastAttachement)
 				}
 			} else {
 				lastAttachement = new(Attachment)
 				lastAttachement.FileData = make([]byte, 0)
-				lastAttachement.FileName = rqst.Attachements.FileName
+				lastAttachement.FileName = msg.Attachements.FileName
 				attachements = append(attachements, lastAttachement)
 			}
 
 			// Append the data in the file attachement.
-			lastAttachement.FileData = append(lastAttachement.FileData, lastAttachement.FileData...)
-
-		} else if rqst.Email != nil {
-			cc = make([]*CarbonCopy, len(rqst.Email.Cc))
-			// The email itself.
-			for i := 0; i < len(rqst.Email.Cc); i++ {
-				cc[i] = &CarbonCopy{Name: rqst.Email.Cc[i].Name, EMail: rqst.Email.Cc[i].Address}
-			}
-			bodyType = "text"
-			if rqst.Email.BodyType == smtppb.BodyType_HTML {
-				bodyType = "html"
-			}
-			from = rqst.Email.From
-			to = rqst.Email.To
-			body = rqst.Email.Body
-			subject = rqst.Email.Subject
+			lastAttachement.FileData = append(lastAttachement.FileData, msg.Attachements.FileData...)
 		}
 
 	}
