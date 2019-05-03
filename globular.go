@@ -33,10 +33,10 @@ type Globule struct {
 /**
  * Globule constructor.
  */
-func NewGlobule() *Globule {
+func NewGlobule(port int) *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
-	g.Port = 8080       // The default port number.
+	g.Port = port       // The default port number.
 	g.Path = os.Args[0] // the serive name
 	g.Name = "Globule"
 	g.Protocol = "http"
@@ -49,12 +49,11 @@ func NewGlobule() *Globule {
 		g.WebRoot = dir + "/WebRoot"           // The default directory to server.
 		Utility.CreateDirIfNotExist(g.WebRoot) // Create the directory if it not exist.
 		file, err := ioutil.ReadFile(g.WebRoot + "/config.json")
-
+		// Init the servce with the default port address
 		if err == nil {
 			json.Unmarshal([]byte(file), g)
 		}
 	}
-
 	return g
 }
 

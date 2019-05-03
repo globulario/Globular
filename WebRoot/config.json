@@ -1,7 +1,7 @@
 {
   "Name": "Globule",
-  "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/Globular",
-  "Port": 8080,
+  "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\Globular.exe",
+  "Port": 10000,
   "Protocol": "http",
-  "WebRoot": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/WebRoot"
+  "WebRoot": "E:\\Project\\src\\github.com\\davecourtois\\Globular/WebRoot"
 }

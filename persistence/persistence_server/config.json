@@ -1,0 +1,6 @@
+{
+  "Name": "echo_server",
+  "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_server\\persistence_server.exe",
+  "Port": 50051,
+  "Protocol": "grpc"
+}
