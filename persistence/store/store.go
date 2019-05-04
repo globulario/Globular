@@ -2,7 +2,7 @@ package store
 
 import (
 	base64 "encoding/base64"
-	"log"
+	//	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,19 +14,15 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// operations
-type persist_op struct {
-	entity *persistencepb.Entity
-	err    chan error
-}
-
 /**
  * The store where the value will be save.
  */
 type Store struct {
 	// channel
-	path                   string
-	persist_entity_channel chan *persist_op
+	path                             string
+	persist_entity_channel           chan *persist_op
+	get_entity_by_uuid_channel       chan *getEntityByUuid_op
+	get_entities_by_typename_channel chan *getEntitiesByTypename_op
 }
 
 var (
@@ -44,6 +40,8 @@ func NewStore() *Store {
 
 		// Set the channel.
 		s.persist_entity_channel = make(chan *persist_op)
+		s.get_entity_by_uuid_channel = make(chan *getEntityByUuid_op)
+		s.get_entities_by_typename_channel = make(chan *getEntitiesByTypename_op)
 
 		go func() {
 			s.run()
@@ -54,6 +52,13 @@ func NewStore() *Store {
 }
 
 // Take entity message and persist it inside the data store.
+
+// persist operation
+type persist_op struct {
+	entity *persistencepb.Entity
+	err    chan error
+}
+
 func (self *Store) PersistEntity(entity *persistencepb.Entity) error {
 
 	op := new(persist_op)
@@ -66,16 +71,65 @@ func (self *Store) PersistEntity(entity *persistencepb.Entity) error {
 	// wait for it result.
 	err := <-op.err
 
-	// simple test.
-	entities, _ := self.getEntitiesByTypeName(entity.Typename)
-	log.Println("-----> entities: ", len(entities))
-	log.Println("72 -----> entity: ", entity.UUID)
-	// test single entity
-	entity, err = self.getEntityByUuid(entity.Typename, entity.UUID)
-	if err == nil {
-		log.Println("-----> entity: ", entity.UUID)
-	}
 	return err
+}
+
+// get entity by uuid operation
+type getEntityByUuid_op struct {
+	uuid     string
+	typename string
+	result   chan interface{}
+}
+
+func (self *Store) GetEntityByUuid(typename string, uuid string) (entity *persistencepb.Entity, err error) {
+
+	// So here I will set the operation to be call.
+	op := new(getEntityByUuid_op)
+	op.uuid = uuid
+	op.typename = typename
+	op.result = make(chan interface{})
+
+	// send the operation
+	self.get_entity_by_uuid_channel <- op
+
+	result := <-op.result
+	// wait for it result.
+	switch val := result.(type) {
+	case *persistencepb.Entity:
+		entity = val
+	case error:
+		err = val
+	}
+
+	return
+}
+
+// get entity by uuid operation
+type getEntitiesByTypename_op struct {
+	typename string
+	result   chan interface{}
+}
+
+func (self *Store) GetEntitiesByTypename(typename string) (entities []*persistencepb.Entity, err error) {
+
+	// So here I will set the operation to be call.
+	op := new(getEntitiesByTypename_op)
+	op.typename = typename
+	op.result = make(chan interface{})
+
+	// send the operation
+	self.get_entities_by_typename_channel <- op
+
+	result := <-op.result
+	// wait for it result.
+	switch val := result.(type) {
+	case []*persistencepb.Entity:
+		entities = val
+	case error:
+		err = val
+	}
+
+	return
 }
 
 // Remove ambiquous query symbols % - . and replace it with _
@@ -121,6 +175,21 @@ func (self *Store) run() {
 
 			// done return the error or nil
 			op.err <- err
+		case op := <-s.get_entity_by_uuid_channel:
+			entity, err := s.getEntityByUuid(op.typename, op.uuid)
+			if err != nil {
+				op.result <- err
+			} else {
+				op.result <- entity
+			}
+
+		case op := <-s.get_entities_by_typename_channel:
+			entities, err := s.getEntitiesByTypeName(op.typename)
+			if err != nil {
+				op.result <- err
+			} else {
+				op.result <- entities
+			}
 		}
 	}
 

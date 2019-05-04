@@ -82,8 +82,31 @@ message PersistEntityRsp {
 	string result = 1; // Return the Object Reference.
 }
 
+message GetEntityByUuidRqst {
+	string uuid = 1;
+	string typename = 2;
+}
+
+message GetEntityByUuidRsp {
+	Entity entity = 1;
+}
+
+message GetEntitiesByTypenameRqst{
+	string typename = 1;
+}
+
+message GetEntitiesByTypenameRsp {
+	Entity entity = 1;
+}
+
 service PersistenceService {
-	// Send echo message.
+	// Persist entity.
 	rpc PersistEntity(PersistEntityRqst) returns (PersistEntityRsp){};
+	
+	// Retreive entity by it uuid.
+	rpc GetEntityByUuid(GetEntityByUuidRqst) returns (GetEntityByUuidRsp){};
+	
+	// Return all entities for a given typeName.
+	rpc GetEntitiesByTypename(GetEntitiesByTypenameRqst) returns (stream GetEntitiesByTypenameRsp){};
 	
 }

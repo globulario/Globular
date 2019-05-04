@@ -65,9 +65,9 @@ func (self *server) save() error {
 	return nil
 }
 
-// Implementation of the Echo method.
+// Implementation of the Persistence method.
 func (self *server) PersistEntity(ctx context.Context, rqst *persistencepb.PersistEntityRqst) (*persistencepb.PersistEntityRsp, error) {
-	fmt.Println("Try persist a value")
+	fmt.Println("Persist a value")
 
 	// In that case I will save it in file.
 	err := self.save()
@@ -78,6 +78,11 @@ func (self *server) PersistEntity(ctx context.Context, rqst *persistencepb.Persi
 	}
 
 	entity := rqst.Entity
+
+	// Here I will compose the entity url.
+	address, _ := Utility.MyIP() // Here I will set the url to retreive the entity over the network...
+	entity.Url = address.Hostname + ":" + strconv.Itoa(self.Port) + "/?Typename=" + entity.Typename + "&UUID=" + entity.UUID
+
 	err = self.s.PersistEntity(entity)
 
 	if err != nil {
@@ -87,14 +92,52 @@ func (self *server) PersistEntity(ctx context.Context, rqst *persistencepb.Persi
 	}
 
 	return &persistencepb.PersistEntityRsp{
-		Result: "Vagin!",
+		Result: entity.Url,
 	}, nil
+}
+
+// Retreive entity by it uuid.
+func (self *server) GetEntityByUuid(ctx context.Context, rqst *persistencepb.GetEntityByUuidRqst) (*persistencepb.GetEntityByUuidRsp, error) {
+
+	entity, err := self.s.GetEntityByUuid(rqst.Typename, rqst.Uuid)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// return the entity retreive from the store.
+	return &persistencepb.GetEntityByUuidRsp{
+		Entity: entity,
+	}, nil
+}
+
+// Return all entities for a given typeName.
+func (self *server) GetEntitiesByTypename(rqst *persistencepb.GetEntitiesByTypenameRqst, stream persistencepb.PersistenceService_GetEntitiesByTypenameServer) error {
+
+	entities, err := self.s.GetEntitiesByTypename(rqst.Typename)
+
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// return one entity at time to the stream...
+	for i := 0; i < len(entities); i++ {
+		stream.Send(&persistencepb.GetEntitiesByTypenameRsp{
+			Entity: entities[i],
+		})
+	}
+
+	return nil
 }
 
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
-	log.Println("Echo grpc service is starting")
+	log.Println("Persistence grpc service is starting")
 
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, "persistence_service: ", log.LstdFlags))
@@ -119,7 +162,7 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = "echo_server"
+	s_impl.Name = "persistence_server"
 	s_impl.Port = port
 	s_impl.Protocol = "grpc"
 	s_impl.Path = os.Args[0] // keep the execution path here...
