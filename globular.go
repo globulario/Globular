@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -9,11 +11,19 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	//	"reflect"
 	"strconv"
 
+	"path"
+	"strings"
+
 	"github.com/davecourtois/Utility"
+)
+
+var (
+	root string
 )
 
 /**
@@ -27,7 +37,7 @@ type Globule struct {
 	WebRoot  string // The root of the http file server.
 
 	// The list of avalaible services.
-	services map[string]interface{}
+	Services map[string]interface{}
 }
 
 /**
@@ -36,15 +46,16 @@ type Globule struct {
 func NewGlobule(port int) *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
-	g.Port = port       // The default port number.
-	g.Path = os.Args[0] // the serive name
-	g.Name = "Globule"
+	g.Port = port // The default port number.
+	g.Name = Utility.GetExecName(os.Args[0])
 	g.Protocol = "http"
 
 	// Set the service map.
-	g.services = make(map[string]interface{}, 0)
+	g.Services = make(map[string]interface{}, 0)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	g.Path = dir // keep the installation patn.
+
 	if err == nil {
 		g.WebRoot = dir + "/WebRoot"           // The default directory to server.
 		Utility.CreateDirIfNotExist(g.WebRoot) // Create the directory if it not exist.
@@ -54,6 +65,10 @@ func NewGlobule(port int) *Globule {
 			json.Unmarshal([]byte(file), g)
 		}
 	}
+
+	// keep the root in global variable for the file handler.
+	root = g.WebRoot
+
 	return g
 }
 
@@ -73,21 +88,176 @@ func (self *Globule) initServices() {
 			s := make(map[string]interface{})
 			config, err := ioutil.ReadFile(path)
 			if err == nil {
+				// Read the config file.
 				json.Unmarshal(config, &s)
 				if s["Protocol"].(string) == "grpc" {
-					log.Println("start rpc service: ", s["Name"].(string))
+					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+					servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
+					if string(os.PathSeparator) == "\\" {
+						servicePath += ".exe" // in case of windows.
+					}
+
 					// Start the process.
-					s["Process"] = exec.Command(s["Path"].(string), Utility.ToString(s["Port"]))
+
+					s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 					err = s["Process"].(*exec.Cmd).Start()
 					if err != nil {
 						log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 					}
+
+					// Now I will start the proxy that will be use by javascript client.
+					proxyPath := self.Path + "/bin/grpcwebproxy"
+					if string(os.PathSeparator) == "\\" {
+						proxyPath += ".exe" // in case of windows.
+					}
+
+					// This is the grpc service to connect with the proxy
+					proxyBackendAddress := "localhost:" + Utility.ToString(s["Port"])
+					proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
+
+					// start the proxy service.
+					s["ProxyProcess"] = exec.Command(proxyPath, "--backend_addr="+proxyBackendAddress, "--server_http_debug_port="+Utility.ToString(s["Proxy"]), "--run_tls_server=false", "--allow_all_origins="+proxyAllowAllOrgins)
+					err = s["ProxyProcess"].(*exec.Cmd).Start()
+					if err != nil {
+						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
+					}
+
+					self.Services[s["Name"].(string)] = s
+					self.saveConfig()
+
+					log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 				}
-				self.services[s["Name"].(string)] = s
 			}
 		}
 		return nil
 	})
+}
+
+// That function resolve import path.
+func resolveImportPath(path string, importPath string) (string, error) {
+
+	// firt of all i will keep only the path part of the import...
+	startIndex := strings.Index(importPath, `'@`) + 1
+	endIndex := strings.LastIndex(importPath, `'`)
+	importPath_ := importPath[startIndex:endIndex]
+
+	filepath.Walk(root+path[0:strings.Index(path, "/")],
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			path = strings.Replace(path, "\\", "/", -1) // Windows back slash replacement here...
+			if strings.HasSuffix(path, importPath_) {
+				importPath_ = path
+				return io.EOF
+			}
+
+			return nil
+		})
+
+	importPath_ = strings.Replace(importPath_, root, "", -1)
+
+	// Now i will make the path relative.
+	importPath__ := strings.Split(importPath_, "/")
+	path__ := strings.Split(path, "/")
+
+	var index int
+	for ; importPath__[index] == path__[index]; index++ {
+	}
+
+	importPath_ = ""
+
+	// move up part..
+	for i := index; i < len(path__)-1; i++ {
+		importPath_ += "../"
+	}
+
+	// go down to the file.
+	for i := index; i < len(importPath__); i++ {
+		importPath_ += importPath__[i]
+		if i < len(importPath__)-1 {
+			importPath_ += "/"
+		}
+	}
+
+	// remove the root path part and the leading / caracter.
+	return importPath_, nil
+}
+
+// Custom file server implementation.
+func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
+
+	//if empty, set current directory
+	dir := string(root)
+	if dir == "" {
+		dir = "."
+	}
+
+	//add prefix and clean
+	upath := r.URL.Path
+	if !strings.HasPrefix(upath, "/") {
+		upath = "/" + upath
+		r.URL.Path = upath
+	}
+
+	upath = path.Clean(upath)
+
+	//path to file
+	name := path.Join(dir, upath)
+
+	//check if file exists
+	f, err := os.Open(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "File "+upath+" not found!", http.StatusBadRequest)
+			return
+		}
+	}
+	defer f.Close()
+
+	// If the file is a javascript file...
+	var code string
+	hasChange := false
+	if strings.HasSuffix(name, ".js") {
+		w.Header().Add("Content-Type", "application/javascript")
+		if err == nil {
+			//hasChange = true
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if strings.HasPrefix(line, "import") {
+					if strings.Index(line, `'@`) > -1 {
+						path_, err := resolveImportPath(upath, line)
+						if err == nil {
+							line = line[0:strings.Index(line, `'@`)] + `'` + path_ + `'`
+							hasChange = true
+						}
+					}
+				}
+				code += line + "\n"
+			}
+		}
+	} else if strings.HasSuffix(name, ".css") {
+		w.Header().Add("Content-Type", "text/css")
+	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
+		w.Header().Add("Content-Type", "text/html")
+	}
+
+	// if the file has change...
+	if !hasChange {
+		http.ServeFile(w, r, name)
+	} else {
+		log.Println(code)
+		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
+	}
+}
+
+func (self *Globule) saveConfig() {
+	// Here I will save the server attribute
+	str, err := Utility.ToJson(self)
+	if err == nil {
+		ioutil.WriteFile(self.WebRoot+"/config.json", []byte(str), 0644)
+	}
 }
 
 /**
@@ -95,7 +265,7 @@ func (self *Globule) initServices() {
  */
 func (self *Globule) Listen() {
 
-	log.Println("Start Globule at port ", self.Port)
+	log.Println("Start Globular at port ", self.Port)
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -103,20 +273,22 @@ func (self *Globule) Listen() {
 	// set the services.
 	self.initServices()
 
+	r := http.NewServeMux()
+
 	// Start listen for http request.
-	fs := http.FileServer(http.Dir(self.WebRoot))
-	http.Handle("/", fs)
+	// r.Handle("/", http.FileServer(http.Dir(self.WebRoot)))
+	r.HandleFunc("/", ServeFileHandler)
 
 	// Here I will save the server attribute
-	str, err := Utility.ToJson(self)
-	if err == nil {
-		ioutil.WriteFile(self.WebRoot+"/config.json", []byte(str), 0644)
-	}
+	self.saveConfig()
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println("Listening...")
-		http.ListenAndServe(":"+strconv.Itoa(self.Port), nil)
+		err := http.ListenAndServe(":"+strconv.Itoa(self.Port), r)
+		if err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
 	}()
 
 	ch := make(chan os.Signal, 1)
@@ -126,10 +298,13 @@ func (self *Globule) Listen() {
 
 	// Here the server stop running,
 	// so I will close the services.
-	for key, value := range self.services {
+	for key, value := range self.Services {
 		log.Println("Stop service ", key)
 		if value.(map[string]interface{})["Process"] != nil {
 			value.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+		}
+		if value.(map[string]interface{})["ProxyProcess"] != nil {
+			value.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
 		}
 	}
 }

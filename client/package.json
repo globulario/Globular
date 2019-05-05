@@ -1,0 +1,32 @@
+{
+  "name": "globular",
+  "dependencies": {
+    "google-protobuf": "^3.6.1",
+    "grpc-web": "^0.4.0"
+  },
+  "devDependencies": {
+    "browserify": "^16.2.2",
+    "webpack": "^4.16.5",
+    "webpack-cli": "^3.1.0"
+  },
+  "description": "Micro-Services Web application framework written in Go and JavaScript.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davecourtois/Globular.git"
+  },
+  "keywords": [
+    "micro",
+    "services"
+  ],
+  "author": "Dave Courtois",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/davecourtois/Globular/issues"
+  },
+  "homepage": "https://github.com/davecourtois/Globular#readme"
+}

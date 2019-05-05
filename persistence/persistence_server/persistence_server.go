@@ -21,12 +21,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	defaultPort  = 10005
+	defaultProxy = 10006
+)
+
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
 	Name     string
-	Path     string
 	Port     int
+	Proxy    int
 	Protocol string
 
 	// The data store.
@@ -137,7 +142,6 @@ func (self *server) GetEntitiesByTypename(rqst *persistencepb.GetEntitiesByTypen
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
-	log.Println("Persistence grpc service is starting")
 
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, "persistence_service: ", log.LstdFlags))
@@ -146,7 +150,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// The first argument must be the port number to listen to.
-	port := 50051 // the default value.
+	port := defaultPort // the default value.
 
 	if len(os.Args) > 1 {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
@@ -158,27 +162,29 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
-
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = "persistence_server"
+	s_impl.Name = Utility.GetExecName(os.Args[0])
 	s_impl.Port = port
+	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Path = os.Args[0] // keep the execution path here...
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
+	grpcServer := grpc.NewServer()
 	persistencepb.RegisterPersistenceServiceServer(grpcServer, s_impl)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
+		log.Println(s_impl.Name + " grpc service is starting")
+
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
 
+		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.
@@ -186,5 +192,4 @@ func main() {
 	signal.Notify(ch, os.Interrupt)
 	<-ch
 
-	log.Println("Persistence grpc service is closed")
 }

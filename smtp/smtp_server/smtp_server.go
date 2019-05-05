@@ -24,6 +24,11 @@ import (
 	gomail "gopkg.in/gomail.v1"
 )
 
+var (
+	defaultPort  = 10007
+	defaultProxy = 10008
+)
+
 // Keep connection information here.
 type connection struct {
 	Id       string // The connection id
@@ -36,8 +41,8 @@ type connection struct {
 type server struct {
 	// The global attribute of the services.
 	Name     string
-	Path     string
 	Port     int
+	Proxy    int
 	Protocol string
 
 	// The map of connection...
@@ -309,7 +314,6 @@ func (self *server) SendEmailWithAttachements(stream smtppb.SmtpService_SendEmai
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
-	log.Println("Smtp grpc service is starting")
 
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, "smtp_service: ", log.LstdFlags))
@@ -318,7 +322,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// The first argument must be the port number to listen to.
-	port := 50051
+	port := defaultPort
 	if len(os.Args) > 1 {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
 	}
@@ -334,10 +338,10 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
-	s_impl.Name = "smtp_server"
+	s_impl.Name = Utility.GetExecName(os.Args[0])
 	s_impl.Port = port
+	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Path = os.Args[0] // keep the execution path here...
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
@@ -347,11 +351,13 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
+		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
 
+		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.
@@ -359,5 +365,4 @@ func main() {
 	signal.Notify(ch, os.Interrupt)
 	<-ch
 
-	log.Println("Smtp grpc service is closed")
 }

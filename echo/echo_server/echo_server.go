@@ -20,13 +20,27 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// TODO take care of TLS/https
+var (
+	defaultPort  = 10001
+	defaultProxy = 10002
+
+	// By default all origins are allowed.
+	allow_all_origins = true
+
+	// comma separeated values.
+	allowed_origins string = ""
+)
+
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
-	Name     string
-	Path     string
-	Port     int
-	Protocol string
+	Name            string
+	Port            int
+	Proxy           int
+	AllowAllOrigins bool
+	AllowedOrigins  string // comma separated string.
+	Protocol        string
 }
 
 // Create the configuration file if is not already exist.
@@ -59,7 +73,7 @@ func (self *server) save() error {
 }
 
 // Implementation of the Echo method.
-func (self *server) Echo(ctx context.Context, rsqt *echopb.EchoRqst) (*echopb.EchoRsp, error) {
+func (self *server) Echo(ctx context.Context, rsqt *echopb.EchoRequest) (*echopb.EchoResponse, error) {
 	fmt.Println("Try echo a value")
 
 	// In that case I will save it in file.
@@ -70,17 +84,16 @@ func (self *server) Echo(ctx context.Context, rsqt *echopb.EchoRqst) (*echopb.Ec
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	log.Println("Echo: ", rsqt.Str)
+	log.Println("Echo: ", rsqt.Message)
 
-	return &echopb.EchoRsp{
-		Result: rsqt.Str,
+	return &echopb.EchoResponse{
+		Message: rsqt.Message,
 	}, nil
 }
 
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
-	log.Println("Echo grpc service is starting")
 
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, "echo_service: ", log.LstdFlags))
@@ -89,7 +102,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// The first argument must be the port number to listen to.
-	port := 50051 // the default value.
+	port := defaultPort // the default value.
 
 	if len(os.Args) > 1 {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
@@ -101,27 +114,31 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
-
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = "echo_server"
+	s_impl.Name = Utility.GetExecName(os.Args[0])
 	s_impl.Port = port
+	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Path = os.Args[0] // keep the execution path here...
+
+	// TODO set it from the program arguments...
+	s_impl.AllowAllOrigins = allow_all_origins
+	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
+	grpcServer := grpc.NewServer()
 	echopb.RegisterEchoServiceServer(grpcServer, s_impl)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
+		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
-
+		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.
@@ -129,5 +146,4 @@ func main() {
 	signal.Notify(ch, os.Interrupt)
 	<-ch
 
-	log.Println("Echo grpc service is closed")
 }

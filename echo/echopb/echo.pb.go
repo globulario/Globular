@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -22,102 +24,144 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type EchoRqst struct {
-	Str                  string   `protobuf:"bytes,1,opt,name=str,proto3" json:"str,omitempty"`
+type Empty struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *EchoRqst) Reset()         { *m = EchoRqst{} }
-func (m *EchoRqst) String() string { return proto.CompactTextString(m) }
-func (*EchoRqst) ProtoMessage()    {}
-func (*EchoRqst) Descriptor() ([]byte, []int) {
+func (m *Empty) Reset()         { *m = Empty{} }
+func (m *Empty) String() string { return proto.CompactTextString(m) }
+func (*Empty) ProtoMessage()    {}
+func (*Empty) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4ade6182a513b1ea, []int{0}
 }
 
-func (m *EchoRqst) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EchoRqst.Unmarshal(m, b)
+func (m *Empty) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Empty.Unmarshal(m, b)
 }
-func (m *EchoRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EchoRqst.Marshal(b, m, deterministic)
+func (m *Empty) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Empty.Marshal(b, m, deterministic)
 }
-func (m *EchoRqst) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EchoRqst.Merge(m, src)
+func (m *Empty) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Empty.Merge(m, src)
 }
-func (m *EchoRqst) XXX_Size() int {
-	return xxx_messageInfo_EchoRqst.Size(m)
+func (m *Empty) XXX_Size() int {
+	return xxx_messageInfo_Empty.Size(m)
 }
-func (m *EchoRqst) XXX_DiscardUnknown() {
-	xxx_messageInfo_EchoRqst.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EchoRqst proto.InternalMessageInfo
-
-func (m *EchoRqst) GetStr() string {
-	if m != nil {
-		return m.Str
-	}
-	return ""
+func (m *Empty) XXX_DiscardUnknown() {
+	xxx_messageInfo_Empty.DiscardUnknown(m)
 }
 
-type EchoRsp struct {
-	Result               string   `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+var xxx_messageInfo_Empty proto.InternalMessageInfo
+
+type EchoRequest struct {
+	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *EchoRsp) Reset()         { *m = EchoRsp{} }
-func (m *EchoRsp) String() string { return proto.CompactTextString(m) }
-func (*EchoRsp) ProtoMessage()    {}
-func (*EchoRsp) Descriptor() ([]byte, []int) {
+func (m *EchoRequest) Reset()         { *m = EchoRequest{} }
+func (m *EchoRequest) String() string { return proto.CompactTextString(m) }
+func (*EchoRequest) ProtoMessage()    {}
+func (*EchoRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4ade6182a513b1ea, []int{1}
 }
 
-func (m *EchoRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EchoRsp.Unmarshal(m, b)
+func (m *EchoRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EchoRequest.Unmarshal(m, b)
 }
-func (m *EchoRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EchoRsp.Marshal(b, m, deterministic)
+func (m *EchoRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EchoRequest.Marshal(b, m, deterministic)
 }
-func (m *EchoRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EchoRsp.Merge(m, src)
+func (m *EchoRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EchoRequest.Merge(m, src)
 }
-func (m *EchoRsp) XXX_Size() int {
-	return xxx_messageInfo_EchoRsp.Size(m)
+func (m *EchoRequest) XXX_Size() int {
+	return xxx_messageInfo_EchoRequest.Size(m)
 }
-func (m *EchoRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_EchoRsp.DiscardUnknown(m)
+func (m *EchoRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_EchoRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EchoRsp proto.InternalMessageInfo
+var xxx_messageInfo_EchoRequest proto.InternalMessageInfo
 
-func (m *EchoRsp) GetResult() string {
+func (m *EchoRequest) GetMessage() string {
 	if m != nil {
-		return m.Result
+		return m.Message
 	}
 	return ""
 }
 
+type EchoResponse struct {
+	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	MessageCount         int32    `protobuf:"varint,2,opt,name=message_count,json=messageCount,proto3" json:"message_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EchoResponse) Reset()         { *m = EchoResponse{} }
+func (m *EchoResponse) String() string { return proto.CompactTextString(m) }
+func (*EchoResponse) ProtoMessage()    {}
+func (*EchoResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4ade6182a513b1ea, []int{2}
+}
+
+func (m *EchoResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EchoResponse.Unmarshal(m, b)
+}
+func (m *EchoResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EchoResponse.Marshal(b, m, deterministic)
+}
+func (m *EchoResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EchoResponse.Merge(m, src)
+}
+func (m *EchoResponse) XXX_Size() int {
+	return xxx_messageInfo_EchoResponse.Size(m)
+}
+func (m *EchoResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_EchoResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EchoResponse proto.InternalMessageInfo
+
+func (m *EchoResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+func (m *EchoResponse) GetMessageCount() int32 {
+	if m != nil {
+		return m.MessageCount
+	}
+	return 0
+}
+
 func init() {
-	proto.RegisterType((*EchoRqst)(nil), "echo.EchoRqst")
-	proto.RegisterType((*EchoRsp)(nil), "echo.EchoRsp")
+	proto.RegisterType((*Empty)(nil), "echo.Empty")
+	proto.RegisterType((*EchoRequest)(nil), "echo.EchoRequest")
+	proto.RegisterType((*EchoResponse)(nil), "echo.EchoResponse")
 }
 
 func init() { proto.RegisterFile("echo/echopb/echo.proto", fileDescriptor_4ade6182a513b1ea) }
 
 var fileDescriptor_4ade6182a513b1ea = []byte{
-	// 141 bytes of a gzipped FileDescriptorProto
+	// 171 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x4b, 0x4d, 0xce, 0xc8,
 	0xd7, 0x07, 0x11, 0x05, 0x49, 0x60, 0x4a, 0xaf, 0xa0, 0x28, 0xbf, 0x24, 0x5f, 0x88, 0x05, 0xc4,
-	0x56, 0x92, 0xe1, 0xe2, 0x70, 0x4d, 0xce, 0xc8, 0x0f, 0x2a, 0x2c, 0x2e, 0x11, 0x12, 0xe0, 0x62,
-	0x2e, 0x2e, 0x29, 0x92, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0x31, 0x95, 0x14, 0xb9, 0xd8,
-	0xc1, 0xb2, 0xc5, 0x05, 0x42, 0x62, 0x5c, 0x6c, 0x45, 0xa9, 0xc5, 0xa5, 0x39, 0x25, 0x50, 0x79,
-	0x28, 0xcf, 0xc8, 0x8c, 0x8b, 0x1b, 0xa4, 0x24, 0x38, 0xb5, 0xa8, 0x2c, 0x33, 0x39, 0x55, 0x48,
-	0x9d, 0x8b, 0x05, 0xc4, 0x15, 0xe2, 0xd3, 0x03, 0x5b, 0x05, 0x33, 0x5b, 0x8a, 0x17, 0x89, 0x5f,
-	0x5c, 0xa0, 0xc4, 0xe0, 0xc4, 0x11, 0xc5, 0x06, 0x71, 0x53, 0x12, 0x1b, 0xd8, 0x3d, 0xc6, 0x80,
-	0x00, 0x00, 0x00, 0xff, 0xff, 0x65, 0x97, 0x64, 0x67, 0xa9, 0x00, 0x00, 0x00,
+	0x56, 0x62, 0xe7, 0x62, 0x75, 0xcd, 0x2d, 0x28, 0xa9, 0x54, 0x52, 0xe7, 0xe2, 0x76, 0x4d, 0xce,
+	0xc8, 0x0f, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x92, 0xe0, 0x62, 0xcf, 0x4d, 0x2d, 0x2e,
+	0x4e, 0x4c, 0x4f, 0x95, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x82, 0x71, 0x95, 0x7c, 0xb9, 0x78,
+	0x20, 0x0a, 0x8b, 0x0b, 0xf2, 0xf3, 0x8a, 0x53, 0x71, 0xab, 0x14, 0x52, 0xe6, 0xe2, 0x85, 0x32,
+	0xe3, 0x93, 0xf3, 0x4b, 0xf3, 0x4a, 0x24, 0x98, 0x14, 0x18, 0x35, 0x58, 0x83, 0x78, 0xa0, 0x82,
+	0xce, 0x20, 0x31, 0x23, 0x1b, 0x88, 0xbd, 0xc1, 0xa9, 0x45, 0x65, 0x99, 0xc9, 0xa9, 0x42, 0xba,
+	0x5c, 0x2c, 0x20, 0xae, 0x90, 0xa0, 0x1e, 0xd8, 0xa9, 0x48, 0x4e, 0x92, 0x12, 0x42, 0x16, 0x82,
+	0x58, 0xee, 0xc4, 0x11, 0xc5, 0x06, 0xf1, 0x59, 0x12, 0x1b, 0xd8, 0x57, 0xc6, 0x80, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x0e, 0x0c, 0x2b, 0x5f, 0xef, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -132,8 +176,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EchoServiceClient interface {
-	// Send echo message.
-	Echo(ctx context.Context, in *EchoRqst, opts ...grpc.CallOption) (*EchoRsp, error)
+	// One request followed by one response
+	// The server returns the client message as-is.
+	Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
 }
 
 type echoServiceClient struct {
@@ -144,8 +189,8 @@ func NewEchoServiceClient(cc *grpc.ClientConn) EchoServiceClient {
 	return &echoServiceClient{cc}
 }
 
-func (c *echoServiceClient) Echo(ctx context.Context, in *EchoRqst, opts ...grpc.CallOption) (*EchoRsp, error) {
-	out := new(EchoRsp)
+func (c *echoServiceClient) Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error) {
+	out := new(EchoResponse)
 	err := c.cc.Invoke(ctx, "/echo.EchoService/Echo", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -155,8 +200,17 @@ func (c *echoServiceClient) Echo(ctx context.Context, in *EchoRqst, opts ...grpc
 
 // EchoServiceServer is the server API for EchoService service.
 type EchoServiceServer interface {
-	// Send echo message.
-	Echo(context.Context, *EchoRqst) (*EchoRsp, error)
+	// One request followed by one response
+	// The server returns the client message as-is.
+	Echo(context.Context, *EchoRequest) (*EchoResponse, error)
+}
+
+// UnimplementedEchoServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedEchoServiceServer struct {
+}
+
+func (*UnimplementedEchoServiceServer) Echo(ctx context.Context, req *EchoRequest) (*EchoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Echo not implemented")
 }
 
 func RegisterEchoServiceServer(s *grpc.Server, srv EchoServiceServer) {
@@ -164,7 +218,7 @@ func RegisterEchoServiceServer(s *grpc.Server, srv EchoServiceServer) {
 }
 
 func _EchoService_Echo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EchoRqst)
+	in := new(EchoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -176,7 +230,7 @@ func _EchoService_Echo_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: "/echo.EchoService/Echo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EchoServiceServer).Echo(ctx, req.(*EchoRqst))
+		return srv.(EchoServiceServer).Echo(ctx, req.(*EchoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

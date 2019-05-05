@@ -1,4 +1,5 @@
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
 
@@ -11,8 +12,28 @@
 
 <body>
 
+  <!-- The server is a singleton that regroup all the services -->
+
+  <!-- Append the services file here -->
+  <!-- a simple echo function use for test. -->
+  <script>
+    // When the services are ready the main function is call.
+    window.globularReady = function () {
+      if (main != undefined) {
+        main();
+      }
+    }
+  </script>
+  
+  <!-- test contain the main function so it must be insert before the globularServices.js file.-->
+  <script src="js/test.js"></script>
+
+  <script src="js/globularServices.js"></script>
+
+
   <!-- Web assembly file for go 1.12 found in GOROOT/misc/wasm -->
   <h2>Welcome to a brave new world!</h2>
-  
+
 </body>
+
 </html>

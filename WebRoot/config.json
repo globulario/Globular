@@ -1,7 +1,56 @@
 {
-  "Name": "Globule",
-  "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\Globular.exe",
+  "Name": "Globular",
+  "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular",
   "Port": 10000,
   "Protocol": "http",
-  "WebRoot": "E:\\Project\\src\\github.com\\davecourtois\\Globular/WebRoot"
+  "WebRoot": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/WebRoot",
+  "Services": {
+    "echo_server": {
+      "AllowAllOrigins": true,
+      "AllowedOrigins": "",
+      "Name": "echo_server",
+      "Port": 10001,
+      "Process": {
+        "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/echo/echo_server/echo_server",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/echo/echo_server/echo_server",
+          "10001"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 26446
+        },
+        "ProcessState": null
+      },
+      "Protocol": "grpc",
+      "Proxy": 10002,
+      "ProxyProcess": {
+        "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+          "--backend_addr=localhost:10001",
+          "--server_http_debug_port=10002",
+          "--run_tls_server=false",
+          "--allow_all_origins=true"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 26447
+        },
+        "ProcessState": null
+      }
+    }
+  }
 }

@@ -7,16 +7,22 @@ package echo;
 
 option go_package="echopb";
 
-message EchoRqst {
-	string str = 1;
+message Empty {}
+
+message EchoRequest {
+  string message = 1;
 }
 
-message EchoRsp {
-	string result = 1;
+message EchoResponse {
+  string message = 1;
+  int32 message_count = 2;
 }
+
 
 service EchoService {
-	// Send echo message.
-	rpc Echo(EchoRqst) returns (EchoRsp){};
+  // One request followed by one response
+  // The server returns the client message as-is.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
 	
 }
