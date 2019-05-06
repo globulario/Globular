@@ -62,12 +62,15 @@ message QueryContextRsp {
 	// The header is alwas send in the first message of the stream
 	// Name are alwas given but DatabaseTypeName can be empty depending of the
 	// driver use, mySql has value but odbc donsent have it.
-	string header = 1;
+	oneof result {
+		string header = 1;
+		
+		// The data is alway an array of rows so [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
+		// The data contain in the array can be Null, Number, String or Bool. Date values
+		// are converted to unix time. (must be multiplicate by 1000)
+		string rows = 2;
+    }
 	
-	// The data is alway an array of rows so [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
-	// The data contain in the array can be Null, Number, String or Bool. Date values
-	// are converted to unix time. (must be multiplicate by 1000)
-	string rows = 2;
 }
 
 message ExecContextRqst {

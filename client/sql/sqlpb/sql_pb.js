@@ -1594,12 +1594,38 @@ proto.sql.QueryContextRqst.prototype.hasQuery = function() {
  * @constructor
  */
 proto.sql.QueryContextRsp = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.sql.QueryContextRsp.oneofGroups_);
 };
 goog.inherits(proto.sql.QueryContextRsp, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.sql.QueryContextRsp.displayName = 'proto.sql.QueryContextRsp';
 }
+/**
+ * Oneof group definitions for this message. Each group defines the field
+ * numbers belonging to that group. When of these fields' value is set, all
+ * other fields in the group are cleared. During deserialization, if multiple
+ * fields are encountered for a group, only the last value seen will be kept.
+ * @private {!Array<!Array<number>>}
+ * @const
+ */
+proto.sql.QueryContextRsp.oneofGroups_ = [[1,2]];
+
+/**
+ * @enum {number}
+ */
+proto.sql.QueryContextRsp.ResultCase = {
+  RESULT_NOT_SET: 0,
+  HEADER: 1,
+  ROWS: 2
+};
+
+/**
+ * @return {proto.sql.QueryContextRsp.ResultCase}
+ */
+proto.sql.QueryContextRsp.prototype.getResultCase = function() {
+  return /** @type {proto.sql.QueryContextRsp.ResultCase} */(jspb.Message.computeOneofCase(this, proto.sql.QueryContextRsp.oneofGroups_[0]));
+};
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -1704,15 +1730,15 @@ proto.sql.QueryContextRsp.prototype.serializeBinary = function() {
  */
 proto.sql.QueryContextRsp.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getHeader();
-  if (f.length > 0) {
+  f = /** @type {string} */ (jspb.Message.getField(message, 1));
+  if (f != null) {
     writer.writeString(
       1,
       f
     );
   }
-  f = message.getRows();
-  if (f.length > 0) {
+  f = /** @type {string} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
     writer.writeString(
       2,
       f
@@ -1732,7 +1758,21 @@ proto.sql.QueryContextRsp.prototype.getHeader = function() {
 
 /** @param {string} value */
 proto.sql.QueryContextRsp.prototype.setHeader = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  jspb.Message.setOneofField(this, 1, proto.sql.QueryContextRsp.oneofGroups_[0], value);
+};
+
+
+proto.sql.QueryContextRsp.prototype.clearHeader = function() {
+  jspb.Message.setOneofField(this, 1, proto.sql.QueryContextRsp.oneofGroups_[0], undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {!boolean}
+ */
+proto.sql.QueryContextRsp.prototype.hasHeader = function() {
+  return jspb.Message.getField(this, 1) != null;
 };
 
 
@@ -1747,7 +1787,21 @@ proto.sql.QueryContextRsp.prototype.getRows = function() {
 
 /** @param {string} value */
 proto.sql.QueryContextRsp.prototype.setRows = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  jspb.Message.setOneofField(this, 2, proto.sql.QueryContextRsp.oneofGroups_[0], value);
+};
+
+
+proto.sql.QueryContextRsp.prototype.clearRows = function() {
+  jspb.Message.setOneofField(this, 2, proto.sql.QueryContextRsp.oneofGroups_[0], undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {!boolean}
+ */
+proto.sql.QueryContextRsp.prototype.hasRows = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 

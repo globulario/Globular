@@ -24,7 +24,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 26446
+          "Pid": 30771
         },
         "ProcessState": null
       },
@@ -47,7 +47,66 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 26447
+          "Pid": 30772
+        },
+        "ProcessState": null
+      }
+    },
+    "sql_server": {
+      "AllowAllOrigins": true,
+      "AllowedOrigins": "",
+      "Connections": {
+        "employees_db": {
+          "Charset": "utf8",
+          "Driver": "mysql",
+          "Host": "localhost",
+          "Id": "employees_db",
+          "Name": "employees",
+          "Password": "password",
+          "Port": 3306,
+          "User": "test"
+        }
+      },
+      "Name": "sql_server",
+      "Port": 10009,
+      "Process": {
+        "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
+          "10009"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 30783
+        },
+        "ProcessState": null
+      },
+      "Protocol": "grpc",
+      "Proxy": 10010,
+      "ProxyProcess": {
+        "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+          "--backend_addr=localhost:10009",
+          "--server_http_debug_port=10010",
+          "--run_tls_server=false",
+          "--allow_all_origins=true"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 30784
         },
         "ProcessState": null
       }

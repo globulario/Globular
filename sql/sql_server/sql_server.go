@@ -43,6 +43,12 @@ import (
 var (
 	defaultPort  = 10009
 	defaultProxy = 10010
+
+	// By default all origins are allowed.
+	allow_all_origins = true
+
+	// comma separeated values.
+	allowed_origins string = ""
 )
 
 // Keep connection information here.
@@ -102,10 +108,12 @@ func (c *connection) getConnectionString() string {
 type server struct {
 
 	// The global attribute of the services.
-	Name     string
-	Port     int
-	Proxy    int
-	Protocol string
+	Name            string
+	Port            int
+	Proxy           int
+	Protocol        string
+	AllowAllOrigins bool
+	AllowedOrigins  string // comma separated string.
 
 	// The map of connection...
 	Connections map[string]connection
@@ -362,7 +370,9 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 
 	// So the first message I will send will alway be the header...
 	stream.Send(&sqlpb.QueryContextRsp{
-		Header: headerStr,
+		Result: &sqlpb.QueryContextRsp_Header{
+			Header: headerStr,
+		},
 	})
 
 	count := len(columns)
@@ -403,7 +413,9 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 		if size > maxSize {
 			rowStr, _ := json.Marshal(rows_)
 			stream.Send(&sqlpb.QueryContextRsp{
-				Rows: string(rowStr),
+				Result: &sqlpb.QueryContextRsp_Rows{
+					Rows: string(rowStr),
+				},
 			})
 			rows_ = make([]interface{}, 0)
 		}
@@ -412,7 +424,9 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	if len(rows_) > 0 {
 		rowStr, _ := json.Marshal(rows_)
 		stream.Send(&sqlpb.QueryContextRsp{
-			Rows: string(rowStr),
+			Result: &sqlpb.QueryContextRsp_Rows{
+				Rows: string(rowStr),
+			},
 		})
 	}
 
@@ -553,6 +567,10 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+
+	// TODO set it from the program arguments...
+	s_impl.AllowAllOrigins = allow_all_origins
+	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
