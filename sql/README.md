@@ -20,6 +20,8 @@ must create a connection. To do so you can append the connection information in 
           "User": "test"
         }
       },
+      
 ```
 Here is the definitions of each field defined in the connection,
-* **Id** The id must unique it reprensente
+* **Id** The id must unique
+* **Name** The name of the database
