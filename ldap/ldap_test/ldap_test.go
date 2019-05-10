@@ -20,7 +20,7 @@ func getClientConnection() *grpc.ClientConn {
 	var err error
 	var cc *grpc.ClientConn
 	if cc == nil {
-		cc, err = grpc.Dial("localhost:50051", grpc.WithInsecure())
+		cc, err = grpc.Dial("localhost:10003", grpc.WithInsecure())
 		if err != nil {
 			log.Fatalf("could not connect: %v", err)
 		}
@@ -73,9 +73,9 @@ func TestSearch(t *testing.T) {
 	rqst := &ldappb.SearchRqst{
 		Search: &ldappb.Search{
 			Id:         "test_ldap",
-			BaseDN:     "OU=Users,OU=MON,OU=CA,DC=UD6,DC=UF6",
-			Filter:     "(objectClass=user)",
-			Attributes: []string{"sAMAccountName", "givenName", "mail", "telephoneNumber", "userPrincipalName", "distinguishedName"},
+			BaseDN:     "OU=Shared,OU=Users,OU=MON,OU=CA,DC=UD6,DC=UF6",
+			Filter:     "(&(givenName=Machine*)(objectClass=user))",
+			Attributes: []string{"sAMAccountName", "givenName", "mail"},
 		},
 	}
 

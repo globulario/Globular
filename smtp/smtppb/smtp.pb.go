@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -821,6 +823,23 @@ type SmtpServiceServer interface {
 	SendEmail(context.Context, *SendEmailRqst) (*SendEmailRsp, error)
 	// Send email with attachements.
 	SendEmailWithAttachements(SmtpService_SendEmailWithAttachementsServer) error
+}
+
+// UnimplementedSmtpServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedSmtpServiceServer struct {
+}
+
+func (*UnimplementedSmtpServiceServer) CreateConnection(ctx context.Context, req *CreateConnectionRqst) (*CreateConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConnection not implemented")
+}
+func (*UnimplementedSmtpServiceServer) DeleteConnection(ctx context.Context, req *DeleteConnectionRqst) (*DeleteConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteConnection not implemented")
+}
+func (*UnimplementedSmtpServiceServer) SendEmail(ctx context.Context, req *SendEmailRqst) (*SendEmailRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendEmail not implemented")
+}
+func (*UnimplementedSmtpServiceServer) SendEmailWithAttachements(srv SmtpService_SendEmailWithAttachementsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SendEmailWithAttachements not implemented")
 }
 
 func RegisterSmtpServiceServer(s *grpc.Server, srv SmtpServiceServer) {

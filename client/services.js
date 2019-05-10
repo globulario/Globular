@@ -17,28 +17,32 @@ window.EchoResponse = EchoResponse;
 ////////////////////////////////////////////////////////////////////////////
 // Sql service
 ////////////////////////////////////////////////////////////////////////////
+window.Sql = require('./sql/sqlpb/sql_pb.js');
+window.Sql = Object.assign(window.Sql, require('./sql/sqlpb/sql_grpc_web_pb.js'));
 
-const { Connection, CreateConnectionRqst,  CreateConnectionRsp, DeleteConnectionRqst, 
-    DeleteConnectionRsp, PingConnectionRqst, PingConnectionRsp, Query,  QueryContextRqst,
-    QueryContextRsp, ExecContextRqst, ExecContextRsp } = require('./sql/sqlpb/sql_pb.js');
+////////////////////////////////////////////////////////////////////////////
+// Ldap service
+////////////////////////////////////////////////////////////////////////////
+window.Ldap = require('./ldap/ldappb/ldap_pb.js');
+window.Ldap = Object.assign(window.Ldap, require('./ldap/ldappb/ldap_grpc_web_pb.js'));
 
-const { SqlServiceClient } = require('./sql/sqlpb/sql_grpc_web_pb.js');
+////////////////////////////////////////////////////////////////////////////
+// Smtp service
+////////////////////////////////////////////////////////////////////////////
+window.Smtp = require('./smtp/smtppb/smtp_pb.js');
+window.Smtp = Object.assign(window.Smtp, require('./smtp/smtppb/smtp_grpc_web_pb.js'));
 
-// export the symbol.
-window.SqlServiceClient = SqlServiceClient;
-window.SqlConnection = Connection;
-window.CreateConnectionRqst = CreateConnectionRqst;
-window.CreateConnectionRsp = CreateConnectionRsp;
-window.DeleteConnectionRqst = DeleteConnectionRqst;
-window.DeleteConnectionRsp = DeleteConnectionRsp;
-window.PingConnectionRqst = PingConnectionRqst;
-window.PingConnectionRsp = PingConnectionRsp;
-window.Query = Query;
-window.QueryContextRqst = QueryContextRqst;
-window.DeleteConnectionRsp = DeleteConnectionRsp;
-window.QueryContextRsp = QueryContextRsp;
-window.ExecContextRqst = ExecContextRqst;
-window.ExecContextRsp = ExecContextRsp;
+////////////////////////////////////////////////////////////////////////////
+// Spc service ( statistical process control )
+////////////////////////////////////////////////////////////////////////////
+window.Spc = require('./spc/spcpb/spc_pb.js');
+window.Spc = Object.assign(window.Spc, require('./spc/spcpb/spc_grpc_web_pb.js'));
+
+////////////////////////////////////////////////////////////////////////////
+// Persistence service ( rest )
+////////////////////////////////////////////////////////////////////////////
+window.Persistence = require('./persistence/persistencepb/persistence_pb.js');
+window.Persistence = Object.assign(window.Persistence, require('./persistence/persistencepb/persistence_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
 // Server singleton object that give access to services.
@@ -63,9 +67,31 @@ class Globular {
                     globular.echoService = new EchoServiceClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
                     console.log("echo service is init.")
 
-                    globular.sqlService = new SqlServiceClient('http://localhost:' + globular.config.Services.sql_server.Proxy, null, {"format":"binary"});
-                    console.log("sql service is init.")
-                    
+                    if (globular.config.Services.sql_server != null) {
+                        globular.sqlService = new Sql.SqlServiceClient('http://localhost:' + globular.config.Services.sql_server.Proxy);
+                        console.log("sql service is init.")
+                    }
+
+                    if (globular.config.Services.ldap_server != null) {
+                        globular.ldapService = new Ldap.LdapServiceClient('http://localhost:' + globular.config.Services.ldap_server.Proxy);
+                        console.log("ldap service is init.")
+                    }
+
+                    if (globular.config.Services.smtp_server != null) {
+                        globular.smtpService = new Smtp.SmtpServiceClient('http://localhost:' + globular.config.Services.smtp_server.Proxy);
+                        console.log("smtp service is init.")
+                    }
+
+                    if (globular.config.Services.spc_server != null) {
+                        globular.spcService = new Spc.SpcServiceClient('http://localhost:' + globular.config.Services.spc_server.Proxy);
+                        console.log("spc service is init.")
+                    }
+
+                    if (globular.config.Services.persistence_server != null) {
+                        globular.persistenceService = new Persistence.PersistenceServiceClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
+                        console.log("persistence service is init.")
+                    }
+
                     window.globular = globular
 
                     if (window.globularReady != null) {
@@ -76,7 +102,7 @@ class Globular {
             }
         }(this);
 
-        xmlhttp.open("GET", "config.json", true);
+        xmlhttp.open("GET", "/config.json", true);
         xmlhttp.send();
     }
 }

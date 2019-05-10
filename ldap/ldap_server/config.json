@@ -1,0 +1,17 @@
+{
+  "Name": "ldap_server",
+  "Port": 10003,
+  "Proxy": 10004,
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Connections": {
+    "safran_ldap": {
+      "Id": "safran_ldap",
+      "Host": "mon-dc-p01.UD6.UF6",
+      "User": "mrmfct037@UD6.UF6",
+      "Password": "Dowty123",
+      "Port": 389
+    }
+  }
+}

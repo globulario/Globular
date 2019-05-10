@@ -11,9 +11,10 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
-	//	"reflect"
+	"reflect"
 	"strconv"
 
 	"path"
@@ -30,11 +31,12 @@ var (
  * The web server.
  */
 type Globule struct {
-	Name     string // The service name
-	Path     string // The service path
-	Port     int    // The port of the http file server.
-	Protocol string // The protocol of the service.
-	WebRoot  string // The root of the http file server.
+	Name     string          // The service name
+	Path     string          // The service path
+	Port     int             // The port of the http file server.
+	Protocol string          // The protocol of the service.
+	WebRoot  string          // The root of the http file server.
+	Address  *Utility.IPInfo // contain the ipv4 address.
 
 	// The list of avalaible services.
 	Services map[string]interface{}
@@ -49,6 +51,8 @@ func NewGlobule(port int) *Globule {
 	g.Port = port // The default port number.
 	g.Name = Utility.GetExecName(os.Args[0])
 	g.Protocol = "http"
+	ip, _ := Utility.MyIP()
+	g.Address = ip
 
 	// Set the service map.
 	g.Services = make(map[string]interface{}, 0)
@@ -57,9 +61,9 @@ func NewGlobule(port int) *Globule {
 	g.Path = dir // keep the installation patn.
 
 	if err == nil {
-		g.WebRoot = dir + "/WebRoot"           // The default directory to server.
-		Utility.CreateDirIfNotExist(g.WebRoot) // Create the directory if it not exist.
-		file, err := ioutil.ReadFile(g.WebRoot + "/config.json")
+		g.WebRoot = dir + string(os.PathSeparator) + "WebRoot" // The default directory to server.
+		Utility.CreateDirIfNotExist(g.WebRoot)                 // Create the directory if it not exist.
+		file, err := ioutil.ReadFile(g.WebRoot + string(os.PathSeparator) + "config.json")
 		// Init the servce with the default port address
 		if err == nil {
 			json.Unmarshal([]byte(file), g)
@@ -91,6 +95,7 @@ func (self *Globule) initServices() {
 				// Read the config file.
 				json.Unmarshal(config, &s)
 				if s["Protocol"].(string) == "grpc" {
+
 					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
 					servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
 					if string(os.PathSeparator) == "\\" {
@@ -98,6 +103,7 @@ func (self *Globule) initServices() {
 					}
 
 					// Start the process.
+					log.Println("try to start process ", s["Name"].(string))
 
 					s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 					err = s["Process"].(*exec.Cmd).Start()
@@ -106,7 +112,7 @@ func (self *Globule) initServices() {
 					}
 
 					// Now I will start the proxy that will be use by javascript client.
-					proxyPath := self.Path + "/bin/grpcwebproxy"
+					proxyPath := self.Path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
 					if string(os.PathSeparator) == "\\" {
 						proxyPath += ".exe" // in case of windows.
 					}
@@ -155,7 +161,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 			return nil
 		})
 
-	importPath_ = strings.Replace(importPath_, root, "", -1)
+	importPath_ = strings.Replace(importPath_, strings.Replace(root, "\\", "/", -1), "", -1)
 
 	// Now i will make the path relative.
 	importPath__ := strings.Split(importPath_, "/")
@@ -179,6 +185,9 @@ func resolveImportPath(path string, importPath string) (string, error) {
 			importPath_ += "/"
 		}
 	}
+
+	// remove the
+	importPath_ = strings.Replace(importPath_, root, "", 1)
 
 	// remove the root path part and the leading / caracter.
 	return importPath_, nil
@@ -247,7 +256,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if !hasChange {
 		http.ServeFile(w, r, name)
 	} else {
-		log.Println(code)
+		// log.Println(code)
 		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
 	}
 }
@@ -256,7 +265,7 @@ func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self)
 	if err == nil {
-		ioutil.WriteFile(self.WebRoot+"/config.json", []byte(str), 0644)
+		ioutil.WriteFile(self.WebRoot+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	}
 }
 
@@ -276,35 +285,59 @@ func (self *Globule) Listen() {
 	r := http.NewServeMux()
 
 	// Start listen for http request.
-	// r.Handle("/", http.FileServer(http.Dir(self.WebRoot)))
 	r.HandleFunc("/", ServeFileHandler)
 
 	// Here I will save the server attribute
 	self.saveConfig()
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
+	// handle the Interrupt
+
+	// Catch the Ctrl-C and SIGTERM from kill command
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill, syscall.SIGTERM)
+
 	go func() {
-		log.Println("Listening...")
-		err := http.ListenAndServe(":"+strconv.Itoa(self.Port), r)
-		if err != nil {
-			panic("ListenAndServe: " + err.Error())
+		signalType := <-ch
+		signal.Stop(ch)
+		log.Println("Exit command received. Exiting...")
+
+		// this is a good place to flush everything to disk
+		// before terminating.
+		log.Println("Signal type : ", signalType)
+
+		// Here the server stop running,
+		// so I will close the services.
+		log.Println("Clean ressources.")
+
+		for key, value := range self.Services {
+			log.Println("Stop service ", key)
+
+			if value.(map[string]interface{})["Process"] != nil {
+				p := value.(map[string]interface{})["Process"]
+				if reflect.TypeOf(p).String() == "*exec.Cmd" {
+					log.Println("kill service process ", p.(*exec.Cmd).Process.Pid)
+					p.(*exec.Cmd).Process.Kill()
+				}
+			}
+
+			if value.(map[string]interface{})["ProxyProcess"] != nil {
+				p := value.(map[string]interface{})["ProxyProcess"]
+				if reflect.TypeOf(p).String() == "*exec.Cmd" {
+					log.Println("kill proxy process ", p.(*exec.Cmd).Process.Pid)
+					p.(*exec.Cmd).Process.Kill()
+				}
+			}
 		}
+
+		// exit cleanly
+		os.Exit(0)
+
 	}()
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-
-	<-ch
-
-	// Here the server stop running,
-	// so I will close the services.
-	for key, value := range self.Services {
-		log.Println("Stop service ", key)
-		if value.(map[string]interface{})["Process"] != nil {
-			value.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
-		}
-		if value.(map[string]interface{})["ProxyProcess"] != nil {
-			value.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
-		}
+	log.Println("Listening...")
+	err := http.ListenAndServe(":"+strconv.Itoa(self.Port), r)
+	if err != nil {
+		panic("ListenAndServe: " + err.Error())
 	}
 }

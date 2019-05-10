@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -534,7 +536,7 @@ type LdapServiceClient interface {
 	// Close connection. * Open is create at search time. But close must
 	// be explicitly call when the connection is no more use.
 	Close(ctx context.Context, in *CloseRqst, opts ...grpc.CallOption) (*CloseRsp, error)
-	// Now the search function.
+	// Search over LDAP server
 	Search(ctx context.Context, in *SearchRqst, opts ...grpc.CallOption) (*SearchResp, error)
 }
 
@@ -591,8 +593,25 @@ type LdapServiceServer interface {
 	// Close connection. * Open is create at search time. But close must
 	// be explicitly call when the connection is no more use.
 	Close(context.Context, *CloseRqst) (*CloseRsp, error)
-	// Now the search function.
+	// Search over LDAP server
 	Search(context.Context, *SearchRqst) (*SearchResp, error)
+}
+
+// UnimplementedLdapServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedLdapServiceServer struct {
+}
+
+func (*UnimplementedLdapServiceServer) CreateConnection(ctx context.Context, req *CreateConnectionRqst) (*CreateConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConnection not implemented")
+}
+func (*UnimplementedLdapServiceServer) DeleteConnection(ctx context.Context, req *DeleteConnectionRqst) (*DeleteConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteConnection not implemented")
+}
+func (*UnimplementedLdapServiceServer) Close(ctx context.Context, req *CloseRqst) (*CloseRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
+}
+func (*UnimplementedLdapServiceServer) Search(ctx context.Context, req *SearchRqst) (*SearchResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Search not implemented")
 }
 
 func RegisterLdapServiceServer(s *grpc.Server, srv LdapServiceServer) {

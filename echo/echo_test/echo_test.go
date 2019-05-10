@@ -13,7 +13,7 @@ import (
 
 // Set the correct addresse here as needed.
 var (
-	addresse = "localhost:50051"
+	addresse = "localhost:10001"
 )
 
 /**
@@ -44,8 +44,8 @@ func TestEcho(t *testing.T) {
 	// Create a new client service...
 	c := echopb.NewEchoServiceClient(cc)
 
-	rqst := &echopb.EchoRqst{
-		Str: "Hello Globular",
+	rqst := &echopb.EchoRequest{
+		Message: "Hello Globular",
 	}
 
 	rsp, err := c.Echo(context.Background(), rqst)
@@ -53,5 +53,5 @@ func TestEcho(t *testing.T) {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
 
-	log.Println("Response form CreateConnection:", rsp.Result)
+	log.Println("Response form CreateConnection:", rsp.Message)
 }

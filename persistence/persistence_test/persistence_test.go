@@ -17,7 +17,7 @@ import (
 
 // Set the correct addresse here as needed.
 var (
-	addresse = "localhost:50051"
+	addresse = "localhost:10005"
 )
 
 /**

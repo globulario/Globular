@@ -577,6 +577,10 @@ func main() {
 
 	sqlpb.RegisterSqlServiceServer(grpcServer, s_impl)
 
+	// Wait for signal to stop.
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println(s_impl.Name + " grpc service is starting")
@@ -589,9 +593,7 @@ func main() {
 		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
-	// Wait for signal to stop.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
 	<-ch
 
+	log.Println("service close correctly")
 }

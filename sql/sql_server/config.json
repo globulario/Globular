@@ -6,6 +6,36 @@
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "Connections": {
+    "Eng_Dwg_Features": {
+      "Id": "Eng_Dwg_Features",
+      "Name": "Eng_Dwg_Features",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "EngDWG_User",
+      "Password": "eNGdwg_rw%5",
+      "Port": 1433
+    },
+    "bris_outil": {
+      "Id": "bris_outil",
+      "Name": "BrisOutil",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
+    "catalog_md": {
+      "Id": "catalog_md",
+      "Name": "INVInterne",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
     "employees_db": {
       "Id": "employees_db",
       "Name": "employees",
@@ -15,6 +45,36 @@
       "User": "test",
       "Password": "password",
       "Port": 3306
+    },
+    "gestion_information": {
+      "Id": "gestion_information",
+      "Name": "GestionInformation",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
+    "propriete_mecanique": {
+      "Id": "propriete_mecanique",
+      "Name": "ProprieteMecanique",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "QISDBUserRO",
+      "Password": "Grr78CHNN99a",
+      "Port": 1433
+    },
+    "shopvue": {
+      "Id": "shopvue",
+      "Name": "ShopVue",
+      "Host": "mon-sql-v02\\ShopVue",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "ShopvueReport",
+      "Password": "Dowty123",
+      "Port": 1433
     }
   }
 }

@@ -24,16 +24,23 @@ import (
 var (
 	defaultPort  = 10005
 	defaultProxy = 10006
+
+	// By default all origins are allowed.
+	allow_all_origins = true
+
+	// comma separeated values.
+	allowed_origins string = ""
 )
 
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
-	Name     string
-	Port     int
-	Proxy    int
-	Protocol string
-
+	Name            string
+	Port            int
+	Proxy           int
+	Protocol        string
+	AllowAllOrigins bool
+	AllowedOrigins  string // comma separated string.
 	// The data store.
 	s *store.Store
 }
@@ -168,6 +175,9 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+
+	s_impl.AllowAllOrigins = allow_all_origins
+	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()

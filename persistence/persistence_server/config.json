@@ -1,0 +1,8 @@
+{
+  "Name": "persistence_server",
+  "Port": 10005,
+  "Proxy": 10006,
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": ""
+}

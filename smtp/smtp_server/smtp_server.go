@@ -27,6 +27,12 @@ import (
 var (
 	defaultPort  = 10007
 	defaultProxy = 10008
+
+	// By default all origins are allowed.
+	allow_all_origins = true
+
+	// comma separeated values.
+	allowed_origins string = ""
 )
 
 // Keep connection information here.
@@ -40,10 +46,12 @@ type connection struct {
 
 type server struct {
 	// The global attribute of the services.
-	Name     string
-	Port     int
-	Proxy    int
-	Protocol string
+	Name            string
+	Port            int
+	Proxy           int
+	Protocol        string
+	AllowAllOrigins bool
+	AllowedOrigins  string // comma separated string.
 
 	// The map of connection...
 	Connections map[string]connection
@@ -342,6 +350,9 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+
+	s_impl.AllowAllOrigins = allow_all_origins
+	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()

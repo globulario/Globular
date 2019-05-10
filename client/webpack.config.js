@@ -2,7 +2,7 @@ module.exports = {
   mode: "development",
   entry: "./services.js",
   output: {
-    filename: 'globularServices.js',
+    filename: 'services.js',
     library: 'globular',
     libraryTarget: 'window',
     libraryExport: 'default'

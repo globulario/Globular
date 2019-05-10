@@ -1,0 +1,9 @@
+{
+  "Name": "smtp_server",
+  "Port": 10007,
+  "Proxy": 10008,
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Connections": {}
+}

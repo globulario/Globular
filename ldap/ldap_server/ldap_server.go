@@ -28,6 +28,12 @@ import (
 var (
 	defaultPort  = 10003
 	defaultProxy = 10004
+
+	// By default all origins are allowed.
+	allow_all_origins = true
+
+	// comma separeated values.
+	allowed_origins string = ""
 )
 
 // Keep connection information here.
@@ -44,10 +50,12 @@ type connection struct {
 type server struct {
 
 	// The global attribute of the services.
-	Name     string
-	Port     int
-	Proxy    int
-	Protocol string
+	Name            string
+	Port            int
+	Proxy           int
+	Protocol        string
+	AllowAllOrigins bool
+	AllowedOrigins  string // comma separated string.
 
 	// The map of connection...
 	Connections map[string]connection
@@ -95,6 +103,7 @@ func (self *server) connect(id string, userId string, pwd string) (*LDAP.LDAPCon
 
 	err := conn.Connect()
 	if err != nil {
+		log.Println("106 ----> ", err)
 		// handle error
 		return nil, err
 	}
@@ -155,6 +164,8 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *ldappb.CreateCon
 	self.Connections[c.Id] = c
 
 	// So here I will create the new ldap connection.
+	log.Println("try to connect: ", c.Id, c.Host, c.Password)
+
 	c.conn, err = self.connect(c.Id, c.User, c.Password)
 	defer c.conn.Close()
 
@@ -272,6 +283,9 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+
+	s_impl.AllowAllOrigins = allow_all_origins
+	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
