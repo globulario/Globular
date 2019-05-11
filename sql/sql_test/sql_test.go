@@ -9,11 +9,12 @@ import (
 
 	"encoding/json"
 
+	"io/ioutil"
+	"testing"
+
 	"github.com/davecourtois/Globular/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
-
-	"testing"
 )
 
 /**
@@ -27,7 +28,7 @@ func getClientConnection() *grpc.ClientConn {
 	var err error
 	var cc *grpc.ClientConn
 	if cc == nil {
-		cc, err = grpc.Dial("localhost:50051", grpc.WithInsecure())
+		cc, err = grpc.Dial("localhost:10009", grpc.WithInsecure())
 		if err != nil {
 			log.Fatalf("could not connect: %v", err)
 		}
@@ -48,7 +49,7 @@ func TestCreateConnection(t *testing.T) {
 	// Create a new client service...
 	c := sqlpb.NewSqlServiceClient(cc)
 
-	/*rqst := &sqlpb.CreateConnectionRqst{
+	rqst := &sqlpb.CreateConnectionRqst{
 		Connection: &sqlpb.Connection{
 			Id:       "employees_db",
 			Name:     "employees",
@@ -59,10 +60,10 @@ func TestCreateConnection(t *testing.T) {
 			Host:     "localhost",
 			Charset:  "utf8",
 		},
-	}*/
+	}
 
 	// Test with sql server.
-	rqst := &sqlpb.CreateConnectionRqst{
+	/*rqst := &sqlpb.CreateConnectionRqst{
 		Connection: &sqlpb.Connection{
 			Id:       "bris_outil",
 			Name:     "BrisOutil",
@@ -73,7 +74,7 @@ func TestCreateConnection(t *testing.T) {
 			Host:     "mon-sql-v01",
 			Charset:  "utf8",
 		},
-	}
+	}*/
 
 	rsp, err := c.CreateConnection(context.Background(), rqst)
 	if err != nil {
@@ -96,16 +97,16 @@ func TestPingConnection(t *testing.T) {
 	c := sqlpb.NewSqlServiceClient(cc)
 
 	// Here I will try a success case...
-	/*
-		rqst := &sqlpb.PingConnectionRqst{
-			Id: "employees_db",
-		}
-	*/
 
 	rqst := &sqlpb.PingConnectionRqst{
-		Id: "bris_outil",
+		Id: "employees_db",
 	}
 
+	/*
+		rqst := &sqlpb.PingConnectionRqst{
+			Id: "bris_outil",
+		}
+	*/
 	rsp, err := c.Ping(context.Background(), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
@@ -139,31 +140,30 @@ func TestQueryContext(t *testing.T) {
 	c := sqlpb.NewSqlServiceClient(cc)
 
 	// The query and all it parameters.
-	/*
-		query := "SELECT first_name, last_name FROM employees.employees WHERE gender=?"
-		parameters, _ := Utility.ToJson([]string{"F"})
+	query := "SELECT * FROM employees.employees WHERE gender=?"
+	parameters, _ := Utility.ToJson([]string{"F"})
 
-		log.Println(parameters)
-		rqst := &sqlpb.QueryContextRqst{
-			Query: &sqlpb.Query{
-				ConnectionId: "employees_db",
-				Query:        query,
-				Parameters:   parameters,
-			},
-		}
-	*/
-
-	query := "SELECT * FROM [BrisOutil].[dbo].[Bris] WHERE product_id LIKE ?"
-	parameters, _ := Utility.ToJson([]string{"50-%"})
-
+	log.Println(parameters)
 	rqst := &sqlpb.QueryContextRqst{
 		Query: &sqlpb.Query{
-			ConnectionId: "bris_outil",
+			ConnectionId: "employees_db",
 			Query:        query,
 			Parameters:   parameters,
 		},
 	}
 
+	/*
+		query := "SELECT * FROM [BrisOutil].[dbo].[Bris] WHERE product_id LIKE ?"
+		parameters, _ := Utility.ToJson([]string{"50-%"})
+
+		rqst := &sqlpb.QueryContextRqst{
+			Query: &sqlpb.Query{
+				ConnectionId: "bris_outil",
+				Query:        query,
+				Parameters:   parameters,
+			},
+		}
+	*/
 	// Because number of values can be high I will use a stream.
 	stream, err := c.QueryContext(context.Background(), rqst)
 	if err != nil {
@@ -172,6 +172,8 @@ func TestQueryContext(t *testing.T) {
 
 	// Here I will create the final array
 	data := make([]interface{}, 0)
+	header := make([]map[string]interface{}, 0)
+
 	for {
 		msg, err := stream.Recv()
 		if err == io.EOF {
@@ -183,18 +185,42 @@ func TestQueryContext(t *testing.T) {
 		}
 
 		// Get the result...
-		if len(msg.GetHeader()) > 0 {
+		switch v := msg.Result.(type) {
+		case *sqlpb.QueryContextRsp_Header:
 			// Here I receive the header information.
-			log.Println(msg.GetHeader())
-		} else {
-			result := msg.GetRows()
+			json.Unmarshal([]byte(v.Header), &header)
+		case *sqlpb.QueryContextRsp_Rows:
 			rows := make([]interface{}, 0)
-			json.Unmarshal([]byte(result), &rows)
+			json.Unmarshal([]byte(v.Rows), &rows)
 			data = append(data, rows...)
 		}
 
 	}
+
 	log.Println("---> all data was here ", len(data))
+	exportSqlToJson("Employee", header, data)
+}
+
+// Here I will export json value to a json file and use it in persistence test.
+func exportSqlToJson(tableName string, header []map[string]interface{}, rows []interface{}) {
+	if Utility.Exists("/tmp/" + tableName + ".json") {
+		return
+	}
+	var objects = make([]map[string]interface{}, 0)
+	for i := 0; i < len(rows); i++ {
+		obj := make(map[string]interface{})
+		// Thos tow value are needed by the store.
+		obj["TYPENAME"] = tableName
+		obj["UUID"] = Utility.RandomUUID()
+		for j := 0; j < len(header); j++ {
+			obj[header[j]["name"].(string)] = rows[i].([]interface{})[j]
+		}
+		objects = append(objects, obj)
+	}
+
+	jsonStr, _ := Utility.ToJson(objects)
+	_ = ioutil.WriteFile("/tmp/"+tableName+"s.json", []byte(jsonStr), 0644)
+
 }
 
 // Test a simple query that return first_name and last_name.
@@ -309,13 +335,13 @@ func TestDeleteConnection(t *testing.T) {
 	// Create a new client service...
 	c := sqlpb.NewSqlServiceClient(cc)
 
-	/*rqst := &sqlpb.DeleteConnectionRqst{
-		Id: "employees_db",
-	}*/
-
 	rqst := &sqlpb.DeleteConnectionRqst{
-		Id: "bris_outil",
+		Id: "employees_db",
 	}
+
+	/*rqst := &sqlpb.DeleteConnectionRqst{
+		Id: "bris_outil",
+	}*/
 
 	rsp, err := c.DeleteConnection(context.Background(), rqst)
 	if err != nil {

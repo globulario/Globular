@@ -89,160 +89,110 @@ proto.persistence.PersistenceServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.persistence.PersistEntityRqst,
- *   !proto.persistence.PersistEntityRsp>}
+ *   !proto.persistence.CreateConnectionRqst,
+ *   !proto.persistence.CreateConnectionRsp>}
  */
-const methodInfo_PersistenceService_PersistEntity = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.persistence.PersistEntityRsp,
-  /** @param {!proto.persistence.PersistEntityRqst} request */
+const methodInfo_PersistenceService_CreateConnection = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.CreateConnectionRsp,
+  /** @param {!proto.persistence.CreateConnectionRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.persistence.PersistEntityRsp.deserializeBinary
+  proto.persistence.CreateConnectionRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.persistence.PersistEntityRqst} request The
+ * @param {!proto.persistence.CreateConnectionRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.persistence.PersistEntityRsp)}
+ * @param {function(?grpc.web.Error, ?proto.persistence.CreateConnectionRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.persistence.PersistEntityRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.CreateConnectionRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.persistence.PersistenceServiceClient.prototype.persistEntity =
+proto.persistence.PersistenceServiceClient.prototype.createConnection =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/persistence.PersistenceService/PersistEntity',
+      '/persistence.PersistenceService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_PersistEntity,
+      methodInfo_PersistenceService_CreateConnection,
       callback);
 };
 
 
 /**
- * @param {!proto.persistence.PersistEntityRqst} request The
+ * @param {!proto.persistence.CreateConnectionRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.persistence.PersistEntityRsp>}
+ * @return {!Promise<!proto.persistence.CreateConnectionRsp>}
  *     A native promise that resolves to the response
  */
-proto.persistence.PersistenceServicePromiseClient.prototype.persistEntity =
+proto.persistence.PersistenceServicePromiseClient.prototype.createConnection =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/persistence.PersistenceService/PersistEntity',
+      '/persistence.PersistenceService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_PersistEntity);
+      methodInfo_PersistenceService_CreateConnection);
 };
 
 
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.persistence.GetEntityByUuidRqst,
- *   !proto.persistence.GetEntityByUuidRsp>}
+ *   !proto.persistence.DeleteConnectionRqst,
+ *   !proto.persistence.DeleteConnectionRsp>}
  */
-const methodInfo_PersistenceService_GetEntityByUuid = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.persistence.GetEntityByUuidRsp,
-  /** @param {!proto.persistence.GetEntityByUuidRqst} request */
+const methodInfo_PersistenceService_DeleteConnection = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DeleteConnectionRsp,
+  /** @param {!proto.persistence.DeleteConnectionRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.persistence.GetEntityByUuidRsp.deserializeBinary
+  proto.persistence.DeleteConnectionRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.persistence.GetEntityByUuidRqst} request The
+ * @param {!proto.persistence.DeleteConnectionRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.persistence.GetEntityByUuidRsp)}
+ * @param {function(?grpc.web.Error, ?proto.persistence.DeleteConnectionRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.persistence.GetEntityByUuidRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DeleteConnectionRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.persistence.PersistenceServiceClient.prototype.getEntityByUuid =
+proto.persistence.PersistenceServiceClient.prototype.deleteConnection =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/persistence.PersistenceService/GetEntityByUuid',
+      '/persistence.PersistenceService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_GetEntityByUuid,
+      methodInfo_PersistenceService_DeleteConnection,
       callback);
 };
 
 
 /**
- * @param {!proto.persistence.GetEntityByUuidRqst} request The
+ * @param {!proto.persistence.DeleteConnectionRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.persistence.GetEntityByUuidRsp>}
+ * @return {!Promise<!proto.persistence.DeleteConnectionRsp>}
  *     A native promise that resolves to the response
  */
-proto.persistence.PersistenceServicePromiseClient.prototype.getEntityByUuid =
+proto.persistence.PersistenceServicePromiseClient.prototype.deleteConnection =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/persistence.PersistenceService/GetEntityByUuid',
+      '/persistence.PersistenceService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_GetEntityByUuid);
-};
-
-
-/**
- * @const
- * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.persistence.GetEntitiesByTypenameRqst,
- *   !proto.persistence.GetEntitiesByTypenameRsp>}
- */
-const methodInfo_PersistenceService_GetEntitiesByTypename = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.persistence.GetEntitiesByTypenameRsp,
-  /** @param {!proto.persistence.GetEntitiesByTypenameRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.persistence.GetEntitiesByTypenameRsp.deserializeBinary
-);
-
-
-/**
- * @param {!proto.persistence.GetEntitiesByTypenameRqst} request The request proto
- * @param {?Object<string, string>} metadata User defined
- *     call metadata
- * @return {!grpc.web.ClientReadableStream<!proto.persistence.GetEntitiesByTypenameRsp>}
- *     The XHR Node Readable Stream
- */
-proto.persistence.PersistenceServiceClient.prototype.getEntitiesByTypename =
-    function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
-      '/persistence.PersistenceService/GetEntitiesByTypename',
-      request,
-      metadata || {},
-      methodInfo_PersistenceService_GetEntitiesByTypename);
-};
-
-
-/**
- * @param {!proto.persistence.GetEntitiesByTypenameRqst} request The request proto
- * @param {?Object<string, string>} metadata User defined
- *     call metadata
- * @return {!grpc.web.ClientReadableStream<!proto.persistence.GetEntitiesByTypenameRsp>}
- *     The XHR Node Readable Stream
- */
-proto.persistence.PersistenceServicePromiseClient.prototype.getEntitiesByTypename =
-    function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
-      '/persistence.PersistenceService/GetEntitiesByTypename',
-      request,
-      metadata || {},
-      methodInfo_PersistenceService_GetEntitiesByTypename);
+      methodInfo_PersistenceService_DeleteConnection);
 };
 
 

@@ -3,16 +3,16 @@ package Globular
 import (
 	"context"
 	"fmt"
+
+	"io/ioutil"
 	"log"
 
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"google.golang.org/grpc"
 
+	"encoding/json"
 	"testing"
-
-	"time"
-
-	"github.com/davecourtois/Utility"
+	//"github.com/davecourtois/Utility"
 )
 
 // Set the correct addresse here as needed.
@@ -36,63 +36,6 @@ func getClientConnection() *grpc.ClientConn {
 	return cc
 }
 
-// Persist an employe to the store.
-func persistEmploye(c persistencepb.PersistenceServiceClient, emp_no float64, birth_date float64, first_name string, last_name string, gender string, hire_date float64) error {
-	// Here I will persist entity...
-	rqst := &persistencepb.PersistEntityRqst{
-		Entity: &persistencepb.Entity{
-			UUID:     Utility.RandomUUID(),
-			Typename: "Employee",
-			Attibutes: []*persistencepb.Attribute{
-				&persistencepb.Attribute{
-					Name: "emp_no",
-					Value: &persistencepb.Attribute_NumericVal{
-						NumericVal: emp_no,
-					},
-				},
-				&persistencepb.Attribute{
-					Name: "birth_date",
-					Value: &persistencepb.Attribute_NumericVal{
-						NumericVal: birth_date,
-					},
-				},
-				&persistencepb.Attribute{
-					Name: "first_name",
-					Value: &persistencepb.Attribute_StrVal{
-						StrVal: first_name,
-					},
-				},
-				&persistencepb.Attribute{
-					Name: "last_name",
-					Value: &persistencepb.Attribute_StrVal{
-						StrVal: last_name,
-					},
-				},
-				&persistencepb.Attribute{
-					Name: "gender",
-					Value: &persistencepb.Attribute_StrVal{
-						StrVal: gender,
-					},
-				}, &persistencepb.Attribute{
-					Name: "hire_date",
-					Value: &persistencepb.Attribute_NumericVal{
-						NumericVal: hire_date,
-					},
-				},
-			},
-		},
-	}
-
-	rsp, err := c.PersistEntity(context.Background(), rqst)
-	if err != nil {
-		return err
-	}
-
-	log.Println(rsp.Result)
-
-	return nil
-}
-
 // First test create a fresh new connection...
 func TestPersist(t *testing.T) {
 	fmt.Println("Connection creation test.")
@@ -105,15 +48,81 @@ func TestPersist(t *testing.T) {
 	// Create a new client service...
 	c := persistencepb.NewPersistenceServiceClient(cc)
 
-	// Here I will convert the values to basic type.
-	emp_no := float64(10906)                                // int to numeric
-	hire_date, _ := time.Parse("2006-01-02", "2011-01-19")  // date string to unix time
-	birth_date, _ := time.Parse("1979-01-28", "2011-01-19") // date string to unix time
+	stream, err := c.PersistEntities(context.Background())
+	if err != nil {
+		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
+	}
 
-	// TODO make the test with employees from sql table to see performance.
-	err := persistEmploye(c, emp_no, float64(hire_date.Unix()), "Dave", "Courtois", "M", float64(birth_date.Unix()))
+	// here you must run the sql service test before runing this test in order
+	// to generate the file Employees.json
+	employes := make([]map[string]interface{}, 0)
+
+	b, err := ioutil.ReadFile("/tmp/Employees.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = json.Unmarshal(b, &employes)
+	// Persist 500 rows at time to save marshaling unmarshaling cycle time.
+	for i := 0; i < len(employes); i++ {
+		employes_ := make([]interface{}, 0)
+		for j := 0; j < 500 && i < len(employes); j++ {
+			employes_ = append(employes_, employes[i])
+			i++
+		}
+		var jsonStr []byte
+		jsonStr, err = json.Marshal(employes_)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		rqst := &persistencepb.PersistEntitiesRqst{
+			JsonStr: string(jsonStr),
+		}
+
+		err = stream.Send(rqst)
+		if err != nil {
+			log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
+		}
+
+		log.Println(i, "/", len(employes))
+	}
+
+	rsp, err := stream.CloseAndRecv()
+
+	if err != nil {
+		log.Fatalf("Persist entities fail %v", err)
+	}
+
+	log.Println("Persist entities succed: ", rsp.Result)
+}
+
+/*func TestGetEntityByUuid(t *testing.T) {
+	fmt.Println("Connection creation test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	// So here I will retreive an employe with a given uuid.
+	rqst := &persistencepb.GetEntityByUuidRqst{
+		Uuid:     "16722a8e-ba42-4c73-9413-cf9c63937215",
+		Typename: "Employee",
+	}
+
+	rsp, err := c.GetEntityByUuid(context.Background(), rqst)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	jsonStr := rsp.GetJsonStr()
+	log.Println("----> retreive value: ", jsonStr)
 
 	if err != nil {
 		log.Panicln("fail test persist!", err)
 	}
-}
+}*/

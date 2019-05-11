@@ -13,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Globular/persistence/persistencepb"
-	"github.com/davecourtois/Globular/persistence/store"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -32,6 +31,17 @@ var (
 	allowed_origins string = ""
 )
 
+// This is the connction to a datastore.
+type connection struct {
+	Id       string
+	Name     string
+	Host     string
+	Store    string
+	User     string
+	Password string
+	Port     int32
+}
+
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
@@ -41,8 +51,8 @@ type server struct {
 	Protocol        string
 	AllowAllOrigins bool
 	AllowedOrigins  string // comma separated string.
-	// The data store.
-	s *store.Store
+
+	Connections map[string]connection
 }
 
 // Create the configuration file if is not already exist.
@@ -55,9 +65,7 @@ func (self *server) init() {
 	} else {
 		self.save()
 	}
-
-	// initialyse the data store.
-	self.s = store.NewStore()
+	self.Connections = make(map[string]connection)
 }
 
 // Save the configuration values.
@@ -77,9 +85,75 @@ func (self *server) save() error {
 	return nil
 }
 
-// Implementation of the Persistence method.
-func (self *server) PersistEntity(ctx context.Context, rqst *persistencepb.PersistEntityRqst) (*persistencepb.PersistEntityRsp, error) {
-	fmt.Println("Persist a value")
+// Create a new Store connection and store it for futur use. If the connection already
+// exist it will be replace by the new one.
+func (self *server) CreateConnection(ctx context.Context, rsqt *persistencepb.CreateConnectionRqst) (*persistencepb.CreateConnectionRsp, error) {
+	// sqlpb
+	fmt.Println("Try to create a new connection")
+	var c connection
+	var err error
+
+	// Set the connection info from the request.
+	c.Id = rsqt.Connection.Id
+	c.Name = rsqt.Connection.Name
+	c.Host = rsqt.Connection.Host
+	c.Port = rsqt.Connection.Port
+	c.User = rsqt.Connection.User
+	c.Password = rsqt.Connection.Password
+	c.Store = rsqt.Connection.Store
+
+	/*
+		db, err := sql.Open(c.Driver, c.getConnectionString())
+
+		if err != nil {
+			// codes.
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// close the connection when done.
+		defer db.Close()
+	*/
+
+	// set or update the connection and save it in json file.
+	self.Connections[c.Id] = c
+
+	// In that case I will save it in file.
+	err = self.save()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// test if the connection is reacheable.
+	/*_, err = self.ping(ctx, c.Id)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}*/
+
+	// Print the success message here.
+	log.Println("Connection " + c.Id + " was created with success!")
+
+	return &persistencepb.CreateConnectionRsp{
+		Result: true,
+	}, nil
+}
+
+// Remove a connection from the map and the file.
+func (self *server) DeleteConnection(ctx context.Context, rqst *persistencepb.DeleteConnectionRqst) (*persistencepb.DeleteConnectionRsp, error) {
+	id := rqst.GetId()
+	if _, ok := self.Connections[id]; !ok {
+		return &persistencepb.DeleteConnectionRsp{
+			Result: true,
+		}, nil
+	}
+
+	delete(self.Connections, id)
 
 	// In that case I will save it in file.
 	err := self.save()
@@ -89,61 +163,10 @@ func (self *server) PersistEntity(ctx context.Context, rqst *persistencepb.Persi
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	entity := rqst.Entity
-
-	// Here I will compose the entity url.
-	address, _ := Utility.MyIP() // Here I will set the url to retreive the entity over the network...
-	entity.Url = address.Hostname + ":" + strconv.Itoa(self.Port) + "/?Typename=" + entity.Typename + "&UUID=" + entity.UUID
-
-	err = self.s.PersistEntity(entity)
-
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	return &persistencepb.PersistEntityRsp{
-		Result: entity.Url,
+	// return success.
+	return &persistencepb.DeleteConnectionRsp{
+		Result: true,
 	}, nil
-}
-
-// Retreive entity by it uuid.
-func (self *server) GetEntityByUuid(ctx context.Context, rqst *persistencepb.GetEntityByUuidRqst) (*persistencepb.GetEntityByUuidRsp, error) {
-
-	entity, err := self.s.GetEntityByUuid(rqst.Typename, rqst.Uuid)
-
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// return the entity retreive from the store.
-	return &persistencepb.GetEntityByUuidRsp{
-		Entity: entity,
-	}, nil
-}
-
-// Return all entities for a given typeName.
-func (self *server) GetEntitiesByTypename(rqst *persistencepb.GetEntitiesByTypenameRqst, stream persistencepb.PersistenceService_GetEntitiesByTypenameServer) error {
-
-	entities, err := self.s.GetEntitiesByTypename(rqst.Typename)
-
-	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// return one entity at time to the stream...
-	for i := 0; i < len(entities); i++ {
-		stream.Send(&persistencepb.GetEntitiesByTypenameRsp{
-			Entity: entities[i],
-		})
-	}
-
-	return nil
 }
 
 // That service is use to give access to SQL.

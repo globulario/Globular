@@ -7,106 +7,39 @@ package persistence;
 
 option go_package="persistencepb";
 
-// Because protobuffer dosent allow repeated values in oneof clause I will 
-// predefine the type here.
-message Bool_array {
-	repeated bool values = 1; // can be array...
+message Connection {
+	string id = 1;
+	string name = 2;
+	string host = 3;
+	string store = 5;
+	string user = 6;
+	string password = 7;
+	int32 port = 8;
 }
 
-message Numeric_array {
-	repeated double values = 1; // can be array...
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
 }
 
-message String_array {
-	repeated string values = 1; // can be array...
+message CreateConnectionRsp {
+	bool result = 1;
 }
 
-// Attributes.
-message Attribute{
-	// The name of the attribute.
-	string name = 1;
-	
-	// The value contain in the attribute.
-	// The value contain in the attribute.
-	oneof value {
-		// string values
-		string str_val = 2;
-		String_array str_arr = 3;
-		
-		// bool values
-		bool bool_val = 4;
-		Bool_array bool_arr = 5;
-		
-		// numeric values
-		double numeric_val = 6;
-		Numeric_array numeric_arr = 7;
-		
-	}
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
 }
 
-// Type of relation.
-enum RelationType {
-	AGGREGATION = 0; // Attached target lifespan.
-	COMPOSITION = 1; 
-}
-
-// A relation is a link between tow objects.
-message Relation {
-	string name = 1;
-	string source_url = 2;
-	string target_url = 3;
-	RelationType relationType = 4;
-}
-
-// Entity contain necessary information to perist and retreive object 
-// in the data store.
-message Entity {
-	// contain about JavaScript Class that generate that object.
-	string typename = 1;
-
-	// universal unique identifier.
-	string UUID = 2;
-
-	// Can be use to retreive the object.
-	string url = 3;
-	
-	// The array of attribute.
-	repeated Attribute attibutes = 4;
-}
-
-message PersistEntityRqst {
-	Entity entity = 1;
-}
-
-message PersistEntityRsp {
-	string result = 1; // Return the Object Reference.
-}
-
-message GetEntityByUuidRqst {
-	string uuid = 1;
-	string typename = 2;
-}
-
-message GetEntityByUuidRsp {
-	Entity entity = 1;
-}
-
-message GetEntitiesByTypenameRqst{
-	string typename = 1;
-}
-
-message GetEntitiesByTypenameRsp {
-	Entity entity = 1;
+message DeleteConnectionRsp {
+	bool result = 1;
 }
 
 service PersistenceService {
-	// Persist entity.
-	rpc PersistEntity(PersistEntityRqst) returns (PersistEntityRsp){};
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	
-	// Retreive entity by it uuid.
-	rpc GetEntityByUuid(GetEntityByUuidRqst) returns (GetEntityByUuidRsp){};
-	
-	// Return all entities for a given typeName.
-	rpc GetEntitiesByTypename(GetEntitiesByTypenameRqst) returns (stream GetEntitiesByTypenameRsp){};
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
 	
 }
