@@ -6,7 +6,7 @@ function main() {
     testEcho("Hello globular!");
 
     // Sql test.
-    testCreateSqlConnection();
+    //  testCreateSqlConnection();
 
     testSelectQuery()
 }
@@ -17,13 +17,22 @@ function main() {
 function testEcho(str) {
 
     // Create a new request.
-    var request = new EchoRequest();
+    var request = new Echo.EchoRequest();
     request.setMessage(str);
 
     globular.echoService.echo(request, {}, function (err, response) {
         // ...
         console.log(response.getMessage())
     });
+
+    // Now I will test with promise
+    globular.echoServicePromise.echo(request)
+        .then((resp) => {
+            console.log(resp.getMessage())
+        })
+        .catch((error) => {
+            console.log(error)
+        })
 }
 
 /////////////////////////////////////////////////////////
@@ -33,7 +42,7 @@ function testEcho(str) {
 // Test with MySQL
 
 // Test create a new sql connection.
-/* function testCreateSqlConnection() {
+function testCreateSqlConnection() {
     var rqst = new Sql.CreateConnectionRqst();
     var c = new Sql.Connection();
     c.setId("employees_db")
@@ -85,9 +94,12 @@ function testSelectQuery() {
     stream.on('end', function (end) {
         // stream end signal
     });
-}*/
+  
 
 
+}
+
+/*
 // Test with Sql Server and odbc connector.
 function testCreateSqlConnection() {
     var rqst = new Sql.CreateConnectionRqst();
@@ -119,7 +131,7 @@ function testSelectQuery() {
     rqst.setQuery(q)
     var metadata = { 'custom-header-1': 'value1' };
     var stream = globular.sqlService.queryContext(rqst, metadata);
-    
+
     // Get the stream and set event on it...
     stream.on('data', function (response) {
         if(response.hasHeader()){
@@ -142,3 +154,4 @@ function testSelectQuery() {
         console.log("---> end: ", end)
     });
 }
+*/

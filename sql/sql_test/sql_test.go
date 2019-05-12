@@ -197,7 +197,7 @@ func TestQueryContext(t *testing.T) {
 
 	}
 
-	log.Println("---> all data was here ", len(data))
+	log.Println("---> all data was here ", len(data), header)
 	exportSqlToJson("Employee", header, data)
 }
 
@@ -209,9 +209,7 @@ func exportSqlToJson(tableName string, header []map[string]interface{}, rows []i
 	var objects = make([]map[string]interface{}, 0)
 	for i := 0; i < len(rows); i++ {
 		obj := make(map[string]interface{})
-		// Thos tow value are needed by the store.
-		obj["TYPENAME"] = tableName
-		obj["UUID"] = Utility.RandomUUID()
+		// The tow value are needed by the store.
 		for j := 0; j < len(header); j++ {
 			obj[header[j]["name"].(string)] = rows[i].([]interface{})[j]
 		}

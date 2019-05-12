@@ -37,7 +37,7 @@ func getClientConnection() *grpc.ClientConn {
 }
 
 // First test create a fresh new connection...
-func TestPersist(t *testing.T) {
+func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 
 	cc := getClientConnection()
@@ -48,7 +48,39 @@ func TestPersist(t *testing.T) {
 	// Create a new client service...
 	c := persistencepb.NewPersistenceServiceClient(cc)
 
-	stream, err := c.PersistEntities(context.Background())
+	rqst := &persistencepb.CreateConnectionRqst{
+		Connection: &persistencepb.Connection{
+			Id:       "mongo_db_test_connection",
+			User:     "",
+			Password: "",
+			Port:     27017,
+			Host:     "localhost",
+			Store:    persistencepb.StoreType_MONGO,
+			Timeout:  10,
+		},
+	}
+
+	rsp, err := c.CreateConnection(context.Background(), rqst)
+	if err != nil {
+		log.Fatalf("error while CreateConnection: %v", err)
+	}
+
+	log.Println("Response form CreateConnection:", rsp.Result)
+}
+
+// First test create a fresh new connection...
+/*func TestPersist(t *testing.T) {
+	fmt.Println("Connection creation test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	stream, err := c.InsertMany(context.Background())
 	if err != nil {
 		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
 	}
@@ -76,8 +108,11 @@ func TestPersist(t *testing.T) {
 			log.Fatalln(err)
 		}
 
-		rqst := &persistencepb.PersistEntitiesRqst{
-			JsonStr: string(jsonStr),
+		rqst := &persistencepb.InsertManyRqst{
+			Id:         "mongo_db_test_connection",
+			Database:   "TestMongoDB",
+			Collection: "Employees",
+			JsonStr:    string(jsonStr),
 		}
 
 		err = stream.Send(rqst)
@@ -94,35 +129,5 @@ func TestPersist(t *testing.T) {
 		log.Fatalf("Persist entities fail %v", err)
 	}
 
-	log.Println("Persist entities succed: ", rsp.Result)
-}
-
-/*func TestGetEntityByUuid(t *testing.T) {
-	fmt.Println("Connection creation test.")
-
-	cc := getClientConnection()
-
-	// when done the connection will be close.
-	defer cc.Close()
-
-	// Create a new client service...
-	c := persistencepb.NewPersistenceServiceClient(cc)
-
-	// So here I will retreive an employe with a given uuid.
-	rqst := &persistencepb.GetEntityByUuidRqst{
-		Uuid:     "16722a8e-ba42-4c73-9413-cf9c63937215",
-		Typename: "Employee",
-	}
-
-	rsp, err := c.GetEntityByUuid(context.Background(), rqst)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	jsonStr := rsp.GetJsonStr()
-	log.Println("----> retreive value: ", jsonStr)
-
-	if err != nil {
-		log.Panicln("fail test persist!", err)
-	}
+	log.Println("Persist entities succed: ", rsp.Ids)
 }*/

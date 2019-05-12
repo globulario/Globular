@@ -6,6 +6,16 @@
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "Connections": {
+    "bris_outil": {
+      "Id": "bris_outil",
+      "Name": "BrisOutil",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
     "employees_db": {
       "Id": "employees_db",
       "Name": "employees",

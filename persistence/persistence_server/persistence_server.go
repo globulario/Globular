@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/davecourtois/Globular/persistence/persistence_store"
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -36,10 +38,12 @@ type connection struct {
 	Id       string
 	Name     string
 	Host     string
-	Store    string
+	Store    persistencepb.StoreType
 	User     string
 	Password string
 	Port     int32
+	Timeout  int32
+	Options  string
 }
 
 // Value need by Globular to start the services...
@@ -53,6 +57,9 @@ type server struct {
 	AllowedOrigins  string // comma separated string.
 
 	Connections map[string]connection
+
+	// The map of store (also connections...)
+	stores map[string]persistence_store.Store
 }
 
 // Create the configuration file if is not already exist.
@@ -66,6 +73,7 @@ func (self *server) init() {
 		self.save()
 	}
 	self.Connections = make(map[string]connection)
+	self.stores = make(map[string]persistence_store.Store)
 }
 
 // Save the configuration values.
@@ -102,9 +110,12 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *persistencepb.Cr
 	c.Password = rsqt.Connection.Password
 	c.Store = rsqt.Connection.Store
 
-	/*
-		db, err := sql.Open(c.Driver, c.getConnectionString())
+	if c.Store == persistencepb.StoreType_MONGO {
+		// here I will create a new mongo data store.
+		s := new(persistence_store.MongoStore)
 
+		// Now I will try to connect...
+		err := s.Connect(c.Host, c.Port, c.User, c.Password, c.Name, c.Timeout, c.Options)
 		if err != nil {
 			// codes.
 			return nil, status.Errorf(
@@ -112,9 +123,9 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *persistencepb.Cr
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
-		// close the connection when done.
-		defer db.Close()
-	*/
+		// keep the store for futur call...
+		self.stores[c.Id] = s
+	}
 
 	// set or update the connection and save it in json file.
 	self.Connections[c.Id] = c
@@ -128,13 +139,13 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *persistencepb.Cr
 	}
 
 	// test if the connection is reacheable.
-	/*_, err = self.ping(ctx, c.Id)
+	err = self.stores[c.Id].Ping(ctx)
 
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}*/
+	}
 
 	// Print the success message here.
 	log.Println("Connection " + c.Id + " was created with success!")
@@ -142,6 +153,110 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *persistencepb.Cr
 	return &persistencepb.CreateConnectionRsp{
 		Result: true,
 	}, nil
+}
+
+// Ping a sql connection.
+func (self *server) Ping(ctx context.Context, rsqt *persistencepb.PingConnectionRqst) (*persistencepb.PingConnectionRsp, error) {
+	err := self.stores[rsqt.GetId()].Ping(ctx)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &persistencepb.PingConnectionRsp{
+		Result: "pong",
+	}, nil
+}
+
+// Implementation of the Persistence method.
+func (self *server) InsertOne(ctx context.Context, rqst *persistencepb.InsertOneRqst) (*persistencepb.InsertOneRsp, error) {
+
+	// In that case I will save it in file.
+	err := self.save()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	entity := make(map[string]interface{})
+	err = json.Unmarshal([]byte(rqst.JsonStr), &entity)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	var id interface{}
+	id, err = self.stores[rqst.Id].InsertOne(ctx, rqst.Database, rqst.Collection, entity)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	jsonStr, err := json.Marshal(id)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &persistencepb.InsertOneRsp{
+		Id: string(jsonStr),
+	}, nil
+}
+
+func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertManyServer) error {
+	ids := make([]interface{}, 0)
+
+	// In that case I will save it in file.
+	err := self.save()
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	for {
+		rqst, err := stream.Recv()
+
+		// end of the stream.
+		if err == io.EOF {
+			jsonStr, err := json.Marshal(ids)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			// Close the stream...
+			stream.SendAndClose(&persistencepb.InsertManyRsp{
+				Ids: string(jsonStr),
+			})
+
+			return nil
+		}
+
+		entities := make([]interface{}, 0)
+		err = json.Unmarshal([]byte(rqst.JsonStr), &entities)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		var results []interface{}
+		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.Database, rqst.Collection, entities)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// append to the list of ids.
+		ids = append(ids, results...)
+
+	}
 }
 
 // Remove a connection from the map and the file.

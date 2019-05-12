@@ -24,17 +24,41 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type StoreType int32
+
+const (
+	StoreType_MONGO StoreType = 0
+)
+
+var StoreType_name = map[int32]string{
+	0: "MONGO",
+}
+
+var StoreType_value = map[string]int32{
+	"MONGO": 0,
+}
+
+func (x StoreType) String() string {
+	return proto.EnumName(StoreType_name, int32(x))
+}
+
+func (StoreType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{0}
+}
+
 type Connection struct {
-	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Host                 string   `protobuf:"bytes,3,opt,name=host,proto3" json:"host,omitempty"`
-	Store                string   `protobuf:"bytes,5,opt,name=store,proto3" json:"store,omitempty"`
-	User                 string   `protobuf:"bytes,6,opt,name=user,proto3" json:"user,omitempty"`
-	Password             string   `protobuf:"bytes,7,opt,name=password,proto3" json:"password,omitempty"`
-	Port                 int32    `protobuf:"varint,8,opt,name=port,proto3" json:"port,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Id                   string    `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                 string    `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Host                 string    `protobuf:"bytes,3,opt,name=host,proto3" json:"host,omitempty"`
+	Store                StoreType `protobuf:"varint,5,opt,name=store,proto3,enum=persistence.StoreType" json:"store,omitempty"`
+	User                 string    `protobuf:"bytes,6,opt,name=user,proto3" json:"user,omitempty"`
+	Password             string    `protobuf:"bytes,7,opt,name=password,proto3" json:"password,omitempty"`
+	Port                 int32     `protobuf:"varint,8,opt,name=port,proto3" json:"port,omitempty"`
+	Timeout              int32     `protobuf:"varint,9,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Options              string    `protobuf:"bytes,10,opt,name=options,proto3" json:"options,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
 func (m *Connection) Reset()         { *m = Connection{} }
@@ -83,11 +107,11 @@ func (m *Connection) GetHost() string {
 	return ""
 }
 
-func (m *Connection) GetStore() string {
+func (m *Connection) GetStore() StoreType {
 	if m != nil {
 		return m.Store
 	}
-	return ""
+	return StoreType_MONGO
 }
 
 func (m *Connection) GetUser() string {
@@ -109,6 +133,20 @@ func (m *Connection) GetPort() int32 {
 		return m.Port
 	}
 	return 0
+}
+
+func (m *Connection) GetTimeout() int32 {
+	if m != nil {
+		return m.Timeout
+	}
+	return 0
+}
+
+func (m *Connection) GetOptions() string {
+	if m != nil {
+		return m.Options
+	}
+	return ""
 }
 
 // Create connection
@@ -269,12 +307,302 @@ func (m *DeleteConnectionRsp) GetResult() bool {
 	return false
 }
 
+// Ping Connection
+type PingConnectionRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PingConnectionRqst) Reset()         { *m = PingConnectionRqst{} }
+func (m *PingConnectionRqst) String() string { return proto.CompactTextString(m) }
+func (*PingConnectionRqst) ProtoMessage()    {}
+func (*PingConnectionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{5}
+}
+
+func (m *PingConnectionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PingConnectionRqst.Unmarshal(m, b)
+}
+func (m *PingConnectionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PingConnectionRqst.Marshal(b, m, deterministic)
+}
+func (m *PingConnectionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PingConnectionRqst.Merge(m, src)
+}
+func (m *PingConnectionRqst) XXX_Size() int {
+	return xxx_messageInfo_PingConnectionRqst.Size(m)
+}
+func (m *PingConnectionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_PingConnectionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PingConnectionRqst proto.InternalMessageInfo
+
+func (m *PingConnectionRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type PingConnectionRsp struct {
+	Result               string   `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PingConnectionRsp) Reset()         { *m = PingConnectionRsp{} }
+func (m *PingConnectionRsp) String() string { return proto.CompactTextString(m) }
+func (*PingConnectionRsp) ProtoMessage()    {}
+func (*PingConnectionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{6}
+}
+
+func (m *PingConnectionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PingConnectionRsp.Unmarshal(m, b)
+}
+func (m *PingConnectionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PingConnectionRsp.Marshal(b, m, deterministic)
+}
+func (m *PingConnectionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PingConnectionRsp.Merge(m, src)
+}
+func (m *PingConnectionRsp) XXX_Size() int {
+	return xxx_messageInfo_PingConnectionRsp.Size(m)
+}
+func (m *PingConnectionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_PingConnectionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PingConnectionRsp proto.InternalMessageInfo
+
+func (m *PingConnectionRsp) GetResult() string {
+	if m != nil {
+		return m.Result
+	}
+	return ""
+}
+
+type InsertManyRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Collection           string   `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	JsonStr              string   `protobuf:"bytes,4,opt,name=jsonStr,proto3" json:"jsonStr,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InsertManyRqst) Reset()         { *m = InsertManyRqst{} }
+func (m *InsertManyRqst) String() string { return proto.CompactTextString(m) }
+func (*InsertManyRqst) ProtoMessage()    {}
+func (*InsertManyRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{7}
+}
+
+func (m *InsertManyRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InsertManyRqst.Unmarshal(m, b)
+}
+func (m *InsertManyRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InsertManyRqst.Marshal(b, m, deterministic)
+}
+func (m *InsertManyRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InsertManyRqst.Merge(m, src)
+}
+func (m *InsertManyRqst) XXX_Size() int {
+	return xxx_messageInfo_InsertManyRqst.Size(m)
+}
+func (m *InsertManyRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_InsertManyRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InsertManyRqst proto.InternalMessageInfo
+
+func (m *InsertManyRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *InsertManyRqst) GetDatabase() string {
+	if m != nil {
+		return m.Database
+	}
+	return ""
+}
+
+func (m *InsertManyRqst) GetCollection() string {
+	if m != nil {
+		return m.Collection
+	}
+	return ""
+}
+
+func (m *InsertManyRqst) GetJsonStr() string {
+	if m != nil {
+		return m.JsonStr
+	}
+	return ""
+}
+
+type InsertManyRsp struct {
+	Ids                  string   `protobuf:"bytes,1,opt,name=ids,proto3" json:"ids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InsertManyRsp) Reset()         { *m = InsertManyRsp{} }
+func (m *InsertManyRsp) String() string { return proto.CompactTextString(m) }
+func (*InsertManyRsp) ProtoMessage()    {}
+func (*InsertManyRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{8}
+}
+
+func (m *InsertManyRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InsertManyRsp.Unmarshal(m, b)
+}
+func (m *InsertManyRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InsertManyRsp.Marshal(b, m, deterministic)
+}
+func (m *InsertManyRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InsertManyRsp.Merge(m, src)
+}
+func (m *InsertManyRsp) XXX_Size() int {
+	return xxx_messageInfo_InsertManyRsp.Size(m)
+}
+func (m *InsertManyRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_InsertManyRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InsertManyRsp proto.InternalMessageInfo
+
+func (m *InsertManyRsp) GetIds() string {
+	if m != nil {
+		return m.Ids
+	}
+	return ""
+}
+
+type InsertOneRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Collection           string   `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	JsonStr              string   `protobuf:"bytes,4,opt,name=jsonStr,proto3" json:"jsonStr,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InsertOneRqst) Reset()         { *m = InsertOneRqst{} }
+func (m *InsertOneRqst) String() string { return proto.CompactTextString(m) }
+func (*InsertOneRqst) ProtoMessage()    {}
+func (*InsertOneRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{9}
+}
+
+func (m *InsertOneRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InsertOneRqst.Unmarshal(m, b)
+}
+func (m *InsertOneRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InsertOneRqst.Marshal(b, m, deterministic)
+}
+func (m *InsertOneRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InsertOneRqst.Merge(m, src)
+}
+func (m *InsertOneRqst) XXX_Size() int {
+	return xxx_messageInfo_InsertOneRqst.Size(m)
+}
+func (m *InsertOneRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_InsertOneRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InsertOneRqst proto.InternalMessageInfo
+
+func (m *InsertOneRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *InsertOneRqst) GetDatabase() string {
+	if m != nil {
+		return m.Database
+	}
+	return ""
+}
+
+func (m *InsertOneRqst) GetCollection() string {
+	if m != nil {
+		return m.Collection
+	}
+	return ""
+}
+
+func (m *InsertOneRqst) GetJsonStr() string {
+	if m != nil {
+		return m.JsonStr
+	}
+	return ""
+}
+
+type InsertOneRsp struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InsertOneRsp) Reset()         { *m = InsertOneRsp{} }
+func (m *InsertOneRsp) String() string { return proto.CompactTextString(m) }
+func (*InsertOneRsp) ProtoMessage()    {}
+func (*InsertOneRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{10}
+}
+
+func (m *InsertOneRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InsertOneRsp.Unmarshal(m, b)
+}
+func (m *InsertOneRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InsertOneRsp.Marshal(b, m, deterministic)
+}
+func (m *InsertOneRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InsertOneRsp.Merge(m, src)
+}
+func (m *InsertOneRsp) XXX_Size() int {
+	return xxx_messageInfo_InsertOneRsp.Size(m)
+}
+func (m *InsertOneRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_InsertOneRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InsertOneRsp proto.InternalMessageInfo
+
+func (m *InsertOneRsp) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
 func init() {
+	proto.RegisterEnum("persistence.StoreType", StoreType_name, StoreType_value)
 	proto.RegisterType((*Connection)(nil), "persistence.Connection")
 	proto.RegisterType((*CreateConnectionRqst)(nil), "persistence.CreateConnectionRqst")
 	proto.RegisterType((*CreateConnectionRsp)(nil), "persistence.CreateConnectionRsp")
 	proto.RegisterType((*DeleteConnectionRqst)(nil), "persistence.DeleteConnectionRqst")
 	proto.RegisterType((*DeleteConnectionRsp)(nil), "persistence.DeleteConnectionRsp")
+	proto.RegisterType((*PingConnectionRqst)(nil), "persistence.PingConnectionRqst")
+	proto.RegisterType((*PingConnectionRsp)(nil), "persistence.PingConnectionRsp")
+	proto.RegisterType((*InsertManyRqst)(nil), "persistence.InsertManyRqst")
+	proto.RegisterType((*InsertManyRsp)(nil), "persistence.InsertManyRsp")
+	proto.RegisterType((*InsertOneRqst)(nil), "persistence.InsertOneRqst")
+	proto.RegisterType((*InsertOneRsp)(nil), "persistence.InsertOneRsp")
 }
 
 func init() {
@@ -282,26 +610,39 @@ func init() {
 }
 
 var fileDescriptor_786a22e1273e0931 = []byte{
-	// 298 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x52, 0x4d, 0x4b, 0xc3, 0x40,
-	0x14, 0x6c, 0xaa, 0x89, 0xf1, 0x15, 0x3f, 0x58, 0x83, 0x2e, 0x3d, 0xc5, 0x3d, 0x48, 0x41, 0xac,
-	0x50, 0x0f, 0xde, 0xad, 0x77, 0x25, 0x9e, 0xf4, 0x96, 0x26, 0x0f, 0x0c, 0xd4, 0xec, 0xba, 0x6f,
-	0xab, 0xff, 0xc6, 0x1f, 0xe4, 0xaf, 0x92, 0xdd, 0x48, 0xbb, 0x4d, 0xa2, 0xb7, 0x99, 0x61, 0x32,
-	0x99, 0x59, 0x1e, 0x5c, 0x2a, 0xd4, 0x54, 0x91, 0xc1, 0xba, 0xc0, 0x6b, 0x0f, 0xab, 0x85, 0xcf,
-	0xa6, 0x4a, 0x4b, 0x23, 0xd9, 0xc8, 0x93, 0xc4, 0x57, 0x00, 0x30, 0x97, 0x75, 0x8d, 0x85, 0xa9,
-	0x64, 0xcd, 0x0e, 0x61, 0x58, 0x95, 0x3c, 0x48, 0x83, 0xc9, 0x7e, 0x36, 0xac, 0x4a, 0xc6, 0x60,
-	0xb7, 0xce, 0xdf, 0x90, 0x0f, 0x9d, 0xe2, 0xb0, 0xd5, 0x5e, 0x25, 0x19, 0xbe, 0xd3, 0x68, 0x16,
-	0xb3, 0x04, 0x42, 0x32, 0x52, 0x23, 0x0f, 0x9d, 0xd8, 0x10, 0xeb, 0x5c, 0x11, 0x6a, 0x1e, 0x35,
-	0x4e, 0x8b, 0xd9, 0x18, 0x62, 0x95, 0x13, 0x7d, 0x4a, 0x5d, 0xf2, 0x3d, 0xa7, 0xaf, 0xb9, 0xf5,
-	0x2b, 0xa9, 0x0d, 0x8f, 0xd3, 0x60, 0x12, 0x66, 0x0e, 0x8b, 0x07, 0x48, 0xe6, 0x1a, 0x73, 0x83,
-	0x9b, 0x96, 0xd9, 0x3b, 0x19, 0x76, 0x0b, 0x50, 0xac, 0x15, 0xd7, 0x78, 0x34, 0x3b, 0x9b, 0xfa,
-	0x6b, 0xbd, 0x0f, 0x3c, 0xab, 0xb8, 0x82, 0x93, 0x4e, 0x20, 0x29, 0x76, 0x0a, 0x91, 0x46, 0x5a,
-	0x2d, 0x8d, 0xcb, 0x8a, 0xb3, 0x5f, 0x26, 0x2e, 0x20, 0xb9, 0xc7, 0x25, 0x76, 0xfe, 0xdf, 0x7a,
-	0x29, 0x1b, 0xdb, 0xf1, 0xfd, 0x1d, 0x3b, 0xfb, 0x0e, 0x80, 0x3d, 0x6e, 0xca, 0x3e, 0xa1, 0xfe,
-	0xa8, 0x0a, 0x64, 0xcf, 0x70, 0xdc, 0x2e, 0xc7, 0xce, 0xb7, 0x57, 0xf5, 0x3c, 0xc6, 0x38, 0xfd,
-	0xdf, 0x42, 0x4a, 0x0c, 0x6c, 0x74, 0xbb, 0x60, 0x2b, 0xba, 0x6f, 0x67, 0x2b, 0xba, 0x67, 0xa2,
-	0x18, 0xdc, 0x1d, 0xbd, 0x1c, 0x6c, 0x1d, 0xdd, 0x22, 0x72, 0x97, 0x76, 0xf3, 0x13, 0x00, 0x00,
-	0xff, 0xff, 0x07, 0x71, 0x83, 0xa4, 0x98, 0x02, 0x00, 0x00,
+	// 507 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x94, 0xcb, 0x6e, 0x13, 0x31,
+	0x14, 0x86, 0x33, 0xb9, 0x35, 0x73, 0x4a, 0x43, 0x38, 0x54, 0xc1, 0x0c, 0x52, 0x48, 0x47, 0x08,
+	0x45, 0x14, 0x8a, 0x14, 0x16, 0xec, 0x69, 0x25, 0xd4, 0x45, 0x49, 0x35, 0x61, 0x03, 0xbb, 0x49,
+	0xc6, 0x82, 0x41, 0xa9, 0x6d, 0x6c, 0xa7, 0xa8, 0x2f, 0xc4, 0xc3, 0xf1, 0x14, 0xc8, 0x9e, 0x4b,
+	0xe6, 0xd6, 0xb0, 0x63, 0x77, 0xce, 0xef, 0x7f, 0xbe, 0x33, 0xb6, 0x7f, 0x19, 0x4e, 0x05, 0x95,
+	0x2a, 0x56, 0x9a, 0xb2, 0x35, 0x7d, 0x5b, 0xa8, 0xc5, 0xaa, 0xd8, 0x9d, 0x09, 0xc9, 0x35, 0xc7,
+	0xc3, 0x82, 0xe4, 0xff, 0x71, 0x00, 0xce, 0x39, 0x63, 0x74, 0xad, 0x63, 0xce, 0x70, 0x08, 0xed,
+	0x38, 0x22, 0xce, 0xd4, 0x99, 0xb9, 0x41, 0x3b, 0x8e, 0x10, 0xa1, 0xcb, 0xc2, 0x1b, 0x4a, 0xda,
+	0x56, 0xb1, 0xb5, 0xd1, 0xbe, 0x73, 0xa5, 0x49, 0x27, 0xd1, 0x4c, 0x8d, 0xaf, 0xa1, 0xa7, 0x34,
+	0x97, 0x94, 0xf4, 0xa6, 0xce, 0x6c, 0x38, 0x1f, 0x9f, 0x15, 0xc7, 0x2e, 0xcd, 0xca, 0xe7, 0x3b,
+	0x41, 0x83, 0xc4, 0x64, 0x08, 0x5b, 0x45, 0x25, 0xe9, 0x27, 0x04, 0x53, 0xa3, 0x07, 0x03, 0x11,
+	0x2a, 0xf5, 0x8b, 0xcb, 0x88, 0x1c, 0x58, 0x3d, 0xef, 0x8d, 0x5f, 0x70, 0xa9, 0xc9, 0x60, 0xea,
+	0xcc, 0x7a, 0x81, 0xad, 0x91, 0xc0, 0x81, 0x8e, 0x6f, 0x28, 0xdf, 0x6a, 0xe2, 0x5a, 0x39, 0x6b,
+	0xcd, 0x0a, 0x17, 0x66, 0x37, 0x8a, 0x80, 0x05, 0x65, 0xad, 0xbf, 0x80, 0xe3, 0x73, 0x49, 0x43,
+	0x4d, 0x77, 0x3b, 0x0e, 0x7e, 0x2a, 0x8d, 0xef, 0x01, 0xd6, 0xb9, 0x62, 0x77, 0x7f, 0x38, 0x7f,
+	0x52, 0xda, 0x42, 0xe1, 0x83, 0x82, 0xd5, 0x7f, 0x03, 0x8f, 0x6b, 0x40, 0x25, 0x70, 0x0c, 0x7d,
+	0x49, 0xd5, 0x76, 0xa3, 0x2d, 0x6b, 0x10, 0xa4, 0x9d, 0xff, 0x12, 0x8e, 0x2f, 0xe8, 0x86, 0xd6,
+	0xe6, 0x57, 0x4e, 0xdd, 0x60, 0x6b, 0xbe, 0x3d, 0xd8, 0x17, 0x80, 0xd7, 0x31, 0xfb, 0xf6, 0x0f,
+	0xe8, 0x29, 0x3c, 0xaa, 0xb8, 0x6a, 0x48, 0x37, 0x47, 0xde, 0xc2, 0xf0, 0x92, 0x29, 0x2a, 0xf5,
+	0x55, 0xc8, 0xee, 0x9a, 0x70, 0xe6, 0xbe, 0xa2, 0x50, 0x87, 0xab, 0x50, 0x65, 0xe9, 0xc8, 0x7b,
+	0x9c, 0x98, 0xf3, 0xdc, 0x6c, 0xd2, 0xf3, 0x4c, 0x72, 0x52, 0x50, 0xcc, 0x0d, 0xfd, 0x50, 0x9c,
+	0x2d, 0xb5, 0x24, 0xdd, 0xe4, 0x86, 0xd2, 0xd6, 0x3f, 0x81, 0xa3, 0xc2, 0x5c, 0x25, 0x70, 0x04,
+	0x9d, 0x38, 0x52, 0xe9, 0x5c, 0x53, 0xfa, 0xdb, 0xcc, 0xb2, 0x60, 0xf4, 0x3f, 0xfe, 0xd9, 0x04,
+	0x1e, 0xec, 0xc6, 0x2a, 0x51, 0x9d, 0xfa, 0x6a, 0x0c, 0x6e, 0x9e, 0x73, 0x74, 0xa1, 0x77, 0xb5,
+	0xf8, 0xf4, 0x71, 0x31, 0x6a, 0xcd, 0x7f, 0x77, 0x00, 0xaf, 0x77, 0x49, 0x5a, 0x52, 0x79, 0x1b,
+	0xaf, 0x29, 0x7e, 0x81, 0x51, 0x35, 0x39, 0x78, 0x52, 0x8e, 0x5c, 0x43, 0x52, 0xbd, 0xe9, 0x7e,
+	0x8b, 0x12, 0x7e, 0xcb, 0xa0, 0xab, 0xe9, 0xa9, 0xa0, 0x9b, 0x42, 0x58, 0x41, 0x37, 0xe4, 0xcf,
+	0x6f, 0xe1, 0x25, 0x74, 0x4d, 0x86, 0xf0, 0x79, 0xc9, 0x5b, 0x0f, 0x9f, 0x37, 0xd9, 0x67, 0xb0,
+	0xa8, 0x0b, 0x70, 0xf3, 0xf3, 0x44, 0xaf, 0x64, 0x2f, 0x5d, 0xaf, 0xf7, 0xf4, 0x9e, 0xb5, 0xf4,
+	0x87, 0x60, 0x97, 0x17, 0x7c, 0xd6, 0x60, 0xcd, 0x02, 0xec, 0x79, 0xf7, 0x2d, 0x1a, 0xd0, 0xcc,
+	0xf9, 0xf0, 0xf0, 0xeb, 0x51, 0xe9, 0xe5, 0x5c, 0xf5, 0xed, 0x73, 0xf9, 0xee, 0x6f, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x48, 0x90, 0xc5, 0x4d, 0x5d, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -320,6 +661,12 @@ type PersistenceServiceClient interface {
 	CreateConnection(ctx context.Context, in *CreateConnectionRqst, opts ...grpc.CallOption) (*CreateConnectionRsp, error)
 	// Delete a connection.
 	DeleteConnection(ctx context.Context, in *DeleteConnectionRqst, opts ...grpc.CallOption) (*DeleteConnectionRsp, error)
+	// Ping existing connection.
+	Ping(ctx context.Context, in *PingConnectionRqst, opts ...grpc.CallOption) (*PingConnectionRsp, error)
+	// Insert one result
+	InsertOne(ctx context.Context, in *InsertOneRqst, opts ...grpc.CallOption) (*InsertOneRsp, error)
+	// Insert many result at once.
+	InsertMany(ctx context.Context, opts ...grpc.CallOption) (PersistenceService_InsertManyClient, error)
 }
 
 type persistenceServiceClient struct {
@@ -348,12 +695,70 @@ func (c *persistenceServiceClient) DeleteConnection(ctx context.Context, in *Del
 	return out, nil
 }
 
+func (c *persistenceServiceClient) Ping(ctx context.Context, in *PingConnectionRqst, opts ...grpc.CallOption) (*PingConnectionRsp, error) {
+	out := new(PingConnectionRsp)
+	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/Ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *persistenceServiceClient) InsertOne(ctx context.Context, in *InsertOneRqst, opts ...grpc.CallOption) (*InsertOneRsp, error) {
+	out := new(InsertOneRsp)
+	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/InsertOne", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *persistenceServiceClient) InsertMany(ctx context.Context, opts ...grpc.CallOption) (PersistenceService_InsertManyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_PersistenceService_serviceDesc.Streams[0], "/persistence.PersistenceService/InsertMany", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &persistenceServiceInsertManyClient{stream}
+	return x, nil
+}
+
+type PersistenceService_InsertManyClient interface {
+	Send(*InsertManyRqst) error
+	CloseAndRecv() (*InsertManyRsp, error)
+	grpc.ClientStream
+}
+
+type persistenceServiceInsertManyClient struct {
+	grpc.ClientStream
+}
+
+func (x *persistenceServiceInsertManyClient) Send(m *InsertManyRqst) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *persistenceServiceInsertManyClient) CloseAndRecv() (*InsertManyRsp, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(InsertManyRsp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PersistenceServiceServer is the server API for PersistenceService service.
 type PersistenceServiceServer interface {
 	// Create a connection.
 	CreateConnection(context.Context, *CreateConnectionRqst) (*CreateConnectionRsp, error)
 	// Delete a connection.
 	DeleteConnection(context.Context, *DeleteConnectionRqst) (*DeleteConnectionRsp, error)
+	// Ping existing connection.
+	Ping(context.Context, *PingConnectionRqst) (*PingConnectionRsp, error)
+	// Insert one result
+	InsertOne(context.Context, *InsertOneRqst) (*InsertOneRsp, error)
+	// Insert many result at once.
+	InsertMany(PersistenceService_InsertManyServer) error
 }
 
 // UnimplementedPersistenceServiceServer can be embedded to have forward compatible implementations.
@@ -365,6 +770,15 @@ func (*UnimplementedPersistenceServiceServer) CreateConnection(ctx context.Conte
 }
 func (*UnimplementedPersistenceServiceServer) DeleteConnection(ctx context.Context, req *DeleteConnectionRqst) (*DeleteConnectionRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteConnection not implemented")
+}
+func (*UnimplementedPersistenceServiceServer) Ping(ctx context.Context, req *PingConnectionRqst) (*PingConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (*UnimplementedPersistenceServiceServer) InsertOne(ctx context.Context, req *InsertOneRqst) (*InsertOneRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InsertOne not implemented")
+}
+func (*UnimplementedPersistenceServiceServer) InsertMany(srv PersistenceService_InsertManyServer) error {
+	return status.Errorf(codes.Unimplemented, "method InsertMany not implemented")
 }
 
 func RegisterPersistenceServiceServer(s *grpc.Server, srv PersistenceServiceServer) {
@@ -407,6 +821,68 @@ func _PersistenceService_DeleteConnection_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PersistenceService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingConnectionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersistenceServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/persistence.PersistenceService/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersistenceServiceServer).Ping(ctx, req.(*PingConnectionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersistenceService_InsertOne_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InsertOneRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersistenceServiceServer).InsertOne(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/persistence.PersistenceService/InsertOne",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersistenceServiceServer).InsertOne(ctx, req.(*InsertOneRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersistenceService_InsertMany_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(PersistenceServiceServer).InsertMany(&persistenceServiceInsertManyServer{stream})
+}
+
+type PersistenceService_InsertManyServer interface {
+	SendAndClose(*InsertManyRsp) error
+	Recv() (*InsertManyRqst, error)
+	grpc.ServerStream
+}
+
+type persistenceServiceInsertManyServer struct {
+	grpc.ServerStream
+}
+
+func (x *persistenceServiceInsertManyServer) SendAndClose(m *InsertManyRsp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *persistenceServiceInsertManyServer) Recv() (*InsertManyRqst, error) {
+	m := new(InsertManyRqst)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 var _PersistenceService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "persistence.PersistenceService",
 	HandlerType: (*PersistenceServiceServer)(nil),
@@ -419,7 +895,21 @@ var _PersistenceService_serviceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteConnection",
 			Handler:    _PersistenceService_DeleteConnection_Handler,
 		},
+		{
+			MethodName: "Ping",
+			Handler:    _PersistenceService_Ping_Handler,
+		},
+		{
+			MethodName: "InsertOne",
+			Handler:    _PersistenceService_InsertOne_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "InsertMany",
+			Handler:       _PersistenceService_InsertMany_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "persistence/persistencepb/persistence.proto",
 }

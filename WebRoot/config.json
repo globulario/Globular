@@ -1,9 +1,9 @@
 {
   "Name": "Globular",
-  "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular",
+  "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular",
   "Port": 10000,
   "Protocol": "http",
-  "WebRoot": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\WebRoot",
+  "WebRoot": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/WebRoot",
   "Address": null,
   "Services": {
     "echo_server": {
@@ -12,9 +12,9 @@
       "Name": "echo_server",
       "Port": 10001,
       "Process": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\echo\\echo_server\\echo_server.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/echo/echo_server/echo_server",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\echo\\echo_server\\echo_server.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/echo/echo_server/echo_server",
           "10001"
         ],
         "Env": null,
@@ -25,16 +25,16 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 7292
+          "Pid": 12579
         },
         "ProcessState": null
       },
       "Protocol": "grpc",
       "Proxy": 10002,
       "ProxyProcess": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
           "--backend_addr=localhost:10001",
           "--server_http_debug_port=10002",
           "--run_tls_server=false",
@@ -48,7 +48,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 3948
+          "Pid": 12580
         },
         "ProcessState": null
       }
@@ -68,9 +68,9 @@
       "Name": "ldap_server",
       "Port": 10003,
       "Process": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ldap\\ldap_server\\ldap_server.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/ldap/ldap_server/ldap_server",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ldap\\ldap_server\\ldap_server.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/ldap/ldap_server/ldap_server",
           "10003"
         ],
         "Env": null,
@@ -80,17 +80,15 @@
         "Stderr": null,
         "ExtraFiles": null,
         "SysProcAttr": null,
-        "Process": {
-          "Pid": 996
-        },
+        "Process": null,
         "ProcessState": null
       },
       "Protocol": "grpc",
       "Proxy": 10004,
       "ProxyProcess": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
           "--backend_addr=localhost:10003",
           "--server_http_debug_port=10004",
           "--run_tls_server=false",
@@ -104,7 +102,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 9420
+          "Pid": 12592
         },
         "ProcessState": null
       }
@@ -115,9 +113,9 @@
       "Name": "persistence_server",
       "Port": 10005,
       "Process": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_server\\persistence_server.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/persistence/persistence_server/persistence_server",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_server\\persistence_server.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/persistence/persistence_server/persistence_server",
           "10005"
         ],
         "Env": null,
@@ -128,16 +126,16 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 10636
+          "Pid": 12598
         },
         "ProcessState": null
       },
       "Protocol": "grpc",
       "Proxy": 10006,
       "ProxyProcess": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
           "--backend_addr=localhost:10005",
           "--server_http_debug_port=10006",
           "--run_tls_server=false",
@@ -151,7 +149,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 5292
+          "Pid": 12599
         },
         "ProcessState": null
       }
@@ -163,9 +161,9 @@
       "Name": "smtp_server",
       "Port": 10007,
       "Process": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\smtp\\smtp_server\\smtp_server.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/smtp/smtp_server/smtp_server",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\smtp\\smtp_server\\smtp_server.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/smtp/smtp_server/smtp_server",
           "10007"
         ],
         "Env": null,
@@ -175,17 +173,15 @@
         "Stderr": null,
         "ExtraFiles": null,
         "SysProcAttr": null,
-        "Process": {
-          "Pid": 7212
-        },
+        "Process": null,
         "ProcessState": null
       },
       "Protocol": "grpc",
       "Proxy": 10008,
       "ProxyProcess": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
           "--backend_addr=localhost:10007",
           "--server_http_debug_port=10008",
           "--run_tls_server=false",
@@ -199,7 +195,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 13060
+          "Pid": 12611
         },
         "ProcessState": null
       }
@@ -208,32 +204,12 @@
       "AllowAllOrigins": true,
       "AllowedOrigins": "",
       "Connections": {
-        "Eng_Dwg_Features": {
-          "Charset": "utf8",
-          "Driver": "odbc",
-          "Host": "mon-sql-v01",
-          "Id": "Eng_Dwg_Features",
-          "Name": "Eng_Dwg_Features",
-          "Password": "eNGdwg_rw%5",
-          "Port": 1433,
-          "User": "EngDWG_User"
-        },
         "bris_outil": {
           "Charset": "utf8",
           "Driver": "odbc",
           "Host": "mon-sql-v01",
           "Id": "bris_outil",
           "Name": "BrisOutil",
-          "Password": "dbprog",
-          "Port": 1433,
-          "User": "dbprog"
-        },
-        "catalog_md": {
-          "Charset": "utf8",
-          "Driver": "odbc",
-          "Host": "mon-sql-v01",
-          "Id": "catalog_md",
-          "Name": "INVInterne",
           "Password": "dbprog",
           "Port": 1433,
           "User": "dbprog"
@@ -247,44 +223,14 @@
           "Password": "password",
           "Port": 3306,
           "User": "test"
-        },
-        "gestion_information": {
-          "Charset": "utf8",
-          "Driver": "odbc",
-          "Host": "mon-sql-v01",
-          "Id": "gestion_information",
-          "Name": "GestionInformation",
-          "Password": "dbprog",
-          "Port": 1433,
-          "User": "dbprog"
-        },
-        "propriete_mecanique": {
-          "Charset": "utf8",
-          "Driver": "odbc",
-          "Host": "mon-sql-v01",
-          "Id": "propriete_mecanique",
-          "Name": "ProprieteMecanique",
-          "Password": "Grr78CHNN99a",
-          "Port": 1433,
-          "User": "QISDBUserRO"
-        },
-        "shopvue": {
-          "Charset": "utf8",
-          "Driver": "odbc",
-          "Host": "mon-sql-v02\\ShopVue",
-          "Id": "shopvue",
-          "Name": "ShopVue",
-          "Password": "Dowty123",
-          "Port": 1433,
-          "User": "ShopvueReport"
         }
       },
       "Name": "sql_server",
       "Port": 10009,
       "Process": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\sql\\sql_server\\sql_server.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\sql\\sql_server\\sql_server.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
           "10009"
         ],
         "Env": null,
@@ -295,16 +241,16 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 15148
+          "Pid": 12617
         },
         "ProcessState": null
       },
       "Protocol": "grpc",
       "Proxy": 10010,
       "ProxyProcess": {
-        "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
         "Args": [
-          "E:\\Project\\src\\github.com\\davecourtois\\Globular\\bin\\grpcwebproxy.exe",
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
           "--backend_addr=localhost:10009",
           "--server_http_debug_port=10010",
           "--run_tls_server=false",
@@ -318,7 +264,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 13056
+          "Pid": 12618
         },
         "ProcessState": null
       }

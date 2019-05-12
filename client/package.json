@@ -1,8 +1,8 @@
 {
   "name": "globular",
   "dependencies": {
-    "google-protobuf": "^3.6.1",
-    "grpc-web": "^0.4.0"
+    "google-protobuf": "^3.7.1",
+    "grpc-web": "^1.0.4"
   },
   "devDependencies": {
     "browserify": "^16.2.2",

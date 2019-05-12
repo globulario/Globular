@@ -2,17 +2,8 @@
 ////////////////////////////////////////////////////////////////////////////
 // Echo service
 ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Echo service is a simple test service.
- */
-const { EchoRequest, EchoResponse } = require('./echo/echopb/echo_pb.js');
-const { EchoServiceClient } = require('./echo/echopb/echo_grpc_web_pb.js');
-
-// export the symbol
-window.EchoServiceClient = EchoServiceClient;
-window.EchoRequest = EchoRequest;
-window.EchoResponse = EchoResponse;
+window.Echo = require('./echo/echopb/echo_pb.js');
+window.Echo = Object.assign(window.Echo, require('./echo/echopb/echo_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
 // Sql service
@@ -64,31 +55,39 @@ class Globular {
                     globular.config = JSON.parse(this.responseText);
 
                     // Now I will set serives...
-                    globular.echoService = new EchoServiceClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
-                    console.log("echo service is init.")
+                    if (globular.config.Services.sql_server != null) {
+                        globular.echoService = new Echo.EchoServiceClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
+                        globular.echoServicePromise = new Echo.EchoServicePromiseClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
+                        console.log("echo service is init.")
+                    }
 
                     if (globular.config.Services.sql_server != null) {
                         globular.sqlService = new Sql.SqlServiceClient('http://localhost:' + globular.config.Services.sql_server.Proxy);
+                        globular.sqlServicePromise = new Sql.SqlServicePromiseClient('http://localhost:' + globular.config.Services.sql_server.Proxy);
                         console.log("sql service is init.")
                     }
 
                     if (globular.config.Services.ldap_server != null) {
                         globular.ldapService = new Ldap.LdapServiceClient('http://localhost:' + globular.config.Services.ldap_server.Proxy);
+                        globular.ldapServicePromise = new Ldap.LdapServicePromiseClient('http://localhost:' + globular.config.Services.ldap_server.Proxy);
                         console.log("ldap service is init.")
                     }
 
                     if (globular.config.Services.smtp_server != null) {
                         globular.smtpService = new Smtp.SmtpServiceClient('http://localhost:' + globular.config.Services.smtp_server.Proxy);
+                        globular.smtpServicePromise = new Smtp.SmtpServicePromiseClient('http://localhost:' + globular.config.Services.smtp_server.Proxy);
                         console.log("smtp service is init.")
                     }
 
                     if (globular.config.Services.spc_server != null) {
                         globular.spcService = new Spc.SpcServiceClient('http://localhost:' + globular.config.Services.spc_server.Proxy);
+                        globular.spcServicePromise = new Spc.SpcServicePromiseClient('http://localhost:' + globular.config.Services.spc_server.Proxy);
                         console.log("spc service is init.")
                     }
 
                     if (globular.config.Services.persistence_server != null) {
                         globular.persistenceService = new Persistence.PersistenceServiceClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
+                        globular.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
                         console.log("persistence service is init.")
                     }
 

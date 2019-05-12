@@ -7,14 +7,20 @@ package persistence;
 
 option go_package="persistencepb";
 
+enum StoreType{
+	MONGO = 0;
+}
+
 message Connection {
 	string id = 1;
 	string name = 2;
 	string host = 3;
-	string store = 5;
+	StoreType store = 5;
 	string user = 6;
 	string password = 7;
 	int32 port = 8;
+	int32 timeout = 9;
+	string options = 10;
 }
 
 // Create connection
@@ -35,11 +41,51 @@ message DeleteConnectionRsp {
 	bool result = 1;
 }
 
+// Ping Connection
+message PingConnectionRqst {
+	string id = 1;
+}
+
+message PingConnectionRsp {
+	string result = 1;
+}
+
+message InsertManyRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string jsonStr = 4;
+}
+
+message InsertManyRsp {
+	string ids = 1; // Json string with ids
+}
+
+message InsertOneRqst {
+	string id = 1; // The connection id.
+	string database = 2;
+	string collection = 3;
+	string jsonStr = 4;
+}
+
+message InsertOneRsp {
+	string id = 1; // Json string with id
+}
+
 service PersistenceService {
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	
 	// Delete a connection.
 	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+	
+	// Ping existing connection.
+	rpc Ping(PingConnectionRqst) returns (PingConnectionRsp) {};
+	
+	// Insert one result
+	rpc InsertOne(InsertOneRqst) returns (InsertOneRsp){};
+	
+	// Insert many result at once.
+	rpc InsertMany(stream InsertManyRqst) returns (InsertManyRsp){};
 	
 }
