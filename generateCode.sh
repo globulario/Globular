@@ -1,5 +1,6 @@
 #!/bin/bash
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
+protoc file/filepb/file.proto --go_out=plugins=grpc:.
 protoc sql/sqlpb/sql.proto --go_out=plugins=grpc:.
 protoc ldap/ldappb/ldap.proto --go_out=plugins=grpc:.
 protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
@@ -13,6 +14,8 @@ protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.
 # Javascript files generation.
 protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
 protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:client
+protoc file/filepb/file.proto --js_out=import_style=commonjs:client
+protoc file/filepb/file.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:client
 protoc sql/sqlpb/sql.proto --js_out=import_style=commonjs:client
 protoc sql/sqlpb/sql.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:client
 protoc ldap/ldappb/ldap.proto --js_out=import_style=commonjs:client

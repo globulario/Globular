@@ -4,7 +4,15 @@
   "Port": 10000,
   "Protocol": "http",
   "WebRoot": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/WebRoot",
-  "Address": null,
+  "Address": {
+    "IP": "74.14.175.55",
+    "Hostname": "sjerpq0524w-lp140-03-74-14-175-55.dsl.bell.ca",
+    "City": "Saint-Jerome",
+    "Country": "CA",
+    "Loc": "45.8058,-74.0165",
+    "Org": "AS577 Bell Canada",
+    "Postal": "J7Y"
+  },
   "Services": {
     "echo_server": {
       "AllowAllOrigins": true,
@@ -25,7 +33,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12579
+          "Pid": 21449
         },
         "ProcessState": null
       },
@@ -48,10 +56,58 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12580
+          "Pid": 21450
         },
         "ProcessState": null
       }
+    },
+    "file_server": {
+      "AllowAllOrigins": true,
+      "AllowedOrigins": "",
+      "Name": "file_server",
+      "Port": 10011,
+      "Process": {
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/file/file_server/file_server",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/file/file_server/file_server",
+          "10011"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 21461
+        },
+        "ProcessState": null
+      },
+      "Protocol": "grpc",
+      "Proxy": 10012,
+      "ProxyProcess": {
+        "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+        "Args": [
+          "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/bin/grpcwebproxy",
+          "--backend_addr=localhost:10011",
+          "--server_http_debug_port=10012",
+          "--run_tls_server=false",
+          "--allow_all_origins=true"
+        ],
+        "Env": null,
+        "Dir": "",
+        "Stdin": null,
+        "Stdout": null,
+        "Stderr": null,
+        "ExtraFiles": null,
+        "SysProcAttr": null,
+        "Process": {
+          "Pid": 21462
+        },
+        "ProcessState": null
+      },
+      "Root": ""
     },
     "ldap_server": {
       "AllowAllOrigins": true,
@@ -102,7 +158,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12592
+          "Pid": 21476
         },
         "ProcessState": null
       }
@@ -110,6 +166,7 @@
     "persistence_server": {
       "AllowAllOrigins": true,
       "AllowedOrigins": "",
+      "Connections": null,
       "Name": "persistence_server",
       "Port": 10005,
       "Process": {
@@ -126,7 +183,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12598
+          "Pid": 21484
         },
         "ProcessState": null
       },
@@ -149,7 +206,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12599
+          "Pid": 21485
         },
         "ProcessState": null
       }
@@ -195,7 +252,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12611
+          "Pid": 21496
         },
         "ProcessState": null
       }
@@ -204,12 +261,32 @@
       "AllowAllOrigins": true,
       "AllowedOrigins": "",
       "Connections": {
+        "Eng_Dwg_Features": {
+          "Charset": "utf8",
+          "Driver": "odbc",
+          "Host": "mon-sql-v01",
+          "Id": "Eng_Dwg_Features",
+          "Name": "Eng_Dwg_Features",
+          "Password": "eNGdwg_rw%5",
+          "Port": 1433,
+          "User": "EngDWG_User"
+        },
         "bris_outil": {
           "Charset": "utf8",
           "Driver": "odbc",
           "Host": "mon-sql-v01",
           "Id": "bris_outil",
           "Name": "BrisOutil",
+          "Password": "dbprog",
+          "Port": 1433,
+          "User": "dbprog"
+        },
+        "catalog_md": {
+          "Charset": "utf8",
+          "Driver": "odbc",
+          "Host": "mon-sql-v01",
+          "Id": "catalog_md",
+          "Name": "INVInterne",
           "Password": "dbprog",
           "Port": 1433,
           "User": "dbprog"
@@ -223,6 +300,36 @@
           "Password": "password",
           "Port": 3306,
           "User": "test"
+        },
+        "gestion_information": {
+          "Charset": "utf8",
+          "Driver": "odbc",
+          "Host": "mon-sql-v01",
+          "Id": "gestion_information",
+          "Name": "GestionInformation",
+          "Password": "dbprog",
+          "Port": 1433,
+          "User": "dbprog"
+        },
+        "propriete_mecanique": {
+          "Charset": "utf8",
+          "Driver": "odbc",
+          "Host": "mon-sql-v01",
+          "Id": "propriete_mecanique",
+          "Name": "ProprieteMecanique",
+          "Password": "Grr78CHNN99a",
+          "Port": 1433,
+          "User": "QISDBUserRO"
+        },
+        "shopvue": {
+          "Charset": "utf8",
+          "Driver": "odbc",
+          "Host": "mon-sql-v02\\ShopVue",
+          "Id": "shopvue",
+          "Name": "ShopVue",
+          "Password": "Dowty123",
+          "Port": 1433,
+          "User": "ShopvueReport"
         }
       },
       "Name": "sql_server",
@@ -241,7 +348,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12617
+          "Pid": 21502
         },
         "ProcessState": null
       },
@@ -264,7 +371,7 @@
         "ExtraFiles": null,
         "SysProcAttr": null,
         "Process": {
-          "Pid": 12618
+          "Pid": 21503
         },
         "ProcessState": null
       }

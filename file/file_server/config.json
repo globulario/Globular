@@ -1,0 +1,9 @@
+{
+  "Name": "file_server",
+  "Port": 10011,
+  "Proxy": 10012,
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Protocol": "grpc",
+  "Root": ""
+}

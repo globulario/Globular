@@ -51,6 +51,7 @@ func TestCreateConnection(t *testing.T) {
 	rqst := &persistencepb.CreateConnectionRqst{
 		Connection: &persistencepb.Connection{
 			Id:       "mongo_db_test_connection",
+			Name:     "TestMongoDB",
 			User:     "",
 			Password: "",
 			Port:     27017,

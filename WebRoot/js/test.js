@@ -8,7 +8,9 @@ function main() {
     // Sql test.
     //  testCreateSqlConnection();
 
-    testSelectQuery()
+    // testSelectQuery()
+
+    testGetFileInfo()
 }
 
 /////////////////////////////////////////////////////////
@@ -35,6 +37,27 @@ function testEcho(str) {
         })
 }
 
+
+/////////////////////////////////////////////////////////
+// file test.
+////////////////////////////////////////////////////////
+function testGetFileInfo(){
+    var request = new File.GetFileInfoRequest();
+    request.setPath("/home/dave/Pictures/unnamed.png")
+    request.setThumnailheight(256)
+    request.setThumnailwidth(256)
+
+    globular.fileServicePromise.getFileInfo(request)
+    .then((resp) => {
+        var data = JSON.parse(resp.getData())
+        console.log(data)
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+
+}
+
 /////////////////////////////////////////////////////////
 // Sql test.
 ////////////////////////////////////////////////////////
@@ -42,7 +65,7 @@ function testEcho(str) {
 // Test with MySQL
 
 // Test create a new sql connection.
-function testCreateSqlConnection() {
+/*function testCreateSqlConnection() {
     var rqst = new Sql.CreateConnectionRqst();
     var c = new Sql.Connection();
     c.setId("employees_db")
@@ -60,7 +83,7 @@ function testCreateSqlConnection() {
         // ...
         console.log(rsp.getResult())
     });
-}
+}*/
 
 // Test a select query.
 function testSelectQuery() {
@@ -99,7 +122,7 @@ function testSelectQuery() {
 
 }
 
-/*
+
 // Test with Sql Server and odbc connector.
 function testCreateSqlConnection() {
     var rqst = new Sql.CreateConnectionRqst();
@@ -154,4 +177,3 @@ function testSelectQuery() {
         console.log("---> end: ", end)
     });
 }
-*/

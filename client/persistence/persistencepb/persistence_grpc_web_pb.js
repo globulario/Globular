@@ -196,5 +196,115 @@ proto.persistence.PersistenceServicePromiseClient.prototype.deleteConnection =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.PingConnectionRqst,
+ *   !proto.persistence.PingConnectionRsp>}
+ */
+const methodInfo_PersistenceService_Ping = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.PingConnectionRsp,
+  /** @param {!proto.persistence.PingConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.PingConnectionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.PingConnectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.PingConnectionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.PingConnectionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.ping =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Ping',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Ping,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.PingConnectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.PingConnectionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.ping =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Ping',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Ping);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.InsertOneRqst,
+ *   !proto.persistence.InsertOneRsp>}
+ */
+const methodInfo_PersistenceService_InsertOne = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.InsertOneRsp,
+  /** @param {!proto.persistence.InsertOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.InsertOneRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.InsertOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.InsertOneRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.InsertOneRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.insertOne =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/InsertOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_InsertOne,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.InsertOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.InsertOneRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.insertOne =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/InsertOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_InsertOne);
+};
+
+
 module.exports = proto.persistence;
 

@@ -5,17 +5,5 @@
   "Protocol": "grpc",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
-  "Connections": {
-    "mongo_db_test_connection": {
-      "Id": "mongo_db_test_connection",
-      "Name": "",
-      "Host": "localhost",
-      "Store": 0,
-      "User": "",
-      "Password": "",
-      "Port": 27017,
-      "Timeout": 0,
-      "Options": ""
-    }
-  }
+  "Connections": null
 }

@@ -36,6 +36,12 @@ window.Persistence = require('./persistence/persistencepb/persistence_pb.js');
 window.Persistence = Object.assign(window.Persistence, require('./persistence/persistencepb/persistence_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
+// File service
+////////////////////////////////////////////////////////////////////////////
+window.File = require('./file/filepb/file_pb.js');
+window.File = Object.assign(window.File, require('./file/filepb/file_grpc_web_pb.js'));
+
+////////////////////////////////////////////////////////////////////////////
 // Server singleton object that give access to services.
 ////////////////////////////////////////////////////////////////////////////
 
@@ -89,6 +95,12 @@ class Globular {
                         globular.persistenceService = new Persistence.PersistenceServiceClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
                         globular.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
                         console.log("persistence service is init.")
+                    }
+
+                    if (globular.config.Services.file_server != null) {
+                        globular.fileService = new File.FileServiceClient('http://localhost:' + globular.config.Services.file_server.Proxy);
+                        globular.fileServicePromise = new File.FileServicePromiseClient('http://localhost:' + globular.config.Services.file_server.Proxy);
+                        console.log("file service is init.")
                     }
 
                     window.globular = globular
