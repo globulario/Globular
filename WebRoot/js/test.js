@@ -1,8 +1,10 @@
+var globular = null;
 
 /**
  * The main entry point.
  */
 function main() {
+    globular = new Globular()
     testEcho("Hello globular!");
 
     // Sql test.

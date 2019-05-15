@@ -88,4 +88,6 @@ service PersistenceService {
 	// Insert many result at once.
 	rpc InsertMany(stream InsertManyRqst) returns (InsertManyRsp){};
 	
+	
+	
 }

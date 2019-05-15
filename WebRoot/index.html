@@ -10,24 +10,13 @@
 
 </head>
 
-<body>
+<body onload="main();">
 
   <!-- The server is a singleton that regroup all the services -->
-
-  <!-- Append the services file here -->
-  <!-- a simple echo function use for test. -->
-  <script>
-    // When the services are ready the main function is call.
-    window.globularReady = function () {
-      if (main != undefined) {
-        main();
-      }
-    }
-  </script>
   
   <!-- test contain the main function so it must be insert before the globularServices.js file.-->
   <script src="js/test.js"></script>
-
+  <script src= "config.json"></script>
   <script src="js/services.js"></script>
 
 

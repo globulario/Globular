@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	root string
+	root    string
+	globule *Globule
 )
 
 /**
@@ -72,6 +73,7 @@ func NewGlobule(port int) *Globule {
 
 	// keep the root in global variable for the file handler.
 	root = g.WebRoot
+	globule = g
 
 	return g
 }
@@ -225,6 +227,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 
 	// If the file is a javascript file...
+	//log.Println("Serve file name: ", name)
 	var code string
 	hasChange := false
 	if strings.HasSuffix(name, ".js") {
@@ -243,13 +246,23 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
+
 				code += line + "\n"
 			}
 		}
+
 	} else if strings.HasSuffix(name, ".css") {
 		w.Header().Add("Content-Type", "text/css")
 	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
 		w.Header().Add("Content-Type", "text/html")
+	} else if strings.HasSuffix(name, "config.json") {
+		b, err := ioutil.ReadAll(f) // b has type []byte
+		if err != nil {
+			log.Fatal(err)
+		}
+		// set the global variable here.
+		code = "window.globularConfig = " + string(b)
+		hasChange = true
 	}
 
 	// if the file has change...

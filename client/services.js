@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////////
 // Echo service
 ////////////////////////////////////////////////////////////////////////////
@@ -45,78 +44,71 @@ window.File = Object.assign(window.File, require('./file/filepb/file_grpc_web_pb
 // Server singleton object that give access to services.
 ////////////////////////////////////////////////////////////////////////////
 
+// Global variables. Those variable are intercept by the actual server and are 
+// change automaticaly with the network name and port.
+
 /**
  * The singleton to access all services.
  */
 class Globular {
-    constructor() {
-        this.config = null;
+    constructor(config) {
         console.log("init the services...")
+        this.config = config
+        if(this.config == undefined){
+            this.config = globularConfig
+        }
 
-        // So here I will get the configuration from the active server.
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.onreadystatechange = function (globular) {
-            return function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    globular.config = JSON.parse(this.responseText);
+        if(this.config == undefined){
+            console.log("no configuration found!")
+        }
 
-                    // Now I will set serives...
-                    if (globular.config.Services.sql_server != null) {
-                        globular.echoService = new Echo.EchoServiceClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
-                        globular.echoServicePromise = new Echo.EchoServicePromiseClient('http://localhost:' + globular.config.Services.echo_server.Proxy);
-                        console.log("echo service is init.")
-                    }
+        // Now I will set serives...
+        if (this.config.Services.sql_server != null) {
+            this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.echo_server.Proxy);
+            this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.echo_server.Proxy);
+            console.log("echo service is init.")
+        }
 
-                    if (globular.config.Services.sql_server != null) {
-                        globular.sqlService = new Sql.SqlServiceClient('http://localhost:' + globular.config.Services.sql_server.Proxy);
-                        globular.sqlServicePromise = new Sql.SqlServicePromiseClient('http://localhost:' + globular.config.Services.sql_server.Proxy);
-                        console.log("sql service is init.")
-                    }
+        if (this.config.Services.sql_server != null) {
+            this.sqlService = new Sql.SqlServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.sql_server.Proxy);
+            this.sqlServicePromise = new Sql.SqlServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.sql_server.Proxy);
+            console.log("sql service is init.")
+        }
 
-                    if (globular.config.Services.ldap_server != null) {
-                        globular.ldapService = new Ldap.LdapServiceClient('http://localhost:' + globular.config.Services.ldap_server.Proxy);
-                        globular.ldapServicePromise = new Ldap.LdapServicePromiseClient('http://localhost:' + globular.config.Services.ldap_server.Proxy);
-                        console.log("ldap service is init.")
-                    }
+        if (this.config.Services.ldap_server != null) {
+            this.ldapService = new Ldap.LdapServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.ldap_server.Proxy);
+            this.ldapServicePromise = new Ldap.LdapServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.ldap_server.Proxy);
+            console.log("ldap service is init.")
+        }
 
-                    if (globular.config.Services.smtp_server != null) {
-                        globular.smtpService = new Smtp.SmtpServiceClient('http://localhost:' + globular.config.Services.smtp_server.Proxy);
-                        globular.smtpServicePromise = new Smtp.SmtpServicePromiseClient('http://localhost:' + globular.config.Services.smtp_server.Proxy);
-                        console.log("smtp service is init.")
-                    }
+        if (this.config.Services.smtp_server != null) {
+            this.smtpService = new Smtp.SmtpServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.smtp_server.Proxy);
+            this.smtpServicePromise = new Smtp.SmtpServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.smtp_server.Proxy);
+            console.log("smtp service is init.")
+        }
 
-                    if (globular.config.Services.spc_server != null) {
-                        globular.spcService = new Spc.SpcServiceClient('http://localhost:' + globular.config.Services.spc_server.Proxy);
-                        globular.spcServicePromise = new Spc.SpcServicePromiseClient('http://localhost:' + globular.config.Services.spc_server.Proxy);
-                        console.log("spc service is init.")
-                    }
+        if (this.config.Services.spc_server != null) {
+            this.spcService = new Spc.SpcServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.spc_server.Proxy);
+            this.spcServicePromise = new Spc.SpcServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.spc_server.Proxy);
+            console.log("spc service is init.")
+        }
 
-                    if (globular.config.Services.persistence_server != null) {
-                        globular.persistenceService = new Persistence.PersistenceServiceClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
-                        globular.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient('http://localhost:' + globular.config.Services.persistence_server.Proxy);
-                        console.log("persistence service is init.")
-                    }
+        if (this.config.Services.persistence_server != null) {
+            this.persistenceService = new Persistence.PersistenceServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.persistence_server.Proxy);
+            this.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.persistence_server.Proxy);
+            console.log("persistence service is init.")
+        }
 
-                    if (globular.config.Services.file_server != null) {
-                        globular.fileService = new File.FileServiceClient('http://localhost:' + globular.config.Services.file_server.Proxy);
-                        globular.fileServicePromise = new File.FileServicePromiseClient('http://localhost:' + globular.config.Services.file_server.Proxy);
-                        console.log("file service is init.")
-                    }
+        if (this.config.Services.file_server != null) {
+            this.fileService = new File.FileServiceClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.file_server.Proxy);
+            this.fileServicePromise = new File.FileServicePromiseClient(this.config.Protocol + '://' + this.config.Address.IP + ":" + this.config.Services.file_server.Proxy);
+            console.log("file service is init.")
+        }
 
-                    window.globular = globular
-
-                    if (window.globularReady != null) {
-                        window.globularReady()
-                    }
-                    console.log("init service done!")
-                }
-            }
-        }(this);
-
-        xmlhttp.open("GET", "/config.json", true);
-        xmlhttp.send();
+        console.log("services are all initialyse!")
     }
+
 }
 
-// Create service connection and 
-new Globular()
+// export the class Globular.
+window.Globular = Globular;
