@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"io"
+	"os"
 
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Utility"
@@ -56,20 +57,16 @@ func (self *File_Client) Close() {
 }
 
 // Read the content of a dir and return it info.
-func (self *File_Client) ReadDir(path string, recursiveStr string, thumbnailHeightStr string, thumbnailWidtStr string) (string, error) {
-
-	recursive := Utility.ToBool(recursiveStr)
-	thumbnailHeight := Utility.ToInt(thumbnailHeightStr)
-	thumbnailWidth := Utility.ToInt(thumbnailWidtStr)
+func (self *File_Client) ReadDir(path interface{}, recursive interface{}, thumbnailHeight interface{}, thumbnailWidth interface{}) (string, error) {
 
 	// Create a new client service...
 	c := filepb.NewFileServiceClient(self.cc)
 
 	rqst := &filepb.ReadDirRequest{
-		Path:           path,
-		Recursive:      recursive,
-		ThumnailHeight: int32(thumbnailHeight),
-		ThumnailWidth:  int32(thumbnailWidth),
+		Path:           Utility.ToString(path),
+		Recursive:      Utility.ToBool(recursive),
+		ThumnailHeight: int32(Utility.ToInt(thumbnailHeight)),
+		ThumnailWidth:  int32(Utility.ToInt(thumbnailWidth)),
 	}
 
 	stream, err := c.ReadDir(context.Background(), rqst)
@@ -93,4 +90,122 @@ func (self *File_Client) ReadDir(path string, recursiveStr string, thumbnailHeig
 	}
 
 	return string(data), nil
+}
+
+/**
+ * Create a new directory on the server.
+ */
+func (self *File_Client) CreateDir(path interface{}, name interface{}) error {
+
+	// Create a new client service...
+	c := filepb.NewFileServiceClient(self.cc)
+
+	rqst := &filepb.CreateDirRequest{
+		Path: Utility.ToString(path),
+		Name: Utility.ToString(name),
+	}
+
+	_, err := c.CreateDir(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Read file data
+ */
+func (self *File_Client) ReadFile(path interface{}) ([]byte, error) {
+
+	// Create a new client service...
+	c := filepb.NewFileServiceClient(self.cc)
+
+	rqst := &filepb.ReadFileRequest{
+		Path: Utility.ToString(path),
+	}
+
+	stream, err := c.ReadFile(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will create the final array
+	data := make([]byte, 0)
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+
+		data = append(data, msg.Data...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, err
+}
+
+/**
+ * That function move a file from a directory to another... (mv) in unix.
+ */
+func (self *File_Client) MoveFile(path interface{}, dest interface{}) error {
+
+	// Create a new client service...
+	c := filepb.NewFileServiceClient(self.cc)
+
+	// Open the stream...
+	stream, err := c.SaveFile(context.Background())
+	if err != nil {
+		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
+	}
+
+	err = stream.Send(&filepb.SaveFileRequest{
+		File: &filepb.SaveFileRequest_Path{
+			Path: Utility.ToString(dest), // Where the file will be save...
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Where the file is read from.
+	file, err := os.Open(Utility.ToString(path))
+	if err != nil {
+		return err
+	}
+
+	// close the file when done.
+	defer file.Close()
+
+	const BufferSize = 1024 * 5 // the chunck size.
+	buffer := make([]byte, BufferSize)
+	for {
+		bytesread, err := file.Read(buffer)
+		if bytesread > 0 {
+			rqst := &filepb.SaveFileRequest{
+				File: &filepb.SaveFileRequest_Data{
+					Data: buffer[:bytesread],
+				},
+			}
+			err = stream.Send(rqst)
+		}
+
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+	}
+
+	_, err = stream.CloseAndRecv()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

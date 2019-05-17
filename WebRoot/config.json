@@ -1,10 +1,10 @@
 {
   "Name": "Globular",
-  "Path": "E:\\Project\\src\\github.com\\davecourtois\\Globular",
+  "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular",
   "Port": 10000,
   "Protocol": "http",
-  "WebRoot": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\WebRoot",
-  "IP": "10.67.44.52",
+  "WebRoot": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/WebRoot",
+  "IP": "74.14.175.55",
   "Services": {
     "echo_server": {
       "Port": 10001,
