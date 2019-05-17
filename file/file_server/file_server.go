@@ -42,6 +42,8 @@ var (
 
 	// comma separeated values.
 	allowed_origins string = ""
+
+	s *server
 )
 
 // Value need by Globular to start the services...
@@ -153,6 +155,7 @@ type fileInfo struct {
 	Mode    os.FileMode // file mode bits
 	ModTime time.Time   // modification time
 	IsDir   bool        // abbreviation for Mode().IsDir()
+	Path    string      // The path on the server.
 
 	Mime      string
 	Thumbnail string
@@ -171,6 +174,17 @@ func getFileInfo(path string) (*fileInfo, error) {
 	info.Size = fileStat.Size()
 	info.Name = fileStat.Name()
 	info.ModTime = fileStat.ModTime()
+	info.Path = path
+
+	// Cut the Root part of the part.
+	if len(s.Root) > 0 {
+		startIndex := strings.Index(info.Path, s.Root)
+		if startIndex == 0 {
+			info.Path = info.Path[len(s.Root):]
+			info.Path = strings.Replace(info.Path, "\\", "/", -1) // Set the slash instead of back slash.
+		}
+	}
+
 	return info, nil
 }
 
@@ -240,7 +254,9 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		// Set the path separator...
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
@@ -279,7 +295,8 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	err := Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + rqst.GetName())
@@ -300,7 +317,7 @@ func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*fi
 	path := rqst.GetPath()
 
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
 	}
 
 	err := os.Rename(path+string(os.PathSeparator)+rqst.OldName, path+string(os.PathSeparator)+rqst.NewName)
@@ -321,7 +338,8 @@ func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	err := os.RemoveAll(path)
@@ -347,7 +365,8 @@ func (self *server) GetFileInfo(ctx context.Context, rqst *filepb.GetFileInfoReq
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	info, err := getFileInfo(path)
@@ -398,7 +417,8 @@ func (self *server) ReadFile(rqst *filepb.ReadFileRequest, stream filepb.FileSer
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	file, err := os.Open(path)
@@ -480,7 +500,8 @@ func (self *server) DeleteFile(ctx context.Context, rqst *filepb.DeleteFileReque
 
 	// The roo will be the Root specefied by the server.
 	if strings.HasPrefix(path, "/") {
-		path = self.Root + string(os.PathSeparator) + path
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
 	err := os.Remove(path)
@@ -533,6 +554,13 @@ func main() {
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
+
+	// The path where the root is...
+	if len(os.Args) > 2 {
+		s_impl.Root = os.Args[2]
+	}
+
+	s = s_impl // keep ref...
 
 	grpcServer := grpc.NewServer()
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)

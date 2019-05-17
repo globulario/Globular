@@ -5,5 +5,5 @@
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "Protocol": "grpc",
-  "Root": ""
+  "Root": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\WebRoot"
 }

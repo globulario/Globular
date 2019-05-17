@@ -10,15 +10,13 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
-	"syscall"
-	"time"
-
 	"reflect"
 	"strconv"
-
-	"path"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/davecourtois/Utility"
 )
@@ -32,15 +30,21 @@ var (
  * The web server.
  */
 type Globule struct {
-	Name     string          // The service name
-	Path     string          // The service path
-	Port     int             // The port of the http file server.
-	Protocol string          // The protocol of the service.
-	WebRoot  string          // The root of the http file server.
-	Address  *Utility.IPInfo // contain the ipv4 address.
+	Name     string // The service name
+	Path     string // The service path
+	Port     int    // The port of the http file server.
+	Protocol string // The protocol of the service.
+	WebRoot  string // The root of the http file server.
+	IP       string // The local address...
 
 	// The list of avalaible services.
+	services map[string]interface{}
+
+	// The share part of the service.
 	Services map[string]interface{}
+
+	// The map of client...
+	clients map[string]Client
 }
 
 /**
@@ -52,11 +56,16 @@ func NewGlobule(port int) *Globule {
 	g.Port = port // The default port number.
 	g.Name = Utility.GetExecName(os.Args[0])
 	g.Protocol = "http"
-	ip, _ := Utility.MyIP()
-	g.Address = ip
+	g.IP = Utility.MyIP()
 
 	// Set the service map.
+	g.services = make(map[string]interface{}, 0)
+
+	// Set the share service info...
 	g.Services = make(map[string]interface{}, 0)
+
+	// Set the map of client.
+	g.clients = make(map[string]Client, 0)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	g.Path = dir // keep the installation patn.
@@ -130,7 +139,15 @@ func (self *Globule) initServices() {
 						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
 					}
 
-					self.Services[s["Name"].(string)] = s
+					self.services[s["Name"].(string)] = s
+
+					s_ := make(map[string]interface{})
+
+					// export public service values.
+					s_["Proxy"] = s["Proxy"]
+					s_["Port"] = s["Port"]
+
+					self.Services[s["Name"].(string)] = s_
 					self.saveConfig()
 
 					log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
@@ -193,6 +210,179 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 	// remove the root path part and the leading / caracter.
 	return importPath_, nil
+}
+
+/**
+ * Here here is where services function are call from http.
+ */
+
+/**
+* That function handle http query as form of what so called API.
+* exemple of use.
+
+  Get all entity prototype from CargoEntities
+  ** note the access_token can change over time.
+  http://mon176:10000/api/Server/EntityManager/GetEntityPrototypes?storeId=CargoEntities&access_token=C4X_UsRXRCqwqsWfuEdgFA
+
+  Get an entity object with a given uuid.
+  * Note because % is in the uuid string it must be escape with %25 so here
+  	 the uuid is CargoEntities.Action%7facc2a5-dcb7-4ae7-925a-fb0776a9da00
+  http://localhost:10000/api/Server/EntityManager/GetObjectByUuid?p0=CargoEntities.Action%257facc2a5-dcb7-4ae7-925a-fb0776a9da00
+*/
+func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
+
+	// So the request will contain...
+	// The last tow parameters must be empty because we don't use the websocket
+	// here.
+	inputs := strings.Split(r.URL.Path[len("/api/"):], "/")
+
+	if len(inputs) < 2 {
+		w.Header().Set("Content-Type", "application/text")
+		w.Write([]byte("api call error, not enought arguments given!"))
+		return
+	}
+
+	// Get the client connected to the required service.
+	service := globule.clients[inputs[0]]
+
+	if service == nil {
+		w.Header().Set("Content-Type", "application/text")
+		w.Write([]byte("service " + inputs[0] + " not found"))
+		return
+	}
+
+	// The array of parameters.
+
+	// The parameter values.
+	params := make([]interface{}, 0)
+	for i := 0; i < len(r.URL.Query()); i++ {
+		params = append(params, r.URL.Query()["p"+strconv.Itoa(i)][0])
+	}
+
+	log.Println(params)
+
+	/** TODO Implement OAUTH2
+	var accessTokenId string
+
+	// Try to get access token from the list of parameters.
+	accessTokenId = values.Get("access_token")
+
+	if len(accessTokenId) == 0 {
+		values := strings.Split(r.Header.Get("Authorization"), " ")
+		log.Println("values: ", values)
+		if len(values) == 2 {
+			if strings.ToLower(values[0]) == "bearer" {
+				accessTokenId = values[1]
+			}
+		}
+	}
+
+	if len(accessTokenId) == 0 {
+		if len(r.Form["access_token"]) == 1 {
+			accessTokenId = r.Form["access_token"][0]
+		}
+	}
+
+	// The access token variable.
+	var accessToken *Config.OAuth2Access
+
+	if len(accessTokenId) > 0 {
+		ids := []interface{}{accessTokenId}
+		entity, err := GetServer().GetEntityManager().getEntityById("Config.OAuth2Access", "Config", ids)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/text")
+			w.Write([]byte(err.GetBody()))
+			return
+		}
+
+		// Get the access token here.
+		accessToken = entity.(*Config.OAuth2Access)
+
+	} else {
+		w.Header().Set("Content-Type", "application/text")
+		w.Write([]byte("Access denied!"))
+		return
+	}
+
+	log.Println("open id token: ", accessToken.GetUserData())
+	*/
+
+	// Here I will call the function on the service.
+	var err_ interface{}
+	var results interface{}
+	results, err_ = Utility.CallMethod(service, inputs[1], params)
+	if err_ != nil {
+		log.Println(results, err_)
+		w.Header().Set("Content-Type", "application/text")
+		if reflect.TypeOf(err_).Kind() == reflect.String {
+			w.Write([]byte(err_.(string)))
+		} else {
+			w.Write([]byte(err_.(error).Error()))
+		}
+
+		return
+	}
+
+	// Here I will get the res
+	var resultStr []byte
+	var err error
+	resultStr, err = json.Marshal(results)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/text")
+		w.Write([]byte(err.(error).Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	resultStr, _ = Utility.PrettyPrint(resultStr)
+	w.Write(resultStr)
+}
+
+/**
+ * This code is use to upload a file into the tmp directory of the server
+ * via http request.
+ */
+func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
+	// I will
+	err := r.ParseMultipartForm(200000) // grab the multipart form
+	if err != nil {
+		log.Println(w, err)
+		return
+	}
+
+	formdata := r.MultipartForm // ok, no problem so far, read the Form data
+
+	//get the *fileheaders
+	files := formdata.File["multiplefiles"] // grab the filenames
+	var path string                         // grab the filenames
+
+	// Get the path where to upload the file.
+	path = r.FormValue("path")
+	if strings.HasPrefix(path, "/") {
+		path = globule.WebRoot + path
+	}
+
+	for i, _ := range files { // loop through the files one by one
+		file, err := files[i].Open()
+		defer file.Close()
+		if err != nil {
+			log.Println(w, err)
+			return
+		}
+
+		// Create the file.
+		out, err := os.Create(path + "/" + files[i].Filename)
+		defer out.Close()
+		if err != nil {
+			log.Println(w, "Unable to create the file for writing. Check your write access privilege")
+			return
+		}
+		_, err = io.Copy(out, file) // file not files[i] !
+		if err != nil {
+			log.Println(w, err)
+			return
+		}
+	}
 }
 
 // Custom file server implementation.
@@ -283,6 +473,14 @@ func (self *Globule) saveConfig() {
 }
 
 /**
+ * Init the service client.
+ */
+func (self *Globule) initClients() {
+	port := int(self.Services["file_server"].(map[string]interface{})["Port"].(float64))
+	self.clients["file_service"] = NewFile_Client("localhost:" + strconv.Itoa(port))
+}
+
+/**
  * Listen for new connection.
  */
 func (self *Globule) Listen() {
@@ -295,10 +493,19 @@ func (self *Globule) Listen() {
 	// set the services.
 	self.initServices()
 
+	// set the client services.
+	self.initClients()
+
 	r := http.NewServeMux()
 
 	// Start listen for http request.
 	r.HandleFunc("/", ServeFileHandler)
+
+	// The file upload handler.
+	r.HandleFunc("/uploads", FileUploadHandler)
+
+	// Give access to service.
+	r.HandleFunc("/api/", HttpQueryHandler)
 
 	// Here I will save the server attribute
 	self.saveConfig()
@@ -323,7 +530,7 @@ func (self *Globule) Listen() {
 		// so I will close the services.
 		log.Println("Clean ressources.")
 
-		for key, value := range self.Services {
+		for key, value := range self.services {
 			log.Println("Stop service ", key)
 
 			if value.(map[string]interface{})["Process"] != nil {
@@ -341,6 +548,10 @@ func (self *Globule) Listen() {
 					p.(*exec.Cmd).Process.Kill()
 				}
 			}
+		}
+
+		for _, value := range self.clients {
+			value.Close()
 		}
 
 		// exit cleanly

@@ -10,9 +10,9 @@ function main() {
     // Sql test.
     //  testCreateSqlConnection();
 
-    // testSelectQuery()
+    testSelectQuery()
 
-    testGetFileInfo()
+    //testGetFileInfo()
 }
 
 /////////////////////////////////////////////////////////
