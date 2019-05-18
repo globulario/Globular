@@ -252,11 +252,18 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// The array of parameters.
+	log.Println("-----> ", r.URL.Query())
 
 	// The parameter values.
 	params := make([]interface{}, 0)
 	for i := 0; i < len(r.URL.Query()); i++ {
-		params = append(params, r.URL.Query()["p"+strconv.Itoa(i)][0])
+		if r.URL.Query()["p"+strconv.Itoa(i)] != nil {
+			params = append(params, r.URL.Query()["p"+strconv.Itoa(i)][0])
+		} else {
+			w.Header().Set("Content-Type", "application/text")
+			w.Write([]byte("p" + strconv.Itoa(i) + " not found!"))
+			return
+		}
 	}
 
 	log.Println(params)
@@ -473,11 +480,35 @@ func (self *Globule) saveConfig() {
 }
 
 /**
+ * Init client side connection to service.
+ */
+func (self *Globule) initClient(name string) {
+	log.Println("connecto to service ", name)
+	port := int(self.Services[name+"_server"].(map[string]interface{})["Port"].(float64))
+	results, err := Utility.CallFunction("New"+strings.ToUpper(name[0:1])+name[1:]+"_Client", "localhost:"+strconv.Itoa(port))
+	if err == nil {
+		self.clients[name+"_service"] = results[0].Interface().(Client)
+	}
+}
+
+/**
  * Init the service client.
  */
 func (self *Globule) initClients() {
-	port := int(self.Services["file_server"].(map[string]interface{})["Port"].(float64))
-	self.clients["file_service"] = NewFile_Client("localhost:" + strconv.Itoa(port))
+	// Register service constructor function here.
+	// The name of the contructor must follow the same pattern.
+	Utility.RegisterFunction("NewEcho_Client", NewEcho_Client)
+	Utility.RegisterFunction("NewSql_Client", NewSql_Client)
+	Utility.RegisterFunction("NewFile_Client", NewFile_Client)
+	Utility.RegisterFunction("NewPersistence_Client", NewPersistence_Client)
+	Utility.RegisterFunction("NewSmtp_Client", NewSmtp_Client)
+	Utility.RegisterFunction("NewLdap_Client", NewLdap_Client)
+
+	// The echo service
+	for k, _ := range self.services {
+		name := strings.Split(k, "_")[0]
+		self.initClient(name)
+	}
 }
 
 /**
