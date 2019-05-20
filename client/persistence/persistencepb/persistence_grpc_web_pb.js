@@ -89,6 +89,226 @@ proto.persistence.PersistenceServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.CreateDatabaseRqst,
+ *   !proto.persistence.CreateDatabaseRsp>}
+ */
+const methodInfo_PersistenceService_CreateDatabase = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.CreateDatabaseRsp,
+  /** @param {!proto.persistence.CreateDatabaseRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CreateDatabaseRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.CreateDatabaseRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.CreateDatabaseRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.CreateDatabaseRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.createDatabase =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/CreateDatabase',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_CreateDatabase,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.CreateDatabaseRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.CreateDatabaseRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.createDatabase =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/CreateDatabase',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_CreateDatabase);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.DeleteDatabaseRqst,
+ *   !proto.persistence.DeleteDatabaseRsp>}
+ */
+const methodInfo_PersistenceService_DeleteDatabase = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DeleteDatabaseRsp,
+  /** @param {!proto.persistence.DeleteDatabaseRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteDatabaseRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.DeleteDatabaseRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.DeleteDatabaseRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DeleteDatabaseRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.deleteDatabase =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteDatabase',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteDatabase,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.DeleteDatabaseRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.DeleteDatabaseRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.deleteDatabase =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteDatabase',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteDatabase);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.CreateCollectionRqst,
+ *   !proto.persistence.CreateCollectionRsp>}
+ */
+const methodInfo_PersistenceService_CreateCollection = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.CreateCollectionRsp,
+  /** @param {!proto.persistence.CreateCollectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CreateCollectionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.CreateCollectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.CreateCollectionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.CreateCollectionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.createCollection =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/CreateCollection',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_CreateCollection,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.CreateCollectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.CreateCollectionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.createCollection =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/CreateCollection',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_CreateCollection);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.DeleteCollectionRqst,
+ *   !proto.persistence.DeleteCollectionRsp>}
+ */
+const methodInfo_PersistenceService_DeleteCollection = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DeleteCollectionRsp,
+  /** @param {!proto.persistence.DeleteCollectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteCollectionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.DeleteCollectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.DeleteCollectionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DeleteCollectionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.deleteCollection =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteCollection',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteCollection,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.DeleteCollectionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.DeleteCollectionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.deleteCollection =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteCollection',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteCollection);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.CreateConnectionRqst,
  *   !proto.persistence.CreateConnectionRsp>}
  */
@@ -254,6 +474,61 @@ proto.persistence.PersistenceServicePromiseClient.prototype.ping =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.CountRqst,
+ *   !proto.persistence.CountRsp>}
+ */
+const methodInfo_PersistenceService_Count = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.CountRsp,
+  /** @param {!proto.persistence.CountRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CountRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.CountRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.CountRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.CountRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.count =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Count',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Count,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.CountRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.CountRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.count =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Count',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Count);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.InsertOneRqst,
  *   !proto.persistence.InsertOneRsp>}
  */
@@ -408,6 +683,116 @@ proto.persistence.PersistenceServicePromiseClient.prototype.findOne =
       request,
       metadata || {},
       methodInfo_PersistenceService_FindOne);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.UpdateRqst,
+ *   !proto.persistence.UpdateRsp>}
+ */
+const methodInfo_PersistenceService_Update = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.UpdateRsp,
+  /** @param {!proto.persistence.UpdateRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.UpdateRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.UpdateRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.UpdateRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.UpdateRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.update =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Update',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Update,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.UpdateRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.UpdateRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.update =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Update',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Update);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.DeleteRqst,
+ *   !proto.persistence.DeleteRsp>}
+ */
+const methodInfo_PersistenceService_Delete = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DeleteRsp,
+  /** @param {!proto.persistence.DeleteRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.DeleteRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.DeleteRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DeleteRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.delete =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Delete',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Delete,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.DeleteRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.DeleteRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.delete =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Delete',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Delete);
 };
 
 
