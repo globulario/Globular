@@ -1,18 +1,25 @@
-var globular = null;
+// The service configuration 
+globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
+
+// The global service object.
+var globular = new Globular()
 
 /**
  * The main entry point.
  */
 function main() {
-    globular = new Globular()
-    testEcho("Hello globular!");
+    // testEcho("Hello globular!");
 
     // Sql test.
     //  testCreateSqlConnection();
 
-    testSelectQuery()
+    // testSelectQuery()
 
-    //testGetFileInfo()
+    // testGetFileInfo()
+
+    // testCreatePersistenceConnection()
+
+    testPersistenceFind()
 }
 
 /////////////////////////////////////////////////////////
@@ -57,8 +64,62 @@ function testGetFileInfo(){
     .catch((error) => {
         console.log(error)
     })
-
 }
+
+/////////////////////////////////////////////////////////
+// Persistence test. (MongoDB backend)
+////////////////////////////////////////////////////////
+
+function testCreatePersistenceConnection(){
+    var rqst = new Persistence.CreateConnectionRqst();
+    var c = new Persistence.Connection();
+    c.setId("test_create_connection_js")
+    c.setName("TestMongoDB") // already exist...
+    c.setUser("")
+    c.setPassword("")
+    c.setPort(27017)
+    c.setStore(0) // mongodb
+    c.setHost("localhost")
+    c.setTimeout(10)
+
+    rqst.setConnection(c)
+
+    globular.persistenceService.createConnection(rqst, {}, function (err, rsp) {
+        // ...
+        console.log(rsp.getResult())
+    });
+}
+
+// Test Find existing values...
+var testPersistenceResults = []
+function testPersistenceFind(){
+    var rqst = new Persistence.FindRqst()
+    rqst.setId("test_create_connection_js")
+    rqst.setDatabase("TestMongoDB")
+    rqst.setCollection("Employees")
+    rqst.setQuery( '{"first_name": "Anneke"}' /*"{}"*/)
+    rqst.setFieldsList(["_id", "birth_date"]) // here I will get only the _id and the birth date.
+
+    var metadata = { 'custom-header-1': 'value1' };
+    var stream = globular.persistenceService.find(rqst, metadata);
+    
+    // Get the stream and set event on it...
+    stream.on('data', function (rsp) {
+        testPersistenceResults = testPersistenceResults.concat(JSON.parse(rsp.getJsonstr()))
+    });
+
+    stream.on('status', function (status) {
+        if(status.code == 0){
+            console.log(testPersistenceResults)
+        }
+    });
+
+    stream.on('end', function (end) {
+        // stream end signal
+    });
+}
+
+
 
 /////////////////////////////////////////////////////////
 // Sql test.

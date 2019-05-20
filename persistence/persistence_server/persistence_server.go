@@ -111,6 +111,7 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	c.Password = rqst.Connection.Password
 	c.Store = rqst.Connection.Store
 
+	log.Println("-------> 114: ", c.Store, persistencepb.StoreType_MONGO)
 	if c.Store == persistencepb.StoreType_MONGO {
 		// here I will create a new mongo data store.
 		s := new(persistence_store.MongoStore)
