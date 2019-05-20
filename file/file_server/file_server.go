@@ -555,7 +555,7 @@ func main() {
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
-	// The path where the root is...
+	// Set the root path if is pass as argument.
 	if len(os.Args) > 2 {
 		s_impl.Root = os.Args[2]
 	}

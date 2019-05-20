@@ -1,11 +1,33 @@
 package persistence_store
 
-import "context"
+import (
+	"context"
+)
 
 /**
  * Represent a data store interface.
  */
 type Store interface {
+
+	/**
+	 * Create a database
+	 */
+	CreateDatabase(ctx context.Context, name string) error
+
+	/**
+	 * Delete a database
+	 */
+	DeleteDatabase(ctx context.Context, name string) error
+
+	/**
+	 * Create a Collection
+	 */
+	CreateCollection(ctx context.Context, database string, name string) error
+
+	/**
+	 * Delete collection
+	 */
+	DeleteCollection(ctx context.Context, database string, name string) error
 
 	/**
 	 * Connect to the data store.
@@ -18,6 +40,11 @@ type Store interface {
 	Ping(ctx context.Context) error
 
 	/**
+	 * return the number of entry in a table.
+	 */
+	Count(ctx context.Context, database string, collection string, query string) (int64, error)
+
+	/**
 	 * Insert one result.
 	 */
 	InsertOne(ctx context.Context, database string, collection string, entity interface{}) (interface{}, error)
@@ -26,4 +53,24 @@ type Store interface {
 	 * Insert many result at once.
 	 */
 	InsertMany(ctx context.Context, database string, collection string, entities []interface{}) ([]interface{}, error)
+
+	/**
+	 * Find many values from a query
+	 */
+	Find(ctx context.Context, database string, collection string, query string, fields []string) ([]interface{}, error)
+
+	/**
+	 * Find one result at time.
+	 */
+	FindOne(ctx context.Context, database string, collection string, query string, fields []string) (interface{}, error)
+
+	/**
+	 * Update document that match a given condition whit a given value.
+	 */
+	Update(ctx context.Context, database string, collection string, query string, value string) error
+
+	/**
+	 * Remove one or more value depending of the query results.
+	 */
+	Delete(ctx context.Context, database string, collection string, query string) error
 }

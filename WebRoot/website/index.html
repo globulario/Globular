@@ -1,0 +1,39 @@
+<body onload = "main()">
+
+</body></html>
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#C62828">
+
+  <title>Globular</title>
+
+  <script type="module" src="./node_modules/@cargowebserver/cargowebcomponents/components/growl/growl.js"></script>
+  <script src="https://unpkg.com/@webcomponents/webcomponentsjs@^2.0.0/webcomponents-loader.js"></script>
+
+  <script type="module" src="./app-layout.js"></script>
+  <script type="module" src="./index.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #f5f5f5;
+    }
+  </style>
+
+</head>
+<body unresolved>
+  <!-- Services files... -->
+  <script src = "http://127.0.0.1:10000/config.json"></script>
+  <script src = "http://127.0.0.1:10000/js/services.js"></script>
+  
+  <!-- The main entry point -->
+  <script type="module" src="index.js"></script>
+  <test-app id="layout">
+  </test-app>
+
+</body>
+</html>

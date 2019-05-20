@@ -404,7 +404,6 @@ func (self *Echo_Client) Close() {
 }
 
 func (self *Echo_Client) Echo(msg interface{}) (string, error) {
-	log.Println("---> echo was call!", msg)
 	rqst := &echopb.EchoRequest{
 		Message: Utility.ToString(msg),
 	}

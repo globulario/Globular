@@ -30,18 +30,19 @@ var (
  * The web server.
  */
 type Globule struct {
+	// The share part of the service.
 	Name     string // The service name
-	Path     string // The service path
 	Port     int    // The port of the http file server.
 	Protocol string // The protocol of the service.
-	WebRoot  string // The root of the http file server.
 	IP       string // The local address...
+	Services map[string]interface{}
+
+	// Local info.
+	webRoot string // The root of the http file server.
+	path    string // The path of the exec...
 
 	// The list of avalaible services.
 	services map[string]interface{}
-
-	// The share part of the service.
-	Services map[string]interface{}
 
 	// The map of client...
 	clients map[string]Client
@@ -68,12 +69,12 @@ func NewGlobule(port int) *Globule {
 	g.clients = make(map[string]Client, 0)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	g.Path = dir // keep the installation patn.
+	g.path = dir // keep the installation patn.
 
 	if err == nil {
-		g.WebRoot = dir + string(os.PathSeparator) + "WebRoot" // The default directory to server.
-		Utility.CreateDirIfNotExist(g.WebRoot)                 // Create the directory if it not exist.
-		file, err := ioutil.ReadFile(g.WebRoot + string(os.PathSeparator) + "config.json")
+		g.webRoot = dir + string(os.PathSeparator) + "WebRoot" // The default directory to server.
+		Utility.CreateDirIfNotExist(g.webRoot)                 // Create the directory if it not exist.
+		file, err := ioutil.ReadFile(g.webRoot + string(os.PathSeparator) + "config.json")
 		// Init the servce with the default port address
 		if err == nil {
 			json.Unmarshal([]byte(file), g)
@@ -81,7 +82,7 @@ func NewGlobule(port int) *Globule {
 	}
 
 	// keep the root in global variable for the file handler.
-	root = g.WebRoot
+	root = g.webRoot
 	globule = g
 
 	return g
@@ -115,15 +116,19 @@ func (self *Globule) initServices() {
 
 					// Start the process.
 					log.Println("try to start process ", s["Name"].(string))
+					if s["Name"].(string) == "file" {
+						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
+					} else {
+						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+					}
 
-					s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 					err = s["Process"].(*exec.Cmd).Start()
 					if err != nil {
 						log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 					}
 
 					// Now I will start the proxy that will be use by javascript client.
-					proxyPath := self.Path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+					proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
 					if string(os.PathSeparator) == "\\" {
 						proxyPath += ".exe" // in case of windows.
 					}
@@ -251,9 +256,6 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The array of parameters.
-	log.Println("-----> ", r.URL.Query())
-
 	// The parameter values.
 	params := make([]interface{}, 0)
 	for i := 0; i < len(r.URL.Query()); i++ {
@@ -366,7 +368,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
 	if strings.HasPrefix(path, "/") {
-		path = globule.WebRoot + path
+		path = globule.webRoot + path
 	}
 
 	for i, _ := range files { // loop through the files one by one
@@ -475,7 +477,7 @@ func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self)
 	if err == nil {
-		ioutil.WriteFile(self.WebRoot+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		ioutil.WriteFile(self.webRoot+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	}
 }
 
@@ -485,7 +487,9 @@ func (self *Globule) saveConfig() {
 func (self *Globule) initClient(name string) {
 	log.Println("connecto to service ", name)
 	port := int(self.Services[name+"_server"].(map[string]interface{})["Port"].(float64))
-	results, err := Utility.CallFunction("New"+strings.ToUpper(name[0:1])+name[1:]+"_Client", "localhost:"+strconv.Itoa(port))
+	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
+	log.Println(fct)
+	results, err := Utility.CallFunction(fct, "localhost:"+strconv.Itoa(port))
 	if err == nil {
 		self.clients[name+"_service"] = results[0].Interface().(Client)
 	}

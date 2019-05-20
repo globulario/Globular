@@ -1,9 +1,7 @@
 {
   "Name": "Globular",
-  "Path": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular",
   "Port": 10000,
   "Protocol": "http",
-  "WebRoot": "/media/dave/60B6E593B6E569CC1/Project/src/github.com/davecourtois/Globular/WebRoot",
   "IP": "74.14.175.55",
   "Services": {
     "echo_server": {
@@ -17,6 +15,10 @@
     "ldap_server": {
       "Port": 10003,
       "Proxy": 10004
+    },
+    "oauth2_server": {
+      "Port": 10013,
+      "Proxy": 10014
     },
     "persistence_server": {
       "Port": 10005,

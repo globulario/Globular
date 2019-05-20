@@ -306,5 +306,110 @@ proto.persistence.PersistenceServicePromiseClient.prototype.insertOne =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.FindRqst,
+ *   !proto.persistence.FindResp>}
+ */
+const methodInfo_PersistenceService_Find = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.FindResp,
+  /** @param {!proto.persistence.FindRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.FindResp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.FindRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.FindResp>}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.find =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/persistence.PersistenceService/Find',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Find);
+};
+
+
+/**
+ * @param {!proto.persistence.FindRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.FindResp>}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.find =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/persistence.PersistenceService/Find',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Find);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.FindOneRqst,
+ *   !proto.persistence.FindOneResp>}
+ */
+const methodInfo_PersistenceService_FindOne = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.FindOneResp,
+  /** @param {!proto.persistence.FindOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.FindOneResp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.FindOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.FindOneResp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.FindOneResp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.findOne =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/FindOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_FindOne,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.FindOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.FindOneResp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.findOne =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/FindOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_FindOne);
+};
+
+
 module.exports = proto.persistence;
 

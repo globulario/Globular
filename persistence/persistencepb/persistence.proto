@@ -72,7 +72,121 @@ message InsertOneRsp {
 	string id = 1; // Json string with id
 }
 
+message FindRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+	repeated string fields = 5;
+}
+
+message FindResp {
+	string jsonStr = 1; // Json string
+}
+
+message FindOneRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+	repeated string fields = 5;
+}
+
+message FindOneResp {
+	string jsonStr = 1; // Json string
+}
+
+
+message UpdateRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+	string value = 5;
+}
+
+message UpdateRsp {
+	bool result = 1;
+}
+
+message DeleteRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+}
+
+message DeleteRsp {
+	bool result = 1;
+}
+
+message CreateDatabaseRqst{
+		string id = 1;
+	string database = 2;
+}
+
+message CreateDatabaseRsp{
+	bool result = 1;
+}
+
+message DeleteDatabaseRqst{
+	string id = 1;
+	string database = 2;
+}
+
+message DeleteDatabaseRsp{
+	bool result = 1;
+}
+
+message CreateCollectionRqst{
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+}
+
+message CreateCollectionRsp{
+	bool result = 1;
+}
+
+message DeleteCollectionRqst{
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+}
+
+message DeleteCollectionRsp{
+	bool result = 1;
+}
+
+message CountRqst{
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4; // filter
+}
+
+message CountRsp{
+	int64 result = 1;
+}
+
+// Persistence nothing can take place of persistence..!-)
 service PersistenceService {
+	//////////////////////////////////////////////////////////////////////////////
+	// admin operations
+	//////////////////////////////////////////////////////////////////////////////
+	
+	// Create a database
+	rpc CreateDatabase(CreateDatabaseRqst) returns (CreateDatabaseRsp){};
+	
+	// Delete a database
+	rpc DeleteDatabase(DeleteDatabaseRqst) returns (DeleteDatabaseRsp){};
+	
+	// Create a Collection
+	rpc CreateCollection(CreateCollectionRqst) returns (CreateCollectionRsp){};
+	
+	// Delete collection
+	rpc DeleteCollection(DeleteCollectionRqst) returns (DeleteCollectionRsp){};
+	
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	
@@ -82,12 +196,28 @@ service PersistenceService {
 	// Ping existing connection.
 	rpc Ping(PingConnectionRqst) returns (PingConnectionRsp) {};
 	
+	// Get the number of entry in a collection
+	rpc Count(CountRqst) returns (CountRsp) {};
+	
+	//////////////////////////////////////////////////////////////////////////////
+	// Crud operations
+	//////////////////////////////////////////////////////////////////////////////
+	
 	// Insert one result
 	rpc InsertOne(InsertOneRqst) returns (InsertOneRsp){};
 	
 	// Insert many result at once.
 	rpc InsertMany(stream InsertManyRqst) returns (InsertManyRsp){};
 	
+	// Find many
+	rpc Find(FindRqst) returns (stream FindResp){};
 	
+	// Find one
+	rpc FindOne(FindOneRqst) returns (FindOneResp){};
 	
+	// Update many result or one.
+	rpc Update(UpdateRqst) returns (UpdateRsp){};
+	
+	// Delete many or one.
+	rpc Delete(DeleteRqst) returns (DeleteRsp){};
 }

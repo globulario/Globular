@@ -3,14 +3,15 @@ package Globular
 import (
 	"context"
 	"fmt"
+	"io"
 
-	"io/ioutil"
+	//	"io/ioutil"
 	"log"
 
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"google.golang.org/grpc"
 
-	"encoding/json"
+	//	"encoding/json"
 	"testing"
 	//"github.com/davecourtois/Utility"
 )
@@ -71,7 +72,7 @@ func TestCreateConnection(t *testing.T) {
 
 // First test create a fresh new connection...
 /*func TestPersist(t *testing.T) {
-	fmt.Println("Connection creation test.")
+	fmt.Println("Persist many test.")
 
 	cc := getClientConnection()
 
@@ -132,3 +133,227 @@ func TestCreateConnection(t *testing.T) {
 
 	log.Println("Persist entities succed: ", rsp.Ids)
 }*/
+
+// Test create a db, create a collection and remove it after...
+func TestCreateAndDelete(t *testing.T) {
+	fmt.Println("Persist one test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	rqst := &persistencepb.InsertOneRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestCreateAndDelete_DB",
+		Collection: "Employees",
+		JsonStr:    `{"hire_date":"2007-07-01", "last_name":"Courtois", "first_name":"Dave", "birth_data":"1976-01-28", "emp_no":200000, "gender":"M"}`,
+	}
+
+	rsp, err := c.InsertOne(context.Background(), rqst)
+
+	if err != nil {
+		log.Fatalf("TestPersistOne fail %v", err)
+	}
+
+	rqst_count := &persistencepb.CountRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestCreateAndDelete_DB",
+		Collection: "Employees",
+		Query:      "{}", // count all!
+	}
+
+	countRsp, err := c.Count(context.Background(), rqst_count)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("---> count is ", countRsp.Result)
+
+	// Test drop collection.
+	rqst_drop_collection := &persistencepb.DeleteCollectionRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestCreateAndDelete_DB",
+		Collection: "Employees",
+	}
+
+	_, err = c.DeleteCollection(context.Background(), rqst_drop_collection)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	rqst_drop_db := &persistencepb.DeleteDatabaseRqst{
+		Id:       "mongo_db_test_connection",
+		Database: "TestCreateAndDelete_DB",
+	}
+
+	_, err = c.DeleteDatabase(context.Background(), rqst_drop_db)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	log.Println(rsp.GetId())
+}
+
+func TestPersistOne(t *testing.T) {
+	fmt.Println("Persist one test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	rqst := &persistencepb.InsertOneRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestMongoDB",
+		Collection: "Employees",
+		JsonStr:    `{"hire_date":"2007-07-01", "last_name":"Courtois", "first_name":"Dave", "birth_data":"1976-01-28", "emp_no":200000, "gender":"M"}`,
+	}
+
+	rsp, err := c.InsertOne(context.Background(), rqst)
+
+	if err != nil {
+		log.Fatalf("TestPersistOne fail %v", err)
+	}
+
+	log.Println(rsp.GetId())
+}
+
+/** Test find one **/
+func TestFindOne(t *testing.T) {
+	fmt.Println("Find one test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	// Retreive a single value...
+	rqst := &persistencepb.FindOneRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestMongoDB",
+		Collection: "Employees",
+		Query:      `{"first_name": "Anneke", "last_name": "Viele"}`,
+		Fields:     []string{"birth_date", "_id"},
+	}
+
+	rsp, err := c.FindOne(context.Background(), rqst)
+
+	if err != nil {
+		log.Fatalf("FindOne fail %v", err)
+	}
+
+	log.Println(rsp.GetJsonStr())
+}
+
+/** Test find one **/
+func TestFind(t *testing.T) {
+	fmt.Println("Find many test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	// Retreive a single value...
+	rqst := &persistencepb.FindRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestMongoDB",
+		Collection: "Employees",
+		Query:      `{"first_name": "Anneke"}`,
+		Fields:     []string{"birth_date", "_id"},
+	}
+
+	stream, err := c.Find(context.Background(), rqst)
+
+	if err != nil {
+		log.Fatalf("TestFind fail %v", err)
+	}
+
+	for {
+		results, err := stream.Recv()
+
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			log.Fatalf("error while CreateConnection: %v", err)
+		}
+
+		// Get the result...
+		log.Println(results.JsonStr)
+	}
+
+	log.Println("--> end of find!")
+}
+
+/** Test find one **/
+func TestUpdate(t *testing.T) {
+	fmt.Println("Update test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	// Retreive a single value...
+	rqst := &persistencepb.UpdateRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestMongoDB",
+		Collection: "Employees",
+		Query:      `{"emp_no": 59717}`,
+		Value:      `{"$set":{"gender":"F"}}`,
+	}
+
+	rsp, err := c.Update(context.Background(), rqst)
+	if err != nil {
+		log.Println("---> ", err)
+	}
+
+	log.Println("---> update success!", rsp.Result)
+}
+
+/** Test remove **/
+func TestRemove(t *testing.T) {
+	fmt.Println("Connection creation test.")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := persistencepb.NewPersistenceServiceClient(cc)
+
+	// Retreive a single value...
+	rqst := &persistencepb.DeleteRqst{
+		Id:         "mongo_db_test_connection",
+		Database:   "TestMongoDB",
+		Collection: "Employees",
+		Query:      `{"emp_no": 200000}`,
+	}
+
+	rsp, err := c.Delete(context.Background(), rqst)
+	if err != nil {
+		log.Println("---> ", err)
+	}
+
+	log.Println("---> Delete success!", rsp.Result)
+}
