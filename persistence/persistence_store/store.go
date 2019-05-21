@@ -70,7 +70,22 @@ type Store interface {
 	Update(ctx context.Context, database string, collection string, query string, value string) error
 
 	/**
+	 * Update document that match a given condition whit a given value.
+	 */
+	UpdateOne(ctx context.Context, database string, collection string, query string, value string) error
+
+	/**
+	 * Replace one document that match a given condition whit a given value.
+	 */
+	ReplaceOne(ctx context.Context, database string, collection string, query string, value string) error
+
+	/**
 	 * Remove one or more value depending of the query results.
 	 */
 	Delete(ctx context.Context, database string, collection string, query string) error
+
+	/**
+	 * Remove one value depending of the query results.
+	 */
+	DeleteOne(ctx context.Context, database string, collection string, query string) error
 }

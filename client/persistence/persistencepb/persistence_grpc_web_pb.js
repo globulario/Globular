@@ -744,6 +744,116 @@ proto.persistence.PersistenceServicePromiseClient.prototype.update =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.UpdateOneRqst,
+ *   !proto.persistence.UpdateOneRsp>}
+ */
+const methodInfo_PersistenceService_UpdateOne = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.UpdateOneRsp,
+  /** @param {!proto.persistence.UpdateOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.UpdateOneRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.UpdateOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.UpdateOneRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.UpdateOneRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.updateOne =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/UpdateOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_UpdateOne,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.UpdateOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.UpdateOneRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.updateOne =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/UpdateOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_UpdateOne);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.ReplaceOneRqst,
+ *   !proto.persistence.ReplaceOneRsp>}
+ */
+const methodInfo_PersistenceService_ReplaceOne = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.ReplaceOneRsp,
+  /** @param {!proto.persistence.ReplaceOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.ReplaceOneRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.ReplaceOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.ReplaceOneRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.ReplaceOneRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.replaceOne =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/ReplaceOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_ReplaceOne,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.ReplaceOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.ReplaceOneRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.replaceOne =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/ReplaceOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_ReplaceOne);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.DeleteRqst,
  *   !proto.persistence.DeleteRsp>}
  */
@@ -793,6 +903,61 @@ proto.persistence.PersistenceServicePromiseClient.prototype.delete =
       request,
       metadata || {},
       methodInfo_PersistenceService_Delete);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.DeleteOneRqst,
+ *   !proto.persistence.DeleteOneRsp>}
+ */
+const methodInfo_PersistenceService_DeleteOne = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DeleteOneRsp,
+  /** @param {!proto.persistence.DeleteOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteOneRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.DeleteOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.DeleteOneRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DeleteOneRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.deleteOne =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteOne,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.DeleteOneRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.DeleteOneRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.deleteOne =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/DeleteOne',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_DeleteOne);
 };
 
 

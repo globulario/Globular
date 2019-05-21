@@ -109,6 +109,30 @@ message UpdateRsp {
 	bool result = 1;
 }
 
+message UpdateOneRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+	string value = 5;
+}
+
+message UpdateOneRsp {
+	bool result = 1;
+}
+
+message ReplaceOneRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+	string value = 5;
+}
+
+message ReplaceOneRsp {
+	bool result = 1;
+}
+
 message DeleteRqst {
 	string id = 1;
 	string database = 2;
@@ -117,6 +141,17 @@ message DeleteRqst {
 }
 
 message DeleteRsp {
+	bool result = 1;
+}
+
+message DeleteOneRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string query = 4;
+}
+
+message DeleteOneRsp {
 	bool result = 1;
 }
 
@@ -215,9 +250,18 @@ service PersistenceService {
 	// Find one
 	rpc FindOne(FindOneRqst) returns (FindOneResp){};
 	
-	// Update many result or one.
+	// Update many result.
 	rpc Update(UpdateRqst) returns (UpdateRsp){};
 	
-	// Delete many or one.
+	// Update one
+	rpc UpdateOne(UpdateOneRqst) returns (UpdateOneRsp){};
+	
+	// Replace one
+	rpc ReplaceOne(ReplaceOneRqst) returns (ReplaceOneRsp){};
+	
+	// Delete many.
 	rpc Delete(DeleteRqst) returns (DeleteRsp){};
+	
+	// Delte one
+	rpc DeleteOne(DeleteOneRqst) returns (DeleteOneRsp){};
 }

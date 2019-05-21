@@ -283,6 +283,72 @@ func (self *MongoStore) Update(ctx context.Context, database string, collection 
 	return nil
 }
 
+/**
+ * Update one document at time
+ */
+func (self *MongoStore) UpdateOne(ctx context.Context, database string, collection string, query string, value string) error {
+	if self.client.Database(database) == nil {
+		return errors.New("No database found with name " + database)
+	}
+
+	if self.client.Database(database).Collection(collection) == nil {
+		return errors.New("No collection found with name " + collection)
+	}
+
+	collection_ := self.client.Database(database).Collection(collection)
+	q := make(map[string]interface{})
+	err := json.Unmarshal([]byte(query), &q)
+	if err != nil {
+		return err
+	}
+
+	v := make(map[string]interface{})
+	err = json.Unmarshal([]byte(value), &v)
+	if err != nil {
+		return err
+	}
+
+	_, err = collection_.UpdateOne(ctx, q, v)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Replace a document by another.
+ */
+func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collection string, query string, value string) error {
+	if self.client.Database(database) == nil {
+		return errors.New("No database found with name " + database)
+	}
+
+	if self.client.Database(database).Collection(collection) == nil {
+		return errors.New("No collection found with name " + collection)
+	}
+
+	collection_ := self.client.Database(database).Collection(collection)
+	q := make(map[string]interface{})
+	err := json.Unmarshal([]byte(query), &q)
+	if err != nil {
+		return err
+	}
+
+	v := make(map[string]interface{})
+	err = json.Unmarshal([]byte(value), &v)
+	if err != nil {
+		return err
+	}
+
+	_, err = collection_.ReplaceOne(ctx, q, v)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // Delete
 //////////////////////////////////////////////////////////////////////////////////
@@ -307,6 +373,33 @@ func (self *MongoStore) Delete(ctx context.Context, database string, collection 
 	}
 
 	_, err = collection_.DeleteMany(ctx, q)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Remove one document at time
+ */
+func (self *MongoStore) DeleteOne(ctx context.Context, database string, collection string, query string) error {
+	if self.client.Database(database) == nil {
+		return errors.New("No database found with name " + database)
+	}
+
+	if self.client.Database(database).Collection(collection) == nil {
+		return errors.New("No collection found with name " + collection)
+	}
+
+	collection_ := self.client.Database(database).Collection(collection)
+	q := make(map[string]interface{})
+	err := json.Unmarshal([]byte(query), &q)
+	if err != nil {
+		return err
+	}
+
+	_, err = collection_.DeleteOne(ctx, q)
 	if err != nil {
 		return err
 	}

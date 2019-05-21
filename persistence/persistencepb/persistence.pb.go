@@ -920,6 +920,226 @@ func (m *UpdateRsp) GetResult() bool {
 	return false
 }
 
+type UpdateOneRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Collection           string   `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	Query                string   `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	Value                string   `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdateOneRqst) Reset()         { *m = UpdateOneRqst{} }
+func (m *UpdateOneRqst) String() string { return proto.CompactTextString(m) }
+func (*UpdateOneRqst) ProtoMessage()    {}
+func (*UpdateOneRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{17}
+}
+
+func (m *UpdateOneRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateOneRqst.Unmarshal(m, b)
+}
+func (m *UpdateOneRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateOneRqst.Marshal(b, m, deterministic)
+}
+func (m *UpdateOneRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateOneRqst.Merge(m, src)
+}
+func (m *UpdateOneRqst) XXX_Size() int {
+	return xxx_messageInfo_UpdateOneRqst.Size(m)
+}
+func (m *UpdateOneRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateOneRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateOneRqst proto.InternalMessageInfo
+
+func (m *UpdateOneRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *UpdateOneRqst) GetDatabase() string {
+	if m != nil {
+		return m.Database
+	}
+	return ""
+}
+
+func (m *UpdateOneRqst) GetCollection() string {
+	if m != nil {
+		return m.Collection
+	}
+	return ""
+}
+
+func (m *UpdateOneRqst) GetQuery() string {
+	if m != nil {
+		return m.Query
+	}
+	return ""
+}
+
+func (m *UpdateOneRqst) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+type UpdateOneRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdateOneRsp) Reset()         { *m = UpdateOneRsp{} }
+func (m *UpdateOneRsp) String() string { return proto.CompactTextString(m) }
+func (*UpdateOneRsp) ProtoMessage()    {}
+func (*UpdateOneRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{18}
+}
+
+func (m *UpdateOneRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateOneRsp.Unmarshal(m, b)
+}
+func (m *UpdateOneRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateOneRsp.Marshal(b, m, deterministic)
+}
+func (m *UpdateOneRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateOneRsp.Merge(m, src)
+}
+func (m *UpdateOneRsp) XXX_Size() int {
+	return xxx_messageInfo_UpdateOneRsp.Size(m)
+}
+func (m *UpdateOneRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateOneRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateOneRsp proto.InternalMessageInfo
+
+func (m *UpdateOneRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type ReplaceOneRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Collection           string   `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	Query                string   `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	Value                string   `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReplaceOneRqst) Reset()         { *m = ReplaceOneRqst{} }
+func (m *ReplaceOneRqst) String() string { return proto.CompactTextString(m) }
+func (*ReplaceOneRqst) ProtoMessage()    {}
+func (*ReplaceOneRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{19}
+}
+
+func (m *ReplaceOneRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReplaceOneRqst.Unmarshal(m, b)
+}
+func (m *ReplaceOneRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReplaceOneRqst.Marshal(b, m, deterministic)
+}
+func (m *ReplaceOneRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReplaceOneRqst.Merge(m, src)
+}
+func (m *ReplaceOneRqst) XXX_Size() int {
+	return xxx_messageInfo_ReplaceOneRqst.Size(m)
+}
+func (m *ReplaceOneRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReplaceOneRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReplaceOneRqst proto.InternalMessageInfo
+
+func (m *ReplaceOneRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *ReplaceOneRqst) GetDatabase() string {
+	if m != nil {
+		return m.Database
+	}
+	return ""
+}
+
+func (m *ReplaceOneRqst) GetCollection() string {
+	if m != nil {
+		return m.Collection
+	}
+	return ""
+}
+
+func (m *ReplaceOneRqst) GetQuery() string {
+	if m != nil {
+		return m.Query
+	}
+	return ""
+}
+
+func (m *ReplaceOneRqst) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+type ReplaceOneRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReplaceOneRsp) Reset()         { *m = ReplaceOneRsp{} }
+func (m *ReplaceOneRsp) String() string { return proto.CompactTextString(m) }
+func (*ReplaceOneRsp) ProtoMessage()    {}
+func (*ReplaceOneRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{20}
+}
+
+func (m *ReplaceOneRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReplaceOneRsp.Unmarshal(m, b)
+}
+func (m *ReplaceOneRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReplaceOneRsp.Marshal(b, m, deterministic)
+}
+func (m *ReplaceOneRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReplaceOneRsp.Merge(m, src)
+}
+func (m *ReplaceOneRsp) XXX_Size() int {
+	return xxx_messageInfo_ReplaceOneRsp.Size(m)
+}
+func (m *ReplaceOneRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReplaceOneRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReplaceOneRsp proto.InternalMessageInfo
+
+func (m *ReplaceOneRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 type DeleteRqst struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
@@ -934,7 +1154,7 @@ func (m *DeleteRqst) Reset()         { *m = DeleteRqst{} }
 func (m *DeleteRqst) String() string { return proto.CompactTextString(m) }
 func (*DeleteRqst) ProtoMessage()    {}
 func (*DeleteRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{17}
+	return fileDescriptor_786a22e1273e0931, []int{21}
 }
 
 func (m *DeleteRqst) XXX_Unmarshal(b []byte) error {
@@ -994,7 +1214,7 @@ func (m *DeleteRsp) Reset()         { *m = DeleteRsp{} }
 func (m *DeleteRsp) String() string { return proto.CompactTextString(m) }
 func (*DeleteRsp) ProtoMessage()    {}
 func (*DeleteRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{18}
+	return fileDescriptor_786a22e1273e0931, []int{22}
 }
 
 func (m *DeleteRsp) XXX_Unmarshal(b []byte) error {
@@ -1022,6 +1242,108 @@ func (m *DeleteRsp) GetResult() bool {
 	return false
 }
 
+type DeleteOneRqst struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	Collection           string   `protobuf:"bytes,3,opt,name=collection,proto3" json:"collection,omitempty"`
+	Query                string   `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteOneRqst) Reset()         { *m = DeleteOneRqst{} }
+func (m *DeleteOneRqst) String() string { return proto.CompactTextString(m) }
+func (*DeleteOneRqst) ProtoMessage()    {}
+func (*DeleteOneRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{23}
+}
+
+func (m *DeleteOneRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteOneRqst.Unmarshal(m, b)
+}
+func (m *DeleteOneRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteOneRqst.Marshal(b, m, deterministic)
+}
+func (m *DeleteOneRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteOneRqst.Merge(m, src)
+}
+func (m *DeleteOneRqst) XXX_Size() int {
+	return xxx_messageInfo_DeleteOneRqst.Size(m)
+}
+func (m *DeleteOneRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteOneRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteOneRqst proto.InternalMessageInfo
+
+func (m *DeleteOneRqst) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *DeleteOneRqst) GetDatabase() string {
+	if m != nil {
+		return m.Database
+	}
+	return ""
+}
+
+func (m *DeleteOneRqst) GetCollection() string {
+	if m != nil {
+		return m.Collection
+	}
+	return ""
+}
+
+func (m *DeleteOneRqst) GetQuery() string {
+	if m != nil {
+		return m.Query
+	}
+	return ""
+}
+
+type DeleteOneRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteOneRsp) Reset()         { *m = DeleteOneRsp{} }
+func (m *DeleteOneRsp) String() string { return proto.CompactTextString(m) }
+func (*DeleteOneRsp) ProtoMessage()    {}
+func (*DeleteOneRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_786a22e1273e0931, []int{24}
+}
+
+func (m *DeleteOneRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteOneRsp.Unmarshal(m, b)
+}
+func (m *DeleteOneRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteOneRsp.Marshal(b, m, deterministic)
+}
+func (m *DeleteOneRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteOneRsp.Merge(m, src)
+}
+func (m *DeleteOneRsp) XXX_Size() int {
+	return xxx_messageInfo_DeleteOneRsp.Size(m)
+}
+func (m *DeleteOneRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteOneRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteOneRsp proto.InternalMessageInfo
+
+func (m *DeleteOneRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 type CreateDatabaseRqst struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Database             string   `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
@@ -1034,7 +1356,7 @@ func (m *CreateDatabaseRqst) Reset()         { *m = CreateDatabaseRqst{} }
 func (m *CreateDatabaseRqst) String() string { return proto.CompactTextString(m) }
 func (*CreateDatabaseRqst) ProtoMessage()    {}
 func (*CreateDatabaseRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{19}
+	return fileDescriptor_786a22e1273e0931, []int{25}
 }
 
 func (m *CreateDatabaseRqst) XXX_Unmarshal(b []byte) error {
@@ -1080,7 +1402,7 @@ func (m *CreateDatabaseRsp) Reset()         { *m = CreateDatabaseRsp{} }
 func (m *CreateDatabaseRsp) String() string { return proto.CompactTextString(m) }
 func (*CreateDatabaseRsp) ProtoMessage()    {}
 func (*CreateDatabaseRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{20}
+	return fileDescriptor_786a22e1273e0931, []int{26}
 }
 
 func (m *CreateDatabaseRsp) XXX_Unmarshal(b []byte) error {
@@ -1120,7 +1442,7 @@ func (m *DeleteDatabaseRqst) Reset()         { *m = DeleteDatabaseRqst{} }
 func (m *DeleteDatabaseRqst) String() string { return proto.CompactTextString(m) }
 func (*DeleteDatabaseRqst) ProtoMessage()    {}
 func (*DeleteDatabaseRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{21}
+	return fileDescriptor_786a22e1273e0931, []int{27}
 }
 
 func (m *DeleteDatabaseRqst) XXX_Unmarshal(b []byte) error {
@@ -1166,7 +1488,7 @@ func (m *DeleteDatabaseRsp) Reset()         { *m = DeleteDatabaseRsp{} }
 func (m *DeleteDatabaseRsp) String() string { return proto.CompactTextString(m) }
 func (*DeleteDatabaseRsp) ProtoMessage()    {}
 func (*DeleteDatabaseRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{22}
+	return fileDescriptor_786a22e1273e0931, []int{28}
 }
 
 func (m *DeleteDatabaseRsp) XXX_Unmarshal(b []byte) error {
@@ -1207,7 +1529,7 @@ func (m *CreateCollectionRqst) Reset()         { *m = CreateCollectionRqst{} }
 func (m *CreateCollectionRqst) String() string { return proto.CompactTextString(m) }
 func (*CreateCollectionRqst) ProtoMessage()    {}
 func (*CreateCollectionRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{23}
+	return fileDescriptor_786a22e1273e0931, []int{29}
 }
 
 func (m *CreateCollectionRqst) XXX_Unmarshal(b []byte) error {
@@ -1260,7 +1582,7 @@ func (m *CreateCollectionRsp) Reset()         { *m = CreateCollectionRsp{} }
 func (m *CreateCollectionRsp) String() string { return proto.CompactTextString(m) }
 func (*CreateCollectionRsp) ProtoMessage()    {}
 func (*CreateCollectionRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{24}
+	return fileDescriptor_786a22e1273e0931, []int{30}
 }
 
 func (m *CreateCollectionRsp) XXX_Unmarshal(b []byte) error {
@@ -1301,7 +1623,7 @@ func (m *DeleteCollectionRqst) Reset()         { *m = DeleteCollectionRqst{} }
 func (m *DeleteCollectionRqst) String() string { return proto.CompactTextString(m) }
 func (*DeleteCollectionRqst) ProtoMessage()    {}
 func (*DeleteCollectionRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{25}
+	return fileDescriptor_786a22e1273e0931, []int{31}
 }
 
 func (m *DeleteCollectionRqst) XXX_Unmarshal(b []byte) error {
@@ -1354,7 +1676,7 @@ func (m *DeleteCollectionRsp) Reset()         { *m = DeleteCollectionRsp{} }
 func (m *DeleteCollectionRsp) String() string { return proto.CompactTextString(m) }
 func (*DeleteCollectionRsp) ProtoMessage()    {}
 func (*DeleteCollectionRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{26}
+	return fileDescriptor_786a22e1273e0931, []int{32}
 }
 
 func (m *DeleteCollectionRsp) XXX_Unmarshal(b []byte) error {
@@ -1396,7 +1718,7 @@ func (m *CountRqst) Reset()         { *m = CountRqst{} }
 func (m *CountRqst) String() string { return proto.CompactTextString(m) }
 func (*CountRqst) ProtoMessage()    {}
 func (*CountRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{27}
+	return fileDescriptor_786a22e1273e0931, []int{33}
 }
 
 func (m *CountRqst) XXX_Unmarshal(b []byte) error {
@@ -1456,7 +1778,7 @@ func (m *CountRsp) Reset()         { *m = CountRsp{} }
 func (m *CountRsp) String() string { return proto.CompactTextString(m) }
 func (*CountRsp) ProtoMessage()    {}
 func (*CountRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_786a22e1273e0931, []int{28}
+	return fileDescriptor_786a22e1273e0931, []int{34}
 }
 
 func (m *CountRsp) XXX_Unmarshal(b []byte) error {
@@ -1503,8 +1825,14 @@ func init() {
 	proto.RegisterType((*FindOneResp)(nil), "persistence.FindOneResp")
 	proto.RegisterType((*UpdateRqst)(nil), "persistence.UpdateRqst")
 	proto.RegisterType((*UpdateRsp)(nil), "persistence.UpdateRsp")
+	proto.RegisterType((*UpdateOneRqst)(nil), "persistence.UpdateOneRqst")
+	proto.RegisterType((*UpdateOneRsp)(nil), "persistence.UpdateOneRsp")
+	proto.RegisterType((*ReplaceOneRqst)(nil), "persistence.ReplaceOneRqst")
+	proto.RegisterType((*ReplaceOneRsp)(nil), "persistence.ReplaceOneRsp")
 	proto.RegisterType((*DeleteRqst)(nil), "persistence.DeleteRqst")
 	proto.RegisterType((*DeleteRsp)(nil), "persistence.DeleteRsp")
+	proto.RegisterType((*DeleteOneRqst)(nil), "persistence.DeleteOneRqst")
+	proto.RegisterType((*DeleteOneRsp)(nil), "persistence.DeleteOneRsp")
 	proto.RegisterType((*CreateDatabaseRqst)(nil), "persistence.CreateDatabaseRqst")
 	proto.RegisterType((*CreateDatabaseRsp)(nil), "persistence.CreateDatabaseRsp")
 	proto.RegisterType((*DeleteDatabaseRqst)(nil), "persistence.DeleteDatabaseRqst")
@@ -1522,59 +1850,64 @@ func init() {
 }
 
 var fileDescriptor_786a22e1273e0931 = []byte{
-	// 823 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x57, 0x4f, 0x6f, 0xd3, 0x4a,
-	0x10, 0x8f, 0x9b, 0x38, 0x8d, 0xa7, 0xaf, 0x79, 0x7d, 0xf3, 0xf2, 0xf2, 0x8c, 0x91, 0x4a, 0x6a,
-	0x2a, 0x88, 0x28, 0x14, 0x54, 0x0e, 0x54, 0xe2, 0x00, 0xa2, 0x15, 0xa8, 0x87, 0x92, 0x2a, 0x81,
-	0x03, 0xdc, 0x9c, 0x78, 0x01, 0xa3, 0xd4, 0x76, 0xbd, 0xeb, 0xa2, 0xde, 0x2b, 0xf1, 0x89, 0xf8,
-	0x52, 0x7c, 0x0a, 0xb4, 0x5e, 0xff, 0x5d, 0x3b, 0x46, 0x15, 0x6d, 0x6e, 0x3b, 0xb3, 0xb3, 0xbf,
-	0xf9, 0xcd, 0xce, 0x78, 0x67, 0x0c, 0x3b, 0x3e, 0x09, 0xa8, 0x43, 0x19, 0x71, 0x67, 0xe4, 0x71,
-	0x6e, 0xed, 0x4f, 0xf3, 0xd2, 0xae, 0x1f, 0x78, 0xcc, 0xc3, 0xb5, 0x9c, 0xca, 0xfc, 0xa9, 0x00,
-	0x1c, 0x78, 0xae, 0x4b, 0x66, 0xcc, 0xf1, 0x5c, 0xec, 0xc2, 0x8a, 0x63, 0xeb, 0xca, 0x40, 0x19,
-	0x6a, 0xe3, 0x15, 0xc7, 0x46, 0x84, 0x96, 0x6b, 0x9d, 0x12, 0x7d, 0x25, 0xd2, 0x44, 0x6b, 0xae,
-	0xfb, 0xe2, 0x51, 0xa6, 0x37, 0x85, 0x8e, 0xaf, 0xf1, 0x21, 0xa8, 0x94, 0x79, 0x01, 0xd1, 0xd5,
-	0x81, 0x32, 0xec, 0xee, 0xf5, 0x77, 0xf3, 0x6e, 0x27, 0x7c, 0xe7, 0xdd, 0x85, 0x4f, 0xc6, 0xc2,
-	0x88, 0x23, 0x84, 0x94, 0x04, 0x7a, 0x5b, 0x20, 0xf0, 0x35, 0x1a, 0xd0, 0xf1, 0x2d, 0x4a, 0xbf,
-	0x79, 0x81, 0xad, 0xaf, 0x46, 0xfa, 0x54, 0xe6, 0xf6, 0xbe, 0x17, 0x30, 0xbd, 0x33, 0x50, 0x86,
-	0xea, 0x38, 0x5a, 0xa3, 0x0e, 0xab, 0xcc, 0x39, 0x25, 0x5e, 0xc8, 0x74, 0x2d, 0x52, 0x27, 0x22,
-	0xdf, 0xf1, 0x7c, 0x1e, 0x0d, 0xd5, 0x21, 0x02, 0x4a, 0x44, 0x73, 0x04, 0xbd, 0x83, 0x80, 0x58,
-	0x8c, 0x64, 0x11, 0x8f, 0xcf, 0x28, 0xc3, 0x67, 0x00, 0xb3, 0x54, 0x13, 0x45, 0xbf, 0xb6, 0xf7,
-	0x7f, 0x21, 0x84, 0xdc, 0x81, 0x9c, 0xa9, 0xf9, 0x08, 0xfe, 0x2d, 0x01, 0x52, 0x1f, 0xfb, 0xd0,
-	0x0e, 0x08, 0x0d, 0xe7, 0x2c, 0xc2, 0xea, 0x8c, 0x63, 0xc9, 0xbc, 0x07, 0xbd, 0x43, 0x32, 0x27,
-	0x25, 0xff, 0xd2, 0xad, 0x73, 0xd8, 0x92, 0x5d, 0x0d, 0xec, 0x36, 0xe0, 0x89, 0xe3, 0x7e, 0xfe,
-	0x0d, 0xe8, 0x0e, 0xfc, 0x23, 0x59, 0x95, 0x20, 0xb5, 0x14, 0xf2, 0x1c, 0xba, 0x47, 0x2e, 0x25,
-	0x01, 0x3b, 0xb6, 0xdc, 0x8b, 0x2a, 0x38, 0x9e, 0x2f, 0xdb, 0x62, 0xd6, 0xd4, 0xa2, 0x49, 0x75,
-	0xa4, 0x32, 0x6e, 0xf2, 0xfb, 0x9c, 0xcf, 0xe3, 0xfb, 0x14, 0x75, 0x92, 0xd3, 0xf0, 0x0c, 0x7d,
-	0xa5, 0x9e, 0x3b, 0x61, 0x81, 0xde, 0x12, 0x19, 0x8a, 0x45, 0x73, 0x0b, 0xd6, 0x73, 0x7e, 0xa9,
-	0x8f, 0x1b, 0xd0, 0x74, 0x6c, 0x1a, 0xfb, 0xe5, 0x4b, 0x33, 0x4c, 0x4c, 0x46, 0x2e, 0x59, 0x22,
-	0xb3, 0x4d, 0xf8, 0x2b, 0x73, 0x4b, 0xfd, 0xd2, 0xf5, 0x5e, 0x2a, 0xd0, 0x79, 0xed, 0xb8, 0xf6,
-	0xb5, 0x53, 0xea, 0x81, 0x7a, 0x16, 0x92, 0xe0, 0x22, 0x26, 0x24, 0x04, 0x9e, 0xb8, 0x4f, 0x0e,
-	0x99, 0xdb, 0x54, 0x57, 0x07, 0x4d, 0x9e, 0x38, 0x21, 0x99, 0xdb, 0x31, 0x0b, 0x42, 0xfd, 0x7c,
-	0x30, 0x4a, 0x31, 0x98, 0xef, 0x0a, 0xac, 0x71, 0xb3, 0x9b, 0xb8, 0xc2, 0xab, 0xf1, 0xbd, 0x9f,
-	0x11, 0xa9, 0xa7, 0x7c, 0xa9, 0x00, 0xbc, 0xf7, 0x6d, 0x8b, 0x2d, 0x8b, 0x71, 0x0f, 0xd4, 0x73,
-	0x6b, 0x1e, 0x8a, 0x27, 0x4d, 0x1b, 0x0b, 0xc1, 0xbc, 0x0b, 0x5a, 0xcc, 0xa2, 0xe6, 0x83, 0x74,
-	0x01, 0xc4, 0xf7, 0xbb, 0x1c, 0xaa, 0x9c, 0x54, 0xec, 0xaf, 0x86, 0xd4, 0x4b, 0x40, 0xf1, 0x56,
-	0x1d, 0xc6, 0xce, 0xae, 0x4a, 0x8e, 0xbf, 0x20, 0x12, 0x42, 0xbd, 0x3b, 0xc1, 0xe9, 0x4f, 0xdc,
-	0x49, 0x08, 0x35, 0xee, 0xa6, 0xd9, 0xd3, 0x9e, 0x5c, 0xd6, 0x75, 0x5f, 0x7e, 0xfe, 0xb5, 0x4f,
-	0x7d, 0xd4, 0x53, 0x4a, 0x5e, 0xf1, 0x9b, 0xa4, 0x54, 0xf2, 0x51, 0x43, 0xe9, 0x14, 0xb4, 0x03,
-	0x2f, 0x74, 0xd9, 0x92, 0xea, 0xd2, 0x84, 0x8e, 0x70, 0x57, 0xa2, 0xd4, 0x4c, 0x28, 0x3d, 0xe8,
-	0x83, 0x96, 0xce, 0x07, 0xa8, 0x81, 0x7a, 0x3c, 0x7a, 0xfb, 0x66, 0xb4, 0xd1, 0xd8, 0xfb, 0xd1,
-	0x01, 0x3c, 0xc9, 0x3a, 0xf0, 0x84, 0x04, 0xe7, 0xce, 0x8c, 0xe0, 0x04, 0xba, 0xc5, 0x1a, 0xc4,
-	0x3b, 0xc5, 0x46, 0x5d, 0x2a, 0x71, 0x63, 0xb3, 0xce, 0x80, 0xfa, 0x66, 0x83, 0x83, 0x16, 0x2b,
-	0x4d, 0x02, 0x2d, 0x17, 0xb2, 0x04, 0x5a, 0xaa, 0x53, 0xb3, 0x81, 0x1f, 0x60, 0x43, 0xae, 0x16,
-	0xdc, 0xaa, 0xa0, 0x52, 0xac, 0x0e, 0x63, 0x50, 0x6f, 0x92, 0x40, 0xcb, 0x59, 0x97, 0xa0, 0xab,
-	0x0a, 0x4f, 0x82, 0xae, 0xa8, 0x9b, 0x22, 0xeb, 0x74, 0x28, 0xac, 0x66, 0x9d, 0x1f, 0x36, 0x16,
-	0xb0, 0xce, 0x4d, 0x1a, 0x45, 0xd6, 0x0b, 0xa0, 0xab, 0x86, 0xa3, 0x05, 0xac, 0x8b, 0xd0, 0x47,
-	0xd0, 0xe2, 0xb3, 0x8d, 0x94, 0xb6, 0xf2, 0x50, 0x24, 0xa5, 0xad, 0x34, 0x0f, 0x99, 0x0d, 0xdc,
-	0x07, 0x35, 0xaa, 0x59, 0xec, 0x4b, 0x03, 0x60, 0xfc, 0xd9, 0x18, 0xff, 0x55, 0xe8, 0xa3, 0x93,
-	0x87, 0xa0, 0xa5, 0x13, 0x02, 0x1a, 0x05, 0xab, 0xc2, 0xc0, 0x62, 0xdc, 0x5a, 0xb0, 0x17, 0x87,
-	0x02, 0xd9, 0x04, 0x84, 0xb7, 0x2b, 0x4c, 0x93, 0x91, 0xcc, 0x30, 0x16, 0x6d, 0x72, 0xa0, 0xa1,
-	0x82, 0xfb, 0xd0, 0xe2, 0xbd, 0x15, 0x8b, 0x8c, 0x93, 0x21, 0xc5, 0xa8, 0x50, 0x13, 0x7e, 0xf2,
-	0x89, 0x82, 0x2f, 0x60, 0x35, 0xee, 0xca, 0xa8, 0x97, 0xac, 0x92, 0x30, 0xaa, 0x77, 0x22, 0x08,
-	0x7c, 0x0e, 0x6d, 0xd1, 0x26, 0xb1, 0x38, 0x47, 0x67, 0x1d, 0xdc, 0xe8, 0x57, 0x6d, 0x24, 0x87,
-	0x45, 0x9a, 0xa5, 0xc3, 0x59, 0x4f, 0x95, 0x0e, 0xa7, 0xcd, 0xcf, 0x6c, 0xbc, 0xfa, 0xfb, 0xe3,
-	0x7a, 0xe1, 0x07, 0x68, 0xda, 0x8e, 0xfe, 0x7a, 0x9e, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x7a,
-	0x82, 0xee, 0xde, 0x24, 0x0d, 0x00, 0x00,
+	// 910 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x57, 0xcf, 0x6f, 0xd3, 0x30,
+	0x14, 0x6e, 0xd6, 0xa6, 0x6b, 0xde, 0xd6, 0x32, 0x4c, 0x29, 0x21, 0x48, 0xa3, 0x0b, 0xd3, 0x56,
+	0x31, 0x18, 0x68, 0x1c, 0x98, 0xc4, 0x01, 0xc4, 0x26, 0xa6, 0x1d, 0x46, 0xa7, 0x16, 0x0e, 0x70,
+	0x4b, 0x1b, 0x03, 0x41, 0x5d, 0x92, 0xc5, 0xee, 0xd0, 0xee, 0x93, 0x86, 0xf8, 0x53, 0xf9, 0x2b,
+	0x90, 0xe3, 0xfc, 0xb2, 0x93, 0x06, 0x4d, 0x6c, 0xe5, 0x66, 0x3f, 0xbf, 0x7c, 0xef, 0x7b, 0x3f,
+	0x5a, 0x7f, 0x86, 0x2d, 0x1f, 0x07, 0xc4, 0x21, 0x14, 0xbb, 0x63, 0xfc, 0x2c, 0xb3, 0xf6, 0x47,
+	0xd9, 0xdd, 0xb6, 0x1f, 0x78, 0xd4, 0x43, 0x4b, 0x19, 0x93, 0xf9, 0x5b, 0x01, 0xd8, 0xf3, 0x5c,
+	0x17, 0x8f, 0xa9, 0xe3, 0xb9, 0xa8, 0x05, 0x0b, 0x8e, 0xad, 0x2b, 0x5d, 0xa5, 0xa7, 0x0d, 0x16,
+	0x1c, 0x1b, 0x21, 0xa8, 0xb9, 0xd6, 0x09, 0xd6, 0x17, 0x42, 0x4b, 0xb8, 0x66, 0xb6, 0x6f, 0x1e,
+	0xa1, 0x7a, 0x95, 0xdb, 0xd8, 0x1a, 0x3d, 0x01, 0x95, 0x50, 0x2f, 0xc0, 0xba, 0xda, 0x55, 0x7a,
+	0xad, 0x9d, 0xce, 0x76, 0x36, 0xec, 0x90, 0x9d, 0x7c, 0x38, 0xf7, 0xf1, 0x80, 0x3b, 0x31, 0x84,
+	0x29, 0xc1, 0x81, 0x5e, 0xe7, 0x08, 0x6c, 0x8d, 0x0c, 0x68, 0xf8, 0x16, 0x21, 0x3f, 0xbc, 0xc0,
+	0xd6, 0x17, 0x43, 0x7b, 0xb2, 0x67, 0xfe, 0xbe, 0x17, 0x50, 0xbd, 0xd1, 0x55, 0x7a, 0xea, 0x20,
+	0x5c, 0x23, 0x1d, 0x16, 0xa9, 0x73, 0x82, 0xbd, 0x29, 0xd5, 0xb5, 0xd0, 0x1c, 0x6f, 0xd9, 0x89,
+	0xe7, 0xb3, 0x6c, 0x88, 0x0e, 0x21, 0x50, 0xbc, 0x35, 0xfb, 0xd0, 0xde, 0x0b, 0xb0, 0x45, 0x71,
+	0x9a, 0xf1, 0xe0, 0x94, 0x50, 0xf4, 0x12, 0x60, 0x9c, 0x58, 0xc2, 0xec, 0x97, 0x76, 0xee, 0x09,
+	0x29, 0x64, 0x3e, 0xc8, 0xb8, 0x9a, 0x4f, 0xe1, 0x4e, 0x0e, 0x90, 0xf8, 0xa8, 0x03, 0xf5, 0x00,
+	0x93, 0xe9, 0x84, 0x86, 0x58, 0x8d, 0x41, 0xb4, 0x33, 0x37, 0xa0, 0xbd, 0x8f, 0x27, 0x38, 0x17,
+	0x5f, 0xaa, 0x3a, 0x83, 0xcd, 0xf9, 0x95, 0xc0, 0xae, 0x03, 0x3a, 0x76, 0xdc, 0xaf, 0x7f, 0x01,
+	0xdd, 0x82, 0xdb, 0x92, 0x57, 0x0e, 0x52, 0x4b, 0x20, 0xcf, 0xa0, 0x75, 0xe8, 0x12, 0x1c, 0xd0,
+	0x23, 0xcb, 0x3d, 0x2f, 0x82, 0x63, 0xfd, 0xb2, 0x2d, 0x6a, 0x8d, 0x2c, 0x12, 0x4f, 0x47, 0xb2,
+	0x47, 0xab, 0xac, 0x9e, 0x93, 0x49, 0x54, 0x4f, 0x3e, 0x27, 0x19, 0x0b, 0xeb, 0xd0, 0x77, 0xe2,
+	0xb9, 0x43, 0x1a, 0xe8, 0x35, 0xde, 0xa1, 0x68, 0x6b, 0xae, 0x41, 0x33, 0x13, 0x97, 0xf8, 0x68,
+	0x05, 0xaa, 0x8e, 0x4d, 0xa2, 0xb8, 0x6c, 0x69, 0x4e, 0x63, 0x97, 0xbe, 0x8b, 0xe7, 0xc8, 0x6c,
+	0x15, 0x96, 0xd3, 0xb0, 0xc4, 0xcf, 0x95, 0xf7, 0x42, 0x81, 0xc6, 0x3b, 0xc7, 0xb5, 0xaf, 0x9d,
+	0x52, 0x1b, 0xd4, 0xd3, 0x29, 0x0e, 0xce, 0x23, 0x42, 0x7c, 0xc3, 0x1a, 0xf7, 0xc5, 0xc1, 0x13,
+	0x9b, 0xe8, 0x6a, 0xb7, 0xca, 0x1a, 0xc7, 0x77, 0xe6, 0x7a, 0xc4, 0x02, 0x13, 0x3f, 0x9b, 0x8c,
+	0x22, 0x26, 0x73, 0xa9, 0xc0, 0x12, 0x73, 0xbb, 0x89, 0x12, 0x5e, 0x8d, 0xef, 0x66, 0x4a, 0xa4,
+	0x9c, 0xf2, 0x85, 0x02, 0xf0, 0xd1, 0xb7, 0x2d, 0x3a, 0x2f, 0xc6, 0x6d, 0x50, 0xcf, 0xac, 0xc9,
+	0x94, 0xff, 0xa5, 0x69, 0x03, 0xbe, 0x31, 0x1f, 0x81, 0x16, 0xb1, 0x28, 0xf9, 0x41, 0x5e, 0x2a,
+	0xd0, 0xe4, 0x5e, 0xf3, 0x2b, 0x70, 0x31, 0xdd, 0x0d, 0x58, 0x4e, 0x89, 0x94, 0x30, 0xfe, 0xa9,
+	0x40, 0x6b, 0x80, 0xfd, 0x89, 0x35, 0xfe, 0xef, 0x94, 0x37, 0xa1, 0x99, 0x61, 0x52, 0xc2, 0xd9,
+	0x05, 0xe0, 0xff, 0x92, 0xf3, 0xa1, 0xcb, 0x5a, 0x1f, 0xc5, 0x2b, 0x21, 0x75, 0x0a, 0x4d, 0xee,
+	0x34, 0xb7, 0x32, 0xb2, 0x1e, 0xa7, 0x21, 0x4b, 0xa8, 0xbd, 0x01, 0xc4, 0x2f, 0xab, 0xfd, 0x28,
+	0xde, 0x55, 0xf9, 0xb1, 0x2b, 0x44, 0x42, 0x28, 0x0f, 0xc7, 0x69, 0xfd, 0x4b, 0x38, 0x09, 0xa1,
+	0x24, 0xdc, 0x28, 0xbd, 0xdb, 0xe3, 0x7a, 0x5d, 0x77, 0xfd, 0xb3, 0xd7, 0x7d, 0x12, 0xa3, 0x9c,
+	0x52, 0x7c, 0x8d, 0xdf, 0x24, 0xa5, 0x5c, 0x8c, 0x12, 0x4a, 0x27, 0xa0, 0xed, 0x79, 0x53, 0x97,
+	0xce, 0x69, 0x34, 0x4d, 0x68, 0xf0, 0x70, 0x39, 0x4a, 0xd5, 0x98, 0xd2, 0xe3, 0x0e, 0x68, 0x89,
+	0x40, 0x44, 0x1a, 0xa8, 0x47, 0xfd, 0xf7, 0x07, 0xfd, 0x95, 0xca, 0xce, 0x2f, 0x00, 0x74, 0x9c,
+	0x4a, 0xb0, 0x21, 0x0e, 0xce, 0x9c, 0x31, 0x46, 0x43, 0x68, 0x89, 0x33, 0x88, 0x1e, 0x8a, 0x4a,
+	0x2d, 0x37, 0xe2, 0xc6, 0x6a, 0x99, 0x03, 0xf1, 0xcd, 0x0a, 0x03, 0x15, 0x27, 0x4d, 0x02, 0xcd,
+	0x0f, 0xb2, 0x04, 0x9a, 0x9b, 0x53, 0xb3, 0x82, 0x3e, 0xc1, 0x8a, 0x3c, 0x2d, 0x68, 0xad, 0x80,
+	0x8a, 0x38, 0x1d, 0x46, 0xb7, 0xdc, 0x25, 0x86, 0x96, 0xbb, 0x2e, 0x41, 0x17, 0x0d, 0x9e, 0x04,
+	0x5d, 0x30, 0x37, 0x22, 0xeb, 0xe4, 0x55, 0x50, 0xcc, 0x3a, 0xab, 0x36, 0x67, 0xb0, 0xce, 0x48,
+	0x4d, 0x91, 0xf5, 0x0c, 0xe8, 0x22, 0x75, 0x3c, 0x83, 0xb5, 0x08, 0x7d, 0x08, 0x35, 0x26, 0x6e,
+	0xa5, 0xb6, 0xe5, 0x55, 0xb1, 0xd4, 0xb6, 0x9c, 0x20, 0x36, 0x2b, 0x68, 0x17, 0xd4, 0x70, 0x66,
+	0x51, 0x47, 0x7a, 0x01, 0x44, 0x3f, 0x1b, 0xe3, 0x6e, 0x81, 0x3d, 0xfc, 0x72, 0x1f, 0xb4, 0x44,
+	0x22, 0x22, 0x43, 0xf0, 0x12, 0x14, 0xab, 0x71, 0x7f, 0xc6, 0x59, 0x94, 0x0a, 0xa4, 0x12, 0x18,
+	0x3d, 0x28, 0x70, 0x8d, 0x35, 0xb9, 0x61, 0xcc, 0x3a, 0x64, 0x40, 0x3d, 0x05, 0xed, 0x42, 0x8d,
+	0x89, 0x2b, 0x24, 0x32, 0x8e, 0x55, 0xaa, 0x51, 0x60, 0xc6, 0xec, 0xcb, 0xe7, 0x0a, 0x7a, 0x0d,
+	0x8b, 0x91, 0x2c, 0x43, 0x7a, 0xce, 0x2b, 0x4e, 0xa3, 0xf8, 0x24, 0x84, 0x40, 0xaf, 0xa0, 0xce,
+	0x85, 0x07, 0x12, 0x1f, 0x52, 0xa9, 0x84, 0x33, 0x3a, 0x45, 0x07, 0x71, 0x21, 0x13, 0xd5, 0x22,
+	0x15, 0x52, 0x90, 0x55, 0x52, 0x21, 0xb3, 0x4a, 0xc7, 0xac, 0xa0, 0x03, 0x80, 0x54, 0x48, 0x48,
+	0x85, 0x14, 0xb5, 0x8e, 0x54, 0x48, 0x41, 0x7e, 0xf0, 0x5c, 0xf8, 0xd4, 0x49, 0xb9, 0xa4, 0xea,
+	0x43, 0xca, 0x25, 0x91, 0x09, 0x3c, 0x97, 0xe4, 0x76, 0x96, 0x72, 0x11, 0x84, 0x82, 0x94, 0x4b,
+	0xf6, 0x46, 0x37, 0x2b, 0x6f, 0x6f, 0x7d, 0x6e, 0x0a, 0xcf, 0xfa, 0x51, 0x3d, 0x7c, 0xcb, 0xbf,
+	0xf8, 0x13, 0x00, 0x00, 0xff, 0xff, 0xf9, 0xea, 0xc4, 0x59, 0xfa, 0x0f, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1613,10 +1946,16 @@ type PersistenceServiceClient interface {
 	Find(ctx context.Context, in *FindRqst, opts ...grpc.CallOption) (PersistenceService_FindClient, error)
 	// Find one
 	FindOne(ctx context.Context, in *FindOneRqst, opts ...grpc.CallOption) (*FindOneResp, error)
-	// Update many result or one.
+	// Update many result.
 	Update(ctx context.Context, in *UpdateRqst, opts ...grpc.CallOption) (*UpdateRsp, error)
-	// Delete many or one.
+	// Update one
+	UpdateOne(ctx context.Context, in *UpdateOneRqst, opts ...grpc.CallOption) (*UpdateOneRsp, error)
+	// Replace one
+	ReplaceOne(ctx context.Context, in *ReplaceOneRqst, opts ...grpc.CallOption) (*ReplaceOneRsp, error)
+	// Delete many.
 	Delete(ctx context.Context, in *DeleteRqst, opts ...grpc.CallOption) (*DeleteRsp, error)
+	// Delte one
+	DeleteOne(ctx context.Context, in *DeleteOneRqst, opts ...grpc.CallOption) (*DeleteOneRsp, error)
 }
 
 type persistenceServiceClient struct {
@@ -1792,9 +2131,36 @@ func (c *persistenceServiceClient) Update(ctx context.Context, in *UpdateRqst, o
 	return out, nil
 }
 
+func (c *persistenceServiceClient) UpdateOne(ctx context.Context, in *UpdateOneRqst, opts ...grpc.CallOption) (*UpdateOneRsp, error) {
+	out := new(UpdateOneRsp)
+	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/UpdateOne", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *persistenceServiceClient) ReplaceOne(ctx context.Context, in *ReplaceOneRqst, opts ...grpc.CallOption) (*ReplaceOneRsp, error) {
+	out := new(ReplaceOneRsp)
+	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/ReplaceOne", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *persistenceServiceClient) Delete(ctx context.Context, in *DeleteRqst, opts ...grpc.CallOption) (*DeleteRsp, error) {
 	out := new(DeleteRsp)
 	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *persistenceServiceClient) DeleteOne(ctx context.Context, in *DeleteOneRqst, opts ...grpc.CallOption) (*DeleteOneRsp, error) {
+	out := new(DeleteOneRsp)
+	err := c.cc.Invoke(ctx, "/persistence.PersistenceService/DeleteOne", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1827,10 +2193,16 @@ type PersistenceServiceServer interface {
 	Find(*FindRqst, PersistenceService_FindServer) error
 	// Find one
 	FindOne(context.Context, *FindOneRqst) (*FindOneResp, error)
-	// Update many result or one.
+	// Update many result.
 	Update(context.Context, *UpdateRqst) (*UpdateRsp, error)
-	// Delete many or one.
+	// Update one
+	UpdateOne(context.Context, *UpdateOneRqst) (*UpdateOneRsp, error)
+	// Replace one
+	ReplaceOne(context.Context, *ReplaceOneRqst) (*ReplaceOneRsp, error)
+	// Delete many.
 	Delete(context.Context, *DeleteRqst) (*DeleteRsp, error)
+	// Delte one
+	DeleteOne(context.Context, *DeleteOneRqst) (*DeleteOneRsp, error)
 }
 
 // UnimplementedPersistenceServiceServer can be embedded to have forward compatible implementations.
@@ -1876,8 +2248,17 @@ func (*UnimplementedPersistenceServiceServer) FindOne(ctx context.Context, req *
 func (*UnimplementedPersistenceServiceServer) Update(ctx context.Context, req *UpdateRqst) (*UpdateRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
+func (*UnimplementedPersistenceServiceServer) UpdateOne(ctx context.Context, req *UpdateOneRqst) (*UpdateOneRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateOne not implemented")
+}
+func (*UnimplementedPersistenceServiceServer) ReplaceOne(ctx context.Context, req *ReplaceOneRqst) (*ReplaceOneRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplaceOne not implemented")
+}
 func (*UnimplementedPersistenceServiceServer) Delete(ctx context.Context, req *DeleteRqst) (*DeleteRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (*UnimplementedPersistenceServiceServer) DeleteOne(ctx context.Context, req *DeleteOneRqst) (*DeleteOneRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteOne not implemented")
 }
 
 func RegisterPersistenceServiceServer(s *grpc.Server, srv PersistenceServiceServer) {
@@ -2129,6 +2510,42 @@ func _PersistenceService_Update_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PersistenceService_UpdateOne_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOneRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersistenceServiceServer).UpdateOne(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/persistence.PersistenceService/UpdateOne",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersistenceServiceServer).UpdateOne(ctx, req.(*UpdateOneRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersistenceService_ReplaceOne_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplaceOneRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersistenceServiceServer).ReplaceOne(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/persistence.PersistenceService/ReplaceOne",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersistenceServiceServer).ReplaceOne(ctx, req.(*ReplaceOneRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PersistenceService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteRqst)
 	if err := dec(in); err != nil {
@@ -2143,6 +2560,24 @@ func _PersistenceService_Delete_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PersistenceServiceServer).Delete(ctx, req.(*DeleteRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersistenceService_DeleteOne_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOneRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersistenceServiceServer).DeleteOne(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/persistence.PersistenceService/DeleteOne",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersistenceServiceServer).DeleteOne(ctx, req.(*DeleteOneRqst))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2196,8 +2631,20 @@ var _PersistenceService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _PersistenceService_Update_Handler,
 		},
 		{
+			MethodName: "UpdateOne",
+			Handler:    _PersistenceService_UpdateOne_Handler,
+		},
+		{
+			MethodName: "ReplaceOne",
+			Handler:    _PersistenceService_ReplaceOne_Handler,
+		},
+		{
 			MethodName: "Delete",
 			Handler:    _PersistenceService_Delete_Handler,
+		},
+		{
+			MethodName: "DeleteOne",
+			Handler:    _PersistenceService_DeleteOne_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

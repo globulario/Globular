@@ -488,6 +488,46 @@ func (self *server) Update(ctx context.Context, rqst *persistencepb.UpdateRqst) 
 	}, nil
 }
 
+// Update a single docuemnt value(s)
+func (self *server) UpdateOne(ctx context.Context, rqst *persistencepb.UpdateOneRqst) (*persistencepb.UpdateOneRsp, error) {
+	store := self.stores[rqst.GetId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err := store.UpdateOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &persistencepb.UpdateOneRsp{
+		Result: true,
+	}, nil
+}
+
+// Replace one document by another.
+func (self *server) ReplaceOne(ctx context.Context, rqst *persistencepb.ReplaceOneRqst) (*persistencepb.ReplaceOneRsp, error) {
+	store := self.stores[rqst.GetId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err := store.ReplaceOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &persistencepb.ReplaceOneRsp{
+		Result: true,
+	}, nil
+}
+
 // Delete many or one.
 func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) (*persistencepb.DeleteRsp, error) {
 	store := self.stores[rqst.GetId()]
@@ -504,6 +544,26 @@ func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) 
 	}
 
 	return &persistencepb.DeleteRsp{
+		Result: true,
+	}, nil
+}
+
+// Delete one document at time
+func (self *server) DeleteOne(ctx context.Context, rqst *persistencepb.DeleteOneRqst) (*persistencepb.DeleteOneRsp, error) {
+	store := self.stores[rqst.GetId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err := store.DeleteOne(ctx, rqst.Database, rqst.Collection, rqst.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	return &persistencepb.DeleteOneRsp{
 		Result: true,
 	}, nil
 }
