@@ -28,12 +28,28 @@ type MongoStore struct {
  * Connect to the remote/local mongo server
  * TODO add more connection options via the option_str and options package.
  */
-func (self *MongoStore) Connect(host string, port int32, user string, password string, database string, timeout int32, options_str string) (err error) {
+func (self *MongoStore) Connect(host string, port int32, user string, password string, database string, timeout int32, optionsStr string) error {
+	var opts []*options.ClientOptions
+	if len(optionsStr) > 0 {
+		opts = make([]*options.ClientOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
+		if err != nil {
+			return err
+		}
+		self.client, err = mongo.NewClient(opts...)
+		if err != nil {
+			return err
+		}
+	} else {
+		// basic connection string to begin with.
+		connectionStr := "mongodb://" + host + ":" + strconv.Itoa(int(port))
+		var err error
+		self.client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
+		if err != nil {
+			return err
+		}
 
-	// basic connection string to begin with.
-	connectionStr := "mongodb://" + host + ":" + strconv.Itoa(int(port))
-
-	self.client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
+	}
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	self.client.Connect(ctx)
@@ -45,7 +61,7 @@ func (self *MongoStore) Connect(host string, port int32, user string, password s
 		}
 	}
 
-	return err
+	return nil
 }
 
 /**
@@ -59,10 +75,10 @@ func (self *MongoStore) Ping(ctx context.Context) error {
  * return the number of entry in a table.
  */
 func (self *MongoStore) Count(ctx context.Context, database string, collection string, query string, optionsStr string) (int64, error) {
-	var opts *options.CountOptions
+	var opts []*options.CountOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.CountOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.CountOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return int64(0), err
 		}
@@ -74,7 +90,7 @@ func (self *MongoStore) Count(ctx context.Context, database string, collection s
 		return int64(0), err
 	}
 
-	count, err := self.client.Database(database).Collection(collection).CountDocuments(ctx, q, opts)
+	count, err := self.client.Database(database).Collection(collection).CountDocuments(ctx, q, opts...)
 	return count, err
 }
 
@@ -112,10 +128,10 @@ func (self *MongoStore) DeleteCollection(ctx context.Context, database string, n
  */
 func (self *MongoStore) InsertOne(ctx context.Context, database string, collection string, entity interface{}, optionsStr string) (interface{}, error) {
 
-	var opts *options.InsertOneOptions
+	var opts []*options.InsertOneOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.InsertOneOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.InsertOneOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return int64(0), err
 		}
@@ -124,7 +140,7 @@ func (self *MongoStore) InsertOne(ctx context.Context, database string, collecti
 	// Get the collection object.
 	collection_ := self.client.Database(database).Collection(collection)
 
-	result, err := collection_.InsertOne(ctx, entity, opts)
+	result, err := collection_.InsertOne(ctx, entity, opts...)
 
 	if err != nil {
 		return nil, err
@@ -138,10 +154,10 @@ func (self *MongoStore) InsertOne(ctx context.Context, database string, collecti
  */
 func (self *MongoStore) InsertMany(ctx context.Context, database string, collection string, entities []interface{}, optionsStr string) ([]interface{}, error) {
 
-	var opts *options.InsertManyOptions
+	var opts []*options.InsertManyOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.InsertManyOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.InsertManyOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +167,7 @@ func (self *MongoStore) InsertMany(ctx context.Context, database string, collect
 	collection_ := self.client.Database(database).Collection(collection)
 
 	// return self.client.Ping(ctx, nil)
-	insertManyResult, err := collection_.InsertMany(ctx, entities, opts)
+	insertManyResult, err := collection_.InsertMany(ctx, entities, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -182,16 +198,16 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 		return nil, err
 	}
 
-	var opts *options.FindOptions
+	var opts []*options.FindOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.FindOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.FindOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	cur, err := collection_.Find(ctx, q, opts)
+	cur, err := collection_.Find(ctx, q, opts...)
 	defer cur.Close(context.Background())
 
 	if err != nil {
@@ -248,16 +264,16 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 		return nil, err
 	}
 
-	var opts *options.FindOneOptions
+	var opts []*options.FindOneOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.FindOneOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.FindOneOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = collection_.FindOne(ctx, q, opts).Decode(&entity)
+	err = collection_.FindOne(ctx, q, opts...).Decode(&entity)
 	if err != nil {
 		return nil, err
 	}
@@ -306,16 +322,16 @@ func (self *MongoStore) Update(ctx context.Context, database string, collection 
 		return err
 	}
 
-	var opts *options.UpdateOptions
+	var opts []*options.UpdateOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.UpdateOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.UpdateOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = collection_.UpdateMany(ctx, q, v, opts)
+	_, err = collection_.UpdateMany(ctx, q, v, opts...)
 	if err != nil {
 		return err
 	}
@@ -348,16 +364,16 @@ func (self *MongoStore) UpdateOne(ctx context.Context, database string, collecti
 		return err
 	}
 
-	var opts *options.UpdateOptions
+	var opts []*options.UpdateOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.UpdateOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.UpdateOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = collection_.UpdateOne(ctx, q, v, opts)
+	_, err = collection_.UpdateOne(ctx, q, v, opts...)
 	if err != nil {
 		return err
 	}
@@ -390,16 +406,16 @@ func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collect
 		return err
 	}
 
-	var opts *options.ReplaceOptions
+	var opts []*options.ReplaceOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.ReplaceOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.ReplaceOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = collection_.ReplaceOne(ctx, q, v, opts)
+	_, err = collection_.ReplaceOne(ctx, q, v, opts...)
 	if err != nil {
 		return err
 	}
@@ -430,15 +446,15 @@ func (self *MongoStore) Delete(ctx context.Context, database string, collection 
 		return err
 	}
 
-	var opts *options.DeleteOptions
+	var opts []*options.DeleteOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.DeleteOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.DeleteOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return err
 		}
 	}
-	_, err = collection_.DeleteMany(ctx, q, opts)
+	_, err = collection_.DeleteMany(ctx, q, opts...)
 	if err != nil {
 		return err
 	}
@@ -465,16 +481,16 @@ func (self *MongoStore) DeleteOne(ctx context.Context, database string, collecti
 		return err
 	}
 
-	var opts *options.DeleteOptions
+	var opts []*options.DeleteOptions
 	if len(optionsStr) > 0 {
-		opts = new(options.DeleteOptions)
-		err := json.Unmarshal([]byte(optionsStr), opts)
+		opts = make([]*options.DeleteOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = collection_.DeleteOne(ctx, q, opts)
+	_, err = collection_.DeleteOne(ctx, q, opts...)
 	if err != nil {
 		return err
 	}

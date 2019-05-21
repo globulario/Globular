@@ -6,8 +6,8 @@
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "Connections": {
-    "test_create_connection_js": {
-      "Id": "test_create_connection_js",
+    "mongo_db_test_connection": {
+      "Id": "mongo_db_test_connection",
       "Name": "TestMongoDB",
       "Host": "localhost",
       "Store": 0,
