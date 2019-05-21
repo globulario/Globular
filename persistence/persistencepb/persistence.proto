@@ -55,6 +55,7 @@ message InsertManyRqst {
 	string database = 2;
 	string collection = 3;
 	string jsonStr = 4;
+	string options = 5;
 }
 
 message InsertManyRsp {
@@ -66,6 +67,7 @@ message InsertOneRqst {
 	string database = 2;
 	string collection = 3;
 	string jsonStr = 4;
+	string options = 5;
 }
 
 message InsertOneRsp {
@@ -78,6 +80,7 @@ message FindRqst {
 	string collection = 3;
 	string query = 4;
 	repeated string fields = 5;
+	string options = 6;
 }
 
 message FindResp {
@@ -90,6 +93,7 @@ message FindOneRqst {
 	string collection = 3;
 	string query = 4;
 	repeated string fields = 5;
+	string options = 6;
 }
 
 message FindOneResp {
@@ -103,6 +107,7 @@ message UpdateRqst {
 	string collection = 3;
 	string query = 4;
 	string value = 5;
+	string options = 6;
 }
 
 message UpdateRsp {
@@ -115,6 +120,7 @@ message UpdateOneRqst {
 	string collection = 3;
 	string query = 4;
 	string value = 5;
+	string options = 6;
 }
 
 message UpdateOneRsp {
@@ -127,6 +133,7 @@ message ReplaceOneRqst {
 	string collection = 3;
 	string query = 4;
 	string value = 5;
+	string options = 6;
 }
 
 message ReplaceOneRsp {
@@ -138,6 +145,7 @@ message DeleteRqst {
 	string database = 2;
 	string collection = 3;
 	string query = 4;
+	string options = 5;
 }
 
 message DeleteRsp {
@@ -149,6 +157,7 @@ message DeleteOneRqst {
 	string database = 2;
 	string collection = 3;
 	string query = 4;
+	string options = 5;
 }
 
 message DeleteOneRsp {
@@ -198,6 +207,7 @@ message CountRqst{
 	string database = 2;
 	string collection = 3;
 	string query = 4; // filter
+	string options = 5;
 }
 
 message CountRsp{

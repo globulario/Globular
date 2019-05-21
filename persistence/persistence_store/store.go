@@ -42,50 +42,50 @@ type Store interface {
 	/**
 	 * return the number of entry in a table.
 	 */
-	Count(ctx context.Context, database string, collection string, query string) (int64, error)
+	Count(ctx context.Context, database string, collection string, query string, options string) (int64, error)
 
 	/**
 	 * Insert one result.
 	 */
-	InsertOne(ctx context.Context, database string, collection string, entity interface{}) (interface{}, error)
+	InsertOne(ctx context.Context, database string, collection string, entity interface{}, options string) (interface{}, error)
 
 	/**
 	 * Insert many result at once.
 	 */
-	InsertMany(ctx context.Context, database string, collection string, entities []interface{}) ([]interface{}, error)
+	InsertMany(ctx context.Context, database string, collection string, entities []interface{}, options string) ([]interface{}, error)
 
 	/**
 	 * Find many values from a query
 	 */
-	Find(ctx context.Context, database string, collection string, query string, fields []string) ([]interface{}, error)
+	Find(ctx context.Context, database string, collection string, query string, fields []string, options string) ([]interface{}, error)
 
 	/**
 	 * Find one result at time.
 	 */
-	FindOne(ctx context.Context, database string, collection string, query string, fields []string) (interface{}, error)
+	FindOne(ctx context.Context, database string, collection string, query string, fields []string, options string) (interface{}, error)
 
 	/**
 	 * Update document that match a given condition whit a given value.
 	 */
-	Update(ctx context.Context, database string, collection string, query string, value string) error
+	Update(ctx context.Context, database string, collection string, query string, value string, options string) error
 
 	/**
 	 * Update document that match a given condition whit a given value.
 	 */
-	UpdateOne(ctx context.Context, database string, collection string, query string, value string) error
+	UpdateOne(ctx context.Context, database string, collection string, query string, value string, options string) error
 
 	/**
 	 * Replace one document that match a given condition whit a given value.
 	 */
-	ReplaceOne(ctx context.Context, database string, collection string, query string, value string) error
+	ReplaceOne(ctx context.Context, database string, collection string, query string, value string, options string) error
 
 	/**
 	 * Remove one or more value depending of the query results.
 	 */
-	Delete(ctx context.Context, database string, collection string, query string) error
+	Delete(ctx context.Context, database string, collection string, query string, options string) error
 
 	/**
 	 * Remove one value depending of the query results.
 	 */
-	DeleteOne(ctx context.Context, database string, collection string, query string) error
+	DeleteOne(ctx context.Context, database string, collection string, query string, options string) error
 }

@@ -277,7 +277,7 @@ func (self *server) Count(ctx context.Context, rqst *persistencepb.CountRqst) (*
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	count, err := store.Count(ctx, rqst.Database, rqst.Collection, rqst.Query)
+	count, err := store.Count(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -315,7 +315,7 @@ func (self *server) InsertOne(ctx context.Context, rqst *persistencepb.InsertOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	var id interface{}
-	id, err = store.InsertOne(ctx, rqst.Database, rqst.Collection, entity)
+	id, err = store.InsertOne(ctx, rqst.Database, rqst.Collection, entity, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -372,7 +372,7 @@ func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertMan
 		}
 
 		var results []interface{}
-		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.Database, rqst.Collection, entities)
+		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.Database, rqst.Collection, entities, rqst.Options)
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
@@ -396,7 +396,7 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 	}
 
 	// Get the results.
-	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Fields)
+	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Fields, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -449,7 +449,7 @@ func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := store.FindOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Fields)
+	result, err := store.FindOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Fields, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -478,7 +478,7 @@ func (self *server) Update(ctx context.Context, rqst *persistencepb.UpdateRqst) 
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Update(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value)
+	err := store.Update(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func (self *server) UpdateOne(ctx context.Context, rqst *persistencepb.UpdateOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.UpdateOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value)
+	err := store.UpdateOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +518,7 @@ func (self *server) ReplaceOne(ctx context.Context, rqst *persistencepb.ReplaceO
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.ReplaceOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value)
+	err := store.ReplaceOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -538,7 +538,7 @@ func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) 
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Delete(ctx, rqst.Database, rqst.Collection, rqst.Query)
+	err := store.Delete(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -558,7 +558,7 @@ func (self *server) DeleteOne(ctx context.Context, rqst *persistencepb.DeleteOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteOne(ctx, rqst.Database, rqst.Collection, rqst.Query)
+	err := store.DeleteOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}

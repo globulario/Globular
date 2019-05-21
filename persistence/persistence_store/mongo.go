@@ -58,14 +58,23 @@ func (self *MongoStore) Ping(ctx context.Context) error {
 /**
  * return the number of entry in a table.
  */
-func (self *MongoStore) Count(ctx context.Context, database string, collection string, query string) (int64, error) {
+func (self *MongoStore) Count(ctx context.Context, database string, collection string, query string, optionsStr string) (int64, error) {
+	var opts *options.CountOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.CountOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return int64(0), err
+		}
+	}
+
 	q := make(map[string]interface{})
 	err := json.Unmarshal([]byte(query), &q)
 	if err != nil {
 		return int64(0), err
 	}
 
-	count, err := self.client.Database(database).Collection(collection).CountDocuments(ctx, q)
+	count, err := self.client.Database(database).Collection(collection).CountDocuments(ctx, q, opts)
 	return count, err
 }
 
@@ -101,19 +110,21 @@ func (self *MongoStore) DeleteCollection(ctx context.Context, database string, n
 /**
  * Insert one value in the store.
  */
-func (self *MongoStore) InsertOne(ctx context.Context, database string, collection string, entity interface{}) (interface{}, error) {
-	if self.client.Database(database) == nil {
-		return nil, errors.New("No database found with name " + database)
-	}
+func (self *MongoStore) InsertOne(ctx context.Context, database string, collection string, entity interface{}, optionsStr string) (interface{}, error) {
 
-	if self.client.Database(database).Collection(collection) == nil {
-		return nil, errors.New("No collection found with name " + collection)
+	var opts *options.InsertOneOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.InsertOneOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return int64(0), err
+		}
 	}
 
 	// Get the collection object.
 	collection_ := self.client.Database(database).Collection(collection)
 
-	result, err := collection_.InsertOne(ctx, entity)
+	result, err := collection_.InsertOne(ctx, entity, opts)
 
 	if err != nil {
 		return nil, err
@@ -125,20 +136,22 @@ func (self *MongoStore) InsertOne(ctx context.Context, database string, collecti
 /**
  * Insert many results at time.
  */
-func (self *MongoStore) InsertMany(ctx context.Context, database string, collection string, entities []interface{}) ([]interface{}, error) {
-	if self.client.Database(database) == nil {
-		return nil, errors.New("No database found with name " + database)
-	}
+func (self *MongoStore) InsertMany(ctx context.Context, database string, collection string, entities []interface{}, optionsStr string) ([]interface{}, error) {
 
-	if self.client.Database(database).Collection(collection) == nil {
-		return nil, errors.New("No collection found with name " + collection)
+	var opts *options.InsertManyOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.InsertManyOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Get the collection object.
 	collection_ := self.client.Database(database).Collection(collection)
 
 	// return self.client.Ping(ctx, nil)
-	insertManyResult, err := collection_.InsertMany(ctx, entities)
+	insertManyResult, err := collection_.InsertMany(ctx, entities, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +166,7 @@ func (self *MongoStore) InsertMany(ctx context.Context, database string, collect
 /**
  * Find many values from a query
  */
-func (self *MongoStore) Find(ctx context.Context, database string, collection string, query string, fields []string) ([]interface{}, error) {
+func (self *MongoStore) Find(ctx context.Context, database string, collection string, query string, fields []string, optionsStr string) ([]interface{}, error) {
 	if self.client.Database(database) == nil {
 		return nil, errors.New("No database found with name " + database)
 	}
@@ -169,7 +182,16 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 		return nil, err
 	}
 
-	cur, err := collection_.Find(ctx, q)
+	var opts *options.FindOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.FindOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cur, err := collection_.Find(ctx, q, opts)
 	defer cur.Close(context.Background())
 
 	if err != nil {
@@ -207,7 +229,7 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 /**
  * Find one result at time.
  */
-func (self *MongoStore) FindOne(ctx context.Context, database string, collection string, query string, fields []string) (interface{}, error) {
+func (self *MongoStore) FindOne(ctx context.Context, database string, collection string, query string, fields []string, optionsStr string) (interface{}, error) {
 
 	if self.client.Database(database) == nil {
 		return nil, errors.New("No database found with name " + database)
@@ -226,7 +248,16 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 		return nil, err
 	}
 
-	err = collection_.FindOne(ctx, q).Decode(&entity)
+	var opts *options.FindOneOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.FindOneOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = collection_.FindOne(ctx, q, opts).Decode(&entity)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +284,7 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 /**
  * Update one or more value that match the query.
  */
-func (self *MongoStore) Update(ctx context.Context, database string, collection string, query string, value string) error {
+func (self *MongoStore) Update(ctx context.Context, database string, collection string, query string, value string, optionsStr string) error {
 	if self.client.Database(database) == nil {
 		return errors.New("No database found with name " + database)
 	}
@@ -275,7 +306,16 @@ func (self *MongoStore) Update(ctx context.Context, database string, collection 
 		return err
 	}
 
-	_, err = collection_.UpdateMany(ctx, q, v)
+	var opts *options.UpdateOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.UpdateOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = collection_.UpdateMany(ctx, q, v, opts)
 	if err != nil {
 		return err
 	}
@@ -286,7 +326,7 @@ func (self *MongoStore) Update(ctx context.Context, database string, collection 
 /**
  * Update one document at time
  */
-func (self *MongoStore) UpdateOne(ctx context.Context, database string, collection string, query string, value string) error {
+func (self *MongoStore) UpdateOne(ctx context.Context, database string, collection string, query string, value string, optionsStr string) error {
 	if self.client.Database(database) == nil {
 		return errors.New("No database found with name " + database)
 	}
@@ -308,7 +348,16 @@ func (self *MongoStore) UpdateOne(ctx context.Context, database string, collecti
 		return err
 	}
 
-	_, err = collection_.UpdateOne(ctx, q, v)
+	var opts *options.UpdateOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.UpdateOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = collection_.UpdateOne(ctx, q, v, opts)
 	if err != nil {
 		return err
 	}
@@ -319,7 +368,7 @@ func (self *MongoStore) UpdateOne(ctx context.Context, database string, collecti
 /**
  * Replace a document by another.
  */
-func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collection string, query string, value string) error {
+func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collection string, query string, value string, optionsStr string) error {
 	if self.client.Database(database) == nil {
 		return errors.New("No database found with name " + database)
 	}
@@ -341,7 +390,16 @@ func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collect
 		return err
 	}
 
-	_, err = collection_.ReplaceOne(ctx, q, v)
+	var opts *options.ReplaceOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.ReplaceOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = collection_.ReplaceOne(ctx, q, v, opts)
 	if err != nil {
 		return err
 	}
@@ -356,7 +414,7 @@ func (self *MongoStore) ReplaceOne(ctx context.Context, database string, collect
 /**
  * Remove one or more value depending of the query results.
  */
-func (self *MongoStore) Delete(ctx context.Context, database string, collection string, query string) error {
+func (self *MongoStore) Delete(ctx context.Context, database string, collection string, query string, optionsStr string) error {
 	if self.client.Database(database) == nil {
 		return errors.New("No database found with name " + database)
 	}
@@ -372,7 +430,15 @@ func (self *MongoStore) Delete(ctx context.Context, database string, collection 
 		return err
 	}
 
-	_, err = collection_.DeleteMany(ctx, q)
+	var opts *options.DeleteOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.DeleteOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = collection_.DeleteMany(ctx, q, opts)
 	if err != nil {
 		return err
 	}
@@ -383,7 +449,7 @@ func (self *MongoStore) Delete(ctx context.Context, database string, collection 
 /**
  * Remove one document at time
  */
-func (self *MongoStore) DeleteOne(ctx context.Context, database string, collection string, query string) error {
+func (self *MongoStore) DeleteOne(ctx context.Context, database string, collection string, query string, optionsStr string) error {
 	if self.client.Database(database) == nil {
 		return errors.New("No database found with name " + database)
 	}
@@ -399,7 +465,16 @@ func (self *MongoStore) DeleteOne(ctx context.Context, database string, collecti
 		return err
 	}
 
-	_, err = collection_.DeleteOne(ctx, q)
+	var opts *options.DeleteOptions
+	if len(optionsStr) > 0 {
+		opts = new(options.DeleteOptions)
+		err := json.Unmarshal([]byte(optionsStr), opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = collection_.DeleteOne(ctx, q, opts)
 	if err != nil {
 		return err
 	}

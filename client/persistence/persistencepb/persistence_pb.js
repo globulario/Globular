@@ -1328,7 +1328,8 @@ proto.persistence.InsertManyRqst.toObject = function(includeInstance, msg) {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    jsonstr: jspb.Message.getFieldWithDefault(msg, 4, "")
+    jsonstr: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -1380,6 +1381,10 @@ proto.persistence.InsertManyRqst.deserializeBinaryFromReader = function(msg, rea
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setJsonstr(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -1435,6 +1440,13 @@ proto.persistence.InsertManyRqst.serializeBinaryToWriter = function(message, wri
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -1498,6 +1510,21 @@ proto.persistence.InsertManyRqst.prototype.getJsonstr = function() {
 /** @param {string} value */
 proto.persistence.InsertManyRqst.prototype.setJsonstr = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 5;
+ * @return {string}
+ */
+proto.persistence.InsertManyRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.InsertManyRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -1693,7 +1720,8 @@ proto.persistence.InsertOneRqst.toObject = function(includeInstance, msg) {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    jsonstr: jspb.Message.getFieldWithDefault(msg, 4, "")
+    jsonstr: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -1745,6 +1773,10 @@ proto.persistence.InsertOneRqst.deserializeBinaryFromReader = function(msg, read
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setJsonstr(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -1800,6 +1832,13 @@ proto.persistence.InsertOneRqst.serializeBinaryToWriter = function(message, writ
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -1863,6 +1902,21 @@ proto.persistence.InsertOneRqst.prototype.getJsonstr = function() {
 /** @param {string} value */
 proto.persistence.InsertOneRqst.prototype.setJsonstr = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 5;
+ * @return {string}
+ */
+proto.persistence.InsertOneRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.InsertOneRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -2066,7 +2120,8 @@ proto.persistence.FindRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    fieldsList: jspb.Message.getRepeatedField(msg, 5)
+    fieldsList: jspb.Message.getRepeatedField(msg, 5),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -2122,6 +2177,10 @@ proto.persistence.FindRqst.deserializeBinaryFromReader = function(msg, reader) {
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.addFields(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -2184,6 +2243,13 @@ proto.persistence.FindRqst.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeRepeatedString(
       5,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -2276,6 +2342,21 @@ proto.persistence.FindRqst.prototype.addFields = function(value, opt_index) {
 
 proto.persistence.FindRqst.prototype.clearFieldsList = function() {
   this.setFieldsList([]);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.FindRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.FindRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -2479,7 +2560,8 @@ proto.persistence.FindOneRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    fieldsList: jspb.Message.getRepeatedField(msg, 5)
+    fieldsList: jspb.Message.getRepeatedField(msg, 5),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -2535,6 +2617,10 @@ proto.persistence.FindOneRqst.deserializeBinaryFromReader = function(msg, reader
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.addFields(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -2597,6 +2683,13 @@ proto.persistence.FindOneRqst.serializeBinaryToWriter = function(message, writer
   if (f.length > 0) {
     writer.writeRepeatedString(
       5,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -2689,6 +2782,21 @@ proto.persistence.FindOneRqst.prototype.addFields = function(value, opt_index) {
 
 proto.persistence.FindOneRqst.prototype.clearFieldsList = function() {
   this.setFieldsList([]);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.FindOneRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.FindOneRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -2885,7 +2993,8 @@ proto.persistence.UpdateRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    value: jspb.Message.getFieldWithDefault(msg, 5, "")
+    value: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -2941,6 +3050,10 @@ proto.persistence.UpdateRqst.deserializeBinaryFromReader = function(msg, reader)
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.setValue(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -3003,6 +3116,13 @@ proto.persistence.UpdateRqst.serializeBinaryToWriter = function(message, writer)
   if (f.length > 0) {
     writer.writeString(
       5,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -3081,6 +3201,21 @@ proto.persistence.UpdateRqst.prototype.getValue = function() {
 /** @param {string} value */
 proto.persistence.UpdateRqst.prototype.setValue = function(value) {
   jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.UpdateRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.UpdateRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -3279,7 +3414,8 @@ proto.persistence.UpdateOneRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    value: jspb.Message.getFieldWithDefault(msg, 5, "")
+    value: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -3335,6 +3471,10 @@ proto.persistence.UpdateOneRqst.deserializeBinaryFromReader = function(msg, read
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.setValue(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -3397,6 +3537,13 @@ proto.persistence.UpdateOneRqst.serializeBinaryToWriter = function(message, writ
   if (f.length > 0) {
     writer.writeString(
       5,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -3475,6 +3622,21 @@ proto.persistence.UpdateOneRqst.prototype.getValue = function() {
 /** @param {string} value */
 proto.persistence.UpdateOneRqst.prototype.setValue = function(value) {
   jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.UpdateOneRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.UpdateOneRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -3673,7 +3835,8 @@ proto.persistence.ReplaceOneRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    value: jspb.Message.getFieldWithDefault(msg, 5, "")
+    value: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -3729,6 +3892,10 @@ proto.persistence.ReplaceOneRqst.deserializeBinaryFromReader = function(msg, rea
     case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.setValue(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -3791,6 +3958,13 @@ proto.persistence.ReplaceOneRqst.serializeBinaryToWriter = function(message, wri
   if (f.length > 0) {
     writer.writeString(
       5,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
       f
     );
   }
@@ -3869,6 +4043,21 @@ proto.persistence.ReplaceOneRqst.prototype.getValue = function() {
 /** @param {string} value */
 proto.persistence.ReplaceOneRqst.prototype.setValue = function(value) {
   jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.ReplaceOneRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.ReplaceOneRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -4066,7 +4255,8 @@ proto.persistence.DeleteRqst.toObject = function(includeInstance, msg) {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    query: jspb.Message.getFieldWithDefault(msg, 4, "")
+    query: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -4118,6 +4308,10 @@ proto.persistence.DeleteRqst.deserializeBinaryFromReader = function(msg, reader)
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQuery(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -4173,6 +4367,13 @@ proto.persistence.DeleteRqst.serializeBinaryToWriter = function(message, writer)
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -4236,6 +4437,21 @@ proto.persistence.DeleteRqst.prototype.getQuery = function() {
 /** @param {string} value */
 proto.persistence.DeleteRqst.prototype.setQuery = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 5;
+ * @return {string}
+ */
+proto.persistence.DeleteRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.DeleteRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -4433,7 +4649,8 @@ proto.persistence.DeleteOneRqst.toObject = function(includeInstance, msg) {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    query: jspb.Message.getFieldWithDefault(msg, 4, "")
+    query: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -4485,6 +4702,10 @@ proto.persistence.DeleteOneRqst.deserializeBinaryFromReader = function(msg, read
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQuery(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -4540,6 +4761,13 @@ proto.persistence.DeleteOneRqst.serializeBinaryToWriter = function(message, writ
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -4603,6 +4831,21 @@ proto.persistence.DeleteOneRqst.prototype.getQuery = function() {
 /** @param {string} value */
 proto.persistence.DeleteOneRqst.prototype.setQuery = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 5;
+ * @return {string}
+ */
+proto.persistence.DeleteOneRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.DeleteOneRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -6106,7 +6349,8 @@ proto.persistence.CountRqst.toObject = function(includeInstance, msg) {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    query: jspb.Message.getFieldWithDefault(msg, 4, "")
+    query: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -6158,6 +6402,10 @@ proto.persistence.CountRqst.deserializeBinaryFromReader = function(msg, reader) 
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQuery(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
       break;
     default:
       reader.skipField();
@@ -6213,6 +6461,13 @@ proto.persistence.CountRqst.serializeBinaryToWriter = function(message, writer) 
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -6276,6 +6531,21 @@ proto.persistence.CountRqst.prototype.getQuery = function() {
 /** @param {string} value */
 proto.persistence.CountRqst.prototype.setQuery = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 5;
+ * @return {string}
+ */
+proto.persistence.CountRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.CountRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
