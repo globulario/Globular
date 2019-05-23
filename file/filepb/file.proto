@@ -87,6 +87,18 @@ message DeleteFileResponse {
 	bool result = 1;
 }
 
+// Return all images thumnails from a directory
+message GetThumbnailsRequest{
+	string path = 1;
+	bool recursive = 2;
+	int32 thumnailWidth = 3;
+	int32 thumnailHeight = 4;
+}
+
+message GetThumbnailsResponse {
+	bytes data = 1; // The json string containing the list of files.
+}
+
 service FileService {
 	
 	// Return a JOSN string containing the directories informations.
@@ -116,6 +128,7 @@ service FileService {
 	rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse){};
 	
 	// Specific files...
+	rpc GetThumbnails(GetThumbnailsRequest) returns (stream GetThumbnailsResponse){};
 	
 	// Excel files...
 	

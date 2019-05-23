@@ -1,0 +1,9 @@
+{
+  "Name": "storage_server",
+  "Port": 10013,
+  "Proxy": 10014,
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Connections": {}
+}

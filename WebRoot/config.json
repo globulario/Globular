@@ -2,7 +2,7 @@
   "Name": "Globular",
   "Port": 10000,
   "Protocol": "http",
-  "IP": "74.14.175.55",
+  "IP": "10.67.44.52",
   "Services": {
     "echo_server": {
       "Port": 10001,
@@ -15,10 +15,6 @@
     "ldap_server": {
       "Port": 10003,
       "Proxy": 10004
-    },
-    "oauth2_server": {
-      "Port": 10013,
-      "Proxy": 10014
     },
     "persistence_server": {
       "Port": 10005,

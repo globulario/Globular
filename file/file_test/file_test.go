@@ -77,6 +77,47 @@ func _TestReadDir(t *testing.T) {
 	log.Println("TestReadDir successed!")
 }
 
+func TestGetThumbnails(t *testing.T) {
+	fmt.Println("Get Thumbnails")
+
+	cc := getClientConnection()
+
+	// when done the connection will be close.
+	defer cc.Close()
+
+	// Create a new client service...
+	c := filepb.NewFileServiceClient(cc)
+
+	rqst := &filepb.GetThumbnailsRequest{
+		Path:           "C:\\Temp\\Cargo\\WebApp\\Cargo\\Apps\\BrisOutil",
+		Recursive:      true,
+		ThumnailHeight: 256,
+		ThumnailWidth:  256,
+	}
+
+	stream, err := c.GetThumbnails(context.Background(), rqst)
+	if err != nil {
+		log.Fatalf("Query error %v", err)
+	}
+
+	// Here I will create the final array
+	data := make([]byte, 0)
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+
+		data = append(data, msg.Data...)
+		if err != nil {
+			log.Fatalf("error while TestReadDir: %v", err)
+		}
+	}
+
+	log.Println("TestReadDir successed!")
+}
+
 /**
  * Create a new directory.
  */

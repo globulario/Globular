@@ -271,6 +271,40 @@ func (self *File_Client) DeleteFile(path string) error {
 	return err
 }
 
+// Read the content of a dir and return all images as thumbnails.
+func (self *File_Client) GetThumbnails(path interface{}, recursive interface{}, thumbnailHeight interface{}, thumbnailWidth interface{}) (string, error) {
+
+	// Create a new client service...
+	rqst := &filepb.GetThumbnailsRequest{
+		Path:           Utility.ToString(path),
+		Recursive:      Utility.ToBool(recursive),
+		ThumnailHeight: int32(Utility.ToInt(thumbnailHeight)),
+		ThumnailWidth:  int32(Utility.ToInt(thumbnailWidth)),
+	}
+
+	stream, err := self.c.GetThumbnails(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	// Here I will create the final array
+	data := make([]byte, 0)
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+
+		data = append(data, msg.Data...)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return string(data), nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // SQL Client Service
 ////////////////////////////////////////////////////////////////////////////////

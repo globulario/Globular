@@ -188,6 +188,27 @@ func getFileInfo(path string) (*fileInfo, error) {
 	return info, nil
 }
 
+func getThumbnails(info *fileInfo) []interface{} {
+	// The array of thumbnail
+	thumbnails := make([]interface{}, 0)
+
+	// Now from the info i will extract the thumbnail
+	for i := 0; i < len(info.Files); i++ {
+		if !info.Files[i].IsDir {
+			thumbnail := make(map[string]string)
+			thumbnail["path"] = info.Files[i].Path
+			thumbnail["thumbnail"] = info.Files[i].Thumbnail
+			thumbnails = append(thumbnails, thumbnail)
+			log.Println("--> file path ", thumbnail["path"], ":", len(thumbnail["thumbnail"]))
+		} else {
+			thumbnails = append(thumbnails, getThumbnails(info.Files[i])...)
+		}
+		///if info
+	}
+
+	return thumbnails
+}
+
 /**
  * Read the directory and return the file info.
  */
@@ -580,4 +601,50 @@ func main() {
 	signal.Notify(ch, os.Interrupt)
 	<-ch
 
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility functions
+////////////////////////////////////////////////////////////////////////////////
+// Return the list of thumbnail for a given directory...
+func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream filepb.FileService_GetThumbnailsServer) error {
+	path := rqst.GetPath()
+
+	// The roo will be the Root specefied by the server.
+	if strings.HasPrefix(path, "/") {
+		path = self.Root + path
+		// Set the path separator...
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	}
+
+	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
+	thumbnails := getThumbnails(info)
+
+	if err != nil {
+		return err
+	}
+
+	// Here I will serialyse the data into JSON.
+	jsonStr, err := json.Marshal(thumbnails)
+	if err != nil {
+		return err
+	}
+
+	maxSize := 1024 * 5
+	size := int(math.Ceil(float64(len(jsonStr)) / float64(maxSize)))
+	for i := 0; i < size; i++ {
+		start := i * maxSize
+		end := start + maxSize
+		var data []byte
+		if end > len(jsonStr) {
+			data = jsonStr[start:]
+		} else {
+			data = jsonStr[start:end]
+		}
+		stream.Send(&filepb.GetThumbnailsResponse{
+			Data: data,
+		})
+	}
+
+	return nil
 }
