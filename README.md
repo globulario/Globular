@@ -24,3 +24,4 @@ Functionality offer by Globular are:
 * Give access to services via regular web-api via http-query
 
 ### Echo
+Here I will show you how you can create your own personnal service in Globular and use it in your web application. You are welcome to share it here whit the rest of pepole as you want, in fact it will be nice to have a micro service hub ready to use by web-application. 
