@@ -146,3 +146,10 @@ Finaly in [*globular.go*](https://github.com/davecourtois/Globular/blob/master/g
 
 **Important** The syntax of your function name must be like New**Echo**_Client where *Echo* is the name of your service with the first letter capitalized.
 
+Your service will be reachable at the address,
+```
+http://127.0.0.1:10000/api/echo_service/Echo?p0=Hello
+```
+Where the echo_service is the name of your gRpc service and Echo is the name of your function. Each parameter must be named
+*p*0, *p*1... *p*n.
+
