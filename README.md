@@ -10,12 +10,11 @@ Micro-Services Web application framework written in Go and JavaScript with help 
 * [File (give access to server file system)](https://github.com/davecourtois/globulehub/tree/master/file)
 
 ###  *share-as-little-as-possible*
-Microservices, aka Microservice Architecture, is an architectural style that structures an application as a collection of small autonomous services, modeled around a business domain. Each service run inside their own process, as a result, each services are isolated from each other, so their impact are minimal. It's possbile to extend the level of functionality of the whole system by simply create a new service.
+Microservices, aka Microservice Architecture, is an architectural style that structures an application as a collection of small autonomous services, modeled around a business domain. Each service run inside it own process, as a result, each service is isolated from all other, so it impact is minimal. It's possbile to extend the level of functionality of the whole system by simply create a new service.
 ### What is *Globular*
-If the serices are the brick's, then *Globular* is the mortar. All services define by Globular are plain gRpc service. I create those set of service as basic *web-application* brick's. But essensitly any gRpc services can by added to Globular whitout any problems. The role of globular is to manage all those independent services and present them to web-application as a Whole. 
+If the services are the brick's, then *Globular* is the mortar. All services define by Globular are plain gRpc service. I create those set of service as basic *web-application* brick's. But essensitly any gRpc services can by added to Globular whitout any problems. The role of globular is to manage all those independent services and present them to web-application as a Whole. 
 
-Funtionalities offer by Globular are:
-
+Funtionalities offer by Globular are,
 * Give a global entry point to services via a web server (http/https)
 * Starting/stopping services
 * Keep services alive as needed
@@ -32,7 +31,7 @@ tar xvzf globular.1.0.tar.gz -C /path/to/somedirectory
 cd /path/to/somedirectory
 ./Globular(.exe)
 ```
-Globular is running and waiting for you at http://127.0.0.1:10000/
+Globular is up and running at [http://127.0.0.1:10000/](http://127.0.0.1:10000/)
 
 ## How to create your own service with Globular
 ### Echo
