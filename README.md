@@ -241,7 +241,7 @@ function testEcho(str) {
 }
 ```
 Has you can see, the *globular* object contain a reference to all services that you have define one your application server. You are not limited to one server connection, to connect your application to other server all you have to do to create a new *Globular* object,
-```
+```javascript
 var myOtherServer = new Globular({
   "Name": "MyOtherSeverName",
   "Port": "10001",
