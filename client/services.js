@@ -34,6 +34,13 @@ window.Spc = Object.assign(window.Spc, require('./spc/spcpb/spc_grpc_web_pb.js')
 window.Persistence = require('./persistence/persistencepb/persistence_pb.js');
 window.Persistence = Object.assign(window.Persistence, require('./persistence/persistencepb/persistence_grpc_web_pb.js'));
 
+
+////////////////////////////////////////////////////////////////////////////
+// Storage service ( kv/cache )
+////////////////////////////////////////////////////////////////////////////
+window.Storage = require('./storage/storagepb/storage_pb.js');
+window.Storage = Object.assign(window.Storage, require('./storage/storagepb/storage_grpc_web_pb.js'));
+
 ////////////////////////////////////////////////////////////////////////////
 // File service
 ////////////////////////////////////////////////////////////////////////////
@@ -97,6 +104,12 @@ class Globular {
             this.persistenceService = new Persistence.PersistenceServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.persistence_server.Proxy);
             this.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.persistence_server.Proxy);
             console.log("persistence service is init.")
+        }
+
+        if (this.config.Storage.storage_server != null) {
+            this.storageService = new Storage.StorageServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
+            this.storageServicePromise = new Storage.StorageServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
+            console.log("storage service is init.")
         }
 
         if (this.config.Services.file_server != null) {
