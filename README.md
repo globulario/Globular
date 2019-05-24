@@ -50,7 +50,7 @@ The first thing to do is to create a directory named [*echo*pb](https://github.c
 ```
 #### Create the server
 The next step is to create the server directory, that directory will contain three sub-directories:
-* *echo*_server That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/echo_server.go) as starting point. If you use *echo*_server.go your server will create a [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json) file for you the first time it start. That must contain nessary configuration informations use by your service. 
+* [*echo*_server](https://github.com/davecourtois/Globular/tree/master/echo/echo_server) That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/echo_server.go) as starting point. If you use *echo*_server.go your server will create a [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json) file for you the first time it start. That must contain nessary configuration informations use by your service. 
   ``` JSON
    {
     "Name": "echo_server",
