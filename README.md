@@ -24,6 +24,17 @@ Funtionalities offer by Globular are:
 * Give access to services via regular web-api via http-query
 * Keep services configuration details hidden from client side
 
+## Install from binairy
+Here's a link to get *Globular* binairy for win64 and linux
+[globular.1.0.tar.gz](https://www.dropbox.com/home/git/dist?preview=globular.1.0.tar.gz)
+```
+tar xvzf globular.1.0.tar.gz -C /path/to/somedirectory
+cd /path/to/somedirectory
+./Globular(.exe)
+```
+Globular is running and waiting for you at http://127.0.0.1:10000/
+
+## How to create your own service with Globular
 ### Echo
 Here I will show you how you can create your own personnal service in Globular and use it in your web application. You are welcome to share it here with the rest of pepole as you want, in fact it will be nice to have a micro-services repository ready to use by web-applications.
 #### Define your service
