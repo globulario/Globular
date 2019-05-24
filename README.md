@@ -185,7 +185,7 @@ Now all it need is to compile Globular and start it... from the [*root directory
 ```bash
 go build
 ```
-You must have an executable file named *Globular(.exe)* in your directory.
+Now you must have an executable file named *Globular(.exe)* in your directory. The server configuation will be created the first time you will start your server. The configuration will vary depending of services found, (directory containing a [*config.json*](https://github.com/davecourtois/Globular/blob/master/WebRoot/config.json) file and executable). If you need to change services configuration change the service [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json)
 
 ```bash
 ./Globular
@@ -240,7 +240,7 @@ function testEcho(str) {
         })
 }
 ```
-Has you can see, the *globular* object contain a reference to all services that you have define one your application server. You are not limited to one server connection, to connect your application to other server all you have to do to create a new *Globular* object,
+Has you can see, the *globular* object contain a reference to all services that you have define one your application server. You are not limited to one server connection, to connect your application to another server all you have to do to create a new *Globular* object and specify a different configuration,
 ```javascript
 var myOtherServer = new Globular({
   "Name": "MyOtherSeverName",
