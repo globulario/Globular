@@ -3,11 +3,11 @@ Micro-Services Web application framework written in Go and JavaScript with help 
 
 * echo (service example)
 * [Sql](https://github.com/davecourtois/globulehub/tree/master/sql)
-* Ldap
-* Smtp
-* Persistence (work in progress)
-* Storage (server side html5 storage)
-* File (give access to server file system)
+* [Ldap](https://github.com/davecourtois/globulehub/tree/master/ldap)
+* [Smtp](https://github.com/davecourtois/globulehub/tree/master/smtp)
+* [Persistence (MongoDB...)](https://github.com/davecourtois/globulehub/tree/master/persistence)
+* [Storage (server side html5 storage)](https://github.com/davecourtois/globulehub/tree/master/storage)
+* [File (give access to server file system)](https://github.com/davecourtois/globulehub/tree/master/file)
 
 ###  *share-as-little-as-possible*
 Microservices, aka Microservice Architecture, is an architectural style that structures an application as a collection of small autonomous services, modeled around a business domain. Each service run inside their own process, as a result, each services are isolated from each other, so their impact are minimal. It's possbile to extend the level of functionality of the whole system by simply create a new service.
