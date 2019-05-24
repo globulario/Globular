@@ -25,3 +25,6 @@ Functionality offer by Globular are:
 
 ### Echo
 Here I will show you how you can create your own personnal service in Globular and use it in your web application. You are welcome to share it here whit the rest of pepole as you want, in fact it will be nice to have a micro service hub ready to use by web-application. 
+#### Create the service directory
+The first step is to create the service directory, that directory will contain three directories:
+* *echo*_server That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/globulehub/tree/master/echo/echo_server.go) as starting point.
