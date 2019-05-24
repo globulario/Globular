@@ -42,6 +42,6 @@ The first step is to create the service directory, that directory will contain t
   * The *Port* number (That is the gRpc port)
   * The *Proxy* port number (Use by the browser to access the gRpc service)
   * *AllowAllOrigins* You can give list of address that can access your service, that will block all other origin. By default all address are allow.
-  * *Protocol* must by *grpc*, but other *rpc* protocol can be added in the futur.
+  * *Protocol* must be *grpc*, but other *rpc* protocol can be added in the futur.
   If your gRpc server is written in a different language than *Go* you can put your code here. At the end you must have a *config.json* file and an executable file named *echo*_server.*exe* (as example).
   
