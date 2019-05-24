@@ -204,7 +204,7 @@ Now there is the steps to access service within the browser,
   ...
 </body>
 ```
-2. From your [index.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/test.js) file (or any other javascript file)
+2. At the top of your js file here [*test.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/test.js) append,
 ```javascript
 // The service configuration 
 globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
@@ -213,3 +213,30 @@ globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
 var globular = new Globular()
 ```
 Note that globularConfig is a global variable and it contain the default service connection. The IP address the external IP address of your server, so here I change it to the local address (*127.0.0.1*) because it's a test...
+
+your service is now ready to use!
+
+#### You your service...
+Here is a simple exemple how to use Globular...
+``` javascript
+function testEcho(str) {
+
+    // Create a new request.
+    var request = new Echo.EchoRequest();
+    request.setMessage(str);
+
+    globular.echoService.echo(request, {}, function (err, response) {
+        // ...
+        console.log(response.getMessage())
+    });
+
+    // Now I will test with promise
+    globular.echoServicePromise.echo(request)
+        .then((resp) => {
+            console.log(resp.getMessage())
+        })
+        .catch((error) => {
+            console.log(error)
+        })
+}
+```
