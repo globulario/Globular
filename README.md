@@ -88,7 +88,7 @@ The next step is to create the server directory, that directory will contain thr
  go test
  ```
  #### Create the web-api
- That step is optional, but if you plan to give access to your service in the old fashion way this is how it's done in Globular. In the file [*clients.go*](https://github.com/davecourtois/Globular/blob/master/clients.go) you must wrote the client side of your gRpc service.
+ That step is optional, but if you plan to give access to your service in the old fashion way this is how it's done in Globular. In the file [*clients.go*](https://github.com/davecourtois/Globular/blob/master/clients.go) you must wrote the client side of your gRpc service. (see your test code...)
 ``` go
    type Echo_Client struct {
     cc *grpc.ClientConn
@@ -121,5 +121,28 @@ The next step is to create the server directory, that directory will contain thr
     return rsp.Message, nil
   }
 ```
-Here a couple of rules must be follow for uniformity in the way service are defined,
+Finaly in [*globular.go*](https://github.com/davecourtois/Globular/blob/master/globular.go) register your *NewEcho_Client* function,
+```go
+  /**
+   * Init the service client.
+   */
+  func (self *Globule) initClients() {
+    // Register service constructor function here.
+    // The name of the contructor must follow the same pattern.
+    Utility.RegisterFunction("NewEcho_Client", NewEcho_Client)
+    Utility.RegisterFunction("NewSql_Client", NewSql_Client)
+    Utility.RegisterFunction("NewFile_Client", NewFile_Client)
+    Utility.RegisterFunction("NewPersistence_Client", NewPersistence_Client)
+    Utility.RegisterFunction("NewSmtp_Client", NewSmtp_Client)
+    Utility.RegisterFunction("NewLdap_Client", NewLdap_Client)
+
+    // The echo service
+    for k, _ := range self.services {
+      name := strings.Split(k, "_")[0]
+      self.initClient(name)
+    }
+  }
+```
+
+**Important** The syntax of your function name must be like New**Echo**_Client where *Echo* is the name of your service with the first letter capitalized.
 
