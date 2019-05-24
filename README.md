@@ -48,6 +48,17 @@ The first thing to do is to create a directory named [*echo*pb](https://github.c
     rpc Echo(EchoRequest) returns (EchoResponse);
   }
 ```
+Now you must generate the gRpc code for the server (*Go*),
+```
+protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
+```
+And also the client (*JavaScript*)
+```
+protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
+protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:client
+```
+You append your command inside the [*generateCode.sh*](https://github.com/davecourtois/Globular/blob/master/generateCode.sh) in case you want to share your service with the rest of the planet.
+
 #### Create the server
 The next step is to create the server directory, that directory will contain three sub-directories:
 * [*echo*_server](https://github.com/davecourtois/Globular/tree/master/echo/echo_server) That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/echo_server.go) as starting point. If you use *echo*_server.go your server will create a [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json) file for you the first time it start. That must contain nessary configuration informations use by your service. 
