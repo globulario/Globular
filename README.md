@@ -172,7 +172,7 @@ And in the Globular constructor append line,
             console.log("echo service is init.")
         }
 ```
-The next step is to compile the *services.js* file with *webpack*, from the client directory run,
+The next step is to compile the *services.js* file with [*webpack*](https://webpack.js.org/), from the client directory run,
 ```
 npx webpack
 ```
@@ -239,4 +239,23 @@ function testEcho(str) {
             console.log(error)
         })
 }
+```
+Has you can see, the *globular* object contain a reference to all services that you have define one your application server. You are not limited to one server connection, to connect your application to other server all you have to do to create a new *Globular* object,
+```
+var myOtherServer = new Globular({
+  "Name": "MyOtherSeverName",
+  "Port": "10001",
+  "Protocol": "http",
+  "IP": "127.0.0.1",
+  "Services": {
+    "echo_server": {
+      "Port": 10001,
+      "Proxy": 10002
+    },
+    "file_server": {
+      "Port": 10011,
+      "Proxy": 10012
+    }
+  }
+})
 ```
