@@ -153,3 +153,22 @@ http://127.0.0.1:10000/api/echo_service/Echo?p0=Hello
 Where the echo_service is the name of your gRpc service and Echo is the name of your function. Each parameter must be named
 *p*0, *p*1... *p*n.
 
+#### Access your service form the browser with JavaScript
+We previously generate the JS code it's now time to append it into Globular. In file [*services.js*](https://github.com/davecourtois/Globular/blob/master/client/services.js) wrote,
+```javascript
+////////////////////////////////////////////////////////////////////////////
+// Echo service
+////////////////////////////////////////////////////////////////////////////
+window.Echo = require('./echo/echopb/echo_pb.js');
+window.Echo = Object.assign(window.Echo, require('./echo/echopb/echo_grpc_web_pb.js'));
+
+```
+And in the Globular constructor append line,
+```javascript
+        // Now I will set serives...
+        if (this.config.Services.echo_server != null) {
+            this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
+            this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
+            console.log("echo service is init.")
+        }
+```
