@@ -212,7 +212,7 @@ globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
 // The global service object.
 var globular = new Globular()
 ```
-Note that globularConfig is a global variable and it contain the default service connection. The IP address the external IP address of your server, so here I change it to the local address (*127.0.0.1*) because it's a test...
+Note that globularConfig is a global variable and it contain the default service connection. The IP address is the external IP address of your server, so here I change it to the local address (*127.0.0.1*) because it's a test...
 
 your service is now ready to use!
 
