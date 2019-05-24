@@ -5,4 +5,6 @@ Micro-Services Web application framework written in Go and JavaScript with help 
 * Ldap
 * Smtp
 * Persistence (work in progress)
+* Storage (server side html5 storage)
+* File (give access to server file system)
 
