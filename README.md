@@ -172,3 +172,10 @@ And in the Globular constructor append line,
             console.log("echo service is init.")
         }
 ```
+The next step is to compile the *services.js* file with *webpack*, from the client directory run,
+```
+npx webpack
+```
+that will ouput a new file in [*dist*](https://github.com/davecourtois/Globular/tree/master/client/dist) directory, [services.js](https://github.com/davecourtois/Globular/blob/master/client/dist/services.js)
+
+That file must replace the existing file [*services.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/services.js) in [*WebRoot*](https://github.com/davecourtois/Globular/tree/master/WebRoot/js) directory.
