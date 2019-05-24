@@ -176,6 +176,9 @@ The next step is to compile the *services.js* file with *webpack*, from the clie
 ```
 npx webpack
 ```
-that will ouput a new file in [*dist*](https://github.com/davecourtois/Globular/tree/master/client/dist) directory, [services.js](https://github.com/davecourtois/Globular/blob/master/client/dist/services.js)
+that will ouput a new file named [services.js](https://github.com/davecourtois/Globular/blob/master/client/dist/services.js) in [*dist*](https://github.com/davecourtois/Globular/tree/master/client/dist) directory
 
-That file must replace the existing file [*services.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/services.js) in [*WebRoot*](https://github.com/davecourtois/Globular/tree/master/WebRoot/js) directory.
+That file must replace the existing file named [*services.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/services.js) in [*WebRoot*](https://github.com/davecourtois/Globular/tree/master/WebRoot/js) directory.
+
+Your almost there!
+
