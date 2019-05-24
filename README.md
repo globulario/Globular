@@ -180,5 +180,36 @@ that will ouput a new file named [services.js](https://github.com/davecourtois/G
 
 That file must replace the existing file named [*services.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/services.js) in [*WebRoot*](https://github.com/davecourtois/Globular/tree/master/WebRoot/js) directory.
 
-Your almost there!
+### Start the server
+Now all it need is to compile Globular and start it... from the [*root directory*](https://github.com/davecourtois/Globular) of the project
+```
+go build
+```
+You must have an executable file named *Globular(.exe)* in your directory.
 
+```
+./Globular
+```
+Congratulation you wrote your first gRpc service in Globular!
+
+### Access the service from the browser via JavaScript.
+Now there is the steps to access service within the browser,
+
+1. Import those file into your [*index.html*](https://github.com/davecourtois/Globular/blob/master/WebRoot/index.html) file.
+```html
+<body onload="main();">
+  <!-- Services files... -->
+  <script src = "http://127.0.0.1:10000/config.json"></script>
+  <script src = "http://127.0.0.1:10000/js/services.js"></script>
+  ...
+</body>
+```
+2. From your [index.js*](https://github.com/davecourtois/Globular/blob/master/WebRoot/js/test.js) file (or any other javascript file)
+```javascript
+// The service configuration 
+globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
+
+// The global service object.
+var globular = new Globular()
+```
+Note that globularConfig is a global variable and it contain the default service connection. The IP address the external IP address of your server, so here I change it to the local address (*127.0.0.1*) because it's a test...
