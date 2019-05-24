@@ -27,7 +27,7 @@ Funtionalities offer by Globular are:
 ### Echo
 Here I will show you how you can create your own personnal service in Globular and use it in your web application. You are welcome to share it here with the rest of pepole as you want, in fact it will be nice to have a micro-services repository ready to use by web-applications.
 #### Define your service
-The first thing to do is to create a directory named *echo*pb (pb stand for Protocol Buffer). In that directory you will define your service interface. The file [*echo*.proto](https://github.com/davecourtois/Globular/blob/master/echo/echopb/echo.proto) contain the grpc service definition.
+The first thing to do is to create a directory named [*echo*pb](https://github.com/davecourtois/Globular/blob/master/echo/echopb) (pb stand for Protocol Buffer). In that directory you will define your service interface. The file [*echo*.proto](https://github.com/davecourtois/Globular/blob/master/echo/echopb/echo.proto) contain the grpc service definition.
 ```proto
   package echo;
 
