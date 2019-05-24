@@ -49,11 +49,11 @@ The first thing to do is to create a directory named [*echo*pb](https://github.c
   }
 ```
 Now you must generate the gRpc code for the server (*Go*),
-```
+```bash
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
 ```
 And also the client (*JavaScript*)
-```
+```bash
 protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
 protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:client
 ```
@@ -182,12 +182,12 @@ That file must replace the existing file named [*services.js*](https://github.co
 
 ### Start the server
 Now all it need is to compile Globular and start it... from the [*root directory*](https://github.com/davecourtois/Globular) of the project
-```
+```bash
 go build
 ```
 You must have an executable file named *Globular(.exe)* in your directory.
 
-```
+```bash
 ./Globular
 ```
 Congratulation you wrote your first gRpc service in Globular!
