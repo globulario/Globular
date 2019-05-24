@@ -43,8 +43,8 @@ The first thing to do is to create a directory named [*echo*pb](https://github.c
   }
 
   service EchoService {
-    // One request followed by one response
-    // The server returns the client message as-is.
+    // --> hello ---> hello.
+    // ...Is There Anybody Out There?
     rpc Echo(EchoRequest) returns (EchoResponse);
   }
 ```
