@@ -28,8 +28,8 @@ Here I will show you how you can create your own personnal service in Globular a
 #### Create the service directory
 The first step is to create the service directory, that directory will contain three directories:
 * *echo*_server That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/echo_server.go) as starting point. If you use *echo*_server.go your server will create a [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json) file for you the first time it start. That must contain nessary configuration information use by your service. 
-** The *Name* of your service (must be unique on your Globular server)
-** The *Port* number (That is the gRpc port)
-** The *Proxy* port number (Use by the browser to access the gRpc service)
-** *AllowAllOrigins* You can give list of address that can access your service, that will block all other origin. By default all address are allow.
-** *Protocol* must by *grpc*, but other rpc protocol can be added in the futur.
+  * The *Name* of your service (must be unique on your Globular server)
+  * The *Port* number (That is the gRpc port)
+  * The *Proxy* port number (Use by the browser to access the gRpc service)
+  * *AllowAllOrigins* You can give list of address that can access your service, that will block all other origin. By default all address are allow.
+  * *Protocol* must by *grpc*, but other rpc protocol can be added in the futur.
