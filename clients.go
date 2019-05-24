@@ -15,6 +15,7 @@ import (
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"github.com/davecourtois/Globular/spc/spcpb"
 	"github.com/davecourtois/Globular/sql/sqlpb"
+	"github.com/davecourtois/Globular/storage/storagepb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
@@ -390,6 +391,28 @@ func NewPersistence_Client(addresse string) *Persistence_Client {
 
 // must be close when no more needed.
 func (self *Persistence_Client) Close() {
+	self.cc.Close()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// storage Client Service
+////////////////////////////////////////////////////////////////////////////////
+
+type Storage_Client struct {
+	cc *grpc.ClientConn
+	c  storagepb.StorageServiceClient
+}
+
+// Create a connection to the service.
+func NewStorage_Client(addresse string) *Storage_Client {
+	client := new(Storage_Client)
+	client.cc = getClientConnection(addresse)
+	client.c = storagepb.NewStorageServiceClient(client.cc)
+	return client
+}
+
+// must be close when no more needed.
+func (self *Storage_Client) Close() {
 	self.cc.Close()
 }
 

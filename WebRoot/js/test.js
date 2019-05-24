@@ -180,9 +180,6 @@ function testSelectQuery() {
     stream.on('end', function (end) {
         // stream end signal
     });
-  
-
-
 }
 
 

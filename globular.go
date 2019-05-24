@@ -507,6 +507,7 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewPersistence_Client", NewPersistence_Client)
 	Utility.RegisterFunction("NewSmtp_Client", NewSmtp_Client)
 	Utility.RegisterFunction("NewLdap_Client", NewLdap_Client)
+	Utility.RegisterFunction("NewStorage_Client", NewLdap_Client)
 
 	// The echo service
 	for k, _ := range self.services {

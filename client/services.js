@@ -70,7 +70,7 @@ class Globular {
         }
 
         // Now I will set serives...
-        if (this.config.Services.sql_server != null) {
+        if (this.config.Services.echo_server != null) {
             this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
             this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
             console.log("echo service is init.")
@@ -118,7 +118,7 @@ class Globular {
             console.log("file service is init.")
         }
 
-        console.log("services are all initialyse!")
+        console.log("services are all initialysed!")
     }
 
 }

@@ -27,6 +27,10 @@
     "sql_server": {
       "Port": 10009,
       "Proxy": 10010
+    },
+    "storage_server": {
+      "Port": 10013,
+      "Proxy": 10014
     }
   }
 }
