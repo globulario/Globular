@@ -26,8 +26,30 @@ Funtionalities offer by Globular are:
 
 ### Echo
 Here I will show you how you can create your own personnal service in Globular and use it in your web application. You are welcome to share it here with the rest of pepole as you want, in fact it will be nice to have a micro-services repository ready to use by web-applications.
-#### Create the service directory
-The first step is to create the service directory, that directory will contain three directories:
+#### Define your service
+The first thing to do is to create a directory named *echo*pb (pb stand for Protocol Buffer). In that directory you will define your service interface. The file [*echo*.proto](https://github.com/davecourtois/Globular/blob/master/echo/echopb/echo.proto) contain the grpc service definition.
+```proto
+  package echo;
+
+  option go_package="echopb";
+
+  message EchoRequest {
+    string message = 1;
+  }
+
+  message EchoResponse {
+    string message = 1;
+    int32 message_count = 2;
+  }
+
+  service EchoService {
+    // One request followed by one response
+    // The server returns the client message as-is.
+    rpc Echo(EchoRequest) returns (EchoResponse);
+  }
+```
+#### Create the server
+The next step is to create the server directory, that directory will contain three sub-directories:
 * *echo*_server That directory contain the gRpc service side code replace *echo* by your actual service name. You can start from the [*echo*_server.go](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/echo_server.go) as starting point. If you use *echo*_server.go your server will create a [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json) file for you the first time it start. That must contain nessary configuration informations use by your service. 
   ``` JSON
    {
