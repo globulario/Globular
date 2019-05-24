@@ -79,3 +79,47 @@ The next step is to create the server directory, that directory will contain thr
   * *Protocol* must be *grpc*, but other *rpc* protocol can be added in the futur.
   If your gRpc server is written in a different language than *Go* you can put your code here. At the end you must have a *config.json* file and an executable file named *echo*_server.*exe* (as example).
   
+  #### Test-it!
+  Unit test are the best way to make sure your service is working correctly. When your create your test at the same time you almost create the client code that will be use in the next step, so it's not a waste of time! Create a new directory name [*echo*_test](https://github.com/davecourtois/Globular/tree/master/echo/echo_test). Create a file named *echo*_test.go and do your homework!-)
+ Now you can start your server in the command shell and call go test...
+ ```
+ ./echo/echo_server/echo_server &
+ cd echo/echo_test
+ go test
+ ```
+ #### Create the web-api
+ That step is optional, but if you plan to give access to your service in the old fashion way this is how it's done in Globular. In the file [*clients.go*](https://github.com/davecourtois/Globular/blob/master/clients.go) you must wrote the client side of your gRpc service.
+``` go
+   type Echo_Client struct {
+    cc *grpc.ClientConn
+    c  echopb.EchoServiceClient
+  }
+
+  // Create a connection to the service.
+  func NewEcho_Client(addresse string) *Echo_Client {
+    client := new(Echo_Client)
+    client.cc = getClientConnection(addresse)
+    client.c = echopb.NewEchoServiceClient(client.cc)
+    return client
+  }
+
+  // must be close when no more needed.
+  func (self *Echo_Client) Close() {
+    self.cc.Close()
+  }
+
+  func (self *Echo_Client) Echo(msg interface{}) (string, error) {
+    rqst := &echopb.EchoRequest{
+      Message: Utility.ToString(msg),
+    }
+
+    rsp, err := self.c.Echo(context.Background(), rqst)
+    if err != nil {
+      return "", err
+    }
+
+    return rsp.Message, nil
+  }
+```
+Here a couple of rules must be follow for uniformity in the way service are defined,
+
