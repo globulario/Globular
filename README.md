@@ -185,7 +185,7 @@ Now all it need is to compile Globular and start it... from the [*root directory
 ```bash
 go build
 ```
-You must have an executable file named *Globular(.exe)* in your directory. The server configuation will be created the first time you will start your server. The configuration will vary depending of services found, (directory containing a [*config.json*](https://github.com/davecourtois/Globular/blob/master/WebRoot/config.json) file and executable). If you need to change services configuration change the service [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json)
+Now you must have an executable file named *Globular(.exe)* in your directory. The server configuation will be created the first time you will start your server. The configuration will vary depending of services found, (directory containing a [*config.json*](https://github.com/davecourtois/Globular/blob/master/WebRoot/config.json) file and executable). If you need to change services configuration change the service [*config.json*](https://github.com/davecourtois/Globular/blob/master/echo/echo_server/config.json)
 
 ```bash
 ./Globular
