@@ -165,12 +165,12 @@ window.Echo = Object.assign(window.Echo, require('./echo/echopb/echo_grpc_web_pb
 ```
 And in the Globular constructor append line,
 ```javascript
-        // Now I will set serives...
-        if (this.config.Services.echo_server != null) {
-            this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
-            this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
-            console.log("echo service is init.")
-        }
+// Now I will set serives...
+if (this.config.Services.echo_server != null) {
+  this.echoService = new Echo.EchoServiceClient(this.config.Protocol + ': //' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
+  this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + ': //' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
+  console.log("echo service is init.")
+}
 ```
 The next step is to compile the *services.js* file with [*webpack*](https://webpack.js.org/), from the client directory run,
 ```
