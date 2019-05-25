@@ -49,7 +49,7 @@ Now you can test if your connection is correctly configure with help of ping.
 ```javascript
 function testPing(){
     var rqst = new Persistence.PingConnectionRqst()
-    rqst.setId("employees_db")
+    rqst.setId("mongo_db_test_connection")
 
     globular.persistenceServicePromise.ping(rqst)
     .then((rsp) => {
@@ -62,7 +62,7 @@ function testPing(){
 ```
 whit web api
 ```http
-http://127.0.0.1:10000/api/persistence_service/Ping?p0=employees_db
+http://127.0.0.1:10000/api/persistence_service/Ping?p0=mongo_db_test_connection
 ```
 if your connection is correctly configure you must receive answer *pong*.
 
