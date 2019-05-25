@@ -271,4 +271,5 @@ var myOtherServer = new Globular({
   }
 })
 ```
-
+## Conclusion
+Imagine a constellation of micro-services availables to create any type of application with different language accessible in the browser. A globular cluster...
