@@ -215,4 +215,28 @@ function testDeleteQuery(){
     })
 }
 ```
+Again all you see it's almost plain gRpc-Web call. The console display the number of affected rows and the last insert id in case of auto incremented key.
 
+### from web api
+
+Here is the http query,
+
+* for **INSERT** 
+    ```http
+    http://127.0.0.1:10000/api/sql_service/ExecContext?p0=employees_db&p1=INSERT%20INTO%20employees.employees%20(emp_no,%20first_name,%20last_name,%20gender,%20hire_date,%20birth_date)%20VALUE(%3F,%3F,%3F,%3F,%3F,%3F)&p2=200000,Dave,Courtois,M,%202007-07-01,1976-01-29&p3=false
+    ````
+* for **DELETE** 
+    ```http
+    http://127.0.0.1:10000/api/sql_service/ExecContext?p0=employees_db&p1=DELETE%20FROM%20employees.employees%20WHERE%20emp_no=%3F&p2=200000&p3=false
+    ```
+
+Note that the *p3* paremeter tell if the query must use transaction.
+
+Those tow query return the number of affected rows and the last id as a json object,
+
+```json
+{
+    "affectRows":1,
+    "lastId":0
+}
+```
