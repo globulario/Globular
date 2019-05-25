@@ -1,9 +1,9 @@
 # Sql Service
 ## Access sql directly from the browser
 
-The *sql service* is the simplest way to get access to *sql* direcly from the browser.
+The *sql service* is the simplest way to get access to *sql* direcly from the browser. All you have to do it's to configure connections on the sever side and use it in clients.
 
-### Set a new connection
+### Configure a new connection
 [Config](https://github.com/davecourtois/Globular/blob/master/sql/sql_server/config.json) file reside on server side and contain connections configurations. There is an example of configuration,
 ```
     "sql_server": {
@@ -39,3 +39,7 @@ Connection configuration contain fields,
     * **MySql** 3306
     * **Microsoft Sql Server** 1433
     * **Postgre Sql** 5432
+    
+Because service [*config.json*](https://github.com/davecourtois/Globular/blob/master/sql/sql_server/config.json) file live on the server side, ther is no way for the client to access information from it. That's keep your connection information safe. All the client need to know it's the connection Id at time of connection.
+
+## 
