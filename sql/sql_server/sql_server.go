@@ -38,6 +38,7 @@ import (
 	_ "github.com/alexbrainman/odbc"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
 var (
@@ -86,6 +87,14 @@ func (c *connection) getConnectionString() string {
 		connectionString += "?"
 		connectionString += "charset=" + c.Charset + ";"
 
+	} else if c.Driver == "postgres" {
+		connectionString += c.User + ":"
+		connectionString += c.Password + "@tcp("
+		connectionString += c.Host + ":" + strconv.Itoa(int(c.Port)) + ")"
+		connectionString += "/" + c.Name
+		//connectionString += "encrypt=false;"
+		connectionString += "?"
+		connectionString += "charset=" + c.Charset + ";"
 	} else if c.Driver == "odbc" {
 		/** Connect with ODBC here... **/
 		if runtime.GOOS == "windows" {
