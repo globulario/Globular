@@ -308,7 +308,13 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 
 	// The list of parameters
 	parameters := make([]interface{}, 0)
-	json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
+	err = json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
+	if err != nil {
+		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
 
 	log.Println("Execute query: ", query, " whit parameters: ", parameters)
 

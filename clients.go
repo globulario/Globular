@@ -11,6 +11,10 @@ import (
 	"github.com/davecourtois/Globular/file/filepb"
 
 	/*"github.com/davecourtois/Globular/ldap/ldappb"*/
+	"strings"
+
+	"encoding/json"
+
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"github.com/davecourtois/Globular/spc/spcpb"
@@ -326,6 +330,106 @@ func NewSql_Client(addresse string) *SQL_Client {
 func (self *SQL_Client) Close() {
 	self.cc.Close()
 }
+
+// Test if a connection is found
+func (self *SQL_Client) Ping(connectionId interface{}) (string, error) {
+
+	// Here I will try to ping a non-existing connection.
+	rqst := &sqlpb.PingConnectionRqst{
+		Id: Utility.ToString(connectionId),
+	}
+
+	rsp, err := self.c.Ping(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.Result, err
+}
+
+// That function return the json string with all element in it.
+func (self *SQL_Client) QueryContext(connectionId interface{}, query interface{}, parameters interface{}) (string, error) {
+
+	parameters_ := strings.Split(parameters.(string), ",")
+	parametersStr, _ := Utility.ToJson(parameters_)
+
+	// The query and all it parameters.
+	rqst := &sqlpb.QueryContextRqst{
+		Query: &sqlpb.Query{
+			ConnectionId: Utility.ToString(connectionId),
+			Query:        Utility.ToString(query),
+			Parameters:   parametersStr,
+		},
+	}
+
+	// Because number of values can be high I will use a stream.
+	stream, err := self.c.QueryContext(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	// Here I will create the final array
+	data := make([]interface{}, 0)
+	header := make([]map[string]interface{}, 0)
+
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+
+		// Get the result...
+		switch v := msg.Result.(type) {
+		case *sqlpb.QueryContextRsp_Header:
+			// Here I receive the header information.
+			json.Unmarshal([]byte(v.Header), &header)
+		case *sqlpb.QueryContextRsp_Rows:
+			rows := make([]interface{}, 0)
+			json.Unmarshal([]byte(v.Rows), &rows)
+			data = append(data, rows...)
+		}
+	}
+
+	// Create object result and put header and data in it.
+	result := make(map[string]interface{}, 0)
+	result["header"] = header
+	result["data"] = data
+	resultStr, _ := json.Marshal(result)
+	return string(resultStr), nil
+}
+
+func (self *SQL_Client) ExecContext(connectionId interface{}, query interface{}, parameters interface{}, tx interface{}) (string, error) {
+
+	parameters_ := strings.Split(parameters.(string), ",")
+	parametersStr, _ := Utility.ToJson(parameters_)
+
+	rqst := &sqlpb.ExecContextRqst{
+		Query: &sqlpb.Query{
+			ConnectionId: Utility.ToString(connectionId),
+			Query:        Utility.ToString(query),
+			Parameters:   parametersStr,
+		},
+		Tx: Utility.ToBool(tx),
+	}
+
+	rsp, err := self.c.ExecContext(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	result := make(map[string]interface{}, 0)
+	result["affectRows"] = rsp.AffectedRows
+	result["lastId"] = rsp.LastId
+	resultStr, _ := json.Marshal(result)
+
+	return string(resultStr), nil
+}
+
+//** Create connection and Delete connection are left on the server side only...
 
 ////////////////////////////////////////////////////////////////////////////////
 // LDAP Client Service

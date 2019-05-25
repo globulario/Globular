@@ -12,8 +12,10 @@ function main() {
 
     // Sql test.
     //  testCreateSqlConnection();
-
+    testPing()
     // testSelectQuery()
+    // testDeleteQuery()
+    // testInsertQuery()
 
     // testGetFileInfo()
 
@@ -182,6 +184,60 @@ function testSelectQuery() {
     });
 }
 
+function testPing(){
+    var rqst = new Sql.PingConnectionRqst()
+    rqst.setId("employees_db")
+
+    globular.sqlServicePromise.ping(rqst)
+    .then((rsp) => {
+        console.log(rsp.getResult())
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+
+function testInsertQuery(){
+    var rqst = new Sql.ExecContextRqst()
+    var q = new Sql.Query()
+    q.setQuery("INSERT INTO employees.employees (emp_no, first_name, last_name, gender, hire_date, birth_date) VALUE(?,?,?,?,?,?)")
+    q.setConnectionid("employees_db")
+    q.setParameters(JSON.stringify([200000, 'Dave', 'Courtois', 'M', '2007-07-01', '1976-01-29']))
+
+    rqst.setQuery(q)
+    rqst.setTx(false)
+
+    globular.sqlServicePromise.execContext(rqst)
+    .then((rsp) => {
+        var affectedRow = rsp.getAffectedrows()
+        var lastId = rsp.getLastid()
+        console.log("affected rows: ", affectedRow, " last id: ", lastId)
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+
+function testDeleteQuery(){
+    var rqst = new Sql.ExecContextRqst()
+    var q = new Sql.Query()
+    q.setQuery("DELETE FROM employees.employees WHERE emp_no=?")
+    q.setConnectionid("employees_db")
+    q.setParameters(JSON.stringify([200000]))
+
+    rqst.setQuery(q)
+    rqst.setTx(false)
+
+    globular.sqlServicePromise.execContext(rqst)
+    .then((rsp) => {
+        var affectedRow = rsp.getAffectedrows()
+        var lastId = rsp.getLastid()
+        console.log("affected rows: ", affectedRow, " last id: ", lastId)
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
 
 // Test with Sql Server and odbc connector.
 function testCreateSqlConnection() {
@@ -204,7 +260,7 @@ function testCreateSqlConnection() {
 }
 
 // Test a select query.
-function testSelectQuery() {
+/*function testSelectQuery() {
     var rqst = new Sql.QueryContextRqst()
     var q = new Sql.Query()
     q.setQuery("SELECT * FROM [BrisOutil].[dbo].[Bris] WHERE product_id LIKE ?")
@@ -236,4 +292,4 @@ function testSelectQuery() {
         // stream end signal
         console.log("---> end: ", end)
     });
-}
+}*/

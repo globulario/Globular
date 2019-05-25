@@ -1,6 +1,14 @@
+
+#package the files
 rm -r dist
 mkdir dist
 mkdir dist/globular
+
+#complile client services
+cd client
+npx webpack
+mv dist/services.js ../WebRoot/js
+cd ../
 
 #Globular general file
 mkdir dist/globular/bin
@@ -53,6 +61,6 @@ cp smtp/smtp_server/config.json dist/globular/smtp
 #now I will zip the dist/globular file
 cd dist
 tar -zcvf globular.1.0.tar.gz globular
-cp globular.1.0.tar.gz /tmp
+sudo cp globular.1.0.tar.gz /tmp
 cd ../
 rm -r dist

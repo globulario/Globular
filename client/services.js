@@ -106,7 +106,7 @@ class Globular {
             console.log("persistence service is init.")
         }
 
-        if (this.config.Storage.storage_server != null) {
+        if (this.config.Services.storage_server != null) {
             this.storageService = new Storage.StorageServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
             this.storageServicePromise = new Storage.StorageServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
             console.log("storage service is init.")
