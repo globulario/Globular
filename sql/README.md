@@ -52,11 +52,11 @@ to do so,
     tar -xvzf unixODBC-2.3.7.tar.gz
     ```
 3. now build it
-```
-cd unixODBC-2.3.7
-./configure
-sudo make all install clean
-```
+    ```
+    cd unixODBC-2.3.7
+    ./configure
+    sudo make all install clean
+    ```
 you are now ready to use odbc on linux.
 
 ## Setup connection with Globular service
@@ -119,6 +119,15 @@ function testSelectQuery() {
 ```
 There is no magic here just plain gRpc-Web call. The service made use of a stream to tranfert data back to the client, in that way you can use it before the end of transfert and make your application more responsive. The result contain tow types of informations,
 * **header** Contain a json string with column informations (name, data type, number format...) Usefull to create the *gui*.
+    ```json
+    0:
+        name: "first_name"
+        typeInfo:
+            DatabaseTypeName: "VARCHAR"
+            IsNull: false
+            IsNullable: true
+            Name: "VARCHAR"
+    ```
 * **data** Contain a json string *"[[v0,v1,v2], [v0,v1,v2], [v0,v1,v2]]"* that represent an array of rows.
 
 ### from web api
