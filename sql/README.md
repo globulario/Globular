@@ -132,11 +132,11 @@ There is no magic here just plain gRpc-Web call. The service made use of a strea
 
 ### from web api
 Here is the same query from the web api,
-```
+```http
 http://127.0.0.1:10000/api/sql_service/QueryContext?p0=employees_db&p1=SELECT%20first_name,%20last_name%20FROM%20employees.employees%20WHERE%20gender=%3F&p2=F
 ```
 In the http query the space must be replace with %20 and ? by %3F. The result of that query will return a *json* object,
-    ```
+    ```json
     {
         "header":"..."
         "data":"[[v0, v1, ... vn],[],[]...]"
