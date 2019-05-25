@@ -80,7 +80,7 @@ The same query with the web api,
 ```http
 http://127.0.0.1:10000/api/persistence_service/Find?p0=mongo_db_test_connection&p1=TestMongoDB&p2=Employees&p3={%22first_name%22:%20%22Anneke%22}&p4=_id,birth_date&p5=
 ```
-Wath we receive as a result is an array of array of tow values. The *_id* and the *birth_date* as specified in the *fields* parameter.
+What we receive as a result is an array of array of tow values. The *_id* and the *birth_date* as specified in the *fields* parameter.
 ```
 ["5cd841f5c46c04131d092657","1953-04-20"],["5cd841f5c46c04131d09286c","1955-02-06"]...]
 ```
