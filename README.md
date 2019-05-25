@@ -25,7 +25,7 @@ Funtionalities offer by Globular are,
 
 ## Install from binairy
 Here's a link to get *Globular* binairy for win64 and linux
-[globular.1.0.tar.gz](https://www.dropbox.com/home/git/dist?preview=globular.1.0.tar.gz)
+[globular.1.0.tar.gz](https://www.dropbox.com/home/git?preview=globular.1.0.tar.gz)
 ```
 tar xvzf globular.1.0.tar.gz -C /path/to/somedirectory
 cd /path/to/somedirectory
@@ -227,10 +227,9 @@ Note that globularConfig is a global variable and it contain the default service
 your service is now ready to use!
 
 #### Use your service...
-Here is a simple exemple how to use Globular...
+Here is a simple exemple how to use your Globular service.
 ``` javascript
 function testEcho(str) {
-
     // Create a new request.
     var request = new Echo.EchoRequest();
     request.setMessage(str);
@@ -250,7 +249,10 @@ function testEcho(str) {
         })
 }
 ```
-Has you can see, the *globular* object contain a reference to all services that you have define one your application server. You are not limited to one server connection, to connect your application to another server all you have to do to create a new *Globular* object and specify a different configuration,
+Has you can see, the *globular* object contain a reference to all services that you have define one your application server. With gRpc-Web distant object are used just like local one. As an application developper I found it more natural to work with object than http call.
+
+#### Connect more than one service at time.
+You are not limited to one server connection, to connect your application to another server all you have to do is to create a new *Globular* object and specify a different configuration as parameter,
 ```javascript
 var myOtherServer = new Globular({
   "Name": "MyOtherSeverName",
@@ -269,3 +271,4 @@ var myOtherServer = new Globular({
   }
 })
 ```
+
