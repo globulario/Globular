@@ -138,7 +138,7 @@ http://127.0.0.1:10000/api/sql_service/QueryContext?p0=employees_db&p1=SELECT%20
 In the http query the space must be replace with %20 and ? by %3F. The result of that query will return a *json* object,
     ```json
     {
-        "header":"..."
+        "header":"...",
         "data":"[[v0, v1, ... vn],[],[]...]"
     }
     ```
