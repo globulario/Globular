@@ -78,6 +78,23 @@ you are now ready to use odbc on linux.
     // The global service object.
     var globular = new Globular()
     ```
+## Ping
+Now you can test if your connection is correctly configure with help of ping.
+```javascript
+function testPing(){
+    var rqst = new Sql.PingConnectionRqst()
+    rqst.setId("employees_db")
+
+    globular.sqlServicePromise.ping(rqst)
+    .then((rsp) => {
+        console.log(rsp.getResult())
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+```
+if your connection is correctly configure you must receive answer *pong*.
 
 ## QueryContext
 The *QueryContext* must be use for sql **select**.
