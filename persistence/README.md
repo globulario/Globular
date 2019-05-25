@@ -50,7 +50,7 @@ The find operation is use to retreive multiple value from the data store.
 var testPersistenceResults = []
 function testPersistenceFind(){
     var rqst = new Persistence.FindRqst()
-    rqst.setId("test_create_connection_js")
+    rqst.setId("mongo_db_test_connection")
     rqst.setDatabase("TestMongoDB")
     rqst.setCollection("Employees")
     rqst.setQuery( '{"first_name": "Anneke"}')
@@ -75,3 +75,10 @@ function testPersistenceFind(){
     });
 }
 ```
+
+The same query with the web api,
+```http
+http://127.0.0.1:10000/api/persistence_service/Find?p0=mongo_db_test_connection&p1=TestMongoDB&p2=Employees&p3={%22first_name%22:%20%22Anneke%22}&p4=_id,birth_date&p5=
+```
+What we receive as a result here is an array of array of tow values representing the *_id* and the *birth_date*
+[["5cd841f5c46c04131d092657",null],["5cd841f5c46c04131d09286c",null],["5cd841f5c46c04131d092960",null] ...]
