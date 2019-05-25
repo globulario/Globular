@@ -42,6 +42,23 @@ Connection configuration contain fields,
     
 Because service [*config.json*](https://github.com/davecourtois/Globular/blob/master/sql/sql_server/config.json) file live on the server side, ther is no way for the client to access information from it. That's keep your connection information safe. All the client need to know it's the connection Id at time of connection.
 
+### about odbc
+if you plan to use odb on linux server you must install [unixODBC](http://www.unixodbc.org/).
+to do so,
+
+1. download the lastest version of [unixODBC](ftp://ftp.unixodbc.org/pub/unixODBC/unixODBC-2.3.7.tar.gz)
+2. uncompress it 
+    ```
+    tar -xvzf unixODBC-2.3.7.tar.gz
+    ```
+3. now build it
+```
+cd unixODBC-2.3.7
+./configure
+sudo make all install clean
+```
+you are now ready to use odbc on linux.
+
 ## Setup connection with Globular service
 1. First of all you must have a globular service configure, to do so
     in your index.html project file
@@ -63,6 +80,8 @@ Because service [*config.json*](https://github.com/davecourtois/Globular/blob/ma
     ```
 
 ## Select Query
+
+### from javascript
 Here I will show you how you can execute a query direclty from the browser. To do so we will use *QueryContext* function.
 ```javascript
 function testSelectQuery() {
@@ -98,8 +117,12 @@ function testSelectQuery() {
     });
  }
 ```
-There is no magic here just plain gRpc-Web call. The service made use of a stream to tranfert data back to the client, in that way you can use it before the end of transfert and make your application more responsive. The result contain to type of informations,
-* **header** Contain a json string with column informations (name, data type, number format...)
+There is no magic here just plain gRpc-Web call. The service made use of a stream to tranfert data back to the client, in that way you can use it before the end of transfert and make your application more responsive. The result contain tow types of informations,
+* **header** Contain a json string with column informations (name, data type, number format...) Usefull to create the *gui*.
 * **data** Contain a json string *"[[v0,v1,v2], [v0,v1,v2], [v0,v1,v2]]"* that represent an array of rows.
 
+### from web api
+Here is the same query from the web api,
+```
 
+```
