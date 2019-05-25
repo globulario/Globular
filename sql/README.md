@@ -94,6 +94,10 @@ function testPing(){
     })
 }
 ```
+whit web api
+```http
+http://127.0.0.1:10000/api/sql_service/Ping?p0=employees_db
+```
 if your connection is correctly configure you must receive answer *pong*.
 
 ## QueryContext
