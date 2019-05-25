@@ -135,34 +135,34 @@ Here is the same query from the web api,
 ```http
 http://127.0.0.1:10000/api/sql_service/QueryContext?p0=employees_db&p1=SELECT%20first_name,%20last_name%20FROM%20employees.employees%20WHERE%20gender=%3F%20AND%20first_name=%3F%20AND%20last_name=%3F&p2=F,Ebbe,Denis
 ```
-In the http query the space must be replace with %20 and ? by %3F. The result of that query will return a *json* object,
-    ```json
-    {  
-        "data":[  
-          [  
-             "Ebbe",
-             "Denis"
-          ]
-        ],
-        "header":[  
-          {  
-             "name":"first_name",
-             "typeInfo":{  
-                "DatabaseTypeName":"VARCHAR",
-                "IsNull":false,
-                "IsNullable":true,
-                "Name":"VARCHAR"
-             }
-          },
-          {  
-             "name":"last_name",
-             "typeInfo":{  
-                "DatabaseTypeName":"VARCHAR",
-                "IsNull":false,
-                "IsNullable":true,
-                "Name":"VARCHAR"
-             }
-          }
-        ]
-    }
-    ```
+Here is the return result.
+```json
+{  
+    "data":[  
+      [  
+         "Ebbe",
+         "Denis"
+      ]
+    ],
+    "header":[  
+      {  
+         "name":"first_name",
+         "typeInfo":{  
+            "DatabaseTypeName":"VARCHAR",
+            "IsNull":false,
+            "IsNullable":true,
+            "Name":"VARCHAR"
+         }
+      },
+      {  
+         "name":"last_name",
+         "typeInfo":{  
+            "DatabaseTypeName":"VARCHAR",
+            "IsNull":false,
+            "IsNullable":true,
+            "Name":"VARCHAR"
+         }
+      }
+    ]
+}
+```
