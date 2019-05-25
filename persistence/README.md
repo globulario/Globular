@@ -44,6 +44,28 @@ Connection configuration contain fields,
 * **Timeout** The number of time before give up on connection
 * **Options** A json string containing connection options.
 
+## Ping
+Now you can test if your connection is correctly configure with help of ping.
+```javascript
+function testPing(){
+    var rqst = new Persistence.PingConnectionRqst()
+    rqst.setId("employees_db")
+
+    globular.persistenceServicePromise.ping(rqst)
+    .then((rsp) => {
+        console.log(rsp.getResult())
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+```
+whit web api
+```http
+http://127.0.0.1:10000/api/persistence_service/Ping?p0=employees_db
+```
+if your connection is correctly configure you must receive answer *pong*.
+
 ### Find
 The find operation is use to retreive multiple value from the data store.
 ```javascript
