@@ -53,7 +53,7 @@ function testPersistenceFind(){
     rqst.setId("test_create_connection_js")
     rqst.setDatabase("TestMongoDB")
     rqst.setCollection("Employees")
-    rqst.setQuery( '{"first_name": "Anneke"}' /*"{}"*/)
+    rqst.setQuery( '{"first_name": "Anneke"}')
     rqst.setFieldsList(["_id", "birth_date"]) // here I will get only the _id and the birth date.
 
     var metadata = { 'custom-header-1': 'value1' };
