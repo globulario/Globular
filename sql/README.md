@@ -79,7 +79,8 @@ you are now ready to use odbc on linux.
     var globular = new Globular()
     ```
 
-## Select Query
+## QueryContext
+The *QueryContext* must be use for sql **select**.
 
 ### from javascript
 Here I will show you how you can execute a query direclty from the browser. To do so we will use *QueryContext* function.
@@ -166,3 +167,52 @@ Here is the return result.
     ]
 }
 ```
+## ExecContext
+The *ExecContext* must be use for sql **INSERT**, **UPDATE**, **DELETE**, **CREATE TABLE**, **DROP**.
+
+### from javascript
+Here I will show you how to insert and delete data direclty from the browser... other operation are use the same way...
+```javascript
+function testInsertQuery(){
+    var rqst = new Sql.ExecContextRqst()
+    var q = new Sql.Query()
+    q.setQuery("INSERT INTO employees.employees (emp_no, first_name, last_name, gender, hire_date, birth_date) VALUE(?,?,?,?,?,?)")
+    q.setConnectionid("employees_db")
+    q.setParameters(JSON.stringify([200000, 'Dave', 'Courtois', 'M', '2007-07-01', '1976-01-29']))
+
+    rqst.setQuery(q)
+    rqst.setTx(false)
+
+    globular.sqlServicePromise.execContext(rqst)
+    .then((rsp) => {
+        var affectedRow = rsp.getAffectedrows()
+        var lastId = rsp.getLastid()
+        console.log("affected rows: ", affectedRow, " last id: ", lastId)
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+
+function testDeleteQuery(){
+    var rqst = new Sql.ExecContextRqst()
+    var q = new Sql.Query()
+    q.setQuery("DELETE FROM employees.employees WHERE emp_no=?")
+    q.setConnectionid("employees_db")
+    q.setParameters(JSON.stringify([200000]))
+
+    rqst.setQuery(q)
+    rqst.setTx(false)
+
+    globular.sqlServicePromise.execContext(rqst)
+    .then((rsp) => {
+        var affectedRow = rsp.getAffectedrows()
+        var lastId = rsp.getLastid()
+        console.log("affected rows: ", affectedRow, " last id: ", lastId)
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+```
+
