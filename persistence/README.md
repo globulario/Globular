@@ -40,5 +40,5 @@ Connection configuration contain fields,
     * **MongoDB** 3306
     * **ArangoDB** 8529
 * **Timeout** The number of time before give up on connection
-* **Option** A json string containing connection options.
+* **Options** A json string containing connection options.
 
