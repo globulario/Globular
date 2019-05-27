@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,7 +20,10 @@ import (
 	"syscall"
 	"time"
 
+	"crypto/tls"
+
 	"github.com/davecourtois/Utility"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -31,11 +36,16 @@ var (
  */
 type Globule struct {
 	// The share part of the service.
-	Name     string // The service name
-	Port     int    // The port of the http file server.
-	Protocol string // The protocol of the service.
-	IP       string // The local address...
-	Services map[string]interface{}
+	Name         string // The service name
+	PortHttp     int    // The port of the http file server.
+	PortHttps    int    // The secure port
+	Protocol     string // The protocol of the service.
+	IP           string // The local address...
+	Services     map[string]interface{}
+	Domain       string // The domain name of your application
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 
 	// Local info.
 	webRoot string // The root of the http file server.
@@ -54,10 +64,16 @@ type Globule struct {
 func NewGlobule(port int) *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
-	g.Port = port // The default port number.
+	g.PortHttp = port
+	g.PortHttps = port // The default port number.
 	g.Name = Utility.GetExecName(os.Args[0])
 	g.Protocol = "http"
 	g.IP = Utility.MyIP()
+
+	// set default values.
+	g.IdleTimeout = 120
+	g.ReadTimeout = 5
+	g.WriteTimeout = 5
 
 	// Set the service map.
 	g.services = make(map[string]interface{}, 0)
@@ -473,8 +489,6 @@ func (self *Globule) initClients() {
  */
 func (self *Globule) Listen() {
 
-	log.Println("Start Globular at port ", self.Port)
-
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -548,7 +562,53 @@ func (self *Globule) Listen() {
 	}()
 
 	log.Println("Listening...")
-	err := http.ListenAndServe(":"+strconv.Itoa(self.Port), r)
+	var err error
+	if self.Protocol == "http" {
+		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), r)
+	} else {
+
+		// Note: use a sensible value for data directory
+		// this is where cached certificates are stored
+		hostPolicy := func(ctx context.Context, host string) error {
+			// Note: change to your real domain
+			allowedHost := self.Domain
+
+			if host == allowedHost {
+				return nil
+			}
+			return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
+		}
+
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache("certs"),
+			HostPolicy: hostPolicy,
+		}
+
+		// little configuration here.
+		httpsSrv := &http.Server{
+			Addr:         ":" + strconv.Itoa(self.PortHttps),
+			ReadTimeout:  self.ReadTimeout * time.Second,  // default 5 second
+			WriteTimeout: self.WriteTimeout * time.Second, // default 5 second
+			IdleTimeout:  self.IdleTimeout * time.Second,  // default 120 second
+			Handler:      r,
+			TLSConfig: &tls.Config{
+				GetCertificate: certManager.GetCertificate,
+			},
+		}
+
+		// also start regular http sever.
+		go http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), certManager.HTTPHandler(nil))
+
+		// start the https server.
+		err := httpsSrv.ListenAndServeTLS("", "")
+
+		if err != nil {
+			log.Fatalf("httpsSrv.ListendAndServeTLS() failed with %s", err)
+		}
+
+	}
+
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

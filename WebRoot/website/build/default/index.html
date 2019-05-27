@@ -1,4 +1,4 @@
-<body onload="main()" unresolved="">
+<body onload="main()">
 
 
 
@@ -16,8 +16,14 @@
   <script type="module" src="./node_modules/@cargowebserver/cargowebcomponents/components/growl/growl.js"></script>
   <script src="https://unpkg.com/@webcomponents/webcomponentsjs@^2.0.0/webcomponents-loader.js"></script>
 
+  <!-- Services files... -->
+  <script src="https://www.globular.app/config.json"></script>
+  <script src="https://www.globular.app/js/services.js"></script>
+
+  <!-- Website files -->
   <script type="module" src="./app-layout.js"></script>
   <script type="module" src="./index.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -28,10 +34,7 @@
 
 
 
-  <!-- Services files... -->
-  <script src="http://127.0.0.1:10000/config.json"></script>
-  <script src="http://127.0.0.1:10000/js/services.js"></script>
-  
+
   <!-- The main entry point -->
   <script type="module" src="index.js"></script>
   <test-app id="layout">

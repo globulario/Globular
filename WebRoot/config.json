@@ -1,8 +1,9 @@
 {
   "Name": "Globular",
-  "Port": 10000,
+  "PortHttp": 10000,
+  "PortHttps": 10000,
   "Protocol": "http",
-  "IP": "10.67.44.52",
+  "IP": "74.14.175.55",
   "Services": {
     "echo_server": {
       "Port": 10001,
@@ -32,5 +33,9 @@
       "Port": 10013,
       "Proxy": 10014
     }
-  }
+  },
+  "Domain": "",
+  "ReadTimeout": 5,
+  "WriteTimeout": 5,
+  "IdleTimeout": 120
 }

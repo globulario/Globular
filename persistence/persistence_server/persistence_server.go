@@ -65,6 +65,9 @@ type server struct {
 
 // Create the configuration file if is not already exist.
 func (self *server) init() {
+	// init the connections map.
+	self.Connections = make(map[string]connection)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
@@ -73,8 +76,22 @@ func (self *server) init() {
 	} else {
 		self.save()
 	}
-	self.Connections = make(map[string]connection)
+
+	// initialyse store connection here.
 	self.stores = make(map[string]persistence_store.Store)
+	for _, c := range self.Connections {
+		if c.Store == persistencepb.StoreType_MONGO {
+			// here I will create a new mongo data store.
+			s := new(persistence_store.MongoStore)
+
+			// Now I will try to connect...
+			err := s.Connect(c.Host, c.Port, c.User, c.Password, c.Name, c.Timeout, c.Options)
+			if err == nil {
+				// keep the store for futur call...
+				self.stores[c.Id] = s
+			}
+		}
+	}
 }
 
 // Save the configuration values.
@@ -387,7 +404,9 @@ func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertMan
 
 // Find many
 func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.PersistenceService_FindServer) error {
+
 	store := self.stores[rqst.GetId()]
+
 	if store == nil {
 		err := errors.New("No store connection exist for id " + rqst.GetId())
 		return status.Errorf(
@@ -395,7 +414,6 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Get the results.
 	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Fields, rqst.Options)
 	if err != nil {
 		return status.Errorf(
@@ -430,6 +448,7 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 		}
 		stream.Send(
 			&persistencepb.FindResp{
+
 				JsonStr: string(jsonStr),
 			},
 		)

@@ -1,5 +1,5 @@
 // The service configuration 
-globularConfig.IP = "127.0.0.1" // remove it when the site is publish.
+// globularConfig.IP = "127.0.0.1" // comment it when the site is publish.
 
 // The global service object.
 var globular = new Globular()
@@ -12,7 +12,7 @@ function main() {
 
     // Sql test.
     //  testCreateSqlConnection();
-    testPing()
+    // testPing()
     // testSelectQuery()
     // testDeleteQuery()
     // testInsertQuery()
@@ -20,7 +20,7 @@ function main() {
     // testGetFileInfo()
 
     // testCreatePersistenceConnection()
-
+    testPersistencePing()
     testPersistenceFind()
 }
 
@@ -75,7 +75,7 @@ function testGetFileInfo(){
 function testCreatePersistenceConnection(){
     var rqst = new Persistence.CreateConnectionRqst();
     var c = new Persistence.Connection();
-    c.setId("test_create_connection_js")
+    c.setId("mongo_db_test_connection")
     c.setName("TestMongoDB") // already exist...
     c.setUser("")
     c.setPassword("")
@@ -92,11 +92,24 @@ function testCreatePersistenceConnection(){
     });
 }
 
+function testPersistencePing(){
+    var rqst = new Persistence.PingConnectionRqst()
+    rqst.setId("mongo_db_test_connection")
+
+    globular.persistenceServicePromise.ping(rqst)
+    .then((rsp) => {
+        console.log(rsp.getResult())
+    })
+    .catch((error) => {
+        console.log(error)
+    })
+}
+
 // Test Find existing values...
 var testPersistenceResults = []
 function testPersistenceFind(){
     var rqst = new Persistence.FindRqst()
-    rqst.setId("test_create_connection_js")
+    rqst.setId("mongo_db_test_connection")
     rqst.setDatabase("TestMongoDB")
     rqst.setCollection("Employees")
     rqst.setQuery( '{"first_name": "Anneke"}' /*"{}"*/)
@@ -120,8 +133,6 @@ function testPersistenceFind(){
         // stream end signal
     });
 }
-
-
 
 /////////////////////////////////////////////////////////
 // Sql test.
@@ -184,7 +195,7 @@ function testSelectQuery() {
     });
 }
 
-function testPing(){
+function testSqlPing(){
     var rqst = new Sql.PingConnectionRqst()
     rqst.setId("employees_db")
 

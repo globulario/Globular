@@ -1,6 +1,5 @@
 
 #package the files
-rm -r dist
 mkdir dist
 mkdir dist/globular
 
@@ -62,5 +61,39 @@ cp smtp/smtp_server/config.json dist/globular/smtp
 cd dist
 tar -zcvf globular.1.0.tar.gz globular
 sudo cp globular.1.0.tar.gz /tmp
+
+#remove the globular dir
+rm -r globular
+# recreate it empty
+mkdir globular
+mkdir globular/WebRoot
+cd ../
+
+# I will compile the website with polymer.
+cd WebRoot/website
+#remove previous build
+rm -r build
+polymer build
+cd ../../
+cp WebRoot/website/build/default/* dist/globular/WebRoot
+mkdir dist/globular/WebRoot/image
+mkdir dist/globular/WebRoot/dist
+cp -r WebRoot/website/image/* dist/globular/WebRoot/image
+cp WebRoot/website/config.json dist/globular/WebRoot/config.json
+cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot
+
+# set the dist folder to give acces to binary distribution of globular.
+sudo cp  /tmp/globular.1.0.tar.gz dist/globular/WebRoot/dist
+
+cd dist
+#the website will be merge with base globular on ec2
+tar -zcvf website.tar.gz globular
+sudo cp website.tar.gz /tmp
+
+#remove the dist folder
 cd ../
 rm -r dist
+
+#copy it to ec2
+scp -i ~/Globular.app.pem /tmp/globular.1.0.tar.gz  ubuntu@ec2-34-214-248-201.us-west-2.compute.amazonaws.com:~/
+scp -i ~/Globular.app.pem /tmp/website.tar.gz  ubuntu@ec2-34-214-248-201.us-west-2.compute.amazonaws.com:~/

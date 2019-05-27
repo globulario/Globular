@@ -493,6 +493,66 @@ func NewPersistence_Client(addresse string) *Persistence_Client {
 	return client
 }
 
+// Test if a connection is found
+func (self *Persistence_Client) Ping(connectionId interface{}) (string, error) {
+
+	// Here I will try to ping a non-existing connection.
+	rqst := &persistencepb.PingConnectionRqst{
+		Id: Utility.ToString(connectionId),
+	}
+
+	rsp, err := self.c.Ping(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.Result, err
+}
+
+func (self *Persistence_Client) Find(connectionId string, database string, collection string, query string, fields string, options string) (string, error) {
+
+	// Retreive a single value...
+	rqst := &persistencepb.FindRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Fields:     strings.Split(fields, ","),
+		Options:    options,
+	}
+
+	stream, err := self.c.Find(context.Background(), rqst)
+
+	if err != nil {
+		return "", err
+	}
+
+	values := make([]interface{}, 0)
+	for {
+		results, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			return "", nil
+		}
+
+		values_ := make([]interface{}, 0) // sub array...
+		err = json.Unmarshal([]byte(results.JsonStr), &values_)
+		if err != nil {
+			return "", nil
+		}
+		values = append(values, values_...)
+	}
+
+	valuesStr, err := json.Marshal(values)
+	if err != nil {
+		return "", nil
+	}
+	return string(valuesStr), nil
+}
+
 // must be close when no more needed.
 func (self *Persistence_Client) Close() {
 	self.cc.Close()
