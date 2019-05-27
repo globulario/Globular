@@ -1,6 +1,8 @@
 # Persistence
 ### Nothing in this world can take the place of persistence. 
-With emergence of [NoSQL](https://en.wikipedia.org/wiki/NoSQL), new kind of databases became widely used by developper to store application data. The persistence service give access to those data-stores. The interface propose by that service is well suited for document store. At the moment only [MongoDB](https://www.mongodb.com/) is implement by the service, but [ArangoDB](https://www.arangodb.com/) and [CouchDB](http://couchdb.apache.org/) will be available soon. The *Storage* service is also available to store application data, it was created to interface *key-value* stores.
+With emergence of [NoSQL](https://en.wikipedia.org/wiki/NoSQL), new kind of databases became widely used by developper to store application data. The persistence service give access to those data-stores. The interface propose by that service is well suited for document store. At the moment only [MongoDB](https://www.mongodb.com/) is implement by the service, but [ArangoDB](https://www.arangodb.com/) and [CouchDB](http://couchdb.apache.org/) will be available soon. 
+
+Note that the *Storage* service is also available to store application data, it was created to interface *key-value* stores insted of documents-store.
 
 ### Configure a new connection
 [Config](https://github.com/davecourtois/Globular/blob/master/persistence/persistence_server/config.json) file reside on server side and contain connections configurations. There is an example of configuration,
