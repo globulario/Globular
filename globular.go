@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,8 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	"crypto/tls"
-
 	"github.com/davecourtois/Utility"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -36,19 +36,21 @@ var (
  */
 type Globule struct {
 	// The share part of the service.
-	Name         string // The service name
-	PortHttp     int    // The port of the http file server.
-	PortHttps    int    // The secure port
-	Protocol     string // The protocol of the service.
-	IP           string // The local address...
-	Services     map[string]interface{}
-	Domain       string // The domain name of your application
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	Name                string // The service name
+	PortHttp            int    // The port of the http file server.
+	PortHttps           int    // The secure port
+	Protocol            string // The protocol of the service.
+	IP                  string // The local address...
+	Services            map[string]interface{}
+	Domain              string // The domain name of your application
+	ReadTimeout         time.Duration
+	WriteTimeout        time.Duration
+	IdleTimeout         time.Duration
+	CertExpirationDelay int
 
 	// Local info.
 	webRoot string // The root of the http file server.
+	creds   string // where the key will be store.
 	path    string // The path of the exec...
 
 	// The list of avalaible services.
@@ -68,12 +70,14 @@ func NewGlobule(port int) *Globule {
 	g.PortHttps = port // The default port number.
 	g.Name = Utility.GetExecName(os.Args[0])
 	g.Protocol = "http"
+	g.Domain = "localhost"
 	g.IP = Utility.MyIP()
 
 	// set default values.
 	g.IdleTimeout = 120
 	g.ReadTimeout = 5
 	g.WriteTimeout = 5
+	g.CertExpirationDelay = 365
 
 	// Set the service map.
 	g.services = make(map[string]interface{}, 0)
@@ -85,7 +89,7 @@ func NewGlobule(port int) *Globule {
 	g.clients = make(map[string]Client, 0)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	g.path = dir // keep the installation patn.
+	g.path = dir // keep the installation path.
 
 	if err == nil {
 		g.webRoot = dir + string(os.PathSeparator) + "WebRoot" // The default directory to server.
@@ -96,6 +100,10 @@ func NewGlobule(port int) *Globule {
 			json.Unmarshal([]byte(file), g)
 		}
 	}
+
+	// Create the creds directory if it not already exist.
+	g.creds = dir + string(os.PathSeparator) + "creds"
+	Utility.CreateDirIfNotExist(g.creds)
 
 	// keep the root in global variable for the file handler.
 	root = g.webRoot
@@ -110,6 +118,13 @@ func NewGlobule(port int) *Globule {
 func (self *Globule) initServices() {
 	log.Println("Initialyse services")
 
+	// If the protocol is https I will generate the TLS certificate.
+	if self.Protocol == "https" {
+		// TODO find a way to save the password somewhere on the server configuration
+		// whitout expose it to external world.
+		self.GenerateServicesCertificates("pass:1111", self.CertExpirationDelay)
+	}
+
 	// Each service contain a file name config.json that describe service.
 	// I will keep services info in services map and also it running process.
 	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -122,6 +137,7 @@ func (self *Globule) initServices() {
 			if err == nil {
 				// Read the config file.
 				json.Unmarshal(config, &s)
+
 				if s["Protocol"].(string) == "grpc" {
 
 					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
@@ -150,11 +166,34 @@ func (self *Globule) initServices() {
 					}
 
 					// This is the grpc service to connect with the proxy
-					proxyBackendAddress := "localhost:" + Utility.ToString(s["Port"])
+					proxyBackendAddress := s["Address"].(string) + ":" + Utility.ToString(s["Port"])
 					proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
 
+					proxyArgs := make([]string, 0)
+					if self.Protocol == "https" {
+						// Set the services TLS information here.
+						s["TLS"] = true
+						s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
+						s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
+						s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
+
+						// Now I will save the file with those new information in it.
+						jsonStr, _ := Utility.ToJson(&s)
+						ioutil.WriteFile(path, []byte(jsonStr), 0644)
+
+						// Now set the proxy information here.
+
+					} else {
+						// Use in a local network or in test.
+						proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
+						proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
+						proxyArgs = append(proxyArgs, "--run_tls_server=false")
+						proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
+					}
+
 					// start the proxy service.
-					s["ProxyProcess"] = exec.Command(proxyPath, "--backend_addr="+proxyBackendAddress, "--server_http_debug_port="+Utility.ToString(s["Proxy"]), "--run_tls_server=false", "--allow_all_origins="+proxyAllowAllOrgins)
+					s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
+
 					err = s["ProxyProcess"].(*exec.Cmd).Start()
 					if err != nil {
 						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
@@ -165,6 +204,7 @@ func (self *Globule) initServices() {
 					s_ := make(map[string]interface{})
 
 					// export public service values.
+					s_["Address"] = s["Address"]
 					s_["Proxy"] = s["Proxy"]
 					s_["Port"] = s["Port"]
 
@@ -484,6 +524,196 @@ func (self *Globule) initClients() {
 	}
 }
 
+/////////////////////////// Security stuff //////////////////////////////////
+
+//////////////////////////////// Certificate Authority ///////////////////////
+// Generate the Certificate Authority private key file (this shouldn't be shared in real life)
+func (self *Globule) GenerateAuthorityPrivateKey(path string, pwd string) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "genrsa")
+	args = append(args, "-passout")
+	args = append(args, pwd)
+	args = append(args, "-des3")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"ca.key")
+	args = append(args, "4096")
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the Authority private key")
+	}
+	return nil
+}
+
+// Certificate Authority trust certificate (this should be shared whit users in real life)
+func (self *Globule) GenerateAuthorityTrustCertificate(path string, pwd string, expiration_delay int, domain string) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "req")
+	args = append(args, "-passin")
+	args = append(args, pwd)
+	args = append(args, "-new")
+	args = append(args, "-x509")
+	args = append(args, "-days")
+	args = append(args, strconv.Itoa(expiration_delay))
+	args = append(args, "-key")
+	args = append(args, path+string(os.PathSeparator)+"ca.key")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"ca.crt")
+	args = append(args, "-subj")
+	args = append(args, "/CN="+domain)
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the trust certificate")
+	}
+
+	return nil
+}
+
+/////////////////////// Server Keys //////////////////////////////////////////
+
+// Server private key, password protected (this shoudn't be shared)
+func (self *Globule) GenerateSeverPrivateKey(path string, pwd string) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "genrsa")
+	args = append(args, "-passout")
+	args = append(args, pwd)
+	args = append(args, "-des3")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"server.key")
+	args = append(args, "4096")
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate server private key")
+	}
+	return nil
+}
+
+// Server certificate signing request (this should be shared with the CA owner)
+func (self *Globule) GenerateServerCertificateSigningRequest(path string, pwd string, domain string) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "req")
+	args = append(args, "-passin")
+	args = append(args, pwd)
+	args = append(args, "-new")
+	args = append(args, "-key")
+	args = append(args, path+string(os.PathSeparator)+"server.key")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"server.csr")
+	args = append(args, "-subj")
+	args = append(args, "/CN="+domain)
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate server certificate signing request.")
+	}
+	return nil
+}
+
+// Server certificate signed by the CA (this would be sent back to the client by the CA owner)
+func (self *Globule) GenerateSignedServerCertificate(path string, pwd string, expiration_delay int) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "x509")
+	args = append(args, "-req")
+	args = append(args, "-passin")
+	args = append(args, pwd)
+	args = append(args, "-days")
+	args = append(args, strconv.Itoa(expiration_delay))
+	args = append(args, "-in")
+	args = append(args, path+string(os.PathSeparator)+"server.csr")
+	args = append(args, "-CA")
+	args = append(args, path+string(os.PathSeparator)+"ca.crt")
+	args = append(args, "-CAkey")
+	args = append(args, path+string(os.PathSeparator)+"ca.key")
+	args = append(args, "-set_serial")
+	args = append(args, "01")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"server.crt")
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		log.Println("fail to get the signed server certificate")
+	}
+
+	return nil
+}
+
+// Conversion of server.key into a format gRpc likes (this shouldn't be shared)
+func (self *Globule) ServerKeyToServerPem(path string, pwd string) error {
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "pkcs8")
+	args = append(args, "-topk8")
+	args = append(args, "-nocrypt")
+	args = append(args, "-passin")
+	args = append(args, pwd)
+	args = append(args, "-in")
+	args = append(args, path+string(os.PathSeparator)+"server.key")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"server.pem")
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate server.pem key from server.key")
+	}
+
+	return nil
+}
+
+/**
+ * That function is use to generate services certificates.
+ * Private ca.key, server.key, server.pem, server.crt
+ * Share ca.crt (needed by the client), server.csr (needed by the CA)
+ */
+func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay int) {
+
+	// Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)
+	err := self.GenerateAuthorityPrivateKey(self.creds, pwd)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	err = self.GenerateAuthorityTrustCertificate(self.creds, pwd, expiration_delay, self.Domain)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Setp 2: Generate the server Private Key (server.key)
+	err = self.GenerateSeverPrivateKey(self.creds, pwd)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Setp 3: Get a certificate signing request from the CA (server.csr)
+	err = self.GenerateServerCertificateSigningRequest(self.creds, pwd, self.Domain)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Step 4: Sign the certificate with the CA we create(it's called self signing) - server.crt
+	err = self.GenerateSignedServerCertificate(self.creds, pwd, expiration_delay)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Step 5: Convert the server Certificate to .pem format (server.pem) - usable by gRpc
+	err = self.ServerKeyToServerPem(self.creds, pwd)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}
+
 /**
  * Listen for new connection.
  */
@@ -566,7 +796,6 @@ func (self *Globule) Listen() {
 	if self.Protocol == "http" {
 		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), r)
 	} else {
-
 		// Note: use a sensible value for data directory
 		// this is where cached certificates are stored
 		hostPolicy := func(ctx context.Context, host string) error {

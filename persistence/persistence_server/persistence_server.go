@@ -19,6 +19,7 @@ import (
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/status"
 )
@@ -32,6 +33,15 @@ var (
 
 	// comma separeated values.
 	allowed_origins string = ""
+
+	// Thr IPV4 address
+	address string = "127.0.0.1"
+
+	// Path to the PEM certificate used when the backend requires client certificates for TLS.
+	cert_file string
+
+	// Path to the PEM key used when the backend requires client certificates for TLS.
+	key_file string
 )
 
 // This is the connction to a datastore.
@@ -56,8 +66,11 @@ type server struct {
 	Protocol        string
 	AllowAllOrigins bool
 	AllowedOrigins  string // comma separated string.
-
-	Connections map[string]connection
+	Address         string
+	CertFile        string
+	KeyFile         string
+	TLS             bool
+	Connections     map[string]connection
 
 	// The map of store (also connections...)
 	stores map[string]persistence_store.Store
@@ -642,6 +655,7 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+	s_impl.Address = address
 
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
@@ -649,7 +663,21 @@ func main() {
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
-	grpcServer := grpc.NewServer()
+	var grpcServer *grpc.Server
+	if s_impl.TLS {
+		// Here the connection must be secure.
+		creds, sslErr := credentials.NewServerTLSFromFile(s_impl.CertFile, s_impl.KeyFile)
+		if sslErr != nil {
+			log.Fatalln("Failed loading certificates: %v", sslErr)
+			return
+		}
+		opts := grpc.Creds(creds)
+		grpcServer = grpc.NewServer(opts)
+
+	} else {
+		grpcServer = grpc.NewServer()
+	}
+
 	persistencepb.RegisterPersistenceServiceServer(grpcServer, s_impl)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.

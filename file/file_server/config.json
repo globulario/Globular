@@ -1,9 +1,32 @@
 {
-  "Name": "file_server",
-  "Port": 10011,
-  "Proxy": 10012,
+  "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
+  "CertAuthorityTrust": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/ca.crt",
+  "CertFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.crt",
+  "KeyFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.pem",
+  "Name": "file_server",
+  "Port": 10011,
+  "Process": {
+    "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/file/file_server/file_server",
+    "Args": [
+      "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/file/file_server/file_server",
+      "10011"
+    ],
+    "Env": null,
+    "Dir": "",
+    "Stdin": null,
+    "Stdout": null,
+    "Stderr": null,
+    "ExtraFiles": null,
+    "SysProcAttr": null,
+    "Process": {
+      "Pid": 4180
+    },
+    "ProcessState": null
+  },
   "Protocol": "grpc",
-  "Root": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\WebRoot"
+  "Proxy": 10012,
+  "Root": "",
+  "TLS": true
 }

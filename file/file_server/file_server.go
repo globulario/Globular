@@ -26,6 +26,7 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/polds/imgbase64"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
@@ -43,6 +44,15 @@ var (
 	// comma separeated values.
 	allowed_origins string = ""
 
+	// Thr IPV4 address
+	address string = "127.0.0.1"
+
+	// Path to the PEM certificate used when the backend requires client certificates for TLS.
+	cert_file string
+
+	// Path to the PEM key used when the backend requires client certificates for TLS.
+	key_file string
+
 	s *server
 )
 
@@ -55,6 +65,10 @@ type server struct {
 	AllowAllOrigins bool
 	AllowedOrigins  string // comma separated string.
 	Protocol        string
+	Address         string
+	CertFile        string
+	TLS             bool
+	KeyFile         string
 	Root            string
 }
 
@@ -568,8 +582,7 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-
-	// TODO set it from the program arguments...
+	s_impl.Address = address
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
 
@@ -582,8 +595,21 @@ func main() {
 	}
 
 	s = s_impl // keep ref...
+	var grpcServer *grpc.Server
+	if s_impl.TLS {
+		// Here the connection must be secure.
+		creds, sslErr := credentials.NewServerTLSFromFile(s_impl.CertFile, s_impl.KeyFile)
+		if sslErr != nil {
+			log.Fatalln("Failed loading certificates: %v", sslErr)
+			return
+		}
+		opts := grpc.Creds(creds)
+		grpcServer = grpc.NewServer(opts)
 
-	grpcServer := grpc.NewServer()
+	} else {
+		grpcServer = grpc.NewServer()
+	}
+
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.

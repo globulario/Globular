@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"log"
 
+	"encoding/json"
+	"io/ioutil"
+	"testing"
+
 	"github.com/davecourtois/Globular/ldap/ldappb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+)
 
-	"encoding/json"
-	"testing"
+var (
+	addresse = "localhost:10003"
 )
 
 /**
@@ -17,12 +23,31 @@ TODO Create TLS connection and test it. Also use OpenLDAP as ldap server.
 */
 
 func getClientConnection() *grpc.ClientConn {
-	var err error
+	// So here I will read the server configuration to see if the connection
+	// is secure...
+	config := make(map[string]interface{})
+	data, err := ioutil.ReadFile("../ldap_server/config.json")
+	if err != nil {
+		log.Fatal("fail to read configuration")
+	}
+
+	// Read the config file.
+	json.Unmarshal(data, &config)
+
 	var cc *grpc.ClientConn
 	if cc == nil {
-		cc, err = grpc.Dial("localhost:10003", grpc.WithInsecure())
-		if err != nil {
-			log.Fatalf("could not connect: %v", err)
+		if config["TLS"].(bool) {
+			creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
+			if err != nil {
+				log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
+			}
+			opts := grpc.WithTransportCredentials(creds)
+			cc, err = grpc.Dial(addresse, opts)
+		} else {
+			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
+			if err != nil {
+				log.Fatalf("could not connect: %v", err)
+			}
 		}
 
 	}

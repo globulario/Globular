@@ -7,7 +7,10 @@ import (
 
 	"github.com/davecourtois/Globular/echo/echopb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
+	"encoding/json"
+	"io/ioutil"
 	"testing"
 )
 
@@ -20,12 +23,31 @@ var (
  * Get the client connection.
  */
 func getClientConnection() *grpc.ClientConn {
-	var err error
+	// So here I will read the server configuration to see if the connection
+	// is secure...
+	config := make(map[string]interface{})
+	data, err := ioutil.ReadFile("../echo_server/config.json")
+	if err != nil {
+		log.Fatal("fail to read configuration")
+	}
+
+	// Read the config file.
+	json.Unmarshal(data, &config)
+
 	var cc *grpc.ClientConn
 	if cc == nil {
-		cc, err = grpc.Dial(addresse, grpc.WithInsecure())
-		if err != nil {
-			log.Fatalf("could not connect: %v", err)
+		if config["TLS"].(bool) {
+			creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
+			if err != nil {
+				log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
+			}
+			opts := grpc.WithTransportCredentials(creds)
+			cc, err = grpc.Dial(addresse, opts)
+		} else {
+			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
+			if err != nil {
+				log.Fatalf("could not connect: %v", err)
+			}
 		}
 
 	}

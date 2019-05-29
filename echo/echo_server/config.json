@@ -4,5 +4,9 @@
   "Proxy": 10002,
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
-  "Protocol": "grpc"
+  "Protocol": "grpc",
+  "Address": "127.0.0.1",
+  "CertFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.crt",
+  "KeyFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.pem",
+  "TLS": true
 }
