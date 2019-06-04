@@ -1,12 +1,14 @@
 {
-  "Name": "echo_server",
-  "Port": 10001,
-  "Proxy": 10002,
+  "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
+  "CertAuthorityTrust": "",
+  "CertFile": "",
+  "Domain": "localhost",
+  "KeyFile": "",
+  "Name": "echo_server",
+  "Port": 10001,
   "Protocol": "grpc",
-  "Address": "127.0.0.1",
-  "CertFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.crt",
-  "KeyFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.pem",
-  "TLS": true
+  "Proxy": 10002,
+  "TLS": false
 }

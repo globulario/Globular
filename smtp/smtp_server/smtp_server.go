@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,11 +39,8 @@ var (
 	// Thr IPV4 address
 	address string = "127.0.0.1"
 
-	// Path to the PEM certificate used when the backend requires client certificates for TLS.
-	cert_file string
-
-	// Path to the PEM key used when the backend requires client certificates for TLS.
-	key_file string
+	// the domain of the server.
+	domain string = "localhost"
 )
 
 // Keep connection information here.
@@ -55,16 +54,19 @@ type connection struct {
 
 type server struct {
 	// The global attribute of the services.
-	Name            string
-	Port            int
-	Proxy           int
-	Protocol        string
-	AllowAllOrigins bool
-	AllowedOrigins  string // comma separated string.
-	Address         string
-	CertFile        string
-	KeyFile         string
-	TLS             bool
+	Name               string
+	Port               int
+	Proxy              int
+	Protocol           string
+	AllowAllOrigins    bool
+	AllowedOrigins     string // comma separated string.
+	Address            string
+	Domain             string
+	CertFile           string
+	KeyFile            string
+	CertAuthorityTrust string
+
+	TLS bool
 
 	// The map of connection...
 	Connections map[string]connection
@@ -348,12 +350,6 @@ func main() {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
 	}
 
-	// First of all I will creat a listener.
-	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
@@ -369,16 +365,46 @@ func main() {
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
+	// First of all I will creat a listener.
+	// Create the channel to listen on
+	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
+	if err != nil {
+		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		return
+	}
+
 	var grpcServer *grpc.Server
 	if s_impl.TLS {
-		// Here the connection must be secure.
-		creds, sslErr := credentials.NewServerTLSFromFile(s_impl.CertFile, s_impl.KeyFile)
-		if sslErr != nil {
-			log.Fatalln("Failed loading certificates: %v", sslErr)
+		// Load the certificates from disk
+		certificate, err := tls.LoadX509KeyPair(s_impl.CertFile, s_impl.KeyFile)
+		if err != nil {
+			log.Fatalf("could not load server key pair: %s", err)
 			return
 		}
-		opts := grpc.Creds(creds)
-		grpcServer = grpc.NewServer(opts)
+
+		// Create a certificate pool from the certificate authority
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
+		if err != nil {
+			log.Fatalf("could not read ca certificate: %s", err)
+			return
+		}
+
+		// Append the client certificates from the CA
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			log.Fatalf("failed to append client certs")
+			return
+		}
+
+		// Create the TLS credentials
+		creds := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+			ClientCAs:    certPool,
+		})
+
+		// Create the gRPC server with the credentials
+		grpcServer = grpc.NewServer(grpc.Creds(creds))
 
 	} else {
 		grpcServer = grpc.NewServer()

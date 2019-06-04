@@ -2,31 +2,14 @@
   "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
-  "CertAuthorityTrust": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/ca.crt",
-  "CertFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.crt",
+  "CertAuthorityTrust": "",
+  "CertFile": "",
   "Connections": {},
-  "KeyFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.pem",
+  "Domain": "localhost",
+  "KeyFile": "",
   "Name": "smtp_server",
   "Port": 10007,
-  "Process": {
-    "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/smtp/smtp_server/smtp_server",
-    "Args": [
-      "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/smtp/smtp_server/smtp_server",
-      "10007"
-    ],
-    "Env": null,
-    "Dir": "",
-    "Stdin": null,
-    "Stdout": null,
-    "Stderr": null,
-    "ExtraFiles": null,
-    "SysProcAttr": null,
-    "Process": {
-      "Pid": 4207
-    },
-    "ProcessState": null
-  },
   "Protocol": "grpc",
   "Proxy": 10008,
-  "TLS": true
+  "TLS": false
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"image"
@@ -47,11 +49,8 @@ var (
 	// Thr IPV4 address
 	address string = "127.0.0.1"
 
-	// Path to the PEM certificate used when the backend requires client certificates for TLS.
-	cert_file string
-
-	// Path to the PEM key used when the backend requires client certificates for TLS.
-	key_file string
+	// The default domain.
+	domain string = "localhost"
 
 	s *server
 )
@@ -59,17 +58,19 @@ var (
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
-	Name            string
-	Port            int
-	Proxy           int
-	AllowAllOrigins bool
-	AllowedOrigins  string // comma separated string.
-	Protocol        string
-	Address         string
-	CertFile        string
-	TLS             bool
-	KeyFile         string
-	Root            string
+	Name               string
+	Port               int
+	Proxy              int
+	AllowAllOrigins    bool
+	AllowedOrigins     string // comma separated string.
+	Protocol           string
+	Address            string
+	Domain             string
+	CertFile           string
+	CertAuthorityTrust string
+	KeyFile            string
+	TLS                bool
+	Root               string
 }
 
 // Create the configuration file if is not already exist.
@@ -217,7 +218,6 @@ func getThumbnails(info *fileInfo) []interface{} {
 		} else {
 			thumbnails = append(thumbnails, getThumbnails(info.Files[i])...)
 		}
-		///if info
 	}
 
 	return thumbnails
@@ -231,6 +231,7 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 	// get the file info
 	info, err := getFileInfo(path)
 	if err != nil {
+		log.Println("fail to read file ", path)
 		return nil, err
 	}
 	if info.IsDir == false {
@@ -239,10 +240,12 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("fail to read directory ", path)
+		return nil, err
 	}
 
 	for _, f := range files {
+
 		if f.IsDir() {
 			if recursive {
 				info_, err := readDir(path+string(os.PathSeparator)+f.Name(), recursive, thumbnailMaxWidth, thumbnailMaxHeight)
@@ -285,6 +288,7 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 // Directory operations
 ////////////////////////////////////////////////////////////////////////////////
 func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileService_ReadDirServer) error {
+
 	path := rqst.GetPath()
 
 	// The roo will be the Root specefied by the server.
@@ -294,8 +298,10 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
+	log.Println("--> read dir: ", path)
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
 	if err != nil {
+		log.Println("--> read dir error: ", err)
 		return err
 	}
 
@@ -570,12 +576,6 @@ func main() {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
 	}
 
-	// First of all I will creat a listener.
-	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Name = Utility.GetExecName(os.Args[0])
@@ -583,28 +583,64 @@ func main() {
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Address = address
+	s_impl.Domain = domain
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()
 
+	// First of all I will creat a listener.
+	// Create the channel to listen on
+	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
+	if err != nil {
+		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		return
+	}
+
 	// Set the root path if is pass as argument.
 	if len(os.Args) > 2 {
 		s_impl.Root = os.Args[2]
 	}
 
+	if len(s_impl.Root) == 0 {
+		log.Fatalln("No root path was given!")
+		return
+	}
+
 	s = s_impl // keep ref...
 	var grpcServer *grpc.Server
 	if s_impl.TLS {
-		// Here the connection must be secure.
-		creds, sslErr := credentials.NewServerTLSFromFile(s_impl.CertFile, s_impl.KeyFile)
-		if sslErr != nil {
-			log.Fatalln("Failed loading certificates: %v", sslErr)
+		// Load the certificates from disk
+		certificate, err := tls.LoadX509KeyPair(s_impl.CertFile, s_impl.KeyFile)
+		if err != nil {
+			log.Fatalf("could not load server key pair: %s", err)
 			return
 		}
-		opts := grpc.Creds(creds)
-		grpcServer = grpc.NewServer(opts)
+
+		// Create a certificate pool from the certificate authority
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
+		if err != nil {
+			log.Fatalf("could not read ca certificate: %s", err)
+			return
+		}
+
+		// Append the client certificates from the CA
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			log.Fatalf("failed to append client certs")
+			return
+		}
+
+		// Create the TLS credentials
+		creds := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+			ClientCAs:    certPool,
+		})
+
+		// Create the gRPC server with the credentials
+		grpcServer = grpc.NewServer(grpc.Creds(creds))
 
 	} else {
 		grpcServer = grpc.NewServer()
@@ -642,13 +678,13 @@ func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream file
 		// Set the path separator...
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
-
+	log.Println("--> read dir ", path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
-	thumbnails := getThumbnails(info)
-
 	if err != nil {
 		return err
 	}
+
+	thumbnails := getThumbnails(info)
 
 	// Here I will serialyse the data into JSON.
 	jsonStr, err := json.Marshal(thumbnails)

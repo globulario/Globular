@@ -71,50 +71,50 @@ class Globular {
 
         // Now I will set serives...
         if (this.config.Services.echo_server != null) {
-            this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
-            this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.echo_server.Proxy);
+            this.echoService = new Echo.EchoServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.echo_server.Proxy);
+            this.echoServicePromise = new Echo.EchoServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.echo_server.Proxy);
             console.log("echo service is init.")
         }
 
         if (this.config.Services.sql_server != null) {
-            this.sqlService = new Sql.SqlServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.sql_server.Proxy);
-            this.sqlServicePromise = new Sql.SqlServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.sql_server.Proxy);
+            this.sqlService = new Sql.SqlServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.sql_server.Proxy);
+            this.sqlServicePromise = new Sql.SqlServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.sql_server.Proxy);
             console.log("sql service is init.")
         }
 
         if (this.config.Services.ldap_server != null) {
-            this.ldapService = new Ldap.LdapServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.ldap_server.Proxy);
-            this.ldapServicePromise = new Ldap.LdapServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.ldap_server.Proxy);
+            this.ldapService = new Ldap.LdapServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.ldap_server.Proxy);
+            this.ldapServicePromise = new Ldap.LdapServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.ldap_server.Proxy);
             console.log("ldap service is init.")
         }
 
         if (this.config.Services.smtp_server != null) {
-            this.smtpService = new Smtp.SmtpServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.smtp_server.Proxy);
-            this.smtpServicePromise = new Smtp.SmtpServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.smtp_server.Proxy);
+            this.smtpService = new Smtp.SmtpServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.smtp_server.Proxy);
+            this.smtpServicePromise = new Smtp.SmtpServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.smtp_server.Proxy);
             console.log("smtp service is init.")
         }
 
         if (this.config.Services.spc_server != null) {
-            this.spcService = new Spc.SpcServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.spc_server.Proxy);
-            this.spcServicePromise = new Spc.SpcServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.spc_server.Proxy);
+            this.spcService = new Spc.SpcServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.spc_server.Proxy);
+            this.spcServicePromise = new Spc.SpcServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.spc_server.Proxy);
             console.log("spc service is init.")
         }
 
         if (this.config.Services.persistence_server != null) {
-            this.persistenceService = new Persistence.PersistenceServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.persistence_server.Proxy);
-            this.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.persistence_server.Proxy);
+            this.persistenceService = new Persistence.PersistenceServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.persistence_server.Proxy);
+            this.persistenceServicePromise = new Persistence.PersistenceServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.persistence_server.Proxy);
             console.log("persistence service is init.")
         }
 
         if (this.config.Services.storage_server != null) {
-            this.storageService = new Storage.StorageServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
-            this.storageServicePromise = new Storage.StorageServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.storage_server.Proxy);
+            this.storageService = new Storage.StorageServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.storage_server.Proxy);
+            this.storageServicePromise = new Storage.StorageServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.storage_server.Proxy);
             console.log("storage service is init.")
         }
 
         if (this.config.Services.file_server != null) {
-            this.fileService = new File.FileServiceClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.file_server.Proxy);
-            this.fileServicePromise = new File.FileServicePromiseClient(this.config.Protocol + '://' + this.config.IP + ":" + this.config.Services.file_server.Proxy);
+            this.fileService = new File.FileServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.file_server.Proxy);
+            this.fileServicePromise = new File.FileServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.file_server.Proxy);
             console.log("file service is init.")
         }
 

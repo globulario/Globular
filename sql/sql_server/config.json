@@ -1,32 +1,80 @@
 {
-  "Address": "127.0.0.1",
-  "AllowAllOrigins": true,
-  "AllowedOrigins": "",
-  "CertAuthorityTrust": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/ca.crt",
-  "CertFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.crt",
-  "Connections": {},
-  "KeyFile": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/server.pem",
   "Name": "sql_server",
   "Port": 10009,
-  "Process": {
-    "Path": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
-    "Args": [
-      "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/sql/sql_server/sql_server",
-      "10009"
-    ],
-    "Env": null,
-    "Dir": "",
-    "Stdin": null,
-    "Stdout": null,
-    "Stderr": null,
-    "ExtraFiles": null,
-    "SysProcAttr": null,
-    "Process": {
-      "Pid": 4221
-    },
-    "ProcessState": null
-  },
-  "Protocol": "grpc",
   "Proxy": 10010,
-  "TLS": true
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Connections": {
+    "Eng_Dwg_Features": {
+      "Id": "Eng_Dwg_Features",
+      "Name": "Eng_Dwg_Features",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "EngDWG_User",
+      "Password": "eNGdwg_rw%5",
+      "Port": 1433
+    },
+    "bris_outil": {
+      "Id": "bris_outil",
+      "Name": "BrisOutil",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
+    "catalog_md": {
+      "Id": "catalog_md",
+      "Name": "INVInterne",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
+    "employees_db": {
+      "Id": "employees_db",
+      "Name": "employees",
+      "Host": "localhost",
+      "Charset": "utf8",
+      "Driver": "mysql",
+      "User": "test",
+      "Password": "password",
+      "Port": 3306
+    },
+    "gestion_information": {
+      "Id": "gestion_information",
+      "Name": "GestionInformation",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "dbprog",
+      "Password": "dbprog",
+      "Port": 1433
+    },
+    "propriete_mecanique": {
+      "Id": "propriete_mecanique",
+      "Name": "ProprieteMecanique",
+      "Host": "mon-sql-v01",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "QISDBUserRO",
+      "Password": "Grr78CHNN99a",
+      "Port": 1433
+    },
+    "shopvue": {
+      "Id": "shopvue",
+      "Name": "ShopVue",
+      "Host": "mon-sql-v02\\ShopVue",
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "User": "ShopvueReport",
+      "Password": "Dowty123",
+      "Port": 1433
+    }
+  }
 }

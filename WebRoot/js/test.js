@@ -8,7 +8,7 @@ var globular = new Globular()
  * The main entry point.
  */
 function main() {
-    // testEcho("Hello globular!");
+     testEcho("Hello globular!");
 
     // Sql test.
     //  testCreateSqlConnection();
@@ -20,8 +20,8 @@ function main() {
     // testGetFileInfo()
 
     // testCreatePersistenceConnection()
-    testPersistencePing()
-    testPersistenceFind()
+    // testPersistencePing()
+    // testPersistenceFind()
 }
 
 /////////////////////////////////////////////////////////

@@ -1,13 +1,15 @@
 {
-  "Name": "persistence_server",
-  "Port": 10005,
-  "Proxy": 10006,
-  "Protocol": "grpc",
+  "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
-  "Address": "127.0.0.1",
+  "CertAuthorityTrust": "",
   "CertFile": "",
+  "Connections": {},
+  "Domain": "localhost",
   "KeyFile": "",
-  "TLS": false,
-  "Connections": {}
+  "Name": "persistence_server",
+  "Port": 10005,
+  "Protocol": "grpc",
+  "Proxy": 10006,
+  "TLS": false
 }

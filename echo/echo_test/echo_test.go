@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	"crypto/tls"
+	"crypto/x509"
+
 	"github.com/davecourtois/Globular/echo/echopb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -37,12 +40,44 @@ func getClientConnection() *grpc.ClientConn {
 	var cc *grpc.ClientConn
 	if cc == nil {
 		if config["TLS"].(bool) {
-			creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
+			/*creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
 			if err != nil {
 				log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
 			}
 			opts := grpc.WithTransportCredentials(creds)
-			cc, err = grpc.Dial(addresse, opts)
+			cc, err = grpc.Dial(addresse, opts)*/
+			// Load the client certificates from disk
+
+			crt := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.crt"
+			key := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.pem"
+			certificate, err := tls.LoadX509KeyPair(crt, key)
+			if err != nil {
+				log.Fatalf("could not load client key pair: %s", err)
+			}
+
+			// Create a certificate pool from the certificate authority
+			certPool := x509.NewCertPool()
+			ca, err := ioutil.ReadFile(config["CertAuthorityTrust"].(string))
+			if err != nil {
+				log.Fatalf("could not read ca certificate: %s", err)
+			}
+
+			// Append the certificates from the CA
+			if ok := certPool.AppendCertsFromPEM(ca); !ok {
+				log.Fatalf("failed to append ca certs")
+			}
+
+			creds := credentials.NewTLS(&tls.Config{
+				ServerName:   "localhost", // NOTE: this is required!
+				Certificates: []tls.Certificate{certificate},
+				RootCAs:      certPool,
+			})
+
+			// Create a connection with the TLS credentials
+			cc, err = grpc.Dial(addresse, grpc.WithTransportCredentials(creds))
+			if err != nil {
+				log.Fatalf("could not dial %s: %s", addresse, err)
+			}
 		} else {
 			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
 			if err != nil {

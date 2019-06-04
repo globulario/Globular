@@ -75,15 +75,16 @@ cd WebRoot/website
 rm -r build
 polymer build
 cd ../../
-cp WebRoot/website/build/default/* dist/globular/WebRoot
+cp -r WebRoot/website/build/default/* dist/globular/WebRoot
+cp -r sslforfree dist/globular
 mkdir dist/globular/WebRoot/image
 mkdir dist/globular/WebRoot/dist
 cp -r WebRoot/website/image/* dist/globular/WebRoot/image
 cp WebRoot/website/config.json dist/globular/WebRoot/config.json
 cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot
-
+ 
 # set the dist folder to give acces to binary distribution of globular.
-sudo cp  /tmp/globular.1.0.tar.gz dist/globular/WebRoot/dist
+#sudo cp  /tmp/globular.1.0.tar.gz dist/globular/WebRoot/dist
 
 cd dist
 #the website will be merge with base globular on ec2
