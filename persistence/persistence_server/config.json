@@ -5,7 +5,7 @@
   "CertAuthorityTrust": "",
   "CertFile": "",
   "Connections": {},
-  "Domain": "localhost",
+  "Domain": "mon176",
   "KeyFile": "",
   "Name": "persistence_server",
   "Port": 10005,

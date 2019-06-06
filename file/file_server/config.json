@@ -4,7 +4,7 @@
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
-  "Domain": "localhost",
+  "Domain": "mon176",
   "KeyFile": "",
   "Name": "file_server",
   "Port": 10011,

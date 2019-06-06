@@ -7,48 +7,48 @@
   "Services": {
     "echo_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10001,
       "Proxy": 10002
     },
     "file_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10011,
       "Proxy": 10012
     },
     "ldap_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10003,
       "Proxy": 10004
     },
     "persistence_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10005,
       "Proxy": 10006
     },
     "smtp_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10007,
       "Proxy": 10008
     },
     "sql_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10009,
       "Proxy": 10010
     },
     "storage_server": {
       "Address": "127.0.0.1",
-      "Domain": "localhost",
+      "Domain": "mon176",
       "Port": 10013,
       "Proxy": 10014
     }
   },
-  "Domain": "localhost",
+  "Domain": "mon176",
   "ReadTimeout": 5,
   "WriteTimeout": 5,
   "IdleTimeout": 120,

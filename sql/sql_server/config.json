@@ -5,6 +5,12 @@
   "Protocol": "grpc",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
+  "Address": "127.0.0.1",
+  "Domain": "localhost",
+  "CertAuthorityTrust": "",
+  "CertFile": "",
+  "KeyFile": "",
+  "TLS": false,
   "Connections": {
     "Eng_Dwg_Features": {
       "Id": "Eng_Dwg_Features",

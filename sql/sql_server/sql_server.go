@@ -118,7 +118,7 @@ func (c *connection) getConnectionString() string {
 		connectionString += "charset=" + c.Charset + ";"
 
 	}
-
+	log.Println("connection string: ", connectionString)
 	return connectionString
 }
 

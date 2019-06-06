@@ -1,14 +1,8 @@
 {
-  "Address": "127.0.0.1",
-  "AllowAllOrigins": true,
-  "AllowedOrigins": "",
-  "CertAuthorityTrust": "",
-  "CertFile": "",
-  "Domain": "localhost",
-  "KeyFile": "",
   "Name": "echo_server",
   "Port": 10001,
-  "Protocol": "grpc",
   "Proxy": 10002,
-  "TLS": false
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Protocol": "grpc"
 }
