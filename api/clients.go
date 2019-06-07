@@ -16,6 +16,9 @@ type Client interface {
 	// Return the ipv4 address
 	GetAddress() string
 
+	// Get Domain return the client domain.
+	GetDomain() string
+
 	// Return the name of the service
 	GetName() string
 
@@ -72,7 +75,7 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			}
 
 			creds := credentials.NewTLS(&tls.Config{
-				ServerName:   "localhost", // NOTE: this is required!
+				ServerName:   client.GetDomain(), // NOTE: this is required!
 				Certificates: []tls.Certificate{certificate},
 				RootCAs:      certPool,
 			})

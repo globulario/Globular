@@ -207,10 +207,6 @@ func (self *Globule) initServices() {
 						proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
 						proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
 
-						// proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.creds+string(os.PathSeparator)+"server.crt")
-						// proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+string(os.PathSeparator)+"server.pem")
-						// proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
-
 					} else {
 						// not secure services.
 						s["TLS"] = false
@@ -380,6 +376,7 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
 	// Here I will call the function on the service.
 	var err_ interface{}
 	var results interface{}
+	log.Println("call api function: ", inputs[1], params)
 	results, err_ = Utility.CallMethod(service, inputs[1], params)
 	if err_ != nil {
 
@@ -554,12 +551,13 @@ func (self *Globule) initClient(name string) {
 
 	// Set the parameters.
 	address := self.Domain + ":" + strconv.Itoa(port)
+	domain := self.Domain
 	hasTLS := self.Protocol == "https" // true if the protocol is https.
 	keyFile := self.creds + string(os.PathSeparator) + "client.crt"
 	certFile := self.creds + string(os.PathSeparator) + "client.key"
 	caFile := self.creds + string(os.PathSeparator) + "ca.crt"
 
-	results, err := Utility.CallFunction(fct, address, hasTLS, keyFile, certFile, caFile)
+	results, err := Utility.CallFunction(fct, domain, address, hasTLS, certFile, keyFile, caFile)
 	if err == nil {
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
 	}

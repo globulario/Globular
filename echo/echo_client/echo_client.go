@@ -2,7 +2,8 @@ package echo_client
 
 import (
 	"context"
-	// "log"
+	"log"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/echo/echopb"
 	"github.com/davecourtois/Utility"
@@ -23,6 +24,9 @@ type Echo_Client struct {
 	// The ipv4 address
 	addresse string
 
+	// The client domain
+	domain string
+
 	// is the connection is secure?
 	hasTLS bool
 
@@ -37,10 +41,11 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Echo_Client {
+func NewEcho_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Echo_Client {
 	client := new(Echo_Client)
 
 	client.addresse = addresse
+	client.domain = domain
 	client.name = "persistence"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
@@ -55,6 +60,11 @@ func NewEcho_Client(addresse string, hasTLS bool, keyFile string, certFile strin
 // Return the ipv4 address
 func (self *Echo_Client) GetAddress() string {
 	return self.addresse
+}
+
+// Return the domain
+func (self *Echo_Client) GetDomain() string {
+	return self.domain
 }
 
 // Return the name of the service
@@ -90,6 +100,7 @@ func (self *Echo_Client) GetCaFile() string {
 }
 
 func (self *Echo_Client) Echo(msg interface{}) (string, error) {
+	log.Println("echo service call: ", msg)
 	rqst := &echopb.EchoRequest{
 		Message: Utility.ToString(msg),
 	}

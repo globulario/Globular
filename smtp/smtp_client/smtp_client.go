@@ -22,6 +22,9 @@ type SMTP_Client struct {
 	// The ipv4 address
 	addresse string
 
+	// The client domain
+	domain string
+
 	// is the connection is secure?
 	hasTLS bool
 
@@ -36,10 +39,11 @@ type SMTP_Client struct {
 }
 
 // Create a connection to the service.
-func NewSmtp_Client(addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *SMTP_Client {
+func NewSmtp_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *SMTP_Client {
 	client := new(SMTP_Client)
 
 	client.addresse = addresse
+	client.domain = domain
 	client.name = "smtp"
 
 	client.hasTLS = hasTLS
@@ -56,6 +60,11 @@ func NewSmtp_Client(addresse string, hasTLS bool, keyFile string, certFile strin
 // Return the ipv4 address
 func (self *SMTP_Client) GetAddress() string {
 	return self.addresse
+}
+
+// Return the domain
+func (self *SMTP_Client) GetDomain() string {
+	return self.domain
 }
 
 // Return the name of the service

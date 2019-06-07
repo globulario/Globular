@@ -25,6 +25,9 @@ type SQL_Client struct {
 	// The ipv4 address
 	addresse string
 
+	// The client domain
+	domain string
+
 	// is the connection is secure?
 	hasTLS bool
 
@@ -39,11 +42,12 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *SQL_Client {
+func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *SQL_Client {
 
 	client := new(SQL_Client)
 
 	client.addresse = addresse
+	client.domain = domain
 	client.name = "persistence"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
@@ -58,6 +62,11 @@ func NewSql_Client(addresse string, hasTLS bool, keyFile string, certFile string
 // Return the ipv4 address
 func (self *SQL_Client) GetAddress() string {
 	return self.addresse
+}
+
+// Return the domain
+func (self *SQL_Client) GetDomain() string {
+	return self.domain
 }
 
 // Return the name of the service

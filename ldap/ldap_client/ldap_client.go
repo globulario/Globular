@@ -22,6 +22,9 @@ type LDAP_Client struct {
 	// The ipv4 address
 	addresse string
 
+	// The client domain
+	domain string
+
 	// is the connection is secure?
 	hasTLS bool
 
@@ -36,7 +39,7 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *LDAP_Client {
+func NewLdap_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *LDAP_Client {
 	client := new(LDAP_Client)
 
 	client.addresse = addresse
@@ -45,7 +48,7 @@ func NewLdap_Client(addresse string, hasTLS bool, keyFile string, certFile strin
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-
+	client.domain = domain
 	client.cc = api.GetClientConnection(client)
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
@@ -55,6 +58,11 @@ func NewLdap_Client(addresse string, hasTLS bool, keyFile string, certFile strin
 // Return the ipv4 address
 func (self *LDAP_Client) GetAddress() string {
 	return self.addresse
+}
+
+// Return the domain
+func (self *LDAP_Client) GetDomain() string {
+	return self.domain
 }
 
 // Return the name of the service
