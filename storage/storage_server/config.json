@@ -5,7 +5,7 @@
   "CertAuthorityTrust": "",
   "CertFile": "",
   "Connections": {},
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "storage_server",
   "Port": 10013,

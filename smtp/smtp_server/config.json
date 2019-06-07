@@ -13,7 +13,7 @@
       "User": "mrmfct037@UD6.UF6"
     }
   },
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "smtp_server",
   "Port": 10007,

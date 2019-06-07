@@ -13,7 +13,7 @@
       "User": "mrmfct037@UD6.UF6"
     }
   },
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "ldap_server",
   "Port": 10003,

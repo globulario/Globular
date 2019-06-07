@@ -8,7 +8,7 @@ var globular = new Globular()
  * The main entry point.
  */
 function main() {
-     testEcho("Hello globular!");
+    // testEcho("Hello globular!");
 
     // Sql test.
     //  testCreateSqlConnection();
@@ -18,6 +18,7 @@ function main() {
     // testInsertQuery()
 
     // testGetFileInfo()
+    testFilePane()
 
     // testCreatePersistenceConnection()
     // testPersistencePing()
@@ -52,27 +53,167 @@ function testEcho(str) {
 /////////////////////////////////////////////////////////
 // file test.
 ////////////////////////////////////////////////////////
-function testGetFileInfo(){
+function testGetFileInfo() {
     var request = new File.GetFileInfoRequest();
     request.setPath("/home/dave/Pictures/unnamed.png")
     request.setThumnailheight(256)
     request.setThumnailwidth(256)
 
     globular.fileServicePromise.getFileInfo(request)
-    .then((resp) => {
-        var data = JSON.parse(resp.getData())
-        console.log(data)
-    })
-    .catch((error) => {
-        console.log(error)
-    })
+        .then((resp) => {
+            var data = JSON.parse(resp.getData())
+            console.log(data)
+        })
+        .catch((error) => {
+            console.log(error)
+        })
+}
+
+/////////////////////////////////////////////////////////
+// file pane test
+/////////////////////////////////////////////////////////
+var uint8array
+// Merge tow array together.
+function mergeTypedArraysUnsafe(a, b) {
+    var c = new a.constructor(a.length + b.length);
+    c.set(a);
+    c.set(b, a.length);
+    return c;
+}
+
+function testFilePane() {
+    // Here I will create the file panel...
+    var filePane = document.createElement("file-pane-element")
+    filePane.height = 180;
+    
+    // This is where the file will be save.
+    filePane.path = "/test/filePane";
+
+    // Now the pane event...
+    filePane.ondelete = function (path) {
+        console.log("delete the file", path)
+        var request = new File.DeleteFileRequest();
+        request.setPath(path)
+
+        globular.fileServicePromise.deleteFile(request)
+            .then((resp) => {
+                mainPage.displayMessage("<div>Le fichier " + path + "</span>est supprimer! </div>", 3000)
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+
+    // Here I will display the file when the user click on it.
+    filePane.onopen = function (fileInfo) {
+        // I will get the file from the server.
+        var req = new XMLHttpRequest();
+        var urlToSend = "http://" + globular.config.Domain + ":" + globular.config.PortHttp + fileInfo.Path
+        req.open("GET", urlToSend, true);
+        req.responseType = "blob";
+        req.onload = function (fileInfo) {
+            return function (event) {
+                var blob = req.response;
+                var fileName = req.getResponseHeader("fileName") //if you have the fileName header available
+                var link = document.createElement('a');
+                if (blob.size > 100) {
+                    link.href = window.URL.createObjectURL(blob);
+                } else {
+                    link.href = fileInfo.Thumbnail
+                }
+                link.download = fileName;
+                link.click();
+
+            }
+        }(fileInfo);
+        req.send();
+    }
+
+    // The upload function.
+    filePane.uploadHandler = function (fileInfo) {
+
+        // First of all the value must be upload on the server uploads directory...
+        // and move after it.
+        // Upload the file here.
+        var formData = new FormData()
+        formData.append("multiplefiles", fileInfo.Local, fileInfo.Name)
+        formData.append("path", fileInfo.Path)
+
+        // Use the post function to upload the file to the server.
+        var xhr = new XMLHttpRequest()
+        xhr.open('POST', '/uploads', true)
+
+        // In case of error or success...
+        xhr.onload = function (e) {
+            if (xhr.readyState === 4) {
+
+            }
+        }
+
+        // now the progress event...
+        xhr.upload.onprogress = function (e) {
+
+        }
+
+        xhr.send(formData);
+    }
+
+    // set the new file event.
+    filePane.onnewfile = function (fileInfo) {
+        console.log(fileInfo)
+    }
+
+    var div = document.createElement("div")
+    div.style.width = "350px"
+    div.style.height = "100px"
+    document.body.appendChild(div)
+    var btn = document.createElement("paper-button")
+    btn.innerHTML = "save"
+    btn.style.marginTop = "10px"
+    div.appendChild(filePane)
+    div.appendChild(btn)
+
+    // Save the files.
+    btn.onclick = function (filePane) {
+        return function () {
+            filePane.saveAll()
+        }
+    }(filePane)
+
+    // Here I will set the file pane.
+    var rqst = new File.ReadDirRequest()
+    rqst.setPath(filePane.path)
+    rqst.setRecursive(false)
+    rqst.setThumnailwidth(256)
+    rqst.setThumnailheight(256)
+
+    var stream = globular.fileService.readDir(rqst, {});
+    uint8array = new Uint8Array();
+
+    // Get the stream and set event on it...
+    stream.on('data', function (resp) {
+        uint8array = mergeTypedArraysUnsafe(uint8array, resp.getData())
+    });
+
+    stream.on('status', function(filePane){
+    return function (status) {
+        if (status.code == 0) {
+            var jsonStr = new TextDecoder("utf-8").decode(uint8array);
+            filePane.setDirInfo(jsonStr)
+        }
+    }}(filePane));
+
+    stream.on('end', function (end) {
+        // stream end signal
+        console.log("---> end: ", end)
+    });
 }
 
 /////////////////////////////////////////////////////////
 // Persistence test. (MongoDB backend)
 ////////////////////////////////////////////////////////
 
-function testCreatePersistenceConnection(){
+function testCreatePersistenceConnection() {
     var rqst = new Persistence.CreateConnectionRqst();
     var c = new Persistence.Connection();
     c.setId("mongo_db_test_connection")
@@ -92,39 +233,39 @@ function testCreatePersistenceConnection(){
     });
 }
 
-function testPersistencePing(){
+function testPersistencePing() {
     var rqst = new Persistence.PingConnectionRqst()
     rqst.setId("mongo_db_test_connection")
 
     globular.persistenceServicePromise.ping(rqst)
-    .then((rsp) => {
-        console.log(rsp.getResult())
-    })
-    .catch((error) => {
-        console.log(error)
-    })
+        .then((rsp) => {
+            console.log(rsp.getResult())
+        })
+        .catch((error) => {
+            console.log(error)
+        })
 }
 
 // Test Find existing values...
 var testPersistenceResults = []
-function testPersistenceFind(){
+function testPersistenceFind() {
     var rqst = new Persistence.FindRqst()
     rqst.setId("mongo_db_test_connection")
     rqst.setDatabase("TestMongoDB")
     rqst.setCollection("Employees")
-    rqst.setQuery( '{"first_name": "Anneke"}' /*"{}"*/)
+    rqst.setQuery('{"first_name": "Anneke"}' /*"{}"*/)
     rqst.setFieldsList(["_id", "birth_date"]) // here I will get only the _id and the birth date.
 
     var metadata = { 'custom-header-1': 'value1' };
     var stream = globular.persistenceService.find(rqst, metadata);
-    
+
     // Get the stream and set event on it...
     stream.on('data', function (rsp) {
         testPersistenceResults = testPersistenceResults.concat(JSON.parse(rsp.getJsonstr()))
     });
 
     stream.on('status', function (status) {
-        if(status.code == 0){
+        if (status.code == 0) {
             console.log(testPersistenceResults)
         }
     });
@@ -172,13 +313,13 @@ function testSelectQuery() {
     rqst.setQuery(q)
     var metadata = { 'custom-header-1': 'value1' };
     var stream = globular.sqlService.queryContext(rqst, metadata);
-    
+
     // Get the stream and set event on it...
     stream.on('data', function (response) {
-        if(response.hasHeader()){
+        if (response.hasHeader()) {
             var header = response.getHeader()
             console.log(JSON.parse(header));
-        }else if(response.hasRows()){
+        } else if (response.hasRows()) {
             var rows = response.getRows()
             console.log(JSON.parse(rows));
         }
@@ -195,20 +336,20 @@ function testSelectQuery() {
     });
 }
 
-function testSqlPing(){
+function testSqlPing() {
     var rqst = new Sql.PingConnectionRqst()
     rqst.setId("employees_db")
 
     globular.sqlServicePromise.ping(rqst)
-    .then((rsp) => {
-        console.log(rsp.getResult())
-    })
-    .catch((error) => {
-        console.log(error)
-    })
+        .then((rsp) => {
+            console.log(rsp.getResult())
+        })
+        .catch((error) => {
+            console.log(error)
+        })
 }
 
-function testInsertQuery(){
+function testInsertQuery() {
     var rqst = new Sql.ExecContextRqst()
     var q = new Sql.Query()
     q.setQuery("INSERT INTO employees.employees (emp_no, first_name, last_name, gender, hire_date, birth_date) VALUE(?,?,?,?,?,?)")
@@ -219,17 +360,17 @@ function testInsertQuery(){
     rqst.setTx(false)
 
     globular.sqlServicePromise.execContext(rqst)
-    .then((rsp) => {
-        var affectedRow = rsp.getAffectedrows()
-        var lastId = rsp.getLastid()
-        console.log("affected rows: ", affectedRow, " last id: ", lastId)
-    })
-    .catch((error) => {
-        console.log(error)
-    })
+        .then((rsp) => {
+            var affectedRow = rsp.getAffectedrows()
+            var lastId = rsp.getLastid()
+            console.log("affected rows: ", affectedRow, " last id: ", lastId)
+        })
+        .catch((error) => {
+            console.log(error)
+        })
 }
 
-function testDeleteQuery(){
+function testDeleteQuery() {
     var rqst = new Sql.ExecContextRqst()
     var q = new Sql.Query()
     q.setQuery("DELETE FROM employees.employees WHERE emp_no=?")
@@ -240,14 +381,14 @@ function testDeleteQuery(){
     rqst.setTx(false)
 
     globular.sqlServicePromise.execContext(rqst)
-    .then((rsp) => {
-        var affectedRow = rsp.getAffectedrows()
-        var lastId = rsp.getLastid()
-        console.log("affected rows: ", affectedRow, " last id: ", lastId)
-    })
-    .catch((error) => {
-        console.log(error)
-    })
+        .then((rsp) => {
+            var affectedRow = rsp.getAffectedrows()
+            var lastId = rsp.getLastid()
+            console.log("affected rows: ", affectedRow, " last id: ", lastId)
+        })
+        .catch((error) => {
+            console.log(error)
+        })
 }
 
 // Test with Sql Server and odbc connector.

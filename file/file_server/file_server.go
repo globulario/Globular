@@ -288,10 +288,10 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 // Directory operations
 ////////////////////////////////////////////////////////////////////////////////
 func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileService_ReadDirServer) error {
-
+	log.Println("--> try to read dir ")
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
+	// The root will specefied by the server.
 	if strings.HasPrefix(path, "/") {
 		path = self.Root + path
 		// Set the path separator...
@@ -678,7 +678,9 @@ func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream file
 		// Set the path separator...
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
+
 	log.Println("--> read dir ", path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
+
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
 	if err != nil {
 		return err

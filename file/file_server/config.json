@@ -4,12 +4,12 @@
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "file_server",
   "Port": 10011,
   "Protocol": "grpc",
   "Proxy": 10012,
-  "Root": "",
+  "Root": "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/WebRoot",
   "TLS": false
 }

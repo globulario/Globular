@@ -40,12 +40,7 @@ func getClientConnection() *grpc.ClientConn {
 	var cc *grpc.ClientConn
 	if cc == nil {
 		if config["TLS"].(bool) {
-			/*creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
-			if err != nil {
-				log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
-			}
-			opts := grpc.WithTransportCredentials(creds)
-			cc, err = grpc.Dial(addresse, opts)*/
+
 			// Load the client certificates from disk
 
 			crt := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.crt"

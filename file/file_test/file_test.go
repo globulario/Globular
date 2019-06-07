@@ -25,32 +25,11 @@ var (
 func getClientConnection() *grpc.ClientConn {
 	// So here I will read the server configuration to see if the connection
 	// is secure...
-	config := make(map[string]interface{})
-	data, err := ioutil.ReadFile("../echo_server/config.json")
+	cc, err := grpc.Dial(addresse, grpc.WithInsecure())
 	if err != nil {
-		log.Fatal("fail to read configuration")
+		log.Fatalf("could not connect: %v", err)
 	}
 
-	// Read the config file.
-	json.Unmarshal(data, &config)
-
-	var cc *grpc.ClientConn
-	if cc == nil {
-		if config["TLS"].(bool) {
-			creds, sslErr := credentials.NewClientTLSFromFile(config["CertAuthorityTrust"].(string), "")
-			if err != nil {
-				log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
-			}
-			opts := grpc.WithTransportCredentials(creds)
-			cc, err = grpc.Dial(addresse, opts)
-		} else {
-			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
-			if err != nil {
-				log.Fatalf("could not connect: %v", err)
-			}
-		}
-
-	}
 	return cc
 }
 
@@ -109,7 +88,7 @@ func TestGetThumbnails(t *testing.T) {
 	c := filepb.NewFileServiceClient(cc)
 
 	rqst := &filepb.GetThumbnailsRequest{
-		Path:           "C:\\Temp\\Cargo\\WebApp\\Cargo\\Apps\\BrisOutil",
+		Path:           "/test/filePane", //"C:\\Temp\\Cargo\\WebApp\\Cargo\\Apps\\BrisOutil",
 		Recursive:      true,
 		ThumnailHeight: 256,
 		ThumnailWidth:  256,

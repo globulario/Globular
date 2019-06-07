@@ -76,7 +76,7 @@
       "User": "ShopvueReport"
     }
   },
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "sql_server",
   "Port": 10009,

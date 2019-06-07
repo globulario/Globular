@@ -412,6 +412,9 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("FileUploadHandler")
+
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -419,6 +422,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("FileUploadHandler", 425)
 	formdata := r.MultipartForm // ok, no problem so far, read the Form data
 
 	//get the *fileheaders
@@ -429,8 +433,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	path = r.FormValue("path")
 	if strings.HasPrefix(path, "/") {
 		path = globule.webRoot + path
+		// create the dir if not already exist.
+		Utility.CreateDirIfNotExist(path)
 	}
-
+	log.Println("---> files:", len(files))
 	for i, _ := range files { // loop through the files one by one
 		file, err := files[i].Open()
 		defer file.Close()
@@ -441,6 +447,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file.
 		out, err := os.Create(path + "/" + files[i].Filename)
+
 		defer out.Close()
 		if err != nil {
 			log.Println(w, "Unable to create the file for writing. Check your write access privilege")
