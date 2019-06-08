@@ -137,8 +137,10 @@ function testFilePane() {
         // Upload the file here.
         var formData = new FormData()
         formData.append("multiplefiles", fileInfo.Local, fileInfo.Name)
-        formData.append("path", fileInfo.Path)
-
+        
+        // The path is the parent path here...
+        formData.append("path", fileInfo.Path.replace("/" + fileInfo.Name, ""))
+        
         // Use the post function to upload the file to the server.
         var xhr = new XMLHttpRequest()
         xhr.open('POST', '/uploads', true)
