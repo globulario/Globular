@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/status"
 
-	LDAP "github.com/mavricknz/ldap"
+	LDAP "gopkg.in/ldap.v3"
 )
 
 var (
@@ -52,7 +52,8 @@ type connection struct {
 	Password string
 	Port     int32
 
-	conn *LDAP.LDAPConnection
+	// conn *LDAP.LDAPConnection
+	conn *LDAP.Conn
 }
 
 type server struct {
@@ -105,31 +106,35 @@ func (self *server) save() error {
 /**
  * Connect to a ldap server...
  */
-func (self *server) connect(id string, userId string, pwd string) (*LDAP.LDAPConnection, error) {
+func (self *server) connect(id string, userId string, pwd string) (*LDAP.Conn, error) {
 
 	// The info must be set before that function is call.
 	info := self.Connections[id]
-	conn := LDAP.NewLDAPConnection(info.Host, uint16(info.Port))
 
-	// Try to connect to Ldap, return timeout error after tree second.
-	conn.NetworkConnectTimeout = time.Duration(3 * time.Second)
-	conn.AbandonMessageOnReadTimeout = true
-
-	err := conn.Connect()
+	conn, err := LDAP.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, info.Port))
 	if err != nil {
-		log.Println("106 ----> ", err)
 		// handle error
 		return nil, err
 	}
 
+	conn.SetTimeout(time.Duration(3 * time.Second))
+
 	// Connect with the default user...
 	if len(userId) > 0 {
-		err := conn.Bind(userId, pwd)
+		if len(pwd) > 0 {
+			err = conn.Bind(userId, pwd)
+		} else {
+			err = conn.UnauthenticatedBind(userId)
+		}
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err := conn.Bind(info.User, info.Password)
+		if len(info.Password) > 0 {
+			err = conn.Bind(info.User, info.Password)
+		} else {
+			err = conn.UnauthenticatedBind(info.User)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -138,25 +143,24 @@ func (self *server) connect(id string, userId string, pwd string) (*LDAP.LDAPCon
 	return conn, nil
 }
 
-/*
-func (this *LdapManager) authenticate(id string, login string, psswd string) bool {
+// Authenticate a user with LDAP server.
+func (self *server) Authenticate(ctx context.Context, rqst *ldappb.AuthenticateRqst) (*ldappb.AuthenticateRsp, error) {
+	id := rqst.Id
+	login := rqst.Login
+	pwd := rqst.Pwd
 
-	// Now I will try to make a simple query if it fail that's mean the user
-	// does have the permission...
-	var base_dn string = "OU=Users," + this.getConfigsInfo()[id].M_searchBase
-	var filter string = "(objectClass=user)"
-
-	// Test get some user...
-	var attributes []string = []string{"sAMAccountName"}
-	_, err := this.search(id, login, psswd, base_dn, filter, attributes)
+	// I will made use of bind to authenticate the user.
+	_, err := self.connect(id, login, pwd)
 	if err != nil {
-		Utility.Log(Utility.FunctionName(), Utility.FileLine(), "---> ldap authenticate fail: ", login, err)
-		return false
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return true
+	return &ldappb.AuthenticateRsp{
+		Result: true,
+	}, nil
 }
-*/
 
 // Create a new SQL connection and store it for futur use. If the connection already
 // exist it will be replace by the new one.
@@ -255,12 +259,7 @@ func (self *server) Close(ctx context.Context, rqst *ldappb.CloseRqst) (*ldappb.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Connection "+id+" dosent exist!")))
 	}
 
-	err := self.Connections[id].conn.Close()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
+	self.Connections[id].conn.Close()
 
 	// return success.
 	return &ldappb.CloseRsp{

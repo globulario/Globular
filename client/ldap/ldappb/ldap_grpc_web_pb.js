@@ -306,5 +306,60 @@ proto.ldap.LdapServicePromiseClient.prototype.search =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ldap.AuthenticateRqst,
+ *   !proto.ldap.AuthenticateRsp>}
+ */
+const methodInfo_LdapService_Authenticate = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ldap.AuthenticateRsp,
+  /** @param {!proto.ldap.AuthenticateRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ldap.AuthenticateRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ldap.AuthenticateRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ldap.AuthenticateRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ldap.AuthenticateRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ldap.LdapServiceClient.prototype.authenticate =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ldap.LdapService/Authenticate',
+      request,
+      metadata || {},
+      methodInfo_LdapService_Authenticate,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ldap.AuthenticateRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ldap.AuthenticateRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ldap.LdapServicePromiseClient.prototype.authenticate =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ldap.LdapService/Authenticate',
+      request,
+      metadata || {},
+      methodInfo_LdapService_Authenticate);
+};
+
+
 module.exports = proto.ldap;
 

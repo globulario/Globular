@@ -66,13 +66,14 @@ func TestCreateConnection(t *testing.T) {
 	// Create a new client service...
 	c := ldappb.NewLdapServiceClient(cc)
 
+	// Create a new connection
 	rqst := &ldappb.CreateConnectionRqst{
 		Connection: &ldappb.Connection{
 			Id:       "test_ldap",
 			User:     "mrmfct037@UD6.UF6",
 			Password: "Dowty123",
 			Port:     389,
-			Host:     "mon-dc-p01.UD6.UF6",
+			Host:     "www.globular.app", //"mon-dc-p01.UD6.UF6",
 		},
 	}
 

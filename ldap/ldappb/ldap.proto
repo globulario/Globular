@@ -54,6 +54,17 @@ message SearchResp {
 	string result = 1; // Contain a JSON string with the results.
 }
 
+// Authenticate request.
+message AuthenticateRqst {
+	string id = 1;
+	string login = 2;
+	string pwd = 3;
+}
+
+message AuthenticateRsp {
+	bool result = 1;
+}
+
 // TODO support TLS conncetion.
 service LdapService {
 	// Create a connection.
@@ -68,5 +79,8 @@ service LdapService {
 	
 	// Search over LDAP server
 	rpc Search(SearchRqst) returns (SearchResp){};
+	
+	// Authenticate a user to a given ldap server (connection id)
+	rpc Authenticate(AuthenticateRqst) returns (AuthenticateRsp){};
 }
 

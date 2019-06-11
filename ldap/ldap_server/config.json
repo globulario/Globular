@@ -1,23 +1,23 @@
 {
-  "Address": "127.0.0.1",
-  "AllowAllOrigins": true,
-  "AllowedOrigins": "",
-  "CertAuthorityTrust": "",
-  "CertFile": "",
-  "Connections": {
-    "safran_ldap": {
-      "Host": "mon-dc-p01.UD6.UF6",
-      "Id": "safran_ldap",
-      "Password": "Dowty123",
-      "Port": 389,
-      "User": "mrmfct037@UD6.UF6"
-    }
-  },
-  "Domain": "localhost",
-  "KeyFile": "",
   "Name": "ldap_server",
   "Port": 10003,
-  "Protocol": "grpc",
   "Proxy": 10004,
-  "TLS": false
+  "Protocol": "grpc",
+  "AllowAllOrigins": true,
+  "AllowedOrigins": "",
+  "Address": "127.0.0.1",
+  "Domain": "localhost",
+  "CertAuthorityTrust": "",
+  "CertFile": "",
+  "KeyFile": "",
+  "TLS": false,
+  "Connections": {
+    "safran_ldap": {
+      "Id": "safran_ldap",
+      "Host": "mon-dc-p01.UD6.UF6",
+      "User": "mrmfct037@UD6.UF6",
+      "Password": "Dowty123",
+      "Port": 389
+    }
+  }
 }

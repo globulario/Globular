@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"net"
 	"path/filepath"
@@ -559,6 +560,7 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 
 	// I will send back the last id and the number of affected rows to the caller.
 	lastId, _ = result.LastInsertId()
+
 	return &sqlpb.ExecContextRsp{
 		LastId:       lastId,
 		AffectedRows: affectedRows,

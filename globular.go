@@ -431,12 +431,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
+
 	if strings.HasPrefix(path, "/") {
 		path = globule.webRoot + path
 		// create the dir if not already exist.
 		Utility.CreateDirIfNotExist(path)
 	}
-	log.Println("---> files:", len(files))
+
 	for i, _ := range files { // loop through the files one by one
 		file, err := files[i].Open()
 		defer file.Close()
