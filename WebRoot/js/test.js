@@ -18,7 +18,7 @@ function main() {
     // testInsertQuery()
 
     // testGetFileInfo()
-    testFilePane()
+    // testFilePane()
 
     // testCreatePersistenceConnection()
     // testPersistencePing()

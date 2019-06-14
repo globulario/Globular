@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
-	//	"context"
-	//	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"sync"
+
+	ps "github.com/mitchellh/go-ps"
 
 	//"fmt"
 	"io"
@@ -42,6 +43,8 @@ var (
 	globule *Globule
 )
 
+const serviceStartDelay = 2 // wait tow second.
+
 /**
  * The web server.
  */
@@ -69,6 +72,8 @@ type Globule struct {
 
 	// The map of client...
 	clients map[string]api.Client
+
+	sync.RWMutex
 }
 
 /**
@@ -124,9 +129,59 @@ func NewGlobule(port int) *Globule {
 }
 
 /**
+ * Get the list of process id by it name.
+ */
+func getProcessIdsByName(name string) ([]int, error) {
+	processList, err := ps.Processes()
+	if err != nil {
+		return nil, errors.New("ps.Processes() Failed, are you using windows?")
+	}
+
+	pids := make([]int, 0)
+
+	// map ages
+	for x := range processList {
+		var process ps.Process
+		process = processList[x]
+		if strings.HasPrefix(process.Executable(), name) {
+			pids = append(pids, process.Pid())
+		}
+	}
+
+	return pids, nil
+}
+
+/**
+ * Kill a process with a given name.
+ */
+func killProcessByName(name string) error {
+	pids, err := getProcessIdsByName(name)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(pids); i++ {
+		proc, err := os.FindProcess(pids[i])
+
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println("Kill ", name, " pid ", pids[i])
+		// Kill the process
+		proc.Kill()
+	}
+
+	return nil
+}
+
+/**
  * Here I will set services
  */
 func (self *Globule) initServices() {
+
+	// Here I will kill proxies if there are running.
+	killProcessByName("grpcwebproxy")
+
 	log.Println("Initialyse services")
 
 	// If the protocol is https I will generate the TLS certificate.
@@ -223,41 +278,66 @@ func (self *Globule) initServices() {
 						proxyArgs = append(proxyArgs, "--backend_tls=false")
 					}
 
-					// log.Println(proxyPath, proxyArgs)
-					// Start the service process.
-					log.Println("try to start process ", s["Name"].(string))
-					if s["Name"].(string) == "file_server" {
-						// File service need root...
-						s["Root"] = globule.webRoot
-						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
-					} else {
-						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
-					}
+					// Kill previous instance of the program.
+					killProcessByName(s["Name"].(string))
 
-					err = s["Process"].(*exec.Cmd).Start()
-					if err != nil {
-						log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-					}
+					// Start the process in it own thread and keep it alive as needed for a miximum number of try
+					// before given up.
+					go func(servicePath string, port string) {
+						for {
+							self.Lock()
+							defer self.Unlock()
+							// log.Println(proxyPath, proxyArgs)
+							// Start the service process.
+							log.Println("try to start process ", s["Name"].(string))
+							if s["Name"].(string) == "file_server" {
+								// File service need root...
+								s["Root"] = globule.webRoot
+								s["Process"] = exec.Command(servicePath, port, globule.webRoot)
+							} else {
+								s["Process"] = exec.Command(servicePath, port)
+							}
 
-					// start the proxy service.
-					s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
+							err = s["Process"].(*exec.Cmd).Run()
+							if err != nil {
+								log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+							}
 
-					err = s["ProxyProcess"].(*exec.Cmd).Start()
-					if err != nil {
-						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
-					}
+							// wait five second to give time to old service to clean up...
+							time.Sleep(time.Second * serviceStartDelay)
+						}
 
-					self.services[s["Name"].(string)] = s
-					s_ := make(map[string]interface{})
+						log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
+					}(servicePath, Utility.ToString(s["Port"]))
 
-					// export public service values.
-					s_["Address"] = s["Address"]
-					s_["Domain"] = s["Domain"]
-					s_["Proxy"] = s["Proxy"]
-					s_["Port"] = s["Port"]
+					// Start the proxie's and keep them alives.
+					go func(proxyPath string, proxyArgs []string) {
+						for {
+							self.Lock()
+							defer self.Unlock()
+							// start the proxy service one time
+							s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
+							err = s["ProxyProcess"].(*exec.Cmd).Run()
+							if err != nil {
+								log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
+							}
 
-					self.Services[s["Name"].(string)] = s_
-					self.saveConfig()
+							self.services[s["Name"].(string)] = s
+							s_ := make(map[string]interface{})
+
+							// export public service values.
+							s_["Address"] = s["Address"]
+							s_["Domain"] = s["Domain"]
+							s_["Proxy"] = s["Proxy"]
+							s_["Port"] = s["Port"]
+
+							self.Services[s["Name"].(string)] = s_
+							self.saveConfig()
+
+							// wait five second to give time to old service to clean up...
+							time.Sleep(time.Second * serviceStartDelay)
+						}
+					}(proxyPath, proxyArgs)
 
 					log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 				}
@@ -343,7 +423,6 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
 	// So the request will contain...
 	// The last tow parameters must be empty because we don't use the websocket
 	// here.
-
 	inputs := strings.Split(r.URL.Path[len("/api/"):], "/")
 
 	if len(inputs) < 2 {
@@ -413,8 +492,6 @@ func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Println("FileUploadHandler")
-
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -422,7 +499,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("FileUploadHandler", 425)
 	formdata := r.MultipartForm // ok, no problem so far, read the Form data
 
 	//get the *fileheaders

@@ -1,11 +1,11 @@
 {
-  "Address": "127.0.0.1",
+  "Address": "10.67.44.52",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
   "Connections": {},
-  "Domain": "localhost",
+  "Domain": "mon176",
   "KeyFile": "",
   "Name": "storage_server",
   "Port": 10013,

@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"errors"
+
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -226,14 +228,20 @@ func (self *server) sendEmail(id string, from string, to []string, cc []*CarbonC
 
 // Send a simple email whitout file.
 func (self *server) SendEmail(ctx context.Context, rqst *smtppb.SendEmailRqst) (*smtppb.SendEmailRsp, error) {
+	if rqst.Email == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No email message was given!")))
+	}
+
 	cc := make([]*CarbonCopy, len(rqst.Email.Cc))
 	for i := 0; i < len(rqst.Email.Cc); i++ {
 		cc[i] = &CarbonCopy{Name: rqst.Email.Cc[i].Name, EMail: rqst.Email.Cc[i].Address}
 	}
 
-	bodyType := "text"
-	if rqst.Email.BodyType == smtppb.BodyType_HTML {
-		bodyType = "html"
+	bodyType := "text/html"
+	if rqst.Email.BodyType != smtppb.BodyType_HTML {
+		bodyType = "text/html"
 	}
 
 	err := self.sendEmail(rqst.Id, rqst.Email.From, rqst.Email.To, cc, rqst.Email.Subject, rqst.Email.Body, []*Attachment{}, bodyType)

@@ -1,86 +1,86 @@
 {
-  "Name": "sql_server",
-  "Port": 10009,
-  "Proxy": 10010,
-  "Protocol": "grpc",
+  "Address": "10.67.44.52",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
-  "Address": "127.0.0.1",
-  "Domain": "localhost",
   "CertAuthorityTrust": "",
   "CertFile": "",
-  "KeyFile": "",
-  "TLS": false,
   "Connections": {
     "Eng_Dwg_Features": {
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "Host": "mon-sql-v01",
       "Id": "Eng_Dwg_Features",
       "Name": "Eng_Dwg_Features",
-      "Host": "mon-sql-v01",
-      "Charset": "utf8",
-      "Driver": "odbc",
-      "User": "EngDWG_User",
       "Password": "eNGdwg_rw%5",
-      "Port": 1433
+      "Port": 1433,
+      "User": "EngDWG_User"
     },
     "bris_outil": {
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "Host": "mon-sql-v01",
       "Id": "bris_outil",
       "Name": "BrisOutil",
-      "Host": "mon-sql-v01",
-      "Charset": "utf8",
-      "Driver": "odbc",
-      "User": "dbprog",
       "Password": "dbprog",
-      "Port": 1433
+      "Port": 1433,
+      "User": "dbprog"
     },
     "catalog_md": {
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "Host": "mon-sql-v01",
       "Id": "catalog_md",
       "Name": "INVInterne",
-      "Host": "mon-sql-v01",
-      "Charset": "utf8",
-      "Driver": "odbc",
-      "User": "dbprog",
       "Password": "dbprog",
-      "Port": 1433
+      "Port": 1433,
+      "User": "dbprog"
     },
     "employees_db": {
-      "Id": "employees_db",
-      "Name": "employees",
-      "Host": "localhost",
       "Charset": "utf8",
       "Driver": "mysql",
-      "User": "test",
+      "Host": "localhost",
+      "Id": "employees_db",
+      "Name": "employees",
       "Password": "password",
-      "Port": 3306
+      "Port": 3306,
+      "User": "test"
     },
     "gestion_information": {
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "Host": "mon-sql-v01",
       "Id": "gestion_information",
       "Name": "GestionInformation",
-      "Host": "mon-sql-v01",
-      "Charset": "utf8",
-      "Driver": "odbc",
-      "User": "dbprog",
       "Password": "dbprog",
-      "Port": 1433
+      "Port": 1433,
+      "User": "dbprog"
     },
     "propriete_mecanique": {
+      "Charset": "utf8",
+      "Driver": "odbc",
+      "Host": "mon-sql-v01",
       "Id": "propriete_mecanique",
       "Name": "ProprieteMecanique",
-      "Host": "mon-sql-v01",
-      "Charset": "utf8",
-      "Driver": "odbc",
-      "User": "QISDBUserRO",
       "Password": "Grr78CHNN99a",
-      "Port": 1433
+      "Port": 1433,
+      "User": "QISDBUserRO"
     },
     "shopvue": {
-      "Id": "shopvue",
-      "Name": "ShopVue",
-      "Host": "mon-sql-v02\\ShopVue",
       "Charset": "utf8",
       "Driver": "odbc",
-      "User": "ShopvueReport",
+      "Host": "mon-sql-v02\\ShopVue",
+      "Id": "shopvue",
+      "Name": "ShopVue",
       "Password": "Dowty123",
-      "Port": 1433
+      "Port": 1433,
+      "User": "ShopvueReport"
     }
-  }
+  },
+  "Domain": "mon176",
+  "KeyFile": "",
+  "Name": "sql_server",
+  "Port": 10009,
+  "Protocol": "grpc",
+  "Proxy": 10010,
+  "TLS": false
 }

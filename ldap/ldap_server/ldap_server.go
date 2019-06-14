@@ -149,8 +149,10 @@ func (self *server) Authenticate(ctx context.Context, rqst *ldappb.AuthenticateR
 	login := rqst.Login
 	pwd := rqst.Pwd
 
+	log.Println("----> try to authenticate ", login, pwd)
 	// I will made use of bind to authenticate the user.
 	_, err := self.connect(id, login, pwd)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

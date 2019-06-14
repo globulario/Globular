@@ -105,8 +105,8 @@ func TestSendEmail(t *testing.T) {
 			To:       []string{"dave.courtois@safrangroup.com"},
 			Cc:       []*smtppb.CarbonCopy{&smtppb.CarbonCopy{Name: "Dave Courtois", Address: "dave.courtois60@gmail.com"}},
 			Subject:  "Smtp Test",
-			Body:     "This is a simple mail test!",
-			BodyType: smtppb.BodyType_TEXT,
+			Body:     `<meta http-equiv="Content-Type" content="text/html; charset=utf-8"><div dir="ltr">Message test.</div>`,
+			BodyType: smtppb.BodyType_HTML,
 		},
 	}
 
@@ -161,7 +161,7 @@ func sendFile(id string, path string, stream smtppb.SmtpService_SendEmailWithAtt
 /**
  * Test send email whit attachements.
  */
-func TestSendEmailWithAttachements(t *testing.T) {
+/*func TestSendEmailWithAttachements(t *testing.T) {
 	cc := getClientConnection()
 
 	// when done the connection will be close.
@@ -209,4 +209,4 @@ func TestSendEmailWithAttachements(t *testing.T) {
 
 	log.Println("Response form SendEmailWithAttachements:", rsp.Result)
 
-}
+}*/
