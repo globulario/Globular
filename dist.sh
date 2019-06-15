@@ -78,7 +78,6 @@ cd ../../
 cp -r WebRoot/website/build/default/* dist/globular/WebRoot
 cp -r sslforfree dist/globular
 mkdir dist/globular/WebRoot/image
-mkdir dist/globular/WebRoot/dist
 cp -r WebRoot/website/image/* dist/globular/WebRoot/image
 cp WebRoot/website/config.json dist/globular/WebRoot/config.json
 cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot

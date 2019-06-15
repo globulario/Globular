@@ -1,26 +1,11 @@
 {
-  "Address": "10.67.44.52",
+  "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
-  "Connections": {
-    "safran_smtp": {
-      "Host": "mon-print-01",
-      "Id": "test_smtp",
-      "Password": "Dowty123",
-      "Port": 25,
-      "User": "mrmfct037@UD6.UF6"
-    },
-    "test_smtp": {
-      "Host": "mon-print-01",
-      "Id": "test_smtp",
-      "Password": "Dowty123",
-      "Port": 25,
-      "User": "mrmfct037@UD6.UF6"
-    }
-  },
-  "Domain": "mon176",
+  "Connections": {},
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "smtp_server",
   "Port": 10007,

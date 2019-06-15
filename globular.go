@@ -283,61 +283,44 @@ func (self *Globule) initServices() {
 
 					// Start the process in it own thread and keep it alive as needed for a miximum number of try
 					// before given up.
-					go func(servicePath string, port string) {
-						for {
-							self.Lock()
-							defer self.Unlock()
-							// log.Println(proxyPath, proxyArgs)
-							// Start the service process.
-							log.Println("try to start process ", s["Name"].(string))
-							if s["Name"].(string) == "file_server" {
-								// File service need root...
-								s["Root"] = globule.webRoot
-								s["Process"] = exec.Command(servicePath, port, globule.webRoot)
-							} else {
-								s["Process"] = exec.Command(servicePath, port)
-							}
 
-							err = s["Process"].(*exec.Cmd).Run()
-							if err != nil {
-								log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-							}
+					// Start the service process.
+					log.Println("try to start process ", s["Name"].(string))
+					if s["Name"].(string) == "file_server" {
+						// File service need root...
+						s["Root"] = globule.webRoot
+						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
+					} else {
+						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+					}
 
-							// wait five second to give time to old service to clean up...
-							time.Sleep(time.Second * serviceStartDelay)
-						}
+					err = s["Process"].(*exec.Cmd).Start()
+					if err != nil {
+						log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+					}
 
-						log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
-					}(servicePath, Utility.ToString(s["Port"]))
+					log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
 
 					// Start the proxie's and keep them alives.
-					go func(proxyPath string, proxyArgs []string) {
-						for {
-							self.Lock()
-							defer self.Unlock()
-							// start the proxy service one time
-							s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
-							err = s["ProxyProcess"].(*exec.Cmd).Run()
-							if err != nil {
-								log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
-							}
 
-							self.services[s["Name"].(string)] = s
-							s_ := make(map[string]interface{})
+					// start the proxy service one time
+					s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
+					err = s["ProxyProcess"].(*exec.Cmd).Start()
+					if err != nil {
+						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
+					}
 
-							// export public service values.
-							s_["Address"] = s["Address"]
-							s_["Domain"] = s["Domain"]
-							s_["Proxy"] = s["Proxy"]
-							s_["Port"] = s["Port"]
+					self.services[s["Name"].(string)] = s
+					s_ := make(map[string]interface{})
 
-							self.Services[s["Name"].(string)] = s_
-							self.saveConfig()
+					// export public service values.
+					s_["Address"] = s["Address"]
+					s_["Domain"] = s["Domain"]
+					s_["Proxy"] = s["Proxy"]
+					s_["Port"] = s["Port"]
 
-							// wait five second to give time to old service to clean up...
-							time.Sleep(time.Second * serviceStartDelay)
-						}
-					}(proxyPath, proxyArgs)
+					self.Services[s["Name"].(string)] = s_
+					self.saveConfig()
 
 					log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 				}

@@ -1,11 +1,11 @@
 {
-  "Address": "10.67.44.52",
+  "Address": "127.0.0.1",
   "AllowAllOrigins": true,
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
   "Connections": {},
-  "Domain": "mon176",
+  "Domain": "localhost",
   "KeyFile": "",
   "Name": "persistence_server",
   "Port": 10005,
