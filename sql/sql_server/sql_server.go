@@ -267,6 +267,8 @@ func (self *server) ping(ctx context.Context, id string) (string, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	defer db.Close()
+
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -303,6 +305,7 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 
 	// Be sure the connection is there.
 	if _, ok := self.Connections[rqst.Query.ConnectionId]; !ok {
+
 		return errors.New("connection with id " + rqst.Query.ConnectionId + " dosent exist.")
 	}
 
@@ -311,11 +314,14 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 
 	// First of all I will try to
 	db, err := sql.Open(c.Driver, c.getConnectionString())
+
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	defer db.Close()
 
 	// The query
 	query := rqst.Query.Query
@@ -481,6 +487,8 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	defer db.Close()
 
 	// The query
 	query := rqst.Query.Query

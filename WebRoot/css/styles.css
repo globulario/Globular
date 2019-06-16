@@ -1,0 +1,59 @@
+/** Table element **/
+/** Simple table style **/
+table-element{
+    /** Set max heigth to display the scroll**/
+    max-height: 500px;
+
+    /** Border */
+    border-bottom: 1px solid darkgrey;
+    border-right: 1px solid darkgrey;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.table-item{
+    text-align: center;
+    vertical-align: middle;
+}
+
+table-header-element{
+    background-color: rgb(51, 103, 214);
+    color: white;
+}
+
+table-header-element :last-child{
+    border-right:none;
+}
+
+table-header-cell-element{
+    border-right: 1px solid  white;
+    padding: 5px 10px 5px 10px;
+}
+
+/** Sample style example. **/
+
+/** Tiles are grids **/
+.table-tile{
+    /** Align item in table **/
+    justify-items: center;
+    align-items: center;
+}
+
+/** The cell container **/
+.table-item{
+    width: 100%;
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+}
+
+/** The cell value div **/
+.table-item-value {
+    border-right: 1px solid darkgrey;
+    border-top: 1px solid darkgrey;
+    /** Text align center and at middle by default **/
+    text-align: center;
+    vertical-align: middle;
+    display: table-cell;
+    height: 100%;
+}

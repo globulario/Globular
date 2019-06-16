@@ -23,6 +23,12 @@ function main() {
     // testCreatePersistenceConnection()
     // testPersistencePing()
     // testPersistenceFind()
+
+    // display table.
+    var div = document.createElement("div")
+    div.id = "table_example_div"
+    document.body.appendChild(div)
+    displayTable()
 }
 
 /////////////////////////////////////////////////////////
@@ -308,13 +314,13 @@ function testPersistenceFind() {
 function testSelectQuery() {
     var rqst = new Sql.QueryContextRqst()
     var q = new Sql.Query()
-    q.setQuery("SELECT first_name, last_name FROM employees.employees WHERE gender=?")
+    q.setQuery("SELECT * FROM employees.employees WHERE gender=?")
     q.setConnectionid("employees_db")
     q.setParameters(JSON.stringify(["F"]))
 
     rqst.setQuery(q)
-    var metadata = { 'custom-header-1': 'value1' };
-    var stream = globular.sqlService.queryContext(rqst, metadata);
+    // var metadata = { 'custom-header-1': 'value1' };
+    var stream = globular.sqlService.queryContext(rqst, {});
 
     // Get the stream and set event on it...
     stream.on('data', function (response) {
@@ -411,6 +417,124 @@ function testCreateSqlConnection() {
         // ...
         console.log(rsp.getResult())
     });
+}
+
+var table_example_data = [];
+var table_example_header = null;
+/**
+ * That function is use in table example to get a large array of values.
+ * @param {*} input 
+ */
+function getEmployees(callback) {
+    var rqst = new Sql.QueryContextRqst()
+    var q = new Sql.Query()
+    q.setQuery("SELECT * FROM employees.employees WHERE gender=?")
+    q.setConnectionid("employees_db")
+    q.setParameters(JSON.stringify(["F"]))
+    rqst.setQuery(q)
+    var metadata = {}// { 'content-type': 'application/grpc-web-text' };
+    var stream = globular.sqlService.queryContext(rqst, metadata);
+    table_example_data = [] // reset it content.
+
+    // Get the stream and set event on it...
+    stream.on('data', function (response) {
+        if (response.hasHeader()) {
+            table_example_header = JSON.parse(response.getHeader())
+        } else if (response.hasRows()) {
+            table_example_data = table_example_data.concat(JSON.parse(response.getRows()))
+            for (var i = 0; i < table_example_header.length; i++) {
+                for(var j=0; j < table_example_data.length; j++){
+                    if (table_example_header[i].typeInfo.Name == "DATE") {
+                        // convert to date.
+                        table_example_data[j][i] = new Date(table_example_data[j][i])
+                    }
+                }
+            }
+        }
+    });
+
+    stream.on('status', function (status) {
+        if (status.code == 0) {
+            callback(table_example_header, table_example_data)
+        }
+    });
+
+    stream.on('end', function (end) {
+        // stream end signal
+    });
+}
+
+function displayTable() {
+    /** Get employes get values from sql tables... */
+    getEmployees(function (infos, employees) {
+        /* Let's the hack begin */
+
+        /* Step 1 create the table */
+        var table = document.createElement("table-element")
+
+        /* Step 2 create the header */
+        var header = document.createElement("table-header-element")
+        table.appendChild(header)
+
+        /* Set various style here... */
+        table.rowheight = 29
+        table.style.width = "880px"
+        table.style.maxHeight = "500px";
+
+        /* set the table data */
+        table.data = employees
+
+        header.fixed = true;
+        for (var i = 0; i < infos.length; i++) {
+            /** Here I will create the header cell */
+            var headerCell = document.createElement("table-header-cell-element")
+
+            /** Optionaly set a table sorter and filter */
+            headerCell.innerHTML = "<table-sorter-element></table-sorter-element><div>" + infos[i].name + "</div> <table-filter-element></table-filter-element>"
+            if (i == 0) {
+                /** Here if you want to overide onrender to modify how cell in that row will be display... */
+                headerCell.onrender = function (div, value) {
+                    div.innerHTML = value
+                    div.style.textDecoration = "underline"
+                    div.onclick = function (value) {
+                        return function () {
+                            alert("you select " + value + "!")
+                        }
+                    }(value)
+
+                    div.onmouseover = function () {
+                        this.style.cursor = "pointer"
+                    }
+
+                    div.onmouseout = function () {
+                        this.style.cursor = "default"
+                    }
+                }
+            }
+
+            /** Here if the sql type is a date I will convert-it to a JavaScript date and set it display function. */
+            if (infos[i].typeInfo.Name == "DATE") {
+                /** Here is the cell is a date */
+                headerCell.onrender = function (div, value) {
+                    if (value != undefined) {
+                        /* Convert string value to date. */
+                        div.innerHTML = value.toLocaleDateString()
+                    }
+                }
+            }
+
+            if (i == 4) {
+                /** set the size of a column */
+                headerCell.style.minWidth = "60px"
+            }
+
+            header.appendChild(headerCell)
+        }
+
+        /** append the table in a div. **/
+        var parentDiv = document.getElementById("table_example_div")
+        parentDiv.appendChild(table)
+    })
 }
 
 // Test a select query.

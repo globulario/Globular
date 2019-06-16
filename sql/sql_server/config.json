@@ -4,7 +4,18 @@
   "AllowedOrigins": "",
   "CertAuthorityTrust": "",
   "CertFile": "",
-  "Connections": {},
+  "Connections": {
+    "employees_db": {
+      "Charset": "utf8",
+      "Driver": "mysql",
+      "Host": "mysqlserver.cdlyvemhjtsp.us-west-2.rds.amazonaws.com",
+      "Id": "employees_db",
+      "Name": "employees",
+      "Password": "400zm89a",
+      "Port": 3306,
+      "User": "davecourtois"
+    }
+  },
   "Domain": "localhost",
   "KeyFile": "",
   "Name": "sql_server",

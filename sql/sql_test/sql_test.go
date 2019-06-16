@@ -78,11 +78,11 @@ func TestCreateConnection(t *testing.T) {
 		Connection: &sqlpb.Connection{
 			Id:       "employees_db",
 			Name:     "employees",
-			User:     "test",
-			Password: "password",
+			User:     "davecourtois",
+			Password: "400zm89a",
 			Port:     3306,
 			Driver:   "mysql",
-			Host:     "localhost",
+			Host:     "mysqlserver.cdlyvemhjtsp.us-west-2.rds.amazonaws.com",
 			Charset:  "utf8",
 		},
 	}
@@ -346,6 +346,7 @@ func TestDeleteValue(t *testing.T) {
 	log.Println("Value insert number of rows affect: ", rsp.AffectedRows, " lastId ", rsp.LastId)
 }
 
+/*
 // Remove the test connection from the service.
 func TestDeleteConnection(t *testing.T) {
 
@@ -362,9 +363,9 @@ func TestDeleteConnection(t *testing.T) {
 		Id: "employees_db",
 	}
 
-	/*rqst := &sqlpb.DeleteConnectionRqst{
+	rqst := &sqlpb.DeleteConnectionRqst{
 		Id: "bris_outil",
-	}*/
+	}
 
 	rsp, err := c.DeleteConnection(context.Background(), rqst)
 	if err != nil {
@@ -373,3 +374,4 @@ func TestDeleteConnection(t *testing.T) {
 
 	log.Println("Response form CreateConnection:", rsp.Result)
 }
+*/

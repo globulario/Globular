@@ -524,6 +524,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
+	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	//w.Header().Set("Access-Control-Expose-Headers", "grpc-status, grpc-message")
+
 	//if empty, set current directory
 	dir := string(root)
 	if dir == "" {
