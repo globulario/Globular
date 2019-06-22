@@ -1,0 +1,56 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+package event;
+
+option go_package="eventpb";
+
+message Event{
+	string name = 1; // The event Topic.
+	bytes data = 2; // must be anything...
+}
+
+message SubscribeRequest {
+  string name = 1; // the event Topic.
+}
+
+message SubscribeResponse {
+	oneof result {
+	  Event evt = 1; // Event receive from channel.
+	  string uuid = 2; // the subscriber uuid.
+	}
+}
+
+message UnSubscribeRequest {
+  string name = 1; // the event Topic.
+  string uuid = 2; // the subscriber uuid.
+}
+
+message UnSubscribeResponse {
+  bool result = 1; // must return true
+}
+
+message PublishRequest{
+	Event evt = 1; // The event to publish on channel
+}
+
+message PublishResponse{
+	bool result = 1; // must return true
+}
+
+/**
+ * A gRpc event bus.
+ */
+service EventService {
+  // Connect to an event channel or create it if it not already exist
+  // and stay in that function until UnSubscribe is call.
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {};
+
+  // Disconnect to an event channel.(Return from Subscribe)
+  rpc UnSubscribe(UnSubscribeRequest) returns (UnSubscribeResponse) {};
+
+  // Publish event on channel.
+  rpc Publish(PublishRequest) returns (PublishResponse) {};
+  
+}
