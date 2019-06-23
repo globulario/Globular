@@ -1,4 +1,4 @@
-package echo_client
+package event_client
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/davecourtois/Globular/event/eventpb"
 
 	//	"github.com/davecourtois/Utility"
+	"io"
+
 	"google.golang.org/grpc"
 )
 
@@ -54,7 +56,6 @@ func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string
 	client.caFile = caFile
 	client.cc = api.GetClientConnection(client)
 	client.c = eventpb.NewEventServiceClient(client.cc)
-
 	return client
 }
 
@@ -118,13 +119,60 @@ func (self *Event_Client) Publish(name string, data interface{}) error {
 	return nil
 }
 
-// Subscribe to an event. Stay in the function until
-// UnSubscribe is call.
-func (self *Event_Client) Subscribe(name string) error {
-	return nil
+// Subscribe to an event it return it subscriber uuid. The uuid must be use
+// to unsubscribe from the channel. data_channel is use to get event data.
+func (self *Event_Client) Subscribe(name string, data_channel chan []byte) (string, error) {
+	rqst := &eventpb.SubscribeRequest{
+		Name: name,
+	}
+
+	stream, err := self.c.Subscribe(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	uuid_channel := make(chan string)
+
+	// Run in it own goroutine.
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				// end of stream...
+				break
+			}
+
+			if err != nil {
+				break
+			}
+
+			// Get the result...
+			switch v := msg.Result.(type) {
+			case *eventpb.SubscribeResponse_Uuid:
+				uuid_channel <- v.Uuid
+			case *eventpb.SubscribeResponse_Evt:
+				data_channel <- v.Evt.Data
+			}
+		}
+	}()
+
+	uuid := <-uuid_channel
+	// Wait for subscriber uuid and return it to the function caller.
+	return uuid, nil
 }
 
 // Exit event channel.
-func (self *Event_Client) UnSubscribe(name string) error {
+func (self *Event_Client) UnSubscribe(name string, uuid string) error {
+	log.Println("UnSubscribe event ", name)
+	rqst := &eventpb.UnSubscribeRequest{
+		Name: name,
+		Uuid: uuid,
+	}
+
+	_, err := self.c.UnSubscribe(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

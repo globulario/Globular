@@ -46,12 +46,13 @@ type SubscribeEvent struct {
 	name string // The name of the event
 	uuid string // The subscriber unique
 	data chan []byte
-	quit chan bool
+	quit chan chan bool
 }
 
 type UnSubscribeEvent struct {
 	name string // The name of the event
 	uuid string // The subscriber unique
+	quit chan bool
 }
 
 type PublishEvent struct {
@@ -142,8 +143,9 @@ func (self *server) run() {
 			log.Println("---> unsubscribe event receive: ", evt.name)
 			if events[evt.name] != nil {
 				if events[evt.name][evt.uuid] != nil {
+					events[evt.name][evt.uuid].quit <- evt.quit
+					log.Println("---> send quit...", evt.uuid)
 					delete(events[evt.name], evt.uuid)
-					events[evt.name][evt.uuid].quit <- true
 				}
 			}
 
@@ -158,6 +160,7 @@ func (self *server) run() {
 
 		}
 	}
+
 }
 
 // Connect to an event channel or create it if it not already exist
@@ -168,12 +171,13 @@ func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.Eve
 	evt := new(SubscribeEvent)
 	evt.name = rqst.Name
 	evt.data = make(chan []byte)
-	evt.quit = make(chan bool)
+	evt.quit = make(chan chan bool)
 	evt.uuid = Utility.RandomUUID()
 
 	// subscribe to the channel.
 	self.subscribe_events_chan <- evt
 
+	// send back the uuid to client for furder unsubscribe request.
 	stream.Send(&eventpb.SubscribeResponse{
 		Result: &eventpb.SubscribeResponse_Uuid{
 			Uuid: evt.uuid,
@@ -191,8 +195,9 @@ func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.Eve
 					},
 				},
 			})
-		case <-self.quit:
+		case quit_channel := <-evt.quit:
 			// exit
+			quit_channel <- true
 			return nil
 		}
 	}
@@ -205,8 +210,11 @@ func (self *server) UnSubscribe(ctx context.Context, rqst *eventpb.UnSubscribeRe
 	evt := new(UnSubscribeEvent)
 	evt.name = rqst.Name
 	evt.uuid = rqst.Uuid
-
+	evt.quit = make(chan bool)
 	self.unsubscribe_events_chan <- evt
+
+	//  wait for the subscription loop function to stop
+	<-evt.quit
 
 	return &eventpb.UnSubscribeResponse{
 		Result: true,

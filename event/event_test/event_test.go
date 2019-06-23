@@ -1,109 +1,61 @@
 package Globular
 
 import (
-	"context"
-	"fmt"
 	"log"
-
-	"crypto/tls"
-	"crypto/x509"
-
-	"github.com/davecourtois/Globular/echo/echopb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-
-	"encoding/json"
-	"io/ioutil"
 	"testing"
+
+	"time"
+
+	"github.com/davecourtois/Globular/event/event_client"
 )
 
-// Set the correct addresse here as needed.
-var (
-	addresse = "localhost:10001"
-)
+func subscribeTo(client *event_client.Event_Client, subject string) string {
+	data_chan := make(chan []byte)
+	uuid, err := client.Subscribe(subject, data_chan)
 
-/**
- * Get the client connection.
- */
-func getClientConnection() *grpc.ClientConn {
-	// So here I will read the server configuration to see if the connection
-	// is secure...
-	config := make(map[string]interface{})
-	data, err := ioutil.ReadFile("../echo_server/config.json")
 	if err != nil {
-		log.Fatal("fail to read configuration")
+		log.Println(err)
 	}
 
-	// Read the config file.
-	json.Unmarshal(data, &config)
-
-	var cc *grpc.ClientConn
-	if cc == nil {
-		if config["TLS"].(bool) {
-
-			// Load the client certificates from disk
-
-			crt := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.crt"
-			key := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.pem"
-			certificate, err := tls.LoadX509KeyPair(crt, key)
-			if err != nil {
-				log.Fatalf("could not load client key pair: %s", err)
-			}
-
-			// Create a certificate pool from the certificate authority
-			certPool := x509.NewCertPool()
-			ca, err := ioutil.ReadFile(config["CertAuthorityTrust"].(string))
-			if err != nil {
-				log.Fatalf("could not read ca certificate: %s", err)
-			}
-
-			// Append the certificates from the CA
-			if ok := certPool.AppendCertsFromPEM(ca); !ok {
-				log.Fatalf("failed to append ca certs")
-			}
-
-			creds := credentials.NewTLS(&tls.Config{
-				ServerName:   "localhost", // NOTE: this is required!
-				Certificates: []tls.Certificate{certificate},
-				RootCAs:      certPool,
-			})
-
-			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(addresse, grpc.WithTransportCredentials(creds))
-			if err != nil {
-				log.Fatalf("could not dial %s: %s", addresse, err)
-			}
-		} else {
-			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
-			if err != nil {
-				log.Fatalf("could not connect: %v", err)
+	go func() {
+		for {
+			select {
+			case msg := <-data_chan:
+				log.Println(string(msg))
 			}
 		}
-
-	}
-	return cc
+	}()
+	return uuid
 }
 
-// First test create a fresh new connection...
-func TestEcho(t *testing.T) {
-	fmt.Println("Connection creation test.")
+/**
+ * Test event
+ */
+func TestEventService(t *testing.T) {
+	log.Println("Test event service")
+	domain := "localhost"
+	addresse := "127.0.0.1:10015"
 
-	cc := getClientConnection()
-
-	// when done the connection will be close.
-	defer cc.Close()
-
-	// Create a new client service...
-	c := echopb.NewEchoServiceClient(cc)
-
-	rqst := &echopb.EchoRequest{
-		Message: "Hello Globular",
+	// The topic.
+	subject := "my topic"
+	size := 500 // test with 500 client...
+	clients := make([]*event_client.Event_Client, size)
+	uuids := make([]string, size)
+	for i := 0; i < size; i++ {
+		c := event_client.NewEvent_Client(domain, addresse, false, "", "", "")
+		uuids[i] = subscribeTo(c, subject)
+		log.Println("client ", i)
+		clients[i] = c
 	}
 
-	rsp, err := c.Echo(context.Background(), rqst)
-	if err != nil {
-		log.Fatalf("error while CreateConnection: %v", err)
+	clients[0].Publish(subject, []byte("---> this is a message!"))
+
+	// Here I will simply suspend this thread to give time to publish message
+	time.Sleep(time.Second * 10)
+
+	for i := 0; i < size; i++ {
+		log.Println("---> close the client")
+		clients[i].UnSubscribe(subject, uuids[i])
 	}
 
-	log.Println("Response form CreateConnection:", rsp.Message)
 }
