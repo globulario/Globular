@@ -16,3 +16,5 @@ spc
 spc_client
 creds
 sslforfree
+dist.sh
+dist

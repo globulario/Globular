@@ -56,20 +56,12 @@ cp /home/dave/Documents/config/storage/config.json dist/globular/storage
 mkdir dist/globular/smtp
 cp smtp/smtp_server/smtp_server dist/globular/smtp
 cp smtp/smtp_server/smtp_server.exe dist/globular/smtp
-<<<<<<< HEAD
 cp /home/dave/Documents/config/smtp/config.json dist/globular/smtp
-=======
-cp smtp/smtp_server/config.json dist/globular/smtp
->>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 #event service
 mkdir dist/globular/event
 cp event/event_server/event_server dist/globular/event
 cp event/event_server/event_server.exe dist/globular/event
-<<<<<<< HEAD
 cp /home/dave/Documents/config/event/config.json dist/globular/event
-=======
-cp event/event_server/config.json dist/globular/event
->>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 #now I will zip the dist/globular file
 cd dist
 tar -zcvf globular.1.0.tar.gz globular
