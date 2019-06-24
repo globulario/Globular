@@ -25,12 +25,18 @@ function main() {
     // testPersistenceFind()
 
     // display table.
+<<<<<<< HEAD
+     displayTable()
+
+    //testEvent()
+=======
     // var div = document.createElement("div")
     // div.id = "table_example_div"
     // document.body.appendChild(div)
     // displayTable()
 
     testEvent()
+>>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 }
 
 /////////////////////////////////////////////////////////
@@ -500,6 +506,11 @@ function getEmployees(callback) {
 }
 
 function displayTable() {
+    var div = document.createElement("div")
+    div.id = "table_example_div"
+    div.style.position = "relative"
+    document.body.appendChild(div)
+
     /** Get employes get values from sql tables... */
     getEmployees(function (infos, employees) {
         /* Let's the hack begin */

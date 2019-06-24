@@ -26,42 +26,50 @@ cp WebRoot/config.json dist/globular/WebRoot
 mkdir dist/globular/echo
 cp echo/echo_server/echo_server dist/globular/echo
 cp echo/echo_server/echo_server.exe dist/globular/echo
-cp echo/echo_server/config.json dist/globular/echo
+cp /home/dave/Documents/config/echo/config.json dist/globular/echo
 #file service
 mkdir dist/globular/file
 cp file/file_server/file_server dist/globular/file
 cp file/file_server/file_server.exe dist/globular/file
-cp file/file_server/config.json dist/globular/file
+cp /home/dave/Documents/config/file/config.json dist/globular/file
 #ldap service
 mkdir dist/globular/ldap
 cp ldap/ldap_server/ldap_server dist/globular/ldap
 cp ldap/ldap_server/ldap_server.exe dist/globular/ldap
-cp ldap/ldap_server/config.json dist/globular/ldap
+cp /home/dave/Documents/config/ldap/config.json dist/globular/ldap
 #sql service
 mkdir dist/globular/sql
 cp sql/sql_server/sql_server dist/globular/sql
 cp sql/sql_server/sql_server.exe dist/globular/sql
-cp sql/sql_server/config.json dist/globular/sql
+cp /home/dave/Documents/config/sql/config.json dist/globular/sql
 #persistence service
 mkdir dist/globular/persistence
 cp persistence/persistence_server/persistence_server dist/globular/persistence
 cp persistence/persistence_server/persistence_server.exe dist/globular/persistence
-cp persistence/persistence_server/config.json dist/globular/persistence
+cp /home/dave/Documents/config/persistence/config.json dist/globular/persistence
 #storage service
 mkdir dist/globular/storage
 cp storage/storage_server/storage_server dist/globular/storage
 cp storage/storage_server/storage_server.exe dist/globular/storage
-cp storage/storage_server/config.json dist/globular/storage
+cp /home/dave/Documents/config/storage/config.json dist/globular/storage
 #smtp service
 mkdir dist/globular/smtp
 cp smtp/smtp_server/smtp_server dist/globular/smtp
 cp smtp/smtp_server/smtp_server.exe dist/globular/smtp
+<<<<<<< HEAD
+cp /home/dave/Documents/config/smtp/config.json dist/globular/smtp
+=======
 cp smtp/smtp_server/config.json dist/globular/smtp
+>>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 #event service
 mkdir dist/globular/event
 cp event/event_server/event_server dist/globular/event
 cp event/event_server/event_server.exe dist/globular/event
+<<<<<<< HEAD
+cp /home/dave/Documents/config/event/config.json dist/globular/event
+=======
 cp event/event_server/config.json dist/globular/event
+>>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 #now I will zip the dist/globular file
 cd dist
 tar -zcvf globular.1.0.tar.gz globular
