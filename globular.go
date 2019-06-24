@@ -201,6 +201,7 @@ func (self *Globule) initServices() {
 			// So here I will read the content of the file.
 			s := make(map[string]interface{})
 			config, err := ioutil.ReadFile(path)
+			log.Println("read config file: ", path)
 			if err == nil {
 				// Read the config file.
 				json.Unmarshal(config, &s)
