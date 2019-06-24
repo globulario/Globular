@@ -365,12 +365,38 @@ proto.event.SubscribeRequest.prototype.setName = function(value) {
  * @constructor
  */
 proto.event.SubscribeResponse = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.event.SubscribeResponse.oneofGroups_);
 };
 goog.inherits(proto.event.SubscribeResponse, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.event.SubscribeResponse.displayName = 'proto.event.SubscribeResponse';
 }
+/**
+ * Oneof group definitions for this message. Each group defines the field
+ * numbers belonging to that group. When of these fields' value is set, all
+ * other fields in the group are cleared. During deserialization, if multiple
+ * fields are encountered for a group, only the last value seen will be kept.
+ * @private {!Array<!Array<number>>}
+ * @const
+ */
+proto.event.SubscribeResponse.oneofGroups_ = [[1,2]];
+
+/**
+ * @enum {number}
+ */
+proto.event.SubscribeResponse.ResultCase = {
+  RESULT_NOT_SET: 0,
+  EVT: 1,
+  UUID: 2
+};
+
+/**
+ * @return {proto.event.SubscribeResponse.ResultCase}
+ */
+proto.event.SubscribeResponse.prototype.getResultCase = function() {
+  return /** @type {proto.event.SubscribeResponse.ResultCase} */(jspb.Message.computeOneofCase(this, proto.event.SubscribeResponse.oneofGroups_[0]));
+};
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -400,7 +426,8 @@ proto.event.SubscribeResponse.prototype.toObject = function(opt_includeInstance)
  */
 proto.event.SubscribeResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    evt: (f = msg.getEvt()) && proto.event.Event.toObject(includeInstance, f)
+    evt: (f = msg.getEvt()) && proto.event.Event.toObject(includeInstance, f),
+    uuid: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -442,6 +469,10 @@ proto.event.SubscribeResponse.deserializeBinaryFromReader = function(msg, reader
       reader.readMessage(value,proto.event.Event.deserializeBinaryFromReader);
       msg.setEvt(value);
       break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setUuid(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -479,6 +510,13 @@ proto.event.SubscribeResponse.serializeBinaryToWriter = function(message, writer
       proto.event.Event.serializeBinaryToWriter
     );
   }
+  f = /** @type {string} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
 };
 
 
@@ -494,7 +532,7 @@ proto.event.SubscribeResponse.prototype.getEvt = function() {
 
 /** @param {?proto.event.Event|undefined} value */
 proto.event.SubscribeResponse.prototype.setEvt = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  jspb.Message.setOneofWrapperField(this, 1, proto.event.SubscribeResponse.oneofGroups_[0], value);
 };
 
 
@@ -509,6 +547,35 @@ proto.event.SubscribeResponse.prototype.clearEvt = function() {
  */
 proto.event.SubscribeResponse.prototype.hasEvt = function() {
   return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional string uuid = 2;
+ * @return {string}
+ */
+proto.event.SubscribeResponse.prototype.getUuid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/** @param {string} value */
+proto.event.SubscribeResponse.prototype.setUuid = function(value) {
+  jspb.Message.setOneofField(this, 2, proto.event.SubscribeResponse.oneofGroups_[0], value);
+};
+
+
+proto.event.SubscribeResponse.prototype.clearUuid = function() {
+  jspb.Message.setOneofField(this, 2, proto.event.SubscribeResponse.oneofGroups_[0], undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {!boolean}
+ */
+proto.event.SubscribeResponse.prototype.hasUuid = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
@@ -559,7 +626,8 @@ proto.event.UnSubscribeRequest.prototype.toObject = function(opt_includeInstance
  */
 proto.event.UnSubscribeRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, "")
+    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    uuid: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -600,6 +668,10 @@ proto.event.UnSubscribeRequest.deserializeBinaryFromReader = function(msg, reade
       var value = /** @type {string} */ (reader.readString());
       msg.setName(value);
       break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setUuid(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -636,6 +708,13 @@ proto.event.UnSubscribeRequest.serializeBinaryToWriter = function(message, write
       f
     );
   }
+  f = message.getUuid();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
 };
 
 
@@ -651,6 +730,21 @@ proto.event.UnSubscribeRequest.prototype.getName = function() {
 /** @param {string} value */
 proto.event.UnSubscribeRequest.prototype.setName = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string uuid = 2;
+ * @return {string}
+ */
+proto.event.UnSubscribeRequest.prototype.getUuid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/** @param {string} value */
+proto.event.UnSubscribeRequest.prototype.setUuid = function(value) {
+  jspb.Message.setProto3StringField(this, 2, value);
 };
 
 

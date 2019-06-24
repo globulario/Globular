@@ -11,6 +11,12 @@
       "Port": 10001,
       "Proxy": 10002
     },
+    "event_server": {
+      "Address": "127.0.0.1",
+      "Domain": "localhost",
+      "Port": 10015,
+      "Proxy": 10016
+    },
     "file_server": {
       "Address": "127.0.0.1",
       "Domain": "localhost",

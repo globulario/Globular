@@ -21,7 +21,11 @@ import (
 	//"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+
 	//"google.golang.org/grpc/status"
+	"time"
+
+	"google.golang.org/grpc/keepalive"
 )
 
 // TODO take care of TLS/https
@@ -140,12 +144,13 @@ func (self *server) run() {
 			events[evt.name][evt.uuid] = evt
 
 		case evt := <-self.unsubscribe_events_chan:
-			log.Println("---> unsubscribe event receive: ", evt.name)
+			log.Println("---> unsubscribe event receive: ", evt.name, evt.uuid)
 			if events[evt.name] != nil {
 				if events[evt.name][evt.uuid] != nil {
 					events[evt.name][evt.uuid].quit <- evt.quit
-					log.Println("---> send quit...", evt.uuid)
 					delete(events[evt.name], evt.uuid)
+				} else {
+					log.Println("--> no subscriber found with uuid ", evt.uuid)
 				}
 			}
 
@@ -168,11 +173,12 @@ func (self *server) run() {
 func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.EventService_SubscribeServer) error {
 
 	// create a new channel.
+	uuid := Utility.RandomUUID()
 	evt := new(SubscribeEvent)
 	evt.name = rqst.Name
 	evt.data = make(chan []byte)
 	evt.quit = make(chan chan bool)
-	evt.uuid = Utility.RandomUUID()
+	evt.uuid = uuid
 
 	// subscribe to the channel.
 	self.subscribe_events_chan <- evt
@@ -187,7 +193,8 @@ func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.Eve
 	for {
 		select {
 		case data := <-evt.data:
-			stream.Send(&eventpb.SubscribeResponse{
+
+			err := stream.Send(&eventpb.SubscribeResponse{
 				Result: &eventpb.SubscribeResponse_Evt{
 					Evt: &eventpb.Event{
 						Name: rqst.Name,
@@ -195,8 +202,20 @@ func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.Eve
 					},
 				},
 			})
+			if err != nil {
+				// Remove it from the list of subscribers.
+				evt_ := new(UnSubscribeEvent)
+				evt_.name = rqst.Name
+				evt_.uuid = uuid
+				evt_.quit = make(chan bool) // no used...
+				self.unsubscribe_events_chan <- evt_
+				log.Println("error", uuid, err.Error())
+				break
+			}
+
 		case quit_channel := <-evt.quit:
 			// exit
+			log.Println("--> quit subscription ", uuid)
 			quit_channel <- true
 			return nil
 		}
@@ -220,7 +239,6 @@ func (self *server) UnSubscribe(ctx context.Context, rqst *eventpb.UnSubscribeRe
 		Result: true,
 	}, nil
 
-	return nil, nil
 }
 
 // Publish event on channel.
@@ -232,7 +250,9 @@ func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (
 	// dispatch the evt.
 	self.pulish_events_chan <- evt
 
-	return nil, nil
+	return &eventpb.PublishResponse{
+		Result: true,
+	}, nil
 }
 
 // That service is use to give access to SQL.
@@ -306,7 +326,9 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		grpcServer = grpc.NewServer(grpc.Creds(creds), grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
+		}))
 
 	} else {
 		grpcServer = grpc.NewServer()

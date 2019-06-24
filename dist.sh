@@ -57,6 +57,11 @@ mkdir dist/globular/smtp
 cp smtp/smtp_server/smtp_server dist/globular/smtp
 cp smtp/smtp_server/smtp_server.exe dist/globular/smtp
 cp smtp/smtp_server/config.json dist/globular/smtp
+#event service
+mkdir dist/globular/event
+cp event/event_server/event_server dist/globular/event
+cp event/event_server/event_server.exe dist/globular/event
+cp event/event_server/config.json dist/globular/event
 #now I will zip the dist/globular file
 cd dist
 tar -zcvf globular.1.0.tar.gz globular

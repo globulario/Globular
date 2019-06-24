@@ -278,6 +278,12 @@ func (self *Globule) initServices() {
 						proxyArgs = append(proxyArgs, "--backend_tls=false")
 					}
 
+					// Keep connection open for longer exchange between client/service. Event Subscribe function
+					// is a good example of long lasting connection. (48 hours) seam to be more than enought for
+					// browser client connection maximum life.
+					proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
+					proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+
 					// Kill previous instance of the program.
 					killProcessByName(s["Name"].(string))
 
@@ -645,6 +651,7 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
 	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
 	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
+	Utility.RegisterFunction("NewEvent_Client", storage_client.NewStorage_Client)
 
 	// The echo service
 	for k, _ := range self.services {

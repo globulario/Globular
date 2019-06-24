@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -1192,6 +1194,38 @@ type FileServiceServer interface {
 	DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error)
 	// Specific files...
 	GetThumbnails(*GetThumbnailsRequest, FileService_GetThumbnailsServer) error
+}
+
+// UnimplementedFileServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedFileServiceServer struct {
+}
+
+func (*UnimplementedFileServiceServer) ReadDir(req *ReadDirRequest, srv FileService_ReadDirServer) error {
+	return status.Errorf(codes.Unimplemented, "method ReadDir not implemented")
+}
+func (*UnimplementedFileServiceServer) CreateDir(ctx context.Context, req *CreateDirRequest) (*CreateDirResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateDir not implemented")
+}
+func (*UnimplementedFileServiceServer) DeleteDir(ctx context.Context, req *DeleteDirRequest) (*DeleteDirResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteDir not implemented")
+}
+func (*UnimplementedFileServiceServer) Rename(ctx context.Context, req *RenameRequest) (*RenameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
+}
+func (*UnimplementedFileServiceServer) GetFileInfo(ctx context.Context, req *GetFileInfoRequest) (*GetFileInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFileInfo not implemented")
+}
+func (*UnimplementedFileServiceServer) ReadFile(req *ReadFileRequest, srv FileService_ReadFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method ReadFile not implemented")
+}
+func (*UnimplementedFileServiceServer) SaveFile(srv FileService_SaveFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method SaveFile not implemented")
+}
+func (*UnimplementedFileServiceServer) DeleteFile(ctx context.Context, req *DeleteFileRequest) (*DeleteFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (*UnimplementedFileServiceServer) GetThumbnails(req *GetThumbnailsRequest, srv FileService_GetThumbnailsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetThumbnails not implemented")
 }
 
 func RegisterFileServiceServer(s *grpc.Server, srv FileServiceServer) {

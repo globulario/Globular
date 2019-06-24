@@ -48,6 +48,12 @@ window.File = require('./file/filepb/file_pb.js');
 window.File = Object.assign(window.File, require('./file/filepb/file_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
+// Event service
+////////////////////////////////////////////////////////////////////////////
+window.EventBus = require('./event/eventpb/event_pb.js');
+window.EventBus = Object.assign(window.File, require('./event/eventpb/event_grpc_web_pb.js'));
+
+////////////////////////////////////////////////////////////////////////////
 // Server singleton object that give access to services.
 ////////////////////////////////////////////////////////////////////////////
 
@@ -116,6 +122,12 @@ class Globular {
             this.fileService = new File.FileServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.file_server.Proxy);
             this.fileServicePromise = new File.FileServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.file_server.Proxy);
             console.log("file service is init.")
+        }
+
+        if (this.config.Services.event_server != null) {
+            this.eventService = new EventBus.EventServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.event_server.Proxy);
+            this.eventServicePromise = new EventBus.EventServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.event_server.Proxy);
+            console.log("event service is init.")
         }
 
         console.log("services are all initialysed!")

@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -707,6 +709,26 @@ type LdapServiceServer interface {
 	Search(context.Context, *SearchRqst) (*SearchResp, error)
 	// Authenticate a user to a given ldap server (connection id)
 	Authenticate(context.Context, *AuthenticateRqst) (*AuthenticateRsp, error)
+}
+
+// UnimplementedLdapServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedLdapServiceServer struct {
+}
+
+func (*UnimplementedLdapServiceServer) CreateConnection(ctx context.Context, req *CreateConnectionRqst) (*CreateConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConnection not implemented")
+}
+func (*UnimplementedLdapServiceServer) DeleteConnection(ctx context.Context, req *DeleteConnectionRqst) (*DeleteConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteConnection not implemented")
+}
+func (*UnimplementedLdapServiceServer) Close(ctx context.Context, req *CloseRqst) (*CloseRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
+}
+func (*UnimplementedLdapServiceServer) Search(ctx context.Context, req *SearchRqst) (*SearchResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Search not implemented")
+}
+func (*UnimplementedLdapServiceServer) Authenticate(ctx context.Context, req *AuthenticateRqst) (*AuthenticateRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Authenticate not implemented")
 }
 
 func RegisterLdapServiceServer(s *grpc.Server, srv LdapServiceServer) {

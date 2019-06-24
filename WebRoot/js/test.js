@@ -25,10 +25,12 @@ function main() {
     // testPersistenceFind()
 
     // display table.
-    var div = document.createElement("div")
-    div.id = "table_example_div"
-    document.body.appendChild(div)
-    displayTable()
+    // var div = document.createElement("div")
+    // div.id = "table_example_div"
+    // document.body.appendChild(div)
+    // displayTable()
+
+    testEvent()
 }
 
 /////////////////////////////////////////////////////////
@@ -55,6 +57,39 @@ function testEcho(str) {
         })
 }
 
+/////////////////////////////////////////////////////////
+// event test.
+////////////////////////////////////////////////////////
+function testEvent(){
+    // The first step is to subscribe to an event channel.
+    var rqst = new EventBus.SubscribeRequest()
+    rqst.setName("my topic")
+
+    var stream = globular.eventService.subscribe(rqst, {});
+
+    // Get the stream and set event on it...
+    stream.on('data', function (rsp) {
+        if (rsp.hasUuid()) {
+            console.log(rsp.getUuid())
+        } else if (rsp.hasEvt()) {
+            var evt = rsp.getEvt()
+            var data = new TextDecoder("utf-8").decode(evt.getData());
+            console.log(data)
+        }
+    });
+
+    stream.on('status', function (status) {
+        if (status.code == 0) {
+            console.log("---> end of subscription")
+        }
+        console.log(status)
+    });
+
+    stream.on('end', function (end) {
+        // stream end signal
+        console.log("---> end of subscription") 
+    });
+}
 
 /////////////////////////////////////////////////////////
 // file test.

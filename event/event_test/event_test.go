@@ -38,7 +38,7 @@ func TestEventService(t *testing.T) {
 
 	// The topic.
 	subject := "my topic"
-	size := 500 // test with 500 client...
+	size := 1 // test with 500 client...
 	clients := make([]*event_client.Event_Client, size)
 	uuids := make([]string, size)
 	for i := 0; i < size; i++ {
@@ -48,10 +48,15 @@ func TestEventService(t *testing.T) {
 		clients[i] = c
 	}
 
-	clients[0].Publish(subject, []byte("---> this is a message!"))
+	clients[0].Publish(subject, []byte("--->1 this is a message!"))
+	clients[0].Publish(subject, []byte("--->2 this is a message!"))
+	clients[0].Publish(subject, []byte("--->3 this is a message!"))
+	clients[0].Publish(subject, []byte("--->4 this is a message!"))
+	clients[0].Publish(subject, []byte("--->5 this is a message!"))
+	clients[0].Publish(subject, []byte("--->6 this is a message!"))
 
 	// Here I will simply suspend this thread to give time to publish message
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 1)
 
 	for i := 0; i < size; i++ {
 		log.Println("---> close the client")

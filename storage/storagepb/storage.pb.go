@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -1059,6 +1061,38 @@ type StorageServiceServer interface {
 	Clear(context.Context, *ClearRequest) (*ClearResponse, error)
 	// Drop a store
 	Drop(context.Context, *DropRequest) (*DropResponse, error)
+}
+
+// UnimplementedStorageServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedStorageServiceServer struct {
+}
+
+func (*UnimplementedStorageServiceServer) Open(ctx context.Context, req *OpenRqst) (*OpenRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Open not implemented")
+}
+func (*UnimplementedStorageServiceServer) Close(ctx context.Context, req *CloseRqst) (*CloseRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
+}
+func (*UnimplementedStorageServiceServer) CreateConnection(ctx context.Context, req *CreateConnectionRqst) (*CreateConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateConnection not implemented")
+}
+func (*UnimplementedStorageServiceServer) DeleteConnection(ctx context.Context, req *DeleteConnectionRqst) (*DeleteConnectionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteConnection not implemented")
+}
+func (*UnimplementedStorageServiceServer) SetItem(ctx context.Context, req *SetItemRequest) (*SetItemResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetItem not implemented")
+}
+func (*UnimplementedStorageServiceServer) GetItem(ctx context.Context, req *GetItemRequest) (*GetItemResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetItem not implemented")
+}
+func (*UnimplementedStorageServiceServer) RemoveItem(ctx context.Context, req *RemoveItemRequest) (*RemoveItemResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveItem not implemented")
+}
+func (*UnimplementedStorageServiceServer) Clear(ctx context.Context, req *ClearRequest) (*ClearResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Clear not implemented")
+}
+func (*UnimplementedStorageServiceServer) Drop(ctx context.Context, req *DropRequest) (*DropResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Drop not implemented")
 }
 
 func RegisterStorageServiceServer(s *grpc.Server, srv StorageServiceServer) {

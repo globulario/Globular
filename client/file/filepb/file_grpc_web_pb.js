@@ -461,5 +461,55 @@ proto.file.FileServicePromiseClient.prototype.deleteFile =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.file.GetThumbnailsRequest,
+ *   !proto.file.GetThumbnailsResponse>}
+ */
+const methodInfo_FileService_GetThumbnails = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.file.GetThumbnailsResponse,
+  /** @param {!proto.file.GetThumbnailsRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.file.GetThumbnailsResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.file.GetThumbnailsRequest} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.file.GetThumbnailsResponse>}
+ *     The XHR Node Readable Stream
+ */
+proto.file.FileServiceClient.prototype.getThumbnails =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/file.FileService/GetThumbnails',
+      request,
+      metadata || {},
+      methodInfo_FileService_GetThumbnails);
+};
+
+
+/**
+ * @param {!proto.file.GetThumbnailsRequest} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.file.GetThumbnailsResponse>}
+ *     The XHR Node Readable Stream
+ */
+proto.file.FileServicePromiseClient.prototype.getThumbnails =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/file.FileService/GetThumbnails',
+      request,
+      metadata || {},
+      methodInfo_FileService_GetThumbnails);
+};
+
+
 module.exports = proto.file;
 
