@@ -25,18 +25,9 @@ function main() {
     // testPersistenceFind()
 
     // display table.
-<<<<<<< HEAD
      displayTable()
 
     //testEvent()
-=======
-    // var div = document.createElement("div")
-    // div.id = "table_example_div"
-    // document.body.appendChild(div)
-    // displayTable()
-
-    testEvent()
->>>>>>> dc3e6c9eeb6662fc340771af6b4dd1c1fccb108a
 }
 
 /////////////////////////////////////////////////////////

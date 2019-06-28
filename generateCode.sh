@@ -8,8 +8,9 @@ protoc sql/sqlpb/sql.proto --go_out=plugins=grpc:.
 protoc ldap/ldappb/ldap.proto --go_out=plugins=grpc:.
 protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
 protoc persistence/persistencepb/persistence.proto --go_out=plugins=grpc:.
-protoc spc/spcpb/spc.proto --grpc_out=spc/spcpb/cpp --plugin=protoc-gen-grpc=grpc_cpp_plugin 
-protoc spc/spcpb/spc.proto --cpp_out=spc/spcpb/cpp
+#protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp spc/spcpb/spc.proto
+protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
+protoc -I spc/spcpb spc.proto --cpp_out=spc/spcpb/cpp
 
 # I will also generate the go file to use as client in test.
 protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.

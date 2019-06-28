@@ -88,6 +88,15 @@ cp -r WebRoot/website/image/* dist/globular/WebRoot/image
 
 # move configuration from document. 
 cp /home/dave/Documents/config/config.json dist/globular/WebRoot/config.json
+cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot
+mkdir dist/globular/event
+mkdir dist/globular/echo
+mkdir dist/globular/file
+mkdir dist/globular/ldap
+mkdir dist/globular/sql
+mkdir dist/globular/persistence
+mkdir dist/globular/storage
+mkdir dist/globular/smtp
 cp /home/dave/Documents/config/event/config.json dist/globular/event
 cp /home/dave/Documents/config/echo/config.json dist/globular/echo
 cp /home/dave/Documents/config/file/config.json dist/globular/file
@@ -96,9 +105,6 @@ cp /home/dave/Documents/config/sql/config.json dist/globular/sql
 cp /home/dave/Documents/config/persistence/config.json dist/globular/persistence
 cp /home/dave/Documents/config/storage/config.json dist/globular/storage
 cp /home/dave/Documents/config/smtp/config.json dist/globular/smtp
-
-cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot
- 
 # set the dist folder to give acces to binary distribution of globular.
 #sudo cp  /tmp/globular.1.0.tar.gz dist/globular/WebRoot/dist
 

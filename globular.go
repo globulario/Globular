@@ -29,13 +29,14 @@ import (
 
 	// Client services.
 	"github.com/davecourtois/Globular/echo/echo_client"
+	"github.com/davecourtois/Globular/event/event_client"
 	"github.com/davecourtois/Globular/file/file_client"
 	"github.com/davecourtois/Globular/ldap/ldap_client"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/davecourtois/Globular/smtp/smtp_client"
+	"github.com/davecourtois/Globular/spc/spc_client"
 	"github.com/davecourtois/Globular/sql/sql_client"
 	"github.com/davecourtois/Globular/storage/storage_client"
-	// "github.com/davecourtois/Globular/spc/spc_client"
 )
 
 var (
@@ -652,7 +653,10 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
 	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
 	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
-	Utility.RegisterFunction("NewEvent_Client", storage_client.NewStorage_Client)
+	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
+
+	// That service is program in c++
+	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)
 
 	// The echo service
 	for k, _ := range self.services {
