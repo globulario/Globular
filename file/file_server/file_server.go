@@ -19,9 +19,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tealeg/xlsx"
 
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Utility"
@@ -668,6 +671,7 @@ func main() {
 ////////////////////////////////////////////////////////////////////////////////
 // Utility functions
 ////////////////////////////////////////////////////////////////////////////////
+
 // Return the list of thumbnail for a given directory...
 func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream filepb.FileService_GetThumbnailsServer) error {
 	path := rqst.GetPath()
@@ -678,8 +682,6 @@ func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream file
 		// Set the path separator...
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
-
-	log.Println("--> read dir ", path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
 
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
 	if err != nil {
@@ -708,6 +710,90 @@ func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream file
 		stream.Send(&filepb.GetThumbnailsResponse{
 			Data: data,
 		})
+	}
+
+	return nil
+}
+
+func (self *server) WriteExcelFile(ctx context.Context, rqst *filepb.WriteExcelFileRequest) (*filepb.WriteExcelFileResponse, error) {
+	path := rqst.GetPath()
+
+	// The roo will be the Root specefied by the server.
+	if strings.HasPrefix(path, "/") {
+		path = self.Root + path
+		// Set the path separator...
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	}
+
+	sheets := make(map[string]interface{}, 0)
+
+	err := json.Unmarshal([]byte(rqst.Data), &sheets)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = self.writeExcelFile(path, sheets)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &filepb.WriteExcelFileResponse{
+		Result: true,
+	}, nil
+}
+
+/**
+ * Save excel file to a given destination.
+ * The sheets must contain a with values map[pageName] [[], [], []] // 2D array.
+ */
+func (self *server) writeExcelFile(path string, sheets map[string]interface{}) error {
+
+	xlFile, err_ := xlsx.OpenFile(path)
+	var xlSheet *xlsx.Sheet
+	if err_ != nil {
+		xlFile = xlsx.NewFile()
+	}
+
+	for name, data := range sheets {
+		xlSheet, _ = xlFile.AddSheet(name)
+		values := data.([]interface{})
+		// So here I got the xl file open and sheet ready to write into.
+		for i := 0; i < len(values); i++ {
+			row := xlSheet.AddRow()
+			for j := 0; j < len(values[i].([]interface{})); j++ {
+				if values[i].([]interface{})[j] != nil {
+					cell := row.AddCell()
+					if reflect.TypeOf(values[i].([]interface{})[j]).String() == "string" {
+						str := values[i].([]interface{})[j].(string)
+						// here I will try to format the date time if it can be...
+						dateTime, err := Utility.DateTimeFromString(str, "2006-01-02 15:04:05")
+						if err != nil {
+							cell.SetString(str)
+						} else {
+							cell.SetDateTime(dateTime)
+						}
+					} else {
+						if values[i].([]interface{})[j] != nil {
+							cell.SetValue(values[i].([]interface{})[j])
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+	// Here I will save the file at the given path...
+	err := xlFile.Save(path)
+
+	if err != nil {
+		return nil
 	}
 
 	return nil

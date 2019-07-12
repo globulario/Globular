@@ -10,6 +10,8 @@ protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
 protoc persistence/persistencepb/persistence.proto --go_out=plugins=grpc:.
 #protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp spc/spcpb/spc.proto
 protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
+
 protoc -I spc/spcpb spc.proto --cpp_out=spc/spcpb/cpp
 
 # I will also generate the go file to use as client in test.

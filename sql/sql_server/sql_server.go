@@ -557,14 +557,6 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	if affectedRows != 1 {
-		err := errors.New(fmt.Sprint("expected to affect 1 row, affected %d", affectedRows))
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	// I will send back the last id and the number of affected rows to the caller.
 	lastId, _ = result.LastInsertId()
 

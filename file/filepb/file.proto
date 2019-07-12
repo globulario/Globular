@@ -99,6 +99,16 @@ message GetThumbnailsResponse {
 	bytes data = 1; // The json string containing the list of files.
 }
 
+// Write the execel file on the server.
+message WriteExcelFileRequest{
+	string path = 1;
+	string data = 2; // JSON object containing {{"name":"page1", "data"[[1,2,3][4,5,6][7,8,9]]}}
+}
+
+message WriteExcelFileResponse{
+	bool result = 1; // return true by default.
+}
+
 service FileService {
 	
 	// Return a JOSN string containing the directories informations.
@@ -131,5 +141,5 @@ service FileService {
 	rpc GetThumbnails(GetThumbnailsRequest) returns (stream GetThumbnailsResponse){};
 	
 	// Excel files...
-	
+	rpc WriteExcelFile(WriteExcelFileRequest) returns (WriteExcelFileResponse){};
 }

@@ -511,5 +511,60 @@ proto.file.FileServicePromiseClient.prototype.getThumbnails =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.file.WriteExcelFileRequest,
+ *   !proto.file.WriteExcelFileResponse>}
+ */
+const methodInfo_FileService_WriteExcelFile = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.file.WriteExcelFileResponse,
+  /** @param {!proto.file.WriteExcelFileRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.file.WriteExcelFileResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.file.WriteExcelFileRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.file.WriteExcelFileResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.file.WriteExcelFileResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.file.FileServiceClient.prototype.writeExcelFile =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/file.FileService/WriteExcelFile',
+      request,
+      metadata || {},
+      methodInfo_FileService_WriteExcelFile,
+      callback);
+};
+
+
+/**
+ * @param {!proto.file.WriteExcelFileRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.file.WriteExcelFileResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.file.FileServicePromiseClient.prototype.writeExcelFile =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/file.FileService/WriteExcelFile',
+      request,
+      metadata || {},
+      methodInfo_FileService_WriteExcelFile);
+};
+
+
 module.exports = proto.file;
 

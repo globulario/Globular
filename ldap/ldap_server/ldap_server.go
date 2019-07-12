@@ -149,7 +149,6 @@ func (self *server) Authenticate(ctx context.Context, rqst *ldappb.AuthenticateR
 	login := rqst.Login
 	pwd := rqst.Pwd
 
-	log.Println("----> try to authenticate ", login, pwd)
 	// I will made use of bind to authenticate the user.
 	_, err := self.connect(id, login, pwd)
 
@@ -378,16 +377,17 @@ func (self *server) search(id string, base_dn string, filter string, attributes 
 	}
 
 	// create the connection.
-	if self.Connections[id].conn == nil {
-		c := self.Connections[id]
-		conn, err := self.connect(id, self.Connections[id].User, self.Connections[id].Password)
-		if err != nil {
-			return nil, err
-		}
-
-		c.conn = conn
-		self.Connections[id] = c
+	c := self.Connections[id]
+	conn, err := self.connect(id, self.Connections[id].User, self.Connections[id].Password)
+	if err != nil {
+		return nil, err
 	}
+
+	c.conn = conn
+	self.Connections[id] = c
+
+	// close connection after search.
+	defer c.conn.Close()
 
 	//Now I will execute the query...
 	search_request := LDAP.NewSearchRequest(
