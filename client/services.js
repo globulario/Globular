@@ -34,7 +34,6 @@ window.Spc = Object.assign(window.Spc, require('./spc/spcpb/spc_grpc_web_pb.js')
 window.Persistence = require('./persistence/persistencepb/persistence_pb.js');
 window.Persistence = Object.assign(window.Persistence, require('./persistence/persistencepb/persistence_grpc_web_pb.js'));
 
-
 ////////////////////////////////////////////////////////////////////////////
 // Storage service ( kv/cache )
 ////////////////////////////////////////////////////////////////////////////
@@ -52,6 +51,12 @@ window.File = Object.assign(window.File, require('./file/filepb/file_grpc_web_pb
 ////////////////////////////////////////////////////////////////////////////
 window.EventBus = require('./event/eventpb/event_pb.js');
 window.EventBus = Object.assign(window.File, require('./event/eventpb/event_grpc_web_pb.js'));
+
+////////////////////////////////////////////////////////////////////////////
+// Monitoring service
+////////////////////////////////////////////////////////////////////////////
+window.Monitoring = require('./monitoring/monitoringpb/monitoring_pb.js');
+window.Monitoring = Object.assign(window.File, require('./monitoring/monitoringpb/monitoring_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
 // Server singleton object that give access to services.
@@ -128,6 +133,12 @@ class Globular {
             this.eventService = new EventBus.EventServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.event_server.Proxy);
             this.eventServicePromise = new EventBus.EventServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.event_server.Proxy);
             console.log("event service is init.")
+        }
+
+        if (this.config.Services.monitoring_server != null) {
+            this.monitoringService = new Monitoring.MonitoringServiceClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.monitoring_server.Proxy);
+            this.monitoringServicePromise = new Monitoring.MonitoringServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ":" + this.config.Services.monitoring_server.Proxy);
+            console.log("monitoring service is init.")
         }
 
         console.log("services are all initialysed!")

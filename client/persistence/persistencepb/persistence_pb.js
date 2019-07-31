@@ -11,6 +11,8 @@ var jspb = require('google-protobuf');
 var goog = jspb;
 var global = Function('return this')();
 
+goog.exportSymbol('proto.persistence.AggregateResp', null, global);
+goog.exportSymbol('proto.persistence.AggregateRqst', null, global);
 goog.exportSymbol('proto.persistence.Connection', null, global);
 goog.exportSymbol('proto.persistence.CountRqst', null, global);
 goog.exportSymbol('proto.persistence.CountRsp', null, global);
@@ -2074,19 +2076,12 @@ proto.persistence.InsertOneRsp.prototype.setId = function(value) {
  * @constructor
  */
 proto.persistence.FindRqst = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.persistence.FindRqst.repeatedFields_, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.persistence.FindRqst, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.persistence.FindRqst.displayName = 'proto.persistence.FindRqst';
 }
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.persistence.FindRqst.repeatedFields_ = [5];
-
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -2120,7 +2115,6 @@ proto.persistence.FindRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    fieldsList: jspb.Message.getRepeatedField(msg, 5),
     options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
@@ -2173,10 +2167,6 @@ proto.persistence.FindRqst.deserializeBinaryFromReader = function(msg, reader) {
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQuery(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addFields(value);
       break;
     case 6:
       var value = /** @type {string} */ (reader.readString());
@@ -2236,13 +2226,6 @@ proto.persistence.FindRqst.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeString(
       4,
-      f
-    );
-  }
-  f = message.getFieldsList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      5,
       f
     );
   }
@@ -2313,35 +2296,6 @@ proto.persistence.FindRqst.prototype.getQuery = function() {
 /** @param {string} value */
 proto.persistence.FindRqst.prototype.setQuery = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
-};
-
-
-/**
- * repeated string fields = 5;
- * @return {!Array<string>}
- */
-proto.persistence.FindRqst.prototype.getFieldsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 5));
-};
-
-
-/** @param {!Array<string>} value */
-proto.persistence.FindRqst.prototype.setFieldsList = function(value) {
-  jspb.Message.setField(this, 5, value || []);
-};
-
-
-/**
- * @param {!string} value
- * @param {number=} opt_index
- */
-proto.persistence.FindRqst.prototype.addFields = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 5, value, opt_index);
-};
-
-
-proto.persistence.FindRqst.prototype.clearFieldsList = function() {
-  this.setFieldsList([]);
 };
 
 
@@ -2514,19 +2468,12 @@ proto.persistence.FindResp.prototype.setJsonstr = function(value) {
  * @constructor
  */
 proto.persistence.FindOneRqst = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.persistence.FindOneRqst.repeatedFields_, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.persistence.FindOneRqst, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.persistence.FindOneRqst.displayName = 'proto.persistence.FindOneRqst';
 }
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.persistence.FindOneRqst.repeatedFields_ = [5];
-
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -2560,7 +2507,6 @@ proto.persistence.FindOneRqst.toObject = function(includeInstance, msg) {
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
     collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
     query: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    fieldsList: jspb.Message.getRepeatedField(msg, 5),
     options: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
@@ -2613,10 +2559,6 @@ proto.persistence.FindOneRqst.deserializeBinaryFromReader = function(msg, reader
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQuery(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addFields(value);
       break;
     case 6:
       var value = /** @type {string} */ (reader.readString());
@@ -2676,13 +2618,6 @@ proto.persistence.FindOneRqst.serializeBinaryToWriter = function(message, writer
   if (f.length > 0) {
     writer.writeString(
       4,
-      f
-    );
-  }
-  f = message.getFieldsList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      5,
       f
     );
   }
@@ -2753,35 +2688,6 @@ proto.persistence.FindOneRqst.prototype.getQuery = function() {
 /** @param {string} value */
 proto.persistence.FindOneRqst.prototype.setQuery = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
-};
-
-
-/**
- * repeated string fields = 5;
- * @return {!Array<string>}
- */
-proto.persistence.FindOneRqst.prototype.getFieldsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 5));
-};
-
-
-/** @param {!Array<string>} value */
-proto.persistence.FindOneRqst.prototype.setFieldsList = function(value) {
-  jspb.Message.setField(this, 5, value || []);
-};
-
-
-/**
- * @param {!string} value
- * @param {number=} opt_index
- */
-proto.persistence.FindOneRqst.prototype.addFields = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 5, value, opt_index);
-};
-
-
-proto.persistence.FindOneRqst.prototype.clearFieldsList = function() {
-  this.setFieldsList([]);
 };
 
 
@@ -2938,6 +2844,398 @@ proto.persistence.FindOneResp.prototype.getJsonstr = function() {
 
 /** @param {string} value */
 proto.persistence.FindOneResp.prototype.setJsonstr = function(value) {
+  jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.persistence.AggregateRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.persistence.AggregateRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.persistence.AggregateRqst.displayName = 'proto.persistence.AggregateRqst';
+}
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.persistence.AggregateRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.persistence.AggregateRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.persistence.AggregateRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.persistence.AggregateRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    database: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    pipeline: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    options: jspb.Message.getFieldWithDefault(msg, 6, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.persistence.AggregateRqst}
+ */
+proto.persistence.AggregateRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.persistence.AggregateRqst;
+  return proto.persistence.AggregateRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.persistence.AggregateRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.persistence.AggregateRqst}
+ */
+proto.persistence.AggregateRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setId(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setDatabase(value);
+      break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setCollection(value);
+      break;
+    case 4:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPipeline(value);
+      break;
+    case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.persistence.AggregateRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.persistence.AggregateRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.persistence.AggregateRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.persistence.AggregateRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getId();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getDatabase();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+  f = message.getCollection();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
+  f = message.getPipeline();
+  if (f.length > 0) {
+    writer.writeString(
+      4,
+      f
+    );
+  }
+  f = message.getOptions();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string id = 1;
+ * @return {string}
+ */
+proto.persistence.AggregateRqst.prototype.getId = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateRqst.prototype.setId = function(value) {
+  jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string database = 2;
+ * @return {string}
+ */
+proto.persistence.AggregateRqst.prototype.getDatabase = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateRqst.prototype.setDatabase = function(value) {
+  jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * optional string collection = 3;
+ * @return {string}
+ */
+proto.persistence.AggregateRqst.prototype.getCollection = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateRqst.prototype.setCollection = function(value) {
+  jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional string pipeline = 4;
+ * @return {string}
+ */
+proto.persistence.AggregateRqst.prototype.getPipeline = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateRqst.prototype.setPipeline = function(value) {
+  jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string options = 6;
+ * @return {string}
+ */
+proto.persistence.AggregateRqst.prototype.getOptions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateRqst.prototype.setOptions = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
+};
+
+
+
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.persistence.AggregateResp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.persistence.AggregateResp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  proto.persistence.AggregateResp.displayName = 'proto.persistence.AggregateResp';
+}
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto suitable for use in Soy templates.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
+ *     for transitional soy proto support: http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.persistence.AggregateResp.prototype.toObject = function(opt_includeInstance) {
+  return proto.persistence.AggregateResp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Whether to include the JSPB
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.persistence.AggregateResp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.persistence.AggregateResp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    jsonstr: jspb.Message.getFieldWithDefault(msg, 1, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.persistence.AggregateResp}
+ */
+proto.persistence.AggregateResp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.persistence.AggregateResp;
+  return proto.persistence.AggregateResp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.persistence.AggregateResp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.persistence.AggregateResp}
+ */
+proto.persistence.AggregateResp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setJsonstr(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.persistence.AggregateResp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.persistence.AggregateResp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.persistence.AggregateResp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.persistence.AggregateResp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getJsonstr();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string jsonStr = 1;
+ * @return {string}
+ */
+proto.persistence.AggregateResp.prototype.getJsonstr = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.AggregateResp.prototype.setJsonstr = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
 };
 
@@ -5668,7 +5966,8 @@ proto.persistence.CreateCollectionRqst.toObject = function(includeInstance, msg)
   var f, obj = {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     database: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    collection: jspb.Message.getFieldWithDefault(msg, 3, "")
+    collection: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    optionsstr: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -5716,6 +6015,10 @@ proto.persistence.CreateCollectionRqst.deserializeBinaryFromReader = function(ms
     case 3:
       var value = /** @type {string} */ (reader.readString());
       msg.setCollection(value);
+      break;
+    case 4:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOptionsstr(value);
       break;
     default:
       reader.skipField();
@@ -5767,6 +6070,13 @@ proto.persistence.CreateCollectionRqst.serializeBinaryToWriter = function(messag
       f
     );
   }
+  f = message.getOptionsstr();
+  if (f.length > 0) {
+    writer.writeString(
+      4,
+      f
+    );
+  }
 };
 
 
@@ -5812,6 +6122,21 @@ proto.persistence.CreateCollectionRqst.prototype.getCollection = function() {
 /** @param {string} value */
 proto.persistence.CreateCollectionRqst.prototype.setCollection = function(value) {
   jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional string optionsStr = 4;
+ * @return {string}
+ */
+proto.persistence.CreateCollectionRqst.prototype.getOptionsstr = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/** @param {string} value */
+proto.persistence.CreateCollectionRqst.prototype.setOptionsstr = function(value) {
+  jspb.Message.setProto3StringField(this, 4, value);
 };
 
 

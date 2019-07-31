@@ -79,7 +79,6 @@ message FindRqst {
 	string database = 2;
 	string collection = 3;
 	string query = 4;
-	repeated string fields = 5;
 	string options = 6;
 }
 
@@ -92,11 +91,22 @@ message FindOneRqst {
 	string database = 2;
 	string collection = 3;
 	string query = 4;
-	repeated string fields = 5;
 	string options = 6;
 }
 
 message FindOneResp {
+	string jsonStr = 1; // Json string
+}
+
+message AggregateRqst {
+	string id = 1;
+	string database = 2;
+	string collection = 3;
+	string pipeline = 4; // Array of transformations.
+	string options = 6;
+}
+
+message AggregateResp {
 	string jsonStr = 1; // Json string
 }
 
@@ -186,6 +196,7 @@ message CreateCollectionRqst{
 	string id = 1;
 	string database = 2;
 	string collection = 3;
+	string optionsStr = 4;
 }
 
 message CreateCollectionRsp{
@@ -259,6 +270,9 @@ service PersistenceService {
 	
 	// Find one
 	rpc FindOne(FindOneRqst) returns (FindOneResp){};
+	
+	// Aggregate
+	rpc Aggregate(AggregateRqst) returns (stream AggregateResp){};
 	
 	// Update many result.
 	rpc Update(UpdateRqst) returns (UpdateRsp){};

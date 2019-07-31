@@ -49,7 +49,7 @@ func NewFile_Client(domain string, addresse string, hasTLS bool, keyFile string,
 	client := new(File_Client)
 
 	client.addresse = addresse
-	client.name = "persistence"
+	client.name = "file"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile

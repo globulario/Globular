@@ -46,7 +46,7 @@ func NewEcho_Client(domain string, addresse string, hasTLS bool, keyFile string,
 
 	client.addresse = addresse
 	client.domain = domain
-	client.name = "persistence"
+	client.name = "echo"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile

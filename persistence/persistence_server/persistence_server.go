@@ -241,7 +241,7 @@ func (self *server) CreateCollection(ctx context.Context, rqst *persistencepb.Cr
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.CreateCollection(ctx, rqst.Database, rqst.Collection)
+	err := store.CreateCollection(ctx, rqst.Database, rqst.Collection, rqst.OptionsStr)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -428,7 +428,7 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Fields, rqst.Options)
+	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -472,6 +472,61 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 	return nil
 }
 
+func (self *server) Aggregate(rqst *persistencepb.AggregateRqst, stream persistencepb.PersistenceService_AggregateServer) error {
+
+	store := self.stores[rqst.GetId()]
+
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetId())
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	results, err := store.Aggregate(stream.Context(), rqst.Database, rqst.Collection, rqst.Pipeline, rqst.Options)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 100
+	values := make([]interface{}, 0)
+	for i := 0; i < len(results); i++ {
+		values = append(values, results[i])
+		if len(values) >= maxSize {
+			jsonStr, err := json.Marshal(values)
+			if err != nil {
+				return err
+			}
+			stream.Send(
+				&persistencepb.AggregateResp{
+					JsonStr: string(jsonStr),
+				},
+			)
+			values = make([]interface{}, 0)
+		}
+	}
+
+	// Send reminding values.
+	if len(values) > 0 {
+		jsonStr, err := json.Marshal(values)
+		if err != nil {
+			return err
+		}
+		stream.Send(
+			&persistencepb.AggregateResp{
+
+				JsonStr: string(jsonStr),
+			},
+		)
+		values = make([]interface{}, 0)
+	}
+
+	return nil
+}
+
 // Find one
 func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst) (*persistencepb.FindOneResp, error) {
 	store := self.stores[rqst.GetId()]
@@ -482,7 +537,7 @@ func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := store.FindOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Fields, rqst.Options)
+	result, err := store.FindOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

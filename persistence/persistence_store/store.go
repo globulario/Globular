@@ -22,7 +22,7 @@ type Store interface {
 	/**
 	 * Create a Collection
 	 */
-	CreateCollection(ctx context.Context, database string, name string) error
+	CreateCollection(ctx context.Context, database string, name string, optionsStr string) error
 
 	/**
 	 * Delete collection
@@ -57,12 +57,17 @@ type Store interface {
 	/**
 	 * Find many values from a query
 	 */
-	Find(ctx context.Context, database string, collection string, query string, fields []string, options string) ([]interface{}, error)
+	Find(ctx context.Context, database string, collection string, query string, options string) ([]interface{}, error)
 
 	/**
 	 * Find one result at time.
 	 */
-	FindOne(ctx context.Context, database string, collection string, query string, fields []string, options string) (interface{}, error)
+	FindOne(ctx context.Context, database string, collection string, query string, options string) (interface{}, error)
+
+	/**
+	 * Return object with sub-object instead of references.
+	 */
+	Aggregate(ctx context.Context, database string, collection string, pipeline string, optionsStr string) ([]interface{}, error)
 
 	/**
 	 * Update document that match a given condition whit a given value.

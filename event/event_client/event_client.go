@@ -49,7 +49,7 @@ func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string
 
 	client.addresse = addresse
 	client.domain = domain
-	client.name = "persistence"
+	client.name = "event"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile

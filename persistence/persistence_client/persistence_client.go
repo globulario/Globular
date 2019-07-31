@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 
+	//"log"
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"github.com/davecourtois/Utility"
@@ -116,7 +116,27 @@ func (self *Persistence_Client) Ping(connectionId interface{}) (string, error) {
 	return rsp.Result, err
 }
 
-func (self *Persistence_Client) Find(connectionId string, database string, collection string, query string, fields string, options string) (string, error) {
+// Create a new datastore connection.
+func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string) error {
+	rqst := &persistencepb.CreateConnectionRqst{
+		Connection: &persistencepb.Connection{
+			Id:       connectionId,
+			Name:     name,
+			Host:     host,
+			Port:     int32(Utility.ToInt(port)),
+			Store:    persistencepb.StoreType(storeType),
+			User:     user,
+			Password: pwd,
+			Timeout:  int32(Utility.ToInt(timeout)),
+			Options:  options,
+		},
+	}
+
+	_, err := self.c.CreateConnection(context.Background(), rqst)
+	return err
+}
+
+func (self *Persistence_Client) Find(connectionId string, database string, collection string, query string, options string) (string, error) {
 
 	// Retreive a single value...
 	rqst := &persistencepb.FindRqst{
@@ -124,7 +144,6 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 		Database:   database,
 		Collection: collection,
 		Query:      query,
-		Fields:     strings.Split(fields, ","),
 		Options:    options,
 	}
 
@@ -158,4 +177,67 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 		return "", nil
 	}
 	return string(valuesStr), nil
+}
+
+/**
+ * Insert one value in the database.
+ */
+func (self *Persistence_Client) InsertOne(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
+
+	rqst := &persistencepb.InsertOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		JsonStr:    jsonStr,
+		Options:    options,
+	}
+
+	rsp, err := self.c.InsertOne(context.Background(), rqst)
+
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetId(), err
+}
+
+/**
+ * Insert one value in the database.
+ */
+func (self *Persistence_Client) ReplaceOne(connectionId string, database string, collection string, query string, value string, options string) error {
+
+	rqst := &persistencepb.ReplaceOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Value:      value,
+		Options:    options,
+	}
+
+	_, err := self.c.ReplaceOne(context.Background(), rqst)
+
+	return err
+}
+
+/**
+ * Delete one record from the db
+ */
+func (self *Persistence_Client) DeleteOne(connectionId string, database string, collection string, query string, options string) error {
+
+	rqst := &persistencepb.DeleteOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Options:    options,
+	}
+
+	_, err := self.c.DeleteOne(context.Background(), rqst)
+
+	if err != nil {
+		return err
+	}
+
+	return err
 }

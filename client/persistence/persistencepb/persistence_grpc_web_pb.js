@@ -689,6 +689,56 @@ proto.persistence.PersistenceServicePromiseClient.prototype.findOne =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.AggregateRqst,
+ *   !proto.persistence.AggregateResp>}
+ */
+const methodInfo_PersistenceService_Aggregate = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.AggregateResp,
+  /** @param {!proto.persistence.AggregateRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.AggregateResp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.AggregateRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.AggregateResp>}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.aggregate =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/persistence.PersistenceService/Aggregate',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Aggregate);
+};
+
+
+/**
+ * @param {!proto.persistence.AggregateRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.AggregateResp>}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.aggregate =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/persistence.PersistenceService/Aggregate',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Aggregate);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.UpdateRqst,
  *   !proto.persistence.UpdateRsp>}
  */

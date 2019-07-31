@@ -28,6 +28,7 @@ import (
 	"github.com/davecourtois/Utility"
 
 	// Client services.
+	"github.com/davecourtois/Globular/catalog/catalog_client"
 	"github.com/davecourtois/Globular/echo/echo_client"
 	"github.com/davecourtois/Globular/event/event_client"
 	"github.com/davecourtois/Globular/file/file_client"
@@ -654,6 +655,7 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
 	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
 	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
+	Utility.RegisterFunction("NewCatalog_Client", catalog_client.NewCatalog_Client)
 
 	// That service is program in c++
 	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)

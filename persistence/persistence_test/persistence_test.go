@@ -263,8 +263,7 @@ func TestFindOne(t *testing.T) {
 		Id:         "mongo_db_test_connection",
 		Database:   "TestMongoDB",
 		Collection: "Employees",
-		Query:      `{"first_name": "Anneke", "last_name": "Viele"}`,
-		Fields:     []string{"birth_date", "_id"},
+		Query:      `{"first_name": "Anneke", "last_name": "Viele"}, {"birth_date":1}`,
 	}
 
 	rsp, err := c.FindOne(context.Background(), rqst)
@@ -293,8 +292,7 @@ func TestFind(t *testing.T) {
 		Id:         "mongo_db_test_connection",
 		Database:   "TestMongoDB",
 		Collection: "Employees",
-		Query:      `{"first_name": "Anneke"}`,
-		Fields:     []string{"birth_date", "_id"},
+		Query:      `{"first_name": "Anneke"},{"birth_date":1}`,
 	}
 
 	stream, err := c.Find(context.Background(), rqst)

@@ -108,8 +108,27 @@ func (self *MongoStore) DeleteDatabase(ctx context.Context, name string) error {
 /**
  * Create a Collection
  */
-func (self *MongoStore) CreateCollection(ctx context.Context, database string, name string) error {
-	return errors.New("MongoDb will create your collection at first insert.")
+func (self *MongoStore) CreateCollection(ctx context.Context, database string, name string, optionsStr string) error {
+	db := self.client.Database(database)
+	if db == nil {
+		return errors.New("Database " + database + " dosen't exist!")
+	}
+
+	var opts []*options.CollectionOptions
+	if len(optionsStr) > 0 {
+		opts = make([]*options.CollectionOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
+		if err != nil {
+			return err
+		}
+	}
+
+	collection := db.Collection(name, opts...)
+	if collection == nil {
+		errors.New("Fail to create collection " + name + "!")
+	}
+
+	return nil
 }
 
 /**
@@ -182,7 +201,7 @@ func (self *MongoStore) InsertMany(ctx context.Context, database string, collect
 /**
  * Find many values from a query
  */
-func (self *MongoStore) Find(ctx context.Context, database string, collection string, query string, fields []string, optionsStr string) ([]interface{}, error) {
+func (self *MongoStore) Find(ctx context.Context, database string, collection string, query string, optionsStr string) ([]interface{}, error) {
 	if self.client.Database(database) == nil {
 		return nil, errors.New("No database found with name " + database)
 	}
@@ -223,15 +242,68 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 			return nil, err
 		}
 		// In that case I will return the whole entity
-		if len(fields) == 0 {
-			results = append(results, entity)
-		} else {
-			values := make([]interface{}, len(fields))
-			for i := 0; i < len(fields); i++ {
-				values[i] = entity[fields[i]]
-			}
-			results = append(results, values)
+
+		results = append(results, entity)
+
+	}
+
+	// In case of error
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+/**
+ * Aggregate result from a collection.
+ */
+func (self *MongoStore) Aggregate(ctx context.Context, database string, collection string, pipeline string, optionsStr string) ([]interface{}, error) {
+	if self.client.Database(database) == nil {
+		return nil, errors.New("No database found with name " + database)
+	}
+
+	if self.client.Database(database).Collection(collection) == nil {
+		return nil, errors.New("No collection found with name " + collection)
+	}
+
+	collection_ := self.client.Database(database).Collection(collection)
+
+	p := make(map[string]interface{})
+	err := json.Unmarshal([]byte(pipeline), &p)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []*options.AggregateOptions
+	if len(optionsStr) > 0 {
+		opts = make([]*options.AggregateOptions, 0)
+		err := json.Unmarshal([]byte(optionsStr), &opts)
+		if err != nil {
+			return nil, err
 		}
+	}
+
+	cur, err := collection_.Aggregate(ctx, p, opts...)
+
+	defer cur.Close(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]interface{}, 0)
+
+	for cur.Next(ctx) {
+		entity := make(map[string]interface{})
+		err := cur.Decode(&entity)
+		if err != nil {
+			return nil, err
+		}
+		// In that case I will return the whole entity
+
+		results = append(results, entity)
+
 	}
 
 	// In case of error
@@ -245,7 +317,7 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 /**
  * Find one result at time.
  */
-func (self *MongoStore) FindOne(ctx context.Context, database string, collection string, query string, fields []string, optionsStr string) (interface{}, error) {
+func (self *MongoStore) FindOne(ctx context.Context, database string, collection string, query string, optionsStr string) (interface{}, error) {
 
 	if self.client.Database(database) == nil {
 		return nil, errors.New("No database found with name " + database)
@@ -278,19 +350,7 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 		return nil, err
 	}
 
-	var result interface{}
-	if len(fields) == 0 {
-		result = entity
-	} else {
-		values := make([]interface{}, len(fields))
-
-		for i := 0; i < len(fields); i++ {
-			values[i] = entity[fields[i]]
-		}
-		result = values
-	}
-
-	return result, nil
+	return entity, nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////

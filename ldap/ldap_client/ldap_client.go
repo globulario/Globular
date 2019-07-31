@@ -43,7 +43,7 @@ func NewLdap_Client(domain string, addresse string, hasTLS bool, keyFile string,
 	client := new(LDAP_Client)
 
 	client.addresse = addresse
-	client.name = "persistence"
+	client.name = "ldap"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile
