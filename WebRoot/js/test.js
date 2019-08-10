@@ -18,14 +18,14 @@ function main() {
     // testInsertQuery()
 
     // testGetFileInfo()
-    // testFilePane()
+     testFilePane()
 
     // testCreatePersistenceConnection()
     // testPersistencePing()
     // testPersistenceFind()
 
     // display table.
-     displayTable()
+    //displayTable()
 
     //testEvent()
 }

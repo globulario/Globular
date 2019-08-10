@@ -7,6 +7,8 @@ import (
 	"github.com/davecourtois/Globular/monitoring/monitoringpb"
 
 	//	"github.com/davecourtois/Utility"
+	"io"
+
 	"google.golang.org/grpc"
 )
 
@@ -269,12 +271,29 @@ func (self *monitoring_Client) QueryRange(connectionId string, query string, sta
 		Step:         step,
 	}
 
-	rsp, err := self.c.QueryRange(context.Background(), rqst)
+	var value string
+	var warning string
+	stream, err := self.c.QueryRange(context.Background(), rqst)
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			return "", "", err
+		}
+
+		// Get the result...
+		value += msg.GetValue()
+		warning = msg.GetWarnings()
+	}
+
 	if err != nil {
 		return "", "", err
 	}
 
-	return rsp.GetValue(), rsp.GetWarnings(), nil
+	return value, warning, nil
 }
 
 // Series finds series by label matchers.

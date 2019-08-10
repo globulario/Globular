@@ -19,9 +19,11 @@ mkdir dist/globular/WebRoot/js
 mkdir dist/globular/WebRoot/css
 cp WebRoot/js/services.js dist/globular/WebRoot/js
 cp WebRoot/js/test.js dist/globular/WebRoot/js
+cp WebRoot/js/event.js dist/globular/WebRoot/js
 cp WebRoot/css/styles.css dist/globular/WebRoot/css
 cp WebRoot/index.html dist/globular/WebRoot
 cp WebRoot/config.json dist/globular/WebRoot
+
 #echo service
 mkdir dist/globular/echo
 cp echo/echo_server/echo_server dist/globular/echo
@@ -62,6 +64,11 @@ mkdir dist/globular/event
 cp event/event_server/event_server dist/globular/event
 cp event/event_server/event_server.exe dist/globular/event
 cp event/event_server/config.json dist/globular/event
+#monitoring service
+mkdir dist/globular/monitoring
+cp monitoring/monitoring_server/monitoring_server dist/globular/monitoring
+cp monitoring/monitoring_server/monitoring_server.exe dist/globular/monitoring
+cp monitoring/monitoring_server/config.json dist/globular/monitoring
 
 #now I will zip the dist/globular file
 cd dist
@@ -85,9 +92,12 @@ cp -r WebRoot/website/build/default/* dist/globular/WebRoot
 cp -r sslforfree dist/globular
 mkdir dist/globular/WebRoot/image
 cp -r WebRoot/website/image/* dist/globular/WebRoot/image
-
+mkdir dist/globular/WebRoot/monitoring
+cp -r WebRoot/monitoring/* dist/globular/WebRoot/monitoring
 # move configuration from document. 
 cp /home/dave/Documents/config/config.json dist/globular/WebRoot/config.json
+cp /home/dave/Documents/config/config.json dist/globular/WebRoot/monitoring/config.json
+
 cp -r WebRoot/website/build/default/node_modules dist/globular/WebRoot
 mkdir dist/globular/event
 mkdir dist/globular/echo

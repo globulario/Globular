@@ -50,13 +50,13 @@ window.File = Object.assign(window.File, require('./file/filepb/file_grpc_web_pb
 // Event service
 ////////////////////////////////////////////////////////////////////////////
 window.EventBus = require('./event/eventpb/event_pb.js');
-window.EventBus = Object.assign(window.File, require('./event/eventpb/event_grpc_web_pb.js'));
+window.EventBus = Object.assign(window.EventBus, require('./event/eventpb/event_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
 // Monitoring service
 ////////////////////////////////////////////////////////////////////////////
 window.Monitoring = require('./monitoring/monitoringpb/monitoring_pb.js');
-window.Monitoring = Object.assign(window.File, require('./monitoring/monitoringpb/monitoring_grpc_web_pb.js'));
+window.Monitoring = Object.assign(window.Monitoring, require('./monitoring/monitoringpb/monitoring_grpc_web_pb.js'));
 
 ////////////////////////////////////////////////////////////////////////////
 // Server singleton object that give access to services.

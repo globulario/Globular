@@ -115,7 +115,8 @@ func TestLabelValues(t *testing.T) {
 func TestQuery(t *testing.T) {
 	fmt.Println("Run a query")
 	ts := time.Now().Unix() - 1000
-	q := "rate(prometheus_tsdb_head_chunks_created_total[1m])"
+	// q := "rate(prometheus_tsdb_head_chunks_created_total[1m])"
+	q := "histogram_quantile(0.95, sum(rate(prometheus_http_request_duration_seconds_bucket[5m])) by (le))"
 	values, warnings, err := client.Query("test", q, float64(ts))
 	if err != nil {
 		log.Println("fail to get flags", err)

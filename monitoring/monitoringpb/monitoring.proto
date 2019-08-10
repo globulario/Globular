@@ -182,7 +182,7 @@ message TargetsMetadataResponse{
 }
 
 
-service monitoringService {
+service MonitoringService {
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	
@@ -217,7 +217,7 @@ service monitoringService {
 	rpc Query(QueryRequest) returns(QueryResponse);
 	
 	// QueryRange performs a query for the given range.
-	rpc QueryRange(QueryRangeRequest) returns(QueryRangeResponse);
+	rpc QueryRange(QueryRangeRequest) returns(stream QueryRangeResponse);
 	
 	// Series finds series by label matchers.
 	rpc Series(SeriesRequest) returns(SeriesResponse);

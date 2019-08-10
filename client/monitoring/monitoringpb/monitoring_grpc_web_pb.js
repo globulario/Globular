@@ -22,7 +22,7 @@ proto.monitoring = require('./monitoring_pb.js');
  * @struct
  * @final
  */
-proto.monitoring.monitoringServiceClient =
+proto.monitoring.MonitoringServiceClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options['format'] = 'text';
@@ -58,7 +58,7 @@ proto.monitoring.monitoringServiceClient =
  * @struct
  * @final
  */
-proto.monitoring.monitoringServicePromiseClient =
+proto.monitoring.MonitoringServicePromiseClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options['format'] = 'text';
@@ -92,7 +92,7 @@ proto.monitoring.monitoringServicePromiseClient =
  *   !proto.monitoring.CreateConnectionRqst,
  *   !proto.monitoring.CreateConnectionRsp>}
  */
-const methodInfo_monitoringService_CreateConnection = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_CreateConnection = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.CreateConnectionRsp,
   /** @param {!proto.monitoring.CreateConnectionRqst} request */
   function(request) {
@@ -112,13 +112,13 @@ const methodInfo_monitoringService_CreateConnection = new grpc.web.AbstractClien
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.CreateConnectionRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.createConnection =
+proto.monitoring.MonitoringServiceClient.prototype.createConnection =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/CreateConnection',
+      '/monitoring.MonitoringService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_monitoringService_CreateConnection,
+      methodInfo_MonitoringService_CreateConnection,
       callback);
 };
 
@@ -131,13 +131,13 @@ proto.monitoring.monitoringServiceClient.prototype.createConnection =
  * @return {!Promise<!proto.monitoring.CreateConnectionRsp>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.createConnection =
+proto.monitoring.MonitoringServicePromiseClient.prototype.createConnection =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/CreateConnection',
+      '/monitoring.MonitoringService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_monitoringService_CreateConnection);
+      methodInfo_MonitoringService_CreateConnection);
 };
 
 
@@ -147,7 +147,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.createConnection =
  *   !proto.monitoring.DeleteConnectionRqst,
  *   !proto.monitoring.DeleteConnectionRsp>}
  */
-const methodInfo_monitoringService_DeleteConnection = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_DeleteConnection = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.DeleteConnectionRsp,
   /** @param {!proto.monitoring.DeleteConnectionRqst} request */
   function(request) {
@@ -167,13 +167,13 @@ const methodInfo_monitoringService_DeleteConnection = new grpc.web.AbstractClien
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.DeleteConnectionRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.deleteConnection =
+proto.monitoring.MonitoringServiceClient.prototype.deleteConnection =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/DeleteConnection',
+      '/monitoring.MonitoringService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_monitoringService_DeleteConnection,
+      methodInfo_MonitoringService_DeleteConnection,
       callback);
 };
 
@@ -186,13 +186,13 @@ proto.monitoring.monitoringServiceClient.prototype.deleteConnection =
  * @return {!Promise<!proto.monitoring.DeleteConnectionRsp>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.deleteConnection =
+proto.monitoring.MonitoringServicePromiseClient.prototype.deleteConnection =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/DeleteConnection',
+      '/monitoring.MonitoringService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_monitoringService_DeleteConnection);
+      methodInfo_MonitoringService_DeleteConnection);
 };
 
 
@@ -202,7 +202,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.deleteConnection =
  *   !proto.monitoring.AlertsRequest,
  *   !proto.monitoring.AlertsResponse>}
  */
-const methodInfo_monitoringService_Alerts = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Alerts = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.AlertsResponse,
   /** @param {!proto.monitoring.AlertsRequest} request */
   function(request) {
@@ -222,13 +222,13 @@ const methodInfo_monitoringService_Alerts = new grpc.web.AbstractClientBase.Meth
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.AlertsResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.alerts =
+proto.monitoring.MonitoringServiceClient.prototype.alerts =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Alerts',
+      '/monitoring.MonitoringService/Alerts',
       request,
       metadata || {},
-      methodInfo_monitoringService_Alerts,
+      methodInfo_MonitoringService_Alerts,
       callback);
 };
 
@@ -241,13 +241,13 @@ proto.monitoring.monitoringServiceClient.prototype.alerts =
  * @return {!Promise<!proto.monitoring.AlertsResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.alerts =
+proto.monitoring.MonitoringServicePromiseClient.prototype.alerts =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Alerts',
+      '/monitoring.MonitoringService/Alerts',
       request,
       metadata || {},
-      methodInfo_monitoringService_Alerts);
+      methodInfo_MonitoringService_Alerts);
 };
 
 
@@ -257,7 +257,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.alerts =
  *   !proto.monitoring.AlertManagersRequest,
  *   !proto.monitoring.AlertManagersResponse>}
  */
-const methodInfo_monitoringService_AlertManagers = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_AlertManagers = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.AlertManagersResponse,
   /** @param {!proto.monitoring.AlertManagersRequest} request */
   function(request) {
@@ -277,13 +277,13 @@ const methodInfo_monitoringService_AlertManagers = new grpc.web.AbstractClientBa
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.AlertManagersResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.alertManagers =
+proto.monitoring.MonitoringServiceClient.prototype.alertManagers =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/AlertManagers',
+      '/monitoring.MonitoringService/AlertManagers',
       request,
       metadata || {},
-      methodInfo_monitoringService_AlertManagers,
+      methodInfo_MonitoringService_AlertManagers,
       callback);
 };
 
@@ -296,13 +296,13 @@ proto.monitoring.monitoringServiceClient.prototype.alertManagers =
  * @return {!Promise<!proto.monitoring.AlertManagersResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.alertManagers =
+proto.monitoring.MonitoringServicePromiseClient.prototype.alertManagers =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/AlertManagers',
+      '/monitoring.MonitoringService/AlertManagers',
       request,
       metadata || {},
-      methodInfo_monitoringService_AlertManagers);
+      methodInfo_MonitoringService_AlertManagers);
 };
 
 
@@ -312,7 +312,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.alertManagers =
  *   !proto.monitoring.CleanTombstonesRequest,
  *   !proto.monitoring.CleanTombstonesResponse>}
  */
-const methodInfo_monitoringService_CleanTombstones = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_CleanTombstones = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.CleanTombstonesResponse,
   /** @param {!proto.monitoring.CleanTombstonesRequest} request */
   function(request) {
@@ -332,13 +332,13 @@ const methodInfo_monitoringService_CleanTombstones = new grpc.web.AbstractClient
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.CleanTombstonesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.cleanTombstones =
+proto.monitoring.MonitoringServiceClient.prototype.cleanTombstones =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/CleanTombstones',
+      '/monitoring.MonitoringService/CleanTombstones',
       request,
       metadata || {},
-      methodInfo_monitoringService_CleanTombstones,
+      methodInfo_MonitoringService_CleanTombstones,
       callback);
 };
 
@@ -351,13 +351,13 @@ proto.monitoring.monitoringServiceClient.prototype.cleanTombstones =
  * @return {!Promise<!proto.monitoring.CleanTombstonesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.cleanTombstones =
+proto.monitoring.MonitoringServicePromiseClient.prototype.cleanTombstones =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/CleanTombstones',
+      '/monitoring.MonitoringService/CleanTombstones',
       request,
       metadata || {},
-      methodInfo_monitoringService_CleanTombstones);
+      methodInfo_MonitoringService_CleanTombstones);
 };
 
 
@@ -367,7 +367,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.cleanTombstones =
  *   !proto.monitoring.ConfigRequest,
  *   !proto.monitoring.ConfigResponse>}
  */
-const methodInfo_monitoringService_Config = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Config = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.ConfigResponse,
   /** @param {!proto.monitoring.ConfigRequest} request */
   function(request) {
@@ -387,13 +387,13 @@ const methodInfo_monitoringService_Config = new grpc.web.AbstractClientBase.Meth
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.ConfigResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.config =
+proto.monitoring.MonitoringServiceClient.prototype.config =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Config',
+      '/monitoring.MonitoringService/Config',
       request,
       metadata || {},
-      methodInfo_monitoringService_Config,
+      methodInfo_MonitoringService_Config,
       callback);
 };
 
@@ -406,13 +406,13 @@ proto.monitoring.monitoringServiceClient.prototype.config =
  * @return {!Promise<!proto.monitoring.ConfigResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.config =
+proto.monitoring.MonitoringServicePromiseClient.prototype.config =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Config',
+      '/monitoring.MonitoringService/Config',
       request,
       metadata || {},
-      methodInfo_monitoringService_Config);
+      methodInfo_MonitoringService_Config);
 };
 
 
@@ -422,7 +422,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.config =
  *   !proto.monitoring.DeleteSeriesRequest,
  *   !proto.monitoring.DeleteSeriesResponse>}
  */
-const methodInfo_monitoringService_DeleteSeries = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_DeleteSeries = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.DeleteSeriesResponse,
   /** @param {!proto.monitoring.DeleteSeriesRequest} request */
   function(request) {
@@ -442,13 +442,13 @@ const methodInfo_monitoringService_DeleteSeries = new grpc.web.AbstractClientBas
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.DeleteSeriesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.deleteSeries =
+proto.monitoring.MonitoringServiceClient.prototype.deleteSeries =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/DeleteSeries',
+      '/monitoring.MonitoringService/DeleteSeries',
       request,
       metadata || {},
-      methodInfo_monitoringService_DeleteSeries,
+      methodInfo_MonitoringService_DeleteSeries,
       callback);
 };
 
@@ -461,13 +461,13 @@ proto.monitoring.monitoringServiceClient.prototype.deleteSeries =
  * @return {!Promise<!proto.monitoring.DeleteSeriesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.deleteSeries =
+proto.monitoring.MonitoringServicePromiseClient.prototype.deleteSeries =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/DeleteSeries',
+      '/monitoring.MonitoringService/DeleteSeries',
       request,
       metadata || {},
-      methodInfo_monitoringService_DeleteSeries);
+      methodInfo_MonitoringService_DeleteSeries);
 };
 
 
@@ -477,7 +477,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.deleteSeries =
  *   !proto.monitoring.FlagsRequest,
  *   !proto.monitoring.FlagsResponse>}
  */
-const methodInfo_monitoringService_Flags = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Flags = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.FlagsResponse,
   /** @param {!proto.monitoring.FlagsRequest} request */
   function(request) {
@@ -497,13 +497,13 @@ const methodInfo_monitoringService_Flags = new grpc.web.AbstractClientBase.Metho
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.FlagsResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.flags =
+proto.monitoring.MonitoringServiceClient.prototype.flags =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Flags',
+      '/monitoring.MonitoringService/Flags',
       request,
       metadata || {},
-      methodInfo_monitoringService_Flags,
+      methodInfo_MonitoringService_Flags,
       callback);
 };
 
@@ -516,13 +516,13 @@ proto.monitoring.monitoringServiceClient.prototype.flags =
  * @return {!Promise<!proto.monitoring.FlagsResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.flags =
+proto.monitoring.MonitoringServicePromiseClient.prototype.flags =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Flags',
+      '/monitoring.MonitoringService/Flags',
       request,
       metadata || {},
-      methodInfo_monitoringService_Flags);
+      methodInfo_MonitoringService_Flags);
 };
 
 
@@ -532,7 +532,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.flags =
  *   !proto.monitoring.LabelNamesRequest,
  *   !proto.monitoring.LabelNamesResponse>}
  */
-const methodInfo_monitoringService_LabelNames = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_LabelNames = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.LabelNamesResponse,
   /** @param {!proto.monitoring.LabelNamesRequest} request */
   function(request) {
@@ -552,13 +552,13 @@ const methodInfo_monitoringService_LabelNames = new grpc.web.AbstractClientBase.
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.LabelNamesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.labelNames =
+proto.monitoring.MonitoringServiceClient.prototype.labelNames =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/LabelNames',
+      '/monitoring.MonitoringService/LabelNames',
       request,
       metadata || {},
-      methodInfo_monitoringService_LabelNames,
+      methodInfo_MonitoringService_LabelNames,
       callback);
 };
 
@@ -571,13 +571,13 @@ proto.monitoring.monitoringServiceClient.prototype.labelNames =
  * @return {!Promise<!proto.monitoring.LabelNamesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.labelNames =
+proto.monitoring.MonitoringServicePromiseClient.prototype.labelNames =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/LabelNames',
+      '/monitoring.MonitoringService/LabelNames',
       request,
       metadata || {},
-      methodInfo_monitoringService_LabelNames);
+      methodInfo_MonitoringService_LabelNames);
 };
 
 
@@ -587,7 +587,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.labelNames =
  *   !proto.monitoring.LabelValuesRequest,
  *   !proto.monitoring.LabelValuesResponse>}
  */
-const methodInfo_monitoringService_LabelValues = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_LabelValues = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.LabelValuesResponse,
   /** @param {!proto.monitoring.LabelValuesRequest} request */
   function(request) {
@@ -607,13 +607,13 @@ const methodInfo_monitoringService_LabelValues = new grpc.web.AbstractClientBase
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.LabelValuesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.labelValues =
+proto.monitoring.MonitoringServiceClient.prototype.labelValues =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/LabelValues',
+      '/monitoring.MonitoringService/LabelValues',
       request,
       metadata || {},
-      methodInfo_monitoringService_LabelValues,
+      methodInfo_MonitoringService_LabelValues,
       callback);
 };
 
@@ -626,13 +626,13 @@ proto.monitoring.monitoringServiceClient.prototype.labelValues =
  * @return {!Promise<!proto.monitoring.LabelValuesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.labelValues =
+proto.monitoring.MonitoringServicePromiseClient.prototype.labelValues =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/LabelValues',
+      '/monitoring.MonitoringService/LabelValues',
       request,
       metadata || {},
-      methodInfo_monitoringService_LabelValues);
+      methodInfo_MonitoringService_LabelValues);
 };
 
 
@@ -642,7 +642,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.labelValues =
  *   !proto.monitoring.QueryRequest,
  *   !proto.monitoring.QueryResponse>}
  */
-const methodInfo_monitoringService_Query = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Query = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.QueryResponse,
   /** @param {!proto.monitoring.QueryRequest} request */
   function(request) {
@@ -662,13 +662,13 @@ const methodInfo_monitoringService_Query = new grpc.web.AbstractClientBase.Metho
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.QueryResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.query =
+proto.monitoring.MonitoringServiceClient.prototype.query =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Query',
+      '/monitoring.MonitoringService/Query',
       request,
       metadata || {},
-      methodInfo_monitoringService_Query,
+      methodInfo_MonitoringService_Query,
       callback);
 };
 
@@ -681,13 +681,13 @@ proto.monitoring.monitoringServiceClient.prototype.query =
  * @return {!Promise<!proto.monitoring.QueryResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.query =
+proto.monitoring.MonitoringServicePromiseClient.prototype.query =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Query',
+      '/monitoring.MonitoringService/Query',
       request,
       metadata || {},
-      methodInfo_monitoringService_Query);
+      methodInfo_MonitoringService_Query);
 };
 
 
@@ -697,7 +697,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.query =
  *   !proto.monitoring.QueryRangeRequest,
  *   !proto.monitoring.QueryRangeResponse>}
  */
-const methodInfo_monitoringService_QueryRange = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_QueryRange = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.QueryRangeResponse,
   /** @param {!proto.monitoring.QueryRangeRequest} request */
   function(request) {
@@ -708,41 +708,36 @@ const methodInfo_monitoringService_QueryRange = new grpc.web.AbstractClientBase.
 
 
 /**
- * @param {!proto.monitoring.QueryRangeRequest} request The
- *     request proto
+ * @param {!proto.monitoring.QueryRangeRequest} request The request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.monitoring.QueryRangeResponse)}
- *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.monitoring.QueryRangeResponse>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.monitoring.QueryRangeResponse>}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.queryRange =
-    function(request, metadata, callback) {
-  return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/QueryRange',
+proto.monitoring.MonitoringServiceClient.prototype.queryRange =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/monitoring.MonitoringService/QueryRange',
       request,
       metadata || {},
-      methodInfo_monitoringService_QueryRange,
-      callback);
+      methodInfo_MonitoringService_QueryRange);
 };
 
 
 /**
- * @param {!proto.monitoring.QueryRangeRequest} request The
- *     request proto
+ * @param {!proto.monitoring.QueryRangeRequest} request The request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.monitoring.QueryRangeResponse>}
- *     A native promise that resolves to the response
+ * @return {!grpc.web.ClientReadableStream<!proto.monitoring.QueryRangeResponse>}
+ *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.queryRange =
+proto.monitoring.MonitoringServicePromiseClient.prototype.queryRange =
     function(request, metadata) {
-  return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/QueryRange',
+  return this.client_.serverStreaming(this.hostname_ +
+      '/monitoring.MonitoringService/QueryRange',
       request,
       metadata || {},
-      methodInfo_monitoringService_QueryRange);
+      methodInfo_MonitoringService_QueryRange);
 };
 
 
@@ -752,7 +747,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.queryRange =
  *   !proto.monitoring.SeriesRequest,
  *   !proto.monitoring.SeriesResponse>}
  */
-const methodInfo_monitoringService_Series = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Series = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.SeriesResponse,
   /** @param {!proto.monitoring.SeriesRequest} request */
   function(request) {
@@ -772,13 +767,13 @@ const methodInfo_monitoringService_Series = new grpc.web.AbstractClientBase.Meth
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.SeriesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.series =
+proto.monitoring.MonitoringServiceClient.prototype.series =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Series',
+      '/monitoring.MonitoringService/Series',
       request,
       metadata || {},
-      methodInfo_monitoringService_Series,
+      methodInfo_MonitoringService_Series,
       callback);
 };
 
@@ -791,13 +786,13 @@ proto.monitoring.monitoringServiceClient.prototype.series =
  * @return {!Promise<!proto.monitoring.SeriesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.series =
+proto.monitoring.MonitoringServicePromiseClient.prototype.series =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Series',
+      '/monitoring.MonitoringService/Series',
       request,
       metadata || {},
-      methodInfo_monitoringService_Series);
+      methodInfo_MonitoringService_Series);
 };
 
 
@@ -807,7 +802,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.series =
  *   !proto.monitoring.SnapshotRequest,
  *   !proto.monitoring.SnapshotResponse>}
  */
-const methodInfo_monitoringService_Snapshot = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Snapshot = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.SnapshotResponse,
   /** @param {!proto.monitoring.SnapshotRequest} request */
   function(request) {
@@ -827,13 +822,13 @@ const methodInfo_monitoringService_Snapshot = new grpc.web.AbstractClientBase.Me
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.SnapshotResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.snapshot =
+proto.monitoring.MonitoringServiceClient.prototype.snapshot =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Snapshot',
+      '/monitoring.MonitoringService/Snapshot',
       request,
       metadata || {},
-      methodInfo_monitoringService_Snapshot,
+      methodInfo_MonitoringService_Snapshot,
       callback);
 };
 
@@ -846,13 +841,13 @@ proto.monitoring.monitoringServiceClient.prototype.snapshot =
  * @return {!Promise<!proto.monitoring.SnapshotResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.snapshot =
+proto.monitoring.MonitoringServicePromiseClient.prototype.snapshot =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Snapshot',
+      '/monitoring.MonitoringService/Snapshot',
       request,
       metadata || {},
-      methodInfo_monitoringService_Snapshot);
+      methodInfo_MonitoringService_Snapshot);
 };
 
 
@@ -862,7 +857,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.snapshot =
  *   !proto.monitoring.RulesRequest,
  *   !proto.monitoring.RulesResponse>}
  */
-const methodInfo_monitoringService_Rules = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Rules = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.RulesResponse,
   /** @param {!proto.monitoring.RulesRequest} request */
   function(request) {
@@ -882,13 +877,13 @@ const methodInfo_monitoringService_Rules = new grpc.web.AbstractClientBase.Metho
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.RulesResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.rules =
+proto.monitoring.MonitoringServiceClient.prototype.rules =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Rules',
+      '/monitoring.MonitoringService/Rules',
       request,
       metadata || {},
-      methodInfo_monitoringService_Rules,
+      methodInfo_MonitoringService_Rules,
       callback);
 };
 
@@ -901,13 +896,13 @@ proto.monitoring.monitoringServiceClient.prototype.rules =
  * @return {!Promise<!proto.monitoring.RulesResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.rules =
+proto.monitoring.MonitoringServicePromiseClient.prototype.rules =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Rules',
+      '/monitoring.MonitoringService/Rules',
       request,
       metadata || {},
-      methodInfo_monitoringService_Rules);
+      methodInfo_MonitoringService_Rules);
 };
 
 
@@ -917,7 +912,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.rules =
  *   !proto.monitoring.TargetsRequest,
  *   !proto.monitoring.TargetsResponse>}
  */
-const methodInfo_monitoringService_Targets = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_Targets = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.TargetsResponse,
   /** @param {!proto.monitoring.TargetsRequest} request */
   function(request) {
@@ -937,13 +932,13 @@ const methodInfo_monitoringService_Targets = new grpc.web.AbstractClientBase.Met
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.TargetsResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.targets =
+proto.monitoring.MonitoringServiceClient.prototype.targets =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/Targets',
+      '/monitoring.MonitoringService/Targets',
       request,
       metadata || {},
-      methodInfo_monitoringService_Targets,
+      methodInfo_MonitoringService_Targets,
       callback);
 };
 
@@ -956,13 +951,13 @@ proto.monitoring.monitoringServiceClient.prototype.targets =
  * @return {!Promise<!proto.monitoring.TargetsResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.targets =
+proto.monitoring.MonitoringServicePromiseClient.prototype.targets =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/Targets',
+      '/monitoring.MonitoringService/Targets',
       request,
       metadata || {},
-      methodInfo_monitoringService_Targets);
+      methodInfo_MonitoringService_Targets);
 };
 
 
@@ -972,7 +967,7 @@ proto.monitoring.monitoringServicePromiseClient.prototype.targets =
  *   !proto.monitoring.TargetsMetadataRequest,
  *   !proto.monitoring.TargetsMetadataResponse>}
  */
-const methodInfo_monitoringService_TargetsMetadata = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_MonitoringService_TargetsMetadata = new grpc.web.AbstractClientBase.MethodInfo(
   proto.monitoring.TargetsMetadataResponse,
   /** @param {!proto.monitoring.TargetsMetadataRequest} request */
   function(request) {
@@ -992,13 +987,13 @@ const methodInfo_monitoringService_TargetsMetadata = new grpc.web.AbstractClient
  * @return {!grpc.web.ClientReadableStream<!proto.monitoring.TargetsMetadataResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.monitoring.monitoringServiceClient.prototype.targetsMetadata =
+proto.monitoring.MonitoringServiceClient.prototype.targetsMetadata =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/monitoring.monitoringService/TargetsMetadata',
+      '/monitoring.MonitoringService/TargetsMetadata',
       request,
       metadata || {},
-      methodInfo_monitoringService_TargetsMetadata,
+      methodInfo_MonitoringService_TargetsMetadata,
       callback);
 };
 
@@ -1011,13 +1006,13 @@ proto.monitoring.monitoringServiceClient.prototype.targetsMetadata =
  * @return {!Promise<!proto.monitoring.TargetsMetadataResponse>}
  *     A native promise that resolves to the response
  */
-proto.monitoring.monitoringServicePromiseClient.prototype.targetsMetadata =
+proto.monitoring.MonitoringServicePromiseClient.prototype.targetsMetadata =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/monitoring.monitoringService/TargetsMetadata',
+      '/monitoring.MonitoringService/TargetsMetadata',
       request,
       metadata || {},
-      methodInfo_monitoringService_TargetsMetadata);
+      methodInfo_MonitoringService_TargetsMetadata);
 };
 
 
