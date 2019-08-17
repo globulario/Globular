@@ -88,6 +88,25 @@ proto.event.EventServicePromiseClient =
 
 /**
  * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.event.SubscribeRequest,
+ *   !proto.event.SubscribeResponse>}
+ */
+const methodDescriptor_EventService_Subscribe = new grpc.web.MethodDescriptor(
+  '/event.EventService/Subscribe',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.event.SubscribeRequest,
+  proto.event.SubscribeResponse,
+  /** @param {!proto.event.SubscribeRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.event.SubscribeResponse.deserializeBinary
+);
+
+
+/**
+ * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.event.SubscribeRequest,
  *   !proto.event.SubscribeResponse>}
@@ -115,7 +134,7 @@ proto.event.EventServiceClient.prototype.subscribe =
       '/event.EventService/Subscribe',
       request,
       metadata || {},
-      methodInfo_EventService_Subscribe);
+      methodDescriptor_EventService_Subscribe);
 };
 
 
@@ -132,8 +151,27 @@ proto.event.EventServicePromiseClient.prototype.subscribe =
       '/event.EventService/Subscribe',
       request,
       metadata || {},
-      methodInfo_EventService_Subscribe);
+      methodDescriptor_EventService_Subscribe);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.event.UnSubscribeRequest,
+ *   !proto.event.UnSubscribeResponse>}
+ */
+const methodDescriptor_EventService_UnSubscribe = new grpc.web.MethodDescriptor(
+  '/event.EventService/UnSubscribe',
+  grpc.web.MethodType.UNARY,
+  proto.event.UnSubscribeRequest,
+  proto.event.UnSubscribeResponse,
+  /** @param {!proto.event.UnSubscribeRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.event.UnSubscribeResponse.deserializeBinary
+);
 
 
 /**
@@ -168,7 +206,7 @@ proto.event.EventServiceClient.prototype.unSubscribe =
       '/event.EventService/UnSubscribe',
       request,
       metadata || {},
-      methodInfo_EventService_UnSubscribe,
+      methodDescriptor_EventService_UnSubscribe,
       callback);
 };
 
@@ -187,8 +225,27 @@ proto.event.EventServicePromiseClient.prototype.unSubscribe =
       '/event.EventService/UnSubscribe',
       request,
       metadata || {},
-      methodInfo_EventService_UnSubscribe);
+      methodDescriptor_EventService_UnSubscribe);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.event.PublishRequest,
+ *   !proto.event.PublishResponse>}
+ */
+const methodDescriptor_EventService_Publish = new grpc.web.MethodDescriptor(
+  '/event.EventService/Publish',
+  grpc.web.MethodType.UNARY,
+  proto.event.PublishRequest,
+  proto.event.PublishResponse,
+  /** @param {!proto.event.PublishRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.event.PublishResponse.deserializeBinary
+);
 
 
 /**
@@ -223,7 +280,7 @@ proto.event.EventServiceClient.prototype.publish =
       '/event.EventService/Publish',
       request,
       metadata || {},
-      methodInfo_EventService_Publish,
+      methodDescriptor_EventService_Publish,
       callback);
 };
 
@@ -242,7 +299,7 @@ proto.event.EventServicePromiseClient.prototype.publish =
       '/event.EventService/Publish',
       request,
       metadata || {},
-      methodInfo_EventService_Publish);
+      methodDescriptor_EventService_Publish);
 };
 
 

@@ -88,6 +88,25 @@ proto.persistence.PersistenceServicePromiseClient =
 
 /**
  * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.CreateDatabaseRqst,
+ *   !proto.persistence.CreateDatabaseRsp>}
+ */
+const methodDescriptor_PersistenceService_CreateDatabase = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/CreateDatabase',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.CreateDatabaseRqst,
+  proto.persistence.CreateDatabaseRsp,
+  /** @param {!proto.persistence.CreateDatabaseRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CreateDatabaseRsp.deserializeBinary
+);
+
+
+/**
+ * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.CreateDatabaseRqst,
  *   !proto.persistence.CreateDatabaseRsp>}
@@ -118,7 +137,7 @@ proto.persistence.PersistenceServiceClient.prototype.createDatabase =
       '/persistence.PersistenceService/CreateDatabase',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateDatabase,
+      methodDescriptor_PersistenceService_CreateDatabase,
       callback);
 };
 
@@ -137,8 +156,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.createDatabase =
       '/persistence.PersistenceService/CreateDatabase',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateDatabase);
+      methodDescriptor_PersistenceService_CreateDatabase);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.DeleteDatabaseRqst,
+ *   !proto.persistence.DeleteDatabaseRsp>}
+ */
+const methodDescriptor_PersistenceService_DeleteDatabase = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/DeleteDatabase',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.DeleteDatabaseRqst,
+  proto.persistence.DeleteDatabaseRsp,
+  /** @param {!proto.persistence.DeleteDatabaseRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteDatabaseRsp.deserializeBinary
+);
 
 
 /**
@@ -173,7 +211,7 @@ proto.persistence.PersistenceServiceClient.prototype.deleteDatabase =
       '/persistence.PersistenceService/DeleteDatabase',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteDatabase,
+      methodDescriptor_PersistenceService_DeleteDatabase,
       callback);
 };
 
@@ -192,8 +230,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.deleteDatabase =
       '/persistence.PersistenceService/DeleteDatabase',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteDatabase);
+      methodDescriptor_PersistenceService_DeleteDatabase);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.CreateCollectionRqst,
+ *   !proto.persistence.CreateCollectionRsp>}
+ */
+const methodDescriptor_PersistenceService_CreateCollection = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/CreateCollection',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.CreateCollectionRqst,
+  proto.persistence.CreateCollectionRsp,
+  /** @param {!proto.persistence.CreateCollectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CreateCollectionRsp.deserializeBinary
+);
 
 
 /**
@@ -228,7 +285,7 @@ proto.persistence.PersistenceServiceClient.prototype.createCollection =
       '/persistence.PersistenceService/CreateCollection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateCollection,
+      methodDescriptor_PersistenceService_CreateCollection,
       callback);
 };
 
@@ -247,8 +304,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.createCollection =
       '/persistence.PersistenceService/CreateCollection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateCollection);
+      methodDescriptor_PersistenceService_CreateCollection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.DeleteCollectionRqst,
+ *   !proto.persistence.DeleteCollectionRsp>}
+ */
+const methodDescriptor_PersistenceService_DeleteCollection = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/DeleteCollection',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.DeleteCollectionRqst,
+  proto.persistence.DeleteCollectionRsp,
+  /** @param {!proto.persistence.DeleteCollectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteCollectionRsp.deserializeBinary
+);
 
 
 /**
@@ -283,7 +359,7 @@ proto.persistence.PersistenceServiceClient.prototype.deleteCollection =
       '/persistence.PersistenceService/DeleteCollection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteCollection,
+      methodDescriptor_PersistenceService_DeleteCollection,
       callback);
 };
 
@@ -302,8 +378,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.deleteCollection =
       '/persistence.PersistenceService/DeleteCollection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteCollection);
+      methodDescriptor_PersistenceService_DeleteCollection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.CreateConnectionRqst,
+ *   !proto.persistence.CreateConnectionRsp>}
+ */
+const methodDescriptor_PersistenceService_CreateConnection = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/CreateConnection',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.CreateConnectionRqst,
+  proto.persistence.CreateConnectionRsp,
+  /** @param {!proto.persistence.CreateConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CreateConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -338,7 +433,7 @@ proto.persistence.PersistenceServiceClient.prototype.createConnection =
       '/persistence.PersistenceService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateConnection,
+      methodDescriptor_PersistenceService_CreateConnection,
       callback);
 };
 
@@ -357,8 +452,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.createConnection =
       '/persistence.PersistenceService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_CreateConnection);
+      methodDescriptor_PersistenceService_CreateConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.DeleteConnectionRqst,
+ *   !proto.persistence.DeleteConnectionRsp>}
+ */
+const methodDescriptor_PersistenceService_DeleteConnection = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/DeleteConnection',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.DeleteConnectionRqst,
+  proto.persistence.DeleteConnectionRsp,
+  /** @param {!proto.persistence.DeleteConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -393,7 +507,7 @@ proto.persistence.PersistenceServiceClient.prototype.deleteConnection =
       '/persistence.PersistenceService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteConnection,
+      methodDescriptor_PersistenceService_DeleteConnection,
       callback);
 };
 
@@ -412,8 +526,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.deleteConnection =
       '/persistence.PersistenceService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteConnection);
+      methodDescriptor_PersistenceService_DeleteConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.PingConnectionRqst,
+ *   !proto.persistence.PingConnectionRsp>}
+ */
+const methodDescriptor_PersistenceService_Ping = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Ping',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.PingConnectionRqst,
+  proto.persistence.PingConnectionRsp,
+  /** @param {!proto.persistence.PingConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.PingConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -448,7 +581,7 @@ proto.persistence.PersistenceServiceClient.prototype.ping =
       '/persistence.PersistenceService/Ping',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Ping,
+      methodDescriptor_PersistenceService_Ping,
       callback);
 };
 
@@ -467,8 +600,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.ping =
       '/persistence.PersistenceService/Ping',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Ping);
+      methodDescriptor_PersistenceService_Ping);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.CountRqst,
+ *   !proto.persistence.CountRsp>}
+ */
+const methodDescriptor_PersistenceService_Count = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Count',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.CountRqst,
+  proto.persistence.CountRsp,
+  /** @param {!proto.persistence.CountRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.CountRsp.deserializeBinary
+);
 
 
 /**
@@ -503,7 +655,7 @@ proto.persistence.PersistenceServiceClient.prototype.count =
       '/persistence.PersistenceService/Count',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Count,
+      methodDescriptor_PersistenceService_Count,
       callback);
 };
 
@@ -522,8 +674,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.count =
       '/persistence.PersistenceService/Count',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Count);
+      methodDescriptor_PersistenceService_Count);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.InsertOneRqst,
+ *   !proto.persistence.InsertOneRsp>}
+ */
+const methodDescriptor_PersistenceService_InsertOne = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/InsertOne',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.InsertOneRqst,
+  proto.persistence.InsertOneRsp,
+  /** @param {!proto.persistence.InsertOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.InsertOneRsp.deserializeBinary
+);
 
 
 /**
@@ -558,7 +729,7 @@ proto.persistence.PersistenceServiceClient.prototype.insertOne =
       '/persistence.PersistenceService/InsertOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_InsertOne,
+      methodDescriptor_PersistenceService_InsertOne,
       callback);
 };
 
@@ -577,8 +748,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.insertOne =
       '/persistence.PersistenceService/InsertOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_InsertOne);
+      methodDescriptor_PersistenceService_InsertOne);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.FindRqst,
+ *   !proto.persistence.FindResp>}
+ */
+const methodDescriptor_PersistenceService_Find = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Find',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.persistence.FindRqst,
+  proto.persistence.FindResp,
+  /** @param {!proto.persistence.FindRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.FindResp.deserializeBinary
+);
 
 
 /**
@@ -610,7 +800,7 @@ proto.persistence.PersistenceServiceClient.prototype.find =
       '/persistence.PersistenceService/Find',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Find);
+      methodDescriptor_PersistenceService_Find);
 };
 
 
@@ -627,8 +817,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.find =
       '/persistence.PersistenceService/Find',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Find);
+      methodDescriptor_PersistenceService_Find);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.FindOneRqst,
+ *   !proto.persistence.FindOneResp>}
+ */
+const methodDescriptor_PersistenceService_FindOne = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/FindOne',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.FindOneRqst,
+  proto.persistence.FindOneResp,
+  /** @param {!proto.persistence.FindOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.FindOneResp.deserializeBinary
+);
 
 
 /**
@@ -663,7 +872,7 @@ proto.persistence.PersistenceServiceClient.prototype.findOne =
       '/persistence.PersistenceService/FindOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_FindOne,
+      methodDescriptor_PersistenceService_FindOne,
       callback);
 };
 
@@ -682,8 +891,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.findOne =
       '/persistence.PersistenceService/FindOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_FindOne);
+      methodDescriptor_PersistenceService_FindOne);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.AggregateRqst,
+ *   !proto.persistence.AggregateResp>}
+ */
+const methodDescriptor_PersistenceService_Aggregate = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Aggregate',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.persistence.AggregateRqst,
+  proto.persistence.AggregateResp,
+  /** @param {!proto.persistence.AggregateRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.AggregateResp.deserializeBinary
+);
 
 
 /**
@@ -715,7 +943,7 @@ proto.persistence.PersistenceServiceClient.prototype.aggregate =
       '/persistence.PersistenceService/Aggregate',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Aggregate);
+      methodDescriptor_PersistenceService_Aggregate);
 };
 
 
@@ -732,8 +960,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.aggregate =
       '/persistence.PersistenceService/Aggregate',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Aggregate);
+      methodDescriptor_PersistenceService_Aggregate);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.UpdateRqst,
+ *   !proto.persistence.UpdateRsp>}
+ */
+const methodDescriptor_PersistenceService_Update = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Update',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.UpdateRqst,
+  proto.persistence.UpdateRsp,
+  /** @param {!proto.persistence.UpdateRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.UpdateRsp.deserializeBinary
+);
 
 
 /**
@@ -768,7 +1015,7 @@ proto.persistence.PersistenceServiceClient.prototype.update =
       '/persistence.PersistenceService/Update',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Update,
+      methodDescriptor_PersistenceService_Update,
       callback);
 };
 
@@ -787,8 +1034,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.update =
       '/persistence.PersistenceService/Update',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Update);
+      methodDescriptor_PersistenceService_Update);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.UpdateOneRqst,
+ *   !proto.persistence.UpdateOneRsp>}
+ */
+const methodDescriptor_PersistenceService_UpdateOne = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/UpdateOne',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.UpdateOneRqst,
+  proto.persistence.UpdateOneRsp,
+  /** @param {!proto.persistence.UpdateOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.UpdateOneRsp.deserializeBinary
+);
 
 
 /**
@@ -823,7 +1089,7 @@ proto.persistence.PersistenceServiceClient.prototype.updateOne =
       '/persistence.PersistenceService/UpdateOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_UpdateOne,
+      methodDescriptor_PersistenceService_UpdateOne,
       callback);
 };
 
@@ -842,8 +1108,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.updateOne =
       '/persistence.PersistenceService/UpdateOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_UpdateOne);
+      methodDescriptor_PersistenceService_UpdateOne);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.ReplaceOneRqst,
+ *   !proto.persistence.ReplaceOneRsp>}
+ */
+const methodDescriptor_PersistenceService_ReplaceOne = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/ReplaceOne',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.ReplaceOneRqst,
+  proto.persistence.ReplaceOneRsp,
+  /** @param {!proto.persistence.ReplaceOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.ReplaceOneRsp.deserializeBinary
+);
 
 
 /**
@@ -878,7 +1163,7 @@ proto.persistence.PersistenceServiceClient.prototype.replaceOne =
       '/persistence.PersistenceService/ReplaceOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_ReplaceOne,
+      methodDescriptor_PersistenceService_ReplaceOne,
       callback);
 };
 
@@ -897,8 +1182,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.replaceOne =
       '/persistence.PersistenceService/ReplaceOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_ReplaceOne);
+      methodDescriptor_PersistenceService_ReplaceOne);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.DeleteRqst,
+ *   !proto.persistence.DeleteRsp>}
+ */
+const methodDescriptor_PersistenceService_Delete = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/Delete',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.DeleteRqst,
+  proto.persistence.DeleteRsp,
+  /** @param {!proto.persistence.DeleteRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteRsp.deserializeBinary
+);
 
 
 /**
@@ -933,7 +1237,7 @@ proto.persistence.PersistenceServiceClient.prototype.delete =
       '/persistence.PersistenceService/Delete',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Delete,
+      methodDescriptor_PersistenceService_Delete,
       callback);
 };
 
@@ -952,8 +1256,27 @@ proto.persistence.PersistenceServicePromiseClient.prototype.delete =
       '/persistence.PersistenceService/Delete',
       request,
       metadata || {},
-      methodInfo_PersistenceService_Delete);
+      methodDescriptor_PersistenceService_Delete);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.persistence.DeleteOneRqst,
+ *   !proto.persistence.DeleteOneRsp>}
+ */
+const methodDescriptor_PersistenceService_DeleteOne = new grpc.web.MethodDescriptor(
+  '/persistence.PersistenceService/DeleteOne',
+  grpc.web.MethodType.UNARY,
+  proto.persistence.DeleteOneRqst,
+  proto.persistence.DeleteOneRsp,
+  /** @param {!proto.persistence.DeleteOneRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DeleteOneRsp.deserializeBinary
+);
 
 
 /**
@@ -988,7 +1311,7 @@ proto.persistence.PersistenceServiceClient.prototype.deleteOne =
       '/persistence.PersistenceService/DeleteOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteOne,
+      methodDescriptor_PersistenceService_DeleteOne,
       callback);
 };
 
@@ -1007,7 +1330,7 @@ proto.persistence.PersistenceServicePromiseClient.prototype.deleteOne =
       '/persistence.PersistenceService/DeleteOne',
       request,
       metadata || {},
-      methodInfo_PersistenceService_DeleteOne);
+      methodDescriptor_PersistenceService_DeleteOne);
 };
 
 

@@ -88,6 +88,25 @@ proto.echo.EchoServicePromiseClient =
 
 /**
  * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.echo.EchoRequest,
+ *   !proto.echo.EchoResponse>}
+ */
+const methodDescriptor_EchoService_Echo = new grpc.web.MethodDescriptor(
+  '/echo.EchoService/Echo',
+  grpc.web.MethodType.UNARY,
+  proto.echo.EchoRequest,
+  proto.echo.EchoResponse,
+  /** @param {!proto.echo.EchoRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.echo.EchoResponse.deserializeBinary
+);
+
+
+/**
+ * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.echo.EchoRequest,
  *   !proto.echo.EchoResponse>}
@@ -118,7 +137,7 @@ proto.echo.EchoServiceClient.prototype.echo =
       '/echo.EchoService/Echo',
       request,
       metadata || {},
-      methodInfo_EchoService_Echo,
+      methodDescriptor_EchoService_Echo,
       callback);
 };
 
@@ -137,7 +156,7 @@ proto.echo.EchoServicePromiseClient.prototype.echo =
       '/echo.EchoService/Echo',
       request,
       metadata || {},
-      methodInfo_EchoService_Echo);
+      methodDescriptor_EchoService_Echo);
 };
 
 

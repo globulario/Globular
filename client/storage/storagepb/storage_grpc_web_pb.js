@@ -88,6 +88,25 @@ proto.storage.StorageServicePromiseClient =
 
 /**
  * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.OpenRqst,
+ *   !proto.storage.OpenRsp>}
+ */
+const methodDescriptor_StorageService_Open = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/Open',
+  grpc.web.MethodType.UNARY,
+  proto.storage.OpenRqst,
+  proto.storage.OpenRsp,
+  /** @param {!proto.storage.OpenRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.OpenRsp.deserializeBinary
+);
+
+
+/**
+ * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.storage.OpenRqst,
  *   !proto.storage.OpenRsp>}
@@ -118,7 +137,7 @@ proto.storage.StorageServiceClient.prototype.open =
       '/storage.StorageService/Open',
       request,
       metadata || {},
-      methodInfo_StorageService_Open,
+      methodDescriptor_StorageService_Open,
       callback);
 };
 
@@ -137,8 +156,27 @@ proto.storage.StorageServicePromiseClient.prototype.open =
       '/storage.StorageService/Open',
       request,
       metadata || {},
-      methodInfo_StorageService_Open);
+      methodDescriptor_StorageService_Open);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.CloseRqst,
+ *   !proto.storage.CloseRsp>}
+ */
+const methodDescriptor_StorageService_Close = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/Close',
+  grpc.web.MethodType.UNARY,
+  proto.storage.CloseRqst,
+  proto.storage.CloseRsp,
+  /** @param {!proto.storage.CloseRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.CloseRsp.deserializeBinary
+);
 
 
 /**
@@ -173,7 +211,7 @@ proto.storage.StorageServiceClient.prototype.close =
       '/storage.StorageService/Close',
       request,
       metadata || {},
-      methodInfo_StorageService_Close,
+      methodDescriptor_StorageService_Close,
       callback);
 };
 
@@ -192,8 +230,27 @@ proto.storage.StorageServicePromiseClient.prototype.close =
       '/storage.StorageService/Close',
       request,
       metadata || {},
-      methodInfo_StorageService_Close);
+      methodDescriptor_StorageService_Close);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.CreateConnectionRqst,
+ *   !proto.storage.CreateConnectionRsp>}
+ */
+const methodDescriptor_StorageService_CreateConnection = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/CreateConnection',
+  grpc.web.MethodType.UNARY,
+  proto.storage.CreateConnectionRqst,
+  proto.storage.CreateConnectionRsp,
+  /** @param {!proto.storage.CreateConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.CreateConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -228,7 +285,7 @@ proto.storage.StorageServiceClient.prototype.createConnection =
       '/storage.StorageService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_StorageService_CreateConnection,
+      methodDescriptor_StorageService_CreateConnection,
       callback);
 };
 
@@ -247,8 +304,27 @@ proto.storage.StorageServicePromiseClient.prototype.createConnection =
       '/storage.StorageService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_StorageService_CreateConnection);
+      methodDescriptor_StorageService_CreateConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.DeleteConnectionRqst,
+ *   !proto.storage.DeleteConnectionRsp>}
+ */
+const methodDescriptor_StorageService_DeleteConnection = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/DeleteConnection',
+  grpc.web.MethodType.UNARY,
+  proto.storage.DeleteConnectionRqst,
+  proto.storage.DeleteConnectionRsp,
+  /** @param {!proto.storage.DeleteConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.DeleteConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -283,7 +359,7 @@ proto.storage.StorageServiceClient.prototype.deleteConnection =
       '/storage.StorageService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_StorageService_DeleteConnection,
+      methodDescriptor_StorageService_DeleteConnection,
       callback);
 };
 
@@ -302,8 +378,27 @@ proto.storage.StorageServicePromiseClient.prototype.deleteConnection =
       '/storage.StorageService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_StorageService_DeleteConnection);
+      methodDescriptor_StorageService_DeleteConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.SetItemRequest,
+ *   !proto.storage.SetItemResponse>}
+ */
+const methodDescriptor_StorageService_SetItem = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/SetItem',
+  grpc.web.MethodType.UNARY,
+  proto.storage.SetItemRequest,
+  proto.storage.SetItemResponse,
+  /** @param {!proto.storage.SetItemRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.SetItemResponse.deserializeBinary
+);
 
 
 /**
@@ -338,7 +433,7 @@ proto.storage.StorageServiceClient.prototype.setItem =
       '/storage.StorageService/SetItem',
       request,
       metadata || {},
-      methodInfo_StorageService_SetItem,
+      methodDescriptor_StorageService_SetItem,
       callback);
 };
 
@@ -357,8 +452,27 @@ proto.storage.StorageServicePromiseClient.prototype.setItem =
       '/storage.StorageService/SetItem',
       request,
       metadata || {},
-      methodInfo_StorageService_SetItem);
+      methodDescriptor_StorageService_SetItem);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.GetItemRequest,
+ *   !proto.storage.GetItemResponse>}
+ */
+const methodDescriptor_StorageService_GetItem = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/GetItem',
+  grpc.web.MethodType.UNARY,
+  proto.storage.GetItemRequest,
+  proto.storage.GetItemResponse,
+  /** @param {!proto.storage.GetItemRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.GetItemResponse.deserializeBinary
+);
 
 
 /**
@@ -393,7 +507,7 @@ proto.storage.StorageServiceClient.prototype.getItem =
       '/storage.StorageService/GetItem',
       request,
       metadata || {},
-      methodInfo_StorageService_GetItem,
+      methodDescriptor_StorageService_GetItem,
       callback);
 };
 
@@ -412,8 +526,27 @@ proto.storage.StorageServicePromiseClient.prototype.getItem =
       '/storage.StorageService/GetItem',
       request,
       metadata || {},
-      methodInfo_StorageService_GetItem);
+      methodDescriptor_StorageService_GetItem);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.RemoveItemRequest,
+ *   !proto.storage.RemoveItemResponse>}
+ */
+const methodDescriptor_StorageService_RemoveItem = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/RemoveItem',
+  grpc.web.MethodType.UNARY,
+  proto.storage.RemoveItemRequest,
+  proto.storage.RemoveItemResponse,
+  /** @param {!proto.storage.RemoveItemRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.RemoveItemResponse.deserializeBinary
+);
 
 
 /**
@@ -448,7 +581,7 @@ proto.storage.StorageServiceClient.prototype.removeItem =
       '/storage.StorageService/RemoveItem',
       request,
       metadata || {},
-      methodInfo_StorageService_RemoveItem,
+      methodDescriptor_StorageService_RemoveItem,
       callback);
 };
 
@@ -467,8 +600,27 @@ proto.storage.StorageServicePromiseClient.prototype.removeItem =
       '/storage.StorageService/RemoveItem',
       request,
       metadata || {},
-      methodInfo_StorageService_RemoveItem);
+      methodDescriptor_StorageService_RemoveItem);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.ClearRequest,
+ *   !proto.storage.ClearResponse>}
+ */
+const methodDescriptor_StorageService_Clear = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/Clear',
+  grpc.web.MethodType.UNARY,
+  proto.storage.ClearRequest,
+  proto.storage.ClearResponse,
+  /** @param {!proto.storage.ClearRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.ClearResponse.deserializeBinary
+);
 
 
 /**
@@ -503,7 +655,7 @@ proto.storage.StorageServiceClient.prototype.clear =
       '/storage.StorageService/Clear',
       request,
       metadata || {},
-      methodInfo_StorageService_Clear,
+      methodDescriptor_StorageService_Clear,
       callback);
 };
 
@@ -522,8 +674,27 @@ proto.storage.StorageServicePromiseClient.prototype.clear =
       '/storage.StorageService/Clear',
       request,
       metadata || {},
-      methodInfo_StorageService_Clear);
+      methodDescriptor_StorageService_Clear);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.storage.DropRequest,
+ *   !proto.storage.DropResponse>}
+ */
+const methodDescriptor_StorageService_Drop = new grpc.web.MethodDescriptor(
+  '/storage.StorageService/Drop',
+  grpc.web.MethodType.UNARY,
+  proto.storage.DropRequest,
+  proto.storage.DropResponse,
+  /** @param {!proto.storage.DropRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.storage.DropResponse.deserializeBinary
+);
 
 
 /**
@@ -558,7 +729,7 @@ proto.storage.StorageServiceClient.prototype.drop =
       '/storage.StorageService/Drop',
       request,
       metadata || {},
-      methodInfo_StorageService_Drop,
+      methodDescriptor_StorageService_Drop,
       callback);
 };
 
@@ -577,7 +748,7 @@ proto.storage.StorageServicePromiseClient.prototype.drop =
       '/storage.StorageService/Drop',
       request,
       metadata || {},
-      methodInfo_StorageService_Drop);
+      methodDescriptor_StorageService_Drop);
 };
 
 

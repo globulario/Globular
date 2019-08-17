@@ -88,6 +88,25 @@ proto.sql.SqlServicePromiseClient =
 
 /**
  * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.sql.CreateConnectionRqst,
+ *   !proto.sql.CreateConnectionRsp>}
+ */
+const methodDescriptor_SqlService_CreateConnection = new grpc.web.MethodDescriptor(
+  '/sql.SqlService/CreateConnection',
+  grpc.web.MethodType.UNARY,
+  proto.sql.CreateConnectionRqst,
+  proto.sql.CreateConnectionRsp,
+  /** @param {!proto.sql.CreateConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.sql.CreateConnectionRsp.deserializeBinary
+);
+
+
+/**
+ * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.sql.CreateConnectionRqst,
  *   !proto.sql.CreateConnectionRsp>}
@@ -118,7 +137,7 @@ proto.sql.SqlServiceClient.prototype.createConnection =
       '/sql.SqlService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_SqlService_CreateConnection,
+      methodDescriptor_SqlService_CreateConnection,
       callback);
 };
 
@@ -137,8 +156,27 @@ proto.sql.SqlServicePromiseClient.prototype.createConnection =
       '/sql.SqlService/CreateConnection',
       request,
       metadata || {},
-      methodInfo_SqlService_CreateConnection);
+      methodDescriptor_SqlService_CreateConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.sql.DeleteConnectionRqst,
+ *   !proto.sql.DeleteConnectionRsp>}
+ */
+const methodDescriptor_SqlService_DeleteConnection = new grpc.web.MethodDescriptor(
+  '/sql.SqlService/DeleteConnection',
+  grpc.web.MethodType.UNARY,
+  proto.sql.DeleteConnectionRqst,
+  proto.sql.DeleteConnectionRsp,
+  /** @param {!proto.sql.DeleteConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.sql.DeleteConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -173,7 +211,7 @@ proto.sql.SqlServiceClient.prototype.deleteConnection =
       '/sql.SqlService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_SqlService_DeleteConnection,
+      methodDescriptor_SqlService_DeleteConnection,
       callback);
 };
 
@@ -192,8 +230,27 @@ proto.sql.SqlServicePromiseClient.prototype.deleteConnection =
       '/sql.SqlService/DeleteConnection',
       request,
       metadata || {},
-      methodInfo_SqlService_DeleteConnection);
+      methodDescriptor_SqlService_DeleteConnection);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.sql.PingConnectionRqst,
+ *   !proto.sql.PingConnectionRsp>}
+ */
+const methodDescriptor_SqlService_Ping = new grpc.web.MethodDescriptor(
+  '/sql.SqlService/Ping',
+  grpc.web.MethodType.UNARY,
+  proto.sql.PingConnectionRqst,
+  proto.sql.PingConnectionRsp,
+  /** @param {!proto.sql.PingConnectionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.sql.PingConnectionRsp.deserializeBinary
+);
 
 
 /**
@@ -228,7 +285,7 @@ proto.sql.SqlServiceClient.prototype.ping =
       '/sql.SqlService/Ping',
       request,
       metadata || {},
-      methodInfo_SqlService_Ping,
+      methodDescriptor_SqlService_Ping,
       callback);
 };
 
@@ -247,8 +304,27 @@ proto.sql.SqlServicePromiseClient.prototype.ping =
       '/sql.SqlService/Ping',
       request,
       metadata || {},
-      methodInfo_SqlService_Ping);
+      methodDescriptor_SqlService_Ping);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.sql.QueryContextRqst,
+ *   !proto.sql.QueryContextRsp>}
+ */
+const methodDescriptor_SqlService_QueryContext = new grpc.web.MethodDescriptor(
+  '/sql.SqlService/QueryContext',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.sql.QueryContextRqst,
+  proto.sql.QueryContextRsp,
+  /** @param {!proto.sql.QueryContextRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.sql.QueryContextRsp.deserializeBinary
+);
 
 
 /**
@@ -280,7 +356,7 @@ proto.sql.SqlServiceClient.prototype.queryContext =
       '/sql.SqlService/QueryContext',
       request,
       metadata || {},
-      methodInfo_SqlService_QueryContext);
+      methodDescriptor_SqlService_QueryContext);
 };
 
 
@@ -297,8 +373,27 @@ proto.sql.SqlServicePromiseClient.prototype.queryContext =
       '/sql.SqlService/QueryContext',
       request,
       metadata || {},
-      methodInfo_SqlService_QueryContext);
+      methodDescriptor_SqlService_QueryContext);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.sql.ExecContextRqst,
+ *   !proto.sql.ExecContextRsp>}
+ */
+const methodDescriptor_SqlService_ExecContext = new grpc.web.MethodDescriptor(
+  '/sql.SqlService/ExecContext',
+  grpc.web.MethodType.UNARY,
+  proto.sql.ExecContextRqst,
+  proto.sql.ExecContextRsp,
+  /** @param {!proto.sql.ExecContextRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.sql.ExecContextRsp.deserializeBinary
+);
 
 
 /**
@@ -333,7 +428,7 @@ proto.sql.SqlServiceClient.prototype.execContext =
       '/sql.SqlService/ExecContext',
       request,
       metadata || {},
-      methodInfo_SqlService_ExecContext,
+      methodDescriptor_SqlService_ExecContext,
       callback);
 };
 
@@ -352,7 +447,7 @@ proto.sql.SqlServicePromiseClient.prototype.execContext =
       '/sql.SqlService/ExecContext',
       request,
       metadata || {},
-      methodInfo_SqlService_ExecContext);
+      methodDescriptor_SqlService_ExecContext);
 };
 
 
