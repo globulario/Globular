@@ -1,3 +1,4 @@
+// source: event/eventpb/event.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -16,6 +17,7 @@ goog.exportSymbol('proto.event.PublishRequest', null, global);
 goog.exportSymbol('proto.event.PublishResponse', null, global);
 goog.exportSymbol('proto.event.SubscribeRequest', null, global);
 goog.exportSymbol('proto.event.SubscribeResponse', null, global);
+goog.exportSymbol('proto.event.SubscribeResponse.ResultCase', null, global);
 goog.exportSymbol('proto.event.UnSubscribeRequest', null, global);
 goog.exportSymbol('proto.event.UnSubscribeResponse', null, global);
 /**

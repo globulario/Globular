@@ -88,25 +88,6 @@ proto.ldap.LdapServicePromiseClient =
 
 /**
  * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.ldap.CreateConnectionRqst,
- *   !proto.ldap.CreateConnectionRsp>}
- */
-const methodDescriptor_LdapService_CreateConnection = new grpc.web.MethodDescriptor(
-  '/ldap.LdapService/CreateConnection',
-  grpc.web.MethodType.UNARY,
-  proto.ldap.CreateConnectionRqst,
-  proto.ldap.CreateConnectionRsp,
-  /** @param {!proto.ldap.CreateConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ldap.CreateConnectionRsp.deserializeBinary
-);
-
-
-/**
- * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ldap.CreateConnectionRqst,
  *   !proto.ldap.CreateConnectionRsp>}
@@ -137,7 +118,7 @@ proto.ldap.LdapServiceClient.prototype.createConnection =
       '/ldap.LdapService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_LdapService_CreateConnection,
+      methodInfo_LdapService_CreateConnection,
       callback);
 };
 
@@ -156,27 +137,8 @@ proto.ldap.LdapServicePromiseClient.prototype.createConnection =
       '/ldap.LdapService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_LdapService_CreateConnection);
+      methodInfo_LdapService_CreateConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.ldap.DeleteConnectionRqst,
- *   !proto.ldap.DeleteConnectionRsp>}
- */
-const methodDescriptor_LdapService_DeleteConnection = new grpc.web.MethodDescriptor(
-  '/ldap.LdapService/DeleteConnection',
-  grpc.web.MethodType.UNARY,
-  proto.ldap.DeleteConnectionRqst,
-  proto.ldap.DeleteConnectionRsp,
-  /** @param {!proto.ldap.DeleteConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ldap.DeleteConnectionRsp.deserializeBinary
-);
 
 
 /**
@@ -211,7 +173,7 @@ proto.ldap.LdapServiceClient.prototype.deleteConnection =
       '/ldap.LdapService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_LdapService_DeleteConnection,
+      methodInfo_LdapService_DeleteConnection,
       callback);
 };
 
@@ -230,27 +192,8 @@ proto.ldap.LdapServicePromiseClient.prototype.deleteConnection =
       '/ldap.LdapService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_LdapService_DeleteConnection);
+      methodInfo_LdapService_DeleteConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.ldap.CloseRqst,
- *   !proto.ldap.CloseRsp>}
- */
-const methodDescriptor_LdapService_Close = new grpc.web.MethodDescriptor(
-  '/ldap.LdapService/Close',
-  grpc.web.MethodType.UNARY,
-  proto.ldap.CloseRqst,
-  proto.ldap.CloseRsp,
-  /** @param {!proto.ldap.CloseRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ldap.CloseRsp.deserializeBinary
-);
 
 
 /**
@@ -285,7 +228,7 @@ proto.ldap.LdapServiceClient.prototype.close =
       '/ldap.LdapService/Close',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Close,
+      methodInfo_LdapService_Close,
       callback);
 };
 
@@ -304,27 +247,8 @@ proto.ldap.LdapServicePromiseClient.prototype.close =
       '/ldap.LdapService/Close',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Close);
+      methodInfo_LdapService_Close);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.ldap.SearchRqst,
- *   !proto.ldap.SearchResp>}
- */
-const methodDescriptor_LdapService_Search = new grpc.web.MethodDescriptor(
-  '/ldap.LdapService/Search',
-  grpc.web.MethodType.UNARY,
-  proto.ldap.SearchRqst,
-  proto.ldap.SearchResp,
-  /** @param {!proto.ldap.SearchRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ldap.SearchResp.deserializeBinary
-);
 
 
 /**
@@ -359,7 +283,7 @@ proto.ldap.LdapServiceClient.prototype.search =
       '/ldap.LdapService/Search',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Search,
+      methodInfo_LdapService_Search,
       callback);
 };
 
@@ -378,27 +302,8 @@ proto.ldap.LdapServicePromiseClient.prototype.search =
       '/ldap.LdapService/Search',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Search);
+      methodInfo_LdapService_Search);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.ldap.AuthenticateRqst,
- *   !proto.ldap.AuthenticateRsp>}
- */
-const methodDescriptor_LdapService_Authenticate = new grpc.web.MethodDescriptor(
-  '/ldap.LdapService/Authenticate',
-  grpc.web.MethodType.UNARY,
-  proto.ldap.AuthenticateRqst,
-  proto.ldap.AuthenticateRsp,
-  /** @param {!proto.ldap.AuthenticateRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.ldap.AuthenticateRsp.deserializeBinary
-);
 
 
 /**
@@ -433,7 +338,7 @@ proto.ldap.LdapServiceClient.prototype.authenticate =
       '/ldap.LdapService/Authenticate',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Authenticate,
+      methodInfo_LdapService_Authenticate,
       callback);
 };
 
@@ -452,7 +357,7 @@ proto.ldap.LdapServicePromiseClient.prototype.authenticate =
       '/ldap.LdapService/Authenticate',
       request,
       metadata || {},
-      methodDescriptor_LdapService_Authenticate);
+      methodInfo_LdapService_Authenticate);
 };
 
 

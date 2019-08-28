@@ -88,25 +88,6 @@ proto.monitoring.MonitoringServicePromiseClient =
 
 /**
  * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.CreateConnectionRqst,
- *   !proto.monitoring.CreateConnectionRsp>}
- */
-const methodDescriptor_MonitoringService_CreateConnection = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/CreateConnection',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.CreateConnectionRqst,
-  proto.monitoring.CreateConnectionRsp,
-  /** @param {!proto.monitoring.CreateConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.CreateConnectionRsp.deserializeBinary
-);
-
-
-/**
- * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.monitoring.CreateConnectionRqst,
  *   !proto.monitoring.CreateConnectionRsp>}
@@ -137,7 +118,7 @@ proto.monitoring.MonitoringServiceClient.prototype.createConnection =
       '/monitoring.MonitoringService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_CreateConnection,
+      methodInfo_MonitoringService_CreateConnection,
       callback);
 };
 
@@ -156,27 +137,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.createConnection =
       '/monitoring.MonitoringService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_CreateConnection);
+      methodInfo_MonitoringService_CreateConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.DeleteConnectionRqst,
- *   !proto.monitoring.DeleteConnectionRsp>}
- */
-const methodDescriptor_MonitoringService_DeleteConnection = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/DeleteConnection',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.DeleteConnectionRqst,
-  proto.monitoring.DeleteConnectionRsp,
-  /** @param {!proto.monitoring.DeleteConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.DeleteConnectionRsp.deserializeBinary
-);
 
 
 /**
@@ -211,7 +173,7 @@ proto.monitoring.MonitoringServiceClient.prototype.deleteConnection =
       '/monitoring.MonitoringService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_DeleteConnection,
+      methodInfo_MonitoringService_DeleteConnection,
       callback);
 };
 
@@ -230,27 +192,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.deleteConnection =
       '/monitoring.MonitoringService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_DeleteConnection);
+      methodInfo_MonitoringService_DeleteConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.AlertsRequest,
- *   !proto.monitoring.AlertsResponse>}
- */
-const methodDescriptor_MonitoringService_Alerts = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Alerts',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.AlertsRequest,
-  proto.monitoring.AlertsResponse,
-  /** @param {!proto.monitoring.AlertsRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.AlertsResponse.deserializeBinary
-);
 
 
 /**
@@ -285,7 +228,7 @@ proto.monitoring.MonitoringServiceClient.prototype.alerts =
       '/monitoring.MonitoringService/Alerts',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Alerts,
+      methodInfo_MonitoringService_Alerts,
       callback);
 };
 
@@ -304,27 +247,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.alerts =
       '/monitoring.MonitoringService/Alerts',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Alerts);
+      methodInfo_MonitoringService_Alerts);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.AlertManagersRequest,
- *   !proto.monitoring.AlertManagersResponse>}
- */
-const methodDescriptor_MonitoringService_AlertManagers = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/AlertManagers',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.AlertManagersRequest,
-  proto.monitoring.AlertManagersResponse,
-  /** @param {!proto.monitoring.AlertManagersRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.AlertManagersResponse.deserializeBinary
-);
 
 
 /**
@@ -359,7 +283,7 @@ proto.monitoring.MonitoringServiceClient.prototype.alertManagers =
       '/monitoring.MonitoringService/AlertManagers',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_AlertManagers,
+      methodInfo_MonitoringService_AlertManagers,
       callback);
 };
 
@@ -378,27 +302,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.alertManagers =
       '/monitoring.MonitoringService/AlertManagers',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_AlertManagers);
+      methodInfo_MonitoringService_AlertManagers);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.CleanTombstonesRequest,
- *   !proto.monitoring.CleanTombstonesResponse>}
- */
-const methodDescriptor_MonitoringService_CleanTombstones = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/CleanTombstones',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.CleanTombstonesRequest,
-  proto.monitoring.CleanTombstonesResponse,
-  /** @param {!proto.monitoring.CleanTombstonesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.CleanTombstonesResponse.deserializeBinary
-);
 
 
 /**
@@ -433,7 +338,7 @@ proto.monitoring.MonitoringServiceClient.prototype.cleanTombstones =
       '/monitoring.MonitoringService/CleanTombstones',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_CleanTombstones,
+      methodInfo_MonitoringService_CleanTombstones,
       callback);
 };
 
@@ -452,27 +357,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.cleanTombstones =
       '/monitoring.MonitoringService/CleanTombstones',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_CleanTombstones);
+      methodInfo_MonitoringService_CleanTombstones);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.ConfigRequest,
- *   !proto.monitoring.ConfigResponse>}
- */
-const methodDescriptor_MonitoringService_Config = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Config',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.ConfigRequest,
-  proto.monitoring.ConfigResponse,
-  /** @param {!proto.monitoring.ConfigRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.ConfigResponse.deserializeBinary
-);
 
 
 /**
@@ -507,7 +393,7 @@ proto.monitoring.MonitoringServiceClient.prototype.config =
       '/monitoring.MonitoringService/Config',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Config,
+      methodInfo_MonitoringService_Config,
       callback);
 };
 
@@ -526,27 +412,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.config =
       '/monitoring.MonitoringService/Config',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Config);
+      methodInfo_MonitoringService_Config);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.DeleteSeriesRequest,
- *   !proto.monitoring.DeleteSeriesResponse>}
- */
-const methodDescriptor_MonitoringService_DeleteSeries = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/DeleteSeries',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.DeleteSeriesRequest,
-  proto.monitoring.DeleteSeriesResponse,
-  /** @param {!proto.monitoring.DeleteSeriesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.DeleteSeriesResponse.deserializeBinary
-);
 
 
 /**
@@ -581,7 +448,7 @@ proto.monitoring.MonitoringServiceClient.prototype.deleteSeries =
       '/monitoring.MonitoringService/DeleteSeries',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_DeleteSeries,
+      methodInfo_MonitoringService_DeleteSeries,
       callback);
 };
 
@@ -600,27 +467,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.deleteSeries =
       '/monitoring.MonitoringService/DeleteSeries',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_DeleteSeries);
+      methodInfo_MonitoringService_DeleteSeries);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.FlagsRequest,
- *   !proto.monitoring.FlagsResponse>}
- */
-const methodDescriptor_MonitoringService_Flags = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Flags',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.FlagsRequest,
-  proto.monitoring.FlagsResponse,
-  /** @param {!proto.monitoring.FlagsRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.FlagsResponse.deserializeBinary
-);
 
 
 /**
@@ -655,7 +503,7 @@ proto.monitoring.MonitoringServiceClient.prototype.flags =
       '/monitoring.MonitoringService/Flags',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Flags,
+      methodInfo_MonitoringService_Flags,
       callback);
 };
 
@@ -674,27 +522,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.flags =
       '/monitoring.MonitoringService/Flags',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Flags);
+      methodInfo_MonitoringService_Flags);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.LabelNamesRequest,
- *   !proto.monitoring.LabelNamesResponse>}
- */
-const methodDescriptor_MonitoringService_LabelNames = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/LabelNames',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.LabelNamesRequest,
-  proto.monitoring.LabelNamesResponse,
-  /** @param {!proto.monitoring.LabelNamesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.LabelNamesResponse.deserializeBinary
-);
 
 
 /**
@@ -729,7 +558,7 @@ proto.monitoring.MonitoringServiceClient.prototype.labelNames =
       '/monitoring.MonitoringService/LabelNames',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_LabelNames,
+      methodInfo_MonitoringService_LabelNames,
       callback);
 };
 
@@ -748,27 +577,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.labelNames =
       '/monitoring.MonitoringService/LabelNames',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_LabelNames);
+      methodInfo_MonitoringService_LabelNames);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.LabelValuesRequest,
- *   !proto.monitoring.LabelValuesResponse>}
- */
-const methodDescriptor_MonitoringService_LabelValues = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/LabelValues',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.LabelValuesRequest,
-  proto.monitoring.LabelValuesResponse,
-  /** @param {!proto.monitoring.LabelValuesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.LabelValuesResponse.deserializeBinary
-);
 
 
 /**
@@ -803,7 +613,7 @@ proto.monitoring.MonitoringServiceClient.prototype.labelValues =
       '/monitoring.MonitoringService/LabelValues',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_LabelValues,
+      methodInfo_MonitoringService_LabelValues,
       callback);
 };
 
@@ -822,27 +632,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.labelValues =
       '/monitoring.MonitoringService/LabelValues',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_LabelValues);
+      methodInfo_MonitoringService_LabelValues);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.QueryRequest,
- *   !proto.monitoring.QueryResponse>}
- */
-const methodDescriptor_MonitoringService_Query = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Query',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.QueryRequest,
-  proto.monitoring.QueryResponse,
-  /** @param {!proto.monitoring.QueryRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.QueryResponse.deserializeBinary
-);
 
 
 /**
@@ -877,7 +668,7 @@ proto.monitoring.MonitoringServiceClient.prototype.query =
       '/monitoring.MonitoringService/Query',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Query,
+      methodInfo_MonitoringService_Query,
       callback);
 };
 
@@ -896,27 +687,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.query =
       '/monitoring.MonitoringService/Query',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Query);
+      methodInfo_MonitoringService_Query);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.QueryRangeRequest,
- *   !proto.monitoring.QueryRangeResponse>}
- */
-const methodDescriptor_MonitoringService_QueryRange = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/QueryRange',
-  grpc.web.MethodType.SERVER_STREAMING,
-  proto.monitoring.QueryRangeRequest,
-  proto.monitoring.QueryRangeResponse,
-  /** @param {!proto.monitoring.QueryRangeRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.QueryRangeResponse.deserializeBinary
-);
 
 
 /**
@@ -948,7 +720,7 @@ proto.monitoring.MonitoringServiceClient.prototype.queryRange =
       '/monitoring.MonitoringService/QueryRange',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_QueryRange);
+      methodInfo_MonitoringService_QueryRange);
 };
 
 
@@ -965,27 +737,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.queryRange =
       '/monitoring.MonitoringService/QueryRange',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_QueryRange);
+      methodInfo_MonitoringService_QueryRange);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.SeriesRequest,
- *   !proto.monitoring.SeriesResponse>}
- */
-const methodDescriptor_MonitoringService_Series = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Series',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.SeriesRequest,
-  proto.monitoring.SeriesResponse,
-  /** @param {!proto.monitoring.SeriesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.SeriesResponse.deserializeBinary
-);
 
 
 /**
@@ -1020,7 +773,7 @@ proto.monitoring.MonitoringServiceClient.prototype.series =
       '/monitoring.MonitoringService/Series',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Series,
+      methodInfo_MonitoringService_Series,
       callback);
 };
 
@@ -1039,27 +792,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.series =
       '/monitoring.MonitoringService/Series',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Series);
+      methodInfo_MonitoringService_Series);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.SnapshotRequest,
- *   !proto.monitoring.SnapshotResponse>}
- */
-const methodDescriptor_MonitoringService_Snapshot = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Snapshot',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.SnapshotRequest,
-  proto.monitoring.SnapshotResponse,
-  /** @param {!proto.monitoring.SnapshotRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.SnapshotResponse.deserializeBinary
-);
 
 
 /**
@@ -1094,7 +828,7 @@ proto.monitoring.MonitoringServiceClient.prototype.snapshot =
       '/monitoring.MonitoringService/Snapshot',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Snapshot,
+      methodInfo_MonitoringService_Snapshot,
       callback);
 };
 
@@ -1113,27 +847,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.snapshot =
       '/monitoring.MonitoringService/Snapshot',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Snapshot);
+      methodInfo_MonitoringService_Snapshot);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.RulesRequest,
- *   !proto.monitoring.RulesResponse>}
- */
-const methodDescriptor_MonitoringService_Rules = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Rules',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.RulesRequest,
-  proto.monitoring.RulesResponse,
-  /** @param {!proto.monitoring.RulesRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.RulesResponse.deserializeBinary
-);
 
 
 /**
@@ -1168,7 +883,7 @@ proto.monitoring.MonitoringServiceClient.prototype.rules =
       '/monitoring.MonitoringService/Rules',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Rules,
+      methodInfo_MonitoringService_Rules,
       callback);
 };
 
@@ -1187,27 +902,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.rules =
       '/monitoring.MonitoringService/Rules',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Rules);
+      methodInfo_MonitoringService_Rules);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.TargetsRequest,
- *   !proto.monitoring.TargetsResponse>}
- */
-const methodDescriptor_MonitoringService_Targets = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/Targets',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.TargetsRequest,
-  proto.monitoring.TargetsResponse,
-  /** @param {!proto.monitoring.TargetsRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.TargetsResponse.deserializeBinary
-);
 
 
 /**
@@ -1242,7 +938,7 @@ proto.monitoring.MonitoringServiceClient.prototype.targets =
       '/monitoring.MonitoringService/Targets',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Targets,
+      methodInfo_MonitoringService_Targets,
       callback);
 };
 
@@ -1261,27 +957,8 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.targets =
       '/monitoring.MonitoringService/Targets',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_Targets);
+      methodInfo_MonitoringService_Targets);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.monitoring.TargetsMetadataRequest,
- *   !proto.monitoring.TargetsMetadataResponse>}
- */
-const methodDescriptor_MonitoringService_TargetsMetadata = new grpc.web.MethodDescriptor(
-  '/monitoring.MonitoringService/TargetsMetadata',
-  grpc.web.MethodType.UNARY,
-  proto.monitoring.TargetsMetadataRequest,
-  proto.monitoring.TargetsMetadataResponse,
-  /** @param {!proto.monitoring.TargetsMetadataRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.monitoring.TargetsMetadataResponse.deserializeBinary
-);
 
 
 /**
@@ -1316,7 +993,7 @@ proto.monitoring.MonitoringServiceClient.prototype.targetsMetadata =
       '/monitoring.MonitoringService/TargetsMetadata',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_TargetsMetadata,
+      methodInfo_MonitoringService_TargetsMetadata,
       callback);
 };
 
@@ -1335,7 +1012,7 @@ proto.monitoring.MonitoringServicePromiseClient.prototype.targetsMetadata =
       '/monitoring.MonitoringService/TargetsMetadata',
       request,
       metadata || {},
-      methodDescriptor_MonitoringService_TargetsMetadata);
+      methodInfo_MonitoringService_TargetsMetadata);
 };
 
 

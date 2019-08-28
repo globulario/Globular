@@ -1,4 +1,3 @@
-// source: echo/echopb/echo.proto
 /**
  * @fileoverview
  * @enhanceable

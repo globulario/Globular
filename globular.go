@@ -35,6 +35,7 @@ import (
 	"github.com/davecourtois/Globular/ldap/ldap_client"
 	"github.com/davecourtois/Globular/monitoring/monitoring_client"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
+	"github.com/davecourtois/Globular/plc/plc_client"
 	"github.com/davecourtois/Globular/smtp/smtp_client"
 	"github.com/davecourtois/Globular/spc/spc_client"
 	"github.com/davecourtois/Globular/sql/sql_client"
@@ -208,131 +209,133 @@ func (self *Globule) initServices() {
 			if err == nil {
 				// Read the config file.
 				json.Unmarshal(config, &s)
+				if s["Protocol"] != nil {
 
-				if s["Protocol"].(string) == "grpc" {
+					if s["Protocol"].(string) == "grpc" {
 
-					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-					servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-					if string(os.PathSeparator) == "\\" {
-						servicePath += ".exe" // in case of windows.
+						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
+						if string(os.PathSeparator) == "\\" {
+							servicePath += ".exe" // in case of windows.
+						}
+
+						// Now I will start the proxy that will be use by javascript client.
+						proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+						if string(os.PathSeparator) == "\\" {
+							proxyPath += ".exe" // in case of windows.
+						}
+
+						// The domain must be set in the sever configuration and not change after that.
+						s["Domain"] = self.Domain // local services.
+						s["Address"] = self.IP    // local services.
+						proxyBackendAddress := s["Domain"].(string) + ":" + Utility.ToString(s["Port"])
+
+						proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
+						proxyArgs := make([]string, 0)
+
+						// Use in a local network or in test.
+						proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
+						proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
+
+						if self.Protocol == "https" {
+
+							// Set TLS local services configuration here.
+							s["TLS"] = true
+							s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
+							s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
+							s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
+
+							// Now I will save the file with those new information in it.
+							jsonStr, _ := Utility.ToJson(&s)
+							ioutil.WriteFile(path, []byte(jsonStr), 0644)
+
+							// Set local client configuration here.
+
+							// Now set the proxy information here.
+
+							/* Services gRpc backend. */
+							proxyArgs = append(proxyArgs, "--backend_tls=true")
+							proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
+							proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
+							proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
+
+							/* http2 parameters between the browser and the proxy.*/
+							proxyArgs = append(proxyArgs, "--run_http_server=false")
+							proxyArgs = append(proxyArgs, "--run_tls_server=true")
+							proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(s["Proxy"]))
+
+							proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
+							proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
+							proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
+
+						} else {
+							// not secure services.
+							s["TLS"] = false
+							s["CertAuthorityTrust"] = ""
+							s["CertFile"] = ""
+							s["KeyFile"] = ""
+
+							// Now I will save the file with those new information in it.
+							jsonStr, _ := Utility.ToJson(&s)
+							ioutil.WriteFile(path, []byte(jsonStr), 0644)
+							proxyArgs = append(proxyArgs, "--run_http_server=true")
+							proxyArgs = append(proxyArgs, "--run_tls_server=false")
+							proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
+							proxyArgs = append(proxyArgs, "--backend_tls=false")
+						}
+
+						// Keep connection open for longer exchange between client/service. Event Subscribe function
+						// is a good example of long lasting connection. (48 hours) seam to be more than enought for
+						// browser client connection maximum life.
+						proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
+						proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+
+						// Kill previous instance of the program.
+						killProcessByName(s["Name"].(string))
+
+						// Start the process in it own thread and keep it alive as needed for a miximum number of try
+						// before given up.
+
+						// Start the service process.
+						log.Println("try to start process ", s["Name"].(string))
+						if s["Name"].(string) == "file_server" {
+							// File service need root...
+							s["Root"] = globule.webRoot
+							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
+						} else {
+							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+						}
+
+						err = s["Process"].(*exec.Cmd).Start()
+						if err != nil {
+							log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+						}
+
+						log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
+
+						// Start the proxie's and keep them alives.
+
+						// start the proxy service one time
+						s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
+						err = s["ProxyProcess"].(*exec.Cmd).Start()
+						if err != nil {
+							log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
+						}
+
+						self.services[s["Name"].(string)] = s
+						s_ := make(map[string]interface{})
+
+						// export public service values.
+						s_["Address"] = s["Address"]
+						s_["Domain"] = s["Domain"]
+						s_["Proxy"] = s["Proxy"]
+						s_["Port"] = s["Port"]
+
+						self.Services[s["Name"].(string)] = s_
+						self.saveConfig()
+
+						log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 					}
-
-					// Now I will start the proxy that will be use by javascript client.
-					proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-					if string(os.PathSeparator) == "\\" {
-						proxyPath += ".exe" // in case of windows.
-					}
-
-					// The domain must be set in the sever configuration and not change after that.
-					s["Domain"] = self.Domain // local services.
-					s["Address"] = self.IP    // local services.
-					proxyBackendAddress := s["Domain"].(string) + ":" + Utility.ToString(s["Port"])
-
-					proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
-					proxyArgs := make([]string, 0)
-
-					// Use in a local network or in test.
-					proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
-					proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-
-					if self.Protocol == "https" {
-
-						// Set TLS local services configuration here.
-						s["TLS"] = true
-						s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
-						s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
-						s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
-
-						// Now I will save the file with those new information in it.
-						jsonStr, _ := Utility.ToJson(&s)
-						ioutil.WriteFile(path, []byte(jsonStr), 0644)
-
-						// Set local client configuration here.
-
-						// Now set the proxy information here.
-
-						/* Services gRpc backend. */
-						proxyArgs = append(proxyArgs, "--backend_tls=true")
-						proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
-						proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
-						proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
-
-						/* http2 parameters between the browser and the proxy.*/
-						proxyArgs = append(proxyArgs, "--run_http_server=false")
-						proxyArgs = append(proxyArgs, "--run_tls_server=true")
-						proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(s["Proxy"]))
-
-						proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
-						proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
-						proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
-
-					} else {
-						// not secure services.
-						s["TLS"] = false
-						s["CertAuthorityTrust"] = ""
-						s["CertFile"] = ""
-						s["KeyFile"] = ""
-
-						// Now I will save the file with those new information in it.
-						jsonStr, _ := Utility.ToJson(&s)
-						ioutil.WriteFile(path, []byte(jsonStr), 0644)
-						proxyArgs = append(proxyArgs, "--run_http_server=true")
-						proxyArgs = append(proxyArgs, "--run_tls_server=false")
-						proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
-						proxyArgs = append(proxyArgs, "--backend_tls=false")
-					}
-
-					// Keep connection open for longer exchange between client/service. Event Subscribe function
-					// is a good example of long lasting connection. (48 hours) seam to be more than enought for
-					// browser client connection maximum life.
-					proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
-					proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
-
-					// Kill previous instance of the program.
-					killProcessByName(s["Name"].(string))
-
-					// Start the process in it own thread and keep it alive as needed for a miximum number of try
-					// before given up.
-
-					// Start the service process.
-					log.Println("try to start process ", s["Name"].(string))
-					if s["Name"].(string) == "file_server" {
-						// File service need root...
-						s["Root"] = globule.webRoot
-						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
-					} else {
-						s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
-					}
-
-					err = s["Process"].(*exec.Cmd).Start()
-					if err != nil {
-						log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-					}
-
-					log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
-
-					// Start the proxie's and keep them alives.
-
-					// start the proxy service one time
-					s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
-					err = s["ProxyProcess"].(*exec.Cmd).Start()
-					if err != nil {
-						log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
-					}
-
-					self.services[s["Name"].(string)] = s
-					s_ := make(map[string]interface{})
-
-					// export public service values.
-					s_["Address"] = s["Address"]
-					s_["Domain"] = s["Domain"]
-					s_["Proxy"] = s["Proxy"]
-					s_["Port"] = s["Port"]
-
-					self.Services[s["Name"].(string)] = s_
-					self.saveConfig()
-
-					log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 				}
 			}
 		}
@@ -658,10 +661,12 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
 	Utility.RegisterFunction("NewCatalog_Client", catalog_client.NewCatalog_Client)
 	Utility.RegisterFunction("NewMonitoring_Client", monitoring_client.NewMonitoring_Client)
+
 	// That service is program in c++
 	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)
+	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
 
-	// The echo service
+	// The services
 	for k, _ := range self.services {
 		name := strings.Split(k, "_")[0]
 		self.initClient(name)

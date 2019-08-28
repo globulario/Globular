@@ -88,25 +88,6 @@ proto.file.FileServicePromiseClient =
 
 /**
  * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.ReadDirRequest,
- *   !proto.file.ReadDirResponse>}
- */
-const methodDescriptor_FileService_ReadDir = new grpc.web.MethodDescriptor(
-  '/file.FileService/ReadDir',
-  grpc.web.MethodType.SERVER_STREAMING,
-  proto.file.ReadDirRequest,
-  proto.file.ReadDirResponse,
-  /** @param {!proto.file.ReadDirRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.ReadDirResponse.deserializeBinary
-);
-
-
-/**
- * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.file.ReadDirRequest,
  *   !proto.file.ReadDirResponse>}
@@ -134,7 +115,7 @@ proto.file.FileServiceClient.prototype.readDir =
       '/file.FileService/ReadDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_ReadDir);
+      methodInfo_FileService_ReadDir);
 };
 
 
@@ -151,27 +132,8 @@ proto.file.FileServicePromiseClient.prototype.readDir =
       '/file.FileService/ReadDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_ReadDir);
+      methodInfo_FileService_ReadDir);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.CreateDirRequest,
- *   !proto.file.CreateDirResponse>}
- */
-const methodDescriptor_FileService_CreateDir = new grpc.web.MethodDescriptor(
-  '/file.FileService/CreateDir',
-  grpc.web.MethodType.UNARY,
-  proto.file.CreateDirRequest,
-  proto.file.CreateDirResponse,
-  /** @param {!proto.file.CreateDirRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.CreateDirResponse.deserializeBinary
-);
 
 
 /**
@@ -206,7 +168,7 @@ proto.file.FileServiceClient.prototype.createDir =
       '/file.FileService/CreateDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_CreateDir,
+      methodInfo_FileService_CreateDir,
       callback);
 };
 
@@ -225,27 +187,8 @@ proto.file.FileServicePromiseClient.prototype.createDir =
       '/file.FileService/CreateDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_CreateDir);
+      methodInfo_FileService_CreateDir);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.DeleteDirRequest,
- *   !proto.file.DeleteDirResponse>}
- */
-const methodDescriptor_FileService_DeleteDir = new grpc.web.MethodDescriptor(
-  '/file.FileService/DeleteDir',
-  grpc.web.MethodType.UNARY,
-  proto.file.DeleteDirRequest,
-  proto.file.DeleteDirResponse,
-  /** @param {!proto.file.DeleteDirRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.DeleteDirResponse.deserializeBinary
-);
 
 
 /**
@@ -280,7 +223,7 @@ proto.file.FileServiceClient.prototype.deleteDir =
       '/file.FileService/DeleteDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_DeleteDir,
+      methodInfo_FileService_DeleteDir,
       callback);
 };
 
@@ -299,27 +242,8 @@ proto.file.FileServicePromiseClient.prototype.deleteDir =
       '/file.FileService/DeleteDir',
       request,
       metadata || {},
-      methodDescriptor_FileService_DeleteDir);
+      methodInfo_FileService_DeleteDir);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.RenameRequest,
- *   !proto.file.RenameResponse>}
- */
-const methodDescriptor_FileService_Rename = new grpc.web.MethodDescriptor(
-  '/file.FileService/Rename',
-  grpc.web.MethodType.UNARY,
-  proto.file.RenameRequest,
-  proto.file.RenameResponse,
-  /** @param {!proto.file.RenameRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.RenameResponse.deserializeBinary
-);
 
 
 /**
@@ -354,7 +278,7 @@ proto.file.FileServiceClient.prototype.rename =
       '/file.FileService/Rename',
       request,
       metadata || {},
-      methodDescriptor_FileService_Rename,
+      methodInfo_FileService_Rename,
       callback);
 };
 
@@ -373,27 +297,8 @@ proto.file.FileServicePromiseClient.prototype.rename =
       '/file.FileService/Rename',
       request,
       metadata || {},
-      methodDescriptor_FileService_Rename);
+      methodInfo_FileService_Rename);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.GetFileInfoRequest,
- *   !proto.file.GetFileInfoResponse>}
- */
-const methodDescriptor_FileService_GetFileInfo = new grpc.web.MethodDescriptor(
-  '/file.FileService/GetFileInfo',
-  grpc.web.MethodType.UNARY,
-  proto.file.GetFileInfoRequest,
-  proto.file.GetFileInfoResponse,
-  /** @param {!proto.file.GetFileInfoRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.GetFileInfoResponse.deserializeBinary
-);
 
 
 /**
@@ -428,7 +333,7 @@ proto.file.FileServiceClient.prototype.getFileInfo =
       '/file.FileService/GetFileInfo',
       request,
       metadata || {},
-      methodDescriptor_FileService_GetFileInfo,
+      methodInfo_FileService_GetFileInfo,
       callback);
 };
 
@@ -447,27 +352,8 @@ proto.file.FileServicePromiseClient.prototype.getFileInfo =
       '/file.FileService/GetFileInfo',
       request,
       metadata || {},
-      methodDescriptor_FileService_GetFileInfo);
+      methodInfo_FileService_GetFileInfo);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.ReadFileRequest,
- *   !proto.file.ReadFileResponse>}
- */
-const methodDescriptor_FileService_ReadFile = new grpc.web.MethodDescriptor(
-  '/file.FileService/ReadFile',
-  grpc.web.MethodType.SERVER_STREAMING,
-  proto.file.ReadFileRequest,
-  proto.file.ReadFileResponse,
-  /** @param {!proto.file.ReadFileRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.ReadFileResponse.deserializeBinary
-);
 
 
 /**
@@ -499,7 +385,7 @@ proto.file.FileServiceClient.prototype.readFile =
       '/file.FileService/ReadFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_ReadFile);
+      methodInfo_FileService_ReadFile);
 };
 
 
@@ -516,27 +402,8 @@ proto.file.FileServicePromiseClient.prototype.readFile =
       '/file.FileService/ReadFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_ReadFile);
+      methodInfo_FileService_ReadFile);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.DeleteFileRequest,
- *   !proto.file.DeleteFileResponse>}
- */
-const methodDescriptor_FileService_DeleteFile = new grpc.web.MethodDescriptor(
-  '/file.FileService/DeleteFile',
-  grpc.web.MethodType.UNARY,
-  proto.file.DeleteFileRequest,
-  proto.file.DeleteFileResponse,
-  /** @param {!proto.file.DeleteFileRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.DeleteFileResponse.deserializeBinary
-);
 
 
 /**
@@ -571,7 +438,7 @@ proto.file.FileServiceClient.prototype.deleteFile =
       '/file.FileService/DeleteFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_DeleteFile,
+      methodInfo_FileService_DeleteFile,
       callback);
 };
 
@@ -590,27 +457,8 @@ proto.file.FileServicePromiseClient.prototype.deleteFile =
       '/file.FileService/DeleteFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_DeleteFile);
+      methodInfo_FileService_DeleteFile);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.GetThumbnailsRequest,
- *   !proto.file.GetThumbnailsResponse>}
- */
-const methodDescriptor_FileService_GetThumbnails = new grpc.web.MethodDescriptor(
-  '/file.FileService/GetThumbnails',
-  grpc.web.MethodType.SERVER_STREAMING,
-  proto.file.GetThumbnailsRequest,
-  proto.file.GetThumbnailsResponse,
-  /** @param {!proto.file.GetThumbnailsRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.GetThumbnailsResponse.deserializeBinary
-);
 
 
 /**
@@ -642,7 +490,7 @@ proto.file.FileServiceClient.prototype.getThumbnails =
       '/file.FileService/GetThumbnails',
       request,
       metadata || {},
-      methodDescriptor_FileService_GetThumbnails);
+      methodInfo_FileService_GetThumbnails);
 };
 
 
@@ -659,27 +507,8 @@ proto.file.FileServicePromiseClient.prototype.getThumbnails =
       '/file.FileService/GetThumbnails',
       request,
       metadata || {},
-      methodDescriptor_FileService_GetThumbnails);
+      methodInfo_FileService_GetThumbnails);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.file.WriteExcelFileRequest,
- *   !proto.file.WriteExcelFileResponse>}
- */
-const methodDescriptor_FileService_WriteExcelFile = new grpc.web.MethodDescriptor(
-  '/file.FileService/WriteExcelFile',
-  grpc.web.MethodType.UNARY,
-  proto.file.WriteExcelFileRequest,
-  proto.file.WriteExcelFileResponse,
-  /** @param {!proto.file.WriteExcelFileRequest} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.file.WriteExcelFileResponse.deserializeBinary
-);
 
 
 /**
@@ -714,7 +543,7 @@ proto.file.FileServiceClient.prototype.writeExcelFile =
       '/file.FileService/WriteExcelFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_WriteExcelFile,
+      methodInfo_FileService_WriteExcelFile,
       callback);
 };
 
@@ -733,7 +562,7 @@ proto.file.FileServicePromiseClient.prototype.writeExcelFile =
       '/file.FileService/WriteExcelFile',
       request,
       metadata || {},
-      methodDescriptor_FileService_WriteExcelFile);
+      methodInfo_FileService_WriteExcelFile);
 };
 
 

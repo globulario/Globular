@@ -1,3 +1,4 @@
+// source: file/filepb/file.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -29,6 +30,7 @@ goog.exportSymbol('proto.file.ReadFileResponse', null, global);
 goog.exportSymbol('proto.file.RenameRequest', null, global);
 goog.exportSymbol('proto.file.RenameResponse', null, global);
 goog.exportSymbol('proto.file.SaveFileRequest', null, global);
+goog.exportSymbol('proto.file.SaveFileRequest.FileCase', null, global);
 goog.exportSymbol('proto.file.SaveFileResponse', null, global);
 goog.exportSymbol('proto.file.WriteExcelFileRequest', null, global);
 goog.exportSymbol('proto.file.WriteExcelFileResponse', null, global);

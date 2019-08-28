@@ -88,25 +88,6 @@ proto.smtp.SmtpServicePromiseClient =
 
 /**
  * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.smtp.CreateConnectionRqst,
- *   !proto.smtp.CreateConnectionRsp>}
- */
-const methodDescriptor_SmtpService_CreateConnection = new grpc.web.MethodDescriptor(
-  '/smtp.SmtpService/CreateConnection',
-  grpc.web.MethodType.UNARY,
-  proto.smtp.CreateConnectionRqst,
-  proto.smtp.CreateConnectionRsp,
-  /** @param {!proto.smtp.CreateConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.smtp.CreateConnectionRsp.deserializeBinary
-);
-
-
-/**
- * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.smtp.CreateConnectionRqst,
  *   !proto.smtp.CreateConnectionRsp>}
@@ -137,7 +118,7 @@ proto.smtp.SmtpServiceClient.prototype.createConnection =
       '/smtp.SmtpService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_CreateConnection,
+      methodInfo_SmtpService_CreateConnection,
       callback);
 };
 
@@ -156,27 +137,8 @@ proto.smtp.SmtpServicePromiseClient.prototype.createConnection =
       '/smtp.SmtpService/CreateConnection',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_CreateConnection);
+      methodInfo_SmtpService_CreateConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.smtp.DeleteConnectionRqst,
- *   !proto.smtp.DeleteConnectionRsp>}
- */
-const methodDescriptor_SmtpService_DeleteConnection = new grpc.web.MethodDescriptor(
-  '/smtp.SmtpService/DeleteConnection',
-  grpc.web.MethodType.UNARY,
-  proto.smtp.DeleteConnectionRqst,
-  proto.smtp.DeleteConnectionRsp,
-  /** @param {!proto.smtp.DeleteConnectionRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.smtp.DeleteConnectionRsp.deserializeBinary
-);
 
 
 /**
@@ -211,7 +173,7 @@ proto.smtp.SmtpServiceClient.prototype.deleteConnection =
       '/smtp.SmtpService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_DeleteConnection,
+      methodInfo_SmtpService_DeleteConnection,
       callback);
 };
 
@@ -230,27 +192,8 @@ proto.smtp.SmtpServicePromiseClient.prototype.deleteConnection =
       '/smtp.SmtpService/DeleteConnection',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_DeleteConnection);
+      methodInfo_SmtpService_DeleteConnection);
 };
-
-
-/**
- * @const
- * @type {!grpc.web.MethodDescriptor<
- *   !proto.smtp.SendEmailRqst,
- *   !proto.smtp.SendEmailRsp>}
- */
-const methodDescriptor_SmtpService_SendEmail = new grpc.web.MethodDescriptor(
-  '/smtp.SmtpService/SendEmail',
-  grpc.web.MethodType.UNARY,
-  proto.smtp.SendEmailRqst,
-  proto.smtp.SendEmailRsp,
-  /** @param {!proto.smtp.SendEmailRqst} request */
-  function(request) {
-    return request.serializeBinary();
-  },
-  proto.smtp.SendEmailRsp.deserializeBinary
-);
 
 
 /**
@@ -285,7 +228,7 @@ proto.smtp.SmtpServiceClient.prototype.sendEmail =
       '/smtp.SmtpService/SendEmail',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_SendEmail,
+      methodInfo_SmtpService_SendEmail,
       callback);
 };
 
@@ -304,7 +247,7 @@ proto.smtp.SmtpServicePromiseClient.prototype.sendEmail =
       '/smtp.SmtpService/SendEmail',
       request,
       metadata || {},
-      methodDescriptor_SmtpService_SendEmail);
+      methodInfo_SmtpService_SendEmail);
 };
 
 

@@ -1,3 +1,4 @@
+// source: monitoring/monitoringpb/monitoring.proto
 /**
  * @fileoverview
  * @enhanceable

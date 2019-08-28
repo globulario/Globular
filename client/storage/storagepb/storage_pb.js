@@ -1,3 +1,4 @@
+// source: storage/storagepb/storage.proto
 /**
  * @fileoverview
  * @enhanceable

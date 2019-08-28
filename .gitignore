@@ -10,7 +10,8 @@ config.json
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-
+plc
+plc_client
 node_modules
 spc
 spc_client
