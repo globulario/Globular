@@ -335,6 +335,25 @@ func (self *Globule) initServices() {
 						self.saveConfig()
 
 						log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
+					} else if s["Protocol"].(string) == "http" {
+
+						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
+						if string(os.PathSeparator) == "\\" {
+							servicePath += ".exe" // in case of windows.
+						}
+						// any other http server except this one...
+						if s["Name"] != "Globular" {
+							// Kill previous instance of the program.
+							killProcessByName(s["Name"].(string))
+							log.Println("try to start process ", s["Name"].(string))
+							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+							err = s["Process"].(*exec.Cmd).Start()
+							if err != nil {
+								log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+							}
+							self.services[s["Name"].(string)] = s
+						}
 					}
 				}
 			}
@@ -626,7 +645,12 @@ func (self *Globule) saveConfig() {
  */
 func (self *Globule) initClient(name string) {
 	log.Println("connecto to service ", name)
-	port := int(self.Services[name+"_server"].(map[string]interface{})["Port"].(float64))
+	if self.Services[name] == nil {
+		return
+	}
+
+	port := int(self.Services[name].(map[string]interface{})["Port"].(float64))
+	name = strings.Split(name, "_")[0]
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
 
 	// Set the parameters.
@@ -667,8 +691,8 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
 
 	// The services
-	for k, _ := range self.services {
-		name := strings.Split(k, "_")[0]
+	for name, _ := range self.services {
+		//name := strings.Split(k, "_")[0]
 		self.initClient(name)
 	}
 

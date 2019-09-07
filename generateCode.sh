@@ -16,6 +16,9 @@ protoc --plugin="protoc-gen-grpc=E:\grpc\.build\Release\grpc_cpp_plugin.exe" --g
 protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=plc/plcpb/cpp -I plc/plcpb plc.proto
 protoc -I plc/plcpb plc.proto --cpp_out=plc/plcpb/cpp
 
+#plc_link service
+protoc plc_link/plc_link_pb/plc_link.proto --go_out=plugins=grpc:.
+
 # C++ service.
 protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
 protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=plc/spcpb/cpp -I spc/spcpb spc.proto
@@ -46,6 +49,8 @@ protoc monitoring/monitoringpb/monitoring.proto --js_out=import_style=commonjs:c
 protoc monitoring/monitoringpb/monitoring.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc plc/plcpb/plc.proto --js_out=import_style=commonjs:client
 protoc plc/plcpb/plc.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+protoc plc_link/plc_link_pb/plc_link.proto --js_out=import_style=commonjs:client
+protoc plc_link/plc_link_pb/plc_link.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 
 # in the client folder ex: in /WebRoot/js/echo_client do command: npx webpack client.js to generate the dist/main.js file use in client application.
 protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
