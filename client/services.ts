@@ -11,7 +11,7 @@ import { SmtpServicePromiseClient } from './smtp/smtppb/smtp_grpc_web_pb';
 import { SpcServicePromiseClient } from './spc/spcpb/spc_grpc_web_pb';
 import { SqlServicePromiseClient } from './sql/sqlpb/sql_grpc_web_pb';
 import { StorageServicePromiseClient } from './storage/storagepb/storage_grpc_web_pb';
-import { MonitoringServicePromiseClient} from './monitoring/monitoringpb/monitoring_grpc_web_pb';
+import { MonitoringServicePromiseClient } from './monitoring/monitoringpb/monitoring_grpc_web_pb';
 
 /**
  * The service configuration information.
@@ -21,6 +21,13 @@ interface IServiceConfig {
     Domain: string
     Port: Number
     Proxy: Number
+}
+
+/**
+ * Define a map of services.
+ */
+interface IServices{
+    [index: string]: IServiceConfig;
 }
 
 /**
@@ -35,7 +42,7 @@ interface IConfig {
     IP: string
 
     // The map of service object.
-    Services: Map<string, IServiceConfig>
+    Services: IServices
 }
 
 /**
@@ -57,7 +64,7 @@ export class Globular {
     storageService: StorageServicePromiseClient
     monitoringService: MonitoringServicePromiseClient
     spcService: SpcServicePromiseClient
-
+    
     // Non open source services.
     plcService_ab: PlcLinkServicePromiseClient
     plcService_simens: PlcLinkServicePromiseClient
