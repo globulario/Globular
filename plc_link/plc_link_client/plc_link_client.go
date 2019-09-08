@@ -132,6 +132,7 @@ func (self *PlcLink_Client) DeleteConnection(connectionId string) error {
  * Link tow tag together.
  */
 func (self *PlcLink_Client) Link(id string, frequency int32, src_domain string, src_address string, src_connectionId string, src_tag_name string, src_tag_label string, src_tag_typeName string, src_offset int32, trg_domain string, trg_address string, trg_connectionId string, trg_tag_name string, trg_tag_label string, trg_tag_typeName string, trg_offset int32) error {
+
 	rqst := &plc_link_pb.LinkRqst{
 		Lnk: &plc_link_pb.Link{
 			Id:        id,
