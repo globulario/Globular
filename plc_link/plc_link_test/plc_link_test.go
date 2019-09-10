@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	// Connect to the plc client.
+// Connect to the plc client.
 
-	//client = NewPlcLink_Client.("stevePc", "135.19.213.242:10027", false, "", "", "")
-	client = plc_link_client.NewPlcLink_Client("stevePc", "127.0.0.1:10027", false, "", "", "")
+//client = NewPlcLink_Client.("stevePc", "135.19.213.242:10027", false, "", "", "")
+//client = plc_link_client.NewPlcLink_Client("stevePc", "127.0.0.1:10027", false, "", "", "")
 )
 
 // Test various function here.
