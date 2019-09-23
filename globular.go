@@ -239,7 +239,9 @@ func killProcessByName(name string) error {
 		}
 		log.Println("Kill ", name, " pid ", pids[i])
 		// Kill the process
-		proc.Kill()
+		if !strings.HasPrefix(name, "Globular") {
+			proc.Kill()
+		}
 	}
 
 	return nil
@@ -378,7 +380,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	} else if s["Protocol"].(string) == "http" {
 
 		// any other http server except this one...
-		if s["Name"] != strings.HasPrefix(s["Name"].(string), "Globular") {
+		if !strings.HasPrefix(s["Name"].(string), "Globular") {
 			// Kill previous instance of the program.
 			killProcessByName(s["Name"].(string))
 			log.Println("try to start process ", s["Name"].(string))
@@ -448,7 +450,7 @@ func (self *Globule) initService(s map[string]interface{}) {
 
 	} else if s["Protocol"].(string) == "http" {
 		// any other http server except this one...
-		if strings.HasPrefix(s["Name"].(string), "Globular") {
+		if !strings.HasPrefix(s["Name"].(string), "Globular") {
 			self.services[s["Name"].(string)] = s
 
 			hasChange := self.saveServiceConfig(s)
