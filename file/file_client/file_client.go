@@ -45,7 +45,7 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *File_Client {
+func NewFile_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *File_Client {
 	client := new(File_Client)
 
 	client.addresse = addresse
@@ -55,7 +55,7 @@ func NewFile_Client(domain string, addresse string, hasTLS bool, keyFile string,
 	client.certFile = certFile
 	client.caFile = caFile
 	client.domain = domain
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = filepb.NewFileServiceClient(client.cc)
 
 	return client

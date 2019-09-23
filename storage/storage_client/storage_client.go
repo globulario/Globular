@@ -40,7 +40,7 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Storage_Client {
+func NewStorage_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Storage_Client {
 
 	client := new(Storage_Client)
 
@@ -52,7 +52,7 @@ func NewStorage_Client(domain string, addresse string, hasTLS bool, keyFile stri
 	client.certFile = certFile
 	client.caFile = caFile
 
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = storagepb.NewStorageServiceClient(client.cc)
 
 	return client

@@ -1,0 +1,74 @@
+/**
+ * Admin functionality.
+ */
+syntax = "proto3";
+package admin;
+
+option go_package="admin";
+
+// Return the configuration of the whole server.
+message GetConfigRequest {
+}
+
+message GetConfigResponse {
+  string result = 1;
+}
+
+message SaveConfigRequest {
+  string config = 1; // The json string
+}
+
+message SaveConfigResponse {
+  string result = 1;
+}
+
+message StopServiceRequest {
+  string service_id = 1;
+}
+
+message StopServiceResponse {
+  bool result = 1;
+}
+
+message StartServiceRequest {
+  string service_id = 1;
+}
+
+// Return the pid of
+message StartServiceResponse {
+  int64 service_pid = 1;
+  int64 proxy_pid = 2;
+}
+
+// Register an external service.
+message RegisterExternalServiceRequest {
+  string service_id = 1;
+  string path = 2;
+  repeated string args = 3;
+}
+
+// Return the pid of the service.
+message RegisterExternalServiceResponse {
+  int64 service_pid = 1;
+}
+
+service AdminService {
+  // Return configuration whitout all detail, no needed to be secure.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Return the configuration with all detail, must be secure.
+  rpc GetFullConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Save a service configuration
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse);
+
+  // Stop a service
+  rpc StopService(StopServiceRequest) returns (StopServiceResponse);
+
+  // Start a service
+  rpc StartService(StartServiceRequest) returns (StartServiceResponse);
+
+  // Register external service to be start by Globular in order to run 
+  // as exemple MongoDB and Prometheus.
+  rpc RegisterExternalService(RegisterExternalServiceRequest) returns (RegisterExternalServiceResponse);
+}

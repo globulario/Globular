@@ -1,0 +1,89 @@
+/**
+ * Management and definition of ressources.
+ */
+syntax = "proto3";
+package ressource;
+
+option go_package="ressource";
+
+/** Account **/
+message Account {
+	string name=1;
+	string email =2;
+	string password =3;
+}
+
+/** Role **/
+message Role{
+	string name = 1;
+	repeated Permission permissions = 2;
+}
+
+enum PermissionType {
+	NONE= 0;
+	EXECUTE=1;
+	WRITE = 2;
+	WRITE_EXECUTE=3;
+	READ = 4;
+	READ_EXECUTE=5;
+	READ_WRITE=6;
+	READ_WRITE_EXECUTE=7;
+}
+
+/** Permission **/
+message Permission{
+	PermissionType type = 1;
+	Ressource ressource = 2;
+}
+
+/** Ressource **/
+message Ressource {
+	// Ressource can be anything that an url can point to, grp call, file... etc.
+	string url = 1;
+}
+
+///////////////////////// API //////////////////////////
+message RegisterAccountRqst{
+	Account account = 1;
+	string password = 2;
+	string confirm_password = 3;
+}
+
+message RegisterAccountRsp {
+	string result = 1;
+}
+
+message DeleteAccountRqst{
+	string name = 1;
+}
+
+message DeleteAccountRsp {
+	string result = 1;
+}
+
+/** Authenticate the user **/
+message AuthenticateRqst{
+	string name = 1;
+	string password =2;
+}
+
+message AuthenticateRsp {
+	string token = 1;
+}
+
+/**
+ * That service is use to manage Globular ressource like permissions and accounts
+ * or role. The service made use of Persistence service to store various 
+ * objects.
+ */
+service RessourceService {
+	
+	/** Register a new Account **/
+	rpc RegisterAccount(RegisterAccountRqst) returns (RegisterAccountRsp);
+	
+	/** Delete an account **/
+	rpc DeleteAccount(DeleteAccountRqst) returns(DeleteAccountRsp);
+	
+	/** Authenticate a user **/
+	rpc Authenticate(AuthenticateRqst) returns(AuthenticateRsp);
+}

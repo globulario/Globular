@@ -42,7 +42,7 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *SQL_Client {
+func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SQL_Client {
 
 	client := new(SQL_Client)
 
@@ -53,7 +53,7 @@ func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, 
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = sqlpb.NewSqlServiceClient(client.cc)
 
 	return client

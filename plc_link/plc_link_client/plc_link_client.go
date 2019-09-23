@@ -42,7 +42,7 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *PlcLink_Client {
+func NewPlcLink_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *PlcLink_Client {
 	client := new(PlcLink_Client)
 
 	client.addresse = addresse
@@ -52,7 +52,7 @@ func NewPlcLink_Client(domain string, addresse string, hasTLS bool, keyFile stri
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 
 	return client

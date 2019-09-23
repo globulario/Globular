@@ -9,9 +9,12 @@ import (
 	ps "github.com/mitchellh/go-ps"
 
 	//"fmt"
+	"crypto/tls"
+	"crypto/x509"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -27,6 +30,14 @@ import (
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Utility"
 
+	// Admin service
+	"github.com/davecourtois/Globular/admin"
+	"github.com/davecourtois/Globular/ressource"
+
+	// Interceptor for authentication, event, log...
+	"github.com/davecourtois/Globular/Interceptors/Authenticate"
+	Interceptors_ "github.com/davecourtois/Globular/Interceptors/server"
+
 	// Client services.
 	"github.com/davecourtois/Globular/catalog/catalog_client"
 	"github.com/davecourtois/Globular/echo/echo_client"
@@ -40,6 +51,15 @@ import (
 	"github.com/davecourtois/Globular/spc/spc_client"
 	"github.com/davecourtois/Globular/sql/sql_client"
 	"github.com/davecourtois/Globular/storage/storage_client"
+
+	"context"
+
+	"google.golang.org/grpc"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -49,6 +69,15 @@ var (
 
 const serviceStartDelay = 2 // wait tow second.
 
+type ExternalService struct {
+	Id   string
+	Path string
+	Args []string
+
+	// keep the actual srvice command here.
+	srv *exec.Cmd
+}
+
 /**
  * The web server.
  */
@@ -57,14 +86,23 @@ type Globule struct {
 	Name                string // The service name
 	PortHttp            int    // The port of the http file server.
 	PortHttps           int    // The secure port
+	AdminPort           int    // The admin port
+	AdminProxy          int    // The admin proxy port.
+	RessourcePort       int    // The ressource management service port
+	RessourceProxy      int    // The ressource management proxy port
 	Protocol            string // The protocol of the service.
 	IP                  string // The local address...
 	Services            map[string]interface{}
-	Domain              string // The domain name of your application
+	ExternalServices    map[string]ExternalService // MongoDB, Prometheus, etc...
+	Domain              string                     // The domain name of your application
 	ReadTimeout         time.Duration
 	WriteTimeout        time.Duration
 	IdleTimeout         time.Duration
+	SessionTimeout      time.Duration
 	CertExpirationDelay int
+
+	// The token use to identify globular with other services.
+	token string
 
 	// Local info.
 	webRoot string // The root of the http file server.
@@ -76,6 +114,9 @@ type Globule struct {
 
 	// The map of client...
 	clients map[string]api.Client
+
+	// Create the JWT key used to create the signature
+	jwtKey []byte
 
 	sync.RWMutex
 }
@@ -92,21 +133,30 @@ func NewGlobule(port int) *Globule {
 	g.Protocol = "http"
 	g.Domain = "localhost"
 	g.IP = Utility.MyIP()
+	g.AdminPort = 10001
+	g.AdminProxy = 10002
+	g.RessourcePort = 10003
+	g.RessourceProxy = 10004
 
 	// set default values.
 	g.IdleTimeout = 120
+	g.SessionTimeout = 3600000 * time.Millisecond // milisecond.
 	g.ReadTimeout = 5
 	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
-
 	// Set the service map.
 	g.services = make(map[string]interface{}, 0)
 
 	// Set the share service info...
 	g.Services = make(map[string]interface{}, 0)
 
+	// Set external map services.
+	g.ExternalServices = make(map[string]ExternalService, 0)
+
 	// Set the map of client.
 	g.clients = make(map[string]api.Client, 0)
+
+	g.initClients()
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	g.path = dir // keep the installation path.
@@ -128,6 +178,23 @@ func NewGlobule(port int) *Globule {
 	// keep the root in global variable for the file handler.
 	root = g.webRoot
 	globule = g
+
+	// Here I will kill proxies if there are running.
+	killProcessByName("grpcwebproxy")
+
+	// Here it suppose to be only one server instance per computer.
+	g.jwtKey = []byte(Utility.RandomUUID())
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(g.jwtKey), 0644)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	// The token that identify the server with other services.
+	g.token, _ = Interceptors.GenerateToken(g.jwtKey, g.SessionTimeout, string(g.jwtKey))
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_token", []byte(g.token), 0644)
+	if err != nil {
+		log.Panicln(err)
+	}
 
 	return g
 }
@@ -179,12 +246,225 @@ func killProcessByName(name string) error {
 }
 
 /**
- * Here I will set services
+ * Start a given service.
+ */
+func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
+	var err error
+
+	// if the service already exist.
+	srv := self.services[s["Name"].(string)]
+	if srv != nil {
+		if srv.(map[string]interface{})["Process"] != nil {
+			srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+
+			if srv.(map[string]interface{})["ProxyProcess"] != nil {
+				srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
+			}
+		}
+	}
+
+	if s["Protocol"].(string) == "grpc" {
+
+		// Stop the previous client if there one.
+		if self.clients[s["Name"].(string)+"_service"] != nil {
+			self.clients[s["Name"].(string)+"_service"].Close()
+		}
+
+		// The domain must be set in the sever configuration and not change after that.
+		s["Domain"] = self.Domain // local services.
+		s["Address"] = self.IP    // local services.
+		proxyBackendAddress := s["Domain"].(string) + ":" + Utility.ToString(s["Port"])
+
+		proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
+		proxyArgs := make([]string, 0)
+
+		// Use in a local network or in test.
+		proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
+		proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
+
+		if self.Protocol == "https" {
+
+			// Set TLS local services configuration here.
+			s["TLS"] = true
+			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
+			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
+			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
+
+			/* Services gRpc backend. */
+			proxyArgs = append(proxyArgs, "--backend_tls=true")
+			proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
+			proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
+			proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
+
+			/* http2 parameters between the browser and the proxy.*/
+			proxyArgs = append(proxyArgs, "--run_http_server=false")
+			proxyArgs = append(proxyArgs, "--run_tls_server=true")
+			proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(s["Proxy"]))
+
+			proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
+			proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
+			proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
+
+		} else {
+			// not secure services.
+			s["TLS"] = false
+			s["CertAuthorityTrust"] = ""
+			s["CertFile"] = ""
+			s["KeyFile"] = ""
+
+			// Now I will save the file with those new information in it.
+			proxyArgs = append(proxyArgs, "--run_http_server=true")
+			proxyArgs = append(proxyArgs, "--run_tls_server=false")
+			proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
+			proxyArgs = append(proxyArgs, "--backend_tls=false")
+		}
+
+		// Keep connection open for longer exchange between client/service. Event Subscribe function
+		// is a good example of long lasting connection. (48 hours) seam to be more than enought for
+		// browser client connection maximum life.
+		proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
+		proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+
+		// Kill previous instance of the program...
+		killProcessByName(s["Name"].(string))
+
+		// Start the process in it own thread and keep it alive as needed for a miximum number of try
+		// before given up.
+
+		// Start the service process.
+		log.Println("try to start process ", s["Name"].(string))
+
+		if s["Name"].(string) == "file_server" {
+			// File service need root...
+			s["Root"] = globule.webRoot
+			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]), globule.webRoot)
+		} else {
+			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
+		}
+
+		err = s["Process"].(*exec.Cmd).Start()
+		if err != nil {
+			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			return -1, -1, err
+		}
+
+		log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
+
+		// Start the proxie's and keep them alives.
+
+		// start the proxy service one time
+		s["ProxyProcess"] = exec.Command(s["proxyPath"].(string), proxyArgs...)
+		err = s["ProxyProcess"].(*exec.Cmd).Start()
+		if err != nil {
+			log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
+			return -1, -1, err
+		}
+
+		self.services[s["Name"].(string)] = s
+
+		// public configuration info.
+		s_ := make(map[string]interface{})
+
+		// export public service values.
+		s_["Address"] = s["Address"]
+		s_["Domain"] = s["Domain"]
+		s_["Proxy"] = s["Proxy"]
+		s_["Port"] = s["Port"]
+
+		self.Services[s["Name"].(string)] = s_
+		self.initClient(s["Name"].(string))
+		self.saveConfig()
+
+	} else if s["Protocol"].(string) == "http" {
+
+		// any other http server except this one...
+		if s["Name"] != strings.HasPrefix(s["Name"].(string), "Globular") {
+			// Kill previous instance of the program.
+			killProcessByName(s["Name"].(string))
+			log.Println("try to start process ", s["Name"].(string))
+			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
+			err = s["Process"].(*exec.Cmd).Start()
+			if err != nil {
+				log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			}
+			self.services[s["Name"].(string)] = s
+		}
+	}
+	log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
+
+	if s["ProxyProcess"] != nil {
+		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
+	}
+	return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
+}
+
+/**
+ * Call once when the server start.
+ */
+func (self *Globule) initService(s map[string]interface{}) {
+
+	if s["Protocol"].(string) == "grpc" {
+		// The domain must be set in the sever configuration and not change after that.
+		s["Domain"] = self.Domain // local services.
+		s["Address"] = self.IP    // local services.
+
+		if self.Protocol == "https" {
+			// Set TLS local services configuration here.
+			s["TLS"] = true
+			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
+			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
+			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
+
+		} else {
+			// not secure services.
+			s["TLS"] = false
+			s["CertAuthorityTrust"] = ""
+			s["CertFile"] = ""
+			s["KeyFile"] = ""
+
+		}
+		// Now I will save the file with those new information in it.
+		hasChange := self.saveServiceConfig(s)
+
+		if hasChange || s["Process"] == nil {
+
+			self.services[s["Name"].(string)] = s
+
+			// start the service
+			self.startService(s)
+
+			// public configuration info.
+			s_ := make(map[string]interface{})
+
+			// export public service values.
+			s_["Address"] = s["Address"]
+			s_["Domain"] = s["Domain"]
+			s_["Proxy"] = s["Proxy"]
+			s_["Port"] = s["Port"]
+
+			self.Services[s["Name"].(string)] = s_
+			self.saveConfig()
+		}
+
+	} else if s["Protocol"].(string) == "http" {
+		// any other http server except this one...
+		if strings.HasPrefix(s["Name"].(string), "Globular") {
+			self.services[s["Name"].(string)] = s
+
+			hasChange := self.saveServiceConfig(s)
+
+			// Kill previous instance of the program.
+			if hasChange || s["Process"] == nil {
+				self.startService(s)
+			}
+		}
+	}
+}
+
+/**
+ * Call once when the server start.
  */
 func (self *Globule) initServices() {
-
-	// Here I will kill proxies if there are running.
-	killProcessByName("grpcwebproxy")
 
 	log.Println("Initialyse services")
 
@@ -210,151 +490,24 @@ func (self *Globule) initServices() {
 				// Read the config file.
 				json.Unmarshal(config, &s)
 				if s["Protocol"] != nil {
-
-					if s["Protocol"].(string) == "grpc" {
-
-						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-						if string(os.PathSeparator) == "\\" {
-							servicePath += ".exe" // in case of windows.
-						}
-
-						// Now I will start the proxy that will be use by javascript client.
-						proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-						if string(os.PathSeparator) == "\\" {
-							proxyPath += ".exe" // in case of windows.
-						}
-
-						// The domain must be set in the sever configuration and not change after that.
-						s["Domain"] = self.Domain // local services.
-						s["Address"] = self.IP    // local services.
-						proxyBackendAddress := s["Domain"].(string) + ":" + Utility.ToString(s["Port"])
-
-						proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
-						proxyArgs := make([]string, 0)
-
-						// Use in a local network or in test.
-						proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
-						proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-
-						if self.Protocol == "https" {
-
-							// Set TLS local services configuration here.
-							s["TLS"] = true
-							s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
-							s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
-							s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
-
-							// Now I will save the file with those new information in it.
-							jsonStr, _ := Utility.ToJson(&s)
-							ioutil.WriteFile(path, []byte(jsonStr), 0644)
-
-							// Set local client configuration here.
-
-							// Now set the proxy information here.
-
-							/* Services gRpc backend. */
-							proxyArgs = append(proxyArgs, "--backend_tls=true")
-							proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
-							proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
-							proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
-
-							/* http2 parameters between the browser and the proxy.*/
-							proxyArgs = append(proxyArgs, "--run_http_server=false")
-							proxyArgs = append(proxyArgs, "--run_tls_server=true")
-							proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(s["Proxy"]))
-
-							proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
-							proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
-							proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
-
-						} else {
-							// not secure services.
-							s["TLS"] = false
-							s["CertAuthorityTrust"] = ""
-							s["CertFile"] = ""
-							s["KeyFile"] = ""
-
-							// Now I will save the file with those new information in it.
-							jsonStr, _ := Utility.ToJson(&s)
-							ioutil.WriteFile(path, []byte(jsonStr), 0644)
-							proxyArgs = append(proxyArgs, "--run_http_server=true")
-							proxyArgs = append(proxyArgs, "--run_tls_server=false")
-							proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
-							proxyArgs = append(proxyArgs, "--backend_tls=false")
-						}
-
-						// Keep connection open for longer exchange between client/service. Event Subscribe function
-						// is a good example of long lasting connection. (48 hours) seam to be more than enought for
-						// browser client connection maximum life.
-						proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
-						proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
-
-						// Kill previous instance of the program.
-						killProcessByName(s["Name"].(string))
-
-						// Start the process in it own thread and keep it alive as needed for a miximum number of try
-						// before given up.
-
-						// Start the service process.
-						log.Println("try to start process ", s["Name"].(string))
-						if s["Name"].(string) == "file_server" {
-							// File service need root...
-							s["Root"] = globule.webRoot
-							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
-						} else {
-							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
-						}
-
-						err = s["Process"].(*exec.Cmd).Start()
-						if err != nil {
-							log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-						}
-
-						log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
-
-						// Start the proxie's and keep them alives.
-
-						// start the proxy service one time
-						s["ProxyProcess"] = exec.Command(proxyPath, proxyArgs...)
-						err = s["ProxyProcess"].(*exec.Cmd).Start()
-						if err != nil {
-							log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
-						}
-
-						self.services[s["Name"].(string)] = s
-						s_ := make(map[string]interface{})
-
-						// export public service values.
-						s_["Address"] = s["Address"]
-						s_["Domain"] = s["Domain"]
-						s_["Proxy"] = s["Proxy"]
-						s_["Port"] = s["Port"]
-
-						self.Services[s["Name"].(string)] = s_
-						self.saveConfig()
-
-						log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
-					} else if s["Protocol"].(string) == "http" {
-
-						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-						if string(os.PathSeparator) == "\\" {
-							servicePath += ".exe" // in case of windows.
-						}
-						// any other http server except this one...
-						if s["Name"] != "Globular" {
-							// Kill previous instance of the program.
-							killProcessByName(s["Name"].(string))
-							log.Println("try to start process ", s["Name"].(string))
-							s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
-							err = s["Process"].(*exec.Cmd).Start()
-							if err != nil {
-								log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-							}
-							self.services[s["Name"].(string)] = s
-						}
+					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+					servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
+					if string(os.PathSeparator) == "\\" {
+						servicePath += ".exe" // in case of windows.
 					}
+
+					s["servicePath"] = servicePath
+
+					// Now I will start the proxy that will be use by javascript client.
+					proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+					if string(os.PathSeparator) == "\\" {
+						proxyPath += ".exe" // in case of windows.
+					}
+
+					// The proxy path
+					s["proxyPath"] = proxyPath
+
+					self.initService(s)
 				}
 			}
 		}
@@ -414,91 +567,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 	// remove the root path part and the leading / caracter.
 	return importPath_, nil
-}
-
-/**
- * Here here is where services function are call from http.
- */
-
-/**
-* That function handle http query as form of what so called API.
-* exemple of use.
-
-  Get all entity prototype from CargoEntities
-  ** note the access_token can change over time.
-  http://mon176:10000/api/Server/EntityManager/GetEntityPrototypes?storeId=CargoEntities&access_token=C4X_UsRXRCqwqsWfuEdgFA
-
-  Get an entity object with a given uuid.
-  * Note because % is in the uuid string it must be escape with %25 so here
-  	 the uuid is CargoEntities.Action%7facc2a5-dcb7-4ae7-925a-fb0776a9da00
-  http://localhost:10000/api/Server/EntityManager/GetObjectByUuid?p0=CargoEntities.Action%257facc2a5-dcb7-4ae7-925a-fb0776a9da00
-*/
-func HttpQueryHandler(w http.ResponseWriter, r *http.Request) {
-
-	// So the request will contain...
-	// The last tow parameters must be empty because we don't use the websocket
-	// here.
-	inputs := strings.Split(r.URL.Path[len("/api/"):], "/")
-
-	if len(inputs) < 2 {
-		w.Header().Set("Content-Type", "application/text")
-		w.Write([]byte("api call error, not enought arguments given!"))
-		return
-	}
-
-	// Get the client connected to the required service.
-	service := globule.clients[inputs[0]]
-
-	if service == nil {
-		w.Header().Set("Content-Type", "application/text")
-		w.Write([]byte("service " + inputs[0] + " not found"))
-		return
-	}
-
-	// The parameter values.
-	params := make([]interface{}, 0)
-	for i := 0; i < len(r.URL.Query()); i++ {
-		if r.URL.Query()["p"+strconv.Itoa(i)] != nil {
-			params = append(params, r.URL.Query()["p"+strconv.Itoa(i)][0])
-		} else {
-			w.Header().Set("Content-Type", "application/text")
-			w.Write([]byte("p" + strconv.Itoa(i) + " not found!"))
-			return
-		}
-	}
-
-	// Here I will call the function on the service.
-	var err_ interface{}
-	var results interface{}
-	log.Println("call api function: ", inputs[1], params)
-	results, err_ = Utility.CallMethod(service, inputs[1], params)
-	if err_ != nil {
-
-		w.Header().Set("Content-Type", "application/text")
-		switch v := err_.(type) {
-		case error:
-			w.Write([]byte(v.Error()))
-		case string:
-			w.Write([]byte(v))
-		}
-
-		return
-	}
-
-	// Here I will get the res
-	var resultStr []byte
-	var err error
-	resultStr, err = json.Marshal(results)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/text")
-		w.Write([]byte(err.(error).Error()))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	resultStr, _ = Utility.PrettyPrint(resultStr)
-	w.Write(resultStr)
-
 }
 
 /**
@@ -644,7 +712,7 @@ func (self *Globule) saveConfig() {
  * Init client side connection to service.
  */
 func (self *Globule) initClient(name string) {
-	log.Println("connecto to service ", name)
+	log.Println("try to connecto to ", name)
 	if self.Services[name] == nil {
 		return
 	}
@@ -657,11 +725,13 @@ func (self *Globule) initClient(name string) {
 	address := self.Domain + ":" + strconv.Itoa(port)
 	domain := self.Domain
 	hasTLS := self.Protocol == "https" // true if the protocol is https.
+
+	// Set the files.
 	keyFile := self.creds + string(os.PathSeparator) + "client.crt"
 	certFile := self.creds + string(os.PathSeparator) + "client.key"
 	caFile := self.creds + string(os.PathSeparator) + "ca.crt"
 
-	results, err := Utility.CallFunction(fct, domain, address, hasTLS, certFile, keyFile, caFile)
+	results, err := Utility.CallFunction(fct, domain, address, hasTLS, certFile, keyFile, caFile, self.token)
 	if err == nil {
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
 	}
@@ -669,7 +739,8 @@ func (self *Globule) initClient(name string) {
 
 /**
  * Init the service client.
- * Keep the service constructor for further call.
+ * Keep the service constructor for further call. This is not fully generic,
+ * maybe reflection will be use in futur implementation.
  */
 func (self *Globule) initClients() {
 
@@ -689,13 +760,6 @@ func (self *Globule) initClients() {
 	// That service is program in c++
 	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)
 	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
-
-	// The services
-	for name, _ := range self.services {
-		//name := strings.Split(k, "_")[0]
-		self.initClient(name)
-	}
-
 }
 
 /////////////////////////// Security stuff //////////////////////////////////
@@ -1040,6 +1104,578 @@ func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay i
 }
 
 /**
+ * Return globular configuration.
+ */
+func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
+	config := make(map[string]interface{}, 0)
+	config["Name"] = self.Name
+	config["PortHttp"] = self.PortHttp
+	config["PortHttps"] = self.PortHttps
+	config["AdminPort"] = self.AdminPort
+	config["AdminProxy"] = self.AdminProxy
+	config["RessourcePort"] = self.RessourcePort
+	config["RessourceProxy"] = self.RessourceProxy
+	config["Protocol"] = self.Protocol
+	config["IP"] = self.IP
+	config["Domain"] = self.Domain
+	config["ReadTimeout"] = self.ReadTimeout
+	config["WriteTimeout"] = self.WriteTimeout
+	config["IdleTimeout"] = self.IdleTimeout
+	config["CertExpirationDelay"] = self.CertExpirationDelay
+
+	// return the full service configuration.
+	config["Services"] = self.services
+
+	str, err := Utility.ToJson(config)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &admin.GetConfigResponse{
+		Result: str,
+	}, nil
+}
+
+func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
+	config := make(map[string]interface{}, 0)
+	config["Name"] = self.Name
+	config["PortHttp"] = self.PortHttp
+	config["PortHttps"] = self.PortHttps
+	config["AdminPort"] = self.AdminPort
+	config["AdminProxy"] = self.AdminProxy
+	config["RessourcePort"] = self.RessourcePort
+	config["RessourceProxy"] = self.RessourceProxy
+	config["Protocol"] = self.Protocol
+	config["IP"] = self.IP
+	config["Domain"] = self.Domain
+	config["ReadTimeout"] = self.ReadTimeout
+	config["WriteTimeout"] = self.WriteTimeout
+	config["IdleTimeout"] = self.IdleTimeout
+	config["CertExpirationDelay"] = self.CertExpirationDelay
+
+	// return the full service configuration.
+	config["Services"] = self.Services
+
+	str, err := Utility.ToJson(config)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &admin.GetConfigResponse{
+		Result: str,
+	}, nil
+}
+
+// return true if the configuation has change.
+func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
+
+	// get the config path.
+	servicePath := config["servicePath"].(string)
+	proxyPath := config["proxyPath"].(string)
+	process := config["Process"]
+	proxyProcess := config["ProxyProcess"]
+	path := config["servicePath"].(string)
+	path = path[:strings.LastIndex(path, string(os.PathSeparator))] + string(os.PathSeparator) + "config.json"
+
+	// remove unused information...
+	delete(config, "Process")
+	delete(config, "ProxyProcess")
+
+	// remove this info from the file to be save.
+	delete(config, "servicePath")
+	delete(config, "proxyPath")
+
+	// so here I will get the previous information...
+	f, err := os.Open(path)
+
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			config_ := make(map[string]interface{})
+			json.Unmarshal(b, &config_)
+			if reflect.DeepEqual(config_, config) {
+				f.Close()
+				// set back the path's info.
+				config["servicePath"] = servicePath
+				config["proxyPath"] = proxyPath
+				config["Process"] = process
+				config["ProxyProcess"] = proxyProcess
+				return false
+			}
+		}
+	}
+	f.Close()
+
+	// The new config to write.
+	jsonStr, _ := Utility.ToJson(config)
+
+	// here I will write the file.
+	err = ioutil.WriteFile(path, []byte(jsonStr), 0644)
+	if err != nil {
+		log.Println("fail to save config file: ", err)
+	}
+
+	// set back internal infos...
+	config["servicePath"] = servicePath
+	config["proxyPath"] = proxyPath
+	config["Process"] = process
+	config["ProxyProcess"] = proxyProcess
+	return true
+}
+
+// Save a service configuration
+func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigRequest) (*admin.SaveConfigResponse, error) {
+
+	config := make(map[string]interface{}, 0)
+	err := json.Unmarshal([]byte(rqst.Config), &config)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// if the configuration is one of services...
+	if config["Name"] != nil {
+		srv := self.services[config["Name"].(string)]
+		if srv != nil {
+			// Attach the actual process and proxy process to the configuration object.
+			config["Process"] = srv.(map[string]interface{})["Process"]
+			config["ProxyProcess"] = srv.(map[string]interface{})["ProxyProcess"]
+
+			self.initService(config)
+		} else if config["Services"] != nil {
+			// Here I will save the configuration
+			self.Name = config["Name"].(string)
+			self.PortHttp = Utility.ToInt(config["PortHttp"].(float64))
+			self.PortHttps = Utility.ToInt(config["PortHttps"].(float64))
+			self.AdminPort = Utility.ToInt(config["AdminPort"].(float64))
+			self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
+			self.RessourcePort = Utility.ToInt(config["RessourcePort"].(float64))
+			self.RessourceProxy = Utility.ToInt(config["RessourceProxy"].(float64))
+			self.Protocol = config["Protocol"].(string)
+			self.IP = config["IP"].(string)
+			self.Domain = config["Domain"].(string)
+			self.ReadTimeout = time.Duration(Utility.ToInt(config["ReadTimeout"].(float64)))
+			self.WriteTimeout = time.Duration(Utility.ToInt(config["WriteTimeout"].(float64)))
+			self.IdleTimeout = time.Duration(Utility.ToInt(config["IdleTimeout"].(float64)))
+			self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
+			// That will save the services if they have changed.
+			for n, s := range config["Services"].(map[string]interface{}) {
+				// Attach the actual process and proxy process to the configuration object.
+				s.(map[string]interface{})["Process"] = self.services[n].(map[string]interface{})["Process"]
+				s.(map[string]interface{})["ProxyProcess"] = self.services[n].(map[string]interface{})["ProxyProcess"]
+				self.initService(s.(map[string]interface{}))
+			}
+			// save the application server.
+			self.saveConfig()
+		}
+	}
+
+	// return the new configuration file...
+	result, _ := Utility.ToJson(config)
+	return &admin.SaveConfigResponse{
+		Result: result,
+	}, nil
+}
+
+// Stop a service
+func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceRequest) (*admin.StopServiceResponse, error) {
+	s := self.services[rqst.ServiceId]
+	if s == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
+	}
+	err := s.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if s.(map[string]interface{})["ProxyProcess"] != nil {
+		err := s.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &admin.StopServiceResponse{
+		Result: true,
+	}, nil
+}
+
+// Start a service
+func (self *Globule) StartService(ctx context.Context, rqst *admin.StartServiceRequest) (*admin.StartServiceResponse, error) {
+
+	s := self.services[rqst.ServiceId]
+	if s == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
+	}
+
+	service_pid, proxy_pid, err := self.startService(s.(map[string]interface{}))
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &admin.StartServiceResponse{
+		ProxyPid:   int64(proxy_pid),
+		ServicePid: int64(service_pid),
+	}, nil
+}
+
+// Start an external service here.
+func (self *Globule) startExternalService(serviceId string) (int, error) {
+
+	if service, ok := self.ExternalServices[serviceId]; !ok {
+		return -1, errors.New("No external service found with name " + serviceId)
+	} else {
+
+		service.srv = exec.Command(service.Path, service.Args...)
+
+		err := service.srv.Start()
+		if err != nil {
+			return -1, err
+		}
+
+		// save back the service in the map.
+		self.ExternalServices[serviceId] = service
+
+		return service.srv.Process.Pid, nil
+	}
+
+}
+
+// Stop external service.
+func (self *Globule) stopExternalService(serviceId string) error {
+	if _, ok := self.ExternalServices[serviceId]; !ok {
+		return errors.New("No external service found with name " + serviceId)
+	}
+
+	// if no command was created
+	if self.ExternalServices[serviceId].srv == nil {
+		return nil
+	}
+
+	// if no process running
+	if self.ExternalServices[serviceId].srv.Process == nil {
+		return nil
+	}
+
+	// kill the process.
+	return self.ExternalServices[serviceId].srv.Process.Kill()
+}
+
+// Register external service to be start by Globular in order to run
+// as exemple MongoDB and Prometheus.
+func (self *Globule) RegisterExternalService(ctx context.Context, rqst *admin.RegisterExternalServiceRequest) (*admin.RegisterExternalServiceResponse, error) {
+
+	// Here I will get the command path.
+	externalCmd := ExternalService{
+		Id:   rqst.ServiceId,
+		Path: rqst.Path,
+		Args: rqst.Args,
+	}
+
+	self.ExternalServices[externalCmd.Id] = externalCmd
+
+	// save the config.
+	self.saveConfig()
+
+	// start the external service.
+	pid, err := self.startExternalService(externalCmd.Id)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &admin.RegisterExternalServiceResponse{
+		ServicePid: int64(pid),
+	}, nil
+}
+
+/**
+ * Start internal service admin and ressource are use that function.
+ */
+func (self *Globule) startInternalService(name string, port int, proxy int) (*grpc.Server, error) {
+	var err error
+
+	// set the logger.
+	grpclog.SetLogger(log.New(os.Stdout, name+" service: ", log.LstdFlags))
+
+	// Set the log information in case of crash...
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Now I will start the proxy that will be use by javascript client.
+	proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+	if string(os.PathSeparator) == "\\" {
+		proxyPath += ".exe" // in case of windows.
+	}
+
+	proxyBackendAddress := self.Domain + ":" + Utility.ToString(port)
+	proxyAllowAllOrgins := "true"
+	proxyArgs := make([]string, 0)
+
+	// Use in a local network or in test.
+	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
+	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
+
+	var grpcServer *grpc.Server
+	if self.Protocol == "https" {
+
+		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+		certFile := self.creds + string(os.PathSeparator) + "server.crt"
+		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+
+		// Load the certificates from disk
+		certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			log.Fatalf("could not load server key pair: %s", err)
+			return nil, err
+		}
+
+		// Create a certificate pool from the certificate authority
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(certAuthorityTrust)
+		if err != nil {
+			log.Fatalf("could not read ca certificate: %s", err)
+			return nil, err
+		}
+
+		// Append the client certificates from the CA
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			log.Fatalf("failed to append client certs")
+			return nil, err
+		}
+
+		// Create the TLS credentials
+		creds := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+			ClientCAs:    certPool,
+		})
+
+		// Create the gRPC server with the credentials
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors_.UnaryAuthInterceptor)}
+
+		// Create the gRPC server with the credentials
+		grpcServer = grpc.NewServer(opts...)
+
+		/* Services gRpc backend. */
+		proxyArgs = append(proxyArgs, "--backend_tls=true")
+		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
+		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
+
+		/* http2 parameters between the browser and the proxy.*/
+		proxyArgs = append(proxyArgs, "--run_http_server=false")
+		proxyArgs = append(proxyArgs, "--run_tls_server=true")
+		proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(proxy))
+
+		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
+		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
+
+	} else {
+		grpcServer = grpc.NewServer()
+
+		// Now I will save the file with those new information in it.
+		proxyArgs = append(proxyArgs, "--run_http_server=true")
+		proxyArgs = append(proxyArgs, "--run_tls_server=false")
+		proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(proxy))
+		proxyArgs = append(proxyArgs, "--backend_tls=false")
+	}
+
+	// Keep connection open for longer exchange between client/service. Event Subscribe function
+	// is a good example of long lasting connection. (48 hours) seam to be more than enought for
+	// browser client connection maximum life.
+	proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
+	proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+
+	// start the proxy service one time
+	proxyProcess := exec.Command(proxyPath, proxyArgs...)
+	args := ""
+	for i := 0; i < len(proxyArgs); i++ {
+		args += proxyArgs[i] + " "
+	}
+
+	err = proxyProcess.Start()
+	if err != nil {
+		log.Println("Fail to start Admin grpcwebproxy at port ", proxy, " with error ", err)
+		return nil, err
+	}
+
+	return grpcServer, nil
+
+}
+
+/* Register a new Account */
+func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.RegisterAccountRqst) (*ressource.RegisterAccountRsp, error) {
+	if rqst.ConfirmPassword != rqst.Password {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Password dosen't match!")))
+	}
+
+	// encode the password and keep it in the account itself.
+	rqst.Account.Password = Utility.GenerateUUID(rqst.Password)
+
+	// That service made user of persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
+
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+
+	// Test if the connection already exist.
+	_, err := p.Ping("local_ressource")
+
+	// if not I will create one.
+	if err != nil {
+		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "", "", 5000, "")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	// first of all the Persistence service must be active.
+	count, err := p.Count("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Account.Name+`"}`, "")
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// one account already exist for the name.
+	if count == 1 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("account with name "+rqst.Account.Name+" already exist!")))
+	}
+
+	// serialyse the account and save it.
+	accountStr, err := Utility.ToJson(rqst.Account)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I will insert the account in the database.
+	id, err := p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
+
+	// Now I will
+	return &ressource.RegisterAccountRsp{
+		Result: id,
+	}, nil
+}
+
+//* Authenticate a account by it name or email.
+// That function test if the password is the correct one for a given user
+// if it is a token is generate and that token will be use by other service
+// to validate permission over the requested ressource.
+func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
+	// That service made user of persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
+
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	query := `{"name":"` + rqst.Name + `"}`
+
+	// Can also be an email.
+	if Utility.IsEmail(rqst.Name) {
+		query = `{"email":"` + rqst.Name + `"}`
+	}
+
+	values, err := p.Find("local_ressource", "local_ressource", "Accounts", query, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	objects := make([]map[string]interface{}, 0)
+	json.Unmarshal([]byte(values), &objects)
+
+	if len(objects) == 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("fail to retreive "+rqst.Name+" informations.")))
+	}
+
+	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("wrong password for account "+rqst.Name)))
+	}
+
+	// Generate a token to identify the user.
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, objects[0]["name"].(string))
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I got the token I will now put it in the cache.
+	return &ressource.AuthenticateRsp{
+		Token: tokenString,
+	}, nil
+}
+
+//* Delete an account *
+func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAccountRqst) (*ressource.DeleteAccountRsp, error) {
+	// That service made user of persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+
+	// Try to delete the account...
+	err := p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.DeleteAccountRsp{
+		Result: rqst.Name,
+	}, nil
+}
+
+/**
  * Listen for new connection.
  */
 func (self *Globule) Listen() {
@@ -1050,9 +1686,6 @@ func (self *Globule) Listen() {
 	// set the services.
 	self.initServices()
 
-	// set the client services.
-	self.initClients()
-
 	r := http.NewServeMux()
 
 	// Start listen for http request.
@@ -1060,9 +1693,6 @@ func (self *Globule) Listen() {
 
 	// The file upload handler.
 	r.HandleFunc("/uploads", FileUploadHandler)
-
-	// Give access to service.
-	r.HandleFunc("/api/", HttpQueryHandler)
 
 	// Here I will save the server attribute
 	self.saveConfig()
@@ -1073,6 +1703,16 @@ func (self *Globule) Listen() {
 	// Catch the Ctrl-C and SIGTERM from kill command
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill, syscall.SIGTERM)
+
+	// Now I will start the external services
+	for externalServiceId, _ := range self.ExternalServices {
+		pid, err := self.startExternalService(externalServiceId)
+		if err != nil {
+			log.Println("fail to start external service: ", externalServiceId)
+		} else {
+			log.Println("external service", externalServiceId, "is started with process id ", pid)
+		}
+	}
 
 	go func() {
 		signalType := <-ch
@@ -1107,6 +1747,11 @@ func (self *Globule) Listen() {
 			}
 		}
 
+		// stop external service.
+		for externalServiceId, _ := range self.ExternalServices {
+			self.stopExternalService(externalServiceId)
+
+		}
 		for _, value := range self.clients {
 			value.Close()
 		}
@@ -1116,12 +1761,75 @@ func (self *Globule) Listen() {
 
 	}()
 
-	log.Println("Listening...")
-	var err error
+	// Start the admin service to give access to server functionality from
+	// client side.
+	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy)
+	if err == nil {
+		// First of all I will creat a listener.
+		// Create the channel to listen on admin port.
+
+		// Create the channel to listen on admin port.
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.AdminPort))
+		if err != nil {
+			log.Fatalf("could not start admin service %s: %s", self.Domain, err)
+		}
+
+		admin.RegisterAdminServiceServer(admin_server, self)
+
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go func() {
+			log.Println("---> start admin service!")
+			go func() {
+				// no web-rpc server.
+				if err := admin_server.Serve(lis); err != nil {
+					log.Fatalf("failed to serve: %v", err)
+				}
+				log.Println("Adim grpc service is closed")
+			}()
+			// Wait for signal to stop.
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, os.Interrupt)
+			<-ch
+		}()
+	}
+
+	ressource_server, err := self.startInternalService("Ressource", self.AdminPort, self.RessourcePort)
+	if err == nil {
+		// First of all I will creat a listener.
+		// Create the channel to listen on admin port.
+
+		// Create the channel to listen on admin port.
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RessourcePort))
+		if err != nil {
+			log.Fatalf("could not start admin service %s: %s", self.Domain, err)
+		}
+
+		ressource.RegisterRessourceServiceServer(ressource_server, self)
+
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go func() {
+			log.Println("---> start ressource service!")
+			go func() {
+				// no web-rpc server.
+				if err := ressource_server.Serve(lis); err != nil {
+					log.Fatalf("failed to serve: %v", err)
+				}
+				log.Println("Adim grpc service is closed")
+			}()
+			// Wait for signal to stop.
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, os.Interrupt)
+			<-ch
+		}()
+	}
+
+	// Start the http server.
 	if self.Protocol == "http" {
+		log.Println("Globular is listening at port ", self.PortHttp)
 		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), r)
 	} else {
 		// Here I will use sslforfree certificate to publish the website.
+		log.Println("Globular is listening at port ", self.PortHttps)
 		err = http.ListenAndServeTLS(":443", self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
 	}
 

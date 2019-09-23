@@ -43,7 +43,7 @@ type monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *monitoring_Client {
+func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *monitoring_Client {
 	client := new(monitoring_Client)
 
 	client.addresse = addresse
@@ -53,7 +53,7 @@ func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile s
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = monitoringpb.NewMonitoringServiceClient(client.cc)
 
 	return client

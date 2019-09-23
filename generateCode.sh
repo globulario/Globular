@@ -1,4 +1,6 @@
 #!/bin/bash
+protoc admin/admin.proto --go_out=plugins=grpc:.
+protoc ressource/ressource.proto --go_out=plugins=grpc:.
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
 protoc event/eventpb/event.proto --go_out=plugins=grpc:.
 protoc storage/storagepb/storage.proto --go_out=plugins=grpc:.
@@ -27,6 +29,10 @@ protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.
 
 
 # Javascript files generation.
+protoc admin/admin.proto --js_out=import_style=commonjs:client
+protoc admin/admin.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+protoc ressource/ressource.proto --js_out=import_style=commonjs:client
+protoc ressource/ressource.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
 protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc event/eventpb/event.proto --js_out=import_style=commonjs:client

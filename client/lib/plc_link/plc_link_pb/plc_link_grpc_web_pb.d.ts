@@ -16,8 +16,8 @@ import {
 
 export class PlcLinkServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,
@@ -65,8 +65,8 @@ export class PlcLinkServiceClient {
 
 export class PlcLinkServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,

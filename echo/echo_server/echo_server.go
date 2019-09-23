@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/echo/echopb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -25,8 +26,8 @@ import (
 
 // TODO take care of TLS/https
 var (
-	defaultPort  = 10001
-	defaultProxy = 10002
+	defaultPort  = 10029
+	defaultProxy = 10030
 
 	// By default all origins are allowed.
 	allow_all_origins = true
@@ -155,6 +156,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("could not load server key pair: %s", err)
 			return
+		} else {
+			log.Println("load certificate from ", s_impl.CertFile, s_impl.KeyFile)
 		}
 
 		// Create a certificate pool from the certificate authority
@@ -179,10 +182,11 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
+		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer(grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor))
 	}
 
 	echopb.RegisterEchoServiceServer(grpcServer, s_impl)

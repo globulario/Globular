@@ -44,7 +44,7 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Event_Client {
+func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Event_Client {
 	client := new(Event_Client)
 
 	client.addresse = addresse
@@ -54,7 +54,7 @@ func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	return client
 }

@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
+	"github.com/davecourtois/Globular/Interceptors/Authenticate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -41,13 +42,20 @@ type Client interface {
 }
 
 /**
- * Get the client connection.
+ * Get the client connection. The token is require to control access to ressource
  */
-func GetClientConnection(client Client) *grpc.ClientConn {
+func GetClientConnection(client Client, token string) *grpc.ClientConn {
 
 	var cc *grpc.ClientConn
 	var err error
+
 	if cc == nil {
+
+		// Setup the login/pass simple test...
+		auth := Interceptors.Authentication{
+			Token: token,
+		}
+
 		if client.HasTLS() {
 			if len(client.GetKeyFile()) == 0 {
 				log.Println("no key file is available for client ")
@@ -81,7 +89,7 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			})
 
 			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds))
+			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(&auth))
 			if err != nil {
 				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
 			}

@@ -42,7 +42,7 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Persistence_Client {
+func NewPersistence_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Persistence_Client {
 	client := new(Persistence_Client)
 	client.addresse = addresse
 	client.domain = domain
@@ -52,7 +52,7 @@ func NewPersistence_Client(domain string, addresse string, hasTLS bool, keyFile 
 	client.certFile = certFile
 	client.caFile = caFile
 
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 
 	return client
@@ -240,4 +240,26 @@ func (self *Persistence_Client) DeleteOne(connectionId string, database string, 
 	}
 
 	return err
+}
+
+/**
+ * Delete one record from the db
+ */
+func (self *Persistence_Client) Count(connectionId string, database string, collection string, query string, options string) (int, error) {
+
+	rqst := &persistencepb.CountRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Options:    options,
+	}
+
+	rsp, err := self.c.Count(context.Background(), rqst)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(rsp.Result), err
 }

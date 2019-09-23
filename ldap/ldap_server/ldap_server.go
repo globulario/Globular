@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/ldap/ldappb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -28,8 +29,8 @@ import (
 )
 
 var (
-	defaultPort  = 10003
-	defaultProxy = 10004
+	defaultPort  = 10031
+	defaultProxy = 10032
 
 	// By default all origins are allowed.
 	allow_all_origins = true
@@ -338,7 +339,8 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
+		grpcServer = grpc.NewServer(opts...)
 
 	} else {
 		grpcServer = grpc.NewServer()

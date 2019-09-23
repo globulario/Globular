@@ -24,12 +24,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tealeg/xlsx"
-
+	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Utility"
 	"github.com/nfnt/resize"
 	"github.com/polds/imgbase64"
+	"github.com/tealeg/xlsx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -643,7 +643,8 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
+		grpcServer = grpc.NewServer(opts...)
 
 	} else {
 		grpcServer = grpc.NewServer()

@@ -39,7 +39,7 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *LDAP_Client {
+func NewLdap_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *LDAP_Client {
 	client := new(LDAP_Client)
 
 	client.addresse = addresse
@@ -49,7 +49,7 @@ func NewLdap_Client(domain string, addresse string, hasTLS bool, keyFile string,
 	client.certFile = certFile
 	client.caFile = caFile
 	client.domain = domain
-	client.cc = api.GetClientConnection(client)
+	client.cc = api.GetClientConnection(client, token)
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
 	return client

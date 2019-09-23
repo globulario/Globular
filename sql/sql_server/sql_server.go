@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 
@@ -638,7 +639,8 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
+		grpcServer = grpc.NewServer(opts...)
 
 	} else {
 		grpcServer = grpc.NewServer()

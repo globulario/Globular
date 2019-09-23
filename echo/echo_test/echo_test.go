@@ -1,109 +1,41 @@
 package Globular
 
 import (
-	"context"
-	"fmt"
+	//"encoding/json"
 	"log"
-
-	"crypto/tls"
-	"crypto/x509"
-
-	"github.com/davecourtois/Globular/echo/echopb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-
-	"encoding/json"
-	"io/ioutil"
 	"testing"
+
+	"github.com/davecourtois/Globular/echo/echo_client"
+	"github.com/davecourtois/Globular/ressource"
 )
 
-// Set the correct addresse here as needed.
 var (
-	addresse = "localhost:10001"
+
+	// Test with a secure connection.
+	crt = "E:/Project/src/github.com/davecourtois/Globular/creds/client.crt"
+	key = "E:/Project/src/github.com/davecourtois/Globular/creds/client.pem"
+	ca  = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
+
+	// Create a new connection to globular ressource manager.
+	globular = ressource.NewRessource_Client("localhost", "127.0.0.1:10003", true, key, crt, ca)
 )
 
-/**
- * Get the client connection.
- */
-func getClientConnection() *grpc.ClientConn {
-	// So here I will read the server configuration to see if the connection
-	// is secure...
-	config := make(map[string]interface{})
-	data, err := ioutil.ReadFile("../echo_server/config.json")
+// Test various function here.
+func TestRegisterAccount(t *testing.T) {
+	token, err := globular.Authenticate("admin", "adminadmin")
 	if err != nil {
-		log.Fatal("fail to read configuration")
+		log.Println("---> error ", err)
+		return
 	}
 
-	// Read the config file.
-	json.Unmarshal(data, &config)
+	// Connect to the plc client.
+	client := echo_client.NewEcho_Client("localhost", "127.0.0.1:10029", true, key, crt, ca, token)
 
-	var cc *grpc.ClientConn
-	if cc == nil {
-		if config["TLS"].(bool) {
-
-			// Load the client certificates from disk
-
-			crt := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.crt"
-			key := "/media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular/creds/client.pem"
-			certificate, err := tls.LoadX509KeyPair(crt, key)
-			if err != nil {
-				log.Fatalf("could not load client key pair: %s", err)
-			}
-
-			// Create a certificate pool from the certificate authority
-			certPool := x509.NewCertPool()
-			ca, err := ioutil.ReadFile(config["CertAuthorityTrust"].(string))
-			if err != nil {
-				log.Fatalf("could not read ca certificate: %s", err)
-			}
-
-			// Append the certificates from the CA
-			if ok := certPool.AppendCertsFromPEM(ca); !ok {
-				log.Fatalf("failed to append ca certs")
-			}
-
-			creds := credentials.NewTLS(&tls.Config{
-				ServerName:   "localhost", // NOTE: this is required!
-				Certificates: []tls.Certificate{certificate},
-				RootCAs:      certPool,
-			})
-
-			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(addresse, grpc.WithTransportCredentials(creds))
-			if err != nil {
-				log.Fatalf("could not dial %s: %s", addresse, err)
-			}
-		} else {
-			cc, err = grpc.Dial(addresse, grpc.WithInsecure())
-			if err != nil {
-				log.Fatalf("could not connect: %v", err)
-			}
-		}
-
-	}
-	return cc
-}
-
-// First test create a fresh new connection...
-func TestEcho(t *testing.T) {
-	fmt.Println("Connection creation test.")
-
-	cc := getClientConnection()
-
-	// when done the connection will be close.
-	defer cc.Close()
-
-	// Create a new client service...
-	c := echopb.NewEchoServiceClient(cc)
-
-	rqst := &echopb.EchoRequest{
-		Message: "Hello Globular",
-	}
-
-	rsp, err := c.Echo(context.Background(), rqst)
+	log.Println("---> test register a new account.")
+	val, err := client.Echo("Ceci est un test")
 	if err != nil {
-		log.Fatalf("error while CreateConnection: %v", err)
+		log.Println("---> ", err)
+	} else {
+		log.Println("---> ", val)
 	}
-
-	log.Println("Response form CreateConnection:", rsp.Message)
 }
