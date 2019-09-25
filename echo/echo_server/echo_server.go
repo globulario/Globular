@@ -186,7 +186,7 @@ func main() {
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer(grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor))
+		grpcServer = grpc.NewServer()
 	}
 
 	echopb.RegisterEchoServiceServer(grpcServer, s_impl)

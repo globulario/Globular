@@ -51,12 +51,13 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 
 	if cc == nil {
 
-		// Setup the login/pass simple test...
-		auth := Interceptors.Authentication{
-			Token: token,
-		}
-
 		if client.HasTLS() {
+			log.Println("Secure client")
+			// Setup the login/pass simple test...
+			auth := Interceptors.Authentication{
+				Token: token,
+			}
+
 			if len(client.GetKeyFile()) == 0 {
 				log.Println("no key file is available for client ")
 			}

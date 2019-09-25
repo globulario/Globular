@@ -17,11 +17,12 @@ var (
 	ca  = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
 
 	// Create a new connection to globular ressource manager.
-	globular = ressource.NewRessource_Client("localhost", "127.0.0.1:10003", true, key, crt, ca)
+	globular = ressource.NewRessource_Client("MOND599", "10.67.44.131:10029", true, key, crt, ca)
 )
 
 // Test various function here.
-func TestRegisterAccount(t *testing.T) {
+func TestEcho(t *testing.T) {
+	log.Println("---> test Echo")
 	token, err := globular.Authenticate("admin", "adminadmin")
 	if err != nil {
 		log.Println("---> error ", err)
@@ -29,9 +30,8 @@ func TestRegisterAccount(t *testing.T) {
 	}
 
 	// Connect to the plc client.
-	client := echo_client.NewEcho_Client("localhost", "127.0.0.1:10029", true, key, crt, ca, token)
+	client := echo_client.NewEcho_Client("MOND599", "10.67.44.131:10029", true, key, crt, ca, token)
 
-	log.Println("---> test register a new account.")
 	val, err := client.Echo("Ceci est un test")
 	if err != nil {
 		log.Println("---> ", err)

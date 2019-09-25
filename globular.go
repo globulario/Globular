@@ -129,9 +129,15 @@ func NewGlobule(port int) *Globule {
 	g := new(Globule)
 	g.PortHttp = port
 	g.PortHttps = port // The default port number.
-	g.Name = Utility.GetExecName(os.Args[0])
+	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+
 	g.Protocol = "http"
-	g.Domain = "localhost"
+	var err error
+	g.Domain, err = os.Hostname()
+	if err != nil {
+		g.Domain = "localhost"
+	}
+
 	g.IP = Utility.MyIP()
 	g.AdminPort = 10001
 	g.AdminProxy = 10002
@@ -284,10 +290,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
 		proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 
-		if self.Protocol == "https" {
+		if s["TLS"].(bool) {
 
 			// Set TLS local services configuration here.
-			s["TLS"] = true
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
 			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
@@ -308,8 +313,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
 
 		} else {
+
 			// not secure services.
-			s["TLS"] = false
 			s["CertAuthorityTrust"] = ""
 			s["CertFile"] = ""
 			s["KeyFile"] = ""
@@ -372,6 +377,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s_["Domain"] = s["Domain"]
 		s_["Proxy"] = s["Proxy"]
 		s_["Port"] = s["Port"]
+		s_["TLS"] = s["TLS"]
 
 		self.Services[s["Name"].(string)] = s_
 		self.initClient(s["Name"].(string))
@@ -410,20 +416,16 @@ func (self *Globule) initService(s map[string]interface{}) {
 		s["Domain"] = self.Domain // local services.
 		s["Address"] = self.IP    // local services.
 
-		if self.Protocol == "https" {
+		if s["TLS"].(bool) {
 			// Set TLS local services configuration here.
-			s["TLS"] = true
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
 			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
-
 		} else {
 			// not secure services.
-			s["TLS"] = false
 			s["CertAuthorityTrust"] = ""
 			s["CertFile"] = ""
 			s["KeyFile"] = ""
-
 		}
 		// Now I will save the file with those new information in it.
 		hasChange := self.saveServiceConfig(s)
@@ -471,12 +473,7 @@ func (self *Globule) initServices() {
 	log.Println("Initialyse services")
 
 	// If the protocol is https I will generate the TLS certificate.
-	if self.Protocol == "https" {
-		// TODO find a way to save the password somewhere on the server configuration
-
-		// whitout expose it to external world.
-		self.GenerateServicesCertificates("1111", self.CertExpirationDelay)
-	}
+	self.GenerateServicesCertificates("1111", self.CertExpirationDelay)
 
 	// Each service contain a file name config.json that describe service.
 	// I will keep services info in services map and also it running process.
@@ -720,13 +717,14 @@ func (self *Globule) initClient(name string) {
 	}
 
 	port := int(self.Services[name].(map[string]interface{})["Port"].(float64))
+	hasTLS := self.Services[name].(map[string]interface{})["TLS"].(bool)
+
 	name = strings.Split(name, "_")[0]
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
 
 	// Set the parameters.
 	address := self.Domain + ":" + strconv.Itoa(port)
 	domain := self.Domain
-	hasTLS := self.Protocol == "https" // true if the protocol is https.
 
 	// Set the files.
 	keyFile := self.creds + string(os.PathSeparator) + "client.crt"
