@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/reflection"
 )
 
 // TODO take care of TLS/https
@@ -337,7 +338,7 @@ func main() {
 	}
 
 	eventpb.RegisterEventServiceServer(grpcServer, s_impl)
-
+	reflection.Register(grpcServer)
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println(s_impl.Name + " grpc service is starting")

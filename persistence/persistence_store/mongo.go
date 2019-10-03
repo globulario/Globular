@@ -3,7 +3,7 @@ package persistence_store
 import (
 	"context"
 	//	"fmt"
-	// "log"
+	"log"
 
 	"strconv"
 	"time"
@@ -15,6 +15,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	// execute...
+	"os/exec"
 )
 
 /**
@@ -29,7 +32,9 @@ type MongoStore struct {
  * TODO add more connection options via the option_str and options package.
  */
 func (self *MongoStore) Connect(host string, port int32, user string, password string, database string, timeout int32, optionsStr string) error {
+
 	var opts []*options.ClientOptions
+
 	if len(optionsStr) > 0 {
 		opts = make([]*options.ClientOptions, 0)
 		err := json.Unmarshal([]byte(optionsStr), &opts)
@@ -41,11 +46,13 @@ func (self *MongoStore) Connect(host string, port int32, user string, password s
 			return err
 		}
 	} else {
+
 		// basic connection string to begin with.
-		connectionStr := "mongodb://" + host + ":" + strconv.Itoa(int(port))
+		connectionStr := "mongodb://" + user + ":" + password + "@" + host + ":" + strconv.Itoa(int(port)) + "/" + database + "?authMechanism=SCRAM-SHA-1"
 		var err error
 		self.client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
 		if err != nil {
+			log.Println("---> fail to connect whit user: ", user, password)
 			return err
 		}
 
@@ -228,12 +235,12 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 
 	cur, err := collection_.Find(ctx, q, opts...)
 	defer cur.Close(context.Background())
+	results := make([]interface{}, 0)
 
 	if err != nil {
-		return nil, err
+		log.Println("---> 239 ", err)
+		return results, err
 	}
-
-	results := make([]interface{}, 0)
 
 	for cur.Next(ctx) {
 		entity := make(map[string]interface{})
@@ -249,7 +256,7 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 
 	// In case of error
 	if err := cur.Err(); err != nil {
-		return nil, err
+		return results, err
 	}
 
 	return results, nil
@@ -555,5 +562,28 @@ func (self *MongoStore) DeleteOne(ctx context.Context, database string, collecti
 		return err
 	}
 
+	return nil
+}
+
+/**
+ * Create a user. optionaly assing it a role.
+ * roles ex. [{ role: "myReadOnlyRole", db: "mytest"}]
+ */
+func (self *MongoStore) RunAdminCmd(ctx context.Context, script string) error {
+
+	// Create user is not part of the driver so I will use mongo.exe to
+	// run the command. Todo so it must be on the server path to be able to
+	// run correctly.
+	cmd_ := exec.Command("mongo.exe ", "--eval", script)
+	err := cmd_.Run()
+
+	return err
+}
+
+/**
+ * Create a role, privilege is a json sring describing the privilege.
+ * privileges ex. [{ resource: { db: "mytest", collection: "col2"}, actions: ["find"]}], roles: []}
+ */
+func (self *MongoStore) CreateRole(ctx context.Context, role string, privileges string, options string) error {
 	return nil
 }

@@ -62,7 +62,7 @@ export declare class Globular {
     monitoringService: MonitoringServicePromiseClient | undefined;
     spcService: SpcServicePromiseClient | undefined;
     plcService_ab: PlcServicePromiseClient | undefined;
-    plcService_simens: PlcServicePromiseClient | undefined;
+    plcService_siemens: PlcServicePromiseClient | undefined;
     plcLinkService: PlcLinkServicePromiseClient | undefined;
     /** The */
     constructor(config: IConfig);

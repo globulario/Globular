@@ -2,7 +2,8 @@ package Interceptors
 
 import (
 	"fmt"
-	//	"log"
+	"log"
+
 	"strings"
 
 	"io/ioutil"
@@ -36,9 +37,12 @@ func validateToken(token string) error {
 		jwtKey, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_key")
 		return jwtKey, err
 	})
+
 	if err != nil {
+		log.Println("Invalid token error line 40", err)
 		return err
 	}
+
 	if !tkn.Valid {
 		return fmt.Errorf("invalid token!")
 	}
@@ -48,18 +52,22 @@ func validateToken(token string) error {
 
 // authenticateAgent check the client credentials
 func authenticateClient(ctx context.Context) (string, error) {
+
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		token := strings.Join(md["token"], "")
+		// In that case no token was given...
+		if len(token) == 0 {
+			return "", nil
+		}
+
 		err := validateToken(token)
 		if err != nil {
 			return "", err
 		}
 
 		if len(token) > 0 {
-
 			return "42", nil
 		}
-
 	}
 
 	return "", fmt.Errorf("missing credentials")
@@ -67,12 +75,10 @@ func authenticateClient(ctx context.Context) (string, error) {
 
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-
 	clientID, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	ctx = context.WithValue(ctx, clientIDKey, clientID)
 
 	return handler(ctx, req)

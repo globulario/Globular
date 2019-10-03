@@ -8,10 +8,9 @@ import (
 
 var (
 	// Connect to the plc client.
-	crt = "E:/Project/src/github.com/davecourtois/Globular/creds/client.crt"
-	key = "E:/Project/src/github.com/davecourtois/Globular/creds/client.pem"
-	ca  = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
-
+	crt    = "E:/Project/src/github.com/davecourtois/Globular/creds/client.crt"
+	key    = "E:/Project/src/github.com/davecourtois/Globular/creds/client.pem"
+	ca     = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
 	client = NewRessource_Client("localhost", "127.0.0.1:10003", true, key, crt, ca)
 )
 
@@ -21,7 +20,6 @@ func TestRegisterAccount(t *testing.T) {
 	log.Println("---> test register a new account.")
 	err := client.RegisterAccount("davecourtois", "dave.courtois60@gmail.com", "123", "123")
 	if err != nil {
-
 		log.Println("---> ", err)
 	}
 }

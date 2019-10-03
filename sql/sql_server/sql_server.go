@@ -647,6 +647,7 @@ func main() {
 	}
 
 	sqlpb.RegisterSqlServiceServer(grpcServer, s_impl)
+	reflection.Register(grpcServer)
 
 	// Wait for signal to stop.
 	ch := make(chan os.Signal, 1)

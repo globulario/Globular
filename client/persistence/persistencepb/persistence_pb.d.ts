@@ -916,6 +916,54 @@ export namespace CountRsp {
   }
 }
 
+export class RunAdminCmdRqst extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getDatabase(): string;
+  setDatabase(value: string): void;
+
+  getCmd(): string;
+  setCmd(value: string): void;
+
+  getArgs(): string;
+  setArgs(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RunAdminCmdRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RunAdminCmdRqst): RunAdminCmdRqst.AsObject;
+  static serializeBinaryToWriter(message: RunAdminCmdRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RunAdminCmdRqst;
+  static deserializeBinaryFromReader(message: RunAdminCmdRqst, reader: jspb.BinaryReader): RunAdminCmdRqst;
+}
+
+export namespace RunAdminCmdRqst {
+  export type AsObject = {
+    connectionid: string,
+    database: string,
+    cmd: string,
+    args: string,
+  }
+}
+
+export class RunAdminCmdRsp extends jspb.Message {
+  getResult(): string;
+  setResult(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RunAdminCmdRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RunAdminCmdRsp): RunAdminCmdRsp.AsObject;
+  static serializeBinaryToWriter(message: RunAdminCmdRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RunAdminCmdRsp;
+  static deserializeBinaryFromReader(message: RunAdminCmdRsp, reader: jspb.BinaryReader): RunAdminCmdRsp;
+}
+
+export namespace RunAdminCmdRsp {
+  export type AsObject = {
+    result: string,
+  }
+}
+
 export enum StoreType { 
   MONGO = 0,
 }

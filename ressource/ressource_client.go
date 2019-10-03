@@ -141,6 +141,7 @@ func (self *Ressource_Client) DeleteAccount(name string) error {
 
 // Authenticate a user.
 func (self *Ressource_Client) Authenticate(name string, password string) (string, error) {
+
 	rqst := &AuthenticateRqst{
 		Name:     name,
 		Password: password,

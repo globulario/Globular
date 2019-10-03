@@ -38,8 +38,9 @@ message Permission{
 
 /** Ressource **/
 message Ressource {
-	// Ressource can be anything that an url can point to, grp call, file... etc.
-	string url = 1;
+	// A json object use to locate and describe
+	// the ressource and it context.
+	string decriptor = 1;
 }
 
 ///////////////////////// API //////////////////////////

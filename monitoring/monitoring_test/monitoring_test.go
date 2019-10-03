@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
+
+	//	"time"
 
 	"github.com/davecourtois/Globular/monitoring/monitoring_client"
 )
 
 // Set the correct addresse here as needed.
 var (
-	client = monitoring_client.NewMonitoring_Client("localhost", "127.0.0.1:10019", false, "", "", "")
+	// client = monitoring_client.NewMonitoring_Client("localhost", "127.0.0.1:10019", false, "", "", "")
+	client = monitoring_client.NewMonitoring_Client("steve_pc", "steve_pc:10019", false, "", "", "", "")
 )
 
 // First test create a fresh new connection...
@@ -22,7 +24,8 @@ func TestMonitoring(t *testing.T) {
 // First test create a fresh new connection...
 func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
-	err := client.CreateConnection("test", "127.0.0.1", 0, 9090)
+	// err := client.CreateConnection("test", "127.0.0.1", 0, 9090)
+	err := client.CreateConnection("test", "steve_pc", 0, 9090)
 	if err != nil {
 		log.Println("Fail to create a new connection", err)
 		t.Fail()
@@ -41,6 +44,7 @@ func TestGetConfig(t *testing.T) {
 	log.Println(config)
 }
 
+/*
 // Test Alerts.
 func TestAlerts(t *testing.T) {
 	fmt.Println("Get a alerts")
@@ -204,3 +208,4 @@ func TestTargetsMetadata(t *testing.T) {
 
 	log.Println(rules)
 }
+*/

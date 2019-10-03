@@ -31,10 +31,10 @@ import (
 	"github.com/polds/imgbase64"
 	"github.com/tealeg/xlsx"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
 
@@ -651,6 +651,7 @@ func main() {
 	}
 
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)
+	reflection.Register(grpcServer)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {

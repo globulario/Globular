@@ -93,4 +93,13 @@ type Store interface {
 	 * Remove one value depending of the query results.
 	 */
 	DeleteOne(ctx context.Context, database string, collection string, query string, options string) error
+
+	////////////////////////////////////////////////////////////////////////////
+	// Ressource management functionality.
+	////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Run an admin command on the server.
+	 */
+	RunAdminCmd(ctx context.Context, script string) error
 }

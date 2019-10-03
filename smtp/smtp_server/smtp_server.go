@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	gomail "gopkg.in/gomail.v1"
@@ -422,6 +423,7 @@ func main() {
 
 	// Register the smtp service.
 	smtppb.RegisterSmtpServiceServer(grpcServer, s_impl)
+	reflection.Register(grpcServer)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {

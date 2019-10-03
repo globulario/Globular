@@ -74,7 +74,7 @@ export class Globular {
 
   // Non open source services.
   plcService_ab: PlcServicePromiseClient | undefined;
-  plcService_simens: PlcServicePromiseClient | undefined;
+  plcService_siemens: PlcServicePromiseClient | undefined;
   plcLinkService: PlcLinkServicePromiseClient | undefined;
 
   /** The */
@@ -224,13 +224,13 @@ export class Globular {
         null,
       );
     }
-    if (this.config.Services['plc_server_simens'] != null) {
-      this.plcService_simens = new PlcServicePromiseClient(
+    if (this.config.Services['plc_server_siemens'] != null) {
+      this.plcService_siemens = new PlcServicePromiseClient(
         this.config.Protocol +
           '://' +
-          this.config.Services['plc_server_simens'].Domain +
+          this.config.Services['plc_server_siemens'].Domain +
           ':' +
-          this.config.Services['plc_server_simens'].Proxy,
+          this.config.Services['plc_server_siemens'].Proxy,
         null,
         null,
       );

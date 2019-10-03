@@ -33,6 +33,8 @@ import {
   PingConnectionRsp,
   ReplaceOneRqst,
   ReplaceOneRsp,
+  RunAdminCmdRqst,
+  RunAdminCmdRsp,
   UpdateOneRqst,
   UpdateOneRsp,
   UpdateRqst,
@@ -158,6 +160,13 @@ export class PersistenceServiceClient {
                response: DeleteOneRsp) => void
   ): grpcWeb.ClientReadableStream<DeleteOneRsp>;
 
+  runAdminCmd(
+    request: RunAdminCmdRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RunAdminCmdRsp) => void
+  ): grpcWeb.ClientReadableStream<RunAdminCmdRsp>;
+
 }
 
 export class PersistenceServicePromiseClient {
@@ -249,6 +258,11 @@ export class PersistenceServicePromiseClient {
     request: DeleteOneRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<DeleteOneRsp>;
+
+  runAdminCmd(
+    request: RunAdminCmdRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RunAdminCmdRsp>;
 
 }
 

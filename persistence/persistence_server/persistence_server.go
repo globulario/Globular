@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
 
@@ -683,6 +684,28 @@ func (self *server) DeleteConnection(ctx context.Context, rqst *persistencepb.De
 	}, nil
 }
 
+// Create a new user.
+func (self *server) RunAdminCmd(ctx context.Context, rqst *persistencepb.RunAdminCmdRqst) (*persistencepb.RunAdminCmdRsp, error) {
+	store := self.stores[rqst.GetConnectionId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetConnectionId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err := store.RunAdminCmd(ctx, rqst.Script)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &persistencepb.RunAdminCmdRsp{
+		Result: "",
+	}, nil
+}
+
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
@@ -762,6 +785,7 @@ func main() {
 	}
 
 	persistencepb.RegisterPersistenceServiceServer(grpcServer, s_impl)
+	reflection.Register(grpcServer)
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {

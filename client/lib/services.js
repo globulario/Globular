@@ -112,12 +112,12 @@ var Globular = /** @class */ (function () {
                 ':' +
                 this.config.Services['plc_server_ab'].Proxy, null, null);
         }
-        if (this.config.Services['plc_server_simens'] != null) {
-            this.plcService_simens = new plc_grpc_web_pb_1.PlcServicePromiseClient(this.config.Protocol +
+        if (this.config.Services['plc_server_siemens'] != null) {
+            this.plcService_siemens = new plc_grpc_web_pb_1.PlcServicePromiseClient(this.config.Protocol +
                 '://' +
-                this.config.Services['plc_server_simens'].Domain +
+                this.config.Services['plc_server_siemens'].Domain +
                 ':' +
-                this.config.Services['plc_server_simens'].Proxy, null, null);
+                this.config.Services['plc_server_siemens'].Proxy, null, null);
         }
         if (this.config.Services['plc_link_server'] != null) {
             this.plcLinkService = new plc_link_grpc_web_pb_1.PlcLinkServicePromiseClient(this.config.Protocol +

@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	LDAP "gopkg.in/ldap.v3"
@@ -347,7 +348,7 @@ func main() {
 	}
 
 	ldappb.RegisterLdapServiceServer(grpcServer, s_impl)
-
+	reflection.Register(grpcServer)
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println(s_impl.Name + " grpc service is starting")

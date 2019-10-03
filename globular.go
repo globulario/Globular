@@ -6,6 +6,7 @@ import (
 	"errors"
 	"sync"
 
+	// "github.com/gorilla/mux"
 	ps "github.com/mitchellh/go-ps"
 
 	//"fmt"
@@ -55,10 +56,10 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
 
@@ -102,12 +103,16 @@ type Globule struct {
 	CertExpirationDelay int
 
 	// The token use to identify globular with other services.
+	// it must stay private.
 	token string
 
 	// Local info.
 	webRoot string // The root of the http file server.
-	creds   string // where the key will be store.
-	path    string // The path of the exec...
+
+	creds string // gRpc credential
+	certs string // https certificates
+
+	path string // The path of the exec...
 
 	// The list of avalaible services.
 	services map[string]interface{}
@@ -180,6 +185,10 @@ func NewGlobule(port int) *Globule {
 	// Create the creds directory if it not already exist.
 	g.creds = dir + string(os.PathSeparator) + "creds"
 	Utility.CreateDirIfNotExist(g.creds)
+
+	// https certificates.
+	g.certs = dir + string(os.PathSeparator) + "certs"
+	Utility.CreateDirIfNotExist(g.certs)
 
 	// keep the root in global variable for the file handler.
 	root = g.webRoot
@@ -254,6 +263,83 @@ func killProcessByName(name string) error {
 }
 
 /**
+ * Start the grpc proxy.
+ */
+func (self *Globule) startProxy(name string, port int, proxy int) error {
+	srv := self.services[name]
+	if srv.(map[string]interface{})["ProxyProcess"] != nil {
+		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
+	}
+
+	// Now I will start the proxy that will be use by javascript client.
+	proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+	if string(os.PathSeparator) == "\\" {
+		proxyPath += ".exe" // in case of windows.
+	}
+
+	proxyBackendAddress := self.Domain + ":" + Utility.ToString(port)
+	proxyAllowAllOrgins := "true"
+	proxyArgs := make([]string, 0)
+
+	// Use in a local network or in test.
+	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
+	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
+
+	if self.Protocol == "https" {
+		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+
+		/* Services gRpc backend. */
+		proxyArgs = append(proxyArgs, "--backend_tls=true")
+		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
+		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
+
+		/* http2 parameters between the browser and the proxy.*/
+		proxyArgs = append(proxyArgs, "--run_http_server=false")
+		proxyArgs = append(proxyArgs, "--run_tls_server=true")
+		proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(proxy))
+
+		/** Self signed certificate for self signed server domain **/
+		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+"server_cert.pem")
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+"server_key.pem")
+
+		/* Use those files for public domain server **/
+		//proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
+		//proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
+		//proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
+
+	} else {
+
+		// Now I will save the file with those new information in it.
+		proxyArgs = append(proxyArgs, "--run_http_server=true")
+		proxyArgs = append(proxyArgs, "--run_tls_server=false")
+		proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(proxy))
+		proxyArgs = append(proxyArgs, "--backend_tls=false")
+	}
+
+	// Keep connection open for longer exchange between client/service. Event Subscribe function
+	// is a good example of long lasting connection. (48 hours) seam to be more than enought for
+	// browser client connection maximum life.
+	proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
+	proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+
+	// start the proxy service one time
+	proxyProcess := exec.Command(proxyPath, proxyArgs...)
+	err := proxyProcess.Start()
+
+	if err != nil {
+		log.Println("Fail to start grpcwebproxy at port ", proxy, " with error ", err)
+		return err
+	}
+
+	// save service configuration.
+	srv.(map[string]interface{})["ProxyProcess"] = proxyProcess
+	self.services[name] = srv
+
+	return nil
+}
+
+/**
  * Start a given service.
  */
 func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
@@ -264,10 +350,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	if srv != nil {
 		if srv.(map[string]interface{})["Process"] != nil {
 			srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
-
-			if srv.(map[string]interface{})["ProxyProcess"] != nil {
-				srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
-			}
 		}
 	}
 
@@ -281,62 +363,21 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// The domain must be set in the sever configuration and not change after that.
 		s["Domain"] = self.Domain // local services.
 		s["Address"] = self.IP    // local services.
-		proxyBackendAddress := s["Domain"].(string) + ":" + Utility.ToString(s["Port"])
-
-		proxyAllowAllOrgins := Utility.ToString(s["AllowAllOrigins"])
-		proxyArgs := make([]string, 0)
-
-		// Use in a local network or in test.
-		proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
-		proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 
 		if s["TLS"].(bool) {
-
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
 			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
-
-			/* Services gRpc backend. */
-			proxyArgs = append(proxyArgs, "--backend_tls=true")
-			proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+self.creds+string(os.PathSeparator)+"ca.crt")
-			proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
-			proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
-
-			/* http2 parameters between the browser and the proxy.*/
-			proxyArgs = append(proxyArgs, "--run_http_server=false")
-			proxyArgs = append(proxyArgs, "--run_tls_server=true")
-			proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(s["Proxy"]))
-
-			proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
-			proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
-			proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
-
 		} else {
-
 			// not secure services.
 			s["CertAuthorityTrust"] = ""
 			s["CertFile"] = ""
 			s["KeyFile"] = ""
-
-			// Now I will save the file with those new information in it.
-			proxyArgs = append(proxyArgs, "--run_http_server=true")
-			proxyArgs = append(proxyArgs, "--run_tls_server=false")
-			proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(s["Proxy"]))
-			proxyArgs = append(proxyArgs, "--backend_tls=false")
 		}
-
-		// Keep connection open for longer exchange between client/service. Event Subscribe function
-		// is a good example of long lasting connection. (48 hours) seam to be more than enought for
-		// browser client connection maximum life.
-		proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
-		proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
 
 		// Kill previous instance of the program...
 		killProcessByName(s["Name"].(string))
-
-		// Start the process in it own thread and keep it alive as needed for a miximum number of try
-		// before given up.
 
 		// Start the service process.
 		log.Println("try to start process ", s["Name"].(string))
@@ -354,20 +395,17 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
+		// Save configuration stuff.
+		self.services[s["Name"].(string)] = s
 
-		log.Println("give up on starting service: ", s["Name"].(string), " at port ", s["Port"])
-
-		// Start the proxie's and keep them alives.
-
-		// start the proxy service one time
-		s["ProxyProcess"] = exec.Command(s["proxyPath"].(string), proxyArgs...)
-		err = s["ProxyProcess"].(*exec.Cmd).Start()
+		// Start the proxy.
+		err = self.startProxy(s["Name"].(string), int(s["Port"].(float64)), int(s["Proxy"].(float64)))
 		if err != nil {
-			log.Println("Fail to start grpcwebproxy: ", s["Name"].(string), " at port ", s["Proxy"], " with error ", err)
 			return -1, -1, err
 		}
 
-		self.services[s["Name"].(string)] = s
+		// get back the service info with the proxy process in it
+		s = self.services[s["Name"].(string)].(map[string]interface{})
 
 		// public configuration info.
 		s_ := make(map[string]interface{})
@@ -380,8 +418,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s_["TLS"] = s["TLS"]
 
 		self.Services[s["Name"].(string)] = s_
+
+		// Init it configuration.
 		self.initClient(s["Name"].(string))
 		self.saveConfig()
+
+		// Register the service methods.
+		self.registerServiceMethodes(s_["Address"].(string) + ":" + strconv.Itoa(Utility.ToInt(s["Port"].(float64))))
 
 	} else if s["Protocol"].(string) == "http" {
 
@@ -398,11 +441,14 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			self.services[s["Name"].(string)] = s
 		}
 	}
+
 	log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 
+	// Return the pid of the service.
 	if s["ProxyProcess"] != nil {
 		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
 	}
+
 	return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
 }
 
@@ -708,6 +754,19 @@ func (self *Globule) saveConfig() {
 }
 
 /**
+ * Register the action as ressource to be able to set permission on it.
+ */
+func (self *Globule) registerServiceMethodes(address string) {
+	// Call grpc_cli to get the list of grpc methode.
+	// ./grpc_cli ls localhost:50051
+	// Output the given list
+	// 	grpc.examples.echo.Echo
+	// 	grpc.reflection.v1alpha.ServerReflection
+	// 	helloworld.Greeter
+	// From the output I will register action on the ressource so the
+}
+
+/**
  * Init client side connection to service.
  */
 func (self *Globule) initClient(name string) {
@@ -716,15 +775,17 @@ func (self *Globule) initClient(name string) {
 		return
 	}
 
-	port := int(self.Services[name].(map[string]interface{})["Port"].(float64))
+	// Set the parameters.
+	domain := self.Services[name].(map[string]interface{})["Domain"].(string)
+	address := self.Services[name].(map[string]interface{})["Address"].(string)
+
+	// ?? does address must contain the domain instead of the ipv4 part...
+	address = address + ":" + Utility.ToString(int(self.Services[name].(map[string]interface{})["Port"].(float64)))
+
 	hasTLS := self.Services[name].(map[string]interface{})["TLS"].(bool)
 
 	name = strings.Split(name, "_")[0]
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
-
-	// Set the parameters.
-	address := self.Domain + ":" + strconv.Itoa(port)
-	domain := self.Domain
 
 	// Set the files.
 	keyFile := self.creds + string(os.PathSeparator) + "client.crt"
@@ -1025,6 +1086,142 @@ func (self *Globule) KeyToPem(name string, path string, pwd string) error {
 	return nil
 }
 
+////////////////////// HTTPS Server Key's /////////////////////////////////////
+
+// To generate a self-signed certificate (in our case, without encryption):
+// -Create a new 4096bit RSA key and save it to server_key.pem, without DES encryption (-newkey, -keyout and -nodes)
+// -Create a Certificate Signing Request for a given subject, valid for 365 days (-days, -subj)
+// -Sign the CSR using the server key, and save it to server_cert.pem as an X.509 certificate (-x509, -out)
+func (self *Globule) GenerateSelfSignedCertificate(path string, expiration_delay int, domain string) error {
+	if Utility.Exists(path + string(os.PathSeparator) + "server_key.pem") {
+		return nil
+	}
+
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "req")
+	args = append(args, "-x509")
+	args = append(args, "-newkey")
+	args = append(args, "rsa:4096")
+	args = append(args, "-keyout")
+	args = append(args, path+string(os.PathSeparator)+"server_key.pem")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+"server_cert.pem")
+	args = append(args, "-nodes")
+	args = append(args, "-days")
+	args = append(args, strconv.Itoa(expiration_delay))
+	args = append(args, "-subj")
+	args = append(args, "/CN="+domain)
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the trust certificate")
+	}
+
+	return nil
+}
+
+// To create a key and a Certificate Signing Request for client...
+func (self *Globule) GenerateClientCertificate(path string, expiration_delay int, clientId string) error {
+	// openssl req -newkey rsa:4096 -keyout alice_key.pem -out alice_csr.pem -nodes -days 365 -subj "/CN=Alice"
+	if Utility.Exists(path + string(os.PathSeparator) + clientId + "_key.pem") {
+		return nil
+	}
+
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "req")
+	args = append(args, "-newkey")
+	args = append(args, "rsa:4096")
+	args = append(args, "-keyout")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_key.pem")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_csr.pem")
+	args = append(args, "-nodes")
+	args = append(args, "-days")
+	args = append(args, strconv.Itoa(expiration_delay))
+	args = append(args, "-subj")
+	args = append(args, "/CN="+clientId)
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the trust certificate")
+	}
+
+	return nil
+}
+
+// Here, we act as a Certificate Authority, so we supply our certificate and key via the -CA parameters:
+func (self *Globule) SignedClientCertificate(path string, expiration_delay int, clientId string) error {
+	// openssl x509 -req -in alice_csr.pem -CA server_cert.pem -CAkey server_key.pem -out alice_cert.pem -set_serial 01 -days 365
+	if Utility.Exists(path + string(os.PathSeparator) + clientId + "_cert.pem") {
+		return nil
+	}
+
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "x509")
+	args = append(args, "-req")
+	args = append(args, "-in")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_csr.pem")
+	args = append(args, "-CA")
+	args = append(args, path+string(os.PathSeparator)+"server_cert.pem")
+	args = append(args, "-CAkey")
+	args = append(args, path+string(os.PathSeparator)+"server_key.pem")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_cert.pem")
+	args = append(args, "-set_serial")
+	args = append(args, "01")
+	args = append(args, "-days")
+	args = append(args, strconv.Itoa(expiration_delay))
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the trust certificate")
+	}
+	os.Remove(path + string(os.PathSeparator) + clientId + "_csr.pem")
+	return nil
+}
+
+// To use these certificates in our browser, we need to bundle them in PKCS#12
+// format. That will contain both the private key and the certificate, thus the
+// browser can use it for encryption. For Alice, we add the -clcerts option, which
+// excludes the CA certificate from the bundle. Since we issued the certificate,
+// we already have the certificate: we don’t need to include it in Alice’s
+// certificate as well. You can also password-protect the certificate.
+func (self *Globule) BundleClientCertificate(path string, clientId string, pwd string) error {
+	// openssl x509 -req -in globular_csr.pem -CA server_cert.pem -CAkey server_key.pem -out globular_cert.pem -set_serial 01 -days 365
+	if Utility.Exists(path + string(os.PathSeparator) + clientId + ".p12") {
+		return nil
+	}
+
+	// openssl pkcs12 -export -clcerts -in globular_cert.pem -inkey globular_key.pem -out globular.p12
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "pkcs12")
+	args = append(args, "-export")
+	args = append(args, "-clcerts")
+	args = append(args, "-in")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_cert.pem")
+	args = append(args, "-inkey")
+	args = append(args, path+string(os.PathSeparator)+clientId+"_key.pem")
+	args = append(args, "-out")
+	args = append(args, path+string(os.PathSeparator)+clientId+".p12")
+	args = append(args, "-password")
+	args = append(args, "pass:"+pwd)
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return errors.New("Fail to generate the trust certificate")
+	}
+
+	// Here I will remove intermediate file.
+	os.Remove(path + string(os.PathSeparator) + clientId + "_cert.pem")
+	os.Remove(path + string(os.PathSeparator) + clientId + "_key.pem")
+
+	return nil
+}
+
 /**
  * That function is use to generate services certificates.
  * Private ca.key, server.key, server.pem, server.crt
@@ -1101,6 +1298,14 @@ func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay i
 		log.Println(err)
 		return
 	}
+
+	// Now https certificates.
+	self.GenerateSelfSignedCertificate(self.certs, expiration_delay, self.Domain)
+
+	// Generate the client certificate.. this is a simple test.
+	self.GenerateClientCertificate(self.certs, expiration_delay, "globular")
+	self.SignedClientCertificate(self.certs, expiration_delay, "globular")
+	self.BundleClientCertificate(self.certs, "globular", "1234")
 }
 
 /**
@@ -1409,7 +1614,6 @@ func (self *Globule) RegisterExternalService(ctx context.Context, rqst *admin.Re
  * Start internal service admin and ressource are use that function.
  */
 func (self *Globule) startInternalService(name string, port int, proxy int) (*grpc.Server, error) {
-	var err error
 
 	// set the logger.
 	grpclog.SetLogger(log.New(os.Stdout, name+" service: ", log.LstdFlags))
@@ -1417,23 +1621,8 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-	if string(os.PathSeparator) == "\\" {
-		proxyPath += ".exe" // in case of windows.
-	}
-
-	proxyBackendAddress := self.Domain + ":" + Utility.ToString(port)
-	proxyAllowAllOrgins := "true"
-	proxyArgs := make([]string, 0)
-
-	// Use in a local network or in test.
-	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
-	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-
 	var grpcServer *grpc.Server
 	if self.Protocol == "https" {
-
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 		certFile := self.creds + string(os.PathSeparator) + "server.crt"
 		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
@@ -1472,52 +1661,28 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 		// Create the gRPC server with the credentials
 		grpcServer = grpc.NewServer(opts...)
 
-		/* Services gRpc backend. */
-		proxyArgs = append(proxyArgs, "--backend_tls=true")
-		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
-		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
-		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
-
-		/* http2 parameters between the browser and the proxy.*/
-		proxyArgs = append(proxyArgs, "--run_http_server=false")
-		proxyArgs = append(proxyArgs, "--run_tls_server=true")
-		proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(proxy))
-
-		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
-		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
-
 	} else {
 		grpcServer = grpc.NewServer()
 
-		// Now I will save the file with those new information in it.
-		proxyArgs = append(proxyArgs, "--run_http_server=true")
-		proxyArgs = append(proxyArgs, "--run_tls_server=false")
-		proxyArgs = append(proxyArgs, "--server_http_debug_port="+Utility.ToString(proxy))
-		proxyArgs = append(proxyArgs, "--backend_tls=false")
 	}
 
-	// Keep connection open for longer exchange between client/service. Event Subscribe function
-	// is a good example of long lasting connection. (48 hours) seam to be more than enought for
-	// browser client connection maximum life.
-	proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
-	proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
+	reflection.Register(grpcServer)
 
-	// start the proxy service one time
-	proxyProcess := exec.Command(proxyPath, proxyArgs...)
-	args := ""
-	for i := 0; i < len(proxyArgs); i++ {
-		args += proxyArgs[i] + " "
-	}
+	// Here I will create the service configuration object.
+	s := make(map[string]interface{}, 0)
+	s["Address"] = self.IP
+	s["Port"] = port
+	s["Proxy"] = proxy
+	s["Domain"] = self.Domain
+	self.services[name] = s
 
-	err = proxyProcess.Start()
+	// start the proxy
+	err := self.startProxy(name, port, proxy)
 	if err != nil {
-		log.Println("Fail to start Admin grpcwebproxy at port ", proxy, " with error ", err)
 		return nil, err
 	}
 
 	return grpcServer, nil
-
 }
 
 /* Register a new Account */
@@ -1583,6 +1748,8 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	// Here I will insert the account in the database.
 	id, err := p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
 
+	// Now I will run the script to create the user and
+
 	// Now I will
 	return &ressource.RegisterAccountRsp{
 		Result: id,
@@ -1594,6 +1761,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested ressource.
 func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
+
 	// That service made user of persistence service.
 	var p *persistence_client.Persistence_Client
 	if self.clients["persistence_service"] == nil {
@@ -1676,6 +1844,47 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 }
 
 /**
+ * That function is call when it's time to validate the certificate.
+ */
+func (self *Globule) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	// Read in the cert file
+	certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
+	if err != nil {
+		log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
+	}
+
+	// Append our cert to the system pool
+	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+		log.Println("No certs appended, using system certs only")
+	}
+
+	opts := x509.VerifyOptions{
+		Roots: rootCAs,
+	}
+	rawCert := rawCerts[0]
+	cert, err := x509.ParseCertificate(rawCert)
+
+	// The CommonName contain the name of the user name for who the certificate
+	// was generated. So here It's the place to test if the user has the write
+	// to access the service.
+	log.Println("----->", cert.Subject.CommonName)
+
+	if err != nil {
+		return err
+	}
+	_, err = cert.Verify(opts)
+
+	return err
+}
+
+/**
  * Listen for new connection.
  */
 func (self *Globule) Listen() {
@@ -1685,14 +1894,6 @@ func (self *Globule) Listen() {
 
 	// set the services.
 	self.initServices()
-
-	r := http.NewServeMux()
-
-	// Start listen for http request.
-	r.HandleFunc("/", ServeFileHandler)
-
-	// The file upload handler.
-	r.HandleFunc("/uploads", FileUploadHandler)
 
 	// Here I will save the server attribute
 	self.saveConfig()
@@ -1775,6 +1976,7 @@ func (self *Globule) Listen() {
 		}
 
 		admin.RegisterAdminServiceServer(admin_server, self)
+		self.registerServiceMethodes("localhost:" + strconv.Itoa(self.AdminPort))
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -1806,6 +2008,8 @@ func (self *Globule) Listen() {
 
 		ressource.RegisterRessourceServiceServer(ressource_server, self)
 
+		self.registerServiceMethodes("localhost:" + strconv.Itoa(self.RessourcePort))
+
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			log.Println("---> start ressource service!")
@@ -1823,14 +2027,31 @@ func (self *Globule) Listen() {
 		}()
 	}
 
+	// Start listen for http request.
+	http.HandleFunc("/", ServeFileHandler)
+
+	// The file upload handler.
+	http.HandleFunc("/uploads", FileUploadHandler)
+
 	// Start the http server.
 	if self.Protocol == "http" {
 		log.Println("Globular is listening at port ", self.PortHttp)
-		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), r)
+		log.Panicln(http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil))
 	} else {
-		// Here I will use sslforfree certificate to publish the website.
-		log.Println("Globular is listening at port ", self.PortHttps)
-		err = http.ListenAndServeTLS(":443", self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
+		// client certificate
+		server := &http.Server{
+			Addr: ":" + Utility.ToString(self.PortHttps),
+			TLSConfig: &tls.Config{
+				ClientAuth:            tls.RequestClientCert,
+				InsecureSkipVerify:    false,
+				VerifyPeerCertificate: self.verifyPeerCertificate,
+			},
+		}
+
+		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
+
+		// Use public CA for public website with real domain name.
+		// err = http.ListenAndServeTLS(":"+Utility.ToString(self.PortHttps), self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
 	}
 
 	if err != nil {

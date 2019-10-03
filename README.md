@@ -271,5 +271,17 @@ var myOtherServer = new Globular({
   }
 })
 ```
+
+## Set client certificate and CA.
+
+there is the steps for configure a browser to work with self-sgined certificate.
+For chrome, follow those steps:
+1.	Go to Settings menu
+2.	Then to Advanced / Privacy and security
+3.  Manage Certificates
+4.	Click Import button
+5.	Import your personal certificate file (filename.p12)
+6.	If not already done, Import globular certs/server_cert.pem into your Trusted Root Certification Authorities.
+
 ## Conclusion
 Imagine a constellation of micro-services availables to create any type of application with different language all accessibles in the browser. Imagine a globular cluster...

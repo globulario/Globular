@@ -110,7 +110,6 @@ message AggregateResp {
 	string jsonStr = 1; // Json string
 }
 
-
 message UpdateRqst {
 	string id = 1;
 	string database = 2;
@@ -225,6 +224,18 @@ message CountRsp{
 	int64 result = 1;
 }
 
+// Create user function
+
+message RunAdminCmdRqst{
+	string connectionId = 1;
+	string script = 2;
+}
+
+message RunAdminCmdRsp{
+	string result = 1;
+}
+
+
 // Persistence nothing can take place of persistence..!-)
 service PersistenceService {
 	//////////////////////////////////////////////////////////////////////////////
@@ -286,6 +297,15 @@ service PersistenceService {
 	// Delete many.
 	rpc Delete(DeleteRqst) returns (DeleteRsp){};
 	
-	// Delte one
+	// Delete one
 	rpc DeleteOne(DeleteOneRqst) returns (DeleteOneRsp){};
+	
+	//////////////////////////////////////////////////////////////////////////////
+	// Ressource management operations
+	//////////////////////////////////////////////////////////////////////////////
+	
+	// run admin command.
+	rpc RunAdminCmd(RunAdminCmdRqst) returns (RunAdminCmdRsp){};
+	
+	
 }
