@@ -24,15 +24,15 @@ var (
 )
 
 // First test create a fresh new connection...
-/* func TestCreateConnection(t *testing.T) {
+func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
-	user := "myUserAdmin"
-	pwd := "400zm89a"
+	user := "sa"
+	pwd := "adminadmin"
 	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 10, "")
 	if err == nil {
 
 	}
-}*/
+}
 
 func TestPingConnection(t *testing.T) {
 	log.Println("Test ping connection")

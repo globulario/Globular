@@ -52,10 +52,10 @@ type connection struct {
 	Host     string
 	Store    persistencepb.StoreType
 	User     string
-	Password string
 	Port     int32
 	Timeout  int32
 	Options  string
+	password string
 }
 
 // Value need by Globular to start the services...
@@ -95,20 +95,6 @@ func (self *server) init() {
 
 	// initialyse store connection here.
 	self.stores = make(map[string]persistence_store.Store)
-	for _, c := range self.Connections {
-		if c.Store == persistencepb.StoreType_MONGO {
-			// here I will create a new mongo data store.
-			s := new(persistence_store.MongoStore)
-
-			// Now I will try to connect...
-			err := s.Connect(c.Host, c.Port, c.User, c.Password, c.Name, c.Timeout, c.Options)
-			if err == nil {
-				// keep the store for futur call...
-				self.stores[c.Id] = s
-				log.Println("Connection ", c.Name, " is open and ready.")
-			}
-		}
-	}
 }
 
 // Save the configuration values.
@@ -142,7 +128,7 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	c.Host = rqst.Connection.Host
 	c.Port = rqst.Connection.Port
 	c.User = rqst.Connection.User
-	c.Password = rqst.Connection.Password
+	c.password = rqst.Connection.Password // The password must never be store here.
 	c.Store = rqst.Connection.Store
 
 	if c.Store == persistencepb.StoreType_MONGO {
@@ -150,7 +136,7 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 		s := new(persistence_store.MongoStore)
 
 		// Now I will try to connect...
-		err := s.Connect(c.Host, c.Port, c.User, c.Password, c.Name, c.Timeout, c.Options)
+		err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
 		if err != nil {
 			// codes.
 			return nil, status.Errorf(
@@ -174,7 +160,7 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	}
 
 	// test if the connection is reacheable.
-	err = self.stores[c.Id].Ping(ctx)
+	err = self.stores[c.Id].Ping(ctx, c.Id)
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -184,8 +170,75 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 
 	// Print the success message here.
 	log.Println("Connection " + c.Id + " was created with success!")
-
 	return &persistencepb.CreateConnectionRsp{
+		Result: true,
+	}, nil
+}
+
+func (self *server) Connect(ctx context.Context, rqst *persistencepb.ConnectRqst) (*persistencepb.ConnectRsp, error) {
+	store := self.stores[rqst.GetConnectionId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetConnectionId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if c, ok := self.Connections[rqst.ConnectionId]; ok {
+		// So here I will open the connection.
+		c.password = rqst.Password
+		if c.Store == persistencepb.StoreType_MONGO {
+			// here I will create a new mongo data store.
+			s := new(persistence_store.MongoStore)
+
+			// Now I will try to connect...
+			err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
+			if err != nil {
+				// codes.
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+			// keep the store for futur call...
+			self.stores[c.Id] = s
+		}
+
+		// set or update the connection and save it in json file.
+		self.Connections[c.Id] = c
+
+		return &persistencepb.ConnectRsp{
+			Result: true,
+		}, nil
+	} else {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	}
+
+}
+
+// Close connection.
+func (self *server) Disconnect(ctx context.Context, rqst *persistencepb.DisconnectRqst) (*persistencepb.DisconnectRsp, error) {
+	store := self.stores[rqst.GetConnectionId()]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.GetConnectionId())
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if c, ok := self.Connections[rqst.ConnectionId]; ok {
+		err := store.Disconnect(c.Id)
+		if err != nil {
+			// codes.
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &persistencepb.DisconnectRsp{
 		Result: true,
 	}, nil
 }
@@ -200,7 +253,7 @@ func (self *server) CreateDatabase(ctx context.Context, rqst *persistencepb.Crea
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.CreateDatabase(ctx, rqst.Database)
+	err := store.CreateDatabase(ctx, rqst.GetId(), rqst.Database)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -222,7 +275,7 @@ func (self *server) DeleteDatabase(ctx context.Context, rqst *persistencepb.Dele
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteDatabase(ctx, rqst.Database)
+	err := store.DeleteDatabase(ctx, rqst.GetId(), rqst.Database)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -244,7 +297,7 @@ func (self *server) CreateCollection(ctx context.Context, rqst *persistencepb.Cr
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.CreateCollection(ctx, rqst.Database, rqst.Collection, rqst.OptionsStr)
+	err := store.CreateCollection(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.OptionsStr)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -266,7 +319,7 @@ func (self *server) DeleteCollection(ctx context.Context, rqst *persistencepb.De
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteCollection(ctx, rqst.Database, rqst.Collection)
+	err := store.DeleteCollection(ctx, rqst.GetId(), rqst.Database, rqst.Collection)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -288,7 +341,7 @@ func (self *server) Ping(ctx context.Context, rqst *persistencepb.PingConnection
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Ping(ctx)
+	err := store.Ping(ctx, rqst.GetId())
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -311,7 +364,7 @@ func (self *server) Count(ctx context.Context, rqst *persistencepb.CountRqst) (*
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	count, err := store.Count(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	count, err := store.Count(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -349,7 +402,7 @@ func (self *server) InsertOne(ctx context.Context, rqst *persistencepb.InsertOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	var id interface{}
-	id, err = store.InsertOne(ctx, rqst.Database, rqst.Collection, entity, rqst.Options)
+	id, err = store.InsertOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, entity, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -406,7 +459,7 @@ func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertMan
 		}
 
 		var results []interface{}
-		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.Database, rqst.Collection, entities, rqst.Options)
+		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, entities, rqst.Options)
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
@@ -431,7 +484,7 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := store.Find(stream.Context(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	results, err := store.Find(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -486,7 +539,7 @@ func (self *server) Aggregate(rqst *persistencepb.AggregateRqst, stream persiste
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := store.Aggregate(stream.Context(), rqst.Database, rqst.Collection, rqst.Pipeline, rqst.Options)
+	results, err := store.Aggregate(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, rqst.Pipeline, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -540,7 +593,7 @@ func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := store.FindOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	result, err := store.FindOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -569,7 +622,7 @@ func (self *server) Update(ctx context.Context, rqst *persistencepb.UpdateRqst) 
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Update(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.Update(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -589,7 +642,7 @@ func (self *server) UpdateOne(ctx context.Context, rqst *persistencepb.UpdateOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.UpdateOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.UpdateOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -609,7 +662,7 @@ func (self *server) ReplaceOne(ctx context.Context, rqst *persistencepb.ReplaceO
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.ReplaceOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.ReplaceOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -629,7 +682,7 @@ func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) 
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Delete(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	err := store.Delete(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -649,7 +702,7 @@ func (self *server) DeleteOne(ctx context.Context, rqst *persistencepb.DeleteOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteOne(ctx, rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	err := store.DeleteOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -695,7 +748,7 @@ func (self *server) RunAdminCmd(ctx context.Context, rqst *persistencepb.RunAdmi
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.RunAdminCmd(ctx, rqst.Script)
+	err := store.RunAdminCmd(ctx, rqst.GetConnectionId(), rqst.User, rqst.Password, rqst.Script)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

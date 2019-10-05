@@ -120,6 +120,15 @@ func (self *Persistence_Client) CreateConnection(connectionId string, name strin
 	return err
 }
 
+func (self *Persistence_Client) DeleteConnection(connectionId string) error {
+	rqst := &persistencepb.DeleteConnectionRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	return err
+}
+
 func (self *Persistence_Client) Ping(connectionId string) error {
 
 	rqst := &persistencepb.PingConnectionRqst{
@@ -129,6 +138,26 @@ func (self *Persistence_Client) Ping(connectionId string) error {
 	_, err := self.c.Ping(context.Background(), rqst)
 
 	return err
+}
+
+func (self *Persistence_Client) FindOne(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
+
+	// Retreive a single value...
+	rqst := &persistencepb.FindOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      jsonStr,
+		Options:    options,
+	}
+
+	rsp, err := self.c.FindOne(context.Background(), rqst)
+
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetJsonStr(), err
 }
 
 func (self *Persistence_Client) Find(connectionId string, database string, collection string, query string, options string) (string, error) {
@@ -174,24 +203,71 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 	return string(valuesStr), nil
 }
 
-func (self *Persistence_Client) FindOne(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
-
+/**
+ * Usefull function to query and transform document.
+ */
+func (self *Persistence_Client) Aggregate(connectionId, database string, collection string, pipeline string, options string) (string, error) {
 	// Retreive a single value...
-	rqst := &persistencepb.FindOneRqst{
+	rqst := &persistencepb.AggregateRqst{
 		Id:         connectionId,
 		Database:   database,
 		Collection: collection,
-		Query:      jsonStr,
+		Pipeline:   pipeline,
 		Options:    options,
 	}
 
-	rsp, err := self.c.FindOne(context.Background(), rqst)
+	stream, err := self.c.Aggregate(context.Background(), rqst)
 
 	if err != nil {
 		return "", err
 	}
 
-	return rsp.GetJsonStr(), err
+	values := make([]interface{}, 0)
+	for {
+		results, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			return "", nil
+		}
+
+		values_ := make([]interface{}, 0) // sub array...
+		err = json.Unmarshal([]byte(results.JsonStr), &values_)
+		if err != nil {
+			return "", nil
+		}
+		values = append(values, values_...)
+	}
+
+	valuesStr, err := json.Marshal(values)
+	if err != nil {
+		return "", nil
+	}
+	return string(valuesStr), nil
+}
+
+/**
+ * Count the number of document that match the query.
+ */
+func (self *Persistence_Client) Count(connectionId string, database string, collection string, query string, options string) (int, error) {
+
+	rqst := &persistencepb.CountRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Options:    options,
+	}
+
+	rsp, err := self.c.Count(context.Background(), rqst)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(rsp.Result), err
 }
 
 /**
@@ -302,6 +378,9 @@ func (self *Persistence_Client) UpdateOne(connectionId string, database string, 
 	return err
 }
 
+/**
+ * Update one or more document.
+ */
 func (self *Persistence_Client) Update(connectionId string, database string, collection string, query string, value string, options string) error {
 
 	rqst := &persistencepb.UpdateRqst{
@@ -319,29 +398,7 @@ func (self *Persistence_Client) Update(connectionId string, database string, col
 }
 
 /**
- * Delete many object from the db.
- */
-func (self *Persistence_Client) Delete(connectionId string, database string, collection string, query string, options string) error {
-
-	rqst := &persistencepb.DeleteRqst{
-		Id:         connectionId,
-		Database:   database,
-		Collection: collection,
-		Query:      query,
-		Options:    options,
-	}
-
-	_, err := self.c.Delete(context.Background(), rqst)
-
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-/**
- * Delete one record from the db
+ * Delete one document from the db
  */
 func (self *Persistence_Client) DeleteOne(connectionId string, database string, collection string, query string, options string) error {
 
@@ -363,11 +420,11 @@ func (self *Persistence_Client) DeleteOne(connectionId string, database string, 
 }
 
 /**
- * Delete one record from the db
+ * Delete many document from the db.
  */
-func (self *Persistence_Client) Count(connectionId string, database string, collection string, query string, options string) (int, error) {
+func (self *Persistence_Client) Delete(connectionId string, database string, collection string, query string, options string) error {
 
-	rqst := &persistencepb.CountRqst{
+	rqst := &persistencepb.DeleteRqst{
 		Id:         connectionId,
 		Database:   database,
 		Collection: collection,
@@ -375,13 +432,13 @@ func (self *Persistence_Client) Count(connectionId string, database string, coll
 		Options:    options,
 	}
 
-	rsp, err := self.c.Count(context.Background(), rqst)
+	_, err := self.c.Delete(context.Background(), rqst)
 
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return int(rsp.Result), err
+	return err
 }
 
 /**
@@ -405,11 +462,28 @@ func (self *Persistence_Client) DeleteCollection(connectionId string, database s
 func (self *Persistence_Client) DeleteDatabase(connectionId string, database string) error {
 	// Test drop collection.
 	rqst_drop_db := &persistencepb.DeleteDatabaseRqst{
-		Id:       "mongo_db_test_connection",
-		Database: "TestCreateAndDelete_DB",
+		Id:       connectionId,
+		Database: database,
 	}
 
 	_, err := self.c.DeleteDatabase(context.Background(), rqst_drop_db)
+
+	return err
+}
+
+/**
+ * Admin function, that must be protected.
+ */
+func (self *Persistence_Client) RunAdminCmd(connectionId string, user string, pwd string, script string) error {
+	// Test drop collection.
+	rqst_drop_db := &persistencepb.RunAdminCmdRqst{
+		ConnectionId: connectionId,
+		Script:       script,
+		User:         user,
+		Password:     pwd,
+	}
+
+	_, err := self.c.RunAdminCmd(context.Background(), rqst_drop_db)
 
 	return err
 }

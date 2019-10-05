@@ -228,13 +228,35 @@ message CountRsp{
 
 message RunAdminCmdRqst{
 	string connectionId = 1;
-	string script = 2;
+	string user = 2;
+	string password = 3;
+	string script = 4;
 }
 
 message RunAdminCmdRsp{
 	string result = 1;
 }
 
+
+// Open a db connection.
+message ConnectRqst{
+	string connectionId = 1;
+	string password = 3;
+}
+
+
+message ConnectRsp{
+	bool result = 1;
+}
+
+// Close a db connection
+message DisconnectRqst{
+	string connectionId = 1;
+}
+
+message DisconnectRsp{
+	bool result = 1;
+}
 
 // Persistence nothing can take place of persistence..!-)
 service PersistenceService {
@@ -244,6 +266,12 @@ service PersistenceService {
 	
 	// Create a database
 	rpc CreateDatabase(CreateDatabaseRqst) returns (CreateDatabaseRsp){};
+	
+	// Open connection.
+	rpc Connect(ConnectRqst) returns (ConnectRsp);
+	
+	// Close connection.
+	rpc Disconnect(DisconnectRqst) returns (DisconnectRsp);
 	
 	// Delete a database
 	rpc DeleteDatabase(DeleteDatabaseRqst) returns (DeleteDatabaseRsp){};

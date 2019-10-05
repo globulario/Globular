@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	// "github.com/gorilla/mux"
 	ps "github.com/mitchellh/go-ps"
 
-	//"fmt"
 	"crypto/tls"
 	"crypto/x509"
 	"io"
@@ -101,6 +101,7 @@ type Globule struct {
 	IdleTimeout         time.Duration
 	SessionTimeout      time.Duration
 	CertExpirationDelay int
+	RootPassword        string
 
 	// The token use to identify globular with other services.
 	// it must stay private.
@@ -132,6 +133,7 @@ type Globule struct {
 func NewGlobule(port int) *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
+	g.RootPassword = "adminadmin"
 	g.PortHttp = port
 	g.PortHttps = port // The default port number.
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
@@ -1687,6 +1689,42 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 	return grpcServer, nil
 }
 
+/** Create the super administrator in the db. **/
+func (self *Globule) registerSa() error {
+	// Get a reference to the persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return errors.New("No persistence service was configure for your globular server.")
+	}
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+
+	// Test if the connection already exist.
+	err := p.Ping("local_ressource")
+
+	// if not I will create one.
+	if err != nil {
+		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "")
+		if err != nil {
+			return err
+		}
+
+		// Now I will create a new user name sa and give it all admin write.
+		createSaScript := fmt.Sprintf(
+			`db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']})`, "sa", self.RootPassword) // must be change...
+
+		log.Println("---> create super admin: ", createSaScript)
+
+		// I will execute the sript with the admin function.
+		err = p.RunAdminCmd("local_ressource", "", "", createSaScript)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
 /* Register a new Account */
 func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.RegisterAccountRqst) (*ressource.RegisterAccountRsp, error) {
 	if rqst.ConfirmPassword != rqst.Password {
@@ -1696,6 +1734,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// encode the password and keep it in the account itself.
+	pwd := rqst.Password
 	rqst.Account.Password = Utility.GenerateUUID(rqst.Password)
 
 	// That service made user of persistence service.
@@ -1709,13 +1748,13 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 
 	// Cast-it to the persistence client.
 	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-
 	// Test if the connection already exist.
 	err := p.Ping("local_ressource")
 
 	// if not I will create one.
 	if err != nil {
-		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "", "", 5000, "")
+		// Connect to the database here.
+		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "")
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1750,7 +1789,30 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	// Here I will insert the account in the database.
 	id, err := p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
 
-	// Now I will run the script to create the user and
+	// Each account will have their own database and a use that can read and write
+	// into it.
+	// Here I will wrote the script for mongoDB...
+	createUserScript := fmt.Sprintf(
+		"db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'readWrite', db: '%s_db' }]});",
+		rqst.Account.Name, pwd, rqst.Account.Name)
+
+	// I will execute the sript with the admin function.
+	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createUserScript)
+	if err != nil {
+		log.Println("---> fail to run script: ")
+		log.Println(createUserScript)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.CreateConnection(rqst.Account.Name+"_db", rqst.Account.Name+"_db", "localhost", 27017, 0, rqst.Account.Name, pwd, 5000, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
 
 	// Now I will
 	return &ressource.RegisterAccountRsp{
@@ -1834,6 +1896,26 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 
 	// Try to delete the account...
 	err := p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I will drop the db user.
+	dropUserScript := fmt.Sprintf(
+		`db.dropUser('%s', {w: 'majority', wtimeout: 4000})`,
+		rqst.Name)
+
+	// I will execute the sript with the admin function.
+	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, dropUserScript)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.DeleteConnection(rqst.Name + "_db")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2017,6 +2099,12 @@ func (self *Globule) Listen() {
 		go func() {
 			log.Println("---> start ressource service!")
 			go func() {
+				// Set the super admin if is not already set.
+				/*err := self.registerSa()
+				if err != nil {
+					log.Fatalf("failed to create sa: %v", err)
+				}*/
+
 				// no web-rpc server.
 				if err := ressource_server.Serve(lis); err != nil {
 					log.Fatalf("failed to serve: %v", err)

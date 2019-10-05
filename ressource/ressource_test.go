@@ -18,7 +18,7 @@ var (
 func TestRegisterAccount(t *testing.T) {
 
 	log.Println("---> test register a new account.")
-	err := client.RegisterAccount("davecourtois", "dave.courtois60@gmail.com", "123", "123")
+	err := client.RegisterAccount("davecourtois", "dave.courtois60@gmail.com", "1234", "1234")
 	if err != nil {
 		log.Println("---> ", err)
 	}
@@ -27,7 +27,7 @@ func TestRegisterAccount(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 
 	log.Println("---> test authenticate account.")
-	token, err := client.Authenticate("davecourtois", "123")
+	token, err := client.Authenticate("davecourtois", "1234")
 
 	if err != nil {
 		log.Println("---> ", err)
@@ -37,12 +37,12 @@ func TestAuthenticate(t *testing.T) {
 }
 
 // Remove an account.
-func TestDeleteAccount(t *testing.T) {
+/*func TestDeleteAccount(t *testing.T) {
 
-	log.Println("---> test register a new account.")
+	log.Println("---> test remove existing account.")
 	err := client.DeleteAccount("davecourtois")
 	if err != nil {
 
 		log.Println("---> ", err)
 	}
-}
+}*/

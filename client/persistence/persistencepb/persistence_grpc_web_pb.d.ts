@@ -3,6 +3,8 @@ import * as grpcWeb from 'grpc-web';
 import {
   AggregateResp,
   AggregateRqst,
+  ConnectRqst,
+  ConnectRsp,
   CountRqst,
   CountRsp,
   CreateCollectionRqst,
@@ -21,6 +23,8 @@ import {
   DeleteOneRsp,
   DeleteRqst,
   DeleteRsp,
+  DisconnectRqst,
+  DisconnectRsp,
   FindOneResp,
   FindOneRqst,
   FindResp,
@@ -51,6 +55,20 @@ export class PersistenceServiceClient {
     callback: (err: grpcWeb.Error,
                response: CreateDatabaseRsp) => void
   ): grpcWeb.ClientReadableStream<CreateDatabaseRsp>;
+
+  connect(
+    request: ConnectRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ConnectRsp) => void
+  ): grpcWeb.ClientReadableStream<ConnectRsp>;
+
+  disconnect(
+    request: DisconnectRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DisconnectRsp) => void
+  ): grpcWeb.ClientReadableStream<DisconnectRsp>;
 
   deleteDatabase(
     request: DeleteDatabaseRqst,
@@ -178,6 +196,16 @@ export class PersistenceServicePromiseClient {
     request: CreateDatabaseRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<CreateDatabaseRsp>;
+
+  connect(
+    request: ConnectRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ConnectRsp>;
+
+  disconnect(
+    request: DisconnectRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DisconnectRsp>;
 
   deleteDatabase(
     request: DeleteDatabaseRqst,
