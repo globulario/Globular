@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"strconv"
-	"time"
+	//	"time"
 
 	//"go.mongodb.org/mongo-driver/bson"
 	"encoding/json"
@@ -48,7 +48,7 @@ func (self *MongoStore) Connect(host string, port int32, user string, password s
 	} else {
 
 		// basic connection string to begin with.
-		connectionStr := "mongodb://" + user + ":" + password + "@" + host + ":" + strconv.Itoa(int(port)) + "/" + database + "?authMechanism=SCRAM-SHA-1"
+		connectionStr := "mongodb://" + user + ":" + password + "@" + host + ":" + strconv.Itoa(int(port)) + "/" + database + "?authSource=admin&compressors=disabled&gssapiServiceName=mongodb"
 		var err error
 		self.client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
 		if err != nil {
@@ -58,9 +58,20 @@ func (self *MongoStore) Connect(host string, port int32, user string, password s
 
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	self.client.Connect(ctx)
+	ctx /*, _*/ := context.Background() //context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 
+	err := self.client.Connect(ctx)
+	if err != nil {
+		log.Println("--->65 fail to connect whit user: ", user, password)
+		return err
+	}
+
+	// Try to ping connection
+	err = self.Ping(ctx)
+	if err != nil {
+		log.Println("--->72 fail to connect whit user: ", user, password, err)
+		return err
+	}
 	if len(database) > 0 {
 		// In that case if the database dosent exist I will return an error.
 		if self.client.Database(database) == nil {
@@ -75,6 +86,7 @@ func (self *MongoStore) Connect(host string, port int32, user string, password s
  * Return the nil on success.
  */
 func (self *MongoStore) Ping(ctx context.Context) error {
+
 	return self.client.Ping(ctx, nil)
 }
 
@@ -218,7 +230,7 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 	}
 
 	collection_ := self.client.Database(database).Collection(collection)
-	q := make(map[string]interface{})
+	q := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(query), &q)
 	if err != nil {
 		return nil, err
@@ -238,7 +250,6 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 	results := make([]interface{}, 0)
 
 	if err != nil {
-		log.Println("---> 239 ", err)
 		return results, err
 	}
 
@@ -249,9 +260,7 @@ func (self *MongoStore) Find(ctx context.Context, database string, collection st
 			return nil, err
 		}
 		// In that case I will return the whole entity
-
 		results = append(results, entity)
-
 	}
 
 	// In case of error
@@ -292,7 +301,6 @@ func (self *MongoStore) Aggregate(ctx context.Context, database string, collecti
 	}
 
 	cur, err := collection_.Aggregate(ctx, p, opts...)
-
 	defer cur.Close(context.Background())
 
 	if err != nil {
@@ -300,7 +308,6 @@ func (self *MongoStore) Aggregate(ctx context.Context, database string, collecti
 	}
 
 	results := make([]interface{}, 0)
-
 	for cur.Next(ctx) {
 		entity := make(map[string]interface{})
 		err := cur.Decode(&entity)
@@ -308,9 +315,7 @@ func (self *MongoStore) Aggregate(ctx context.Context, database string, collecti
 			return nil, err
 		}
 		// In that case I will return the whole entity
-
 		results = append(results, entity)
-
 	}
 
 	// In case of error
@@ -335,8 +340,6 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 	}
 
 	collection_ := self.client.Database(database).Collection(collection)
-	entity := make(map[string]interface{})
-
 	q := make(map[string]interface{})
 	err := json.Unmarshal([]byte(query), &q)
 	if err != nil {
@@ -352,6 +355,7 @@ func (self *MongoStore) FindOne(ctx context.Context, database string, collection
 		}
 	}
 
+	entity := make(map[string]interface{})
 	err = collection_.FindOne(ctx, q, opts...).Decode(&entity)
 	if err != nil {
 		return nil, err
@@ -521,6 +525,7 @@ func (self *MongoStore) Delete(ctx context.Context, database string, collection 
 			return err
 		}
 	}
+
 	_, err = collection_.DeleteMany(ctx, q, opts...)
 	if err != nil {
 		return err

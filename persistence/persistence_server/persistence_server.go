@@ -105,6 +105,7 @@ func (self *server) init() {
 			if err == nil {
 				// keep the store for futur call...
 				self.stores[c.Id] = s
+				log.Println("Connection ", c.Name, " is open and ready.")
 			}
 		}
 	}

@@ -32,6 +32,7 @@ func validateToken(token string) error {
 	// Note that we are passing the key in this method as well. This method will return an error
 	// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 	// or if the signature does not match
+	log.Println("---> receive token: ", token)
 	tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		// Get the key from the local temp file.
 		jwtKey, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_key")

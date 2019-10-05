@@ -100,22 +100,6 @@ func (self *Persistence_Client) GetCaFile() string {
 	return self.caFile
 }
 
-// Test if a connection is found
-func (self *Persistence_Client) Ping(connectionId interface{}) (string, error) {
-
-	// Here I will try to ping a non-existing connection.
-	rqst := &persistencepb.PingConnectionRqst{
-		Id: Utility.ToString(connectionId),
-	}
-
-	rsp, err := self.c.Ping(context.Background(), rqst)
-	if err != nil {
-		return "", err
-	}
-
-	return rsp.Result, err
-}
-
 // Create a new datastore connection.
 func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string) error {
 	rqst := &persistencepb.CreateConnectionRqst{
@@ -133,6 +117,17 @@ func (self *Persistence_Client) CreateConnection(connectionId string, name strin
 	}
 
 	_, err := self.c.CreateConnection(context.Background(), rqst)
+	return err
+}
+
+func (self *Persistence_Client) Ping(connectionId string) error {
+
+	rqst := &persistencepb.PingConnectionRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.Ping(context.Background(), rqst)
+
 	return err
 }
 
@@ -179,6 +174,26 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 	return string(valuesStr), nil
 }
 
+func (self *Persistence_Client) FindOne(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
+
+	// Retreive a single value...
+	rqst := &persistencepb.FindOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      jsonStr,
+		Options:    options,
+	}
+
+	rsp, err := self.c.FindOne(context.Background(), rqst)
+
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetJsonStr(), err
+}
+
 /**
  * Insert one value in the database.
  */
@@ -201,6 +216,57 @@ func (self *Persistence_Client) InsertOne(connectionId string, database string, 
 	return rsp.GetId(), err
 }
 
+func (self *Persistence_Client) InsertMany(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
+
+	stream, err := self.c.InsertMany(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	// here you must run the sql service test before runing this test in order
+	// to generate the file Employees.json
+	data := make([]map[string]interface{}, 0)
+
+	err = json.Unmarshal([]byte(jsonStr), &data)
+	if err != nil {
+		return "", err
+	}
+
+	// Persist 500 rows at time to save marshaling unmarshaling cycle time.
+	for i := 0; i < len(data); i++ {
+		data_ := make([]interface{}, 0)
+		for j := 0; j < 500 && i < len(data_); j++ {
+			data_ = append(data_, data[i])
+			i++
+		}
+
+		var jsonStr []byte
+		jsonStr, err = json.Marshal(data_)
+		if err != nil {
+			return "", err
+		}
+
+		rqst := &persistencepb.InsertManyRqst{
+			Id:         connectionId,
+			Database:   database,
+			Collection: collection,
+			JsonStr:    string(jsonStr),
+		}
+
+		err = stream.Send(rqst)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	rsp, err := stream.CloseAndRecv()
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.Ids, nil
+}
+
 /**
  * Insert one value in the database.
  */
@@ -216,6 +282,60 @@ func (self *Persistence_Client) ReplaceOne(connectionId string, database string,
 	}
 
 	_, err := self.c.ReplaceOne(context.Background(), rqst)
+
+	return err
+}
+
+func (self *Persistence_Client) UpdateOne(connectionId string, database string, collection string, query string, value string, options string) error {
+
+	rqst := &persistencepb.UpdateOneRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Value:      value,
+		Options:    options,
+	}
+
+	_, err := self.c.UpdateOne(context.Background(), rqst)
+
+	return err
+}
+
+func (self *Persistence_Client) Update(connectionId string, database string, collection string, query string, value string, options string) error {
+
+	rqst := &persistencepb.UpdateRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Value:      value,
+		Options:    options,
+	}
+
+	_, err := self.c.Update(context.Background(), rqst)
+
+	return err
+}
+
+/**
+ * Delete many object from the db.
+ */
+func (self *Persistence_Client) Delete(connectionId string, database string, collection string, query string, options string) error {
+
+	rqst := &persistencepb.DeleteRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		Options:    options,
+	}
+
+	_, err := self.c.Delete(context.Background(), rqst)
+
+	if err != nil {
+		return err
+	}
 
 	return err
 }
@@ -262,4 +382,34 @@ func (self *Persistence_Client) Count(connectionId string, database string, coll
 	}
 
 	return int(rsp.Result), err
+}
+
+/**
+ * Drop a collection.
+ */
+func (self *Persistence_Client) DeleteCollection(connectionId string, database string, collection string) error {
+	// Test drop collection.
+	rqst_drop_collection := &persistencepb.DeleteCollectionRqst{
+		Id:         connectionId,
+		Database:   database,
+		Collection: collection,
+	}
+	_, err := self.c.DeleteCollection(context.Background(), rqst_drop_collection)
+
+	return err
+}
+
+/**
+ * Drop a database.
+ */
+func (self *Persistence_Client) DeleteDatabase(connectionId string, database string) error {
+	// Test drop collection.
+	rqst_drop_db := &persistencepb.DeleteDatabaseRqst{
+		Id:       "mongo_db_test_connection",
+		Database: "TestCreateAndDelete_DB",
+	}
+
+	_, err := self.c.DeleteDatabase(context.Background(), rqst_drop_db)
+
+	return err
 }

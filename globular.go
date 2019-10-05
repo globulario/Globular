@@ -285,7 +285,8 @@ func (self *Globule) startProxy(name string, port int, proxy int) error {
 	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 
-	if self.Protocol == "https" {
+	if srv.(map[string]interface{})["TLS"].(bool) == true {
+		log.Println("---> start secure service: ", srv.(map[string]interface{})["Name"])
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
 		/* Services gRpc backend. */
@@ -309,7 +310,7 @@ func (self *Globule) startProxy(name string, port int, proxy int) error {
 		//proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
 
 	} else {
-
+		log.Println("---> start non secure service: ", srv.(map[string]interface{})["Name"])
 		// Now I will save the file with those new information in it.
 		proxyArgs = append(proxyArgs, "--run_http_server=true")
 		proxyArgs = append(proxyArgs, "--run_tls_server=false")
@@ -1111,7 +1112,7 @@ func (self *Globule) GenerateSelfSignedCertificate(path string, expiration_delay
 	args = append(args, "-days")
 	args = append(args, strconv.Itoa(expiration_delay))
 	args = append(args, "-subj")
-	args = append(args, "/CN="+domain)
+	args = append(args, "/C=CA/ST=Montreal/O=Globular Application Server/CN="+domain)
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil {
@@ -1189,12 +1190,13 @@ func (self *Globule) SignedClientCertificate(path string, expiration_delay int, 
 // excludes the CA certificate from the bundle. Since we issued the certificate,
 // we already have the certificate: we don’t need to include it in Alice’s
 // certificate as well. You can also password-protect the certificate.
-func (self *Globule) BundleClientCertificate(path string, clientId string, pwd string) error {
+func (self *Globule) BundleClientCertificate(path string, expiration_delay int, clientId string, pwd string) error {
 	// openssl x509 -req -in globular_csr.pem -CA server_cert.pem -CAkey server_key.pem -out globular_cert.pem -set_serial 01 -days 365
 	if Utility.Exists(path + string(os.PathSeparator) + clientId + ".p12") {
 		return nil
 	}
-
+	self.GenerateClientCertificate(self.certs, expiration_delay, "globular")
+	self.SignedClientCertificate(self.certs, expiration_delay, "globular")
 	// openssl pkcs12 -export -clcerts -in globular_cert.pem -inkey globular_key.pem -out globular.p12
 	cmd := "openssl"
 	args := make([]string, 0)
@@ -1303,9 +1305,8 @@ func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay i
 	self.GenerateSelfSignedCertificate(self.certs, expiration_delay, self.Domain)
 
 	// Generate the client certificate.. this is a simple test.
-	self.GenerateClientCertificate(self.certs, expiration_delay, "globular")
-	self.SignedClientCertificate(self.certs, expiration_delay, "globular")
-	self.BundleClientCertificate(self.certs, "globular", "1234")
+
+	self.BundleClientCertificate(self.certs, expiration_delay, "globular", "1234")
 }
 
 /**
@@ -1674,6 +1675,7 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 	s["Port"] = port
 	s["Proxy"] = proxy
 	s["Domain"] = self.Domain
+	s["TLS"] = self.Protocol == "https"
 	self.services[name] = s
 
 	// start the proxy
@@ -1709,7 +1711,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
 
 	// Test if the connection already exist.
-	_, err := p.Ping("local_ressource")
+	err := p.Ping("local_ressource")
 
 	// if not I will create one.
 	if err != nil {
@@ -1868,6 +1870,7 @@ func (self *Globule) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][
 	opts := x509.VerifyOptions{
 		Roots: rootCAs,
 	}
+
 	rawCert := rawCerts[0]
 	cert, err := x509.ParseCertificate(rawCert)
 
@@ -2038,13 +2041,31 @@ func (self *Globule) Listen() {
 		log.Println("Globular is listening at port ", self.PortHttp)
 		log.Panicln(http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil))
 	} else {
+		// Get the SystemCertPool, continue with an empty pool on error
+		rootCAs, _ := x509.SystemCertPool()
+		if rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+		}
+
+		// Read in the cert file
+		certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
+		if err != nil {
+			log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
+		}
+
+		// Append our cert to the system pool
+		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+			log.Println("No certs appended, using system certs only")
+		}
+
 		// client certificate
 		server := &http.Server{
 			Addr: ":" + Utility.ToString(self.PortHttps),
 			TLSConfig: &tls.Config{
-				ClientAuth:            tls.RequestClientCert,
-				InsecureSkipVerify:    false,
-				VerifyPeerCertificate: self.verifyPeerCertificate,
+				RootCAs:            rootCAs,
+				ClientAuth:         tls.RequestClientCert,
+				InsecureSkipVerify: false,
+				//VerifyPeerCertificate: self.verifyPeerCertificate,
 			},
 		}
 
