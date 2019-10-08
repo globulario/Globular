@@ -75,8 +75,8 @@ export namespace Permission {
 }
 
 export class Ressource extends jspb.Message {
-  getUrl(): string;
-  setUrl(value: string): void;
+  getDecriptor(): string;
+  setDecriptor(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Ressource.AsObject;
@@ -88,7 +88,7 @@ export class Ressource extends jspb.Message {
 
 export namespace Ressource {
   export type AsObject = {
-    url: string,
+    decriptor: string,
   }
 }
 

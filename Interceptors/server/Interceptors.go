@@ -76,6 +76,7 @@ func authenticateClient(ctx context.Context) (string, error) {
 
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("---------> 79 method call received: ", info.FullMethod)
 	clientID, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err

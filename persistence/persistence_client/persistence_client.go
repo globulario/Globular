@@ -101,7 +101,7 @@ func (self *Persistence_Client) GetCaFile() string {
 }
 
 // Create a new datastore connection.
-func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string) error {
+func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string, save bool) error {
 	rqst := &persistencepb.CreateConnectionRqst{
 		Connection: &persistencepb.Connection{
 			Id:       connectionId,
@@ -114,6 +114,7 @@ func (self *Persistence_Client) CreateConnection(connectionId string, name strin
 			Timeout:  int32(Utility.ToInt(timeout)),
 			Options:  options,
 		},
+		Save: save,
 	}
 
 	_, err := self.c.CreateConnection(context.Background(), rqst)
@@ -126,6 +127,27 @@ func (self *Persistence_Client) DeleteConnection(connectionId string) error {
 	}
 
 	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	return err
+}
+
+func (self *Persistence_Client) Connect(id string, password string) error {
+	rqst := &persistencepb.ConnectRqst{
+		ConnectionId: id,
+		Password:     password,
+	}
+
+	_, err := self.c.Connect(context.Background(), rqst)
+	return err
+}
+
+func (self *Persistence_Client) Disconnect(connectionId string) error {
+
+	rqst := &persistencepb.DisconnectRqst{
+		ConnectionId: connectionId,
+	}
+
+	_, err := self.c.Disconnect(context.Background(), rqst)
+
 	return err
 }
 

@@ -24,6 +24,7 @@ export interface IServiceConfig {
   Domain: string;
   Port: Number;
   Proxy: Number;
+  TLS: Boolean;
 }
 
 /**
@@ -42,6 +43,7 @@ export interface IConfig {
   PortHttp: Number;
   PortHttps: Number;
   AdminProxy: Number;
+  RessourceProxy: Number;
   Protocol: string;
   IP: string;
 
@@ -89,10 +91,20 @@ export class Globular {
       null,
     );
 
+    this.ressourceService = new RessourceServicePromiseClient(
+      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy,
+      null,
+      null,
+    );
+
     // Iinitialisation of services.
     if (this.config.Services['catalog_server'] != undefined) {
+      let protocol = 'http';
+      if (this.config.Services['catalog_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.catalogService = new CatalogServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['catalog_server'].Domain +
           ':' +
@@ -102,19 +114,23 @@ export class Globular {
       );
     }
     if (this.config.Services['echo_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['echo_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.echoService = new EchoServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['echo_server'].Domain +
-          ':' +
-          this.config.Services['echo_server'].Proxy,
+        protocol + '://' + this.config.Services['echo_server'].Domain + ':' + this.config.Services['echo_server'].Proxy,
         null,
         null,
       );
     }
     if (this.config.Services['event_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['event_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.eventService = new EventServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['event_server'].Domain +
           ':' +
@@ -124,30 +140,34 @@ export class Globular {
       );
     }
     if (this.config.Services['file_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['file_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.fileService = new FileServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['file_server'].Domain +
-          ':' +
-          this.config.Services['file_server'].Proxy,
+        protocol + '://' + this.config.Services['file_server'].Domain + ':' + this.config.Services['file_server'].Proxy,
         null,
         null,
       );
     }
     if (this.config.Services['ldap_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['ldap_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.ldapService = new LdapServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['ldap_server'].Domain +
-          ':' +
-          this.config.Services['ldap_server'].Proxy,
+        protocol + '://' + this.config.Services['ldap_server'].Domain + ':' + this.config.Services['ldap_server'].Proxy,
         null,
         null,
       );
     }
     if (this.config.Services['persistence_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['persistence_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.persistenceService = new PersistenceServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['persistence_server'].Domain +
           ':' +
@@ -157,30 +177,34 @@ export class Globular {
       );
     }
     if (this.config.Services['smtp_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['smtp_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.smtpService = new SmtpServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['smtp_server'].Domain +
-          ':' +
-          this.config.Services['smtp_server'].Proxy,
+        protocol + '://' + this.config.Services['smtp_server'].Domain + ':' + this.config.Services['smtp_server'].Proxy,
         null,
         null,
       );
     }
     if (this.config.Services['sql_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['sql_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.sqlService = new SqlServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['sql_server'].Domain +
-          ':' +
-          this.config.Services['sql_server'].Proxy,
+        protocol + '://' + this.config.Services['sql_server'].Domain + ':' + this.config.Services['sql_server'].Proxy,
         null,
         null,
       );
     }
     if (this.config.Services['storage_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['storage_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.storageService = new StorageServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['storage_server'].Domain +
           ':' +
@@ -190,8 +214,12 @@ export class Globular {
       );
     }
     if (this.config.Services['monitoring_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['monitoring_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.monitoringService = new MonitoringServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['monitoring_server'].Domain +
           ':' +
@@ -201,12 +229,12 @@ export class Globular {
       );
     }
     if (this.config.Services['spc_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['spc_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.spcService = new SpcServicePromiseClient(
-        this.config.Protocol +
-          '://' +
-          this.config.Services['spc_server'].Domain +
-          ':' +
-          this.config.Services['spc_server'].Proxy,
+        protocol + '://' + this.config.Services['spc_server'].Domain + ':' + this.config.Services['spc_server'].Proxy,
         null,
         null,
       );
@@ -214,8 +242,12 @@ export class Globular {
 
     // non open source services.
     if (this.config.Services['plc_server_ab'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['plc_server_ab'].TLS == true) {
+        protocol = 'https';
+      }
       this.plcService_ab = new PlcServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['plc_server_ab'].Domain +
           ':' +
@@ -225,8 +257,12 @@ export class Globular {
       );
     }
     if (this.config.Services['plc_server_siemens'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['plc_server_siemens'].TLS == true) {
+        protocol = 'https';
+      }
       this.plcService_siemens = new PlcServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['plc_server_siemens'].Domain +
           ':' +
@@ -236,8 +272,12 @@ export class Globular {
       );
     }
     if (this.config.Services['plc_link_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['plc_link_server'].TLS == true) {
+        protocol = 'https';
+      }
       this.plcLinkService = new PlcLinkServicePromiseClient(
-        this.config.Protocol +
+        protocol +
           '://' +
           this.config.Services['plc_link_server'].Domain +
           ':' +

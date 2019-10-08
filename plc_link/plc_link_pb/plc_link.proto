@@ -2,7 +2,7 @@
  * You can use echo as starter project.
  */
 syntax = "proto3";
-package echo;
+package plc_link;
 
 option go_package="plc_link_pb";
 

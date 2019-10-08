@@ -40,6 +40,8 @@ import (
 	Interceptors_ "github.com/davecourtois/Globular/Interceptors/server"
 
 	// Client services.
+	"context"
+
 	"github.com/davecourtois/Globular/catalog/catalog_client"
 	"github.com/davecourtois/Globular/echo/echo_client"
 	"github.com/davecourtois/Globular/event/event_client"
@@ -52,8 +54,7 @@ import (
 	"github.com/davecourtois/Globular/spc/spc_client"
 	"github.com/davecourtois/Globular/sql/sql_client"
 	"github.com/davecourtois/Globular/storage/storage_client"
-
-	"context"
+	"github.com/emicklei/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -118,6 +119,8 @@ type Globule struct {
 	// The list of avalaible services.
 	services map[string]interface{}
 
+	methods []string //list of all available methods.
+
 	// The map of client...
 	clients map[string]api.Client
 
@@ -134,8 +137,8 @@ func NewGlobule(port int) *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.RootPassword = "adminadmin"
-	g.PortHttp = port
-	g.PortHttps = port // The default port number.
+	g.PortHttp = 80
+	g.PortHttps = 443 // The default port number.
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
 	g.Protocol = "http"
@@ -162,6 +165,8 @@ func NewGlobule(port int) *Globule {
 
 	// Set the share service info...
 	g.Services = make(map[string]interface{}, 0)
+
+	g.methods = make([]string, 0)
 
 	// Set external map services.
 	g.ExternalServices = make(map[string]ExternalService, 0)
@@ -419,15 +424,11 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s_["Proxy"] = s["Proxy"]
 		s_["Port"] = s["Port"]
 		s_["TLS"] = s["TLS"]
-
 		self.Services[s["Name"].(string)] = s_
 
 		// Init it configuration.
 		self.initClient(s["Name"].(string))
 		self.saveConfig()
-
-		// Register the service methods.
-		self.registerServiceMethodes(s_["Address"].(string) + ":" + strconv.Itoa(Utility.ToInt(s["Port"].(float64))))
 
 	} else if s["Protocol"].(string) == "http" {
 
@@ -494,7 +495,7 @@ func (self *Globule) initService(s map[string]interface{}) {
 			s_["Domain"] = s["Domain"]
 			s_["Proxy"] = s["Proxy"]
 			s_["Port"] = s["Port"]
-
+			s_["TLS"] = s["TLS"]
 			self.Services[s["Name"].(string)] = s_
 			self.saveConfig()
 		}
@@ -558,9 +559,129 @@ func (self *Globule) initServices() {
 					self.initService(s)
 				}
 			}
+		} else if strings.HasSuffix(info.Name(), ".proto") {
+			// here I will parse the service defintion file to extract the
+			// service difinition.
+			log.Println("===============> ", path)
+			reader, _ := os.Open(path)
+			defer reader.Close()
+
+			parser := proto.NewParser(reader)
+			definition, _ := parser.Parse()
+
+			// Stack values from walking tree
+			stack := make([]interface{}, 0)
+
+			handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+				return func(p *proto.Package) {
+					*stack = append(*stack, p)
+				}
+			}(&stack)
+
+			handleService := func(stack *[]interface{}) func(*proto.Service) {
+				return func(s *proto.Service) {
+					*stack = append(*stack, s)
+				}
+			}(&stack)
+
+			handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+				return func(r *proto.RPC) {
+					*stack = append(*stack, r)
+				}
+			}(&stack)
+
+			// Walk this way
+			proto.Walk(definition,
+				proto.WithPackage(handlePackage),
+				proto.WithService(handleService),
+				proto.WithRPC(handleRpc))
+
+			// Now I will set values
+			var packageName string
+			var serviceName string
+			var methodName string
+			for len(stack) > 0 {
+				var x interface{}
+				x, stack = stack[0], stack[1:]
+				switch v := x.(type) {
+				case *proto.Package:
+					packageName = v.Name
+				case *proto.Service:
+					serviceName = v.Name
+				case *proto.RPC:
+					methodName = v.Name
+					path := "/" + packageName + "." + serviceName + "/" + methodName
+
+					// So here I will register the method into the backend.
+					self.methods = append(self.methods, path)
+					log.Println(path)
+				}
+			}
 		}
 		return nil
 	})
+}
+
+// Method must be register in order to be assign to role.
+func (self *Globule) registerMethods(methods []string) error {
+	// Here I will create the sa role if it dosen't exist.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return errors.New("No persistence service are available to store ressource information.")
+	}
+
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	err := p.Connect("local_ressource", self.RootPassword)
+	if err != nil {
+		return err
+	}
+
+	// Here I will persit the sa role if it dosent already exist.
+	count, err := p.Count("local_ressource", "local_ressource", "Roles", `{ "_id":"sa"}`, "")
+	admin := make(map[string]interface{})
+	if err != nil {
+		return err
+	} else if count == 0 {
+		log.Println("need to create admin roles...")
+		admin["_id"] = "sa"
+		admin["actions"] = methods
+		jsonStr, _ := Utility.ToJson(admin)
+		id, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
+		if err != nil {
+			return err
+		}
+		log.Println("role with id", id, "was created!")
+	} else {
+		admin["_id"] = "sa"
+		admin["actions"] = methods
+		jsonStr, _ := Utility.ToJson(admin)
+		// I will set the role actions...
+		err = p.ReplaceOne("local_ressource", "local_ressource", "Roles", `{"_id":"sa"}`, jsonStr, "")
+		if err != nil {
+			return err
+		}
+		log.Println("role sa with was updated!")
+	}
+
+	// I will also create the guest role, the basic one
+	count, err = p.Count("local_ressource", "local_ressource", "Roles", `{ "_id":"guest"}`, "")
+	guest := make(map[string]interface{})
+	if err != nil {
+		return err
+	} else if count == 0 {
+		log.Println("need to create roles guest...")
+		guest["_id"] = "guest"
+		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate"}
+		jsonStr, _ := Utility.ToJson(guest)
+		_, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
+		if err != nil {
+			return err
+		}
+		log.Println("role guest was created!")
+	}
+
+	return nil
 }
 
 // That function resolve import path.
@@ -754,19 +875,6 @@ func (self *Globule) saveConfig() {
 	if err == nil {
 		ioutil.WriteFile(self.webRoot+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	}
-}
-
-/**
- * Register the action as ressource to be able to set permission on it.
- */
-func (self *Globule) registerServiceMethodes(address string) {
-	// Call grpc_cli to get the list of grpc methode.
-	// ./grpc_cli ls localhost:50051
-	// Output the given list
-	// 	grpc.examples.echo.Echo
-	// 	grpc.reflection.v1alpha.ServerReflection
-	// 	helloworld.Greeter
-	// From the output I will register action on the ressource so the
 }
 
 /**
@@ -1703,15 +1811,14 @@ func (self *Globule) registerSa() error {
 
 	// if not I will create one.
 	if err != nil {
-		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "")
+		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "", true)
 		if err != nil {
 			return err
 		}
 
 		// Now I will create a new user name sa and give it all admin write.
 		createSaScript := fmt.Sprintf(
-			`db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']})`, "sa", self.RootPassword) // must be change...
-
+			`db=db.getSiblingDB('admin');db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']})`, "sa", self.RootPassword) // must be change...
 		log.Println("---> create super admin: ", createSaScript)
 
 		// I will execute the sript with the admin function.
@@ -1720,7 +1827,6 @@ func (self *Globule) registerSa() error {
 			return err
 		}
 	}
-
 	return nil
 
 }
@@ -1734,7 +1840,6 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// encode the password and keep it in the account itself.
-	pwd := rqst.Password
 	rqst.Account.Password = Utility.GenerateUUID(rqst.Password)
 
 	// That service made user of persistence service.
@@ -1748,13 +1853,14 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 
 	// Cast-it to the persistence client.
 	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+
 	// Test if the connection already exist.
 	err := p.Ping("local_ressource")
 
 	// if not I will create one.
 	if err != nil {
 		// Connect to the database here.
-		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "")
+		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "", true)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1778,8 +1884,21 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("account with name "+rqst.Account.Name+" already exist!")))
 	}
 
+	// set the account object and set it basic roles.
+	account := make(map[string]interface{})
+	account["name"] = rqst.Account.Name
+	account["email"] = rqst.Account.Email
+	account["password"] = rqst.Account.Password
+
+	// reference the guest role.
+	guest := make(map[string]interface{}, 0)
+	guest["$id"] = "guest"
+	guest["$ref"] = "Roles"
+	guest["$db"] = "local_ressource"
+	account["roles"] = []map[string]interface{}{guest}
+
 	// serialyse the account and save it.
-	accountStr, err := Utility.ToJson(rqst.Account)
+	accountStr, err := Utility.ToJson(account)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1793,8 +1912,8 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	// into it.
 	// Here I will wrote the script for mongoDB...
 	createUserScript := fmt.Sprintf(
-		"db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'readWrite', db: '%s_db' }]});",
-		rqst.Account.Name, pwd, rqst.Account.Name)
+		"db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'readWrite', db: '%s_db' }]});",
+		rqst.Account.Name, rqst.Account.Name, rqst.Password, rqst.Account.Name)
 
 	// I will execute the sript with the admin function.
 	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createUserScript)
@@ -1806,7 +1925,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = p.CreateConnection(rqst.Account.Name+"_db", rqst.Account.Name+"_db", "localhost", 27017, 0, rqst.Account.Name, pwd, 5000, "")
+	err = p.CreateConnection(rqst.Account.Name+"_db", rqst.Account.Name+"_db", "localhost", 27017, 0, rqst.Account.Name, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1832,11 +1951,36 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-
 	}
 
 	// Cast-it to the persistence client.
 	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	err := p.Connect("local_ressource", self.RootPassword)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// in case of sa user.
+	if rqst.Password == self.RootPassword && rqst.Name == "sa" {
+		// Generate a token to identify the user.
+		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		result := make(map[string]interface{}, 0)
+		result["name"] = "sa"
+		result["token"] = tokenString
+		jsonStr, _ := Utility.ToJson(result)
+		/** Return the token only **/
+		return &ressource.AuthenticateRsp{
+			Token: jsonStr,
+		}, nil
+	}
+
 	query := `{"name":"` + rqst.Name + `"}`
 
 	// Can also be an email.
@@ -1863,21 +2007,42 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("wrong password for account "+rqst.Name)))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("wrong password for account "+objects[0]["name"].(string))))
 	}
 
 	// Generate a token to identify the user.
 	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, objects[0]["name"].(string))
-
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// Open the connection with user databe.
+	err = p.Connect(objects[0]["name"].(string)+"_db", rqst.Password)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Open the user database connection.
+	err = p.CreateConnection(objects[0]["name"].(string)+"_db", objects[0]["name"].(string)+"_db", "localhost", 27017, 0, objects[0]["name"].(string), rqst.Password, 5000, "", false)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
+
+	result := make(map[string]interface{}, 0)
+	result["email"] = objects[0]["email"]
+	result["name"] = objects[0]["name"]
+	result["token"] = tokenString
+	jsonStr, _ := Utility.ToJson(result)
 	// Here I got the token I will now put it in the cache.
 	return &ressource.AuthenticateRsp{
-		Token: tokenString,
+		Token: jsonStr,
 	}, nil
 }
 
@@ -1891,11 +2056,18 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
 
 	}
+
 	// Cast-it to the persistence client.
 	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	err := p.Connect("local_ressource", self.RootPassword)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
 
 	// Try to delete the account...
-	err := p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
+	err = p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1904,7 +2076,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 
 	// Here I will drop the db user.
 	dropUserScript := fmt.Sprintf(
-		`db.dropUser('%s', {w: 'majority', wtimeout: 4000})`,
+		`db=db.getSiblingDB('admin');db.dropUser('%s', {w: 'majority', wtimeout: 4000})`,
 		rqst.Name)
 
 	// I will execute the sript with the admin function.
@@ -2061,7 +2233,6 @@ func (self *Globule) Listen() {
 		}
 
 		admin.RegisterAdminServiceServer(admin_server, self)
-		self.registerServiceMethodes("localhost:" + strconv.Itoa(self.AdminPort))
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -2080,7 +2251,7 @@ func (self *Globule) Listen() {
 		}()
 	}
 
-	ressource_server, err := self.startInternalService("Ressource", self.AdminPort, self.RessourcePort)
+	ressource_server, err := self.startInternalService("Ressource", self.RessourcePort, self.RessourceProxy)
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -2093,18 +2264,11 @@ func (self *Globule) Listen() {
 
 		ressource.RegisterRessourceServiceServer(ressource_server, self)
 
-		self.registerServiceMethodes("localhost:" + strconv.Itoa(self.RessourcePort))
-
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			log.Println("---> start ressource service!")
 			go func() {
-				// Set the super admin if is not already set.
-				/*err := self.registerSa()
-				if err != nil {
-					log.Fatalf("failed to create sa: %v", err)
-				}*/
-
+				self.registerMethods(self.methods)
 				// no web-rpc server.
 				if err := ressource_server.Serve(lis); err != nil {
 					log.Fatalf("failed to serve: %v", err)
@@ -2125,44 +2289,44 @@ func (self *Globule) Listen() {
 	http.HandleFunc("/uploads", FileUploadHandler)
 
 	// Start the http server.
-	if self.Protocol == "http" {
+	// Start http server.
+	go func() {
 		log.Println("Globular is listening at port ", self.PortHttp)
 		log.Panicln(http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil))
-	} else {
-		// Get the SystemCertPool, continue with an empty pool on error
-		rootCAs, _ := x509.SystemCertPool()
-		if rootCAs == nil {
-			rootCAs = x509.NewCertPool()
-		}
+	}()
 
-		// Read in the cert file
-		certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
-		if err != nil {
-			log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
-		}
-
-		// Append our cert to the system pool
-		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-			log.Println("No certs appended, using system certs only")
-		}
-
-		// client certificate
-		server := &http.Server{
-			Addr: ":" + Utility.ToString(self.PortHttps),
-			TLSConfig: &tls.Config{
-				RootCAs:            rootCAs,
-				ClientAuth:         tls.RequestClientCert,
-				InsecureSkipVerify: false,
-				//VerifyPeerCertificate: self.verifyPeerCertificate,
-			},
-		}
-
-		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
-
-		// Use public CA for public website with real domain name.
-		// err = http.ListenAndServeTLS(":"+Utility.ToString(self.PortHttps), self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
 	}
 
+	// Read in the cert file
+	certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
+	if err != nil {
+		log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
+	}
+
+	// Append our cert to the system pool
+	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+		log.Println("No certs appended, using system certs only")
+	}
+
+	// client certificate
+	server := &http.Server{
+		Addr: ":" + Utility.ToString(self.PortHttps),
+		TLSConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			ClientAuth:         tls.RequestClientCert,
+			InsecureSkipVerify: false,
+			//VerifyPeerCertificate: self.verifyPeerCertificate,
+		},
+	}
+
+	log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
+
+	// Use public CA for public website with real domain name.
+	// err = http.ListenAndServeTLS(":"+Utility.ToString(self.PortHttps), self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

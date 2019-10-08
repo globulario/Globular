@@ -56,6 +56,9 @@ export class CreateConnectionRqst extends jspb.Message {
   hasConnection(): boolean;
   clearConnection(): void;
 
+  getSave(): boolean;
+  setSave(value: boolean): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): CreateConnectionRqst.AsObject;
   static toObject(includeInstance: boolean, msg: CreateConnectionRqst): CreateConnectionRqst.AsObject;
@@ -67,6 +70,7 @@ export class CreateConnectionRqst extends jspb.Message {
 export namespace CreateConnectionRqst {
   export type AsObject = {
     connection?: Connection.AsObject,
+    save: boolean,
   }
 }
 

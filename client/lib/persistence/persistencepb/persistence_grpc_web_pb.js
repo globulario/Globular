@@ -144,6 +144,116 @@ proto.persistence.PersistenceServicePromiseClient.prototype.createDatabase =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.ConnectRqst,
+ *   !proto.persistence.ConnectRsp>}
+ */
+const methodInfo_PersistenceService_Connect = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.ConnectRsp,
+  /** @param {!proto.persistence.ConnectRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.ConnectRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.ConnectRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.ConnectRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.ConnectRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.connect =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Connect',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Connect,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.ConnectRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.ConnectRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.connect =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Connect',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Connect);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.persistence.DisconnectRqst,
+ *   !proto.persistence.DisconnectRsp>}
+ */
+const methodInfo_PersistenceService_Disconnect = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.persistence.DisconnectRsp,
+  /** @param {!proto.persistence.DisconnectRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.persistence.DisconnectRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.persistence.DisconnectRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.persistence.DisconnectRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.persistence.DisconnectRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.persistence.PersistenceServiceClient.prototype.disconnect =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/persistence.PersistenceService/Disconnect',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Disconnect,
+      callback);
+};
+
+
+/**
+ * @param {!proto.persistence.DisconnectRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.persistence.DisconnectRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.persistence.PersistenceServicePromiseClient.prototype.disconnect =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/persistence.PersistenceService/Disconnect',
+      request,
+      metadata || {},
+      methodInfo_PersistenceService_Disconnect);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.persistence.DeleteDatabaseRqst,
  *   !proto.persistence.DeleteDatabaseRsp>}
  */

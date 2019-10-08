@@ -1334,7 +1334,8 @@ proto.persistence.CreateConnectionRqst.prototype.toObject = function(opt_include
  */
 proto.persistence.CreateConnectionRqst.toObject = function(includeInstance, msg) {
   var f, obj = {
-    connection: (f = msg.getConnection()) && proto.persistence.Connection.toObject(includeInstance, f)
+    connection: (f = msg.getConnection()) && proto.persistence.Connection.toObject(includeInstance, f),
+    save: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
   };
 
   if (includeInstance) {
@@ -1376,6 +1377,10 @@ proto.persistence.CreateConnectionRqst.deserializeBinaryFromReader = function(ms
       reader.readMessage(value,proto.persistence.Connection.deserializeBinaryFromReader);
       msg.setConnection(value);
       break;
+    case 2:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setSave(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -1413,6 +1418,13 @@ proto.persistence.CreateConnectionRqst.serializeBinaryToWriter = function(messag
       proto.persistence.Connection.serializeBinaryToWriter
     );
   }
+  f = message.getSave();
+  if (f) {
+    writer.writeBool(
+      2,
+      f
+    );
+  }
 };
 
 
@@ -1446,6 +1458,21 @@ proto.persistence.CreateConnectionRqst.prototype.clearConnection = function() {
  */
 proto.persistence.CreateConnectionRqst.prototype.hasConnection = function() {
   return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional bool save = 2;
+ * @return {boolean}
+ */
+proto.persistence.CreateConnectionRqst.prototype.getSave = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
+};
+
+
+/** @param {boolean} value */
+proto.persistence.CreateConnectionRqst.prototype.setSave = function(value) {
+  jspb.Message.setProto3BooleanField(this, 2, value);
 };
 
 

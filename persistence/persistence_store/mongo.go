@@ -652,10 +652,13 @@ func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, us
 	args = append(args, "--eval")
 	args = append(args, script)
 
+	log.Println("run command ", cmd)
+	log.Println("args", args)
+
 	cmd_ := exec.Command(cmd, args...)
 	err = cmd_.Run()
 	if err != nil {
-		log.Panicln(err)
+		log.Println("---> error: ", err)
 	}
 
 	return err

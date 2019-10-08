@@ -26,6 +26,7 @@ message Connection {
 // Create connection
 message CreateConnectionRqst {
 	Connection connection = 1;
+	bool save = 2; // if true it will save in the config file.
 }
 
 message CreateConnectionRsp {

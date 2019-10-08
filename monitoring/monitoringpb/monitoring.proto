@@ -16,7 +16,6 @@ message Connection {
 	string host = 2;
 	StoreType store = 3;
 	int32 port = 4;
-
 }
 
 // Create connection

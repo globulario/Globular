@@ -56,6 +56,9 @@ export class CreateConnectionRqst extends jspb.Message {
   hasConnection(): boolean;
   clearConnection(): void;
 
+  getSave(): boolean;
+  setSave(value: boolean): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): CreateConnectionRqst.AsObject;
   static toObject(includeInstance: boolean, msg: CreateConnectionRqst): CreateConnectionRqst.AsObject;
@@ -67,6 +70,7 @@ export class CreateConnectionRqst extends jspb.Message {
 export namespace CreateConnectionRqst {
   export type AsObject = {
     connection?: Connection.AsObject,
+    save: boolean,
   }
 }
 
@@ -920,14 +924,14 @@ export class RunAdminCmdRqst extends jspb.Message {
   getConnectionid(): string;
   setConnectionid(value: string): void;
 
-  getDatabase(): string;
-  setDatabase(value: string): void;
+  getUser(): string;
+  setUser(value: string): void;
 
-  getCmd(): string;
-  setCmd(value: string): void;
+  getPassword(): string;
+  setPassword(value: string): void;
 
-  getArgs(): string;
-  setArgs(value: string): void;
+  getScript(): string;
+  setScript(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): RunAdminCmdRqst.AsObject;
@@ -940,9 +944,9 @@ export class RunAdminCmdRqst extends jspb.Message {
 export namespace RunAdminCmdRqst {
   export type AsObject = {
     connectionid: string,
-    database: string,
-    cmd: string,
-    args: string,
+    user: string,
+    password: string,
+    script: string,
   }
 }
 
@@ -961,6 +965,82 @@ export class RunAdminCmdRsp extends jspb.Message {
 export namespace RunAdminCmdRsp {
   export type AsObject = {
     result: string,
+  }
+}
+
+export class ConnectRqst extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPassword(): string;
+  setPassword(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ConnectRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ConnectRqst): ConnectRqst.AsObject;
+  static serializeBinaryToWriter(message: ConnectRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ConnectRqst;
+  static deserializeBinaryFromReader(message: ConnectRqst, reader: jspb.BinaryReader): ConnectRqst;
+}
+
+export namespace ConnectRqst {
+  export type AsObject = {
+    connectionid: string,
+    password: string,
+  }
+}
+
+export class ConnectRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ConnectRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ConnectRsp): ConnectRsp.AsObject;
+  static serializeBinaryToWriter(message: ConnectRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ConnectRsp;
+  static deserializeBinaryFromReader(message: ConnectRsp, reader: jspb.BinaryReader): ConnectRsp;
+}
+
+export namespace ConnectRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DisconnectRqst extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DisconnectRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DisconnectRqst): DisconnectRqst.AsObject;
+  static serializeBinaryToWriter(message: DisconnectRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DisconnectRqst;
+  static deserializeBinaryFromReader(message: DisconnectRqst, reader: jspb.BinaryReader): DisconnectRqst;
+}
+
+export namespace DisconnectRqst {
+  export type AsObject = {
+    connectionid: string,
+  }
+}
+
+export class DisconnectRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DisconnectRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DisconnectRsp): DisconnectRsp.AsObject;
+  static serializeBinaryToWriter(message: DisconnectRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DisconnectRsp;
+  static deserializeBinaryFromReader(message: DisconnectRsp, reader: jspb.BinaryReader): DisconnectRsp;
+}
+
+export namespace DisconnectRsp {
+  export type AsObject = {
+    result: boolean,
   }
 }
 

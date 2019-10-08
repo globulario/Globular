@@ -37,7 +37,6 @@ func GenerateToken(jwtKey []byte, timeout time.Duration, userName string) (strin
 
 	// Declare the expiration time of the token
 	expirationTime := time.Now().Add(timeout * time.Millisecond)
-	log.Println("token expire in", timeout, "millisecond")
 
 	// Create the JWT claims, which includes the username and expiry time
 	claims := &Claims{
@@ -61,7 +60,7 @@ func GenerateToken(jwtKey []byte, timeout time.Duration, userName string) (strin
 		// This is globular server itself.
 		log.Println("server token:", tokenString)
 	} else {
-		log.Println("-----> generate token for: ", userName, tokenString)
+		log.Println("generate token for", userName, ":", tokenString)
 	}
 
 	return tokenString, nil

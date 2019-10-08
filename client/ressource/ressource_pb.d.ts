@@ -30,10 +30,10 @@ export class Role extends jspb.Message {
   getName(): string;
   setName(value: string): void;
 
-  getPermissionsList(): Array<Permission>;
-  setPermissionsList(value: Array<Permission>): void;
-  clearPermissionsList(): void;
-  addPermissions(value?: Permission, index?: number): Permission;
+  getActionsList(): Array<string>;
+  setActionsList(value: Array<string>): void;
+  clearActionsList(): void;
+  addActions(value: string, index?: number): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Role.AsObject;
@@ -46,49 +46,7 @@ export class Role extends jspb.Message {
 export namespace Role {
   export type AsObject = {
     name: string,
-    permissionsList: Array<Permission.AsObject>,
-  }
-}
-
-export class Permission extends jspb.Message {
-  getType(): PermissionType;
-  setType(value: PermissionType): void;
-
-  getRessource(): Ressource | undefined;
-  setRessource(value?: Ressource): void;
-  hasRessource(): boolean;
-  clearRessource(): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): Permission.AsObject;
-  static toObject(includeInstance: boolean, msg: Permission): Permission.AsObject;
-  static serializeBinaryToWriter(message: Permission, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): Permission;
-  static deserializeBinaryFromReader(message: Permission, reader: jspb.BinaryReader): Permission;
-}
-
-export namespace Permission {
-  export type AsObject = {
-    type: PermissionType,
-    ressource?: Ressource.AsObject,
-  }
-}
-
-export class Ressource extends jspb.Message {
-  getUrl(): string;
-  setUrl(value: string): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): Ressource.AsObject;
-  static toObject(includeInstance: boolean, msg: Ressource): Ressource.AsObject;
-  static serializeBinaryToWriter(message: Ressource, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): Ressource;
-  static deserializeBinaryFromReader(message: Ressource, reader: jspb.BinaryReader): Ressource;
-}
-
-export namespace Ressource {
-  export type AsObject = {
-    url: string,
+    actionsList: Array<string>,
   }
 }
 
@@ -214,13 +172,3 @@ export namespace AuthenticateRsp {
   }
 }
 
-export enum PermissionType { 
-  NONE = 0,
-  EXECUTE = 1,
-  WRITE = 2,
-  WRITE_EXECUTE = 3,
-  READ = 4,
-  READ_EXECUTE = 5,
-  READ_WRITE = 6,
-  READ_WRITE_EXECUTE = 7,
-}

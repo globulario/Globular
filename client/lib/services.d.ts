@@ -22,6 +22,7 @@ export interface IServiceConfig {
     Domain: string;
     Port: Number;
     Proxy: Number;
+    TLS: Boolean;
 }
 /**
  * Define a map of services.
@@ -38,6 +39,7 @@ export interface IConfig {
     PortHttp: Number;
     PortHttps: Number;
     AdminProxy: Number;
+    RessourceProxy: Number;
     Protocol: string;
     IP: string;
     Services: IServices;

@@ -803,7 +803,7 @@ proto.ressource.Ressource.prototype.toObject = function(opt_includeInstance) {
  */
 proto.ressource.Ressource.toObject = function(includeInstance, msg) {
   var f, obj = {
-    url: jspb.Message.getFieldWithDefault(msg, 1, "")
+    decriptor: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -842,7 +842,7 @@ proto.ressource.Ressource.deserializeBinaryFromReader = function(msg, reader) {
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setUrl(value);
+      msg.setDecriptor(value);
       break;
     default:
       reader.skipField();
@@ -873,7 +873,7 @@ proto.ressource.Ressource.prototype.serializeBinary = function() {
  */
 proto.ressource.Ressource.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getUrl();
+  f = message.getDecriptor();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -884,16 +884,16 @@ proto.ressource.Ressource.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string url = 1;
+ * optional string decriptor = 1;
  * @return {string}
  */
-proto.ressource.Ressource.prototype.getUrl = function() {
+proto.ressource.Ressource.prototype.getDecriptor = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.Ressource.prototype.setUrl = function(value) {
+proto.ressource.Ressource.prototype.setDecriptor = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
 };
 

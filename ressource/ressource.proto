@@ -13,37 +13,12 @@ message Account {
 	string password =3;
 }
 
-/** Role **/
-message Role{
-	string name = 1;
-	repeated Permission permissions = 2;
+/** A role is simply a list of actions that an account can call **/
+message Role {
+	string name=1;
+	repeated string  actions=2; // must be a registered action from grpc.
 }
 
-enum PermissionType {
-	NONE= 0;
-	EXECUTE=1;
-	WRITE = 2;
-	WRITE_EXECUTE=3;
-	READ = 4;
-	READ_EXECUTE=5;
-	READ_WRITE=6;
-	READ_WRITE_EXECUTE=7;
-}
-
-/** Permission **/
-message Permission{
-	PermissionType type = 1;
-	Ressource ressource = 2;
-}
-
-/** Ressource **/
-message Ressource {
-	// A json object use to locate and describe
-	// the ressource and it context.
-	string decriptor = 1;
-}
-
-///////////////////////// API //////////////////////////
 message RegisterAccountRqst{
 	Account account = 1;
 	string password = 2;

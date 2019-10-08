@@ -148,15 +148,16 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 		self.stores[c.Id] = s
 	}
 
-	// set or update the connection and save it in json file.
-	self.Connections[c.Id] = c
-
-	// In that case I will save it in file.
-	err = self.save()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	// If the connection need to save in the server configuration.
+	if rqst.Save == true {
+		self.Connections[c.Id] = c
+		// In that case I will save it in file.
+		err = self.save()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	// test if the connection is reacheable.
@@ -177,11 +178,10 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 
 func (self *server) Connect(ctx context.Context, rqst *persistencepb.ConnectRqst) (*persistencepb.ConnectRsp, error) {
 	store := self.stores[rqst.GetConnectionId()]
-	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetConnectionId())
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	if store != nil {
+		return &persistencepb.ConnectRsp{
+			Result: true,
+		}, nil
 	}
 
 	if c, ok := self.Connections[rqst.ConnectionId]; ok {
@@ -228,14 +228,12 @@ func (self *server) Disconnect(ctx context.Context, rqst *persistencepb.Disconne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	if c, ok := self.Connections[rqst.ConnectionId]; ok {
-		err := store.Disconnect(c.Id)
-		if err != nil {
-			// codes.
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
+	err := store.Disconnect(rqst.GetConnectionId())
+	if err != nil {
+		// codes.
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &persistencepb.DisconnectRsp{
