@@ -37,7 +37,7 @@ var (
 	token_ string
 )
 
-func ValidateToken(token string) (string, error) {
+func ValidateToken(token string) (string, int64, error) {
 
 	// Initialize a new instance of `Claims`
 	claims := &Interceptors.Claims{}
@@ -53,37 +53,37 @@ func ValidateToken(token string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	if !tkn.Valid {
-		return "", fmt.Errorf("invalid token!")
+		return "", 0, fmt.Errorf("invalid token!")
 	}
 
-	return claims.Username, nil
+	return claims.Username, claims.ExpiresAt, nil
 }
 
 // authenticateAgent check the client credentials
-func authenticateClient(ctx context.Context) (string, error) {
+func authenticateClient(ctx context.Context) (string, int64, error) {
 	// Here I will need the persistence client to read user permission.
 	// Here I will read the server token, the service must run on the
 	// same computer as globular.
 	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	if client == nil || token_ != string(token) {
 		// The root password to be able to perform query over persistence service.
 		infoStr, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_sa")
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 
 		infos := make(map[string]interface{}, 0)
 		err = json.Unmarshal(infoStr, &infos)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 
 		root = infos["pwd"].(string)
@@ -110,22 +110,15 @@ func authenticateClient(ctx context.Context) (string, error) {
 		// In that case no token was given...
 		if len(token) == 0 {
 			log.Println("no token was given.")
-			return "", nil
+			return "", 0, nil
 		}
 
 		log.Println("token from incoming: ", token)
 
-		userName, err := ValidateToken(token)
-		if err != nil {
-			return "", err
-		}
-
-		if len(token) > 0 {
-			return userName, nil
-		}
+		return ValidateToken(token)
 	}
 
-	return "", fmt.Errorf("missing credentials")
+	return "", 0, fmt.Errorf("missing credentials")
 }
 
 // Test if a role can use action.
@@ -201,7 +194,7 @@ func validateUserAccess(userName string, method string) error {
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
-	clientID, err := authenticateClient(ctx)
+	clientID, _, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}

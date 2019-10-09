@@ -2081,11 +2081,18 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTokenRqst) (*ressource.RefreshTokenRsp, error) {
 
 	// first of all I will validate the current token.
-	name, err := Interceptors_.ValidateToken(rqst.Token)
+	name, expireAt, err := Interceptors_.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// If the token is older than seven day without being refresh then I retrun an error.
+	if time.Now().Sub(time.Unix(expireAt, 0)) > (7 * 24 * time.Hour) {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token cannot be refresh after 7 day")))
 	}
 
 	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name)
