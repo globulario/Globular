@@ -28,7 +28,7 @@ func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 	user := "sa"
 	pwd := "adminadmin"
-	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 10, "")
+	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 10, "", true)
 	if err == nil {
 
 	}

@@ -56,7 +56,7 @@ func GenerateToken(jwtKey []byte, timeout time.Duration, userName string) (strin
 		return "", err
 	}
 
-	if string(jwtKey) == userName {
+	if userName == "sa" {
 		// This is globular server itself.
 		log.Println("server token:", tokenString)
 	} else {

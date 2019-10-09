@@ -6,10 +6,13 @@ import (
 
 	"strings"
 
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 
 	"github.com/davecourtois/Globular/Interceptors/Authenticate"
+	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -23,7 +26,18 @@ const (
 	clientIDKey contextKey = iota
 )
 
-func validateToken(token string) error {
+var (
+	addresse string
+	crt      string
+	key      string
+	ca       string
+	// Connect to the plc client.
+	root   string
+	client *persistence_client.Persistence_Client
+	token_ string
+)
+
+func ValidateToken(token string) (string, error) {
 
 	// Initialize a new instance of `Claims`
 	claims := &Interceptors.Claims{}
@@ -32,7 +46,6 @@ func validateToken(token string) error {
 	// Note that we are passing the key in this method as well. This method will return an error
 	// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 	// or if the signature does not match
-	log.Println("---> receive token: ", token)
 	tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		// Get the key from the local temp file.
 		jwtKey, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_key")
@@ -40,47 +53,164 @@ func validateToken(token string) error {
 	})
 
 	if err != nil {
-		log.Println("Invalid token error line 40", err)
-		return err
+		return "", err
 	}
 
 	if !tkn.Valid {
-		return fmt.Errorf("invalid token!")
+		return "", fmt.Errorf("invalid token!")
 	}
 
-	return nil
+	return claims.Username, nil
 }
 
 // authenticateAgent check the client credentials
 func authenticateClient(ctx context.Context) (string, error) {
+	// Here I will need the persistence client to read user permission.
+	// Here I will read the server token, the service must run on the
+	// same computer as globular.
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
+	if err != nil {
+		return "", err
+	}
+
+	if client == nil || token_ != string(token) {
+		// The root password to be able to perform query over persistence service.
+		infoStr, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_sa")
+		if err != nil {
+			return "", err
+		}
+
+		infos := make(map[string]interface{}, 0)
+		err = json.Unmarshal(infoStr, &infos)
+		if err != nil {
+			return "", err
+		}
+
+		root = infos["pwd"].(string)
+		addresse = infos["address"].(string)
+		crt = infos["certFile"].(string)
+		key = infos["keyFile"].(string)
+		ca = infos["certAuthorityTrust"].(string)
+
+		// close the
+		if client != nil {
+			client.Close()
+		}
+
+		client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, string(token))
+		client.Connect("local_ressource", root)
+
+		// set the token.
+		token_ = string(token)
+	}
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		token := strings.Join(md["token"], "")
+
 		// In that case no token was given...
 		if len(token) == 0 {
+			log.Println("no token was given.")
 			return "", nil
 		}
 
-		err := validateToken(token)
+		log.Println("token from incoming: ", token)
+
+		userName, err := ValidateToken(token)
 		if err != nil {
 			return "", err
 		}
 
 		if len(token) > 0 {
-			return "42", nil
+			return userName, nil
 		}
 	}
 
 	return "", fmt.Errorf("missing credentials")
 }
 
+// Test if a role can use action.
+func canRunAction(roleName string, method string) error {
+	Id := "local_ressource"
+	Database := "local_ressource"
+	Collection := "Roles"
+	Query := `{"_id":"` + roleName + `"}`
+
+	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"actions":1}}]`)
+	if err != nil {
+		return err
+	}
+	role := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &role)
+	if err != nil {
+		return err
+	}
+
+	// append all action into the actions
+	for i := 0; i < len(role["actions"].([]interface{})); i++ {
+		if role["actions"].([]interface{})[i].(string) == method {
+			return nil
+		}
+	}
+
+	// Here I will test if the user has write to execute the methode.
+	return errors.New("Permission denied!")
+}
+
+func validateUserAccess(userName string, method string) error {
+
+	// if the user is the super admin no validation is required.
+	if userName == "sa" {
+		return nil
+	}
+
+	// if guest can run the action...
+	if canRunAction("guest", method) == nil {
+		// everybody can run the action in that case.
+		return nil
+	}
+
+	// Now I will get the user roles and validate if the user can execute the
+	// method.
+	Id := "local_ressource"
+	Database := "local_ressource"
+	Collection := "Accounts"
+	Query := `{"name":"` + userName + `"}`
+
+	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
+	if err != nil {
+		return err
+	}
+
+	account := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &account)
+	if err != nil {
+		return err
+	}
+
+	roles := account["roles"].([]interface{})
+	for i := 0; i < len(roles); i++ {
+		role := roles[i].(map[string]interface{})
+		if canRunAction(role["$id"].(string), method) == nil {
+			return nil
+		}
+	}
+
+	return errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
+}
+
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	log.Println("---------> 79 method call received: ", info.FullMethod)
+
 	clientID, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	err = validateUserAccess(clientID, info.FullMethod)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx = context.WithValue(ctx, clientIDKey, clientID)
 
 	return handler(ctx, req)

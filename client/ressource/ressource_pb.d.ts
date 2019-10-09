@@ -172,3 +172,39 @@ export namespace AuthenticateRsp {
   }
 }
 
+export class RefreshTokenRqst extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RefreshTokenRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RefreshTokenRqst): RefreshTokenRqst.AsObject;
+  static serializeBinaryToWriter(message: RefreshTokenRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RefreshTokenRqst;
+  static deserializeBinaryFromReader(message: RefreshTokenRqst, reader: jspb.BinaryReader): RefreshTokenRqst;
+}
+
+export namespace RefreshTokenRqst {
+  export type AsObject = {
+    token: string,
+  }
+}
+
+export class RefreshTokenRsp extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RefreshTokenRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RefreshTokenRsp): RefreshTokenRsp.AsObject;
+  static serializeBinaryToWriter(message: RefreshTokenRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RefreshTokenRsp;
+  static deserializeBinaryFromReader(message: RefreshTokenRsp, reader: jspb.BinaryReader): RefreshTokenRsp;
+}
+
+export namespace RefreshTokenRsp {
+  export type AsObject = {
+    token: string,
+  }
+}
+

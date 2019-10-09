@@ -43,7 +43,9 @@ export interface IConfig {
   PortHttp: Number;
   PortHttps: Number;
   AdminProxy: Number;
+  RessourcePort: Number;
   RessourceProxy: Number;
+  SessionTimeout: Number;
   Protocol: string;
   IP: string;
 

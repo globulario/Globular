@@ -251,5 +251,60 @@ proto.ressource.RessourceServicePromiseClient.prototype.authenticate =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RefreshTokenRqst,
+ *   !proto.ressource.RefreshTokenRsp>}
+ */
+const methodInfo_RessourceService_RefreshToken = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RefreshTokenRsp,
+  /** @param {!proto.ressource.RefreshTokenRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RefreshTokenRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RefreshTokenRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RefreshTokenRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RefreshTokenRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.refreshToken =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RefreshToken',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RefreshToken,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RefreshTokenRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RefreshTokenRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.refreshToken =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RefreshToken',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RefreshToken);
+};
+
+
 module.exports = proto.ressource;
 

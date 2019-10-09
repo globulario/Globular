@@ -48,15 +48,11 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 
 	var cc *grpc.ClientConn
 	var err error
-
 	if cc == nil {
 
 		if client.HasTLS() {
 			log.Println("Secure client")
 			// Setup the login/pass simple test...
-			auth := Interceptors.Authentication{
-				Token: token,
-			}
 
 			if len(client.GetKeyFile()) == 0 {
 				log.Println("no key file is available for client ")
@@ -90,7 +86,12 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 			})
 
 			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(&auth))
+			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds),
+				grpc.WithPerRPCCredentials(
+					&Interceptors.Authentication{
+						Token: token,
+					}))
+
 			if err != nil {
 				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
 			}
@@ -100,7 +101,7 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 				log.Fatalf("could not connect: %v", err)
 			}
 		}
-
 	}
+
 	return cc
 }

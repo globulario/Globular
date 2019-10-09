@@ -47,6 +47,15 @@ message AuthenticateRsp {
 	string token = 1;
 }
 
+/** Refresh token **/
+message RefreshTokenRqst{
+	string token = 1;
+}
+
+message RefreshTokenRsp {
+	string token = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -62,4 +71,7 @@ service RessourceService {
 	
 	/** Authenticate a user **/
 	rpc Authenticate(AuthenticateRqst) returns(AuthenticateRsp);
+	
+	/** Refresh token get a new token **/
+	rpc RefreshToken(RefreshTokenRqst) returns(RefreshTokenRsp);
 }

@@ -75,7 +75,9 @@ func (self *Persistence_Client) GetName() string {
 
 // must be close when no more needed.
 func (self *Persistence_Client) Close() {
-	self.cc.Close()
+	if self.cc != nil {
+		self.cc.Close()
+	}
 }
 
 ////////////////// TLS ///////////////////

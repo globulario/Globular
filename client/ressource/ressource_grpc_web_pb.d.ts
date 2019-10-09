@@ -5,6 +5,8 @@ import {
   AuthenticateRsp,
   DeleteAccountRqst,
   DeleteAccountRsp,
+  RefreshTokenRqst,
+  RefreshTokenRsp,
   RegisterAccountRqst,
   RegisterAccountRsp} from './ressource_pb';
 
@@ -34,6 +36,13 @@ export class RessourceServiceClient {
                response: AuthenticateRsp) => void
   ): grpcWeb.ClientReadableStream<AuthenticateRsp>;
 
+  refreshToken(
+    request: RefreshTokenRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RefreshTokenRsp) => void
+  ): grpcWeb.ClientReadableStream<RefreshTokenRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
@@ -55,6 +64,11 @@ export class RessourceServicePromiseClient {
     request: AuthenticateRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<AuthenticateRsp>;
+
+  refreshToken(
+    request: RefreshTokenRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RefreshTokenRsp>;
 
 }
 
