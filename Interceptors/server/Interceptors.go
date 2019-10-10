@@ -27,15 +27,51 @@ const (
 )
 
 var (
-	addresse string
-	crt      string
-	key      string
-	ca       string
-	// Connect to the plc client.
-	root   string
 	client *persistence_client.Persistence_Client
-	token_ string
+	token_ string // the last know sa token.
 )
+
+func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
+	// Here I will need the persistence client to read user permission.
+	// Here I will read the server token, the service must run on the
+	// same computer as globular.
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
+	if err != nil {
+		return nil, err
+	}
+
+	if client == nil || token_ != string(token) {
+		// The root password to be able to perform query over persistence service.
+		infoStr, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_sa")
+		if err != nil {
+			return nil, err
+		}
+
+		infos := make(map[string]interface{}, 0)
+		err = json.Unmarshal(infoStr, &infos)
+		if err != nil {
+			return nil, err
+		}
+
+		root := infos["pwd"].(string)
+		addresse := infos["address"].(string)
+		crt := infos["certFile"].(string)
+		key := infos["keyFile"].(string)
+		ca := infos["certAuthorityTrust"].(string)
+
+		// close the
+		if client != nil {
+			client.Close()
+		}
+
+		client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, string(token))
+		client.Connect("local_ressource", root)
+
+		// keep the token for futher use
+		token_ = string(token)
+	}
+	return client, nil
+}
 
 func ValidateToken(token string) (string, int64, error) {
 
@@ -65,44 +101,6 @@ func ValidateToken(token string) (string, int64, error) {
 
 // authenticateAgent check the client credentials
 func authenticateClient(ctx context.Context) (string, int64, error) {
-	// Here I will need the persistence client to read user permission.
-	// Here I will read the server token, the service must run on the
-	// same computer as globular.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
-	if err != nil {
-		return "", 0, err
-	}
-
-	if client == nil || token_ != string(token) {
-		// The root password to be able to perform query over persistence service.
-		infoStr, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_sa")
-		if err != nil {
-			return "", 0, err
-		}
-
-		infos := make(map[string]interface{}, 0)
-		err = json.Unmarshal(infoStr, &infos)
-		if err != nil {
-			return "", 0, err
-		}
-
-		root = infos["pwd"].(string)
-		addresse = infos["address"].(string)
-		crt = infos["certFile"].(string)
-		key = infos["keyFile"].(string)
-		ca = infos["certAuthorityTrust"].(string)
-
-		// close the
-		if client != nil {
-			client.Close()
-		}
-
-		client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, string(token))
-		client.Connect("local_ressource", root)
-
-		// set the token.
-		token_ = string(token)
-	}
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		token := strings.Join(md["token"], "")
@@ -127,6 +125,11 @@ func canRunAction(roleName string, method string) error {
 	Database := "local_ressource"
 	Collection := "Roles"
 	Query := `{"_id":"` + roleName + `"}`
+
+	client, err := getPersistenceClient()
+	if err != nil {
+		return err
+	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"actions":1}}]`)
 	if err != nil {
@@ -168,6 +171,11 @@ func validateUserAccess(userName string, method string) error {
 	Database := "local_ressource"
 	Collection := "Accounts"
 	Query := `{"name":"` + userName + `"}`
+
+	client, err := getPersistenceClient()
+	if err != nil {
+		return err
+	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
 	if err != nil {

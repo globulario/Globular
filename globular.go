@@ -2071,14 +2071,43 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
 	}
 
+	// save the newly create token into the database.
+	name, expireAt, _ := Interceptors_.ValidateToken(tokenString)
+	p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, "")
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	// Here I got the token I will now put it in the cache.
 	return &ressource.AuthenticateRsp{
 		Token: tokenString,
 	}, nil
 }
 
-//* Refresh token get a new token *
+/**
+ * Refresh token get a new token.
+ */
 func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTokenRqst) (*ressource.RefreshTokenRsp, error) {
+	// That service made user of persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
+
+	}
+
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	err := p.Connect("local_ressource", self.RootPassword)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
 
 	// first of all I will validate the current token.
 	name, expireAt, err := Interceptors_.ValidateToken(rqst.Token)
@@ -2095,7 +2124,38 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token cannot be refresh after 7 day")))
 	}
 
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, _ := p.FindOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `[{"Projection":{"expireAt":1}}]`)
+	if len(values) != 0 {
+		lastTokenInfo := make(map[string]interface{})
+		err = json.Unmarshal([]byte(values), &lastTokenInfo)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// That mean a newer token was already refresh.
+		if lastTokenInfo["expireAt"].(int64) > expireAt {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")))
+		}
+	}
+
 	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// get back the new expireAt
+	name, expireAt, _ = Interceptors_.ValidateToken(tokenString)
+
+	p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, "")
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
