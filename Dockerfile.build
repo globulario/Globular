@@ -1,0 +1,4 @@
+FROM scratch
+ADD Globular /
+ADD bin/grpcwebproxy /bin/grpcwebproxy
+CMD ["/Globular"]
