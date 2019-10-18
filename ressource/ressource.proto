@@ -74,4 +74,5 @@ service RessourceService {
 	
 	/** Refresh token get a new token **/
 	rpc RefreshToken(RefreshTokenRqst) returns(RefreshTokenRsp);
+
 }

@@ -3,20 +3,15 @@ package persistence_store
 import (
 	"context"
 	"log"
-	"os"
 	"strconv"
-	"strings"
 
-	ps "github.com/mitchellh/go-ps"
-	ps_ "github.com/shirou/gopsutil/process"
-
-	//"time"
+	//	"time"
 
 	//"go.mongodb.org/mongo-driver/bson"
 	"encoding/json"
 
 	"errors"
-
+	//"github.com/davecourtois/Utility"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -37,9 +32,23 @@ type MongoStore struct {
  * TODO add more connection options via the option_str and options package.
  */
 func (self *MongoStore) Connect(connectionId string, host string, port int32, user string, password string, database string, timeout int32, optionsStr string) error {
+
+	ctx /*, _*/ := context.Background() //context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	//ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+
 	if self.clients == nil {
 		self.clients = make(map[string]*mongo.Client, 0)
+	} else {
+		if self.clients[connectionId] != nil {
+			err := self.clients[connectionId].Ping(ctx, nil)
+			if err == nil {
+				return nil // already connected.
+			} else {
+				self.clients[connectionId].Disconnect(ctx)
+			}
+		}
 	}
+
 	var opts []*options.ClientOptions
 	var client *mongo.Client
 	if len(optionsStr) > 0 {
@@ -48,29 +57,20 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 		if err != nil {
 			return err
 		}
-
 		client, err = mongo.NewClient(opts...)
 		if err != nil {
 			return err
 		}
 	} else {
-
-		log.Println("---> try to connect whit user: ", user, "and password", password)
-
 		// basic connection string to begin with.
 		connectionStr := "mongodb://" + user + ":" + password + "@" + host + ":" + strconv.Itoa(int(port)) + "/" + database + "?authSource=admin&compressors=disabled&gssapiServiceName=mongodb"
 		var err error
-
 		client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
 		if err != nil {
 			log.Println("---> fail to connect whit user: ", user, password)
 			return err
 		}
-
 	}
-
-	ctx /*, _*/ := context.Background() //context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	//ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 
 	err := client.Connect(ctx)
 	if err != nil {
@@ -79,20 +79,6 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 	}
 
 	self.clients[connectionId] = client
-
-	// Try to ping connection
-	err = self.Ping(ctx, connectionId)
-	if err != nil {
-		log.Println("--->72 fail to connect whit user: ", user, password, err)
-		return err
-	}
-	if len(database) > 0 {
-		// In that case if the database dosent exist I will return an error.
-		if client.Database(database) == nil {
-			return errors.New("No database with name " + database + " exist on this store.")
-		}
-	}
-
 	return nil
 }
 
@@ -268,12 +254,12 @@ func (self *MongoStore) Find(ctx context.Context, connectionId string, database 
 	}
 
 	cur, err := collection_.Find(ctx, q, opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	defer cur.Close(context.Background())
 	results := make([]interface{}, 0)
-
-	if err != nil {
-		return results, err
-	}
 
 	for cur.Next(ctx) {
 		entity := make(map[string]interface{})
@@ -593,49 +579,28 @@ func (self *MongoStore) DeleteOne(ctx context.Context, connectionId string, data
 }
 
 /**
- * Get the list of process id by it name.
- */
-func getProcessPath(name string) (string, error) {
-	processList, err := ps.Processes()
-	if err != nil {
-		return "", err
-	}
-
-	// map ages
-	for x := range processList {
-		var process ps.Process
-		process = processList[x]
-		if strings.HasPrefix(process.Executable(), name) {
-
-			proc, err := ps_.NewProcess(int32(process.Pid()))
-			if err != nil {
-				return "", err
-			}
-			return proc.Exe()
-		}
-	}
-
-	return "", errors.New("No process found with name " + name)
-}
-
-/**
  * Create a user. optionaly assing it a role.
  * roles ex. [{ role: "myReadOnlyRole", db: "mytest"}]
  */
 func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, user string, password string, script string) error {
 
 	// Here I will retreive the path of the mondod and use it to find the mongo command.
-	path, err := getProcessPath("mongod")
-	if err != nil {
-		return err
-	}
 
 	cmd := "mongo"
-	if string(os.PathSeparator) == "\\" {
-		cmd += ".exe" // in case of windows.
-	}
 
-	cmd = path[0:strings.LastIndex(path, string(os.PathSeparator))+1] + cmd
+	/*
+		path, err := Utility.GetProcessPath("mongod")
+		if err != nil {
+			return err
+		}
+
+		if string(os.PathSeparator) == "\\" {
+			cmd += ".exe" // in case of windows.
+		}
+
+		cmd = path[0:strings.LastIndex(path, string(os.PathSeparator))+1] + cmd
+
+	*/
 	args := make([]string, 0)
 
 	// if the command need authentication.
@@ -644,11 +609,10 @@ func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, us
 		args = append(args, user)
 		args = append(args, "-p")
 		args = append(args, password)
-
+		args = append(args, "--authenticationDatabase")
+		args = append(args, "admin")
 	}
 
-	args = append(args, "--authenticationDatabase")
-	args = append(args, "admin")
 	args = append(args, "--eval")
 	args = append(args, script)
 
@@ -656,7 +620,7 @@ func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, us
 	log.Println("args", args)
 
 	cmd_ := exec.Command(cmd, args...)
-	err = cmd_.Run()
+	err := cmd_.Run()
 	if err != nil {
 		log.Println("---> error: ", err)
 	}

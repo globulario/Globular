@@ -64,8 +64,13 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 			client.Close()
 		}
 
+		// Use the client sa connection.
 		client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, string(token))
-		client.Connect("local_ressource", root)
+		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
+		if err != nil {
+			log.Println(`--> Fail to create  the connection "local_ressource"`)
+			return nil, err
+		}
 
 		// keep the token for futher use
 		token_ = string(token)

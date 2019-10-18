@@ -11,6 +11,7 @@ import (
 	//"github.com/davecourtois/Utility"
 )
 
+// start: mongod --dbpath E:\Project\src\github.com\davecourtois\Globular\data\mongodb-data
 // Set the correct addresse here as needed.
 var (
 	addresse = "localhost:10005"
@@ -20,7 +21,8 @@ var (
 	ca       = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
 
 	// Connect to the plc client.
-	client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, token)
+	// client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, token)
+	client = persistence_client.NewPersistence_Client("localhost", addresse, false, "", "", "", token)
 )
 
 // First test create a fresh new connection...
@@ -28,9 +30,9 @@ func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 	user := "sa"
 	pwd := "adminadmin"
-	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 10, "", true)
-	if err == nil {
-
+	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 500, "", true)
+	if err != nil {
+		log.Println("fail to create connection! ", err)
 	}
 }
 
@@ -98,7 +100,7 @@ func TestPingConnection(t *testing.T) {
 }*/
 
 /** Test find many **/
-/*func TestFind(t *testing.T) {
+func TestFind(t *testing.T) {
 	fmt.Println("Find many test.")
 
 	Id := "mongo_db_test_connection"
@@ -114,7 +116,7 @@ func TestPingConnection(t *testing.T) {
 	log.Println(values)
 	log.Println("--> end of find!")
 
-}*/
+}
 
 /** Test find one **/
 /*func TestFindOne(t *testing.T) {
@@ -134,7 +136,7 @@ func TestPingConnection(t *testing.T) {
 }*/
 
 /** Test remove **/
-func TestRemove(t *testing.T) {
+/*func TestRemove(t *testing.T) {
 	fmt.Println("Test Remove")
 
 	Id := "mongo_db_test_connection"
@@ -148,9 +150,9 @@ func TestRemove(t *testing.T) {
 	}
 
 	log.Println("---> Delete success!")
-}
+}*/
 
-func TestRemoveMany(t *testing.T) {
+/*func TestRemoveMany(t *testing.T) {
 	fmt.Println("Test Remove")
 
 	Id := "mongo_db_test_connection"
@@ -164,7 +166,7 @@ func TestRemoveMany(t *testing.T) {
 	}
 
 	log.Println("---> Delete success!")
-}
+}*/
 
 // Test create a db, create a collection and remove it after...
 /*func TestCreateAndDelete(t *testing.T) {
@@ -200,3 +202,11 @@ func TestRemoveMany(t *testing.T) {
 	log.Println(id)
 
 }*/
+
+func TestDeleteConnection(t *testing.T) {
+	fmt.Println("Connection creation test.")
+	err := client.DeleteConnection("mongo_db_test_connection")
+	if err != nil {
+		log.Println("fail to delete connection! ", err)
+	}
+}

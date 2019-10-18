@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "module": "es6",
+        "target": "es5",
+        "jsx": "react",
+        "allowJs": true,
+        "typeRoots": [
+            "node_modules/@types"
+        ],
+        "lib": [
+            "es2018",
+            "dom"
+        ]
+    }
+}

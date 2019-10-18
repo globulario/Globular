@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
 
 	// "github.com/gorilla/mux"
 	ps "github.com/mitchellh/go-ps"
@@ -59,7 +58,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -85,67 +83,61 @@ type ExternalService struct {
  */
 type Globule struct {
 	// The share part of the service.
-	Name                string // The service name
-	PortHttp            int    // The port of the http file server.
-	PortHttps           int    // The secure port
-	AdminPort           int    // The admin port
-	AdminProxy          int    // The admin proxy port.
-	RessourcePort       int    // The ressource management service port
-	RessourceProxy      int    // The ressource management proxy port
-	Protocol            string // The protocol of the service.
-	IP                  string // The local address...
-	Services            map[string]interface{}
-	ExternalServices    map[string]ExternalService // MongoDB, Prometheus, etc...
-	Domain              string                     // The domain name of your application
-	ReadTimeout         time.Duration
-	WriteTimeout        time.Duration
-	IdleTimeout         time.Duration
-	SessionTimeout      time.Duration
-	CertExpirationDelay int
-	RootPassword        string
+	Name                       string // The service name
+	PortHttp                   int    // The port of the http file server.
+	PortHttps                  int    // The secure port
+	AdminPort                  int    // The admin port
+	AdminProxy                 int    // The admin proxy port.
+	RessourcePort              int    // The ressource management service port
+	RessourceProxy             int    // The ressource management proxy port
+	Protocol                   string // The protocol of the service.
+	IP                         string // The local address...
+	Services                   map[string]interface{}
+	ExternalServices           map[string]ExternalService // MongoDB, Prometheus, etc...
+	Domain                     string                     // The domain name of your application
+	ReadTimeout                time.Duration
+	WriteTimeout               time.Duration
+	IdleTimeout                time.Duration
+	SessionTimeout             time.Duration
+	CertExpirationDelay        int
+	PrivateKey                 string
+	Certificate                string
+	CertificateAuthorityBundle string
 
 	// The list of method supported by this server.
 	methods []string
 
-	// Local info.
+	// Directories.
+	path    string // The path of the exec...
 	webRoot string // The root of the http file server.
-
-	creds string // gRpc credential
-	certs string // https certificates
-
-	path string // The path of the exec...
-
-	// The list of avalaible services.
-	services map[string]interface{}
+	data    string // the data directory
+	creds   string // gRpc certificate
+	certs   string // https certificates
+	config  string // configuration directory
 
 	// The map of client...
 	clients map[string]api.Client
 
 	// Create the JWT key used to create the signature
-	jwtKey []byte
-
-	sync.RWMutex
+	jwtKey       []byte
+	RootPassword string
 }
 
 /**
  * Globule constructor.
  */
-func NewGlobule(port int) *Globule {
+func NewGlobule() *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.RootPassword = "adminadmin"
-	g.PortHttp = 80
-	g.PortHttps = 443 // The default port number.
+
+	g.PortHttp = 8080  // The default http port
+	g.PortHttps = 8181 // The default https port number.
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
 	g.Protocol = "http"
-	var err error
-	g.Domain, err = os.Hostname()
-	if err != nil {
-		g.Domain = "localhost"
-	}
-
-	g.IP = Utility.MyIP()
+	g.Domain = "localhost"
+	g.IP = "127.0.0.1"
 	g.AdminPort = 10001
 	g.AdminProxy = 10002
 	g.RessourcePort = 10003
@@ -157,8 +149,6 @@ func NewGlobule(port int) *Globule {
 	g.ReadTimeout = 5
 	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
-	// Set the service map.
-	g.services = make(map[string]interface{}, 0)
 
 	// Set the share service info...
 	g.Services = make(map[string]interface{}, 0)
@@ -170,30 +160,57 @@ func NewGlobule(port int) *Globule {
 	g.clients = make(map[string]api.Client, 0)
 	g.initClients()
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	g.path = dir // keep the installation path.
 
-	if err == nil {
-		g.webRoot = dir + string(os.PathSeparator) + "WebRoot" // The default directory to server.
-		Utility.CreateDirIfNotExist(g.webRoot)                 // Create the directory if it not exist.
-		file, err := ioutil.ReadFile(g.webRoot + string(os.PathSeparator) + "config.json")
-		// Init the servce with the default port address
-		if err == nil {
-			json.Unmarshal([]byte(file), g)
-		}
-	}
-
-	// Create the creds directory if it not already exist.
-	g.creds = dir + string(os.PathSeparator) + "creds"
-	Utility.CreateDirIfNotExist(g.creds)
-
-	// https certificates.
-	g.certs = dir + string(os.PathSeparator) + "certs"
-	Utility.CreateDirIfNotExist(g.certs)
+	// if globular is found.
+	g.webRoot = dir + string(os.PathSeparator) + "webroot" // The default directory to server.
 
 	// keep the root in global variable for the file handler.
 	root = g.webRoot
-	globule = g
+	Utility.CreateDirIfNotExist(g.webRoot) // Create the directory if it not exist.
+
+	if !Utility.Exists(g.webRoot + string(os.PathSeparator) + "index.html") {
+
+		// in that case I will create a new index.html file.
+		ioutil.WriteFile(g.webRoot+string(os.PathSeparator)+"index.html", []byte(
+			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>Title Goes Here</title>
+</head>
+
+<body>
+    <p>Welcome to Globular 1.0</p>
+</body>
+
+</html>`), 644)
+	}
+
+	// Create the directory if is not exist.
+	g.data = dir + string(os.PathSeparator) + "data"
+	Utility.CreateDirIfNotExist(g.data)
+
+	// Create the creds directory if it not already exist.
+	g.creds = g.data + string(os.PathSeparator) + "grpc_tls"
+	Utility.CreateDirIfNotExist(g.creds)
+
+	// https certificates.
+	g.certs = g.data + string(os.PathSeparator) + "http_tls"
+	Utility.CreateDirIfNotExist(g.certs)
+
+	// Configuration directory
+	g.config = g.data + string(os.PathSeparator) + "config"
+	Utility.CreateDirIfNotExist(g.config)
+
+	// Initialyse globular from it configuration file.
+	file, err := ioutil.ReadFile(g.config + string(os.PathSeparator) + "config.json")
+	// Init the service with the default port address
+	if err == nil {
+		json.Unmarshal([]byte(file), g)
+	}
 
 	// Here I will kill proxies if there are running.
 	killProcessByName("grpcwebproxy")
@@ -221,12 +238,13 @@ func NewGlobule(port int) *Globule {
 			case <-ticker.C:
 				token, _ := Interceptors.GenerateToken(g.jwtKey, g.SessionTimeout, "sa")
 				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_token", []byte(token), 0644)
+				log.Println("new sa token generated: ", token)
 				if err != nil {
 					log.Panicln(err)
 				}
 
 				// close existing client and re-init it
-				for name, s := range g.services {
+				for name, s := range g.Services {
 					if s.(map[string]interface{})["TLS"] != nil && s.(map[string]interface{})["Protocol"] != nil {
 						if s.(map[string]interface{})["TLS"].(bool) == true {
 							// reconnect the client with it new token value.
@@ -234,10 +252,12 @@ func NewGlobule(port int) *Globule {
 						}
 					}
 				}
-
 			}
 		}
 	}()
+
+	// Keep in global var to by http handlers.
+	globule = g
 
 	return g
 }
@@ -294,7 +314,7 @@ func killProcessByName(name string) error {
  * Start the grpc proxy.
  */
 func (self *Globule) startProxy(name string, port int, proxy int) error {
-	srv := self.services[name]
+	srv := self.Services[name]
 	if srv.(map[string]interface{})["ProxyProcess"] != nil {
 		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
 	}
@@ -332,13 +352,16 @@ func (self *Globule) startProxy(name string, port int, proxy int) error {
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+"server_cert.pem")
 		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+"server_key.pem")
 
-		/* Use those files for public domain server **/
-		//proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.path+"/sslforfree/ca_bundle.crt")
-		//proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.path+"/sslforfree/certificate.crt")
-		//proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.path+"/sslforfree/private.key")
+		/* in case of public domain server files **/
+		if len(self.CertificateAuthorityBundle) > 0 && len(self.Certificate) > 0 && len(self.PrivateKey) > 0 {
+			proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle)
+			proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
+			proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+self.PrivateKey)
+		}
 
 	} else {
 		log.Println("---> start non secure service: ", srv.(map[string]interface{})["Name"])
+
 		// Now I will save the file with those new information in it.
 		proxyArgs = append(proxyArgs, "--run_http_server=true")
 		proxyArgs = append(proxyArgs, "--run_tls_server=false")
@@ -363,7 +386,7 @@ func (self *Globule) startProxy(name string, port int, proxy int) error {
 
 	// save service configuration.
 	srv.(map[string]interface{})["ProxyProcess"] = proxyProcess
-	self.services[name] = srv
+	self.Services[name] = srv
 
 	return nil
 }
@@ -375,15 +398,16 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
 
 	// if the service already exist.
-	srv := self.services[s["Name"].(string)]
+	srv := self.Services[s["Name"].(string)]
 	if srv != nil {
 		if srv.(map[string]interface{})["Process"] != nil {
-			srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
+				srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+			}
 		}
 	}
 
 	if s["Protocol"].(string) == "grpc" {
-
 		// Stop the previous client if there one.
 		if self.clients[s["Name"].(string)+"_service"] != nil {
 			self.clients[s["Name"].(string)+"_service"].Close()
@@ -424,8 +448,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
+
 		// Save configuration stuff.
-		self.services[s["Name"].(string)] = s
+		self.Services[s["Name"].(string)] = s
 
 		// Start the proxy.
 		err = self.startProxy(s["Name"].(string), int(s["Port"].(float64)), int(s["Proxy"].(float64)))
@@ -434,18 +459,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// get back the service info with the proxy process in it
-		s = self.services[s["Name"].(string)].(map[string]interface{})
-
-		// public configuration info.
-		s_ := make(map[string]interface{})
-
-		// export public service values.
-		s_["Address"] = s["Address"]
-		s_["Domain"] = s["Domain"]
-		s_["Proxy"] = s["Proxy"]
-		s_["Port"] = s["Port"]
-		s_["TLS"] = s["TLS"]
-		self.Services[s["Name"].(string)] = s_
+		s = self.Services[s["Name"].(string)].(map[string]interface{})
 
 		// get the token from file
 		token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
@@ -453,10 +467,10 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Init it configuration.
 		self.initClient(s["Name"].(string), string(token))
 
+		// save it to the config.
 		self.saveConfig()
 
 	} else if s["Protocol"].(string) == "http" {
-
 		// any other http server except this one...
 		if !strings.HasPrefix(s["Name"].(string), "Globular") {
 			// Kill previous instance of the program.
@@ -466,8 +480,11 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
 				log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+				return -1, -1, err
 			}
-			self.services[s["Name"].(string)] = s
+			self.Services[s["Name"].(string)] = s
+
+			return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
 		}
 	}
 
@@ -502,40 +519,16 @@ func (self *Globule) initService(s map[string]interface{}) {
 			s["CertFile"] = ""
 			s["KeyFile"] = ""
 		}
-		// Now I will save the file with those new information in it.
+	}
+
+	// any other http server except this one...
+	if !strings.HasPrefix(s["Name"].(string), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-
+		// Kill previous instance of the program.
 		if hasChange || s["Process"] == nil {
-
-			self.services[s["Name"].(string)] = s
-
-			// start the service
+			self.Services[s["Name"].(string)] = s
 			self.startService(s)
-
-			// public configuration info.
-			s_ := make(map[string]interface{})
-
-			// export public service values.
-			s_["Address"] = s["Address"]
-			s_["Domain"] = s["Domain"]
-			s_["Proxy"] = s["Proxy"]
-			s_["Port"] = s["Port"]
-			s_["TLS"] = s["TLS"]
-			self.Services[s["Name"].(string)] = s_
 			self.saveConfig()
-		}
-
-	} else if s["Protocol"].(string) == "http" {
-		// any other http server except this one...
-		if !strings.HasPrefix(s["Name"].(string), "Globular") {
-			self.services[s["Name"].(string)] = s
-
-			hasChange := self.saveServiceConfig(s)
-
-			// Kill previous instance of the program.
-			if hasChange || s["Process"] == nil {
-				self.startService(s)
-			}
 		}
 	}
 }
@@ -555,37 +548,51 @@ func (self *Globule) initServices() {
 	// I will keep services info in services map and also it running process.
 	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return nil
+		}
 		if err == nil && info.Name() == "config.json" {
-			// println(path, info.Name())
 			// So here I will read the content of the file.
 			s := make(map[string]interface{})
 			config, err := ioutil.ReadFile(path)
-			log.Println("read config file: ", path)
 			if err == nil {
 				// Read the config file.
 				json.Unmarshal(config, &s)
 				if s["Protocol"] != nil {
-					path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-					servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-					if string(os.PathSeparator) == "\\" {
-						servicePath += ".exe" // in case of windows.
+					// If a configuration file exist It will be use to start services,
+					// otherwise the service configuration file will be use.
+					if self.Services[s["Name"].(string)] == nil {
+
+						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
+						if string(os.PathSeparator) == "\\" {
+							servicePath += ".exe" // in case of windows.
+						}
+
+						s["servicePath"] = servicePath
+
+						// Now I will start the proxy that will be use by javascript client.
+						proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+						if string(os.PathSeparator) == "\\" {
+							proxyPath += ".exe" // in case of windows.
+						}
+
+						// The proxy path
+						s["proxyPath"] = proxyPath
+						self.initService(s)
+					} else {
+						// initialyse it from it existing configuration.
+						log.Println("---> start Existing services", s["Name"].(string))
+						s_ := self.Services[s["Name"].(string)].(map[string]interface{})
+						// Remove existing process information.
+						delete(s_, "Process")
+						delete(s_, "ProxyProcess")
+						self.initService(s_)
 					}
-
-					s["servicePath"] = servicePath
-
-					// Now I will start the proxy that will be use by javascript client.
-					proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-					if string(os.PathSeparator) == "\\" {
-						proxyPath += ".exe" // in case of windows.
-					}
-
-					// The proxy path
-					s["proxyPath"] = proxyPath
-
-					self.initService(s)
 				}
 			}
 		} else if strings.HasSuffix(info.Name(), ".proto") {
+
 			// here I will parse the service defintion file to extract the
 			// service difinition.
 			reader, _ := os.Open(path)
@@ -643,38 +650,14 @@ func (self *Globule) initServices() {
 		}
 		return nil
 	})
-
-	// Those information are needed by interceptors so I will wrote in
-	// in a temporary file.
-	persistenceAddress := self.services["persistence_server"].(map[string]interface{})["Domain"].(string)
-	persistenceAddress = persistenceAddress + ":" + Utility.ToString(self.services["persistence_server"].(map[string]interface{})["Port"].(float64))
-	certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
-	certFile := self.creds + string(os.PathSeparator) + "server.crt"
-	keyFile := self.creds + string(os.PathSeparator) + "server.pem"
-
-	// I will wrote the info inside a stucture.
-	infos := map[string]string{"address": persistenceAddress, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
-
-	infosStr, _ := Utility.ToJson(infos)
-	err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
-	if err != nil {
-		log.Panicln(err)
-	}
 }
 
 // Method must be register in order to be assign to role.
 func (self *Globule) registerMethods() error {
 	// Here I will create the sa role if it dosen't exist.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return errors.New("No persistence service are available to store ressource information.")
-	}
-
-	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-	err := p.Connect("local_ressource", self.RootPassword)
-
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
+		log.Println("--> fail to get local_ressource connection")
 		return err
 	}
 
@@ -682,6 +665,7 @@ func (self *Globule) registerMethods() error {
 	count, err := p.Count("local_ressource", "local_ressource", "Roles", `{ "_id":"sa"}`, "")
 	admin := make(map[string]interface{})
 	if err != nil {
+		log.Println("--> fail to count local ressource.", err)
 		return err
 	} else if count == 0 {
 		log.Println("need to create admin roles...")
@@ -914,7 +898,7 @@ func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self)
 	if err == nil {
-		ioutil.WriteFile(self.webRoot+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	}
 }
 
@@ -929,10 +913,9 @@ func (self *Globule) initClient(name string, token string) {
 
 	// Set the parameters.
 	domain := self.Services[name].(map[string]interface{})["Domain"].(string)
-	address := self.Services[name].(map[string]interface{})["Address"].(string)
 
-	// ?? does address must contain the domain instead of the ipv4 part...
-	address = address + ":" + Utility.ToString(int(self.Services[name].(map[string]interface{})["Port"].(float64)))
+	// The connection address.
+	address := domain + ":" + Utility.ToString(int(self.Services[name].(map[string]interface{})["Port"].(float64)))
 
 	hasTLS := self.Services[name].(map[string]interface{})["TLS"].(bool)
 
@@ -964,11 +947,11 @@ func (self *Globule) initClient(name string, token string) {
 func (self *Globule) initClients() {
 
 	// Register service constructor function here.
-	// The name of the contructor must follow the same pattern.
+	// The name of the contructor must follow the same pattern
+	Utility.RegisterFunction("NewPersistence_Client", persistence_client.NewPersistence_Client)
 	Utility.RegisterFunction("NewEcho_Client", echo_client.NewEcho_Client)
 	Utility.RegisterFunction("NewSql_Client", sql_client.NewSql_Client)
 	Utility.RegisterFunction("NewFile_Client", file_client.NewFile_Client)
-	Utility.RegisterFunction("NewPersistence_Client", persistence_client.NewPersistence_Client)
 	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
 	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
 	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
@@ -1488,7 +1471,7 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 	config["CertExpirationDelay"] = self.CertExpirationDelay
 
 	// return the full service configuration.
-	config["Services"] = self.services
+	config["Services"] = self.Services
 
 	str, err := Utility.ToJson(config)
 	if err != nil {
@@ -1520,7 +1503,18 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	config["CertExpirationDelay"] = self.CertExpirationDelay
 
 	// return the full service configuration.
-	config["Services"] = self.Services
+	// Here I will give only the basic services informations and keep
+	// all other infromation secret.
+	config["Services"] = make(map[string]interface{}) //self.Services
+	for name, service_config := range self.Services {
+		s := make(map[string]interface{})
+		s["Address"] = service_config.(map[string]interface{})["Address"]
+		s["Domain"] = service_config.(map[string]interface{})["Domain"]
+		s["Port"] = service_config.(map[string]interface{})["Port"]
+		s["Proxy"] = service_config.(map[string]interface{})["Proxy"]
+		s["TLS"] = service_config.(map[string]interface{})["TLS"]
+		config["Services"].(map[string]interface{})[name] = s
+	}
 
 	str, err := Utility.ToJson(config)
 	if err != nil {
@@ -1534,15 +1528,83 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	}, nil
 }
 
+func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
+	// That service made user of persistence service.
+	var p *persistence_client.Persistence_Client
+	if self.clients["persistence_service"] == nil {
+		log.Println("--> no persistence service is configure.")
+		return nil, errors.New("No persistence service are available to store ressource information.")
+	}
+
+	// Cast-it to the persistence client.
+	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+
+	// if not I will create one.
+	log.Println("--> local_ressource not exist I will try to create the connection with sa and password", self.RootPassword)
+
+	// Connect to the database here.
+	err := p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "", false)
+	if err != nil {
+		log.Println(`--> Fail to create  the connection "local_ressource"`)
+		return nil, err
+	}
+
+	return p, nil
+}
+
+//Set the root password
+func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPasswordRqst) (*admin.SetRootPasswordRsp, error) {
+	// Here I will set the root password.
+	if self.RootPassword != rqst.OldPassword {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong password given!")))
+	}
+
+	// Now I will update de sa password.
+	self.RootPassword = rqst.NewPassword
+
+	// Now update the sa password in mongo db.
+	changeRootPasswordScript := fmt.Sprintf(
+		"db=db.getSiblingDB('%s_db');db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');",
+		"sa", rqst.NewPassword)
+
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// I will execute the sript with the admin function.
+	err = p.RunAdminCmd("local_ressource", "sa", rqst.OldPassword, changeRootPasswordScript)
+	if err != nil {
+		log.Println("---> fail to run script: ")
+		log.Println(changeRootPasswordScript)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	self.saveConfig()
+
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
+	return &admin.SetRootPasswordRsp{
+		Token: string(token),
+	}, nil
+
+}
+
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
-
 	// get the config path.
 	servicePath := config["servicePath"].(string)
 	proxyPath := config["proxyPath"].(string)
 	process := config["Process"]
 	proxyProcess := config["ProxyProcess"]
-	path := config["servicePath"].(string)
+
+	var path string
+	path = config["servicePath"].(string) // the path of the executable.
 	path = path[:strings.LastIndex(path, string(os.PathSeparator))] + string(os.PathSeparator) + "config.json"
 
 	// remove unused information...
@@ -1574,13 +1636,33 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	}
 	f.Close()
 
-	// The new config to write.
+	// sync the data/config file with the service file.
 	jsonStr, _ := Utility.ToJson(config)
 
-	// here I will write the file.
+	// here I will write the file
 	err = ioutil.WriteFile(path, []byte(jsonStr), 0644)
 	if err != nil {
 		log.Println("fail to save config file: ", err)
+	}
+
+	// In case of persistence_server information must be save in a temp
+	// file to be use by the interceptor for token validation.
+	if config["Name"] == "persistence_server" {
+		persistenceAddress := config["Domain"].(string)
+		persistenceAddress = persistenceAddress + ":" + Utility.ToString(config["Port"].(float64))
+
+		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+		certFile := self.creds + string(os.PathSeparator) + "server.crt"
+		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+
+		// I will wrote the info inside a stucture.
+		infos := map[string]string{"address": persistenceAddress, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
+
+		infosStr, _ := Utility.ToJson(infos)
+		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
+		if err != nil {
+			log.Panicln(err)
+		}
 	}
 
 	// set back internal infos...
@@ -1588,6 +1670,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	config["proxyPath"] = proxyPath
 	config["Process"] = process
 	config["ProxyProcess"] = proxyProcess
+
 	return true
 }
 
@@ -1604,12 +1687,11 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 
 	// if the configuration is one of services...
 	if config["Name"] != nil {
-		srv := self.services[config["Name"].(string)]
+		srv := self.Services[config["Name"].(string)]
 		if srv != nil {
 			// Attach the actual process and proxy process to the configuration object.
 			config["Process"] = srv.(map[string]interface{})["Process"]
 			config["ProxyProcess"] = srv.(map[string]interface{})["ProxyProcess"]
-
 			self.initService(config)
 		} else if config["Services"] != nil {
 			// Here I will save the configuration
@@ -1630,8 +1712,8 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			// That will save the services if they have changed.
 			for n, s := range config["Services"].(map[string]interface{}) {
 				// Attach the actual process and proxy process to the configuration object.
-				s.(map[string]interface{})["Process"] = self.services[n].(map[string]interface{})["Process"]
-				s.(map[string]interface{})["ProxyProcess"] = self.services[n].(map[string]interface{})["ProxyProcess"]
+				s.(map[string]interface{})["Process"] = self.Services[n].(map[string]interface{})["Process"]
+				s.(map[string]interface{})["ProxyProcess"] = self.Services[n].(map[string]interface{})["ProxyProcess"]
 				self.initService(s.(map[string]interface{}))
 			}
 			// save the application server.
@@ -1648,7 +1730,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 
 // Stop a service
 func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceRequest) (*admin.StopServiceResponse, error) {
-	s := self.services[rqst.ServiceId]
+	s := self.Services[rqst.ServiceId]
 	if s == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1678,7 +1760,7 @@ func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceReq
 // Start a service
 func (self *Globule) StartService(ctx context.Context, rqst *admin.StartServiceRequest) (*admin.StartServiceResponse, error) {
 
-	s := self.services[rqst.ServiceId]
+	s := self.Services[rqst.ServiceId]
 	if s == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1775,10 +1857,10 @@ func (self *Globule) RegisterExternalService(ctx context.Context, rqst *admin.Re
 func (self *Globule) startInternalService(name string, port int, proxy int) (*grpc.Server, error) {
 
 	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, name+" service: ", log.LstdFlags))
+	//grpclog.SetLogger(log.New(os.Stdout, name+" service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	//log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	var grpcServer *grpc.Server
 	if self.Protocol == "https" {
@@ -1834,7 +1916,7 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 	s["Proxy"] = proxy
 	s["Domain"] = self.Domain
 	s["TLS"] = self.Protocol == "https"
-	self.services[name] = s
+	self.Services[name] = s
 
 	// start the proxy
 	err := self.startProxy(name, port, proxy)
@@ -1845,38 +1927,70 @@ func (self *Globule) startInternalService(name string, port int, proxy int) (*gr
 	return grpcServer, nil
 }
 
+/** Stop mongod process **/
+func (self *Globule) stopMongod() {
+	log.Println("----> stop mongo db")
+	closeCmd := exec.Command("mongo", "--eval", "db=db.getSiblingDB('admin');db.adminCommand( { shutdown: 1 } );")
+	closeCmd.Run()
+}
+
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
-	// Get a reference to the persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return errors.New("No persistence service was configure for your globular server.")
-	}
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
 
-	// Test if the connection already exist.
-	err := p.Ping("local_ressource")
+	// Kill mongo db server if the process already run...
+	killProcessByName("mongod")
+	self.stopMongod()
 
-	// if not I will create one.
-	if err != nil {
-		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "", true)
+	// Here I will create super admin if it not already exist.
+	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
+
+	if !Utility.Exists(dataPath) {
+		// Here I will create the directory
+		err := os.MkdirAll(dataPath, os.ModeDir)
 		if err != nil {
+			log.Println("fail to create dir", err)
 			return err
 		}
+
+		// Now I will start the command
+		mongod := exec.Command("mongod", "--port", "27017", "--dbpath", dataPath)
+		log.Println("--> start mongod without auth ", dataPath)
+		err = mongod.Start()
+		if err != nil {
+			log.Println("fail to start mongo db", err)
+			return err
+		}
+
+		time.Sleep(15 * time.Second) // wait to mongod to run.
 
 		// Now I will create a new user name sa and give it all admin write.
+		log.Println("----> create sa user in mongo db")
 		createSaScript := fmt.Sprintf(
-			`db=db.getSiblingDB('admin');db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']})`, "sa", self.RootPassword) // must be change...
-		log.Println("---> create super admin: ", createSaScript)
+			`db=db.getSiblingDB('admin');db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']});`, "sa", self.RootPassword) // must be change...
 
-		// I will execute the sript with the admin function.
-		err = p.RunAdminCmd("local_ressource", "", "", createSaScript)
+		createSaCmd := exec.Command("mongo", "--eval", createSaScript)
+		err = createSaCmd.Run()
 		if err != nil {
+			log.Println("----> fail to run script ", err)
+			log.Println(createSaScript)
 			return err
 		}
+		self.stopMongod()
 	}
-	return nil
 
+	// Now I will start mongod with auth available.
+	log.Println("----> start mongo db whith auth ", dataPath)
+	mongod := exec.Command("mongod", "--auth", "--bind_ip", "127.0.0.1", "--port", "27017", "--dbpath", dataPath)
+	err := mongod.Start()
+	if err != nil {
+		return err
+	}
+
+	// wait 15 seconds that the server restart.
+	time.Sleep(15 * time.Second)
+
+	// Get the list of all services method.
+	return self.registerMethods()
 }
 
 /* Register a new Account */
@@ -1891,29 +2005,11 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	rqst.Account.Password = Utility.GenerateUUID(rqst.Password)
 
 	// That service made user of persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-
-	}
-
-	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-
-	// Test if the connection already exist.
-	err := p.Ping("local_ressource")
-
-	// if not I will create one.
-	if err != nil {
-		// Connect to the database here.
-		err = p.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", self.RootPassword, 5000, "", true)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// first of all the Persistence service must be active.
@@ -1993,21 +2089,10 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 // to validate permission over the requested ressource.
 func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
 
-	// That service made user of persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-	}
-
-	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-	err := p.Connect("local_ressource", self.RootPassword)
+	// Get the persistence connection
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return nil, err
 	}
 
 	// in case of sa user.
@@ -2091,22 +2176,11 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
  * Refresh token get a new token.
  */
 func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTokenRqst) (*ressource.RefreshTokenRsp, error) {
+
 	// That service made user of persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-
-	}
-
-	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-	err := p.Connect("local_ressource", self.RootPassword)
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return nil, err
 	}
 
 	// first of all I will validate the current token.
@@ -2171,21 +2245,9 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 //* Delete an account *
 func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAccountRqst) (*ressource.DeleteAccountRsp, error) {
 	// That service made user of persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-
-	}
-
-	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
-	err := p.Connect("local_ressource", self.RootPassword)
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return nil, err
 	}
 
 	// Try to delete the account...
@@ -2287,9 +2349,6 @@ func (self *Globule) Listen() {
 	// Here I will save the server attribute
 	self.saveConfig()
 
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	// handle the Interrupt
-
 	// Catch the Ctrl-C and SIGTERM from kill command
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill, syscall.SIGTERM)
@@ -2307,7 +2366,7 @@ func (self *Globule) Listen() {
 		// so I will close the services.
 		log.Println("Clean ressources.")
 
-		for key, value := range self.services {
+		for key, value := range self.Services {
 			log.Println("Stop service ", key)
 			if value.(map[string]interface{})["Process"] != nil {
 				p := value.(map[string]interface{})["Process"]
@@ -2373,18 +2432,17 @@ func (self *Globule) Listen() {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+			killProcessByName("mongod")
 		}()
 	}
 
 	ressource_server, err := self.startInternalService("Ressource", self.RessourcePort, self.RessourceProxy)
 	if err == nil {
-		// First of all I will creat a listener.
-		// Create the channel to listen on admin port.
 
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RessourcePort))
 		if err != nil {
-			log.Fatalf("could not start admin service %s: %s", self.Domain, err)
+			log.Fatalf("could not start ressource service %s: %s", self.Domain, err)
 		}
 
 		ressource.RegisterRessourceServiceServer(ressource_server, self)
@@ -2393,8 +2451,7 @@ func (self *Globule) Listen() {
 		go func() {
 			log.Println("---> start ressource service!")
 			go func() {
-				// Get the list of all services method.
-				self.registerMethods()
+
 				// no web-rpc server.
 				if err := ressource_server.Serve(lis); err != nil {
 					log.Fatalf("failed to serve: %v", err)
@@ -2438,20 +2495,31 @@ func (self *Globule) Listen() {
 		log.Println("No certs appended, using system certs only")
 	}
 
-	// client certificate
-	server := &http.Server{
-		Addr: ":" + Utility.ToString(self.PortHttps),
-		TLSConfig: &tls.Config{
-			RootCAs:            rootCAs,
-			ClientAuth:         tls.RequestClientCert,
-			InsecureSkipVerify: false,
-		},
+	// Here I will make a signal hook to interrupt to exit cleanly.
+	// handle the Interrupt
+	// set the register sa user.
+	self.registerSa()
+
+	if len(self.Certificate) > 0 {
+		server := &http.Server{
+			Addr: ":" + Utility.ToString(self.PortHttps),
+		}
+		// Use public CA for public website with real domain name.
+		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.certs+string(os.PathSeparator)+self.PrivateKey))
+	} else {
+		// client certificate
+		server := &http.Server{
+			Addr: ":" + Utility.ToString(self.PortHttps),
+			TLSConfig: &tls.Config{
+				RootCAs:            rootCAs,
+				ClientAuth:         tls.RequestClientCert,
+				InsecureSkipVerify: false,
+			},
+		}
+		log.Println("start server with self signed certificate.")
+		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
 	}
 
-	log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
-
-	// Use public CA for public website with real domain name.
-	// err = http.ListenAndServeTLS(":"+Utility.ToString(self.PortHttps), self.path+"/sslforfree/certificate.crt", self.path+"/sslforfree/private.key", r)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

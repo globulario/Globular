@@ -52,7 +52,20 @@ message RegisterExternalServiceResponse {
   int64 service_pid = 1;
 }
 
+message SetRootPasswordRqst{
+	string oldPassword = 1;
+	string newPassword = 2;
+}
+
+message SetRootPasswordRsp {
+	string token = 1;
+}
+
 service AdminService {
+		
+  //Set the root password
+  rpc SetRootPassword(SetRootPasswordRqst) returns(SetRootPasswordRsp);
+	
   // Return configuration whitout all detail, no needed to be secure.
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
 

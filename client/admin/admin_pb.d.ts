@@ -190,3 +190,43 @@ export namespace RegisterExternalServiceResponse {
   }
 }
 
+export class SetRootPasswordRqst extends jspb.Message {
+  getOldpassword(): string;
+  setOldpassword(value: string): void;
+
+  getNewpassword(): string;
+  setNewpassword(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRootPasswordRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootPasswordRqst): SetRootPasswordRqst.AsObject;
+  static serializeBinaryToWriter(message: SetRootPasswordRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootPasswordRqst;
+  static deserializeBinaryFromReader(message: SetRootPasswordRqst, reader: jspb.BinaryReader): SetRootPasswordRqst;
+}
+
+export namespace SetRootPasswordRqst {
+  export type AsObject = {
+    oldpassword: string,
+    newpassword: string,
+  }
+}
+
+export class SetRootPasswordRsp extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRootPasswordRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootPasswordRsp): SetRootPasswordRsp.AsObject;
+  static serializeBinaryToWriter(message: SetRootPasswordRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootPasswordRsp;
+  static deserializeBinaryFromReader(message: SetRootPasswordRsp, reader: jspb.BinaryReader): SetRootPasswordRsp;
+}
+
+export namespace SetRootPasswordRsp {
+  export type AsObject = {
+    token: string,
+  }
+}
+

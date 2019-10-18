@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/persistence/persistence_store"
@@ -24,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -829,11 +831,15 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor), grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
+		})}
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer(grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
+		}))
 	}
 
 	persistencepb.RegisterPersistenceServiceServer(grpcServer, s_impl)
