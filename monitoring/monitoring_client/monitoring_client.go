@@ -16,7 +16,7 @@ import (
 // Monitoring Client Service
 ////////////////////////////////////////////////////////////////////////////////
 
-type monitoring_Client struct {
+type Monitoring_Client struct {
 	cc *grpc.ClientConn
 	c  monitoringpb.MonitoringServiceClient
 
@@ -43,8 +43,8 @@ type monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *monitoring_Client {
-	client := new(monitoring_Client)
+func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Monitoring_Client {
+	client := new(Monitoring_Client)
 
 	client.addresse = addresse
 	client.domain = domain
@@ -60,51 +60,51 @@ func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile s
 }
 
 // Return the ipv4 address
-func (self *monitoring_Client) GetAddress() string {
+func (self *Monitoring_Client) GetAddress() string {
 	return self.addresse
 }
 
 // Return the domain
-func (self *monitoring_Client) GetDomain() string {
+func (self *Monitoring_Client) GetDomain() string {
 	return self.domain
 }
 
 // Return the name of the service
-func (self *monitoring_Client) GetName() string {
+func (self *Monitoring_Client) GetName() string {
 	return self.name
 }
 
 // must be close when no more needed.
-func (self *monitoring_Client) Close() {
+func (self *Monitoring_Client) Close() {
 	self.cc.Close()
 }
 
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
-func (self *monitoring_Client) HasTLS() bool {
+func (self *Monitoring_Client) HasTLS() bool {
 	return self.hasTLS
 }
 
 // Get the TLS certificate file path
-func (self *monitoring_Client) GetCertFile() string {
+func (self *Monitoring_Client) GetCertFile() string {
 	return self.certFile
 }
 
 // Get the TLS key file path
-func (self *monitoring_Client) GetKeyFile() string {
+func (self *Monitoring_Client) GetKeyFile() string {
 	return self.keyFile
 }
 
 // Get the TLS key file path
-func (self *monitoring_Client) GetCaFile() string {
+func (self *Monitoring_Client) GetCaFile() string {
 	return self.caFile
 }
 
 ////////////////// Connections management functions //////////////////////////
 
 // Create a new connection.
-func (self *monitoring_Client) CreateConnection(id string, host string, storeType float64, port float64) error {
+func (self *Monitoring_Client) CreateConnection(id string, host string, storeType float64, port float64) error {
 	rqst := &monitoringpb.CreateConnectionRqst{
 		Connection: &monitoringpb.Connection{
 			Id:    id,
@@ -120,7 +120,7 @@ func (self *monitoring_Client) CreateConnection(id string, host string, storeTyp
 }
 
 // Delete a connection.
-func (self *monitoring_Client) DeleteConnection(id string) error {
+func (self *Monitoring_Client) DeleteConnection(id string) error {
 	rqst := &monitoringpb.DeleteConnectionRqst{
 		Id: id,
 	}
@@ -131,7 +131,7 @@ func (self *monitoring_Client) DeleteConnection(id string) error {
 }
 
 // Config returns the current Prometheus configuration.
-func (self *monitoring_Client) Config(connectionId string) (string, error) {
+func (self *Monitoring_Client) Config(connectionId string) (string, error) {
 	rqst := &monitoringpb.ConfigRequest{
 		ConnectionId: connectionId,
 	}
@@ -145,7 +145,7 @@ func (self *monitoring_Client) Config(connectionId string) (string, error) {
 }
 
 // Alerts returns a list of all active alerts.
-func (self *monitoring_Client) Alerts(connectionId string) (string, error) {
+func (self *Monitoring_Client) Alerts(connectionId string) (string, error) {
 	rqst := &monitoringpb.AlertsRequest{
 		ConnectionId: connectionId,
 	}
@@ -159,7 +159,7 @@ func (self *monitoring_Client) Alerts(connectionId string) (string, error) {
 }
 
 // AlertManagers returns an overview of the current state of the Prometheus alert manager discovery.
-func (self *monitoring_Client) AlertManagers(connectionId string) (string, error) {
+func (self *Monitoring_Client) AlertManagers(connectionId string) (string, error) {
 	rqst := &monitoringpb.AlertManagersRequest{
 		ConnectionId: connectionId,
 	}
@@ -173,7 +173,7 @@ func (self *monitoring_Client) AlertManagers(connectionId string) (string, error
 }
 
 // CleanTombstones removes the deleted data from disk and cleans up the existing tombstones.
-func (self *monitoring_Client) CleanTombstones(connectionId string) error {
+func (self *Monitoring_Client) CleanTombstones(connectionId string) error {
 	rqst := &monitoringpb.CleanTombstonesRequest{
 		ConnectionId: connectionId,
 	}
@@ -187,7 +187,7 @@ func (self *monitoring_Client) CleanTombstones(connectionId string) error {
 }
 
 // DeleteSeries deletes data for a selection of series in a time range.
-func (self *monitoring_Client) DeleteSeries(connectionId string, matches []string, startTime float64, endTime float64) error {
+func (self *Monitoring_Client) DeleteSeries(connectionId string, matches []string, startTime float64, endTime float64) error {
 	rqst := &monitoringpb.DeleteSeriesRequest{
 		ConnectionId: connectionId,
 		Matches:      matches,
@@ -203,7 +203,7 @@ func (self *monitoring_Client) DeleteSeries(connectionId string, matches []strin
 }
 
 // Flags returns the flag values that Prometheus was launched with.
-func (self *monitoring_Client) Flags(connectionId string) (string, error) {
+func (self *Monitoring_Client) Flags(connectionId string) (string, error) {
 	rqst := &monitoringpb.FlagsRequest{
 		ConnectionId: connectionId,
 	}
@@ -217,7 +217,7 @@ func (self *monitoring_Client) Flags(connectionId string) (string, error) {
 }
 
 // LabelNames returns all the unique label names present in the block in sorted order.
-func (self *monitoring_Client) LabelNames(connectionId string) ([]string, string, error) {
+func (self *Monitoring_Client) LabelNames(connectionId string) ([]string, string, error) {
 	rqst := &monitoringpb.LabelNamesRequest{
 		ConnectionId: connectionId,
 	}
@@ -231,7 +231,7 @@ func (self *monitoring_Client) LabelNames(connectionId string) ([]string, string
 }
 
 // LabelValues performs a query for the values of the given label.
-func (self *monitoring_Client) LabelValues(connectionId string, label string) (string, string, error) {
+func (self *Monitoring_Client) LabelValues(connectionId string, label string) (string, string, error) {
 	rqst := &monitoringpb.LabelValuesRequest{
 		ConnectionId: connectionId,
 		Label:        label,
@@ -246,7 +246,7 @@ func (self *monitoring_Client) LabelValues(connectionId string, label string) (s
 }
 
 // Query performs a query for the given time.
-func (self *monitoring_Client) Query(connectionId string, query string, ts float64) (string, string, error) {
+func (self *Monitoring_Client) Query(connectionId string, query string, ts float64) (string, string, error) {
 	rqst := &monitoringpb.QueryRequest{
 		ConnectionId: connectionId,
 		Query:        query,
@@ -262,7 +262,7 @@ func (self *monitoring_Client) Query(connectionId string, query string, ts float
 }
 
 // QueryRange performs a query for the given range.
-func (self *monitoring_Client) QueryRange(connectionId string, query string, startTime float64, endTime float64, step float64) (string, string, error) {
+func (self *Monitoring_Client) QueryRange(connectionId string, query string, startTime float64, endTime float64, step float64) (string, string, error) {
 	rqst := &monitoringpb.QueryRangeRequest{
 		ConnectionId: connectionId,
 		Query:        query,
@@ -297,7 +297,7 @@ func (self *monitoring_Client) QueryRange(connectionId string, query string, sta
 }
 
 // Series finds series by label matchers.
-func (self *monitoring_Client) Series(connectionId string, matches []string, startTime float64, endTime float64) (string, string, error) {
+func (self *Monitoring_Client) Series(connectionId string, matches []string, startTime float64, endTime float64) (string, string, error) {
 	rqst := &monitoringpb.SeriesRequest{
 		ConnectionId: connectionId,
 		Matches:      matches,
@@ -315,7 +315,7 @@ func (self *monitoring_Client) Series(connectionId string, matches []string, sta
 
 // Snapshot creates a snapshot of all current data into snapshots/<datetime>-<rand>
 // under the TSDB's data directory and returns the directory as response.
-func (self *monitoring_Client) Snapshot(connectionId string, skipHead bool) (string, error) {
+func (self *Monitoring_Client) Snapshot(connectionId string, skipHead bool) (string, error) {
 	rqst := &monitoringpb.SnapshotRequest{
 		ConnectionId: connectionId,
 		SkipHead:     skipHead,
@@ -330,7 +330,7 @@ func (self *monitoring_Client) Snapshot(connectionId string, skipHead bool) (str
 }
 
 // Rules returns a list of alerting and recording rules that are currently loaded.
-func (self *monitoring_Client) Rules(connectionId string) (string, error) {
+func (self *Monitoring_Client) Rules(connectionId string) (string, error) {
 	rqst := &monitoringpb.RulesRequest{
 		ConnectionId: connectionId,
 	}
@@ -344,7 +344,7 @@ func (self *monitoring_Client) Rules(connectionId string) (string, error) {
 }
 
 // Targets returns an overview of the current state of the Prometheus target discovery.
-func (self *monitoring_Client) Targets(connectionId string) (string, error) {
+func (self *Monitoring_Client) Targets(connectionId string) (string, error) {
 	rqst := &monitoringpb.TargetsRequest{
 		ConnectionId: connectionId,
 	}
@@ -358,7 +358,7 @@ func (self *monitoring_Client) Targets(connectionId string) (string, error) {
 }
 
 // TargetsMetadata returns metadata about metrics currently scraped by the target.
-func (self *monitoring_Client) TargetsMetadata(connectionId string, matchTarget string, metric string, limit string) (string, error) {
+func (self *Monitoring_Client) TargetsMetadata(connectionId string, matchTarget string, metric string, limit string) (string, error) {
 	rqst := &monitoringpb.TargetsMetadataRequest{
 		ConnectionId: connectionId,
 		MatchTarget:  matchTarget,

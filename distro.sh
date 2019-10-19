@@ -1,3 +1,4 @@
+
 #run the script from /media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular
 
 cd /media/dave/60B6E593B6E569CC/Project/src/github.com/davecourtois/Globular

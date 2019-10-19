@@ -93,8 +93,8 @@ type Globule struct {
 	Protocol                   string // The protocol of the service.
 	IP                         string // The local address...
 	Services                   map[string]interface{}
-	ExternalServices           map[string]ExternalService // MongoDB, Prometheus, etc...
-	Domain                     string                     // The domain name of your application
+	ExternalServices           map[string]ExternalService
+	Domain                     string // The domain name of your application
 	ReadTimeout                time.Duration
 	WriteTimeout               time.Duration
 	IdleTimeout                time.Duration
@@ -1528,6 +1528,79 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	}, nil
 }
 
+/**
+ * Start the monitoring service with prometheus.
+ */
+func (self *Globule) startMonitoring() error {
+	killProcessByName("prometheus")
+	var m *monitoring_client.Monitoring_Client
+	if self.clients["monitoring_service"] == nil {
+		log.Println("--> no monitoring service is configure.")
+		return errors.New("No monitoring service are available to store monitoring information.")
+	}
+
+	// Cast-it to the persistence client.
+	m = self.clients["monitoring_service"].(*monitoring_client.Monitoring_Client)
+
+	// Here I will start promethus.
+	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
+	Utility.CreateDirIfNotExist(dataPath)
+	if !Utility.Exists(self.config + string(os.PathSeparator) + "prometheus.yml") {
+		config := `# my global config
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  - job_name: 'prometheus'
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+    - targets: ['localhost:9090']
+`
+		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"prometheus.yml", []byte(config), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Println("--> start prometheus on port 9090")
+	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
+	err := prometheus.Start()
+	if err != nil {
+		log.Println("fail to start monitoring with prometheus", err)
+		return err
+	}
+
+	// Here I will create a new connection.
+	err = m.CreateConnection("local_ressource", "localhost", 0, 9090)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * That function return the sa connection with local mongo db server.
+ */
 func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
 	// That service made user of persistence service.
 	var p *persistence_client.Persistence_Client
@@ -1822,7 +1895,6 @@ func (self *Globule) stopExternalService(serviceId string) error {
 }
 
 // Register external service to be start by Globular in order to run
-// as exemple MongoDB and Prometheus.
 func (self *Globule) RegisterExternalService(ctx context.Context, rqst *admin.RegisterExternalServiceRequest) (*admin.RegisterExternalServiceResponse, error) {
 
 	// Here I will get the command path.
@@ -1938,7 +2010,6 @@ func (self *Globule) stopMongod() {
 func (self *Globule) registerSa() error {
 
 	// Kill mongo db server if the process already run...
-	killProcessByName("mongod")
 	self.stopMongod()
 
 	// Here I will create super admin if it not already exist.
@@ -2433,6 +2504,7 @@ func (self *Globule) Listen() {
 			signal.Notify(ch, os.Interrupt)
 			<-ch
 			killProcessByName("mongod")
+			killProcessByName("prometheus")
 		}()
 	}
 
@@ -2499,6 +2571,9 @@ func (self *Globule) Listen() {
 	// handle the Interrupt
 	// set the register sa user.
 	self.registerSa()
+
+	// Start the monitoring service with prometheus.
+	self.startMonitoring()
 
 	if len(self.Certificate) > 0 {
 		server := &http.Server{

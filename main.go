@@ -31,7 +31,7 @@ func main() {
 
 				// Here I will copy the proxy.
 				globularExec := os.Args[0]
-				if string(os.PathSeparator) == "\\" {
+				if string(os.PathSeparator) == "\\" && !strings.HasSuffix(globularExec, ".exe") {
 					globularExec += ".exe" // in case of windows
 				}
 
@@ -49,7 +49,10 @@ func main() {
 					s := service.(map[string]interface{})
 					p := s["Process"].(map[string]interface{})
 
-					fmt.Println("install  service", name)
+					// set the name.
+					name_ := name[0:strings.Index(name, "_")]
+
+					fmt.Println("install  service", name_)
 
 					Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + name)
 					execPath := path + string(os.PathSeparator) + name + string(os.PathSeparator) + name
@@ -89,6 +92,17 @@ func main() {
 								fmt.Println(err)
 							}
 						}
+
+						// In that case that mean it's a grpc service and a .proto file is required.
+						protoPath := p["Path"].(string)[:strings.Index(p["Path"].(string), name_)] + name_ + string(os.PathSeparator) + name_ + "pb" + string(os.PathSeparator) + name_ + ".proto"
+						fmt.Println("------------> from ", protoPath)
+
+						fmt.Println("------------> ", path+string(os.PathSeparator)+name+string(os.PathSeparator)+name_+".proto")
+						err := Utility.Copy(protoPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+name_+".proto")
+						if err != nil {
+							fmt.Println(err)
+						}
+
 					}
 				}
 			}
