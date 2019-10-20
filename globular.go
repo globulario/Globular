@@ -193,17 +193,17 @@ func NewGlobule() *Globule {
 	g.data = dir + string(os.PathSeparator) + "data"
 	Utility.CreateDirIfNotExist(g.data)
 
+	// Configuration directory
+	g.config = dir + string(os.PathSeparator) + "config"
+	Utility.CreateDirIfNotExist(g.config)
+
 	// Create the creds directory if it not already exist.
-	g.creds = g.data + string(os.PathSeparator) + "grpc_tls"
+	g.creds = g.config + string(os.PathSeparator) + "grpc_tls"
 	Utility.CreateDirIfNotExist(g.creds)
 
 	// https certificates.
-	g.certs = g.data + string(os.PathSeparator) + "http_tls"
+	g.certs = g.config + string(os.PathSeparator) + "http_tls"
 	Utility.CreateDirIfNotExist(g.certs)
-
-	// Configuration directory
-	g.config = g.data + string(os.PathSeparator) + "config"
-	Utility.CreateDirIfNotExist(g.config)
 
 	// Initialyse globular from it configuration file.
 	file, err := ioutil.ReadFile(g.config + string(os.PathSeparator) + "config.json")
@@ -1574,6 +1574,11 @@ scrape_configs:
 
     static_configs:
     - targets: ['localhost:9090']
+  
+  - job_name: 'node_exporter_metrics'
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['localhost:9100']
 `
 		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"prometheus.yml", []byte(config), 0644)
 		if err != nil {
@@ -1581,9 +1586,52 @@ scrape_configs:
 		}
 	}
 
+	if !Utility.Exists(self.config + string(os.PathSeparator) + "alertmanager.yml") {
+		config := `global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
+`
+		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"alertmanager.yml", []byte(config), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Println("--> start prometheus alert manager")
+	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
+	err := alertmanager.Start()
+	if err != nil {
+		log.Println("fail to start prometheus node exporter", err)
+		// do not return here in that case simply continue without node exporter metrics.
+	}
+
+	log.Println("--> start prometheus node exporter on port 9100")
+	node_exporter := exec.Command("node_exporter")
+	err = node_exporter.Start()
+	if err != nil {
+		log.Println("fail to start prometheus node exporter", err)
+		// do not return here in that case simply continue without node exporter metrics.
+	}
+
 	log.Println("--> start prometheus on port 9090")
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
-	err := prometheus.Start()
+	err = prometheus.Start()
 	if err != nil {
 		log.Println("fail to start monitoring with prometheus", err)
 		return err
@@ -2004,18 +2052,49 @@ func (self *Globule) stopMongod() {
 	log.Println("----> stop mongo db")
 	closeCmd := exec.Command("mongo", "--eval", "db=db.getSiblingDB('admin');db.adminCommand( { shutdown: 1 } );")
 	closeCmd.Run()
+	time.Sleep(1 * time.Second)
+}
+
+func (self *Globule) waitForMongo(timeout int) error {
+	ids, err := getProcessIdsByName("mongod")
+	if len(ids) == 0 {
+		time.Sleep(1 * time.Second)
+		log.Println("wait for mongo...", timeout, "s")
+		if timeout == 0 {
+			log.Println("mongo fail to execute the script.")
+			return errors.New("mongod is not responding!")
+		}
+		// call again.
+		timeout -= 1
+		return self.waitForMongo(timeout)
+
+	}
+	time.Sleep(1 * time.Second)
+	script := exec.Command("mongo", "--eval", "db.getMongo().getDBNames()")
+	err = script.Run()
+	if err != nil {
+		log.Println("wait for mongo...", timeout, "s")
+		if timeout == 0 {
+			log.Println("mongo fail to execute the script.")
+			return errors.New("mongod is not responding!")
+		}
+		// call again.
+		timeout -= 1
+		return self.waitForMongo(timeout)
+	}
+	return nil
 }
 
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
-	// Kill mongo db server if the process already run...
-	self.stopMongod()
-
 	// Here I will create super admin if it not already exist.
 	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
 
 	if !Utility.Exists(dataPath) {
+		// Kill mongo db server if the process already run...
+		self.stopMongod()
+
 		// Here I will create the directory
 		err := os.MkdirAll(dataPath, os.ModeDir)
 		if err != nil {
@@ -2032,7 +2111,7 @@ func (self *Globule) registerSa() error {
 			return err
 		}
 
-		time.Sleep(15 * time.Second) // wait to mongod to run.
+		self.waitForMongo(60)
 
 		// Now I will create a new user name sa and give it all admin write.
 		log.Println("----> create sa user in mongo db")
@@ -2050,15 +2129,18 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Now I will start mongod with auth available.
-	log.Println("----> start mongo db whith auth ", dataPath)
-	mongod := exec.Command("mongod", "--auth", "--bind_ip", "127.0.0.1", "--port", "27017", "--dbpath", dataPath)
-	err := mongod.Start()
-	if err != nil {
-		return err
+	ids, _ := getProcessIdsByName("mongod")
+	if len(ids) == 0 {
+		log.Println("----> start mongo db whith auth ", dataPath)
+		mongod := exec.Command("mongod", "--auth", "--port", "27017", "--dbpath", dataPath)
+		err := mongod.Start()
+		if err != nil {
+			return err
+		}
 	}
 
 	// wait 15 seconds that the server restart.
-	time.Sleep(15 * time.Second)
+	self.waitForMongo(60)
 
 	// Get the list of all services method.
 	return self.registerMethods()
