@@ -2055,23 +2055,23 @@ func (self *Globule) stopMongod() {
 	time.Sleep(1 * time.Second)
 }
 
-func (self *Globule) waitForMongo(timeout int) error {
-	ids, err := getProcessIdsByName("mongod")
-	if len(ids) == 0 {
-		time.Sleep(1 * time.Second)
-		log.Println("wait for mongo...", timeout, "s")
-		if timeout == 0 {
-			log.Println("mongo fail to execute the script.")
-			return errors.New("mongod is not responding!")
-		}
-		// call again.
-		timeout -= 1
-		return self.waitForMongo(timeout)
+func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 
-	}
 	time.Sleep(1 * time.Second)
-	script := exec.Command("mongo", "--eval", "db.getMongo().getDBNames()")
-	err = script.Run()
+	args := make([]string, 0)
+	if withAuth == true {
+		args = append(args, "-u")
+		args = append(args, "sa")
+		args = append(args, "-p")
+		args = append(args, self.RootPassword)
+		args = append(args, "--authenticationDatabase")
+		args = append(args, "admin")
+	}
+	args = append(args, "--eval")
+	args = append(args, "db=db.getSiblingDB('admin');db.getMongo().getDBNames()")
+
+	script := exec.Command("mongo", args...)
+	err := script.Run()
 	if err != nil {
 		log.Println("wait for mongo...", timeout, "s")
 		if timeout == 0 {
@@ -2080,7 +2080,8 @@ func (self *Globule) waitForMongo(timeout int) error {
 		}
 		// call again.
 		timeout -= 1
-		return self.waitForMongo(timeout)
+		log.Println("2083", err)
+		return self.waitForMongo(timeout, withAuth)
 	}
 	return nil
 }
@@ -2111,7 +2112,7 @@ func (self *Globule) registerSa() error {
 			return err
 		}
 
-		self.waitForMongo(60)
+		self.waitForMongo(60, false)
 
 		// Now I will create a new user name sa and give it all admin write.
 		log.Println("----> create sa user in mongo db")
@@ -2129,18 +2130,15 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Now I will start mongod with auth available.
-	ids, _ := getProcessIdsByName("mongod")
-	if len(ids) == 0 {
-		log.Println("----> start mongo db whith auth ", dataPath)
-		mongod := exec.Command("mongod", "--auth", "--port", "27017", "--dbpath", dataPath)
-		err := mongod.Start()
-		if err != nil {
-			return err
-		}
+	log.Println("----> start mongo db whith auth ", dataPath)
+	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--dbpath", dataPath)
+	err := mongod.Start()
+	if err != nil {
+		return err
 	}
 
 	// wait 15 seconds that the server restart.
-	self.waitForMongo(60)
+	self.waitForMongo(60, true)
 
 	// Get the list of all services method.
 	return self.registerMethods()

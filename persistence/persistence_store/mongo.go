@@ -585,22 +585,7 @@ func (self *MongoStore) DeleteOne(ctx context.Context, connectionId string, data
 func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, user string, password string, script string) error {
 
 	// Here I will retreive the path of the mondod and use it to find the mongo command.
-
 	cmd := "mongo"
-
-	/*
-		path, err := Utility.GetProcessPath("mongod")
-		if err != nil {
-			return err
-		}
-
-		if string(os.PathSeparator) == "\\" {
-			cmd += ".exe" // in case of windows.
-		}
-
-		cmd = path[0:strings.LastIndex(path, string(os.PathSeparator))+1] + cmd
-
-	*/
 	args := make([]string, 0)
 
 	// if the command need authentication.
