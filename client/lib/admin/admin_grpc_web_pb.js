@@ -89,6 +89,61 @@ proto.admin.AdminServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.SetRootPasswordRqst,
+ *   !proto.admin.SetRootPasswordRsp>}
+ */
+const methodInfo_AdminService_SetRootPassword = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.SetRootPasswordRsp,
+  /** @param {!proto.admin.SetRootPasswordRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetRootPasswordRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.SetRootPasswordRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.SetRootPasswordRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.SetRootPasswordRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.setRootPassword =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/SetRootPassword',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetRootPassword,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.SetRootPasswordRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.SetRootPasswordRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.setRootPassword =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/SetRootPassword',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetRootPassword);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.admin.GetConfigRequest,
  *   !proto.admin.GetConfigResponse>}
  */

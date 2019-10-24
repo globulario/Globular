@@ -587,6 +587,44 @@ func (self *Globule) initServices() {
 						// Remove existing process information.
 						delete(s_, "Process")
 						delete(s_, "ProxyProcess")
+						/*
+							// set the service path and proxy path whit the actual
+							// server parh.
+							proxyPath := s_["proxyPath"].(string)
+							proxyPath = strings.Replace(proxyPath, "\\", string(os.PathSeparator), -1)
+							proxyPath = strings.Replace(proxyPath, "/", string(os.PathSeparator), -1)
+							if string(os.PathSeparator) == "\\" {
+								if !strings.HasSuffix(proxyPath, ".exe") {
+									proxyPath += ".exe"
+								}
+							} else {
+								if strings.HasSuffix(proxyPath, ".exe") {
+									// remove the .exe if exist.
+									proxyPath += proxyPath[:strings.Index(proxyPath, ".exe")]
+								}
+							}
+
+							proxyPath = self.path + proxyPath[strings.Index(proxyPath, "Globular")+len("Globular"):]
+							s_["proxyPath"] = proxyPath
+
+							servicePath := s_["servicePath"].(string)
+							servicePath = strings.Replace(servicePath, "\\", string(os.PathSeparator), -1)
+							servicePath = strings.Replace(servicePath, "/", string(os.PathSeparator), -1)
+							if string(os.PathSeparator) == "\\" {
+								if !strings.HasSuffix(servicePath, ".exe") {
+									servicePath += ".exe"
+								}
+							} else {
+								if strings.HasSuffix(servicePath, ".exe") {
+									// remove the .exe if exist.
+									servicePath += servicePath[:strings.Index(servicePath, ".exe")]
+								}
+							}
+
+							servicePath = self.path + servicePath[strings.Index(servicePath, "Globular")+len("Globular"):]
+							s_["servicePath"] = servicePath
+						*/
+
 						self.initService(s_)
 					}
 				}

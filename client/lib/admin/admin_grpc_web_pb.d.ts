@@ -7,6 +7,8 @@ import {
   RegisterExternalServiceResponse,
   SaveConfigRequest,
   SaveConfigResponse,
+  SetRootPasswordRqst,
+  SetRootPasswordRsp,
   StartServiceRequest,
   StartServiceResponse,
   StopServiceRequest,
@@ -16,6 +18,13 @@ export class AdminServiceClient {
   constructor (hostname: string,
                credentials: null | { [index: string]: string; },
                options: null | { [index: string]: string; });
+
+  setRootPassword(
+    request: SetRootPasswordRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetRootPasswordRsp) => void
+  ): grpcWeb.ClientReadableStream<SetRootPasswordRsp>;
 
   getConfig(
     request: GetConfigRequest,
@@ -65,6 +74,11 @@ export class AdminServicePromiseClient {
   constructor (hostname: string,
                credentials: null | { [index: string]: string; },
                options: null | { [index: string]: string; });
+
+  setRootPassword(
+    request: SetRootPasswordRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetRootPasswordRsp>;
 
   getConfig(
     request: GetConfigRequest,

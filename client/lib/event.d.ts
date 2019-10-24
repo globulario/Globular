@@ -1,4 +1,3 @@
-import { Globular } from './services';
 /**
  * That local and distant event hub.
  */
@@ -6,17 +5,16 @@ export declare class EventHub {
     readonly service: any;
     readonly subscribers: any;
     readonly subscriptions: any;
-    readonly globular: Globular;
     /**
      * @param {*} service If undefined only local event will be allow.
      */
-    constructor(service: any, globular: Globular);
+    constructor(service: any);
     /**
      * @param {*} name The name of the event to subcribe to.
      * @param {*} onsubscribe That function return the uuid of the subscriber.
      * @param {*} onevent That function is call when the event is use.
      */
-    subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: () => any): void;
+    subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: (data: any) => any): void;
     /**
      *
      * @param {*} name

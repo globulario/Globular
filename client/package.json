@@ -1,6 +1,6 @@
 {
   "name": "globular-web-client",
-  "version": "1.0.26",
+  "version": "1.0.28",
   "description": "Globular client side",
   "main": "lib/services.js",
   "types": "lib/services.d.ts",

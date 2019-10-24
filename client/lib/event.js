@@ -26,9 +26,7 @@ var EventHub = /** @class */ (function () {
     /**
      * @param {*} service If undefined only local event will be allow.
      */
-    function EventHub(service, globular) {
-        // The globular object.
-        this.globular = globular;
+    function EventHub(service) {
         // The network event bus.
         this.service = service;
         // Subscriber function map.
@@ -50,33 +48,31 @@ var EventHub = /** @class */ (function () {
                 // The first step is to subscribe to an event channel.
                 var rqst = new event_pb_1.SubscribeRequest();
                 rqst.setName(name);
-                if (this.globular != null) {
-                    if (this.globular.eventService != null) {
-                        var stream = this.globular.eventService.subscribe(rqst, {});
-                        // Get the stream and set event on it...
-                        stream.on('data', function (hub, name) {
-                            return function (rsp) {
-                                if (rsp.hasUuid()) {
-                                    hub.subscriptions[name] = rsp.getUuid();
-                                }
-                                else if (rsp.hasEvt()) {
-                                    var evt = rsp.getEvt();
-                                    var data = new TextDecoder("utf-8").decode(evt.getData());
-                                    // dispatch the event localy.
-                                    hub.dispatch(name, data);
-                                }
-                            };
-                        }(this, name));
-                        stream.on('status', function (status) {
-                            if (status.code == 0) {
-                                /** Nothing to do here. */
+                if (this.service != null) {
+                    var stream = this.service.subscribe(rqst, {});
+                    // Get the stream and set event on it...
+                    stream.on('data', function (hub, name) {
+                        return function (rsp) {
+                            if (rsp.hasUuid()) {
+                                hub.subscriptions[name] = rsp.getUuid();
                             }
-                        });
-                        stream.on('end', function () {
-                            // stream end signal
+                            else if (rsp.hasEvt()) {
+                                var evt = rsp.getEvt();
+                                var data = new TextDecoder("utf-8").decode(evt.getData());
+                                // dispatch the event localy.
+                                hub.dispatch(name, data);
+                            }
+                        };
+                    }(this, name));
+                    stream.on('status', function (status) {
+                        if (status.code == 0) {
                             /** Nothing to do here. */
-                        });
-                    }
+                        }
+                    });
+                    stream.on('end', function () {
+                        // stream end signal
+                        /** Nothing to do here. */
+                    });
                 }
             }
         }
