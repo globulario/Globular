@@ -158,14 +158,14 @@ func (self *Admin_Client) StopService(id string) error {
 }
 
 // Register and start an external service.
-func (self *Admin_Client) RegisterExternalService(id string, path string, args []string) (int, error) {
-	rqst := &RegisterExternalServiceRequest{
+func (self *Admin_Client) RegisterExternalApplication(id string, path string, args []string) (int, error) {
+	rqst := &RegisterExternalApplicationRequest{
 		ServiceId: id,
 		Path:      path,
 		Args:      args,
 	}
 
-	rsp, err := self.c.RegisterExternalService(context.Background(), rqst)
+	rsp, err := self.c.RegisterExternalApplication(context.Background(), rqst)
 
 	if err != nil {
 		return -1, err

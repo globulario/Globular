@@ -12,8 +12,8 @@ import (
 
 // Set the correct addresse here as needed.
 var (
-	// client = monitoring_client.NewMonitoring_Client("localhost", "127.0.0.1:10019", false, "", "", "")
-	client = monitoring_client.NewMonitoring_Client("steve_pc", "steve_pc:10019", false, "", "", "", "")
+	client = monitoring_client.NewMonitoring_Client("localhost", "127.0.0.1:10019", false, "", "", "")
+	//client = monitoring_client.NewMonitoring_Client("steve_pc", "steve_pc:10019", false, "", "", "", "")
 )
 
 // First test create a fresh new connection...

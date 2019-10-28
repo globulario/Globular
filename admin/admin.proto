@@ -40,15 +40,16 @@ message StartServiceResponse {
   int64 proxy_pid = 2;
 }
 
+
 // Register an external service.
-message RegisterExternalServiceRequest {
+message RegisterExternalApplicationRequest {
   string service_id = 1;
   string path = 2;
   repeated string args = 3;
 }
 
 // Return the pid of the service.
-message RegisterExternalServiceResponse {
+message RegisterExternalApplicationResponse {
   int64 service_pid = 1;
 }
 
@@ -83,5 +84,5 @@ service AdminService {
 
   // Register external service to be start by Globular in order to run 
   // as exemple MongoDB and Prometheus.
-  rpc RegisterExternalService(RegisterExternalServiceRequest) returns (RegisterExternalServiceResponse);
+  rpc RegisterExternalApplication(RegisterExternalApplicationRequest) returns (RegisterExternalApplicationResponse);
 }

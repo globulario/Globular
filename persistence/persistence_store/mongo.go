@@ -33,7 +33,7 @@ type MongoStore struct {
  */
 func (self *MongoStore) Connect(connectionId string, host string, port int32, user string, password string, database string, timeout int32, optionsStr string) error {
 
-	ctx /*, _*/ := context.Background() //context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	ctx := context.Background()
 	//ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 
 	if self.clients == nil {

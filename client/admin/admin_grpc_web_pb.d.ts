@@ -3,8 +3,8 @@ import * as grpcWeb from 'grpc-web';
 import {
   GetConfigRequest,
   GetConfigResponse,
-  RegisterExternalServiceRequest,
-  RegisterExternalServiceResponse,
+  RegisterExternalApplicationRequest,
+  RegisterExternalApplicationResponse,
   SaveConfigRequest,
   SaveConfigResponse,
   SetRootPasswordRqst,
@@ -16,8 +16,8 @@ import {
 
 export class AdminServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRqst,
@@ -61,19 +61,19 @@ export class AdminServiceClient {
                response: StartServiceResponse) => void
   ): grpcWeb.ClientReadableStream<StartServiceResponse>;
 
-  registerExternalService(
-    request: RegisterExternalServiceRequest,
+  registerExternalApplication(
+    request: RegisterExternalApplicationRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RegisterExternalServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<RegisterExternalServiceResponse>;
+               response: RegisterExternalApplicationResponse) => void
+  ): grpcWeb.ClientReadableStream<RegisterExternalApplicationResponse>;
 
 }
 
 export class AdminServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRqst,
@@ -105,10 +105,10 @@ export class AdminServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<StartServiceResponse>;
 
-  registerExternalService(
-    request: RegisterExternalServiceRequest,
+  registerExternalApplication(
+    request: RegisterExternalApplicationRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RegisterExternalServiceResponse>;
+  ): Promise<RegisterExternalApplicationResponse>;
 
 }
 
