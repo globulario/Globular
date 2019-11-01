@@ -3,15 +3,17 @@ package storage_store
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type LevelDB_store struct {
-	path   string
-	db     *leveldb.DB
-	isOpen bool
+	path    string
+	db      *leveldb.DB
+	options string
+	isOpen  bool
 }
 
 func NewLevelDB_store() *LevelDB_store {
@@ -22,7 +24,8 @@ func NewLevelDB_store() *LevelDB_store {
 
 // In that case the parameter contain the path.
 func (self *LevelDB_store) Open(optionsStr string) error {
-
+	self.options = optionsStr
+	log.Println("--> try to open ", self.path, "db is open")
 	var err error
 	if len(self.path) == 0 {
 		if len(optionsStr) == 0 {
@@ -45,8 +48,12 @@ func (self *LevelDB_store) Open(optionsStr string) error {
 	}
 	// Open the store.
 	self.db, err = leveldb.OpenFile(self.path, nil)
+	if err != nil {
+		return err
+	}
+	log.Println("--> ", self.path, "db is open")
 	self.isOpen = true
-	return err
+	return nil
 }
 
 // Close the store.

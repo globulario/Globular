@@ -1,7 +1,7 @@
 package storage_client
 
 import (
-	// "context"
+	"context"
 	// "log"
 
 	"github.com/davecourtois/Globular/api"
@@ -98,4 +98,115 @@ func (self *Storage_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *Storage_Client) GetCaFile() string {
 	return self.caFile
+}
+
+////////////////// Service functionnality //////////////////////
+func (self *Storage_Client) CreateConnection(id string, name string, connectionType float64) error {
+
+	rqst := &storagepb.CreateConnectionRqst{
+		Connection: &storagepb.Connection{
+			Id:   id,
+			Name: name,
+			Type: storagepb.StoreType(connectionType), // Disk store (persistent)
+		},
+	}
+
+	_, err := self.c.CreateConnection(context.Background(), rqst)
+
+	return err
+}
+
+func (self *Storage_Client) OpenConnection(id string, options string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.OpenRqst{
+		Id:      id,
+		Options: options,
+	}
+
+	_, err := self.c.Open(context.Background(), rqst)
+
+	return err
+}
+
+func (self *Storage_Client) SetItem(connectionId string, key string, data []byte) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.SetItemRequest{
+		Id:    connectionId,
+		Key:   key,
+		Value: data,
+	}
+
+	_, err := self.c.SetItem(context.Background(), rqst)
+	return err
+}
+
+func (self *Storage_Client) GetItem(connectionId string, key string) ([]byte, error) {
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.GetItemRequest{
+		Id:  connectionId,
+		Key: key,
+	}
+
+	rsp, err := self.c.GetItem(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+	return rsp.Result, nil
+}
+
+func (self *Storage_Client) RemoveItem(connectionId string, key string) error {
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.RemoveItemRequest{
+		Id:  connectionId,
+		Key: key,
+	}
+
+	_, err := self.c.RemoveItem(context.Background(), rqst)
+	return err
+}
+
+func (self *Storage_Client) Clear(connectionId string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.ClearRequest{
+		Id: connectionId,
+	}
+
+	_, err := self.c.Clear(context.Background(), rqst)
+	return err
+}
+
+func (self *Storage_Client) Drop(connectionId string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.DropRequest{
+		Id: connectionId,
+	}
+
+	_, err := self.c.Drop(context.Background(), rqst)
+	return err
+}
+
+func (self *Storage_Client) CloseConnection(connectionId string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.CloseRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.Close(context.Background(), rqst)
+	return err
+}
+
+func (self *Storage_Client) DeleteConnection(connectionId string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &storagepb.DeleteConnectionRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	return err
 }

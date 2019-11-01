@@ -1,6 +1,7 @@
 #!/bin/bash
 protoc admin/admin.proto --go_out=plugins=grpc:.
 protoc ressource/ressource.proto --go_out=plugins=grpc:.
+protoc dns/dnspb/dns.proto --go_out=plugins=grpc:.
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
 protoc event/eventpb/event.proto --go_out=plugins=grpc:.
 protoc storage/storagepb/storage.proto --go_out=plugins=grpc:.

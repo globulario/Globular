@@ -48,10 +48,9 @@ var (
 
 // Keep connection information here.
 type connection struct {
-	Id    string // The connection id
-	Name  string // The kv store name
-	Type  storagepb.StoreType
-	store storage_store.Store
+	Id   string // The connection id
+	Name string // The kv store name
+	Type storagepb.StoreType
 }
 
 type server struct {
@@ -72,11 +71,16 @@ type server struct {
 
 	// The map of connection...
 	Connections map[string]connection
+
+	// the map of store
+	stores map[string]storage_store.Store
 }
 
 func (self *server) init() {
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	self.stores = make(map[string]storage_store.Store)
+
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
@@ -193,8 +197,6 @@ func (self *server) Open(ctx context.Context, rqst *storagepb.OpenRqst) (*storag
 		store = storage_store.NewBigCache_store()
 	}
 
-	conn.store = store
-
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -209,7 +211,7 @@ func (self *server) Open(ctx context.Context, rqst *storagepb.OpenRqst) (*storag
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	self.Connections[rqst.GetId()] = conn
+	self.stores[rqst.GetId()] = store
 
 	return &storagepb.OpenRsp{
 		Result: true,
@@ -224,15 +226,13 @@ func (self *server) Close(ctx context.Context, rqst *storagepb.CloseRqst) (*stor
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
-
-	if store == nil {
+	if self.stores[rqst.GetId()] == nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no store found for connection with id "+rqst.GetId())))
 	}
 
-	err := store.Close()
+	err := self.stores[rqst.GetId()].Close()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -253,7 +253,7 @@ func (self *server) SetItem(ctx context.Context, rqst *storagepb.SetItemRequest)
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
+	store := self.stores[rqst.GetId()]
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -280,7 +280,7 @@ func (self *server) GetItem(ctx context.Context, rqst *storagepb.GetItemRequest)
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
+	store := self.stores[rqst.GetId()]
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -309,7 +309,7 @@ func (self *server) RemoveItem(ctx context.Context, rqst *storagepb.RemoveItemRe
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
+	store := self.stores[rqst.GetId()]
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -343,7 +343,7 @@ func (self *server) Clear(ctx context.Context, rqst *storagepb.ClearRequest) (*s
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
+	store := self.stores[rqst.GetId()]
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -370,7 +370,7 @@ func (self *server) Drop(ctx context.Context, rqst *storagepb.DropRequest) (*sto
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no connection found with id "+rqst.GetId())))
 	}
 
-	store := self.Connections[rqst.GetId()].store
+	store := self.stores[rqst.GetId()]
 	if store == nil {
 		return nil, status.Errorf(
 			codes.Internal,

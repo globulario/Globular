@@ -1,0 +1,77 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+package dns;
+
+option go_package="dnspb";
+
+message SetEntryRequest {
+  string name = 1;
+  string ipv4 = 2;
+}
+
+message SetEntryResponse {
+  string message = 1;
+}
+
+message RemoveEntryRequest {
+  string name = 1;
+}
+
+message RemoveEntryResponse {
+  bool result = 1;
+}
+
+message SetTextRequest {
+  string id = 1;
+  repeated string values = 2;
+}
+
+message SetTextResponse {
+  bool result = 1;
+}
+
+message GetTextRequest {
+  string id = 1;
+}
+
+message GetTextResponse {
+  repeated string values = 1;
+}
+
+message RemoveTextRequest {
+  string id = 1;
+}
+
+message RemoveTextResponse {
+  bool result = 1;
+}
+
+message ResolveRequest {
+  string domain = 1;
+}
+
+message ResolveResponse {
+  string ipv4 = 1;
+}
+
+service DnsService {
+  // Set a dns entry.
+  rpc SetEntry(SetEntryRequest) returns (SetEntryResponse);
+
+  // Remove a dns entry
+  rpc RemoveEntry(RemoveEntryRequest) returns (RemoveEntryResponse);
+
+  // Set a text entry.
+  rpc SetText(SetTextRequest) returns (SetTextResponse);
+
+  // Retreive a text value
+  rpc GetText(GetTextRequest) returns (GetTextResponse);
+
+  // Remove a text entry
+  rpc RemoveText(RemoveTextRequest) returns (RemoveTextResponse);
+
+  // Get the ipv4 address for a given name 
+  rpc Resolve(ResolveRequest) returns (ResolveResponse);
+}
