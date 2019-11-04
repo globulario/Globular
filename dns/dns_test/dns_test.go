@@ -31,10 +31,9 @@ var (
 )
 
 // Test various function here.
-func TestSetEntry(t *testing.T) {
+func TestSetA(t *testing.T) {
 	// Connect to the plc client.
-	log.Println("---> test set entry")
-	domain, err := client.SetEntry("toto", Utility.MyIP())
+	domain, err := client.SetA("toto", Utility.MyIP())
 	if err == nil {
 		log.Println("--> your domain is ", domain)
 	} else {
@@ -45,8 +44,8 @@ func TestSetEntry(t *testing.T) {
 func TestResolve(t *testing.T) {
 
 	// Connect to the plc client.
-	log.Println("---> test resolve entry")
-	ipv4, err := client.Resolve("toto.example.com.")
+	log.Println("---> test resolve A")
+	ipv4, err := client.GetA("toto.example.com.")
 	if err == nil {
 		log.Println("--> your ip is ", ipv4)
 	} else {
@@ -54,13 +53,13 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestRemoveEntry(t *testing.T) {
+func TestRemoveA(t *testing.T) {
 
 	// Connect to the plc client.
-	log.Println("---> test resolve entry")
-	err := client.RemoveEntry("toto")
+	log.Println("---> test resolve A")
+	err := client.RemoveA("toto")
 	if err == nil {
-		log.Println("--> your entry is remove!")
+		log.Println("--> your A is remove!")
 	} else {
 		log.Panicln(err)
 	}

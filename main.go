@@ -95,9 +95,6 @@ func main() {
 
 						// In that case that mean it's a grpc service and a .proto file is required.
 						protoPath := p["Path"].(string)[:strings.Index(p["Path"].(string), name_)] + name_ + string(os.PathSeparator) + name_ + "pb" + string(os.PathSeparator) + name_ + ".proto"
-						fmt.Println("------------> from ", protoPath)
-
-						fmt.Println("------------> ", path+string(os.PathSeparator)+name+string(os.PathSeparator)+name_+".proto")
 						err := Utility.Copy(protoPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+name_+".proto")
 						if err != nil {
 							fmt.Println(err)

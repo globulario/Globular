@@ -24,168 +24,488 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type SetEntryRequest struct {
+type SetARequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Ipv4                 string   `protobuf:"bytes,2,opt,name=ipv4,proto3" json:"ipv4,omitempty"`
+	A                    string   `protobuf:"bytes,2,opt,name=a,proto3" json:"a,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *SetEntryRequest) Reset()         { *m = SetEntryRequest{} }
-func (m *SetEntryRequest) String() string { return proto.CompactTextString(m) }
-func (*SetEntryRequest) ProtoMessage()    {}
-func (*SetEntryRequest) Descriptor() ([]byte, []int) {
+func (m *SetARequest) Reset()         { *m = SetARequest{} }
+func (m *SetARequest) String() string { return proto.CompactTextString(m) }
+func (*SetARequest) ProtoMessage()    {}
+func (*SetARequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_c0ef3a55f90e78d4, []int{0}
 }
 
-func (m *SetEntryRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SetEntryRequest.Unmarshal(m, b)
+func (m *SetARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetARequest.Unmarshal(m, b)
 }
-func (m *SetEntryRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SetEntryRequest.Marshal(b, m, deterministic)
+func (m *SetARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetARequest.Marshal(b, m, deterministic)
 }
-func (m *SetEntryRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SetEntryRequest.Merge(m, src)
+func (m *SetARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetARequest.Merge(m, src)
 }
-func (m *SetEntryRequest) XXX_Size() int {
-	return xxx_messageInfo_SetEntryRequest.Size(m)
+func (m *SetARequest) XXX_Size() int {
+	return xxx_messageInfo_SetARequest.Size(m)
 }
-func (m *SetEntryRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_SetEntryRequest.DiscardUnknown(m)
+func (m *SetARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetARequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SetEntryRequest proto.InternalMessageInfo
+var xxx_messageInfo_SetARequest proto.InternalMessageInfo
 
-func (m *SetEntryRequest) GetName() string {
+func (m *SetARequest) GetName() string {
 	if m != nil {
 		return m.Name
 	}
 	return ""
 }
 
-func (m *SetEntryRequest) GetIpv4() string {
+func (m *SetARequest) GetA() string {
 	if m != nil {
-		return m.Ipv4
+		return m.A
 	}
 	return ""
 }
 
-type SetEntryResponse struct {
+type SetAResponse struct {
 	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *SetEntryResponse) Reset()         { *m = SetEntryResponse{} }
-func (m *SetEntryResponse) String() string { return proto.CompactTextString(m) }
-func (*SetEntryResponse) ProtoMessage()    {}
-func (*SetEntryResponse) Descriptor() ([]byte, []int) {
+func (m *SetAResponse) Reset()         { *m = SetAResponse{} }
+func (m *SetAResponse) String() string { return proto.CompactTextString(m) }
+func (*SetAResponse) ProtoMessage()    {}
+func (*SetAResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_c0ef3a55f90e78d4, []int{1}
 }
 
-func (m *SetEntryResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SetEntryResponse.Unmarshal(m, b)
+func (m *SetAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetAResponse.Unmarshal(m, b)
 }
-func (m *SetEntryResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SetEntryResponse.Marshal(b, m, deterministic)
+func (m *SetAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetAResponse.Marshal(b, m, deterministic)
 }
-func (m *SetEntryResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SetEntryResponse.Merge(m, src)
+func (m *SetAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetAResponse.Merge(m, src)
 }
-func (m *SetEntryResponse) XXX_Size() int {
-	return xxx_messageInfo_SetEntryResponse.Size(m)
+func (m *SetAResponse) XXX_Size() int {
+	return xxx_messageInfo_SetAResponse.Size(m)
 }
-func (m *SetEntryResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_SetEntryResponse.DiscardUnknown(m)
+func (m *SetAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetAResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SetEntryResponse proto.InternalMessageInfo
+var xxx_messageInfo_SetAResponse proto.InternalMessageInfo
 
-func (m *SetEntryResponse) GetMessage() string {
+func (m *SetAResponse) GetMessage() string {
 	if m != nil {
 		return m.Message
 	}
 	return ""
 }
 
-type RemoveEntryRequest struct {
+type RemoveARequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RemoveEntryRequest) Reset()         { *m = RemoveEntryRequest{} }
-func (m *RemoveEntryRequest) String() string { return proto.CompactTextString(m) }
-func (*RemoveEntryRequest) ProtoMessage()    {}
-func (*RemoveEntryRequest) Descriptor() ([]byte, []int) {
+func (m *RemoveARequest) Reset()         { *m = RemoveARequest{} }
+func (m *RemoveARequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveARequest) ProtoMessage()    {}
+func (*RemoveARequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_c0ef3a55f90e78d4, []int{2}
 }
 
-func (m *RemoveEntryRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RemoveEntryRequest.Unmarshal(m, b)
+func (m *RemoveARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveARequest.Unmarshal(m, b)
 }
-func (m *RemoveEntryRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RemoveEntryRequest.Marshal(b, m, deterministic)
+func (m *RemoveARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveARequest.Marshal(b, m, deterministic)
 }
-func (m *RemoveEntryRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoveEntryRequest.Merge(m, src)
+func (m *RemoveARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveARequest.Merge(m, src)
 }
-func (m *RemoveEntryRequest) XXX_Size() int {
-	return xxx_messageInfo_RemoveEntryRequest.Size(m)
+func (m *RemoveARequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveARequest.Size(m)
 }
-func (m *RemoveEntryRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_RemoveEntryRequest.DiscardUnknown(m)
+func (m *RemoveARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveARequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RemoveEntryRequest proto.InternalMessageInfo
+var xxx_messageInfo_RemoveARequest proto.InternalMessageInfo
 
-func (m *RemoveEntryRequest) GetName() string {
+func (m *RemoveARequest) GetName() string {
 	if m != nil {
 		return m.Name
 	}
 	return ""
 }
 
-type RemoveEntryResponse struct {
+type RemoveAResponse struct {
 	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RemoveEntryResponse) Reset()         { *m = RemoveEntryResponse{} }
-func (m *RemoveEntryResponse) String() string { return proto.CompactTextString(m) }
-func (*RemoveEntryResponse) ProtoMessage()    {}
-func (*RemoveEntryResponse) Descriptor() ([]byte, []int) {
+func (m *RemoveAResponse) Reset()         { *m = RemoveAResponse{} }
+func (m *RemoveAResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveAResponse) ProtoMessage()    {}
+func (*RemoveAResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_c0ef3a55f90e78d4, []int{3}
 }
 
-func (m *RemoveEntryResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RemoveEntryResponse.Unmarshal(m, b)
+func (m *RemoveAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAResponse.Unmarshal(m, b)
 }
-func (m *RemoveEntryResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RemoveEntryResponse.Marshal(b, m, deterministic)
+func (m *RemoveAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAResponse.Marshal(b, m, deterministic)
 }
-func (m *RemoveEntryResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoveEntryResponse.Merge(m, src)
+func (m *RemoveAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAResponse.Merge(m, src)
 }
-func (m *RemoveEntryResponse) XXX_Size() int {
-	return xxx_messageInfo_RemoveEntryResponse.Size(m)
+func (m *RemoveAResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveAResponse.Size(m)
 }
-func (m *RemoveEntryResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RemoveEntryResponse.DiscardUnknown(m)
+func (m *RemoveAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RemoveEntryResponse proto.InternalMessageInfo
+var xxx_messageInfo_RemoveAResponse proto.InternalMessageInfo
 
-func (m *RemoveEntryResponse) GetResult() bool {
+func (m *RemoveAResponse) GetResult() bool {
 	if m != nil {
 		return m.Result
 	}
 	return false
+}
+
+type GetARequest struct {
+	Domain               string   `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetARequest) Reset()         { *m = GetARequest{} }
+func (m *GetARequest) String() string { return proto.CompactTextString(m) }
+func (*GetARequest) ProtoMessage()    {}
+func (*GetARequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{4}
+}
+
+func (m *GetARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetARequest.Unmarshal(m, b)
+}
+func (m *GetARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetARequest.Marshal(b, m, deterministic)
+}
+func (m *GetARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetARequest.Merge(m, src)
+}
+func (m *GetARequest) XXX_Size() int {
+	return xxx_messageInfo_GetARequest.Size(m)
+}
+func (m *GetARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetARequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetARequest proto.InternalMessageInfo
+
+func (m *GetARequest) GetDomain() string {
+	if m != nil {
+		return m.Domain
+	}
+	return ""
+}
+
+type GetAResponse struct {
+	A                    string   `protobuf:"bytes,1,opt,name=a,proto3" json:"a,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAResponse) Reset()         { *m = GetAResponse{} }
+func (m *GetAResponse) String() string { return proto.CompactTextString(m) }
+func (*GetAResponse) ProtoMessage()    {}
+func (*GetAResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{5}
+}
+
+func (m *GetAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAResponse.Unmarshal(m, b)
+}
+func (m *GetAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAResponse.Marshal(b, m, deterministic)
+}
+func (m *GetAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAResponse.Merge(m, src)
+}
+func (m *GetAResponse) XXX_Size() int {
+	return xxx_messageInfo_GetAResponse.Size(m)
+}
+func (m *GetAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAResponse proto.InternalMessageInfo
+
+func (m *GetAResponse) GetA() string {
+	if m != nil {
+		return m.A
+	}
+	return ""
+}
+
+type SetAAAARequest struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Aaaa                 string   `protobuf:"bytes,2,opt,name=aaaa,proto3" json:"aaaa,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetAAAARequest) Reset()         { *m = SetAAAARequest{} }
+func (m *SetAAAARequest) String() string { return proto.CompactTextString(m) }
+func (*SetAAAARequest) ProtoMessage()    {}
+func (*SetAAAARequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{6}
+}
+
+func (m *SetAAAARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetAAAARequest.Unmarshal(m, b)
+}
+func (m *SetAAAARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetAAAARequest.Marshal(b, m, deterministic)
+}
+func (m *SetAAAARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetAAAARequest.Merge(m, src)
+}
+func (m *SetAAAARequest) XXX_Size() int {
+	return xxx_messageInfo_SetAAAARequest.Size(m)
+}
+func (m *SetAAAARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetAAAARequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetAAAARequest proto.InternalMessageInfo
+
+func (m *SetAAAARequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *SetAAAARequest) GetAaaa() string {
+	if m != nil {
+		return m.Aaaa
+	}
+	return ""
+}
+
+type SetAAAAResponse struct {
+	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetAAAAResponse) Reset()         { *m = SetAAAAResponse{} }
+func (m *SetAAAAResponse) String() string { return proto.CompactTextString(m) }
+func (*SetAAAAResponse) ProtoMessage()    {}
+func (*SetAAAAResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{7}
+}
+
+func (m *SetAAAAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetAAAAResponse.Unmarshal(m, b)
+}
+func (m *SetAAAAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetAAAAResponse.Marshal(b, m, deterministic)
+}
+func (m *SetAAAAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetAAAAResponse.Merge(m, src)
+}
+func (m *SetAAAAResponse) XXX_Size() int {
+	return xxx_messageInfo_SetAAAAResponse.Size(m)
+}
+func (m *SetAAAAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetAAAAResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetAAAAResponse proto.InternalMessageInfo
+
+func (m *SetAAAAResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+type RemoveAAAARequest struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAAAARequest) Reset()         { *m = RemoveAAAARequest{} }
+func (m *RemoveAAAARequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveAAAARequest) ProtoMessage()    {}
+func (*RemoveAAAARequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{8}
+}
+
+func (m *RemoveAAAARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAAAARequest.Unmarshal(m, b)
+}
+func (m *RemoveAAAARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAAAARequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveAAAARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAAAARequest.Merge(m, src)
+}
+func (m *RemoveAAAARequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveAAAARequest.Size(m)
+}
+func (m *RemoveAAAARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAAAARequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAAAARequest proto.InternalMessageInfo
+
+func (m *RemoveAAAARequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type RemoveAAAAResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAAAAResponse) Reset()         { *m = RemoveAAAAResponse{} }
+func (m *RemoveAAAAResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveAAAAResponse) ProtoMessage()    {}
+func (*RemoveAAAAResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{9}
+}
+
+func (m *RemoveAAAAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAAAAResponse.Unmarshal(m, b)
+}
+func (m *RemoveAAAAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAAAAResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveAAAAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAAAAResponse.Merge(m, src)
+}
+func (m *RemoveAAAAResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveAAAAResponse.Size(m)
+}
+func (m *RemoveAAAAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAAAAResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAAAAResponse proto.InternalMessageInfo
+
+func (m *RemoveAAAAResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetAAAARequest struct {
+	Domain               string   `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAAAARequest) Reset()         { *m = GetAAAARequest{} }
+func (m *GetAAAARequest) String() string { return proto.CompactTextString(m) }
+func (*GetAAAARequest) ProtoMessage()    {}
+func (*GetAAAARequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{10}
+}
+
+func (m *GetAAAARequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAAAARequest.Unmarshal(m, b)
+}
+func (m *GetAAAARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAAAARequest.Marshal(b, m, deterministic)
+}
+func (m *GetAAAARequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAAAARequest.Merge(m, src)
+}
+func (m *GetAAAARequest) XXX_Size() int {
+	return xxx_messageInfo_GetAAAARequest.Size(m)
+}
+func (m *GetAAAARequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAAAARequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAAAARequest proto.InternalMessageInfo
+
+func (m *GetAAAARequest) GetDomain() string {
+	if m != nil {
+		return m.Domain
+	}
+	return ""
+}
+
+type GetAAAAResponse struct {
+	Aaaa                 string   `protobuf:"bytes,1,opt,name=aaaa,proto3" json:"aaaa,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAAAAResponse) Reset()         { *m = GetAAAAResponse{} }
+func (m *GetAAAAResponse) String() string { return proto.CompactTextString(m) }
+func (*GetAAAAResponse) ProtoMessage()    {}
+func (*GetAAAAResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{11}
+}
+
+func (m *GetAAAAResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAAAAResponse.Unmarshal(m, b)
+}
+func (m *GetAAAAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAAAAResponse.Marshal(b, m, deterministic)
+}
+func (m *GetAAAAResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAAAAResponse.Merge(m, src)
+}
+func (m *GetAAAAResponse) XXX_Size() int {
+	return xxx_messageInfo_GetAAAAResponse.Size(m)
+}
+func (m *GetAAAAResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAAAAResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAAAAResponse proto.InternalMessageInfo
+
+func (m *GetAAAAResponse) GetAaaa() string {
+	if m != nil {
+		return m.Aaaa
+	}
+	return ""
 }
 
 type SetTextRequest struct {
@@ -200,7 +520,7 @@ func (m *SetTextRequest) Reset()         { *m = SetTextRequest{} }
 func (m *SetTextRequest) String() string { return proto.CompactTextString(m) }
 func (*SetTextRequest) ProtoMessage()    {}
 func (*SetTextRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{4}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{12}
 }
 
 func (m *SetTextRequest) XXX_Unmarshal(b []byte) error {
@@ -246,7 +566,7 @@ func (m *SetTextResponse) Reset()         { *m = SetTextResponse{} }
 func (m *SetTextResponse) String() string { return proto.CompactTextString(m) }
 func (*SetTextResponse) ProtoMessage()    {}
 func (*SetTextResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{5}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{13}
 }
 
 func (m *SetTextResponse) XXX_Unmarshal(b []byte) error {
@@ -285,7 +605,7 @@ func (m *GetTextRequest) Reset()         { *m = GetTextRequest{} }
 func (m *GetTextRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTextRequest) ProtoMessage()    {}
 func (*GetTextRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{6}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{14}
 }
 
 func (m *GetTextRequest) XXX_Unmarshal(b []byte) error {
@@ -324,7 +644,7 @@ func (m *GetTextResponse) Reset()         { *m = GetTextResponse{} }
 func (m *GetTextResponse) String() string { return proto.CompactTextString(m) }
 func (*GetTextResponse) ProtoMessage()    {}
 func (*GetTextResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{7}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{15}
 }
 
 func (m *GetTextResponse) XXX_Unmarshal(b []byte) error {
@@ -363,7 +683,7 @@ func (m *RemoveTextRequest) Reset()         { *m = RemoveTextRequest{} }
 func (m *RemoveTextRequest) String() string { return proto.CompactTextString(m) }
 func (*RemoveTextRequest) ProtoMessage()    {}
 func (*RemoveTextRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{8}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{16}
 }
 
 func (m *RemoveTextRequest) XXX_Unmarshal(b []byte) error {
@@ -402,7 +722,7 @@ func (m *RemoveTextResponse) Reset()         { *m = RemoveTextResponse{} }
 func (m *RemoveTextResponse) String() string { return proto.CompactTextString(m) }
 func (*RemoveTextResponse) ProtoMessage()    {}
 func (*RemoveTextResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{9}
+	return fileDescriptor_c0ef3a55f90e78d4, []int{17}
 }
 
 func (m *RemoveTextResponse) XXX_Unmarshal(b []byte) error {
@@ -430,127 +750,2142 @@ func (m *RemoveTextResponse) GetResult() bool {
 	return false
 }
 
-type ResolveRequest struct {
-	Domain               string   `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+type SetNsRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Ns                   string   `protobuf:"bytes,2,opt,name=ns,proto3" json:"ns,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ResolveRequest) Reset()         { *m = ResolveRequest{} }
-func (m *ResolveRequest) String() string { return proto.CompactTextString(m) }
-func (*ResolveRequest) ProtoMessage()    {}
-func (*ResolveRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{10}
+func (m *SetNsRequest) Reset()         { *m = SetNsRequest{} }
+func (m *SetNsRequest) String() string { return proto.CompactTextString(m) }
+func (*SetNsRequest) ProtoMessage()    {}
+func (*SetNsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{18}
 }
 
-func (m *ResolveRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ResolveRequest.Unmarshal(m, b)
+func (m *SetNsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetNsRequest.Unmarshal(m, b)
 }
-func (m *ResolveRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ResolveRequest.Marshal(b, m, deterministic)
+func (m *SetNsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetNsRequest.Marshal(b, m, deterministic)
 }
-func (m *ResolveRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ResolveRequest.Merge(m, src)
+func (m *SetNsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetNsRequest.Merge(m, src)
 }
-func (m *ResolveRequest) XXX_Size() int {
-	return xxx_messageInfo_ResolveRequest.Size(m)
+func (m *SetNsRequest) XXX_Size() int {
+	return xxx_messageInfo_SetNsRequest.Size(m)
 }
-func (m *ResolveRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ResolveRequest.DiscardUnknown(m)
+func (m *SetNsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetNsRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ResolveRequest proto.InternalMessageInfo
+var xxx_messageInfo_SetNsRequest proto.InternalMessageInfo
 
-func (m *ResolveRequest) GetDomain() string {
+func (m *SetNsRequest) GetId() string {
 	if m != nil {
-		return m.Domain
+		return m.Id
 	}
 	return ""
 }
 
-type ResolveResponse struct {
-	Ipv4                 string   `protobuf:"bytes,1,opt,name=ipv4,proto3" json:"ipv4,omitempty"`
+func (m *SetNsRequest) GetNs() string {
+	if m != nil {
+		return m.Ns
+	}
+	return ""
+}
+
+type SetNsResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ResolveResponse) Reset()         { *m = ResolveResponse{} }
-func (m *ResolveResponse) String() string { return proto.CompactTextString(m) }
-func (*ResolveResponse) ProtoMessage()    {}
-func (*ResolveResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0ef3a55f90e78d4, []int{11}
+func (m *SetNsResponse) Reset()         { *m = SetNsResponse{} }
+func (m *SetNsResponse) String() string { return proto.CompactTextString(m) }
+func (*SetNsResponse) ProtoMessage()    {}
+func (*SetNsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{19}
 }
 
-func (m *ResolveResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ResolveResponse.Unmarshal(m, b)
+func (m *SetNsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetNsResponse.Unmarshal(m, b)
 }
-func (m *ResolveResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ResolveResponse.Marshal(b, m, deterministic)
+func (m *SetNsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetNsResponse.Marshal(b, m, deterministic)
 }
-func (m *ResolveResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ResolveResponse.Merge(m, src)
+func (m *SetNsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetNsResponse.Merge(m, src)
 }
-func (m *ResolveResponse) XXX_Size() int {
-	return xxx_messageInfo_ResolveResponse.Size(m)
+func (m *SetNsResponse) XXX_Size() int {
+	return xxx_messageInfo_SetNsResponse.Size(m)
 }
-func (m *ResolveResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ResolveResponse.DiscardUnknown(m)
+func (m *SetNsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetNsResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ResolveResponse proto.InternalMessageInfo
+var xxx_messageInfo_SetNsResponse proto.InternalMessageInfo
 
-func (m *ResolveResponse) GetIpv4() string {
+func (m *SetNsResponse) GetResult() bool {
 	if m != nil {
-		return m.Ipv4
+		return m.Result
+	}
+	return false
+}
+
+type GetNsRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetNsRequest) Reset()         { *m = GetNsRequest{} }
+func (m *GetNsRequest) String() string { return proto.CompactTextString(m) }
+func (*GetNsRequest) ProtoMessage()    {}
+func (*GetNsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{20}
+}
+
+func (m *GetNsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetNsRequest.Unmarshal(m, b)
+}
+func (m *GetNsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetNsRequest.Marshal(b, m, deterministic)
+}
+func (m *GetNsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetNsRequest.Merge(m, src)
+}
+func (m *GetNsRequest) XXX_Size() int {
+	return xxx_messageInfo_GetNsRequest.Size(m)
+}
+func (m *GetNsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetNsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetNsRequest proto.InternalMessageInfo
+
+func (m *GetNsRequest) GetId() string {
+	if m != nil {
+		return m.Id
 	}
 	return ""
+}
+
+type GetNsResponse struct {
+	Ns                   string   `protobuf:"bytes,1,opt,name=ns,proto3" json:"ns,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetNsResponse) Reset()         { *m = GetNsResponse{} }
+func (m *GetNsResponse) String() string { return proto.CompactTextString(m) }
+func (*GetNsResponse) ProtoMessage()    {}
+func (*GetNsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{21}
+}
+
+func (m *GetNsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetNsResponse.Unmarshal(m, b)
+}
+func (m *GetNsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetNsResponse.Marshal(b, m, deterministic)
+}
+func (m *GetNsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetNsResponse.Merge(m, src)
+}
+func (m *GetNsResponse) XXX_Size() int {
+	return xxx_messageInfo_GetNsResponse.Size(m)
+}
+func (m *GetNsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetNsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetNsResponse proto.InternalMessageInfo
+
+func (m *GetNsResponse) GetNs() string {
+	if m != nil {
+		return m.Ns
+	}
+	return ""
+}
+
+type RemoveNsRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveNsRequest) Reset()         { *m = RemoveNsRequest{} }
+func (m *RemoveNsRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveNsRequest) ProtoMessage()    {}
+func (*RemoveNsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{22}
+}
+
+func (m *RemoveNsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveNsRequest.Unmarshal(m, b)
+}
+func (m *RemoveNsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveNsRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveNsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveNsRequest.Merge(m, src)
+}
+func (m *RemoveNsRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveNsRequest.Size(m)
+}
+func (m *RemoveNsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveNsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveNsRequest proto.InternalMessageInfo
+
+func (m *RemoveNsRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveNsResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveNsResponse) Reset()         { *m = RemoveNsResponse{} }
+func (m *RemoveNsResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveNsResponse) ProtoMessage()    {}
+func (*RemoveNsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{23}
+}
+
+func (m *RemoveNsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveNsResponse.Unmarshal(m, b)
+}
+func (m *RemoveNsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveNsResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveNsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveNsResponse.Merge(m, src)
+}
+func (m *RemoveNsResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveNsResponse.Size(m)
+}
+func (m *RemoveNsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveNsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveNsResponse proto.InternalMessageInfo
+
+func (m *RemoveNsResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type SetCNameRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Cname                string   `protobuf:"bytes,2,opt,name=cname,proto3" json:"cname,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetCNameRequest) Reset()         { *m = SetCNameRequest{} }
+func (m *SetCNameRequest) String() string { return proto.CompactTextString(m) }
+func (*SetCNameRequest) ProtoMessage()    {}
+func (*SetCNameRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{24}
+}
+
+func (m *SetCNameRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetCNameRequest.Unmarshal(m, b)
+}
+func (m *SetCNameRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetCNameRequest.Marshal(b, m, deterministic)
+}
+func (m *SetCNameRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetCNameRequest.Merge(m, src)
+}
+func (m *SetCNameRequest) XXX_Size() int {
+	return xxx_messageInfo_SetCNameRequest.Size(m)
+}
+func (m *SetCNameRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetCNameRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetCNameRequest proto.InternalMessageInfo
+
+func (m *SetCNameRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetCNameRequest) GetCname() string {
+	if m != nil {
+		return m.Cname
+	}
+	return ""
+}
+
+type SetCNameResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetCNameResponse) Reset()         { *m = SetCNameResponse{} }
+func (m *SetCNameResponse) String() string { return proto.CompactTextString(m) }
+func (*SetCNameResponse) ProtoMessage()    {}
+func (*SetCNameResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{25}
+}
+
+func (m *SetCNameResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetCNameResponse.Unmarshal(m, b)
+}
+func (m *SetCNameResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetCNameResponse.Marshal(b, m, deterministic)
+}
+func (m *SetCNameResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetCNameResponse.Merge(m, src)
+}
+func (m *SetCNameResponse) XXX_Size() int {
+	return xxx_messageInfo_SetCNameResponse.Size(m)
+}
+func (m *SetCNameResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetCNameResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetCNameResponse proto.InternalMessageInfo
+
+func (m *SetCNameResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetCNameRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetCNameRequest) Reset()         { *m = GetCNameRequest{} }
+func (m *GetCNameRequest) String() string { return proto.CompactTextString(m) }
+func (*GetCNameRequest) ProtoMessage()    {}
+func (*GetCNameRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{26}
+}
+
+func (m *GetCNameRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetCNameRequest.Unmarshal(m, b)
+}
+func (m *GetCNameRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetCNameRequest.Marshal(b, m, deterministic)
+}
+func (m *GetCNameRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCNameRequest.Merge(m, src)
+}
+func (m *GetCNameRequest) XXX_Size() int {
+	return xxx_messageInfo_GetCNameRequest.Size(m)
+}
+func (m *GetCNameRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCNameRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCNameRequest proto.InternalMessageInfo
+
+func (m *GetCNameRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetCNameResponse struct {
+	Cname                string   `protobuf:"bytes,1,opt,name=cname,proto3" json:"cname,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetCNameResponse) Reset()         { *m = GetCNameResponse{} }
+func (m *GetCNameResponse) String() string { return proto.CompactTextString(m) }
+func (*GetCNameResponse) ProtoMessage()    {}
+func (*GetCNameResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{27}
+}
+
+func (m *GetCNameResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetCNameResponse.Unmarshal(m, b)
+}
+func (m *GetCNameResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetCNameResponse.Marshal(b, m, deterministic)
+}
+func (m *GetCNameResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCNameResponse.Merge(m, src)
+}
+func (m *GetCNameResponse) XXX_Size() int {
+	return xxx_messageInfo_GetCNameResponse.Size(m)
+}
+func (m *GetCNameResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCNameResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCNameResponse proto.InternalMessageInfo
+
+func (m *GetCNameResponse) GetCname() string {
+	if m != nil {
+		return m.Cname
+	}
+	return ""
+}
+
+type RemoveCNameRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveCNameRequest) Reset()         { *m = RemoveCNameRequest{} }
+func (m *RemoveCNameRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveCNameRequest) ProtoMessage()    {}
+func (*RemoveCNameRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{28}
+}
+
+func (m *RemoveCNameRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveCNameRequest.Unmarshal(m, b)
+}
+func (m *RemoveCNameRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveCNameRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveCNameRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveCNameRequest.Merge(m, src)
+}
+func (m *RemoveCNameRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveCNameRequest.Size(m)
+}
+func (m *RemoveCNameRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveCNameRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveCNameRequest proto.InternalMessageInfo
+
+func (m *RemoveCNameRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveCNameResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveCNameResponse) Reset()         { *m = RemoveCNameResponse{} }
+func (m *RemoveCNameResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveCNameResponse) ProtoMessage()    {}
+func (*RemoveCNameResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{29}
+}
+
+func (m *RemoveCNameResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveCNameResponse.Unmarshal(m, b)
+}
+func (m *RemoveCNameResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveCNameResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveCNameResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveCNameResponse.Merge(m, src)
+}
+func (m *RemoveCNameResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveCNameResponse.Size(m)
+}
+func (m *RemoveCNameResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveCNameResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveCNameResponse proto.InternalMessageInfo
+
+func (m *RemoveCNameResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type AFSDB struct {
+	Subtype              uint32   `protobuf:"varint,1,opt,name=subtype,proto3" json:"subtype,omitempty"`
+	Hostname             string   `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AFSDB) Reset()         { *m = AFSDB{} }
+func (m *AFSDB) String() string { return proto.CompactTextString(m) }
+func (*AFSDB) ProtoMessage()    {}
+func (*AFSDB) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{30}
+}
+
+func (m *AFSDB) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AFSDB.Unmarshal(m, b)
+}
+func (m *AFSDB) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AFSDB.Marshal(b, m, deterministic)
+}
+func (m *AFSDB) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AFSDB.Merge(m, src)
+}
+func (m *AFSDB) XXX_Size() int {
+	return xxx_messageInfo_AFSDB.Size(m)
+}
+func (m *AFSDB) XXX_DiscardUnknown() {
+	xxx_messageInfo_AFSDB.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AFSDB proto.InternalMessageInfo
+
+func (m *AFSDB) GetSubtype() uint32 {
+	if m != nil {
+		return m.Subtype
+	}
+	return 0
+}
+
+func (m *AFSDB) GetHostname() string {
+	if m != nil {
+		return m.Hostname
+	}
+	return ""
+}
+
+type SetAfsdbRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Afsdb                *AFSDB   `protobuf:"bytes,2,opt,name=afsdb,proto3" json:"afsdb,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetAfsdbRequest) Reset()         { *m = SetAfsdbRequest{} }
+func (m *SetAfsdbRequest) String() string { return proto.CompactTextString(m) }
+func (*SetAfsdbRequest) ProtoMessage()    {}
+func (*SetAfsdbRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{31}
+}
+
+func (m *SetAfsdbRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetAfsdbRequest.Unmarshal(m, b)
+}
+func (m *SetAfsdbRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetAfsdbRequest.Marshal(b, m, deterministic)
+}
+func (m *SetAfsdbRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetAfsdbRequest.Merge(m, src)
+}
+func (m *SetAfsdbRequest) XXX_Size() int {
+	return xxx_messageInfo_SetAfsdbRequest.Size(m)
+}
+func (m *SetAfsdbRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetAfsdbRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetAfsdbRequest proto.InternalMessageInfo
+
+func (m *SetAfsdbRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetAfsdbRequest) GetAfsdb() *AFSDB {
+	if m != nil {
+		return m.Afsdb
+	}
+	return nil
+}
+
+type SetAfsdbResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetAfsdbResponse) Reset()         { *m = SetAfsdbResponse{} }
+func (m *SetAfsdbResponse) String() string { return proto.CompactTextString(m) }
+func (*SetAfsdbResponse) ProtoMessage()    {}
+func (*SetAfsdbResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{32}
+}
+
+func (m *SetAfsdbResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetAfsdbResponse.Unmarshal(m, b)
+}
+func (m *SetAfsdbResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetAfsdbResponse.Marshal(b, m, deterministic)
+}
+func (m *SetAfsdbResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetAfsdbResponse.Merge(m, src)
+}
+func (m *SetAfsdbResponse) XXX_Size() int {
+	return xxx_messageInfo_SetAfsdbResponse.Size(m)
+}
+func (m *SetAfsdbResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetAfsdbResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetAfsdbResponse proto.InternalMessageInfo
+
+func (m *SetAfsdbResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetAfsdbRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAfsdbRequest) Reset()         { *m = GetAfsdbRequest{} }
+func (m *GetAfsdbRequest) String() string { return proto.CompactTextString(m) }
+func (*GetAfsdbRequest) ProtoMessage()    {}
+func (*GetAfsdbRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{33}
+}
+
+func (m *GetAfsdbRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAfsdbRequest.Unmarshal(m, b)
+}
+func (m *GetAfsdbRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAfsdbRequest.Marshal(b, m, deterministic)
+}
+func (m *GetAfsdbRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAfsdbRequest.Merge(m, src)
+}
+func (m *GetAfsdbRequest) XXX_Size() int {
+	return xxx_messageInfo_GetAfsdbRequest.Size(m)
+}
+func (m *GetAfsdbRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAfsdbRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAfsdbRequest proto.InternalMessageInfo
+
+func (m *GetAfsdbRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetAfsdbResponse struct {
+	Result               *AFSDB   `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAfsdbResponse) Reset()         { *m = GetAfsdbResponse{} }
+func (m *GetAfsdbResponse) String() string { return proto.CompactTextString(m) }
+func (*GetAfsdbResponse) ProtoMessage()    {}
+func (*GetAfsdbResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{34}
+}
+
+func (m *GetAfsdbResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAfsdbResponse.Unmarshal(m, b)
+}
+func (m *GetAfsdbResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAfsdbResponse.Marshal(b, m, deterministic)
+}
+func (m *GetAfsdbResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAfsdbResponse.Merge(m, src)
+}
+func (m *GetAfsdbResponse) XXX_Size() int {
+	return xxx_messageInfo_GetAfsdbResponse.Size(m)
+}
+func (m *GetAfsdbResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAfsdbResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAfsdbResponse proto.InternalMessageInfo
+
+func (m *GetAfsdbResponse) GetResult() *AFSDB {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type RemoveAfsdbRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAfsdbRequest) Reset()         { *m = RemoveAfsdbRequest{} }
+func (m *RemoveAfsdbRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveAfsdbRequest) ProtoMessage()    {}
+func (*RemoveAfsdbRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{35}
+}
+
+func (m *RemoveAfsdbRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAfsdbRequest.Unmarshal(m, b)
+}
+func (m *RemoveAfsdbRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAfsdbRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveAfsdbRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAfsdbRequest.Merge(m, src)
+}
+func (m *RemoveAfsdbRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveAfsdbRequest.Size(m)
+}
+func (m *RemoveAfsdbRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAfsdbRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAfsdbRequest proto.InternalMessageInfo
+
+func (m *RemoveAfsdbRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveAfsdbResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAfsdbResponse) Reset()         { *m = RemoveAfsdbResponse{} }
+func (m *RemoveAfsdbResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveAfsdbResponse) ProtoMessage()    {}
+func (*RemoveAfsdbResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{36}
+}
+
+func (m *RemoveAfsdbResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAfsdbResponse.Unmarshal(m, b)
+}
+func (m *RemoveAfsdbResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAfsdbResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveAfsdbResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAfsdbResponse.Merge(m, src)
+}
+func (m *RemoveAfsdbResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveAfsdbResponse.Size(m)
+}
+func (m *RemoveAfsdbResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAfsdbResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAfsdbResponse proto.InternalMessageInfo
+
+func (m *RemoveAfsdbResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type MX struct {
+	Preference           int32    `protobuf:"varint,1,opt,name=preference,proto3" json:"preference,omitempty"`
+	Mx                   string   `protobuf:"bytes,2,opt,name=mx,proto3" json:"mx,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *MX) Reset()         { *m = MX{} }
+func (m *MX) String() string { return proto.CompactTextString(m) }
+func (*MX) ProtoMessage()    {}
+func (*MX) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{37}
+}
+
+func (m *MX) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MX.Unmarshal(m, b)
+}
+func (m *MX) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MX.Marshal(b, m, deterministic)
+}
+func (m *MX) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MX.Merge(m, src)
+}
+func (m *MX) XXX_Size() int {
+	return xxx_messageInfo_MX.Size(m)
+}
+func (m *MX) XXX_DiscardUnknown() {
+	xxx_messageInfo_MX.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MX proto.InternalMessageInfo
+
+func (m *MX) GetPreference() int32 {
+	if m != nil {
+		return m.Preference
+	}
+	return 0
+}
+
+func (m *MX) GetMx() string {
+	if m != nil {
+		return m.Mx
+	}
+	return ""
+}
+
+type SetMxRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Mx                   *MX      `protobuf:"bytes,2,opt,name=mx,proto3" json:"mx,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetMxRequest) Reset()         { *m = SetMxRequest{} }
+func (m *SetMxRequest) String() string { return proto.CompactTextString(m) }
+func (*SetMxRequest) ProtoMessage()    {}
+func (*SetMxRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{38}
+}
+
+func (m *SetMxRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetMxRequest.Unmarshal(m, b)
+}
+func (m *SetMxRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetMxRequest.Marshal(b, m, deterministic)
+}
+func (m *SetMxRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetMxRequest.Merge(m, src)
+}
+func (m *SetMxRequest) XXX_Size() int {
+	return xxx_messageInfo_SetMxRequest.Size(m)
+}
+func (m *SetMxRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetMxRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetMxRequest proto.InternalMessageInfo
+
+func (m *SetMxRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetMxRequest) GetMx() *MX {
+	if m != nil {
+		return m.Mx
+	}
+	return nil
+}
+
+type SetMxResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetMxResponse) Reset()         { *m = SetMxResponse{} }
+func (m *SetMxResponse) String() string { return proto.CompactTextString(m) }
+func (*SetMxResponse) ProtoMessage()    {}
+func (*SetMxResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{39}
+}
+
+func (m *SetMxResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetMxResponse.Unmarshal(m, b)
+}
+func (m *SetMxResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetMxResponse.Marshal(b, m, deterministic)
+}
+func (m *SetMxResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetMxResponse.Merge(m, src)
+}
+func (m *SetMxResponse) XXX_Size() int {
+	return xxx_messageInfo_SetMxResponse.Size(m)
+}
+func (m *SetMxResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetMxResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetMxResponse proto.InternalMessageInfo
+
+func (m *SetMxResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetMxRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetMxRequest) Reset()         { *m = GetMxRequest{} }
+func (m *GetMxRequest) String() string { return proto.CompactTextString(m) }
+func (*GetMxRequest) ProtoMessage()    {}
+func (*GetMxRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{40}
+}
+
+func (m *GetMxRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetMxRequest.Unmarshal(m, b)
+}
+func (m *GetMxRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetMxRequest.Marshal(b, m, deterministic)
+}
+func (m *GetMxRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetMxRequest.Merge(m, src)
+}
+func (m *GetMxRequest) XXX_Size() int {
+	return xxx_messageInfo_GetMxRequest.Size(m)
+}
+func (m *GetMxRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetMxRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetMxRequest proto.InternalMessageInfo
+
+func (m *GetMxRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetMxResponse struct {
+	Result               *MX      `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetMxResponse) Reset()         { *m = GetMxResponse{} }
+func (m *GetMxResponse) String() string { return proto.CompactTextString(m) }
+func (*GetMxResponse) ProtoMessage()    {}
+func (*GetMxResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{41}
+}
+
+func (m *GetMxResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetMxResponse.Unmarshal(m, b)
+}
+func (m *GetMxResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetMxResponse.Marshal(b, m, deterministic)
+}
+func (m *GetMxResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetMxResponse.Merge(m, src)
+}
+func (m *GetMxResponse) XXX_Size() int {
+	return xxx_messageInfo_GetMxResponse.Size(m)
+}
+func (m *GetMxResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetMxResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetMxResponse proto.InternalMessageInfo
+
+func (m *GetMxResponse) GetResult() *MX {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type RemoveMxRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveMxRequest) Reset()         { *m = RemoveMxRequest{} }
+func (m *RemoveMxRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveMxRequest) ProtoMessage()    {}
+func (*RemoveMxRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{42}
+}
+
+func (m *RemoveMxRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveMxRequest.Unmarshal(m, b)
+}
+func (m *RemoveMxRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveMxRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveMxRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveMxRequest.Merge(m, src)
+}
+func (m *RemoveMxRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveMxRequest.Size(m)
+}
+func (m *RemoveMxRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveMxRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveMxRequest proto.InternalMessageInfo
+
+func (m *RemoveMxRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveMxResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveMxResponse) Reset()         { *m = RemoveMxResponse{} }
+func (m *RemoveMxResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveMxResponse) ProtoMessage()    {}
+func (*RemoveMxResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{43}
+}
+
+func (m *RemoveMxResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveMxResponse.Unmarshal(m, b)
+}
+func (m *RemoveMxResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveMxResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveMxResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveMxResponse.Merge(m, src)
+}
+func (m *RemoveMxResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveMxResponse.Size(m)
+}
+func (m *RemoveMxResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveMxResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveMxResponse proto.InternalMessageInfo
+
+func (m *RemoveMxResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type SOA struct {
+	Ns                   string   `protobuf:"bytes,1,opt,name=ns,proto3" json:"ns,omitempty"`
+	Mbox                 string   `protobuf:"bytes,2,opt,name=mbox,proto3" json:"mbox,omitempty"`
+	Serial               uint32   `protobuf:"varint,3,opt,name=serial,proto3" json:"serial,omitempty"`
+	Refresh              uint32   `protobuf:"varint,4,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	Retry                uint32   `protobuf:"varint,5,opt,name=retry,proto3" json:"retry,omitempty"`
+	Expire               uint32   `protobuf:"varint,6,opt,name=expire,proto3" json:"expire,omitempty"`
+	Minttl               uint32   `protobuf:"varint,7,opt,name=minttl,proto3" json:"minttl,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SOA) Reset()         { *m = SOA{} }
+func (m *SOA) String() string { return proto.CompactTextString(m) }
+func (*SOA) ProtoMessage()    {}
+func (*SOA) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{44}
+}
+
+func (m *SOA) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SOA.Unmarshal(m, b)
+}
+func (m *SOA) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SOA.Marshal(b, m, deterministic)
+}
+func (m *SOA) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SOA.Merge(m, src)
+}
+func (m *SOA) XXX_Size() int {
+	return xxx_messageInfo_SOA.Size(m)
+}
+func (m *SOA) XXX_DiscardUnknown() {
+	xxx_messageInfo_SOA.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SOA proto.InternalMessageInfo
+
+func (m *SOA) GetNs() string {
+	if m != nil {
+		return m.Ns
+	}
+	return ""
+}
+
+func (m *SOA) GetMbox() string {
+	if m != nil {
+		return m.Mbox
+	}
+	return ""
+}
+
+func (m *SOA) GetSerial() uint32 {
+	if m != nil {
+		return m.Serial
+	}
+	return 0
+}
+
+func (m *SOA) GetRefresh() uint32 {
+	if m != nil {
+		return m.Refresh
+	}
+	return 0
+}
+
+func (m *SOA) GetRetry() uint32 {
+	if m != nil {
+		return m.Retry
+	}
+	return 0
+}
+
+func (m *SOA) GetExpire() uint32 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+func (m *SOA) GetMinttl() uint32 {
+	if m != nil {
+		return m.Minttl
+	}
+	return 0
+}
+
+type SetSoaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Soa                  *SOA     `protobuf:"bytes,2,opt,name=soa,proto3" json:"soa,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetSoaRequest) Reset()         { *m = SetSoaRequest{} }
+func (m *SetSoaRequest) String() string { return proto.CompactTextString(m) }
+func (*SetSoaRequest) ProtoMessage()    {}
+func (*SetSoaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{45}
+}
+
+func (m *SetSoaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetSoaRequest.Unmarshal(m, b)
+}
+func (m *SetSoaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetSoaRequest.Marshal(b, m, deterministic)
+}
+func (m *SetSoaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetSoaRequest.Merge(m, src)
+}
+func (m *SetSoaRequest) XXX_Size() int {
+	return xxx_messageInfo_SetSoaRequest.Size(m)
+}
+func (m *SetSoaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetSoaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetSoaRequest proto.InternalMessageInfo
+
+func (m *SetSoaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetSoaRequest) GetSoa() *SOA {
+	if m != nil {
+		return m.Soa
+	}
+	return nil
+}
+
+type SetSoaResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetSoaResponse) Reset()         { *m = SetSoaResponse{} }
+func (m *SetSoaResponse) String() string { return proto.CompactTextString(m) }
+func (*SetSoaResponse) ProtoMessage()    {}
+func (*SetSoaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{46}
+}
+
+func (m *SetSoaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetSoaResponse.Unmarshal(m, b)
+}
+func (m *SetSoaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetSoaResponse.Marshal(b, m, deterministic)
+}
+func (m *SetSoaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetSoaResponse.Merge(m, src)
+}
+func (m *SetSoaResponse) XXX_Size() int {
+	return xxx_messageInfo_SetSoaResponse.Size(m)
+}
+func (m *SetSoaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetSoaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetSoaResponse proto.InternalMessageInfo
+
+func (m *SetSoaResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetSoaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetSoaRequest) Reset()         { *m = GetSoaRequest{} }
+func (m *GetSoaRequest) String() string { return proto.CompactTextString(m) }
+func (*GetSoaRequest) ProtoMessage()    {}
+func (*GetSoaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{47}
+}
+
+func (m *GetSoaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetSoaRequest.Unmarshal(m, b)
+}
+func (m *GetSoaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetSoaRequest.Marshal(b, m, deterministic)
+}
+func (m *GetSoaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetSoaRequest.Merge(m, src)
+}
+func (m *GetSoaRequest) XXX_Size() int {
+	return xxx_messageInfo_GetSoaRequest.Size(m)
+}
+func (m *GetSoaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetSoaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetSoaRequest proto.InternalMessageInfo
+
+func (m *GetSoaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetSoaResponse struct {
+	Result               *SOA     `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetSoaResponse) Reset()         { *m = GetSoaResponse{} }
+func (m *GetSoaResponse) String() string { return proto.CompactTextString(m) }
+func (*GetSoaResponse) ProtoMessage()    {}
+func (*GetSoaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{48}
+}
+
+func (m *GetSoaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetSoaResponse.Unmarshal(m, b)
+}
+func (m *GetSoaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetSoaResponse.Marshal(b, m, deterministic)
+}
+func (m *GetSoaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetSoaResponse.Merge(m, src)
+}
+func (m *GetSoaResponse) XXX_Size() int {
+	return xxx_messageInfo_GetSoaResponse.Size(m)
+}
+func (m *GetSoaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetSoaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetSoaResponse proto.InternalMessageInfo
+
+func (m *GetSoaResponse) GetResult() *SOA {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type RemoveSoaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveSoaRequest) Reset()         { *m = RemoveSoaRequest{} }
+func (m *RemoveSoaRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveSoaRequest) ProtoMessage()    {}
+func (*RemoveSoaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{49}
+}
+
+func (m *RemoveSoaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveSoaRequest.Unmarshal(m, b)
+}
+func (m *RemoveSoaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveSoaRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveSoaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveSoaRequest.Merge(m, src)
+}
+func (m *RemoveSoaRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveSoaRequest.Size(m)
+}
+func (m *RemoveSoaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveSoaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveSoaRequest proto.InternalMessageInfo
+
+func (m *RemoveSoaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveSoaResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveSoaResponse) Reset()         { *m = RemoveSoaResponse{} }
+func (m *RemoveSoaResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveSoaResponse) ProtoMessage()    {}
+func (*RemoveSoaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{50}
+}
+
+func (m *RemoveSoaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveSoaResponse.Unmarshal(m, b)
+}
+func (m *RemoveSoaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveSoaResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveSoaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveSoaResponse.Merge(m, src)
+}
+func (m *RemoveSoaResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveSoaResponse.Size(m)
+}
+func (m *RemoveSoaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveSoaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveSoaResponse proto.InternalMessageInfo
+
+func (m *RemoveSoaResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type URI struct {
+	Priority             uint32   `protobuf:"varint,1,opt,name=priority,proto3" json:"priority,omitempty"`
+	Weight               uint32   `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
+	Target               string   `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *URI) Reset()         { *m = URI{} }
+func (m *URI) String() string { return proto.CompactTextString(m) }
+func (*URI) ProtoMessage()    {}
+func (*URI) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{51}
+}
+
+func (m *URI) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_URI.Unmarshal(m, b)
+}
+func (m *URI) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_URI.Marshal(b, m, deterministic)
+}
+func (m *URI) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_URI.Merge(m, src)
+}
+func (m *URI) XXX_Size() int {
+	return xxx_messageInfo_URI.Size(m)
+}
+func (m *URI) XXX_DiscardUnknown() {
+	xxx_messageInfo_URI.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_URI proto.InternalMessageInfo
+
+func (m *URI) GetPriority() uint32 {
+	if m != nil {
+		return m.Priority
+	}
+	return 0
+}
+
+func (m *URI) GetWeight() uint32 {
+	if m != nil {
+		return m.Weight
+	}
+	return 0
+}
+
+func (m *URI) GetTarget() string {
+	if m != nil {
+		return m.Target
+	}
+	return ""
+}
+
+type SetUriRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Uri                  *URI     `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetUriRequest) Reset()         { *m = SetUriRequest{} }
+func (m *SetUriRequest) String() string { return proto.CompactTextString(m) }
+func (*SetUriRequest) ProtoMessage()    {}
+func (*SetUriRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{52}
+}
+
+func (m *SetUriRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetUriRequest.Unmarshal(m, b)
+}
+func (m *SetUriRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetUriRequest.Marshal(b, m, deterministic)
+}
+func (m *SetUriRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetUriRequest.Merge(m, src)
+}
+func (m *SetUriRequest) XXX_Size() int {
+	return xxx_messageInfo_SetUriRequest.Size(m)
+}
+func (m *SetUriRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetUriRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetUriRequest proto.InternalMessageInfo
+
+func (m *SetUriRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetUriRequest) GetUri() *URI {
+	if m != nil {
+		return m.Uri
+	}
+	return nil
+}
+
+type SetUriResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetUriResponse) Reset()         { *m = SetUriResponse{} }
+func (m *SetUriResponse) String() string { return proto.CompactTextString(m) }
+func (*SetUriResponse) ProtoMessage()    {}
+func (*SetUriResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{53}
+}
+
+func (m *SetUriResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetUriResponse.Unmarshal(m, b)
+}
+func (m *SetUriResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetUriResponse.Marshal(b, m, deterministic)
+}
+func (m *SetUriResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetUriResponse.Merge(m, src)
+}
+func (m *SetUriResponse) XXX_Size() int {
+	return xxx_messageInfo_SetUriResponse.Size(m)
+}
+func (m *SetUriResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetUriResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetUriResponse proto.InternalMessageInfo
+
+func (m *SetUriResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetUriRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetUriRequest) Reset()         { *m = GetUriRequest{} }
+func (m *GetUriRequest) String() string { return proto.CompactTextString(m) }
+func (*GetUriRequest) ProtoMessage()    {}
+func (*GetUriRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{54}
+}
+
+func (m *GetUriRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetUriRequest.Unmarshal(m, b)
+}
+func (m *GetUriRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetUriRequest.Marshal(b, m, deterministic)
+}
+func (m *GetUriRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetUriRequest.Merge(m, src)
+}
+func (m *GetUriRequest) XXX_Size() int {
+	return xxx_messageInfo_GetUriRequest.Size(m)
+}
+func (m *GetUriRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetUriRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetUriRequest proto.InternalMessageInfo
+
+func (m *GetUriRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetUriResponse struct {
+	Result               *URI     `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetUriResponse) Reset()         { *m = GetUriResponse{} }
+func (m *GetUriResponse) String() string { return proto.CompactTextString(m) }
+func (*GetUriResponse) ProtoMessage()    {}
+func (*GetUriResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{55}
+}
+
+func (m *GetUriResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetUriResponse.Unmarshal(m, b)
+}
+func (m *GetUriResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetUriResponse.Marshal(b, m, deterministic)
+}
+func (m *GetUriResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetUriResponse.Merge(m, src)
+}
+func (m *GetUriResponse) XXX_Size() int {
+	return xxx_messageInfo_GetUriResponse.Size(m)
+}
+func (m *GetUriResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetUriResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetUriResponse proto.InternalMessageInfo
+
+func (m *GetUriResponse) GetResult() *URI {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type RemoveUriRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveUriRequest) Reset()         { *m = RemoveUriRequest{} }
+func (m *RemoveUriRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveUriRequest) ProtoMessage()    {}
+func (*RemoveUriRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{56}
+}
+
+func (m *RemoveUriRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveUriRequest.Unmarshal(m, b)
+}
+func (m *RemoveUriRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveUriRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveUriRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveUriRequest.Merge(m, src)
+}
+func (m *RemoveUriRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveUriRequest.Size(m)
+}
+func (m *RemoveUriRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveUriRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveUriRequest proto.InternalMessageInfo
+
+func (m *RemoveUriRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveUriResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveUriResponse) Reset()         { *m = RemoveUriResponse{} }
+func (m *RemoveUriResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveUriResponse) ProtoMessage()    {}
+func (*RemoveUriResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{57}
+}
+
+func (m *RemoveUriResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveUriResponse.Unmarshal(m, b)
+}
+func (m *RemoveUriResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveUriResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveUriResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveUriResponse.Merge(m, src)
+}
+func (m *RemoveUriResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveUriResponse.Size(m)
+}
+func (m *RemoveUriResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveUriResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveUriResponse proto.InternalMessageInfo
+
+func (m *RemoveUriResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type CAA struct {
+	Flag                 uint32   `protobuf:"varint,1,opt,name=flag,proto3" json:"flag,omitempty"`
+	Tag                  string   `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	Value                string   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CAA) Reset()         { *m = CAA{} }
+func (m *CAA) String() string { return proto.CompactTextString(m) }
+func (*CAA) ProtoMessage()    {}
+func (*CAA) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{58}
+}
+
+func (m *CAA) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CAA.Unmarshal(m, b)
+}
+func (m *CAA) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CAA.Marshal(b, m, deterministic)
+}
+func (m *CAA) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CAA.Merge(m, src)
+}
+func (m *CAA) XXX_Size() int {
+	return xxx_messageInfo_CAA.Size(m)
+}
+func (m *CAA) XXX_DiscardUnknown() {
+	xxx_messageInfo_CAA.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CAA proto.InternalMessageInfo
+
+func (m *CAA) GetFlag() uint32 {
+	if m != nil {
+		return m.Flag
+	}
+	return 0
+}
+
+func (m *CAA) GetTag() string {
+	if m != nil {
+		return m.Tag
+	}
+	return ""
+}
+
+func (m *CAA) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+type SetCaaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Caa                  *CAA     `protobuf:"bytes,2,opt,name=caa,proto3" json:"caa,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetCaaRequest) Reset()         { *m = SetCaaRequest{} }
+func (m *SetCaaRequest) String() string { return proto.CompactTextString(m) }
+func (*SetCaaRequest) ProtoMessage()    {}
+func (*SetCaaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{59}
+}
+
+func (m *SetCaaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetCaaRequest.Unmarshal(m, b)
+}
+func (m *SetCaaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetCaaRequest.Marshal(b, m, deterministic)
+}
+func (m *SetCaaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetCaaRequest.Merge(m, src)
+}
+func (m *SetCaaRequest) XXX_Size() int {
+	return xxx_messageInfo_SetCaaRequest.Size(m)
+}
+func (m *SetCaaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetCaaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetCaaRequest proto.InternalMessageInfo
+
+func (m *SetCaaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SetCaaRequest) GetCaa() *CAA {
+	if m != nil {
+		return m.Caa
+	}
+	return nil
+}
+
+type SetCaaResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetCaaResponse) Reset()         { *m = SetCaaResponse{} }
+func (m *SetCaaResponse) String() string { return proto.CompactTextString(m) }
+func (*SetCaaResponse) ProtoMessage()    {}
+func (*SetCaaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{60}
+}
+
+func (m *SetCaaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetCaaResponse.Unmarshal(m, b)
+}
+func (m *SetCaaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetCaaResponse.Marshal(b, m, deterministic)
+}
+func (m *SetCaaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetCaaResponse.Merge(m, src)
+}
+func (m *SetCaaResponse) XXX_Size() int {
+	return xxx_messageInfo_SetCaaResponse.Size(m)
+}
+func (m *SetCaaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetCaaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetCaaResponse proto.InternalMessageInfo
+
+func (m *SetCaaResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type GetCaaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetCaaRequest) Reset()         { *m = GetCaaRequest{} }
+func (m *GetCaaRequest) String() string { return proto.CompactTextString(m) }
+func (*GetCaaRequest) ProtoMessage()    {}
+func (*GetCaaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{61}
+}
+
+func (m *GetCaaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetCaaRequest.Unmarshal(m, b)
+}
+func (m *GetCaaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetCaaRequest.Marshal(b, m, deterministic)
+}
+func (m *GetCaaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCaaRequest.Merge(m, src)
+}
+func (m *GetCaaRequest) XXX_Size() int {
+	return xxx_messageInfo_GetCaaRequest.Size(m)
+}
+func (m *GetCaaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCaaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCaaRequest proto.InternalMessageInfo
+
+func (m *GetCaaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type GetCaaResponse struct {
+	Result               *CAA     `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetCaaResponse) Reset()         { *m = GetCaaResponse{} }
+func (m *GetCaaResponse) String() string { return proto.CompactTextString(m) }
+func (*GetCaaResponse) ProtoMessage()    {}
+func (*GetCaaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{62}
+}
+
+func (m *GetCaaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetCaaResponse.Unmarshal(m, b)
+}
+func (m *GetCaaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetCaaResponse.Marshal(b, m, deterministic)
+}
+func (m *GetCaaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetCaaResponse.Merge(m, src)
+}
+func (m *GetCaaResponse) XXX_Size() int {
+	return xxx_messageInfo_GetCaaResponse.Size(m)
+}
+func (m *GetCaaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetCaaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetCaaResponse proto.InternalMessageInfo
+
+func (m *GetCaaResponse) GetResult() *CAA {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type RemoveCaaRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveCaaRequest) Reset()         { *m = RemoveCaaRequest{} }
+func (m *RemoveCaaRequest) String() string { return proto.CompactTextString(m) }
+func (*RemoveCaaRequest) ProtoMessage()    {}
+func (*RemoveCaaRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{63}
+}
+
+func (m *RemoveCaaRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveCaaRequest.Unmarshal(m, b)
+}
+func (m *RemoveCaaRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveCaaRequest.Marshal(b, m, deterministic)
+}
+func (m *RemoveCaaRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveCaaRequest.Merge(m, src)
+}
+func (m *RemoveCaaRequest) XXX_Size() int {
+	return xxx_messageInfo_RemoveCaaRequest.Size(m)
+}
+func (m *RemoveCaaRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveCaaRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveCaaRequest proto.InternalMessageInfo
+
+func (m *RemoveCaaRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type RemoveCaaResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveCaaResponse) Reset()         { *m = RemoveCaaResponse{} }
+func (m *RemoveCaaResponse) String() string { return proto.CompactTextString(m) }
+func (*RemoveCaaResponse) ProtoMessage()    {}
+func (*RemoveCaaResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0ef3a55f90e78d4, []int{64}
+}
+
+func (m *RemoveCaaResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveCaaResponse.Unmarshal(m, b)
+}
+func (m *RemoveCaaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveCaaResponse.Marshal(b, m, deterministic)
+}
+func (m *RemoveCaaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveCaaResponse.Merge(m, src)
+}
+func (m *RemoveCaaResponse) XXX_Size() int {
+	return xxx_messageInfo_RemoveCaaResponse.Size(m)
+}
+func (m *RemoveCaaResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveCaaResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveCaaResponse proto.InternalMessageInfo
+
+func (m *RemoveCaaResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
 }
 
 func init() {
-	proto.RegisterType((*SetEntryRequest)(nil), "dns.SetEntryRequest")
-	proto.RegisterType((*SetEntryResponse)(nil), "dns.SetEntryResponse")
-	proto.RegisterType((*RemoveEntryRequest)(nil), "dns.RemoveEntryRequest")
-	proto.RegisterType((*RemoveEntryResponse)(nil), "dns.RemoveEntryResponse")
+	proto.RegisterType((*SetARequest)(nil), "dns.SetARequest")
+	proto.RegisterType((*SetAResponse)(nil), "dns.SetAResponse")
+	proto.RegisterType((*RemoveARequest)(nil), "dns.RemoveARequest")
+	proto.RegisterType((*RemoveAResponse)(nil), "dns.RemoveAResponse")
+	proto.RegisterType((*GetARequest)(nil), "dns.GetARequest")
+	proto.RegisterType((*GetAResponse)(nil), "dns.GetAResponse")
+	proto.RegisterType((*SetAAAARequest)(nil), "dns.SetAAAARequest")
+	proto.RegisterType((*SetAAAAResponse)(nil), "dns.SetAAAAResponse")
+	proto.RegisterType((*RemoveAAAARequest)(nil), "dns.RemoveAAAARequest")
+	proto.RegisterType((*RemoveAAAAResponse)(nil), "dns.RemoveAAAAResponse")
+	proto.RegisterType((*GetAAAARequest)(nil), "dns.GetAAAARequest")
+	proto.RegisterType((*GetAAAAResponse)(nil), "dns.GetAAAAResponse")
 	proto.RegisterType((*SetTextRequest)(nil), "dns.SetTextRequest")
 	proto.RegisterType((*SetTextResponse)(nil), "dns.SetTextResponse")
 	proto.RegisterType((*GetTextRequest)(nil), "dns.GetTextRequest")
 	proto.RegisterType((*GetTextResponse)(nil), "dns.GetTextResponse")
 	proto.RegisterType((*RemoveTextRequest)(nil), "dns.RemoveTextRequest")
 	proto.RegisterType((*RemoveTextResponse)(nil), "dns.RemoveTextResponse")
-	proto.RegisterType((*ResolveRequest)(nil), "dns.ResolveRequest")
-	proto.RegisterType((*ResolveResponse)(nil), "dns.ResolveResponse")
+	proto.RegisterType((*SetNsRequest)(nil), "dns.SetNsRequest")
+	proto.RegisterType((*SetNsResponse)(nil), "dns.SetNsResponse")
+	proto.RegisterType((*GetNsRequest)(nil), "dns.GetNsRequest")
+	proto.RegisterType((*GetNsResponse)(nil), "dns.GetNsResponse")
+	proto.RegisterType((*RemoveNsRequest)(nil), "dns.RemoveNsRequest")
+	proto.RegisterType((*RemoveNsResponse)(nil), "dns.RemoveNsResponse")
+	proto.RegisterType((*SetCNameRequest)(nil), "dns.SetCNameRequest")
+	proto.RegisterType((*SetCNameResponse)(nil), "dns.SetCNameResponse")
+	proto.RegisterType((*GetCNameRequest)(nil), "dns.GetCNameRequest")
+	proto.RegisterType((*GetCNameResponse)(nil), "dns.GetCNameResponse")
+	proto.RegisterType((*RemoveCNameRequest)(nil), "dns.RemoveCNameRequest")
+	proto.RegisterType((*RemoveCNameResponse)(nil), "dns.RemoveCNameResponse")
+	proto.RegisterType((*AFSDB)(nil), "dns.AFSDB")
+	proto.RegisterType((*SetAfsdbRequest)(nil), "dns.SetAfsdbRequest")
+	proto.RegisterType((*SetAfsdbResponse)(nil), "dns.SetAfsdbResponse")
+	proto.RegisterType((*GetAfsdbRequest)(nil), "dns.GetAfsdbRequest")
+	proto.RegisterType((*GetAfsdbResponse)(nil), "dns.GetAfsdbResponse")
+	proto.RegisterType((*RemoveAfsdbRequest)(nil), "dns.RemoveAfsdbRequest")
+	proto.RegisterType((*RemoveAfsdbResponse)(nil), "dns.RemoveAfsdbResponse")
+	proto.RegisterType((*MX)(nil), "dns.MX")
+	proto.RegisterType((*SetMxRequest)(nil), "dns.SetMxRequest")
+	proto.RegisterType((*SetMxResponse)(nil), "dns.SetMxResponse")
+	proto.RegisterType((*GetMxRequest)(nil), "dns.GetMxRequest")
+	proto.RegisterType((*GetMxResponse)(nil), "dns.GetMxResponse")
+	proto.RegisterType((*RemoveMxRequest)(nil), "dns.RemoveMxRequest")
+	proto.RegisterType((*RemoveMxResponse)(nil), "dns.RemoveMxResponse")
+	proto.RegisterType((*SOA)(nil), "dns.SOA")
+	proto.RegisterType((*SetSoaRequest)(nil), "dns.SetSoaRequest")
+	proto.RegisterType((*SetSoaResponse)(nil), "dns.SetSoaResponse")
+	proto.RegisterType((*GetSoaRequest)(nil), "dns.GetSoaRequest")
+	proto.RegisterType((*GetSoaResponse)(nil), "dns.GetSoaResponse")
+	proto.RegisterType((*RemoveSoaRequest)(nil), "dns.RemoveSoaRequest")
+	proto.RegisterType((*RemoveSoaResponse)(nil), "dns.RemoveSoaResponse")
+	proto.RegisterType((*URI)(nil), "dns.URI")
+	proto.RegisterType((*SetUriRequest)(nil), "dns.SetUriRequest")
+	proto.RegisterType((*SetUriResponse)(nil), "dns.SetUriResponse")
+	proto.RegisterType((*GetUriRequest)(nil), "dns.GetUriRequest")
+	proto.RegisterType((*GetUriResponse)(nil), "dns.GetUriResponse")
+	proto.RegisterType((*RemoveUriRequest)(nil), "dns.RemoveUriRequest")
+	proto.RegisterType((*RemoveUriResponse)(nil), "dns.RemoveUriResponse")
+	proto.RegisterType((*CAA)(nil), "dns.CAA")
+	proto.RegisterType((*SetCaaRequest)(nil), "dns.SetCaaRequest")
+	proto.RegisterType((*SetCaaResponse)(nil), "dns.SetCaaResponse")
+	proto.RegisterType((*GetCaaRequest)(nil), "dns.GetCaaRequest")
+	proto.RegisterType((*GetCaaResponse)(nil), "dns.GetCaaResponse")
+	proto.RegisterType((*RemoveCaaRequest)(nil), "dns.RemoveCaaRequest")
+	proto.RegisterType((*RemoveCaaResponse)(nil), "dns.RemoveCaaResponse")
 }
 
 func init() { proto.RegisterFile("dns/dnspb/dns.proto", fileDescriptor_c0ef3a55f90e78d4) }
 
 var fileDescriptor_c0ef3a55f90e78d4 = []byte{
-	// 376 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0x4f, 0x4b, 0xfb, 0x40,
-	0x10, 0x25, 0xe9, 0xef, 0xd7, 0x3f, 0x23, 0xa4, 0xba, 0xad, 0x6d, 0xe8, 0xa9, 0x44, 0x84, 0x08,
-	0xb5, 0x82, 0x16, 0xd4, 0x83, 0x20, 0xa2, 0xe4, 0x9e, 0x7a, 0xf2, 0x96, 0x9a, 0x41, 0x02, 0xcd,
-	0x26, 0x66, 0xb7, 0x41, 0xbf, 0xb1, 0x1f, 0x43, 0x92, 0xce, 0x9a, 0x7f, 0xd2, 0x7a, 0x09, 0x3b,
-	0x93, 0x79, 0xef, 0xed, 0xbe, 0xb7, 0x0b, 0x03, 0x9f, 0x8b, 0x0b, 0x9f, 0x8b, 0x78, 0x95, 0x7d,
-	0xe7, 0x71, 0x12, 0xc9, 0x88, 0xb5, 0x7c, 0x2e, 0xac, 0x5b, 0xe8, 0x2f, 0x51, 0x3e, 0x71, 0x99,
-	0x7c, 0xba, 0xf8, 0xbe, 0x41, 0x21, 0x19, 0x83, 0x7f, 0xdc, 0x0b, 0xd1, 0xd4, 0xa6, 0x9a, 0xdd,
-	0x73, 0xf3, 0x75, 0xd6, 0x0b, 0xe2, 0x74, 0x61, 0xea, 0xdb, 0x5e, 0xb6, 0xb6, 0x66, 0x70, 0x58,
-	0x40, 0x45, 0x1c, 0x71, 0x81, 0xcc, 0x84, 0x4e, 0x88, 0x42, 0x78, 0x6f, 0x0a, 0xae, 0x4a, 0xcb,
-	0x06, 0xe6, 0x62, 0x18, 0xa5, 0xb8, 0x4f, 0xcb, 0x3a, 0x87, 0x41, 0x65, 0x92, 0xa8, 0x47, 0xd0,
-	0x4e, 0x50, 0x6c, 0xd6, 0x32, 0x1f, 0xee, 0xba, 0x54, 0x59, 0x37, 0x60, 0x2c, 0x51, 0x3e, 0xe3,
-	0x87, 0x54, 0xa4, 0x06, 0xe8, 0x81, 0x4f, 0x94, 0x7a, 0xe0, 0x67, 0xc8, 0xd4, 0x5b, 0x6f, 0x50,
-	0x98, 0xfa, 0xb4, 0x65, 0xf7, 0x5c, 0xaa, 0xac, 0xb3, 0xfc, 0xec, 0x5b, 0xe4, 0x1e, 0x91, 0x29,
-	0x18, 0xce, 0x4e, 0x91, 0x8c, 0xcc, 0x69, 0x92, 0x91, 0xae, 0x56, 0xd1, 0x3d, 0x81, 0xa3, 0xed,
-	0x01, 0x77, 0xf1, 0xcd, 0x94, 0x5f, 0x7f, 0xda, 0x9f, 0x0d, 0x86, 0x8b, 0x22, 0x5a, 0xa7, 0xa8,
-	0xf8, 0x46, 0xd0, 0xf6, 0xa3, 0xd0, 0x0b, 0x38, 0x71, 0x52, 0x65, 0x9d, 0x42, 0xff, 0x67, 0x92,
-	0x48, 0x55, 0xb8, 0x5a, 0x11, 0xee, 0xe5, 0x97, 0x0e, 0xf0, 0xc8, 0xc5, 0x12, 0x93, 0x34, 0x78,
-	0x45, 0x76, 0x0d, 0x5d, 0x95, 0x35, 0x1b, 0xce, 0xb3, 0x3b, 0x54, 0xbb, 0x35, 0x93, 0xe3, 0x5a,
-	0x97, 0xb8, 0xef, 0xe1, 0xa0, 0x14, 0x26, 0x1b, 0xe7, 0x53, 0xcd, 0x8b, 0x30, 0x31, 0x9b, 0x3f,
-	0x88, 0x61, 0x01, 0x1d, 0x4a, 0x89, 0x0d, 0x94, 0x46, 0xc9, 0xb8, 0xc9, 0xb0, 0xda, 0x2c, 0x50,
-	0x4e, 0x05, 0xe5, 0xfc, 0x86, 0xaa, 0x27, 0x76, 0x07, 0x50, 0x98, 0xce, 0x46, 0xa5, 0x3d, 0x95,
-	0xb1, 0xe3, 0x46, 0xbf, 0x10, 0x25, 0x6f, 0x49, 0xb4, 0x9a, 0x09, 0x89, 0xd6, 0xec, 0x7f, 0xe8,
-	0xbc, 0xfc, 0xcf, 0x9f, 0xe6, 0xaa, 0x9d, 0xbf, 0xcb, 0xab, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff,
-	0x45, 0x95, 0x4a, 0x5c, 0xae, 0x03, 0x00, 0x00,
+	// 1251 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x58, 0x6b, 0x6f, 0xdb, 0x36,
+	0x14, 0x85, 0xec, 0x38, 0x8f, 0x9b, 0x67, 0x99, 0xd6, 0x11, 0x8c, 0xa1, 0x4d, 0xb5, 0x16, 0xcd,
+	0x96, 0x2d, 0xdd, 0xb2, 0x62, 0x19, 0x36, 0x14, 0x98, 0xea, 0x62, 0x44, 0x3f, 0xa4, 0xc5, 0xe4,
+	0x05, 0x28, 0xf6, 0x8d, 0x89, 0x99, 0x44, 0x40, 0x2c, 0x79, 0xa2, 0x9c, 0x39, 0x3f, 0x67, 0x7f,
+	0x71, 0xbf, 0xa0, 0xe0, 0x43, 0x7c, 0x48, 0x96, 0xac, 0x2f, 0x85, 0x79, 0xc5, 0x73, 0xcf, 0xe1,
+	0x21, 0x2f, 0x79, 0x1b, 0xd8, 0x1f, 0x27, 0xec, 0xf5, 0x38, 0x61, 0xd3, 0x4b, 0xfe, 0xef, 0xc9,
+	0x34, 0x4b, 0xf3, 0x14, 0x75, 0xc7, 0x09, 0x0b, 0x5e, 0xc3, 0xe6, 0x88, 0xe6, 0x61, 0x44, 0xff,
+	0x99, 0x51, 0x96, 0x23, 0x04, 0x2b, 0x09, 0x99, 0x50, 0xdf, 0x3b, 0xf4, 0x8e, 0x36, 0x22, 0xf1,
+	0x1b, 0x6d, 0x81, 0x47, 0xfc, 0x8e, 0x08, 0x78, 0x24, 0x38, 0x82, 0x2d, 0x09, 0x60, 0xd3, 0x34,
+	0x61, 0x14, 0xf9, 0xb0, 0x36, 0xa1, 0x8c, 0x91, 0x9b, 0x02, 0x54, 0x0c, 0x83, 0x17, 0xb0, 0x13,
+	0xd1, 0x49, 0x7a, 0x4f, 0x9b, 0xb2, 0x07, 0xdf, 0xc0, 0xae, 0x9e, 0xa5, 0x52, 0xf6, 0x61, 0x35,
+	0xa3, 0x6c, 0x76, 0x97, 0x8b, 0x89, 0xeb, 0x91, 0x1a, 0x05, 0x2f, 0x61, 0x13, 0x5b, 0x5a, 0xfb,
+	0xb0, 0x3a, 0x4e, 0x27, 0x24, 0x4e, 0x54, 0x3e, 0x35, 0x0a, 0xbe, 0x82, 0x2d, 0x6c, 0x2b, 0x14,
+	0xfa, 0xbd, 0x42, 0xff, 0x2f, 0xb0, 0xc3, 0xf5, 0x87, 0x61, 0xe3, 0x9a, 0x11, 0xac, 0x10, 0x42,
+	0x8a, 0x65, 0x8b, 0xdf, 0xc1, 0x31, 0xec, 0x6a, 0xe4, 0xd2, 0xc5, 0xbf, 0x82, 0x47, 0x6a, 0x59,
+	0xcd, 0x4c, 0xc1, 0x77, 0x80, 0xec, 0x89, 0x4b, 0x2c, 0x38, 0x82, 0x1d, 0xec, 0xaa, 0xaf, 0x73,
+	0xe1, 0x25, 0xec, 0xe2, 0x92, 0xda, 0x62, 0x51, 0x9e, 0xb5, 0x28, 0x69, 0xc7, 0x5f, 0x74, 0x9e,
+	0x17, 0x09, 0x77, 0xa0, 0x13, 0x8f, 0xd5, 0x9c, 0x4e, 0x3c, 0xe6, 0x04, 0xf7, 0xe4, 0x6e, 0x46,
+	0x99, 0xdf, 0x39, 0xec, 0x72, 0x02, 0x39, 0xe2, 0x1b, 0xa7, 0x91, 0x4b, 0x54, 0x1f, 0x0a, 0xd5,
+	0x0d, 0x24, 0x3c, 0x19, 0xae, 0x26, 0x53, 0xbc, 0x9e, 0xc3, 0xfb, 0x75, 0xe1, 0x6c, 0x53, 0x3e,
+	0xed, 0x6a, 0x2b, 0x7d, 0x27, 0xe2, 0x4c, 0x7f, 0x64, 0x75, 0x16, 0xec, 0x40, 0x27, 0x61, 0xea,
+	0x2c, 0x74, 0x12, 0x16, 0xbc, 0x82, 0x6d, 0x35, 0x7f, 0x49, 0xe2, 0xa7, 0xe2, 0x28, 0xd6, 0x26,
+	0x0e, 0x9e, 0xc1, 0x36, 0x76, 0x12, 0x49, 0x26, 0x4f, 0x33, 0x3d, 0x2f, 0xaa, 0xa3, 0x3e, 0xc7,
+	0xb7, 0xb0, 0x67, 0xa6, 0x2c, 0xd1, 0x73, 0x26, 0xf6, 0x6c, 0xf8, 0x91, 0x4c, 0x68, 0xdd, 0x5a,
+	0x1f, 0x43, 0xef, 0x4a, 0x1c, 0x52, 0xb9, 0x5c, 0x39, 0xe0, 0x24, 0x06, 0xb8, 0x84, 0xe4, 0xb9,
+	0xd8, 0xcb, 0x26, 0x92, 0xe0, 0x08, 0xf6, 0x70, 0x39, 0x9d, 0x26, 0xf6, 0x6c, 0xe2, 0x17, 0xc5,
+	0x46, 0x36, 0xe6, 0xfb, 0x1e, 0xf6, 0x9d, 0x59, 0x4b, 0x14, 0xbe, 0x85, 0x5e, 0xf8, 0xc7, 0xe8,
+	0xfd, 0x3b, 0x5e, 0xbf, 0x6c, 0x76, 0x99, 0x3f, 0x4c, 0x25, 0xeb, 0x76, 0x54, 0x0c, 0xd1, 0x00,
+	0xd6, 0x6f, 0x53, 0x96, 0x5b, 0x4e, 0xe8, 0x71, 0x30, 0x94, 0x17, 0xc1, 0x35, 0x1b, 0x5f, 0xd6,
+	0xb9, 0x78, 0x08, 0x3d, 0xc2, 0xbf, 0x0b, 0xec, 0xe6, 0x29, 0x9c, 0xf0, 0x6b, 0x57, 0x70, 0x46,
+	0xf2, 0x83, 0x72, 0x54, 0x25, 0x69, 0xe5, 0x68, 0x13, 0x61, 0xf0, 0xb3, 0x70, 0xd4, 0x4d, 0x17,
+	0x38, 0xe9, 0x5c, 0x15, 0x45, 0x6a, 0xed, 0x6f, 0x63, 0x76, 0xed, 0x6f, 0x3b, 0xbd, 0x6f, 0xa0,
+	0x73, 0xfe, 0x19, 0x3d, 0x05, 0x98, 0x66, 0xf4, 0x9a, 0x66, 0x34, 0xb9, 0x92, 0xfe, 0xf6, 0x22,
+	0x2b, 0xc2, 0x49, 0x26, 0xf3, 0xa2, 0xaa, 0x26, 0xf3, 0xe0, 0x4c, 0x54, 0xe1, 0xf9, 0xbc, 0xce,
+	0xd3, 0x03, 0x3d, 0x7f, 0xf3, 0x74, 0x4d, 0x2c, 0xe5, 0xfc, 0xb3, 0x00, 0xca, 0x72, 0xe4, 0xc0,
+	0x56, 0xe5, 0x58, 0xcb, 0x10, 0xfc, 0x20, 0xca, 0xd1, 0x4a, 0xf4, 0xac, 0xe4, 0xa0, 0xa6, 0xb5,
+	0x76, 0x46, 0x1a, 0x53, 0x9f, 0x54, 0xd7, 0x67, 0x0b, 0x81, 0xff, 0x79, 0xd0, 0x1d, 0x7d, 0x0a,
+	0xcb, 0xd7, 0x00, 0xbf, 0xb9, 0x27, 0x97, 0x69, 0x61, 0x96, 0xf8, 0xcd, 0x73, 0x30, 0x9a, 0xc5,
+	0xe4, 0xce, 0xef, 0x8a, 0xa3, 0xab, 0x46, 0xfc, 0x4c, 0x67, 0xf4, 0x3a, 0xa3, 0xec, 0xd6, 0x5f,
+	0x91, 0x67, 0x5a, 0x0d, 0x79, 0x85, 0x65, 0x34, 0xcf, 0x1e, 0xfc, 0x9e, 0x88, 0xcb, 0x01, 0xcf,
+	0x43, 0xe7, 0xd3, 0x38, 0xa3, 0xfe, 0xaa, 0xcc, 0x23, 0x47, 0x3c, 0x3e, 0x89, 0x93, 0x3c, 0xbf,
+	0xf3, 0xd7, 0x64, 0x5c, 0x8e, 0x82, 0xdf, 0x84, 0xdb, 0xa3, 0x94, 0xd4, 0xed, 0xd3, 0x00, 0xba,
+	0x2c, 0x25, 0x6a, 0xa3, 0xd6, 0x85, 0x63, 0xa3, 0x4f, 0x61, 0xc4, 0x83, 0xfc, 0xfd, 0x2a, 0xc0,
+	0x4b, 0xac, 0x90, 0x57, 0x63, 0x3d, 0x4d, 0x70, 0x2a, 0x1e, 0x15, 0x3b, 0xd5, 0x61, 0x69, 0xb7,
+	0x0c, 0x77, 0x91, 0x34, 0x28, 0xf6, 0xa2, 0x21, 0xef, 0x71, 0xf1, 0xbe, 0xb4, 0x51, 0xf9, 0x27,
+	0x74, 0x2f, 0xa2, 0x0f, 0xfc, 0xb6, 0x98, 0x66, 0x71, 0x9a, 0xc5, 0xf9, 0x83, 0xba, 0x48, 0xf4,
+	0x98, 0x43, 0xff, 0xa5, 0xf1, 0xcd, 0x6d, 0x2e, 0x1c, 0xd9, 0x8e, 0xd4, 0x88, 0xc7, 0x73, 0x92,
+	0xdd, 0xd0, 0x5c, 0xec, 0xdf, 0x46, 0xa4, 0x46, 0xca, 0xdf, 0x8b, 0x2c, 0x6e, 0xf0, 0x77, 0x96,
+	0xc5, 0x8e, 0xbf, 0x17, 0xd1, 0x87, 0x88, 0x07, 0x95, 0xbf, 0x02, 0xdc, 0xca, 0xdf, 0x7a, 0x1a,
+	0xe5, 0xaf, 0x9d, 0x6a, 0xb1, 0xbf, 0x9c, 0xbb, 0xe2, 0x6f, 0x43, 0x5e, 0xed, 0x6f, 0x1b, 0x95,
+	0x21, 0x74, 0x87, 0x61, 0xc8, 0xcf, 0xff, 0xf5, 0x1d, 0xb9, 0x51, 0xde, 0x8a, 0xdf, 0x68, 0x0f,
+	0xba, 0x39, 0xb9, 0x51, 0x25, 0xc1, 0x7f, 0xf2, 0xf3, 0x2d, 0x7a, 0x04, 0x65, 0xa8, 0x1c, 0x28,
+	0x3f, 0x87, 0xa4, 0xe9, 0xbc, 0x5e, 0x11, 0xf7, 0xbc, 0x0e, 0xc3, 0x30, 0xe2, 0x41, 0xe5, 0xa7,
+	0x00, 0xb7, 0xf2, 0xb3, 0x9e, 0x46, 0xf9, 0x69, 0xa7, 0x5a, 0xec, 0x27, 0xe7, 0xae, 0xf8, 0xd9,
+	0x90, 0x57, 0xfb, 0xd9, 0x42, 0xe5, 0xe9, 0xff, 0x5b, 0x00, 0xef, 0x13, 0x36, 0xa2, 0xd9, 0x7d,
+	0x7c, 0x45, 0xd1, 0x31, 0xac, 0xf0, 0x47, 0x08, 0xed, 0xc9, 0x4a, 0x31, 0xcd, 0xf5, 0xe0, 0x91,
+	0x15, 0x51, 0x39, 0xdf, 0xc0, 0x9a, 0x7a, 0x04, 0xd0, 0xbe, 0xf8, 0xea, 0x76, 0xf7, 0x83, 0xc7,
+	0x6e, 0x50, 0xa1, 0x8e, 0x61, 0x05, 0x1b, 0x0a, 0x5c, 0xa1, 0xc0, 0x25, 0x0a, 0xd5, 0x62, 0x2b,
+	0x0a, 0xb7, 0x55, 0x57, 0x14, 0xe5, 0x2e, 0xfc, 0x2d, 0x80, 0x69, 0xa1, 0x51, 0xdf, 0x96, 0x61,
+	0x61, 0x0f, 0x2a, 0x71, 0x43, 0x8a, 0x1d, 0x52, 0xbc, 0x88, 0xb4, 0xdc, 0x4c, 0x4b, 0xa9, 0xbc,
+	0xbd, 0x34, 0x52, 0xad, 0x8e, 0xd4, 0x48, 0x75, 0x3a, 0x50, 0xc9, 0x65, 0xa1, 0xf0, 0x22, 0x54,
+	0xb9, 0x15, 0xd6, 0x0b, 0x14, 0x40, 0x7b, 0x81, 0x36, 0xf6, 0xa0, 0x12, 0x57, 0xf0, 0x13, 0xe8,
+	0x89, 0x76, 0x15, 0xe9, 0x4d, 0xd5, 0xdd, 0xe4, 0x00, 0xd9, 0x21, 0x33, 0x1f, 0x5b, 0xf3, 0x71,
+	0x75, 0xbe, 0xdb, 0xb4, 0x9e, 0xc1, 0x7a, 0xd1, 0x81, 0x22, 0xfb, 0x10, 0x18, 0xd4, 0x93, 0x52,
+	0xd4, 0x00, 0x8b, 0xae, 0x12, 0x69, 0xbf, 0xec, 0x46, 0x4f, 0x01, 0x2b, 0xad, 0xe7, 0x19, 0xac,
+	0x63, 0x17, 0x88, 0x17, 0x02, 0x2b, 0x4d, 0xe6, 0xef, 0xb0, 0x69, 0x35, 0x8a, 0xc8, 0xb6, 0xcc,
+	0x81, 0xfb, 0xd5, 0x0f, 0x8e, 0x99, 0xe7, 0x73, 0x63, 0xa6, 0x7e, 0xfa, 0x8d, 0x99, 0xd6, 0x53,
+	0x2f, 0xcd, 0xd4, 0xf3, 0x71, 0x75, 0xbe, 0xdb, 0x72, 0x68, 0x33, 0xcf, 0xe7, 0x8e, 0x99, 0x06,
+	0xf5, 0xa4, 0x14, 0x55, 0xc0, 0x1f, 0x61, 0x55, 0x3e, 0xad, 0x48, 0xcb, 0x30, 0xaf, 0xdc, 0x60,
+	0xdf, 0x89, 0x19, 0x08, 0xb6, 0x21, 0x78, 0x01, 0xa4, 0xf4, 0xc6, 0xfe, 0x0a, 0x1b, 0xfa, 0x75,
+	0x44, 0xb6, 0x12, 0x0b, 0xd8, 0x2f, 0x87, 0x1d, 0x85, 0x17, 0x59, 0x6c, 0x14, 0x9a, 0x77, 0xc2,
+	0x28, 0xb4, 0xdf, 0x05, 0xa9, 0xd0, 0x40, 0xf0, 0x02, 0x48, 0xe9, 0x95, 0xd2, 0x0a, 0x39, 0xca,
+	0x56, 0x68, 0x01, 0xfb, 0xe5, 0xb0, 0xa3, 0x70, 0x48, 0x2c, 0x0f, 0xcd, 0xcd, 0x6b, 0x14, 0xda,
+	0x37, 0xad, 0x54, 0x68, 0x20, 0x78, 0x01, 0xa4, 0x74, 0xef, 0x6b, 0x85, 0x1c, 0x65, 0x2b, 0xb4,
+	0x80, 0xfd, 0x72, 0xd8, 0x29, 0x19, 0xd1, 0x86, 0x9b, 0x92, 0xb1, 0x7b, 0x77, 0x53, 0x32, 0x6e,
+	0xaf, 0x2e, 0x4b, 0xc6, 0x06, 0xe2, 0x85, 0xc0, 0xca, 0xff, 0x22, 0x74, 0xc9, 0x48, 0xac, 0x73,
+	0x8d, 0xda, 0x70, 0xbf, 0xfa, 0x41, 0x66, 0x78, 0xb7, 0xf6, 0x77, 0x4f, 0xfc, 0xed, 0xe9, 0x72,
+	0x55, 0xfc, 0xe1, 0xe9, 0xa7, 0x2f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x88, 0x98, 0xee, 0x1d, 0x8f,
+	0x12, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -566,17 +2901,65 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type DnsServiceClient interface {
 	// Set a dns entry.
-	SetEntry(ctx context.Context, in *SetEntryRequest, opts ...grpc.CallOption) (*SetEntryResponse, error)
+	SetA(ctx context.Context, in *SetARequest, opts ...grpc.CallOption) (*SetAResponse, error)
 	// Remove a dns entry
-	RemoveEntry(ctx context.Context, in *RemoveEntryRequest, opts ...grpc.CallOption) (*RemoveEntryResponse, error)
+	RemoveA(ctx context.Context, in *RemoveARequest, opts ...grpc.CallOption) (*RemoveAResponse, error)
+	// Get the ipv4 address for a given name
+	GetA(ctx context.Context, in *GetARequest, opts ...grpc.CallOption) (*GetAResponse, error)
+	// Set a dns entry.
+	SetAAAA(ctx context.Context, in *SetAAAARequest, opts ...grpc.CallOption) (*SetAAAAResponse, error)
+	// Remove a dns entry
+	RemoveAAAA(ctx context.Context, in *RemoveAAAARequest, opts ...grpc.CallOption) (*RemoveAAAAResponse, error)
+	// Get the ipv6 address for a given name
+	GetAAAA(ctx context.Context, in *GetAAAARequest, opts ...grpc.CallOption) (*GetAAAAResponse, error)
 	// Set a text entry.
 	SetText(ctx context.Context, in *SetTextRequest, opts ...grpc.CallOption) (*SetTextResponse, error)
 	// Retreive a text value
 	GetText(ctx context.Context, in *GetTextRequest, opts ...grpc.CallOption) (*GetTextResponse, error)
 	// Remove a text entry
 	RemoveText(ctx context.Context, in *RemoveTextRequest, opts ...grpc.CallOption) (*RemoveTextResponse, error)
-	// Get the ipv4 address for a given name
-	Resolve(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ResolveResponse, error)
+	// Set a ns value.
+	SetNs(ctx context.Context, in *SetNsRequest, opts ...grpc.CallOption) (*SetNsResponse, error)
+	// Retreive a text value
+	GetNs(ctx context.Context, in *GetNsRequest, opts ...grpc.CallOption) (*GetNsResponse, error)
+	// Remove a text entry
+	RemoveNs(ctx context.Context, in *RemoveNsRequest, opts ...grpc.CallOption) (*RemoveNsResponse, error)
+	// Set a CName value.
+	SetCName(ctx context.Context, in *SetCNameRequest, opts ...grpc.CallOption) (*SetCNameResponse, error)
+	// Retreive a CName value
+	GetCName(ctx context.Context, in *GetCNameRequest, opts ...grpc.CallOption) (*GetCNameResponse, error)
+	// Remove a CName entry
+	RemoveCName(ctx context.Context, in *RemoveCNameRequest, opts ...grpc.CallOption) (*RemoveCNameResponse, error)
+	// Set a Mx value.
+	SetMx(ctx context.Context, in *SetMxRequest, opts ...grpc.CallOption) (*SetMxResponse, error)
+	// Retreive a Mx value
+	GetMx(ctx context.Context, in *GetMxRequest, opts ...grpc.CallOption) (*GetMxResponse, error)
+	// Remove a Mx entry
+	RemoveMx(ctx context.Context, in *RemoveMxRequest, opts ...grpc.CallOption) (*RemoveMxResponse, error)
+	// Set a SOA value.
+	SetSoa(ctx context.Context, in *SetSoaRequest, opts ...grpc.CallOption) (*SetSoaResponse, error)
+	// Retreive a SOA value
+	GetSoa(ctx context.Context, in *GetSoaRequest, opts ...grpc.CallOption) (*GetSoaResponse, error)
+	// Remove a SOA entry
+	RemoveSoa(ctx context.Context, in *RemoveSoaRequest, opts ...grpc.CallOption) (*RemoveSoaResponse, error)
+	// Set a URI value.
+	SetUri(ctx context.Context, in *SetUriRequest, opts ...grpc.CallOption) (*SetUriResponse, error)
+	// Retreive a URI value
+	GetUri(ctx context.Context, in *GetUriRequest, opts ...grpc.CallOption) (*GetUriResponse, error)
+	// Remove a URI entry
+	RemoveUri(ctx context.Context, in *RemoveUriRequest, opts ...grpc.CallOption) (*RemoveUriResponse, error)
+	// Set a CAA value.
+	SetCaa(ctx context.Context, in *SetCaaRequest, opts ...grpc.CallOption) (*SetCaaResponse, error)
+	// Retreive a CAA value
+	GetCaa(ctx context.Context, in *GetCaaRequest, opts ...grpc.CallOption) (*GetCaaResponse, error)
+	// Remove a CAA entry
+	RemoveCaa(ctx context.Context, in *RemoveCaaRequest, opts ...grpc.CallOption) (*RemoveCaaResponse, error)
+	// Set a AFSDB value.
+	SetAfsdb(ctx context.Context, in *SetAfsdbRequest, opts ...grpc.CallOption) (*SetAfsdbResponse, error)
+	// Retreive a AFSDB value
+	GetAfsdb(ctx context.Context, in *GetAfsdbRequest, opts ...grpc.CallOption) (*GetAfsdbResponse, error)
+	// Remove a AFSDB entry
+	RemoveAfsdb(ctx context.Context, in *RemoveAfsdbRequest, opts ...grpc.CallOption) (*RemoveAfsdbResponse, error)
 }
 
 type dnsServiceClient struct {
@@ -587,18 +2970,54 @@ func NewDnsServiceClient(cc *grpc.ClientConn) DnsServiceClient {
 	return &dnsServiceClient{cc}
 }
 
-func (c *dnsServiceClient) SetEntry(ctx context.Context, in *SetEntryRequest, opts ...grpc.CallOption) (*SetEntryResponse, error) {
-	out := new(SetEntryResponse)
-	err := c.cc.Invoke(ctx, "/dns.DnsService/SetEntry", in, out, opts...)
+func (c *dnsServiceClient) SetA(ctx context.Context, in *SetARequest, opts ...grpc.CallOption) (*SetAResponse, error) {
+	out := new(SetAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetA", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dnsServiceClient) RemoveEntry(ctx context.Context, in *RemoveEntryRequest, opts ...grpc.CallOption) (*RemoveEntryResponse, error) {
-	out := new(RemoveEntryResponse)
-	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveEntry", in, out, opts...)
+func (c *dnsServiceClient) RemoveA(ctx context.Context, in *RemoveARequest, opts ...grpc.CallOption) (*RemoveAResponse, error) {
+	out := new(RemoveAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveA", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetA(ctx context.Context, in *GetARequest, opts ...grpc.CallOption) (*GetAResponse, error) {
+	out := new(GetAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetA", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetAAAA(ctx context.Context, in *SetAAAARequest, opts ...grpc.CallOption) (*SetAAAAResponse, error) {
+	out := new(SetAAAAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetAAAA", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveAAAA(ctx context.Context, in *RemoveAAAARequest, opts ...grpc.CallOption) (*RemoveAAAAResponse, error) {
+	out := new(RemoveAAAAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveAAAA", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetAAAA(ctx context.Context, in *GetAAAARequest, opts ...grpc.CallOption) (*GetAAAAResponse, error) {
+	out := new(GetAAAAResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetAAAA", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -632,9 +3051,189 @@ func (c *dnsServiceClient) RemoveText(ctx context.Context, in *RemoveTextRequest
 	return out, nil
 }
 
-func (c *dnsServiceClient) Resolve(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ResolveResponse, error) {
-	out := new(ResolveResponse)
-	err := c.cc.Invoke(ctx, "/dns.DnsService/Resolve", in, out, opts...)
+func (c *dnsServiceClient) SetNs(ctx context.Context, in *SetNsRequest, opts ...grpc.CallOption) (*SetNsResponse, error) {
+	out := new(SetNsResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetNs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetNs(ctx context.Context, in *GetNsRequest, opts ...grpc.CallOption) (*GetNsResponse, error) {
+	out := new(GetNsResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetNs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveNs(ctx context.Context, in *RemoveNsRequest, opts ...grpc.CallOption) (*RemoveNsResponse, error) {
+	out := new(RemoveNsResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveNs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetCName(ctx context.Context, in *SetCNameRequest, opts ...grpc.CallOption) (*SetCNameResponse, error) {
+	out := new(SetCNameResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetCName", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetCName(ctx context.Context, in *GetCNameRequest, opts ...grpc.CallOption) (*GetCNameResponse, error) {
+	out := new(GetCNameResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetCName", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveCName(ctx context.Context, in *RemoveCNameRequest, opts ...grpc.CallOption) (*RemoveCNameResponse, error) {
+	out := new(RemoveCNameResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveCName", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetMx(ctx context.Context, in *SetMxRequest, opts ...grpc.CallOption) (*SetMxResponse, error) {
+	out := new(SetMxResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetMx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetMx(ctx context.Context, in *GetMxRequest, opts ...grpc.CallOption) (*GetMxResponse, error) {
+	out := new(GetMxResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetMx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveMx(ctx context.Context, in *RemoveMxRequest, opts ...grpc.CallOption) (*RemoveMxResponse, error) {
+	out := new(RemoveMxResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveMx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetSoa(ctx context.Context, in *SetSoaRequest, opts ...grpc.CallOption) (*SetSoaResponse, error) {
+	out := new(SetSoaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetSoa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetSoa(ctx context.Context, in *GetSoaRequest, opts ...grpc.CallOption) (*GetSoaResponse, error) {
+	out := new(GetSoaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetSoa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveSoa(ctx context.Context, in *RemoveSoaRequest, opts ...grpc.CallOption) (*RemoveSoaResponse, error) {
+	out := new(RemoveSoaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveSoa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetUri(ctx context.Context, in *SetUriRequest, opts ...grpc.CallOption) (*SetUriResponse, error) {
+	out := new(SetUriResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetUri", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetUri(ctx context.Context, in *GetUriRequest, opts ...grpc.CallOption) (*GetUriResponse, error) {
+	out := new(GetUriResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetUri", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveUri(ctx context.Context, in *RemoveUriRequest, opts ...grpc.CallOption) (*RemoveUriResponse, error) {
+	out := new(RemoveUriResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveUri", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetCaa(ctx context.Context, in *SetCaaRequest, opts ...grpc.CallOption) (*SetCaaResponse, error) {
+	out := new(SetCaaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetCaa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetCaa(ctx context.Context, in *GetCaaRequest, opts ...grpc.CallOption) (*GetCaaResponse, error) {
+	out := new(GetCaaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetCaa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveCaa(ctx context.Context, in *RemoveCaaRequest, opts ...grpc.CallOption) (*RemoveCaaResponse, error) {
+	out := new(RemoveCaaResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveCaa", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) SetAfsdb(ctx context.Context, in *SetAfsdbRequest, opts ...grpc.CallOption) (*SetAfsdbResponse, error) {
+	out := new(SetAfsdbResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/SetAfsdb", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) GetAfsdb(ctx context.Context, in *GetAfsdbRequest, opts ...grpc.CallOption) (*GetAfsdbResponse, error) {
+	out := new(GetAfsdbResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/GetAfsdb", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dnsServiceClient) RemoveAfsdb(ctx context.Context, in *RemoveAfsdbRequest, opts ...grpc.CallOption) (*RemoveAfsdbResponse, error) {
+	out := new(RemoveAfsdbResponse)
+	err := c.cc.Invoke(ctx, "/dns.DnsService/RemoveAfsdb", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -644,28 +3243,88 @@ func (c *dnsServiceClient) Resolve(ctx context.Context, in *ResolveRequest, opts
 // DnsServiceServer is the server API for DnsService service.
 type DnsServiceServer interface {
 	// Set a dns entry.
-	SetEntry(context.Context, *SetEntryRequest) (*SetEntryResponse, error)
+	SetA(context.Context, *SetARequest) (*SetAResponse, error)
 	// Remove a dns entry
-	RemoveEntry(context.Context, *RemoveEntryRequest) (*RemoveEntryResponse, error)
+	RemoveA(context.Context, *RemoveARequest) (*RemoveAResponse, error)
+	// Get the ipv4 address for a given name
+	GetA(context.Context, *GetARequest) (*GetAResponse, error)
+	// Set a dns entry.
+	SetAAAA(context.Context, *SetAAAARequest) (*SetAAAAResponse, error)
+	// Remove a dns entry
+	RemoveAAAA(context.Context, *RemoveAAAARequest) (*RemoveAAAAResponse, error)
+	// Get the ipv6 address for a given name
+	GetAAAA(context.Context, *GetAAAARequest) (*GetAAAAResponse, error)
 	// Set a text entry.
 	SetText(context.Context, *SetTextRequest) (*SetTextResponse, error)
 	// Retreive a text value
 	GetText(context.Context, *GetTextRequest) (*GetTextResponse, error)
 	// Remove a text entry
 	RemoveText(context.Context, *RemoveTextRequest) (*RemoveTextResponse, error)
-	// Get the ipv4 address for a given name
-	Resolve(context.Context, *ResolveRequest) (*ResolveResponse, error)
+	// Set a ns value.
+	SetNs(context.Context, *SetNsRequest) (*SetNsResponse, error)
+	// Retreive a text value
+	GetNs(context.Context, *GetNsRequest) (*GetNsResponse, error)
+	// Remove a text entry
+	RemoveNs(context.Context, *RemoveNsRequest) (*RemoveNsResponse, error)
+	// Set a CName value.
+	SetCName(context.Context, *SetCNameRequest) (*SetCNameResponse, error)
+	// Retreive a CName value
+	GetCName(context.Context, *GetCNameRequest) (*GetCNameResponse, error)
+	// Remove a CName entry
+	RemoveCName(context.Context, *RemoveCNameRequest) (*RemoveCNameResponse, error)
+	// Set a Mx value.
+	SetMx(context.Context, *SetMxRequest) (*SetMxResponse, error)
+	// Retreive a Mx value
+	GetMx(context.Context, *GetMxRequest) (*GetMxResponse, error)
+	// Remove a Mx entry
+	RemoveMx(context.Context, *RemoveMxRequest) (*RemoveMxResponse, error)
+	// Set a SOA value.
+	SetSoa(context.Context, *SetSoaRequest) (*SetSoaResponse, error)
+	// Retreive a SOA value
+	GetSoa(context.Context, *GetSoaRequest) (*GetSoaResponse, error)
+	// Remove a SOA entry
+	RemoveSoa(context.Context, *RemoveSoaRequest) (*RemoveSoaResponse, error)
+	// Set a URI value.
+	SetUri(context.Context, *SetUriRequest) (*SetUriResponse, error)
+	// Retreive a URI value
+	GetUri(context.Context, *GetUriRequest) (*GetUriResponse, error)
+	// Remove a URI entry
+	RemoveUri(context.Context, *RemoveUriRequest) (*RemoveUriResponse, error)
+	// Set a CAA value.
+	SetCaa(context.Context, *SetCaaRequest) (*SetCaaResponse, error)
+	// Retreive a CAA value
+	GetCaa(context.Context, *GetCaaRequest) (*GetCaaResponse, error)
+	// Remove a CAA entry
+	RemoveCaa(context.Context, *RemoveCaaRequest) (*RemoveCaaResponse, error)
+	// Set a AFSDB value.
+	SetAfsdb(context.Context, *SetAfsdbRequest) (*SetAfsdbResponse, error)
+	// Retreive a AFSDB value
+	GetAfsdb(context.Context, *GetAfsdbRequest) (*GetAfsdbResponse, error)
+	// Remove a AFSDB entry
+	RemoveAfsdb(context.Context, *RemoveAfsdbRequest) (*RemoveAfsdbResponse, error)
 }
 
 // UnimplementedDnsServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedDnsServiceServer struct {
 }
 
-func (*UnimplementedDnsServiceServer) SetEntry(ctx context.Context, req *SetEntryRequest) (*SetEntryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetEntry not implemented")
+func (*UnimplementedDnsServiceServer) SetA(ctx context.Context, req *SetARequest) (*SetAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetA not implemented")
 }
-func (*UnimplementedDnsServiceServer) RemoveEntry(ctx context.Context, req *RemoveEntryRequest) (*RemoveEntryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveEntry not implemented")
+func (*UnimplementedDnsServiceServer) RemoveA(ctx context.Context, req *RemoveARequest) (*RemoveAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveA not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetA(ctx context.Context, req *GetARequest) (*GetAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetA not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetAAAA(ctx context.Context, req *SetAAAARequest) (*SetAAAAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAAAA not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveAAAA(ctx context.Context, req *RemoveAAAARequest) (*RemoveAAAAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveAAAA not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetAAAA(ctx context.Context, req *GetAAAARequest) (*GetAAAAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAAAA not implemented")
 }
 func (*UnimplementedDnsServiceServer) SetText(ctx context.Context, req *SetTextRequest) (*SetTextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetText not implemented")
@@ -676,46 +3335,178 @@ func (*UnimplementedDnsServiceServer) GetText(ctx context.Context, req *GetTextR
 func (*UnimplementedDnsServiceServer) RemoveText(ctx context.Context, req *RemoveTextRequest) (*RemoveTextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveText not implemented")
 }
-func (*UnimplementedDnsServiceServer) Resolve(ctx context.Context, req *ResolveRequest) (*ResolveResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Resolve not implemented")
+func (*UnimplementedDnsServiceServer) SetNs(ctx context.Context, req *SetNsRequest) (*SetNsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetNs not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetNs(ctx context.Context, req *GetNsRequest) (*GetNsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNs not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveNs(ctx context.Context, req *RemoveNsRequest) (*RemoveNsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveNs not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetCName(ctx context.Context, req *SetCNameRequest) (*SetCNameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetCName not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetCName(ctx context.Context, req *GetCNameRequest) (*GetCNameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCName not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveCName(ctx context.Context, req *RemoveCNameRequest) (*RemoveCNameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveCName not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetMx(ctx context.Context, req *SetMxRequest) (*SetMxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetMx not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetMx(ctx context.Context, req *GetMxRequest) (*GetMxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMx not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveMx(ctx context.Context, req *RemoveMxRequest) (*RemoveMxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveMx not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetSoa(ctx context.Context, req *SetSoaRequest) (*SetSoaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetSoa not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetSoa(ctx context.Context, req *GetSoaRequest) (*GetSoaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSoa not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveSoa(ctx context.Context, req *RemoveSoaRequest) (*RemoveSoaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveSoa not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetUri(ctx context.Context, req *SetUriRequest) (*SetUriResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetUri not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetUri(ctx context.Context, req *GetUriRequest) (*GetUriResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUri not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveUri(ctx context.Context, req *RemoveUriRequest) (*RemoveUriResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveUri not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetCaa(ctx context.Context, req *SetCaaRequest) (*SetCaaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetCaa not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetCaa(ctx context.Context, req *GetCaaRequest) (*GetCaaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCaa not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveCaa(ctx context.Context, req *RemoveCaaRequest) (*RemoveCaaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveCaa not implemented")
+}
+func (*UnimplementedDnsServiceServer) SetAfsdb(ctx context.Context, req *SetAfsdbRequest) (*SetAfsdbResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAfsdb not implemented")
+}
+func (*UnimplementedDnsServiceServer) GetAfsdb(ctx context.Context, req *GetAfsdbRequest) (*GetAfsdbResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAfsdb not implemented")
+}
+func (*UnimplementedDnsServiceServer) RemoveAfsdb(ctx context.Context, req *RemoveAfsdbRequest) (*RemoveAfsdbResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveAfsdb not implemented")
 }
 
 func RegisterDnsServiceServer(s *grpc.Server, srv DnsServiceServer) {
 	s.RegisterService(&_DnsService_serviceDesc, srv)
 }
 
-func _DnsService_SetEntry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetEntryRequest)
+func _DnsService_SetA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DnsServiceServer).SetEntry(ctx, in)
+		return srv.(DnsServiceServer).SetA(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dns.DnsService/SetEntry",
+		FullMethod: "/dns.DnsService/SetA",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DnsServiceServer).SetEntry(ctx, req.(*SetEntryRequest))
+		return srv.(DnsServiceServer).SetA(ctx, req.(*SetARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DnsService_RemoveEntry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveEntryRequest)
+func _DnsService_RemoveA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DnsServiceServer).RemoveEntry(ctx, in)
+		return srv.(DnsServiceServer).RemoveA(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dns.DnsService/RemoveEntry",
+		FullMethod: "/dns.DnsService/RemoveA",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DnsServiceServer).RemoveEntry(ctx, req.(*RemoveEntryRequest))
+		return srv.(DnsServiceServer).RemoveA(ctx, req.(*RemoveARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetA",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetA(ctx, req.(*GetARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetAAAA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAAAARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetAAAA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetAAAA",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetAAAA(ctx, req.(*SetAAAARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveAAAA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAAAARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveAAAA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveAAAA",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveAAAA(ctx, req.(*RemoveAAAARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetAAAA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAAAARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetAAAA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetAAAA",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetAAAA(ctx, req.(*GetAAAARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -774,20 +3565,380 @@ func _DnsService_RemoveText_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DnsService_Resolve_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveRequest)
+func _DnsService_SetNs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetNsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DnsServiceServer).Resolve(ctx, in)
+		return srv.(DnsServiceServer).SetNs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dns.DnsService/Resolve",
+		FullMethod: "/dns.DnsService/SetNs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DnsServiceServer).Resolve(ctx, req.(*ResolveRequest))
+		return srv.(DnsServiceServer).SetNs(ctx, req.(*SetNsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetNs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetNs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetNs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetNs(ctx, req.(*GetNsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveNs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveNsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveNs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveNs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveNs(ctx, req.(*RemoveNsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetCName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetCNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetCName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetCName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetCName(ctx, req.(*SetCNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetCName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetCName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetCName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetCName(ctx, req.(*GetCNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveCName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveCNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveCName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveCName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveCName(ctx, req.(*RemoveCNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetMx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMxRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetMx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetMx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetMx(ctx, req.(*SetMxRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetMx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMxRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetMx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetMx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetMx(ctx, req.(*GetMxRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveMx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveMxRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveMx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveMx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveMx(ctx, req.(*RemoveMxRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetSoa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetSoaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetSoa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetSoa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetSoa(ctx, req.(*SetSoaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetSoa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSoaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetSoa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetSoa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetSoa(ctx, req.(*GetSoaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveSoa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveSoaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveSoa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveSoa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveSoa(ctx, req.(*RemoveSoaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetUri_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUriRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetUri(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetUri",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetUri(ctx, req.(*SetUriRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetUri_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUriRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetUri(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetUri",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetUri(ctx, req.(*GetUriRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveUri_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveUriRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveUri(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveUri",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveUri(ctx, req.(*RemoveUriRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetCaa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetCaaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetCaa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetCaa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetCaa(ctx, req.(*SetCaaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetCaa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCaaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetCaa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetCaa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetCaa(ctx, req.(*GetCaaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveCaa_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveCaaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveCaa(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveCaa",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveCaa(ctx, req.(*RemoveCaaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_SetAfsdb_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAfsdbRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).SetAfsdb(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/SetAfsdb",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).SetAfsdb(ctx, req.(*SetAfsdbRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_GetAfsdb_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAfsdbRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).GetAfsdb(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/GetAfsdb",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).GetAfsdb(ctx, req.(*GetAfsdbRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DnsService_RemoveAfsdb_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAfsdbRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DnsServiceServer).RemoveAfsdb(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dns.DnsService/RemoveAfsdb",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DnsServiceServer).RemoveAfsdb(ctx, req.(*RemoveAfsdbRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -797,12 +3948,28 @@ var _DnsService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*DnsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SetEntry",
-			Handler:    _DnsService_SetEntry_Handler,
+			MethodName: "SetA",
+			Handler:    _DnsService_SetA_Handler,
 		},
 		{
-			MethodName: "RemoveEntry",
-			Handler:    _DnsService_RemoveEntry_Handler,
+			MethodName: "RemoveA",
+			Handler:    _DnsService_RemoveA_Handler,
+		},
+		{
+			MethodName: "GetA",
+			Handler:    _DnsService_GetA_Handler,
+		},
+		{
+			MethodName: "SetAAAA",
+			Handler:    _DnsService_SetAAAA_Handler,
+		},
+		{
+			MethodName: "RemoveAAAA",
+			Handler:    _DnsService_RemoveAAAA_Handler,
+		},
+		{
+			MethodName: "GetAAAA",
+			Handler:    _DnsService_GetAAAA_Handler,
 		},
 		{
 			MethodName: "SetText",
@@ -817,8 +3984,88 @@ var _DnsService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _DnsService_RemoveText_Handler,
 		},
 		{
-			MethodName: "Resolve",
-			Handler:    _DnsService_Resolve_Handler,
+			MethodName: "SetNs",
+			Handler:    _DnsService_SetNs_Handler,
+		},
+		{
+			MethodName: "GetNs",
+			Handler:    _DnsService_GetNs_Handler,
+		},
+		{
+			MethodName: "RemoveNs",
+			Handler:    _DnsService_RemoveNs_Handler,
+		},
+		{
+			MethodName: "SetCName",
+			Handler:    _DnsService_SetCName_Handler,
+		},
+		{
+			MethodName: "GetCName",
+			Handler:    _DnsService_GetCName_Handler,
+		},
+		{
+			MethodName: "RemoveCName",
+			Handler:    _DnsService_RemoveCName_Handler,
+		},
+		{
+			MethodName: "SetMx",
+			Handler:    _DnsService_SetMx_Handler,
+		},
+		{
+			MethodName: "GetMx",
+			Handler:    _DnsService_GetMx_Handler,
+		},
+		{
+			MethodName: "RemoveMx",
+			Handler:    _DnsService_RemoveMx_Handler,
+		},
+		{
+			MethodName: "SetSoa",
+			Handler:    _DnsService_SetSoa_Handler,
+		},
+		{
+			MethodName: "GetSoa",
+			Handler:    _DnsService_GetSoa_Handler,
+		},
+		{
+			MethodName: "RemoveSoa",
+			Handler:    _DnsService_RemoveSoa_Handler,
+		},
+		{
+			MethodName: "SetUri",
+			Handler:    _DnsService_SetUri_Handler,
+		},
+		{
+			MethodName: "GetUri",
+			Handler:    _DnsService_GetUri_Handler,
+		},
+		{
+			MethodName: "RemoveUri",
+			Handler:    _DnsService_RemoveUri_Handler,
+		},
+		{
+			MethodName: "SetCaa",
+			Handler:    _DnsService_SetCaa_Handler,
+		},
+		{
+			MethodName: "GetCaa",
+			Handler:    _DnsService_GetCaa_Handler,
+		},
+		{
+			MethodName: "RemoveCaa",
+			Handler:    _DnsService_RemoveCaa_Handler,
+		},
+		{
+			MethodName: "SetAfsdb",
+			Handler:    _DnsService_SetAfsdb_Handler,
+		},
+		{
+			MethodName: "GetAfsdb",
+			Handler:    _DnsService_GetAfsdb_Handler,
+		},
+		{
+			MethodName: "RemoveAfsdb",
+			Handler:    _DnsService_RemoveAfsdb_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

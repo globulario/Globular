@@ -6,22 +6,58 @@ package dns;
 
 option go_package="dnspb";
 
-message SetEntryRequest {
+message SetARequest {
   string name = 1;
-  string ipv4 = 2;
+  string a = 2;
 }
 
-message SetEntryResponse {
+message SetAResponse {
   string message = 1;
 }
 
-message RemoveEntryRequest {
+message RemoveARequest {
   string name = 1;
 }
 
-message RemoveEntryResponse {
+message RemoveAResponse {
   bool result = 1;
 }
+
+
+message GetARequest {
+  string domain = 1;
+}
+
+message GetAResponse {
+  string a = 1;
+}
+
+message SetAAAARequest {
+  string name = 1;
+  string aaaa = 2;
+}
+
+message SetAAAAResponse {
+  string message = 1;
+}
+
+message RemoveAAAARequest {
+  string name = 1;
+}
+
+message RemoveAAAAResponse {
+  bool result = 1;
+}
+
+
+message GetAAAARequest {
+  string domain = 1;
+}
+
+message GetAAAAResponse {
+  string aaaa = 1;
+}
+
 
 message SetTextRequest {
   string id = 1;
@@ -48,20 +84,232 @@ message RemoveTextResponse {
   bool result = 1;
 }
 
-message ResolveRequest {
-  string domain = 1;
+message SetNsRequest {
+  string id = 1;
+  string ns = 2;
 }
 
-message ResolveResponse {
-  string ipv4 = 1;
+message SetNsResponse {
+  bool result = 1;
 }
 
+message GetNsRequest {
+  string id = 1;
+}
+
+message GetNsResponse {
+  string ns = 1;
+}
+
+message RemoveNsRequest {
+  string id = 1;
+}
+
+message RemoveNsResponse {
+  bool result = 1;
+}
+
+message SetCNameRequest {
+  string id = 1;
+  string cname = 2;
+}
+
+message SetCNameResponse {
+  bool result = 1;
+}
+
+message GetCNameRequest {
+  string id = 1;
+}
+
+message GetCNameResponse {
+  string cname = 1;
+}
+
+message RemoveCNameRequest {
+  string id = 1;
+}
+
+message RemoveCNameResponse {
+  bool result = 1;
+}
+
+message AFSDB {
+	uint32 subtype = 1;
+	string hostname = 2;
+}
+
+message SetAfsdbRequest {
+  string id = 1;
+  AFSDB afsdb = 2;
+}
+
+message SetAfsdbResponse {
+  bool result = 1;
+}
+
+message GetAfsdbRequest {
+  string id = 1;
+}
+
+message GetAfsdbResponse {
+  AFSDB result = 1;
+}
+
+message RemoveAfsdbRequest {
+  string id = 1;
+}
+
+message RemoveAfsdbResponse {
+  bool result = 1;
+}
+
+message MX {
+	int32 preference = 1;
+	string mx = 2;
+}
+
+message SetMxRequest {
+  string id = 1;
+  MX mx = 2;
+}
+
+message SetMxResponse {
+  bool result = 1;
+}
+
+message GetMxRequest {
+  string id = 1;
+}
+
+message GetMxResponse {
+  MX result = 1;
+}
+
+message RemoveMxRequest {
+  string id = 1;
+}
+
+message RemoveMxResponse {
+  bool result = 1;
+}
+
+message SOA {
+  string ns = 1; 
+  string mbox = 2;
+  uint32 serial = 3;
+  uint32 refresh = 4;
+  uint32 retry = 5;
+  uint32 expire = 6;
+  uint32 minttl =7;
+}
+
+message SetSoaRequest {
+  string id = 1;
+  SOA soa = 2;
+}
+
+message SetSoaResponse {
+  bool result = 1;
+}
+
+message GetSoaRequest {
+  string id = 1;
+}
+
+message GetSoaResponse {
+  SOA result = 1;
+}
+
+message RemoveSoaRequest {
+  string id = 1;
+}
+
+message RemoveSoaResponse {
+  bool result = 1;
+}
+
+message URI {
+	uint32 priority = 1;
+	uint32 weight = 2;
+	string target  = 3;
+}
+
+message SetUriRequest {
+  string id = 1;
+  URI uri = 2;
+}
+
+message SetUriResponse {
+  bool result = 1;
+}
+
+message GetUriRequest {
+  string id = 1;
+}
+
+message GetUriResponse {
+  URI result = 1;
+}
+
+message RemoveUriRequest {
+  string id = 1;
+}
+
+message RemoveUriResponse {
+  bool result = 1;
+}
+
+
+message CAA {
+	uint32 flag = 1;
+	string tag = 2;
+	string value  = 3;
+}
+
+message SetCaaRequest {
+  string id = 1;
+  CAA caa = 2;
+}
+
+message SetCaaResponse {
+  bool result = 1;
+}
+
+message GetCaaRequest {
+  string id = 1;
+}
+
+message GetCaaResponse {
+  CAA result = 1;
+}
+
+message RemoveCaaRequest {
+  string id = 1;
+}
+
+message RemoveCaaResponse {
+  bool result = 1;
+}
 service DnsService {
+	
   // Set a dns entry.
-  rpc SetEntry(SetEntryRequest) returns (SetEntryResponse);
+  rpc SetA(SetARequest) returns (SetAResponse);
 
   // Remove a dns entry
-  rpc RemoveEntry(RemoveEntryRequest) returns (RemoveEntryResponse);
+  rpc RemoveA(RemoveARequest) returns (RemoveAResponse);
+
+  // Get the ipv4 address for a given name 
+  rpc GetA(GetARequest) returns (GetAResponse);
+
+  // Set a dns entry.
+  rpc SetAAAA(SetAAAARequest) returns (SetAAAAResponse);
+
+  // Remove a dns entry
+  rpc RemoveAAAA(RemoveAAAARequest) returns (RemoveAAAAResponse);
+
+  // Get the ipv6 address for a given name 
+  rpc GetAAAA(GetAAAARequest) returns (GetAAAAResponse);
 
   // Set a text entry.
   rpc SetText(SetTextRequest) returns (SetTextResponse);
@@ -72,6 +320,66 @@ service DnsService {
   // Remove a text entry
   rpc RemoveText(RemoveTextRequest) returns (RemoveTextResponse);
 
-  // Get the ipv4 address for a given name 
-  rpc Resolve(ResolveRequest) returns (ResolveResponse);
+  // Set a ns value.
+  rpc SetNs(SetNsRequest) returns (SetNsResponse);
+
+  // Retreive a text value
+  rpc GetNs(GetNsRequest) returns (GetNsResponse);
+
+  // Remove a text entry
+  rpc RemoveNs(RemoveNsRequest) returns (RemoveNsResponse);
+
+  // Set a CName value.
+  rpc SetCName(SetCNameRequest) returns (SetCNameResponse);
+
+  // Retreive a CName value
+  rpc GetCName(GetCNameRequest) returns (GetCNameResponse);
+
+  // Remove a CName entry
+  rpc RemoveCName(RemoveCNameRequest) returns (RemoveCNameResponse);
+
+  // Set a Mx value.
+  rpc SetMx(SetMxRequest) returns (SetMxResponse);
+
+  // Retreive a Mx value
+  rpc GetMx(GetMxRequest) returns (GetMxResponse);
+
+  // Remove a Mx entry
+  rpc RemoveMx(RemoveMxRequest) returns (RemoveMxResponse);
+
+ // Set a SOA value.
+  rpc SetSoa(SetSoaRequest) returns (SetSoaResponse);
+
+  // Retreive a SOA value
+  rpc GetSoa(GetSoaRequest) returns (GetSoaResponse);
+
+  // Remove a SOA entry
+  rpc RemoveSoa(RemoveSoaRequest) returns (RemoveSoaResponse);
+
+  // Set a URI value.
+  rpc SetUri(SetUriRequest) returns (SetUriResponse);
+
+  // Retreive a URI value
+  rpc GetUri(GetUriRequest) returns (GetUriResponse);
+
+  // Remove a URI entry
+  rpc RemoveUri(RemoveUriRequest) returns (RemoveUriResponse);
+
+  // Set a CAA value.
+  rpc SetCaa(SetCaaRequest) returns (SetCaaResponse);
+
+  // Retreive a CAA value
+  rpc GetCaa(GetCaaRequest) returns (GetCaaResponse);
+
+  // Remove a CAA entry
+  rpc RemoveCaa(RemoveCaaRequest) returns (RemoveCaaResponse);
+
+  // Set a AFSDB value.
+  rpc SetAfsdb(SetAfsdbRequest) returns (SetAfsdbResponse);
+
+  // Retreive a AFSDB value
+  rpc GetAfsdb(GetAfsdbRequest) returns (GetAfsdbResponse);
+
+  // Remove a AFSDB entry
+  rpc RemoveAfsdb(RemoveAfsdbRequest) returns (RemoveAfsdbResponse);
 }

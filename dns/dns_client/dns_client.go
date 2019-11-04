@@ -98,43 +98,86 @@ func (self *DNS_Client) GetCaFile() string {
 	return self.caFile
 }
 
-func (self *DNS_Client) Resolve(domain string) (string, error) {
+func (self *DNS_Client) GetA(domain string) (string, error) {
 
 	// I will execute a simple ldap search here...
-	rqst := &dnspb.ResolveRequest{
+	rqst := &dnspb.GetARequest{
 		Domain: domain,
 	}
 
-	rsp, err := self.c.Resolve(context.Background(), rqst)
+	rsp, err := self.c.GetA(context.Background(), rqst)
 	if err != nil {
 		return "", err
 	}
-	return rsp.Ipv4, nil
+	return rsp.A, nil
 }
 
-func (self *DNS_Client) SetEntry(name string, ipv4 string) (string, error) {
+func (self *DNS_Client) SetA(name string, ipv4 string) (string, error) {
 
 	// I will execute a simple ldap search here...
-	rqst := &dnspb.SetEntryRequest{
+	rqst := &dnspb.SetARequest{
 		Name: name,
-		Ipv4: ipv4,
+		A:    ipv4,
 	}
 
-	rsp, err := self.c.SetEntry(context.Background(), rqst)
+	rsp, err := self.c.SetA(context.Background(), rqst)
 	if err != nil {
 		return "", err
 	}
 	return rsp.Message, nil
 }
 
-func (self *DNS_Client) RemoveEntry(name string) error {
+func (self *DNS_Client) RemoveA(name string) error {
 
 	// I will execute a simple ldap search here...
-	rqst := &dnspb.RemoveEntryRequest{
+	rqst := &dnspb.RemoveARequest{
 		Name: name,
 	}
 
-	_, err := self.c.RemoveEntry(context.Background(), rqst)
+	_, err := self.c.RemoveA(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetAAAA(domain string) (string, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetAAAARequest{
+		Domain: domain,
+	}
+
+	rsp, err := self.c.GetAAAA(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+	return rsp.Aaaa, nil
+}
+
+func (self *DNS_Client) SetAAAA(name string, ipv6 string) (string, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetAAAARequest{
+		Name: name,
+		Aaaa: ipv6,
+	}
+
+	rsp, err := self.c.SetAAAA(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+	return rsp.Message, nil
+}
+
+func (self *DNS_Client) RemoveAAAA(name string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveAAAARequest{
+		Name: name,
+	}
+
+	_, err := self.c.RemoveAAAA(context.Background(), rqst)
 	if err != nil {
 		return err
 	}
@@ -176,6 +219,342 @@ func (self *DNS_Client) RemoveText(id string) error {
 	}
 
 	_, err := self.c.RemoveText(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetNs(id string) (string, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetNsRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetNs(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetNs(), nil
+}
+
+func (self *DNS_Client) SetNs(id string, ns string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetNsRequest{
+		Id: id,
+		Ns: ns,
+	}
+
+	_, err := self.c.SetNs(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveNs(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveNsRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveNs(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetCName(id string) (string, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetCNameRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetCName(context.Background(), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetCname(), nil
+}
+
+func (self *DNS_Client) SetCName(id string, cname string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetCNameRequest{
+		Id:    id,
+		Cname: cname,
+	}
+
+	_, err := self.c.SetCName(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveCName(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveCNameRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveCName(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetMx(id string) (map[string]interface{}, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetMxRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetMx(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	mx := make(map[string]interface{}, 0)
+	mx["Preference"] = uint16(rsp.GetResult().Preference)
+	mx["Mx"] = rsp.GetResult().Mx
+
+	return mx, nil
+}
+
+func (self *DNS_Client) SetMx(id string, preference uint16, mx string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetMxRequest{
+		Id: id,
+		Mx: &dnspb.MX{
+			Preference: int32(preference),
+			Mx:         mx,
+		},
+	}
+
+	_, err := self.c.SetMx(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveMx(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveMxRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveMx(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetSoa(id string) (map[string]interface{}, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetSoaRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetSoa(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	soa := make(map[string]interface{}, 0)
+	soa["Ns"] = rsp.GetResult().Ns
+	soa["Mbox"] = rsp.GetResult().Mbox
+	soa["Serial"] = rsp.GetResult().Serial
+	soa["Refresh"] = rsp.GetResult().Refresh
+	soa["Retry"] = rsp.GetResult().Retry
+	soa["Expire"] = rsp.GetResult().Expire
+	soa["Minttl"] = rsp.GetResult().Minttl
+
+	return soa, nil
+}
+
+func (self *DNS_Client) SetSoa(id string, ns string, mbox string, serial uint32, refresh uint32, retry uint32, expire uint32, minttl uint32) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetSoaRequest{
+		Id: id,
+		Soa: &dnspb.SOA{
+			Ns:      ns,
+			Mbox:    mbox,
+			Serial:  serial,
+			Refresh: refresh,
+			Retry:   retry,
+			Expire:  expire,
+			Minttl:  minttl,
+		},
+	}
+
+	_, err := self.c.SetSoa(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveSoa(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveSoaRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveSoa(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetUri(id string) (map[string]interface{}, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetUriRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetUri(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	uri := make(map[string]interface{}, 0)
+	uri["Priority"] = rsp.GetResult().Priority
+	uri["Weight"] = rsp.GetResult().Weight
+	uri["Target"] = rsp.GetResult().Target
+
+	return uri, nil
+}
+
+func (self *DNS_Client) SetUri(id string, priority uint32, weight uint32, target string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetUriRequest{
+		Id: id,
+		Uri: &dnspb.URI{
+			Priority: priority,
+			Weight:   weight,
+			Target:   target,
+		},
+	}
+
+	_, err := self.c.SetUri(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveUri(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveUriRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveUri(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetCaa(id string) (map[string]interface{}, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetCaaRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetCaa(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	caa := make(map[string]interface{}, 0)
+	caa["Flag"] = rsp.GetResult().Flag
+	caa["Tag"] = rsp.GetResult().Tag
+	caa["Value"] = rsp.GetResult().Value
+
+	return caa, nil
+}
+
+func (self *DNS_Client) SetCaa(id string, flag uint32, tag string, value string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetCaaRequest{
+		Id: id,
+		Caa: &dnspb.CAA{
+			Flag:  flag,
+			Tag:   tag,
+			Value: value,
+		},
+	}
+
+	_, err := self.c.SetCaa(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveCaa(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveCaaRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveCaa(context.Background(), rqst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *DNS_Client) GetAfsdb(id string) (map[string]interface{}, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.GetAfsdbRequest{
+		Id: id,
+	}
+
+	rsp, err := self.c.GetAfsdb(context.Background(), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	afsdb := make(map[string]interface{}, 0)
+	afsdb["Subtype"] = rsp.GetResult().Subtype
+	afsdb["Hostname"] = rsp.GetResult().Hostname
+
+	return afsdb, nil
+}
+
+func (self *DNS_Client) SetAfsdb(id string, subtype uint32, hostname string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.SetAfsdbRequest{
+		Id: id,
+		Afsdb: &dnspb.AFSDB{
+			Subtype:  subtype,
+			Hostname: hostname,
+		},
+	}
+
+	_, err := self.c.SetAfsdb(context.Background(), rqst)
+	return err
+}
+
+func (self *DNS_Client) RemoveAfsdb(id string) error {
+
+	// I will execute a simple ldap search here...
+	rqst := &dnspb.RemoveAfsdbRequest{
+		Id: id,
+	}
+
+	_, err := self.c.RemoveAfsdb(context.Background(), rqst)
 	if err != nil {
 		return err
 	}

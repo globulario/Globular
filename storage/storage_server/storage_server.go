@@ -286,7 +286,7 @@ func (self *server) GetItem(ctx context.Context, rqst *storagepb.GetItemRequest)
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no store found for connection with id "+rqst.GetId())))
 	}
-
+	log.Println("--> try to find key with value:", rqst.GetKey())
 	data, err := store.GetItem(rqst.GetKey())
 	if err != nil {
 		return nil, status.Errorf(

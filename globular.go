@@ -285,7 +285,7 @@ func (self *Globule) registerIpToDns() {
 				ca := config["CertAuthorityTrust"].(string)
 				token := "" // The token...
 				client := dns_client.NewDns_Client(domain, address, hasTls, key, crt, ca, token)
-				domain, err := client.SetEntry(strings.ToLower(self.Name), Utility.MyIP())
+				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP())
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -697,7 +697,7 @@ func (self *Globule) initServices() {
 	// if a dns service exist I will set the name of that globule on the server.
 	if self.clients["dns_service"] != nil {
 		// Set the server
-		domain, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetEntry(strings.ToLower(self.Name), Utility.MyIP())
+		domain, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP())
 		if err == nil {
 			log.Println("---> set domain ", domain, "with ip", Utility.MyIP())
 		} else {
