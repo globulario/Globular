@@ -112,12 +112,13 @@ func (self *DNS_Client) GetA(domain string) (string, error) {
 	return rsp.A, nil
 }
 
-func (self *DNS_Client) SetA(name string, ipv4 string) (string, error) {
+func (self *DNS_Client) SetA(name string, ipv4 string, ttl uint32) (string, error) {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetARequest{
 		Name: name,
 		A:    ipv4,
+		Ttl:  ttl,
 	}
 
 	rsp, err := self.c.SetA(context.Background(), rqst)
@@ -155,12 +156,13 @@ func (self *DNS_Client) GetAAAA(domain string) (string, error) {
 	return rsp.Aaaa, nil
 }
 
-func (self *DNS_Client) SetAAAA(name string, ipv6 string) (string, error) {
+func (self *DNS_Client) SetAAAA(name string, ipv6 string, ttl uint32) (string, error) {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetAAAARequest{
 		Name: name,
 		Aaaa: ipv6,
+		Ttl:  ttl,
 	}
 
 	rsp, err := self.c.SetAAAA(context.Background(), rqst)
@@ -199,12 +201,13 @@ func (self *DNS_Client) GetText(id string) ([]string, error) {
 	return rsp.GetValues(), nil
 }
 
-func (self *DNS_Client) SetText(id string, values []string) error {
+func (self *DNS_Client) SetText(id string, values []string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetTextRequest{
 		Id:     id,
 		Values: values,
+		Ttl:    ttl,
 	}
 
 	_, err := self.c.SetText(context.Background(), rqst)
@@ -240,12 +243,13 @@ func (self *DNS_Client) GetNs(id string) (string, error) {
 	return rsp.GetNs(), nil
 }
 
-func (self *DNS_Client) SetNs(id string, ns string) error {
+func (self *DNS_Client) SetNs(id string, ns string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetNsRequest{
-		Id: id,
-		Ns: ns,
+		Id:  id,
+		Ns:  ns,
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetNs(context.Background(), rqst)
@@ -281,12 +285,13 @@ func (self *DNS_Client) GetCName(id string) (string, error) {
 	return rsp.GetCname(), nil
 }
 
-func (self *DNS_Client) SetCName(id string, cname string) error {
+func (self *DNS_Client) SetCName(id string, cname string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetCNameRequest{
 		Id:    id,
 		Cname: cname,
+		Ttl:   ttl,
 	}
 
 	_, err := self.c.SetCName(context.Background(), rqst)
@@ -326,7 +331,7 @@ func (self *DNS_Client) GetMx(id string) (map[string]interface{}, error) {
 	return mx, nil
 }
 
-func (self *DNS_Client) SetMx(id string, preference uint16, mx string) error {
+func (self *DNS_Client) SetMx(id string, preference uint16, mx string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetMxRequest{
@@ -335,6 +340,7 @@ func (self *DNS_Client) SetMx(id string, preference uint16, mx string) error {
 			Preference: int32(preference),
 			Mx:         mx,
 		},
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetMx(context.Background(), rqst)
@@ -379,7 +385,7 @@ func (self *DNS_Client) GetSoa(id string) (map[string]interface{}, error) {
 	return soa, nil
 }
 
-func (self *DNS_Client) SetSoa(id string, ns string, mbox string, serial uint32, refresh uint32, retry uint32, expire uint32, minttl uint32) error {
+func (self *DNS_Client) SetSoa(id string, ns string, mbox string, serial uint32, refresh uint32, retry uint32, expire uint32, minttl uint32, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetSoaRequest{
@@ -393,6 +399,7 @@ func (self *DNS_Client) SetSoa(id string, ns string, mbox string, serial uint32,
 			Expire:  expire,
 			Minttl:  minttl,
 		},
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetSoa(context.Background(), rqst)
@@ -433,7 +440,7 @@ func (self *DNS_Client) GetUri(id string) (map[string]interface{}, error) {
 	return uri, nil
 }
 
-func (self *DNS_Client) SetUri(id string, priority uint32, weight uint32, target string) error {
+func (self *DNS_Client) SetUri(id string, priority uint32, weight uint32, target string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetUriRequest{
@@ -443,6 +450,7 @@ func (self *DNS_Client) SetUri(id string, priority uint32, weight uint32, target
 			Weight:   weight,
 			Target:   target,
 		},
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetUri(context.Background(), rqst)
@@ -483,7 +491,7 @@ func (self *DNS_Client) GetCaa(id string) (map[string]interface{}, error) {
 	return caa, nil
 }
 
-func (self *DNS_Client) SetCaa(id string, flag uint32, tag string, value string) error {
+func (self *DNS_Client) SetCaa(id string, flag uint32, tag string, value string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetCaaRequest{
@@ -493,6 +501,7 @@ func (self *DNS_Client) SetCaa(id string, flag uint32, tag string, value string)
 			Tag:   tag,
 			Value: value,
 		},
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetCaa(context.Background(), rqst)
@@ -532,7 +541,7 @@ func (self *DNS_Client) GetAfsdb(id string) (map[string]interface{}, error) {
 	return afsdb, nil
 }
 
-func (self *DNS_Client) SetAfsdb(id string, subtype uint32, hostname string) error {
+func (self *DNS_Client) SetAfsdb(id string, subtype uint32, hostname string, ttl uint32) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetAfsdbRequest{
@@ -541,6 +550,7 @@ func (self *DNS_Client) SetAfsdb(id string, subtype uint32, hostname string) err
 			Subtype:  subtype,
 			Hostname: hostname,
 		},
+		Ttl: ttl,
 	}
 
 	_, err := self.c.SetAfsdb(context.Background(), rqst)

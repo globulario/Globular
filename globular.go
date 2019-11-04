@@ -56,6 +56,7 @@ import (
 	"github.com/davecourtois/Globular/storage/storage_client"
 	"github.com/emicklei/proto"
 
+	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -285,7 +286,7 @@ func (self *Globule) registerIpToDns() {
 				ca := config["CertAuthorityTrust"].(string)
 				token := "" // The token...
 				client := dns_client.NewDns_Client(domain, address, hasTls, key, crt, ca, token)
-				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP())
+				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -624,66 +625,77 @@ func (self *Globule) initServices() {
 						self.Services[s["Name"].(string)] = s
 					}
 				}
-			} else if strings.HasSuffix(info.Name(), ".proto") {
-
-				// here I will parse the service defintion file to extract the
-				// service difinition.
-				reader, _ := os.Open(path)
-				defer reader.Close()
-
-				parser := proto.NewParser(reader)
-				definition, _ := parser.Parse()
-
-				// Stack values from walking tree
-				stack := make([]interface{}, 0)
-
-				handlePackage := func(stack *[]interface{}) func(*proto.Package) {
-					return func(p *proto.Package) {
-						*stack = append(*stack, p)
-					}
-				}(&stack)
-
-				handleService := func(stack *[]interface{}) func(*proto.Service) {
-					return func(s *proto.Service) {
-						*stack = append(*stack, s)
-					}
-				}(&stack)
-
-				handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
-					return func(r *proto.RPC) {
-						*stack = append(*stack, r)
-					}
-				}(&stack)
-
-				// Walk this way
-				proto.Walk(definition,
-					proto.WithPackage(handlePackage),
-					proto.WithService(handleService),
-					proto.WithRPC(handleRpc))
-
-				var packageName string
-				var serviceName string
-				var methodName string
-
-				for len(stack) > 0 {
-					var x interface{}
-					x, stack = stack[0], stack[1:]
-					switch v := x.(type) {
-					case *proto.Package:
-						packageName = v.Name
-					case *proto.Service:
-						serviceName = v.Name
-					case *proto.RPC:
-						methodName = v.Name
-						path := "/" + packageName + "." + serviceName + "/" + methodName
-						// So here I will register the method into the backend.
-						self.methods = append(self.methods, path)
-					}
-				}
 			}
 			return nil
 		})
 	}
+
+	// Rescan the proto file and update the role after.
+	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return nil
+		}
+		if err == nil && strings.HasSuffix(info.Name(), ".proto") {
+
+			// here I will parse the service defintion file to extract the
+			// service difinition.
+			reader, _ := os.Open(path)
+			defer reader.Close()
+
+			parser := proto.NewParser(reader)
+			definition, _ := parser.Parse()
+
+			// Stack values from walking tree
+			stack := make([]interface{}, 0)
+
+			handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+				return func(p *proto.Package) {
+					*stack = append(*stack, p)
+				}
+			}(&stack)
+
+			handleService := func(stack *[]interface{}) func(*proto.Service) {
+				return func(s *proto.Service) {
+					*stack = append(*stack, s)
+				}
+			}(&stack)
+
+			handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+				return func(r *proto.RPC) {
+					*stack = append(*stack, r)
+				}
+			}(&stack)
+
+			// Walk this way
+			proto.Walk(definition,
+				proto.WithPackage(handlePackage),
+				proto.WithService(handleService),
+				proto.WithRPC(handleRpc))
+
+			var packageName string
+			var serviceName string
+			var methodName string
+
+			for len(stack) > 0 {
+				var x interface{}
+				x, stack = stack[0], stack[1:]
+				switch v := x.(type) {
+				case *proto.Package:
+					packageName = v.Name
+				case *proto.Service:
+					serviceName = v.Name
+				case *proto.RPC:
+					methodName = v.Name
+					path := "/" + packageName + "." + serviceName + "/" + methodName
+					// So here I will register the method into the backend.
+					self.methods = append(self.methods, path)
+				}
+			}
+		}
+		return nil
+	})
 
 	// Init services.
 	for _, s := range self.Services {
@@ -697,7 +709,7 @@ func (self *Globule) initServices() {
 	// if a dns service exist I will set the name of that globule on the server.
 	if self.clients["dns_service"] != nil {
 		// Set the server
-		domain, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP())
+		domain, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 		if err == nil {
 			log.Println("---> set domain ", domain, "with ip", Utility.MyIP())
 		} else {
@@ -2215,30 +2227,6 @@ func (self *Globule) Listen() {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
-	// Start the http server.
-	// Start http server.
-	go func() {
-		log.Println("Globular is listening at port ", self.PortHttp)
-		log.Panicln(http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil))
-	}()
-
-	// Get the SystemCertPool, continue with an empty pool on error
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-
-	// Read in the cert file
-	certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
-	if err != nil {
-		log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
-	}
-
-	// Append our cert to the system pool
-	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-		log.Println("No certs appended, using system certs only")
-	}
-
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	// handle the Interrupt
 	// set the register sa user.
@@ -2247,24 +2235,39 @@ func (self *Globule) Listen() {
 	// Start the monitoring service with prometheus.
 	self.startMonitoring()
 
-	if len(self.Certificate) > 0 {
+	/*if len(self.Certificate) > 0 {
 		server := &http.Server{
 			Addr: ":" + Utility.ToString(self.PortHttps),
 		}
 		// Use public CA for public website with real domain name.
 		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.certs+string(os.PathSeparator)+self.PrivateKey))
-	} else {
-		// client certificate
+	}*/
+
+	// Start the http server.
+	if self.Protocol == "https" {
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(self.Domain), //your domain here
+			Cache:      autocert.DirCache(self.certs),
+		}
+
+		log.Println("Listen http on port ", self.PortHttp)
+		go http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), certManager.HTTPHandler(nil))
+
+		log.Println("Get TLS certificate from ", certManager.Email)
+		// Start https server.
 		server := &http.Server{
 			Addr: ":" + Utility.ToString(self.PortHttps),
 			TLSConfig: &tls.Config{
-				RootCAs:            rootCAs,
-				ClientAuth:         tls.RequestClientCert,
-				InsecureSkipVerify: false,
+				ServerName:     self.Domain,
+				GetCertificate: certManager.GetCertificate,
 			},
 		}
-		log.Println("start server with self signed certificate.")
-		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+"server_cert.pem", self.certs+string(os.PathSeparator)+"server_key.pem"))
+		log.Println("Listen https on port ", self.PortHttps)
+		server.ListenAndServeTLS("", "")
+	} else {
+		// local - non secure connection.
+		http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}
 
 	if err != nil {
@@ -2535,143 +2538,6 @@ func (self *Globule) KeyToPem(name string, path string, pwd string) error {
 	return nil
 }
 
-////////////////////// HTTPS Server Key's /////////////////////////////////////
-
-// To generate a self-signed certificate (in our case, without encryption):
-// -Create a new 4096bit RSA key and save it to server_key.pem, without DES encryption (-newkey, -keyout and -nodes)
-// -Create a Certificate Signing Request for a given subject, valid for 365 days (-days, -subj)
-// -Sign the CSR using the server key, and save it to server_cert.pem as an X.509 certificate (-x509, -out)
-func (self *Globule) GenerateSelfSignedCertificate(path string, expiration_delay int, domain string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "server_key.pem") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "req")
-	args = append(args, "-x509")
-	args = append(args, "-newkey")
-	args = append(args, "rsa:4096")
-	args = append(args, "-keyout")
-	args = append(args, path+string(os.PathSeparator)+"server_key.pem")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"server_cert.pem")
-	args = append(args, "-nodes")
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-	args = append(args, "-subj")
-	args = append(args, "/C=CA/ST=Montreal/O=Globular Application Server/CN="+domain)
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the trust certificate")
-	}
-
-	return nil
-}
-
-// To create a key and a Certificate Signing Request for client...
-func (self *Globule) GenerateClientCertificate(path string, expiration_delay int, clientId string) error {
-	// openssl req -newkey rsa:4096 -keyout alice_key.pem -out alice_csr.pem -nodes -days 365 -subj "/CN=Alice"
-	if Utility.Exists(path + string(os.PathSeparator) + clientId + "_key.pem") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "req")
-	args = append(args, "-newkey")
-	args = append(args, "rsa:4096")
-	args = append(args, "-keyout")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_key.pem")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_csr.pem")
-	args = append(args, "-nodes")
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-	args = append(args, "-subj")
-	args = append(args, "/CN="+clientId)
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the trust certificate")
-	}
-
-	return nil
-}
-
-// Here, we act as a Certificate Authority, so we supply our certificate and key via the -CA parameters:
-func (self *Globule) SignedClientCertificate(path string, expiration_delay int, clientId string) error {
-	// openssl x509 -req -in alice_csr.pem -CA server_cert.pem -CAkey server_key.pem -out alice_cert.pem -set_serial 01 -days 365
-	if Utility.Exists(path + string(os.PathSeparator) + clientId + "_cert.pem") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "x509")
-	args = append(args, "-req")
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_csr.pem")
-	args = append(args, "-CA")
-	args = append(args, path+string(os.PathSeparator)+"server_cert.pem")
-	args = append(args, "-CAkey")
-	args = append(args, path+string(os.PathSeparator)+"server_key.pem")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_cert.pem")
-	args = append(args, "-set_serial")
-	args = append(args, "01")
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the trust certificate")
-	}
-	os.Remove(path + string(os.PathSeparator) + clientId + "_csr.pem")
-	return nil
-}
-
-// To use these certificates in our browser, we need to bundle them in PKCS#12
-// format. That will contain both the private key and the certificate, thus the
-// browser can use it for encryption. For Alice, we add the -clcerts option, which
-// excludes the CA certificate from the bundle. Since we issued the certificate,
-// we already have the certificate: we don’t need to include it in Alice’s
-// certificate as well. You can also password-protect the certificate.
-func (self *Globule) BundleClientCertificate(path string, expiration_delay int, clientId string, pwd string) error {
-	// openssl x509 -req -in globular_csr.pem -CA server_cert.pem -CAkey server_key.pem -out globular_cert.pem -set_serial 01 -days 365
-	if Utility.Exists(path + string(os.PathSeparator) + clientId + ".p12") {
-		return nil
-	}
-	self.GenerateClientCertificate(self.certs, expiration_delay, "globular")
-	self.SignedClientCertificate(self.certs, expiration_delay, "globular")
-	// openssl pkcs12 -export -clcerts -in globular_cert.pem -inkey globular_key.pem -out globular.p12
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "pkcs12")
-	args = append(args, "-export")
-	args = append(args, "-clcerts")
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_cert.pem")
-	args = append(args, "-inkey")
-	args = append(args, path+string(os.PathSeparator)+clientId+"_key.pem")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+clientId+".p12")
-	args = append(args, "-password")
-	args = append(args, "pass:"+pwd)
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the trust certificate")
-	}
-
-	// Here I will remove intermediate file.
-	os.Remove(path + string(os.PathSeparator) + clientId + "_cert.pem")
-	os.Remove(path + string(os.PathSeparator) + clientId + "_key.pem")
-
-	return nil
-}
-
 /**
  * That function is use to generate services certificates.
  * Private ca.key, server.key, server.pem, server.crt
@@ -2748,11 +2614,4 @@ func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay i
 		log.Println(err)
 		return
 	}
-
-	// Now https certificates.
-	self.GenerateSelfSignedCertificate(self.certs, expiration_delay, self.Domain)
-
-	// Generate the client certificate.. this is a simple test.
-
-	self.BundleClientCertificate(self.certs, expiration_delay, "globular", "1234")
 }

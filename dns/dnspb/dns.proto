@@ -9,6 +9,7 @@ option go_package="dnspb";
 message SetARequest {
   string name = 1;
   string a = 2;
+  uint32 ttl =3;
 }
 
 message SetAResponse {
@@ -35,6 +36,7 @@ message GetAResponse {
 message SetAAAARequest {
   string name = 1;
   string aaaa = 2;
+  uint32 ttl =3;
 }
 
 message SetAAAAResponse {
@@ -62,6 +64,7 @@ message GetAAAAResponse {
 message SetTextRequest {
   string id = 1;
   repeated string values = 2;
+  uint32 ttl =3;
 }
 
 message SetTextResponse {
@@ -87,6 +90,7 @@ message RemoveTextResponse {
 message SetNsRequest {
   string id = 1;
   string ns = 2;
+  uint32 ttl =3;
 }
 
 message SetNsResponse {
@@ -112,6 +116,7 @@ message RemoveNsResponse {
 message SetCNameRequest {
   string id = 1;
   string cname = 2;
+  uint32 ttl =3;
 }
 
 message SetCNameResponse {
@@ -142,6 +147,7 @@ message AFSDB {
 message SetAfsdbRequest {
   string id = 1;
   AFSDB afsdb = 2;
+  uint32 ttl =3;
 }
 
 message SetAfsdbResponse {
@@ -172,6 +178,7 @@ message MX {
 message SetMxRequest {
   string id = 1;
   MX mx = 2;
+  uint32 ttl =3;
 }
 
 message SetMxResponse {
@@ -207,6 +214,7 @@ message SOA {
 message SetSoaRequest {
   string id = 1;
   SOA soa = 2;
+  uint32 ttl =3;
 }
 
 message SetSoaResponse {
@@ -238,6 +246,7 @@ message URI {
 message SetUriRequest {
   string id = 1;
   URI uri = 2;
+  uint32 ttl =3;
 }
 
 message SetUriResponse {
@@ -270,6 +279,7 @@ message CAA {
 message SetCaaRequest {
   string id = 1;
   CAA caa = 2;
+  uint32 ttl =3;
 }
 
 message SetCaaResponse {
@@ -291,6 +301,7 @@ message RemoveCaaRequest {
 message RemoveCaaResponse {
   bool result = 1;
 }
+
 service DnsService {
 	
   // Set a dns entry.

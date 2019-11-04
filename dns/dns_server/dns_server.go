@@ -26,6 +26,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	//"google.golang.org/grpc/status"
+	"encoding/binary"
+
 	"github.com/davecourtois/Globular/storage/storage_client"
 	"github.com/miekg/dns"
 )
@@ -193,7 +195,11 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 	if err != nil {
 		return nil, err
 	}
+
 	log.Println("domain: ", "A:"+domain, " with uuid", uuid, "is set!")
+
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetAResponse{
 		Message: domain, // return the full domain.
 	}, nil
@@ -218,20 +224,20 @@ func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*d
 	}, nil
 }
 
-func (self *server) get_ipv4(domain string) (string, error) {
+func (self *server) get_ipv4(domain string) (string, uint32, error) {
 
 	err := self.openConnection()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
+
 	uuid := Utility.GenerateUUID("A:" + domain)
-	log.Println("get_ipv4--> try to find value: ", "A:"+domain)
 	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	fmt.Println("ipv4 for", domain, "is", string(ipv4))
-	return string(ipv4), nil
+
+	return string(ipv4), self.getTtl(uuid), nil
 }
 
 func (self *server) GetA(ctx context.Context, rqst *dnspb.GetARequest) (*dnspb.GetAResponse, error) {
@@ -268,6 +274,8 @@ func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*d
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetAAAAResponse{
 		Message: domain, // return the full domain.
 	}, nil
@@ -292,18 +300,18 @@ func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAAReques
 	}, nil
 }
 
-func (self *server) get_ipv6(domain string) (string, error) {
+func (self *server) get_ipv6(domain string) (string, uint32, error) {
 	fmt.Println("Try get dns entry ", domain)
 	err := self.openConnection()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	uuid := Utility.GenerateUUID("AAAA:" + domain)
 	address, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	return string(address), nil
+	return string(address), self.getTtl(uuid), nil
 }
 
 func (self *server) GetAAAA(ctx context.Context, rqst *dnspb.GetAAAARequest) (*dnspb.GetAAAAResponse, error) {
@@ -343,17 +351,19 @@ func (self *server) SetText(ctx context.Context, rqst *dnspb.SetTextRequest) (*d
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetTextResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the text.
-func (self *server) getText(id string) ([]string, error) {
+func (self *server) getText(id string) ([]string, uint32, error) {
 	fmt.Println("Try get dns text ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("TXT:" + id)
 	log.Println("---> look for uuid ", uuid)
@@ -366,9 +376,9 @@ func (self *server) getText(id string) ([]string, error) {
 
 	err = json.Unmarshal(data, &values)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return values, nil
+	return values, self.getTtl(uuid), nil
 }
 
 // Retreive a text value
@@ -429,24 +439,26 @@ func (self *server) SetNs(ctx context.Context, rqst *dnspb.SetNsRequest) (*dnspb
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetNsResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the text.
-func (self *server) getNs(id string) (string, error) {
+func (self *server) getNs(id string) (string, uint32, error) {
 	fmt.Println("Try get dns ns ", id)
 	err := self.openConnection()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	uuid := Utility.GenerateUUID("NS:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	return string(data), err
+	return string(data), self.getTtl(uuid), err
 }
 
 // Retreive a text value
@@ -501,24 +513,26 @@ func (self *server) SetCName(ctx context.Context, rqst *dnspb.SetCNameRequest) (
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetCNameResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the CName.
-func (self *server) getCName(id string) (string, error) {
+func (self *server) getCName(id string) (string, uint32, error) {
 	fmt.Println("Try get CName ", id)
 	err := self.openConnection()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	uuid := Utility.GenerateUUID("CName:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	return string(data), err
+	return string(data), self.getTtl(uuid), err
 }
 
 // Retreive a CName value
@@ -578,17 +592,19 @@ func (self *server) SetMx(ctx context.Context, rqst *dnspb.SetMxRequest) (*dnspb
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetMxResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the text.
-func (self *server) getMx(id string) (map[string]interface{}, error) {
+func (self *server) getMx(id string) (map[string]interface{}, uint32, error) {
 	fmt.Println("Try get dns text ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("MX:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
@@ -596,9 +612,9 @@ func (self *server) getMx(id string) (map[string]interface{}, error) {
 	values := make(map[string]interface{}, 0) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, &values)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return values, nil
+	return values, self.getTtl(uuid), nil
 }
 
 // Retreive a text value
@@ -668,17 +684,19 @@ func (self *server) SetSoa(ctx context.Context, rqst *dnspb.SetSoaRequest) (*dns
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetSoaResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the text.
-func (self *server) getSoa(id string) (*dnspb.SOA, error) {
+func (self *server) getSoa(id string) (*dnspb.SOA, uint32, error) {
 	fmt.Println("Try get dns soa ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("SOA:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
@@ -686,9 +704,9 @@ func (self *server) getSoa(id string) (*dnspb.SOA, error) {
 	soa := new(dnspb.SOA) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, soa)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return soa, nil
+	return soa, self.getTtl(uuid), nil
 }
 
 // Retreive a text value
@@ -754,17 +772,19 @@ func (self *server) SetUri(ctx context.Context, rqst *dnspb.SetUriRequest) (*dns
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetUriResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the text.
-func (self *server) getUri(id string) (*dnspb.URI, error) {
+func (self *server) getUri(id string) (*dnspb.URI, uint32, error) {
 	fmt.Println("Try get dns uri ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("URI:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
@@ -772,9 +792,9 @@ func (self *server) getUri(id string) (*dnspb.URI, error) {
 	uri := new(dnspb.URI) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, uri)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return uri, nil
+	return uri, self.getTtl(uuid), nil
 }
 
 // Retreive a text value
@@ -840,17 +860,19 @@ func (self *server) SetAfsdb(ctx context.Context, rqst *dnspb.SetAfsdbRequest) (
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetAfsdbResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the AFSDB.
-func (self *server) getAfsdb(id string) (*dnspb.AFSDB, error) {
+func (self *server) getAfsdb(id string) (*dnspb.AFSDB, uint32, error) {
 	fmt.Println("Try get dns AFSDB ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("AFSDB:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
@@ -858,9 +880,9 @@ func (self *server) getAfsdb(id string) (*dnspb.AFSDB, error) {
 	afsdb := new(dnspb.AFSDB) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, afsdb)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return afsdb, nil
+	return afsdb, self.getTtl(uuid), nil
 }
 
 // Retreive a AFSDB value
@@ -927,17 +949,19 @@ func (self *server) SetCaa(ctx context.Context, rqst *dnspb.SetCaaRequest) (*dns
 		return nil, err
 	}
 
+	self.setTtl(uuid, rqst.Ttl)
+
 	return &dnspb.SetCaaResponse{
 		Result: true, // return the full domain.
 	}, nil
 }
 
 // return the CAA.
-func (self *server) getCaa(id string) (*dnspb.CAA, error) {
+func (self *server) getCaa(id string) (*dnspb.CAA, uint32, error) {
 	fmt.Println("Try get dns CAA ", id)
 	err := self.openConnection()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("CAA:" + id)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
@@ -945,9 +969,9 @@ func (self *server) getCaa(id string) (*dnspb.CAA, error) {
 	caa := new(dnspb.CAA) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, caa)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return caa, nil
+	return caa, self.getTtl(uuid), nil
 }
 
 // Retreive a AFSDB value
@@ -1006,11 +1030,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeA:
 		domain := msg.Question[0].Name
 		msg.Authoritative = true
-		address, err := s.get_ipv4(domain) // get the address name from the
+		address, ttl, err := s.get_ipv4(domain) // get the address name from the
+
 		if err == nil {
 			log.Println("---> ask for domain: ", domain, " address to redirect is ", address)
 			msg.Answer = append(msg.Answer, &dns.A{
-				Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
+				Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl},
 				A:   net.ParseIP(address),
 			})
 		} else {
@@ -1020,12 +1045,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeAAAA:
 		msg.Authoritative = true
 		domain := msg.Question[0].Name
-		address, err := s.get_ipv6(domain) // get the address name from the
+		address, ttl, err := s.get_ipv6(domain) // get the address name from the
 		log.Println("---> look for AAAA ", domain)
 		if err == nil {
 			log.Println("---> ask for domain: ", domain, " address to redirect is ", address)
 			msg.Answer = append(msg.Answer, &dns.AAAA{
-				Hdr:  dns.RR_Header{Name: domain, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 60},
+				Hdr:  dns.RR_Header{Name: domain, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: ttl},
 				AAAA: net.ParseIP(address),
 			})
 		} else {
@@ -1036,12 +1061,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 		msg.Authoritative = true
 		id := msg.Question[0].Name
-		afsdb, err := s.getAfsdb(id)
+		afsdb, ttl, err := s.getAfsdb(id)
 		log.Println("---> look for AFSDB ", id)
 		if err == nil {
 			log.Println("---> ask for domain: ", id, " address to redirect is ", address)
 			msg.Answer = append(msg.Answer, &dns.AFSDB{
-				Hdr:      dns.RR_Header{Name: domain, Rrtype: dns.TypeAFSDB, Class: dns.ClassINET, Ttl: 60},
+				Hdr:      dns.RR_Header{Name: domain, Rrtype: dns.TypeAFSDB, Class: dns.ClassINET, Ttl: ttl},
 				Subtype:  uint16(afsdb.Subtype), //
 				Hostname: afsdb.Hostname,
 			})
@@ -1053,11 +1078,11 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		msg.Authoritative = true
 		name := msg.Question[0].Name
 		log.Println("---> look for CAA ", name)
-		caa, err := s.getCaa(name)
+		caa, ttl, err := s.getCaa(name)
 
 		if err == nil {
 			msg.Answer = append(msg.Answer, &dns.CAA{
-				Hdr:   dns.RR_Header{Name: name, Rrtype: dns.TypeCAA, Class: dns.ClassINET, Ttl: 60},
+				Hdr:   dns.RR_Header{Name: name, Rrtype: dns.TypeCAA, Class: dns.ClassINET, Ttl: ttl},
 				Flag:  uint8(caa.Flag),
 				Tag:   caa.Tag,
 				Value: caa.Value,
@@ -1068,12 +1093,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	case dns.TypeCNAME:
 		id := msg.Question[0].Name
-		cname, err := s.getCName(id)
+		cname, ttl, err := s.getCName(id)
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.CNAME{
 				// keep text values.
-				Hdr:    dns.RR_Header{Name: id, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 60},
+				Hdr:    dns.RR_Header{Name: id, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: ttl},
 				Target: cname,
 			})
 		}
@@ -1081,13 +1106,13 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeTXT:
 		id := msg.Question[0].Name
 		log.Println("---> look for txt ", id)
-		values, err := s.getText(id)
+		values, ttl, err := s.getText(id)
 		if err == nil {
 			log.Println("---> values found ", values)
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.TXT{
 				// keep text values.
-				Hdr: dns.RR_Header{Name: id, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 1},
+				Hdr: dns.RR_Header{Name: id, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: ttl},
 				Txt: values,
 			})
 		} else {
@@ -1097,12 +1122,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeNS:
 		id := msg.Question[0].Name
 		log.Println("---> look for ns ", id)
-		ns, err := s.getNs(id)
+		ns, ttl, err := s.getNs(id)
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.NS{
 				// keep text values.
-				Hdr: dns.RR_Header{Name: id, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: 60},
+				Hdr: dns.RR_Header{Name: id, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: ttl},
 				Ns:  ns,
 			})
 		}
@@ -1110,13 +1135,13 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeMX:
 		id := msg.Question[0].Name // the id where the values is store.
 		log.Println("---> look for mx ", id)
-		mx, err := s.getMx(id)
+		mx, ttl, err := s.getMx(id)
 
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.MX{
 				// keep text values.
-				Hdr:        dns.RR_Header{Name: id, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: 60},
+				Hdr:        dns.RR_Header{Name: id, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: ttl},
 				Preference: uint16(mx["Preference"].(int32)),
 				Mx:         mx["Mx"].(string),
 			})
@@ -1125,12 +1150,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeSOA:
 		id := msg.Question[0].Name
 		log.Println("---> look for soa ", id)
-		soa, err := s.getSoa(id)
+		soa, ttl, err := s.getSoa(id)
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.SOA{
 				// keep text values.
-				Hdr:     dns.RR_Header{Name: id, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: 60},
+				Hdr:     dns.RR_Header{Name: id, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: ttl},
 				Ns:      soa.Ns,
 				Mbox:    soa.Mbox,
 				Serial:  soa.Serial,
@@ -1144,12 +1169,12 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeURI:
 		id := msg.Question[0].Name
 		log.Println("---> look for uri ", id)
-		uri, err := s.getUri(id)
+		uri, ttl, err := s.getUri(id)
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.URI{
 				// keep text values.
-				Hdr:      dns.RR_Header{Name: id, Rrtype: dns.TypeURI, Class: dns.ClassINET, Ttl: 60},
+				Hdr:      dns.RR_Header{Name: id, Rrtype: dns.TypeURI, Class: dns.ClassINET, Ttl: ttl},
 				Priority: uint16(uri.Priority),
 				Weight:   uint16(uri.Weight),
 				Target:   uri.Target,
@@ -1168,31 +1193,31 @@ func ServeDns(port int) {
 	}
 }
 
-func (self *server) initStringRecords(recordType string, record map[string]interface{}) error {
+func (self *server) initStringRecords(recordType string, ttl uint32, record map[string]interface{}) error {
 	uuid := Utility.GenerateUUID(recordType + ":" + record["Id"].(string))
-	log.Println("--> set string record: ", record["Id"], ":", record["Value"])
+	err := self.setTtl(uuid, ttl)
+	if err != nil {
+		return err
+	}
 	return self.storageClient.SetItem(connectionId, uuid, []byte(record["Value"].(string)))
 }
 
-func (self *server) initSructRecords(recordType string, record map[string]interface{}) error {
+func (self *server) initSructRecords(recordType string, ttl uint32, record map[string]interface{}) error {
 
 	data, err := json.Marshal(record["Value"].(map[string]interface{}))
 	if err != nil {
 		return err
 	}
-
-	log.Println("--> set struc record: ", record["Id"], ":", string(data))
 	uuid := Utility.GenerateUUID(recordType + ":" + record["Id"].(string))
 	err = self.storageClient.SetItem(connectionId, uuid, data)
-
 	if err != nil {
-		log.Println("---> 1180 ", err)
+		return err
 	}
 
-	return err
+	return self.setTtl(uuid, ttl)
 }
 
-func (self *server) initArrayRecords(recordType string, record map[string]interface{}) error {
+func (self *server) initArrayRecords(recordType string, ttl uint32, record map[string]interface{}) error {
 
 	data, err := json.Marshal(record["Value"].([]interface{}))
 	if err != nil {
@@ -1200,15 +1225,28 @@ func (self *server) initArrayRecords(recordType string, record map[string]interf
 	}
 
 	uuid := Utility.GenerateUUID(recordType + ":" + record["Id"].(string))
-	log.Println("--> set array record: ", record["Id"].(string), uuid, ":", string(data))
 
 	err = self.storageClient.SetItem(connectionId, uuid, data)
-
 	if err != nil {
-		log.Println("---> 1200 ", err)
+		return err
 	}
 
+	return self.setTtl(uuid, ttl)
+}
+
+func (self *server) setTtl(uuid string, ttl uint32) error {
+	data := make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, ttl)
+	err := self.storageClient.SetItem(connectionId, uuid, data)
 	return err
+}
+
+func (self *server) getTtl(uuid string) uint32 {
+	data, err := self.storageClient.GetItem(connectionId, uuid)
+	if err != nil {
+		return 60 // the default value
+	}
+	return binary.LittleEndian.Uint32(data)
 }
 
 // Initialyse all the records from the configuration.
@@ -1216,32 +1254,37 @@ func (self *server) initRecords() error {
 	if self.Records == nil {
 		return nil
 	}
+
 	for name, records := range self.Records {
-		log.Println("---> ", name)
 		for i := 0; i < len(records); i++ {
 			var record = records[i].(map[string]interface{})
+			var ttl uint32
+			if record["ttl"] != nil {
+				ttl = uint32(record["ttl"].(float64))
+			} else {
+				ttl = 60 // default value of time to live.
+			}
 			var err error
-
 			if name == "A" {
-				err = self.initStringRecords("A", record)
+				err = self.initStringRecords("A", ttl, record)
 			} else if name == "AAAA" {
-				err = self.initSructRecords("AAAA", record)
+				err = self.initSructRecords("AAAA", ttl, record)
 			} else if name == "AFSDB" {
-				err = self.initSructRecords("AFSDB", record)
+				err = self.initSructRecords("AFSDB", ttl, record)
 			} else if name == "CAA" {
-				err = self.initSructRecords("CAA", record)
+				err = self.initSructRecords("CAA", ttl, record)
 			} else if name == "CNAME" {
-				err = self.initStringRecords("CNAME", record)
+				err = self.initStringRecords("CNAME", ttl, record)
 			} else if name == "MX" {
-				err = self.initSructRecords("MX", record)
+				err = self.initSructRecords("MX", ttl, record)
 			} else if name == "SOA" {
-				err = self.initSructRecords("SOA", record)
+				err = self.initSructRecords("SOA", ttl, record)
 			} else if name == "TXT" {
-				err = self.initArrayRecords("TXT", record)
+				err = self.initArrayRecords("TXT", ttl, record)
 			} else if name == "URI" {
-				err = self.initSructRecords("URI", record)
+				err = self.initSructRecords("URI", ttl, record)
 			} else if name == "NS" {
-				err = self.initStringRecords("NS", record)
+				err = self.initStringRecords("NS", ttl, record)
 			} else {
 				return errors.New("No ns record with type" + name + "exist!")
 			}
@@ -1252,7 +1295,6 @@ func (self *server) initRecords() error {
 		}
 	}
 	return nil
-
 }
 
 // That service is use to give access to SQL.
