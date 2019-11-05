@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/dns/dnspb"
@@ -180,7 +181,7 @@ func (self *server) save() error {
 // Set a dns entry.
 func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.SetAResponse, error) {
 	fmt.Println("Try set dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := rqst.Name + "." + self.DnsRoot
+	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
 	if len(rqst.Name) == 0 {
 		domain = self.DnsRoot
 	}
@@ -190,7 +191,6 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 	}
 
 	uuid := Utility.GenerateUUID("A:" + domain)
-	log.Println("--> set domain: ", "A:"+domain)
 	err = self.storageClient.SetItem(connectionId, uuid, []byte(rqst.A))
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 
 func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*dnspb.RemoveAResponse, error) {
 	fmt.Println("Try remove dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := rqst.Name + "." + self.DnsRoot
+	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*d
 }
 
 func (self *server) get_ipv4(domain string) (string, uint32, error) {
-
+	domain = strings.ToLower(domain)
 	err := self.openConnection()
 	if err != nil {
 		return "", 0, err
@@ -245,7 +245,8 @@ func (self *server) GetA(ctx context.Context, rqst *dnspb.GetARequest) (*dnspb.G
 	if err != nil {
 		return nil, err
 	}
-	uuid := Utility.GenerateUUID("A:" + rqst.Domain)
+	domain := strings.ToLower(rqst.Domain)
+	uuid := Utility.GenerateUUID("A:" + domain)
 	log.Println("GetA --> try to find value: ", "A:"+rqst.Domain)
 	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
@@ -260,9 +261,9 @@ func (self *server) GetA(ctx context.Context, rqst *dnspb.GetARequest) (*dnspb.G
 // Set a dns entry.
 func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*dnspb.SetAAAAResponse, error) {
 	fmt.Println("Try set dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := rqst.Name + "." + self.DnsRoot
+	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
 	if len(rqst.Name) == 0 {
-		domain = self.DnsRoot
+		domain = strings.ToLower(self.DnsRoot)
 	}
 	err := self.openConnection()
 	if err != nil {
@@ -282,8 +283,8 @@ func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*d
 }
 
 func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAARequest) (*dnspb.RemoveAAAAResponse, error) {
-	fmt.Println("Try remove dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := rqst.Name + "." + self.DnsRoot
+	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
+	fmt.Println("Try remove dns entry ", domain)
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -301,6 +302,7 @@ func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAAReques
 }
 
 func (self *server) get_ipv6(domain string) (string, uint32, error) {
+	domain = strings.ToLower(domain)
 	fmt.Println("Try get dns entry ", domain)
 	err := self.openConnection()
 	if err != nil {
@@ -315,12 +317,14 @@ func (self *server) get_ipv6(domain string) (string, uint32, error) {
 }
 
 func (self *server) GetAAAA(ctx context.Context, rqst *dnspb.GetAAAARequest) (*dnspb.GetAAAAResponse, error) {
+	domain := strings.ToLower(rqst.Domain)
 	fmt.Println("Try get dns entry ", domain)
+
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
 	}
-	uuid := Utility.GenerateUUID("AAAA:" + rqst.Domain)
+	uuid := Utility.GenerateUUID("AAAA:" + domain)
 	ipv6, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
 		return nil, err
@@ -1237,11 +1241,13 @@ func (self *server) initArrayRecords(recordType string, ttl uint32, record map[s
 func (self *server) setTtl(uuid string, ttl uint32) error {
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, ttl)
+	uuid = Utility.GenerateUUID("TTL:" + uuid)
 	err := self.storageClient.SetItem(connectionId, uuid, data)
 	return err
 }
 
 func (self *server) getTtl(uuid string) uint32 {
+	uuid = Utility.GenerateUUID("TTL:" + uuid)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
 		return 60 // the default value

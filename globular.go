@@ -384,16 +384,10 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 		proxyArgs = append(proxyArgs, "--run_tls_server=true")
 		proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(proxy))
 
-		/** Self signed certificate for self signed server domain **/
-		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+"server_cert.pem")
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+"server_key.pem")
-
 		/* in case of public domain server files **/
-		if len(self.CertificateAuthorityBundle) > 0 && len(self.Certificate) > 0 && len(self.PrivateKey) > 0 {
-			proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle)
-			proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
-			proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+self.PrivateKey)
-		}
+		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle)
+		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+self.PrivateKey)
 
 	} else {
 		log.Println("---> start non secure service: ", srv.(map[string]interface{})["Name"])
@@ -2235,14 +2229,6 @@ func (self *Globule) Listen() {
 	// Start the monitoring service with prometheus.
 	self.startMonitoring()
 
-	/*if len(self.Certificate) > 0 {
-		server := &http.Server{
-			Addr: ":" + Utility.ToString(self.PortHttps),
-		}
-		// Use public CA for public website with real domain name.
-		log.Panicln(server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.certs+string(os.PathSeparator)+self.PrivateKey))
-	}*/
-
 	// Start the http server.
 	if self.Protocol == "https" {
 		certManager := autocert.Manager{
@@ -2254,7 +2240,6 @@ func (self *Globule) Listen() {
 		log.Println("Listen http on port ", self.PortHttp)
 		go http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), certManager.HTTPHandler(nil))
 
-		log.Println("Get TLS certificate from ", certManager.Email)
 		// Start https server.
 		server := &http.Server{
 			Addr: ":" + Utility.ToString(self.PortHttps),
@@ -2263,8 +2248,31 @@ func (self *Globule) Listen() {
 				GetCertificate: certManager.GetCertificate,
 			},
 		}
+
 		log.Println("Listen https on port ", self.PortHttps)
-		server.ListenAndServeTLS("", "")
+		// take information from the certificate file and split it into different file
+		// those file will be use by gRpc.
+		certData, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + self.Domain)
+		if err == nil {
+			sections := strings.Split(string(certData), "-----BEGIN") // split the file with comment...
+			for i := 0; i < len(sections); i++ {
+				if i == 0 {
+					self.PrivateKey = "private.key" // The key is if type EC
+					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.PrivateKey, []byte("-----BEGIN"+sections[i]), 400)
+				}
+				if i == 1 {
+					self.Certificate = "certificate.crt"
+					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.Certificate, []byte("-----BEGIN"+sections[i]), 400)
+				}
+				if i == 2 {
+					self.CertificateAuthorityBundle = "ca_bundle.crt"
+					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle, []byte("-----BEGIN"+sections[i]), 400)
+				}
+			}
+		}
+
+		server.ListenAndServeTLS("", "") // no need to specifie certificate and keys here.
+
 	} else {
 		// local - non secure connection.
 		http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
