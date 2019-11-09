@@ -43,10 +43,10 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SQL_Client {
+func NewSql_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SQL_Client {
 
 	client := new(SQL_Client)
-
+	client.port = port
 	client.domain = domain
 	client.name = "sql"
 	client.hasTLS = hasTLS

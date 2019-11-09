@@ -112,7 +112,6 @@ type Globule struct {
 	IdleTimeout                time.Duration
 	SessionTimeout             time.Duration
 	CertExpirationDelay        int
-	PrivateKey                 string
 	Certificate                string
 	CertificateAuthorityBundle string
 
@@ -143,8 +142,8 @@ func NewGlobule() *Globule {
 	g := new(Globule)
 	g.RootPassword = "adminadmin"
 
-	g.PortHttp = 80   // The default http port
-	g.PortHttps = 443 // The default https port number.
+	g.PortHttp = 8080  // The default http port
+	g.PortHttps = 8181 // The default https port number.
 
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
@@ -402,9 +401,9 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 		proxyArgs = append(proxyArgs, "--server_http_tls_port="+Utility.ToString(proxy))
 
 		/* in case of public domain server files **/
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+string(os.PathSeparator)+"server.pem")
 		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle)
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.certs+string(os.PathSeparator)+self.PrivateKey)
 
 	} else {
 		log.Println("---> start non secure service: ", srv.(map[string]interface{})["Name"])
@@ -444,10 +443,8 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
 	// test if the service is distant or not.
-	if s["Domain"].(string) != "localhost" {
-		if s["Domain"].(string) != self.Domain {
-			return -1, -1, errors.New("Can not start a distant service localy!")
-		}
+	if s["Domain"].(string) != self.Domain {
+		return -1, -1, errors.New("Can not start a distant service localy!")
 	}
 
 	// if the service already exist.
@@ -519,6 +516,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
 
 		// Init it configuration.
+		log.Println("----> ", s["Name"])
 		self.initClient(s["Name"].(string), s["Name"].(string), string(token))
 
 		// save it to the config.
@@ -740,7 +738,7 @@ func (self *Globule) registerMethods() error {
 	// Here I will create the sa role if it dosen't exist.
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		log.Println("---> fail to get local_ressource connection")
+		log.Println("---> fail to get local_ressource connection", err)
 		return err
 	}
 
@@ -1383,6 +1381,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 		infos := map[string]interface{}{"domain": persistenceDomain, "port": persistencePort, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
 
 		infosStr, _ := Utility.ToJson(infos)
+
 		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
 		if err != nil {
 			log.Panicln(err)
@@ -2538,28 +2537,52 @@ func (self *Globule) Listen() {
 
 	// Start the http server.
 	if self.Protocol == "https" {
-		if len(self.Certificate) == 0 {
+		if !Utility.Exists(self.certs + string(os.PathSeparator) + "certificates") {
 
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
-
+			args := make([]string, 0)
 			// Now I will get the new certificate.
 			legoPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "lego"
 			if string(os.PathSeparator) == "\\" {
 				legoPath += ".exe" // in case of windows.
 			}
 
-		} else {
-			// Start https server.
-			server := &http.Server{
-				Addr: ":" + Utility.ToString(self.PortHttps),
-				TLSConfig: &tls.Config{
-					ServerName: self.Domain,
-				},
+			args = append(args, `--email="`+self.AdminEmail+`"`)
+			args = append(args, `--accept-tos`)
+			args = append(args, `--key-type=rsa4096`)
+			args = append(args, `--path=`+self.certs)
+			args = append(args, `--csr="`+self.creds+string(os.PathSeparator)+"server.csr")
+			args = append(args, `run`)
+
+			// Now I will run the command...
+			legoCmd := exec.Command(legoPath, args...)
+			err := legoCmd.Run()
+
+			if err != nil {
+				log.Panicln("Fail to generate certificate with lego", err)
 			}
-			// get the value from the configuration files.
-			server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.certs+string(os.PathSeparator)+self.PrivateKey)
+
 		}
+
+		// Set the certificates paths...
+		self.Certificate = "certificates" + string(os.PathSeparator) + self.Domain + ".crt"
+		self.CertificateAuthorityBundle = "certificates" + string(os.PathSeparator) + self.Domain + ".issuer.crt"
+
+		// save the config with the values.
+		self.saveConfig()
+
+		// Start https server.
+		server := &http.Server{
+			Addr: ":" + Utility.ToString(self.PortHttps),
+			TLSConfig: &tls.Config{
+				ServerName: self.Domain,
+			},
+		}
+
+		// get the value from the configuration files.
+		server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+
 	} else {
 
 		// local - non secure connection.

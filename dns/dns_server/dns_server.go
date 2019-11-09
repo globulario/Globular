@@ -114,8 +114,8 @@ func (self *server) init() {
 	// note that a storage server must be accessible by the dns service to
 	// store it informations.
 	if self.StorageService != nil {
-		address := self.StorageService["Address"].(string) + ":" + Utility.ToString(self.StorageService["Port"].(float64))
 		domain := self.StorageService["Domain"].(string)
+		port := int(self.StorageService["Port"].(float64))
 		hasTls := self.StorageService["TLS"].(bool)
 		keyFile := self.StorageService["KeyFile"].(string)
 		certFile := self.StorageService["CertFile"].(string)
@@ -124,7 +124,7 @@ func (self *server) init() {
 		token := "" // TODO see if it's needed by the storage services.
 
 		// Create the connection with the server.
-		self.storageClient = storage_client.NewStorage_Client(domain, address, hasTls, keyFile, certFile, caFile, token)
+		self.storageClient = storage_client.NewStorage_Client(domain, port, hasTls, keyFile, certFile, caFile, token)
 
 	} else {
 		log.Panicln("No storage service is configure!")

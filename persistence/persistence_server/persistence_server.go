@@ -794,7 +794,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
+		log.Fatalf("could not lisen at %s: %s", s_impl.Domain, err)
 		return
 	}
 
