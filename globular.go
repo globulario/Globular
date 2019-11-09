@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +24,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -32,7 +35,10 @@ import (
 
 	// Admin service
 	"github.com/davecourtois/Globular/admin"
+	// Ressource service
 	"github.com/davecourtois/Globular/ressource"
+	// Services management service
+	"github.com/davecourtois/Globular/services"
 
 	// Interceptor for authentication, event, log...
 	Interceptors "github.com/davecourtois/Globular/Interceptors/Authenticate"
@@ -56,7 +62,6 @@ import (
 	"github.com/davecourtois/Globular/storage/storage_client"
 	"github.com/emicklei/proto"
 
-	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -90,10 +95,14 @@ type Globule struct {
 	PortHttps                  int    // The secure port
 	AdminPort                  int    // The admin port
 	AdminProxy                 int    // The admin proxy port.
+	AdminEmail                 string // The admin email
 	RessourcePort              int    // The ressource management service port
 	RessourceProxy             int    // The ressource management proxy port
+	ServicesDiscoveryPort      int    // The services discovery port
+	ServicesDiscoveryProxy     int    // The ressource management proxy port
+	ServicesRepositoryPort     int    // The services discovery port
+	ServicesRepositoryProxy    int    // The ressource management proxy port
 	Protocol                   string // The protocol of the service.
-	IP                         string // The local address...
 	Services                   map[string]interface{}
 	ExternalApplications       map[string]ExternalApplication
 	Domain                     string                   // The domain (subdomain) name of your application
@@ -134,18 +143,23 @@ func NewGlobule() *Globule {
 	g := new(Globule)
 	g.RootPassword = "adminadmin"
 
-	g.PortHttp = 8080  // The default http port
-	g.PortHttps = 8181 // The default https port number.
+	g.PortHttp = 80   // The default http port
+	g.PortHttps = 443 // The default https port number.
 
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
 	g.Protocol = "http"
 	g.Domain = "localhost"
-	g.IP = "127.0.0.1"
 	g.AdminPort = 10001
 	g.AdminProxy = 10002
 	g.RessourcePort = 10003
 	g.RessourceProxy = 10004
+
+	// services management...
+	g.ServicesDiscoveryPort = 10005
+	g.ServicesDiscoveryProxy = 10006
+	g.ServicesRepositoryPort = 10007
+	g.ServicesRepositoryProxy = 10008
 
 	// set default values.
 	g.IdleTimeout = 120
@@ -278,20 +292,23 @@ func (self *Globule) registerIpToDns() {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
 				config := self.DNS[i]
-				address := config["Domain"].(string) + ":" + Utility.ToString(int(config["Port"].(float64)))
 				domain := config["Domain"].(string)
+				port := int(config["Port"].(float64))
 				hasTls := config["TLS"].(bool)
 				crt := config["CertFile"].(string)
 				key := config["KeyFile"].(string)
 				ca := config["CertAuthorityTrust"].(string)
 				token := "" // The token...
-				client := dns_client.NewDns_Client(domain, address, hasTls, key, crt, ca, token)
+				client := dns_client.NewDns_Client(domain, port, hasTls, key, crt, ca, token)
 				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
+
 				if err != nil {
 					log.Println(err)
 				} else {
 					log.Println("---> register ip ", Utility.MyIP(), "with", domain)
 				}
+
+				// TODO also register the ipv6 here...
 				client.Close()
 			}
 		}
@@ -356,7 +373,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
+	proxyPath := "/bin/grpcwebproxy"
 	if string(os.PathSeparator) == "\\" {
 		proxyPath += ".exe" // in case of windows.
 	}
@@ -406,7 +423,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
 
 	// start the proxy service one time
-	proxyProcess := exec.Command(proxyPath, proxyArgs...)
+	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	err := proxyProcess.Start()
 
 	if err != nil {
@@ -428,7 +445,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
 	// test if the service is distant or not.
 	if s["Domain"].(string) != "localhost" {
-		if !(s["Address"].(string) == Utility.MyIP() || s["Address"].(string) == Utility.MyLocalIP() || s["Address"].(string) == "127.0.0.1" || s["Address"].(string) == "0.0.0.0") {
+		if s["Domain"].(string) != self.Domain {
 			return -1, -1, errors.New("Can not start a distant service localy!")
 		}
 	}
@@ -449,10 +466,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			self.clients[s["Name"].(string)+"_service"].Close()
 		}
 
-		// The domain must be set in the sever configuration and not change after that.
-		s["Domain"] = self.Domain // local services.
-		s["Address"] = self.IP    // local address.
-
 		if s["TLS"].(bool) {
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
@@ -471,12 +484,17 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Start the service process.
 		log.Println("try to start process ", s["Name"].(string))
 
+		servicePath := self.path + s["servicePath"].(string)
+		if string(os.PathSeparator) == "\\" {
+			servicePath += ".exe" // in case of windows.
+		}
+
 		if s["Name"].(string) == "file_server" {
 			// File service need root...
 			s["Root"] = globule.webRoot
-			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]), globule.webRoot)
+			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
 		} else {
-			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
+			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
@@ -523,8 +541,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
 		}
 	}
-
-	log.Println("Service ", s["Name"].(string), "is running at port", s["Port"], "it's proxy port is", s["Proxy"])
 
 	// Return the pid of the service.
 	if s["ProxyProcess"] != nil {
@@ -583,7 +599,6 @@ func (self *Globule) initServices() {
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
 		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 			if info == nil {
 				return nil
@@ -601,20 +616,10 @@ func (self *Globule) initServices() {
 						path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
 						s["Id"] = s["Name"].(string)
 						servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-						if string(os.PathSeparator) == "\\" {
-							servicePath += ".exe" // in case of windows.
-						}
+						strings.Index(servicePath, self.path)
 
-						s["servicePath"] = servicePath
+						s["servicePath"] = strings.Replace(strings.Replace(servicePath, self.path, "", -1), "\\", "/", -1)
 
-						// Now I will start the proxy that will be use by javascript client.
-						proxyPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-						if string(os.PathSeparator) == "\\" {
-							proxyPath += ".exe" // in case of windows.
-						}
-
-						// The proxy path
-						s["proxyPath"] = proxyPath
 						//self.initService(s)
 						self.Services[s["Name"].(string)] = s
 					}
@@ -965,9 +970,18 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
-	str, err := Utility.ToJson(self)
+	config, err := Utility.ToMap(self)
 	if err == nil {
-		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		services := config["Services"].(map[string]interface{})
+		for _, service := range services {
+			// remove running information...
+			delete(service.(map[string]interface{}), "Process")
+			delete(service.(map[string]interface{}), "ProxyProcess")
+		}
+		str, err := Utility.ToJson(config)
+		if err == nil {
+			ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		}
 	}
 }
 
@@ -975,19 +989,16 @@ func (self *Globule) saveConfig() {
  * Init client side connection to service.
  */
 func (self *Globule) initClient(id string, name string, token string) {
-	log.Println("try to connecto to ", name)
+
 	if self.Services[id] == nil {
 		return
 	}
 
-	// Set the parameters.
-	domain := self.Services[id].(map[string]interface{})["Domain"].(string)
-
 	// The connection address.
 	// Create the address with the ip address.
-	address := self.Services[id].(map[string]interface{})["Domain"].(string) + ":" + Utility.ToString(int(self.Services[id].(map[string]interface{})["Port"].(float64)))
 	hasTLS := self.Services[id].(map[string]interface{})["TLS"].(bool)
-
+	domain := self.Services[id].(map[string]interface{})["Domain"].(string)
+	port := int(self.Services[id].(map[string]interface{})["Port"].(float64))
 	name = strings.Split(name, "_")[0]
 
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
@@ -997,13 +1008,12 @@ func (self *Globule) initClient(id string, name string, token string) {
 	certFile := self.creds + string(os.PathSeparator) + "client.key"
 	caFile := self.creds + string(os.PathSeparator) + "ca.crt"
 
-	results, err := Utility.CallFunction(fct, domain, address, hasTLS, certFile, keyFile, caFile, token)
+	results, err := Utility.CallFunction(fct, domain, port, hasTLS, certFile, keyFile, caFile, token)
 	if err == nil {
 		if self.clients[name+"_service"] != nil {
 			self.clients[name+"_service"].Close()
 		}
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
-		log.Println("---> service register: ", name+"_service")
 	} else {
 		log.Panicln(err)
 	}
@@ -1048,7 +1058,6 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 	config["RessourcePort"] = self.RessourcePort
 	config["RessourceProxy"] = self.RessourceProxy
 	config["Protocol"] = self.Protocol
-	config["IP"] = self.IP
 	config["Domain"] = self.Domain
 	config["ReadTimeout"] = self.ReadTimeout
 	config["WriteTimeout"] = self.WriteTimeout
@@ -1081,7 +1090,6 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	config["RessourcePort"] = self.RessourcePort
 	config["RessourceProxy"] = self.RessourceProxy
 	config["Protocol"] = self.Protocol
-	config["IP"] = self.IP
 	config["Domain"] = self.Domain
 	config["ReadTimeout"] = self.ReadTimeout
 	config["WriteTimeout"] = self.WriteTimeout
@@ -1094,11 +1102,12 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	config["Services"] = make(map[string]interface{}) //self.Services
 	for name, service_config := range self.Services {
 		s := make(map[string]interface{})
-		s["Address"] = service_config.(map[string]interface{})["Address"]
 		s["Domain"] = service_config.(map[string]interface{})["Domain"]
 		s["Port"] = service_config.(map[string]interface{})["Port"]
 		s["Proxy"] = service_config.(map[string]interface{})["Proxy"]
 		s["TLS"] = service_config.(map[string]interface{})["TLS"]
+		s["Version"] = service_config.(map[string]interface{})["Version"]
+		s["PublisherId"] = service_config.(map[string]interface{})["PublisherId"]
 		config["Services"].(map[string]interface{})[name] = s
 	}
 
@@ -1304,23 +1313,24 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
-	isDistant := !(config["Address"].(string) == Utility.MyIP() || config["Address"].(string) == Utility.MyLocalIP() || config["Address"].(string) == "127.0.0.1" || config["Address"].(string) == "0.0.0.0")
+
+	isDistant := config["Domain"].(string) != self.Domain
 	if isDistant {
 		return false
 	}
+
 	// get the config path.
 	var servicePath string
-	var proxyPath string
 	var process interface{}
 	var proxyProcess interface{}
 
 	servicePath = config["servicePath"].(string)
-	proxyPath = config["proxyPath"].(string)
 	process = config["Process"]
 	proxyProcess = config["ProxyProcess"]
 
 	var path string
-	path = config["servicePath"].(string) // the path of the executable.
+	path = self.path + config["servicePath"].(string)               // the path of the executable.
+	path = strings.Replace(path, "/", string(os.PathSeparator), -1) // set the os path separator.
 	path = path[:strings.LastIndex(path, string(os.PathSeparator))] + string(os.PathSeparator) + "config.json"
 
 	// remove unused information...
@@ -1329,7 +1339,6 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 
 	// remove this info from the file to be save.
 	delete(config, "servicePath")
-	delete(config, "proxyPath")
 
 	// so here I will get the previous information...
 	f, err := os.Open(path)
@@ -1343,7 +1352,6 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 				f.Close()
 				// set back the path's info.
 				config["servicePath"] = servicePath
-				config["proxyPath"] = proxyPath
 				config["Process"] = process
 				config["ProxyProcess"] = proxyProcess
 				return false
@@ -1364,15 +1372,15 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	// In case of persistence_server information must be save in a temp
 	// file to be use by the interceptor for token validation.
 	if config["Name"] == "persistence_server" {
-		persistenceAddress := config["Domain"].(string)
-		persistenceAddress = persistenceAddress + ":" + Utility.ToString(config["Port"].(float64))
+		persistenceDomain := config["Domain"].(string)
+		persistencePort := int(config["Port"].(float64))
 
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 		certFile := self.creds + string(os.PathSeparator) + "server.crt"
 		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
 
 		// I will wrote the info inside a stucture.
-		infos := map[string]string{"address": persistenceAddress, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
+		infos := map[string]interface{}{"domain": persistenceDomain, "port": persistencePort, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
 
 		infosStr, _ := Utility.ToJson(infos)
 		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
@@ -1384,7 +1392,6 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	if !isDistant {
 		// set back internal infos...
 		config["servicePath"] = servicePath
-		config["proxyPath"] = proxyPath
 		config["Process"] = process
 		config["ProxyProcess"] = proxyProcess
 	}
@@ -1420,7 +1427,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			self.RessourcePort = Utility.ToInt(config["RessourcePort"].(float64))
 			self.RessourceProxy = Utility.ToInt(config["RessourceProxy"].(float64))
 			self.Protocol = config["Protocol"].(string)
-			self.IP = config["IP"].(string)
 			self.Domain = config["Domain"].(string)
 			self.ReadTimeout = time.Duration(Utility.ToInt(config["ReadTimeout"].(float64)))
 			self.WriteTimeout = time.Duration(Utility.ToInt(config["WriteTimeout"].(float64)))
@@ -1577,7 +1583,6 @@ func (self *Globule) startInternalService(id string, port int, proxy int) (*grpc
 
 	// Set the log information in case of crash...
 	//log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	var grpcServer *grpc.Server
 	if self.Protocol == "https" {
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
@@ -1620,17 +1625,15 @@ func (self *Globule) startInternalService(id string, port int, proxy int) (*grpc
 
 	} else {
 		grpcServer = grpc.NewServer()
-
 	}
 
 	reflection.Register(grpcServer)
 
 	// Here I will create the service configuration object.
 	s := make(map[string]interface{}, 0)
-	s["Address"] = self.IP
+	s["Domain"] = self.Domain
 	s["Port"] = port
 	s["Proxy"] = proxy
-	s["Domain"] = self.Domain
 	s["TLS"] = self.Protocol == "https"
 	self.Services[id] = s
 
@@ -2032,46 +2035,292 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}, nil
 }
 
+//////////////////////////////// Services management  //////////////////////////
+
 /**
- * That function is call when it's time to validate the certificate.
+ * Get access to the event services.
  */
-func (self *Globule) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-
-	// Get the SystemCertPool, continue with an empty pool on error
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
+func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
+	if self.clients["event_service"] == nil {
+		return nil, errors.New("No event service was found on the server.")
 	}
 
-	// Read in the cert file
-	certs, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + "server_cert.pem")
+	return self.clients["event_service"].(*event_client.Event_Client), nil
+}
+
+// Discovery
+//* Return the list of all services *
+func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.GetServiceDescriptorRequest) (*services.GetServiceDescriptorResponse, error) {
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		log.Fatalf("Failed to append %q to RootCAs: %v", self.certs+string(os.PathSeparator)+"server_cert.pem", err)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Append our cert to the system pool
-	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-		log.Println("No certs appended, using system certs only")
+	query := `{"id":"` + rqst.ServiceId + `", "publisherId":"` + rqst.PublisherId + `"}`
+
+	data, err := p.Find("local_ressource", "local_ressource", "Services", query, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	opts := x509.VerifyOptions{
-		Roots: rootCAs,
+	descriptors := make([]*services.ServiceDescriptor, 0)
+	err = json.Unmarshal([]byte(data), &descriptors)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	rawCert := rawCerts[0]
-	cert, err := x509.ParseCertificate(rawCert)
+	sort.Slice(descriptors[:], func(i, j int) bool {
+		return descriptors[i].Version > descriptors[j].Version
+	})
 
-	// The CommonName contain the name of the user name for who the certificate
-	// was generated. So here It's the place to test if the user has the write
-	// to access the service.
-	log.Println("--->", cert.Subject.CommonName)
+	// Return the list of Service Descriptor.
+	return &services.GetServiceDescriptorResponse{
+		Results: descriptors,
+	}, nil
+}
+
+//* Return the list of all services *
+func (self *Globule) GetServicesDescriptor(ctx context.Context, rqst *services.GetServicesDescriptorRequest) (*services.GetServicesDescriptorResponse, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	data, err := p.Find("local_ressource", "local_ressource", "Services", `{}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	descriptors := make([]*services.ServiceDescriptor, 0)
+	err = json.Unmarshal([]byte(data), &descriptors)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Return the list of Service Descriptor.
+	return &services.GetServicesDescriptorResponse{
+		Results: descriptors,
+	}, nil
+}
+
+//* Publish a service to service discovery *
+func (self *Globule) PublishService(ctx context.Context, rqst *services.PublishServiceRequest) (*services.PublishServiceResponse, error) {
+
+	// Here I will save the descriptor inside the storage...
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Append the self domain to the list of discoveries where the services can
+	if !Utility.Contains(rqst.Descriptor_.Discorveries, self.Domain) {
+		rqst.Descriptor_.Discorveries = append(rqst.Descriptor_.Discorveries, self.Domain+":"+strconv.Itoa(self.ServicesDiscoveryPort))
+	}
+
+	// Here I will test if the services already exist...
+	_, err = p.FindOne("local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
+	if err == nil {
+		// Update existing descriptor.
+
+		// The list of discoveries...
+		discoveries, err := Utility.ToJson(rqst.Descriptor_.Discorveries)
+		if err == nil {
+			values := `{"$set":{"discoveries":` + discoveries + `}}`
+			err = p.Update("local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		}
+
+		// The list of repositories
+		repositories, err := Utility.ToJson(rqst.Descriptor_.Repositories)
+		if err == nil {
+			values := `{"$set":{"repositories":` + repositories + `}}`
+			err = p.Update("local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		}
+
+	} else {
+		data, err := json.Marshal(rqst.Descriptor_)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		// The key will be the descriptor string itself.
+		_, err = p.InsertOne("local_ressource", "local_ressource", "Services", string(data), "")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// So here I will send an plublish event...
+		event, err := self.getEventHub()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// Here I will send an event that the service has a new version...
+		event.Publish(rqst.Descriptor_.PublisherId+":"+rqst.Descriptor_.Id+":NEW_SERVICE_VERSION_EVENT", data)
+
+	}
+
+	return &services.PublishServiceResponse{
+		Result: true,
+	}, nil
+}
+
+// Repository
+/** Download a service from a service directory **/
+func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream services.ServiceRepository_DownloadBundleServer) error {
+	bundle := new(services.ServiceBundle)
+	bundle.Plaform = rqst.Plaform
+	bundle.Descriptor_ = rqst.Descriptor_
+
+	// Generate the bundle id....
+	var id string
+	if bundle.Plaform == services.Platform_LINUX32 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%LINUX32"
+	} else if bundle.Plaform == services.Platform_LINUX64 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%LINUX64"
+	} else if bundle.Plaform == services.Platform_WIN32 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%WIN32"
+	} else if bundle.Plaform == services.Platform_WIN64 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%WIN64"
+	}
+
+	path := self.data + string(os.PathSeparator) + "service-repository"
+
+	var err error
+	// the file must be a zipped archive that contain a .proto, .config and executable.
+	bundle.Binairies, err = ioutil.ReadFile(path + string(os.PathSeparator) + id + ".tar.gz")
 
 	if err != nil {
 		return err
 	}
-	_, err = cert.Verify(opts)
 
-	return err
+	const BufferSize = 1024 * 5 // the chunck size.
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer) // Will write to network.
+	err = enc.Encode(bundle)
+	if err != nil {
+		return err
+	}
+
+	for {
+		var data [BufferSize]byte
+		bytesread, err := buffer.Read(data[0:BufferSize])
+		if bytesread > 0 {
+			rqst := &services.DownloadBundleResponse{
+				Data: data[0:bytesread],
+			}
+			// send the data to the server.
+			err = stream.Send(rqst)
+		}
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+/** Upload a service to a service directory **/
+func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundleServer) error {
+	// The bundle will cantain the necessary information to install the service.
+	var buffer bytes.Buffer
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			stream.SendAndClose(&services.UploadBundleResponse{
+				Result: true,
+			})
+			break
+		} else if err != nil {
+			return err
+		} else {
+			buffer.Write(msg.Data)
+		}
+
+	}
+
+	// The buffer that contain the
+	dec := gob.NewDecoder(&buffer)
+	bundle := new(services.ServiceBundle)
+	err := dec.Decode(bundle)
+	if err != nil {
+		return err
+	}
+
+	// Generate the bundle id....
+	var id string
+	if bundle.Plaform == services.Platform_LINUX32 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%LINUX32"
+	} else if bundle.Plaform == services.Platform_LINUX64 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%LINUX64"
+	} else if bundle.Plaform == services.Platform_WIN32 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%WIN32"
+	} else if bundle.Plaform == services.Platform_WIN64 {
+		id = bundle.Descriptor_.Id + "%" + bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Version + "%WIN64"
+	}
+
+	repositoryId := self.Domain + ":" + strconv.Itoa(self.ServicesRepositoryPort)
+	// Now I will append the address of the repository into the service descriptor.
+	if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
+		bundle.Descriptor_.Repositories = append(bundle.Descriptor_.Repositories, repositoryId)
+		// Publish change into discoveries...
+		for i := 0; i < len(bundle.Descriptor_.Discorveries); i++ {
+			discoveryId := bundle.Descriptor_.Discorveries[i]
+
+			// discovery id is compose of the domain:port
+			domain := strings.Split(discoveryId, ":")[0]
+			port := Utility.ToInt(strings.Split(discoveryId, ":")[1])
+
+			// TODO set certificates and has tls value here...
+			discoveryService := services.NewServicesDiscovery_Client(domain, port, false, "", "", "", "")
+			discoveryService.PublishService(bundle.Descriptor_)
+		}
+	}
+
+	path := self.data + string(os.PathSeparator) + "service-repository"
+	Utility.CreateDirIfNotExist(path)
+
+	// the file must be a zipped archive that contain a .proto, .config and executable.
+	err = ioutil.WriteFile(path+string(os.PathSeparator)+id+".tar.gz", bundle.Binairies, 777)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 /**
@@ -2141,8 +2390,8 @@ func (self *Globule) Listen() {
 		// stop external service.
 		for externalServiceId, _ := range self.ExternalApplications {
 			self.stopExternalApplication(externalServiceId)
-
 		}
+
 		for _, value := range self.clients {
 			value.Close()
 		}
@@ -2215,6 +2464,64 @@ func (self *Globule) Listen() {
 		}()
 	}
 
+	// The service discovery.
+	services_discovery_server, err := self.startInternalService("ServicesDiscovery", self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy)
+	if err == nil {
+		// Create the channel to listen on admin port.
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
+		if err != nil {
+			log.Fatalf("could not start services discovery service %s: %s", self.Domain, err)
+		}
+
+		services.RegisterServiceDiscoveryServer(services_discovery_server, self)
+
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go func() {
+			log.Println("---> start services discovery service!")
+			go func() {
+
+				// no web-rpc server.
+				if err := services_discovery_server.Serve(lis); err != nil {
+					log.Fatalf("failed to serve: %v", err)
+				}
+				log.Println("services discovery grpc service is closed")
+			}()
+			// Wait for signal to stop.
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, os.Interrupt)
+			<-ch
+		}()
+	}
+
+	// The service repository
+	services_repository_server, err := self.startInternalService("ServicesRepository", self.ServicesRepositoryPort, self.ServicesRepositoryProxy)
+	if err == nil {
+		// Create the channel to listen on admin port.
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesRepositoryPort))
+		if err != nil {
+			log.Fatalf("could not start services repository service %s: %s", self.Domain, err)
+		}
+
+		services.RegisterServiceRepositoryServer(services_repository_server, self)
+
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go func() {
+			log.Println("---> start services repository service!")
+			go func() {
+
+				// no web-rpc server.
+				if err := services_repository_server.Serve(lis); err != nil {
+					log.Fatalf("failed to serve: %v", err)
+				}
+				log.Println("services repository grpc service is closed")
+			}()
+			// Wait for signal to stop.
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, os.Interrupt)
+			<-ch
+		}()
+	}
+
 	// Start listen for http request.
 	http.HandleFunc("/", ServeFileHandler)
 
@@ -2231,49 +2538,30 @@ func (self *Globule) Listen() {
 
 	// Start the http server.
 	if self.Protocol == "https" {
-		certManager := autocert.Manager{
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(self.Domain), //your domain here
-			Cache:      autocert.DirCache(self.certs),
-		}
+		if len(self.Certificate) == 0 {
 
-		log.Println("Listen http on port ", self.PortHttp)
-		go http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), certManager.HTTPHandler(nil))
+			// Here is the command to be execute in order to ge the certificates.
+			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
 
-		// Start https server.
-		server := &http.Server{
-			Addr: ":" + Utility.ToString(self.PortHttps),
-			TLSConfig: &tls.Config{
-				ServerName:     self.Domain,
-				GetCertificate: certManager.GetCertificate,
-			},
-		}
-
-		log.Println("Listen https on port ", self.PortHttps)
-		// take information from the certificate file and split it into different file
-		// those file will be use by gRpc.
-		certData, err := ioutil.ReadFile(self.certs + string(os.PathSeparator) + self.Domain)
-		if err == nil {
-			sections := strings.Split(string(certData), "-----BEGIN") // split the file with comment...
-			for i := 0; i < len(sections); i++ {
-				if i == 0 {
-					self.PrivateKey = "private.key" // The key is if type EC
-					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.PrivateKey, []byte("-----BEGIN"+sections[i]), 400)
-				}
-				if i == 1 {
-					self.Certificate = "certificate.crt"
-					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.Certificate, []byte("-----BEGIN"+sections[i]), 400)
-				}
-				if i == 2 {
-					self.CertificateAuthorityBundle = "ca_bundle.crt"
-					ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle, []byte("-----BEGIN"+sections[i]), 400)
-				}
+			// Now I will get the new certificate.
+			legoPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "lego"
+			if string(os.PathSeparator) == "\\" {
+				legoPath += ".exe" // in case of windows.
 			}
+
+		} else {
+			// Start https server.
+			server := &http.Server{
+				Addr: ":" + Utility.ToString(self.PortHttps),
+				TLSConfig: &tls.Config{
+					ServerName: self.Domain,
+				},
+			}
+			// get the value from the configuration files.
+			server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.certs+string(os.PathSeparator)+self.PrivateKey)
 		}
-
-		server.ListenAndServeTLS("", "") // no need to specifie certificate and keys here.
-
 	} else {
+
 		// local - non secure connection.
 		http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}

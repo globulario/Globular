@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	// Connect to the plc client.
-	client = NewAdmin_Client("localhost", "127.0.0.1:10001", false, "", "", "", "")
+	// Connect to the admin client.
+	client = NewAdmin_Client("localhost", 10001, false, "", "", "", "")
 )
 
 // Test various function here.

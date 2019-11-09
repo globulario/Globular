@@ -41,9 +41,7 @@ var (
 	// comma separeated values.
 	allowed_origins string = ""
 
-	// Thr IPV4 address
-	address string = "127.0.0.1"
-
+	// the default domain.
 	domain string = "localhost"
 )
 
@@ -84,6 +82,8 @@ type server struct {
 	// a private RSA key to sign and authenticate the public key
 	CertAuthorityTrust string
 	TLS                bool
+	Version            string
+	PublisherId        string
 
 	// Use to sync event channel manipulation.
 	subscribe_events_chan   chan *SubscribeEvent
@@ -280,8 +280,9 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Address = address
 	s_impl.Domain = domain
+	s_impl.Version = "0.0.1"
+
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

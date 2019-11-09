@@ -26,7 +26,7 @@ var (
 func TestEcho(t *testing.T) {
 
 	// Connect to the plc client.
-	client := echo_client.NewEcho_Client("localhost", "127.0.0.1:10029", true, key, crt, ca, token)
+	client := echo_client.NewEcho_Client("localhost", 10029, true, key, crt, ca, token)
 
 	val, err := client.Echo("Ceci est un test")
 	if err != nil {

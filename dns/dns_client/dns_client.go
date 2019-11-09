@@ -3,6 +3,7 @@ package dns_client
 import (
 	"context"
 	// "log"
+	"strconv"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/dns/dnspb"
@@ -22,11 +23,11 @@ type DNS_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -42,10 +43,10 @@ type DNS_Client struct {
 }
 
 // Create a connection to the service.
-func NewDns_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *DNS_Client {
+func NewDns_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *DNS_Client {
 	client := new(DNS_Client)
-	client.addresse = addresse
 	client.domain = domain
+	client.port = port
 	client.name = "dns"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
@@ -56,14 +57,14 @@ func NewDns_Client(domain string, addresse string, hasTLS bool, keyFile string, 
 	return client
 }
 
-// Return the ipv4 address
-func (self *DNS_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *DNS_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *DNS_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

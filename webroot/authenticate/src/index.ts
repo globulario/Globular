@@ -6,15 +6,15 @@ import * as jwt from 'jsonwebtoken'
 // Set the basic configuration without services details.
 let config = {
     Name: "Globular",
-    PortHttp: 8080,
-    PortHttps: 8181,
+    PortHttp: 80,
+    PortHttps: 443,
     AdminPort: 10001,
     AdminProxy: 10002,
     RessourcePort: 10003,
     RessourceProxy: 10004,
     Protocol: "https",
     IP: "",// not necessary... 
-    Domain: "localhost",
+    Domain: "globular3.omniscient.app",
     Services: {}, // empty for start.
     SessionTimeout: 5
 };
@@ -70,21 +70,6 @@ function test(){
         })
     }, (err:any)=>{
         console.log("----> error!", err)
-    })
-
-    Authentitcate("davecourtois","1234", (decoded:any)=>{
-        console.log("----> success!", decoded)
-        // here I will renew the token each time
-
-        // I will try to read the full configuration.
-        readFullConfig((config:GlobularWebClient.IConfig)=>{
-            console.log("---> read full config success", config)
-        })
-    }, (err:any)=>{
-        console.log("----> error!", err)
-        RegisterAccount("davecourtois", "dave.courtois60@gmail.com", "1234", "1234", (token:string)=>{
-            console.log("---> token written: ", token)
-        })
     })
 }
 

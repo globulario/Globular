@@ -34,7 +34,6 @@ func subscribeTo(client *event_client.Event_Client, subject string) string {
 func TestEventService(t *testing.T) {
 	log.Println("Test event service")
 	domain := "localhost"
-	addresse := "127.0.0.1:10015"
 
 	// The topic.
 	subject := "my topic"
@@ -42,7 +41,7 @@ func TestEventService(t *testing.T) {
 	clients := make([]*event_client.Event_Client, size)
 	uuids := make([]string, size)
 	for i := 0; i < size; i++ {
-		c := event_client.NewEvent_Client(domain, addresse, false, "", "", "")
+		c := event_client.NewEvent_Client(domain, 10015, false, "", "", "")
 		uuids[i] = subscribeTo(c, subject)
 		log.Println("client ", i)
 		clients[i] = c

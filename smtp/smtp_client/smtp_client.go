@@ -4,6 +4,8 @@ import (
 	// "context"
 	// "log"
 
+	"strconv"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"google.golang.org/grpc"
@@ -19,11 +21,11 @@ type SMTP_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -39,13 +41,12 @@ type SMTP_Client struct {
 }
 
 // Create a connection to the service.
-func NewSmtp_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SMTP_Client {
+func NewSmtp_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SMTP_Client {
 	client := new(SMTP_Client)
 
-	client.addresse = addresse
 	client.domain = domain
 	client.name = "smtp"
-
+	client.port = port
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile
@@ -57,14 +58,14 @@ func NewSmtp_Client(domain string, addresse string, hasTLS bool, keyFile string,
 	return client
 }
 
-// Return the ipv4 address
-func (self *SMTP_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *SMTP_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *SMTP_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

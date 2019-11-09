@@ -3,6 +3,7 @@ package event_client
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
@@ -24,11 +25,11 @@ type Event_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -44,29 +45,28 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Event_Client {
+func NewEvent_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Event_Client {
 	client := new(Event_Client)
-
-	client.addresse = addresse
 	client.domain = domain
 	client.name = "event"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
+	client.port = port
 	client.cc = api.GetClientConnection(client, token)
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	return client
 }
 
-// Return the ipv4 address
-func (self *Event_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *Event_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *Event_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

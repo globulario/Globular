@@ -36,9 +36,6 @@ var (
 	// comma separeated values.
 	allowed_origins string = ""
 
-	// Thr IPV4 address
-	address string = "127.0.0.1"
-
 	domain string = "localhost"
 )
 
@@ -51,7 +48,6 @@ type server struct {
 	AllowAllOrigins bool
 	AllowedOrigins  string // comma separated string.
 	Protocol        string
-	Address         string
 	Domain          string
 	// self-signed X.509 public keys for distribution
 	CertFile string
@@ -60,6 +56,8 @@ type server struct {
 	// a private RSA key to sign and authenticate the public key
 	CertAuthorityTrust string
 	TLS                bool
+	Version            string
+	PublisherId        string
 }
 
 // Create the configuration file if is not already exist.
@@ -133,8 +131,9 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Address = address
 	s_impl.Domain = domain
+	s_impl.Version = "0.0.1"
+	s_impl.PublisherId = "globular.app"
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
@@ -146,7 +145,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
 		return
 	}
 

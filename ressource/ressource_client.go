@@ -3,6 +3,8 @@ package ressource
 import (
 	"context"
 
+	"strconv"
+
 	"github.com/davecourtois/Globular/api"
 
 	//	"github.com/davecourtois/Utility"
@@ -24,11 +26,11 @@ type Ressource_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port number
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -44,10 +46,10 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string) *Ressource_Client {
+func NewRessource_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Ressource_Client {
 
 	client := new(Ressource_Client)
-	client.addresse = addresse
+	client.port = port
 	client.domain = domain
 	client.name = "ressource"
 	client.hasTLS = hasTLS
@@ -68,8 +70,9 @@ func NewRessource_Client(domain string, addresse string, hasTLS bool, keyFile st
 }
 
 // Return the ipv4 address
+// Return the address
 func (self *Ressource_Client) GetAddress() string {
-	return self.addresse
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the domain

@@ -6,6 +6,8 @@ import (
 
 	"github.com/davecourtois/Globular/api"
 	//	"github.com/davecourtois/Utility"
+	"strconv"
+
 	"google.golang.org/grpc"
 )
 
@@ -20,8 +22,8 @@ type Admin_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
+	// The port
+	port int
 
 	// The client domain
 	domain string
@@ -40,10 +42,10 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Admin_Client {
+func NewAdmin_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Admin_Client {
 	client := new(Admin_Client)
 
-	client.addresse = addresse
+	client.port = port
 	client.domain = domain
 	client.name = "admin"
 	client.hasTLS = hasTLS
@@ -56,9 +58,9 @@ func NewAdmin_Client(domain string, addresse string, hasTLS bool, keyFile string
 	return client
 }
 
-// Return the ipv4 address
+// Return the address
 func (self *Admin_Client) GetAddress() string {
-	return self.addresse
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the domain

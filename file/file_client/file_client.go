@@ -2,10 +2,10 @@ package file_client
 
 import (
 	"context"
-	"log"
-
 	"io"
+	"log"
 	"os"
+	"strconv"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/file/filepb"
@@ -25,11 +25,11 @@ type File_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port number
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -45,30 +45,30 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *File_Client {
+func NewFile_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *File_Client {
 	client := new(File_Client)
 
-	client.addresse = addresse
 	client.name = "file"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
 	client.domain = domain
+	client.port = port
 	client.cc = api.GetClientConnection(client, token)
 	client.c = filepb.NewFileServiceClient(client.cc)
 
 	return client
 }
 
-// Return the ipv4 address
-func (self *File_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *File_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *File_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

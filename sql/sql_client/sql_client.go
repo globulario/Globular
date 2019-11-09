@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/davecourtois/Globular/api"
@@ -22,11 +23,11 @@ type SQL_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -46,7 +47,6 @@ func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, 
 
 	client := new(SQL_Client)
 
-	client.addresse = addresse
 	client.domain = domain
 	client.name = "sql"
 	client.hasTLS = hasTLS
@@ -59,14 +59,14 @@ func NewSql_Client(domain string, addresse string, hasTLS bool, keyFile string, 
 	return client
 }
 
-// Return the ipv4 address
-func (self *SQL_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *SQL_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *SQL_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

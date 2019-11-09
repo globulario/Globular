@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strconv"
 
 	//"log"
 	"github.com/davecourtois/Globular/api"
@@ -22,11 +23,11 @@ type Persistence_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -42,10 +43,10 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Persistence_Client {
+func NewPersistence_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Persistence_Client {
 	client := new(Persistence_Client)
-	client.addresse = addresse
 	client.domain = domain
+	client.port = port
 	client.name = "persistence"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
@@ -58,14 +59,14 @@ func NewPersistence_Client(domain string, addresse string, hasTLS bool, keyFile 
 	return client
 }
 
-// Return the ipv4 address
-func (self *Persistence_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *Persistence_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *Persistence_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service

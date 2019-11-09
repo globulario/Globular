@@ -14,11 +14,12 @@ import (
 
 // The client service interface.
 type Client interface {
-	// Return the ipv4 address
-	GetAddress() string
 
 	// Get Domain return the client domain.
 	GetDomain() string
+
+	// Get the client address.
+	GetAddress() string
 
 	// Return the name of the service
 	GetName() string
@@ -93,7 +94,7 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 					}))
 
 			if err != nil {
-				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
+				log.Fatalf("could not dial %s: %s", client.GetDomain(), err)
 			}
 		} else {
 			cc, err = grpc.Dial(client.GetAddress(), grpc.WithInsecure())

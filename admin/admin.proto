@@ -82,7 +82,16 @@ service AdminService {
   // Start a service
   rpc StartService(StartServiceRequest) returns (StartServiceResponse);
 
+  // Publish a service...
+
+  // Pulblish all services...
+
+  // Update a service...
+
+  // Update all services...
+
   // Register external service to be start by Globular in order to run 
   // as exemple MongoDB and Prometheus.
   rpc RegisterExternalApplication(RegisterExternalApplicationRequest) returns (RegisterExternalApplicationResponse);
+
 }

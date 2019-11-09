@@ -20,10 +20,10 @@ var (
 
 	// The token is print in the sever console. It can be taken from the local temp file if the client service run on the same machine.
 	// It will be regenerate each time the server is started and valid until the token expire.
-	// client = dns_client.NewDns_Client("localhost", "127.0.0.1:10033", false, key, crt, ca, token)
+	// client = dns_client.NewDns_Client("localhost", 10033, false, key, crt, ca, token)
 
 	// Try to connect to a nameserver.
-	client = dns_client.NewDns_Client("localhost", "127.0.0.1:10033", false, key, crt, ca, token)
+	client = dns_client.NewDns_Client("localhost", 10033, false, key, crt, ca, token)
 	//client = dns_client.NewDns_Client("www.omniscient.app", "35.183.163.145:10033", false, key, crt, ca, token)
 	//client = dns_client.NewDns_Client("www.omniscient.app", "44.225.184.139:10033", false, key, crt, ca, token)
 

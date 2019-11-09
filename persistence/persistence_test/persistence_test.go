@@ -14,15 +14,14 @@ import (
 // start: mongod --dbpath E:\Project\src\github.com\davecourtois\Globular\data\mongodb-data
 // Set the correct addresse here as needed.
 var (
-	addresse = "localhost:10005"
-	token    = ""
-	crt      = "E:/Project/src/github.com/davecourtois/Globular/creds/client.crt"
-	key      = "E:/Project/src/github.com/davecourtois/Globular/creds/client.pem"
-	ca       = "E:/Project//src/github.com/davecourtois/Globular/creds/ca.crt"
+	token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZXhwIjoxNTczMjQ0NDkzfQ.IzckoYA7meyFrt9zzOV1LXHkI948o096CO3ahgsCJ8g"
+	crt   = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.crt"
+	key   = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.pem"
+	ca    = "E:/Project//src/github.com/davecourtois/Globular/config/grpc_tls/ca.crt"
 
 	// Connect to the plc client.
-	// client = persistence_client.NewPersistence_Client("localhost", addresse, true, key, crt, ca, token)
-	client = persistence_client.NewPersistence_Client("localhost", addresse, false, "", "", "", token)
+	client = persistence_client.NewPersistence_Client("localhost", 10035, true, key, crt, ca, token)
+	// client = persistence_client.NewPersistence_Client(addresse, false, "", "", "", token)
 )
 
 // First test create a fresh new connection...
@@ -67,7 +66,7 @@ func TestPingConnection(t *testing.T) {
 	log.Println(ids)
 }*/
 
-/*func TestPersistOne(t *testing.T) {
+func TestPersistOne(t *testing.T) {
 
 	Id := "mongo_db_test_connection"
 	Database := "TestMongoDB"
@@ -80,10 +79,10 @@ func TestPingConnection(t *testing.T) {
 	}
 
 	log.Println("one entity persist with id ", id)
-}*/
+}
 
 /** Test find one **/
-/*func TestUpdate(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	fmt.Println("Update test.")
 
 	Id := "mongo_db_test_connection"
@@ -97,7 +96,7 @@ func TestPingConnection(t *testing.T) {
 		log.Fatalf("TestUpdate fail %v", err)
 	}
 	log.Println("---> update success!")
-}*/
+}
 
 /** Test find many **/
 func TestFind(t *testing.T) {
@@ -119,7 +118,7 @@ func TestFind(t *testing.T) {
 }
 
 /** Test find one **/
-/*func TestFindOne(t *testing.T) {
+func TestFindOne(t *testing.T) {
 	fmt.Println("Find one test.")
 
 	Id := "mongo_db_test_connection"
@@ -133,10 +132,10 @@ func TestFind(t *testing.T) {
 	}
 
 	log.Println(values)
-}*/
+}
 
 /** Test remove **/
-/*func TestRemove(t *testing.T) {
+func TestRemove(t *testing.T) {
 	fmt.Println("Test Remove")
 
 	Id := "mongo_db_test_connection"
@@ -150,7 +149,7 @@ func TestFind(t *testing.T) {
 	}
 
 	log.Println("---> Delete success!")
-}*/
+}
 
 /*func TestRemoveMany(t *testing.T) {
 	fmt.Println("Test Remove")

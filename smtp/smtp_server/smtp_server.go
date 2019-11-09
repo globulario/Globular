@@ -31,17 +31,14 @@ import (
 )
 
 var (
-	defaultPort  = 10007
-	defaultProxy = 10008
+	defaultPort  = 10037
+	defaultProxy = 10038
 
 	// By default all origins are allowed.
 	allow_all_origins = true
 
 	// comma separeated values.
 	allowed_origins string = ""
-
-	// Thr IPV4 address
-	address string = "127.0.0.1"
 
 	// the domain of the server.
 	domain string = "localhost"
@@ -64,13 +61,13 @@ type server struct {
 	Protocol           string
 	AllowAllOrigins    bool
 	AllowedOrigins     string // comma separated string.
-	Address            string
 	Domain             string
 	CertFile           string
 	KeyFile            string
 	CertAuthorityTrust string
-
-	TLS bool
+	Version            string
+	TLS                bool
+	PublisherId        string
 
 	// The map of connection...
 	Connections map[string]connection
@@ -367,8 +364,7 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Address = address
-
+	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
 
@@ -379,7 +375,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
 		return
 	}
 

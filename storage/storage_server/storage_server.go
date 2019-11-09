@@ -39,9 +39,6 @@ var (
 	// comma separeated values.
 	allowed_origins string = ""
 
-	// The IPV4 address
-	address string = "127.0.0.1"
-
 	// The domain
 	domain string = "localhost"
 )
@@ -62,12 +59,13 @@ type server struct {
 	Protocol           string
 	AllowAllOrigins    bool
 	AllowedOrigins     string // comma separated string.
-	Address            string
 	Domain             string
 	CertAuthorityTrust string
 	CertFile           string
 	KeyFile            string
 	TLS                bool
+	Version            string
+	PublisherId        string
 
 	// The map of connection...
 	Connections map[string]connection
@@ -80,7 +78,7 @@ func (self *server) init() {
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	self.stores = make(map[string]storage_store.Store)
-
+	self.Version = "0.0.1"
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
@@ -412,9 +410,8 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
-	s_impl.Address = address
 	s_impl.Domain = domain
-
+	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
 
@@ -425,7 +422,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
 		return
 	}
 

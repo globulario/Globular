@@ -8,6 +8,7 @@ import (
 
 	//	"github.com/davecourtois/Utility"
 	"io"
+	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -23,11 +24,11 @@ type Monitoring_Client struct {
 	// The name of the service
 	name string
 
-	// The ipv4 address
-	addresse string
-
 	// The client domain
 	domain string
+
+	// The port
+	port int
 
 	// is the connection is secure?
 	hasTLS bool
@@ -43,11 +44,11 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Monitoring_Client {
+func NewMonitoring_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Monitoring_Client {
 	client := new(Monitoring_Client)
 
-	client.addresse = addresse
 	client.domain = domain
+	client.port = port
 	client.name = "Monitoring"
 	client.hasTLS = hasTLS
 	client.keyFile = keyFile
@@ -59,14 +60,14 @@ func NewMonitoring_Client(domain string, addresse string, hasTLS bool, keyFile s
 	return client
 }
 
-// Return the ipv4 address
-func (self *Monitoring_Client) GetAddress() string {
-	return self.addresse
-}
-
 // Return the domain
 func (self *Monitoring_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the address
+func (self *Monitoring_Client) GetAddress() string {
+	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
 // Return the name of the service
