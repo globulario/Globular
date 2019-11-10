@@ -10,8 +10,8 @@ import {
 
 export class EventServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   subscribe(
     request: SubscribeRequest,
@@ -36,8 +36,8 @@ export class EventServiceClient {
 
 export class EventServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   subscribe(
     request: SubscribeRequest,

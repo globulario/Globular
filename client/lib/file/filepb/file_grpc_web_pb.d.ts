@@ -24,8 +24,8 @@ import {
 
 export class FileServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   readDir(
     request: ReadDirRequest,
@@ -88,8 +88,8 @@ export class FileServiceClient {
 
 export class FileServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   readDir(
     request: ReadDirRequest,

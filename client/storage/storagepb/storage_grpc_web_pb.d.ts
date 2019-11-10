@@ -22,8 +22,8 @@ import {
 
 export class StorageServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   open(
     request: OpenRqst,
@@ -92,8 +92,8 @@ export class StorageServiceClient {
 
 export class StorageServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   open(
     request: OpenRqst,

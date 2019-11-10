@@ -14,6 +14,7 @@ import { MonitoringServicePromiseClient } from './monitoring/monitoringpb/monito
 import { PlcServicePromiseClient } from './plc/plcpb/plc_grpc_web_pb';
 import { AdminServicePromiseClient } from './admin/admin_grpc_web_pb';
 import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb';
+import { ServiceDiscoveryPromiseClient, ServiceRepositoryClient } from './services/services_grpc_web_pb';
 
 /**
  * The service configuration information.
@@ -42,12 +43,16 @@ export interface IConfig {
   Domain: string;
   PortHttp: Number;
   PortHttps: Number;
+  AdminPort: Number;
   AdminProxy: Number;
   RessourcePort: Number;
   RessourceProxy: Number;
+  ServicesDiscoveryPort: Number;
+  ServicesDiscoveryProxy: Number;
+  ServicesRepositoryPort: Number;
+  ServicesRepositoryProxy: Number;
   SessionTimeout: Number;
   Protocol: string;
-  IP: string;
 
   // The map of service object.
   Services: IServices;
@@ -62,6 +67,8 @@ export class Globular {
   // The admin service.
   adminService: AdminServicePromiseClient | undefined;
   ressourceService: RessourceServicePromiseClient | undefined;
+  servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
+  servicesRepository: ServiceRepositoryClient | undefined;
 
   // list of services.
   catalogService: CatalogServicePromiseClient | undefined;
@@ -93,8 +100,23 @@ export class Globular {
       null,
     );
 
+    /** That service is use to control acces to ressource like method access and account. */
     this.ressourceService = new RessourceServicePromiseClient(
       this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy,
+      null,
+      null,
+    );
+
+    /** That service help to find and install or publish new service on the backend. */
+    this.servicesDicovery = new ServiceDiscoveryPromiseClient(
+      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy,
+      null,
+      null,
+    );
+
+    /** Contain services bundle ready to be find by the discovery service. */
+    this.servicesRepository = new ServiceRepositoryClient(
+      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesRepositoryProxy,
       null,
       null,
     );

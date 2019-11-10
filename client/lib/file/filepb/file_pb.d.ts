@@ -269,13 +269,11 @@ export namespace ReadFileResponse {
 export class SaveFileRequest extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
-  hasPath(): boolean;
 
   getData(): Uint8Array | string;
   getData_asU8(): Uint8Array;
   getData_asB64(): string;
   setData(value: Uint8Array | string): void;
-  hasData(): boolean;
 
   getFileCase(): SaveFileRequest.FileCase;
 

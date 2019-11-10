@@ -159,7 +159,7 @@ func (self *Admin_Client) StopService(id string) error {
 	return nil
 }
 
-// Register and start an external service.
+// Register and start an application.
 func (self *Admin_Client) RegisterExternalApplication(id string, path string, args []string) (int, error) {
 	rqst := &RegisterExternalApplicationRequest{
 		ServiceId: id,
@@ -174,4 +174,23 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 	}
 
 	return int(rsp.ServicePid), nil
+}
+
+/////////////////////////// Services management functions ////////////////////////
+
+/**
+ * Publish a service from a runing globular server.
+ */
+func (self *Admin_Client) PublishService(serviceId string, discoveryAddress string, repositoryAddress string, description string, keywords []string) error {
+
+	rqst := new(PublishServiceRequest)
+	rqst.Description = description
+	rqst.DicorveryId = discoveryAddress
+	rqst.RepositoryId = repositoryAddress
+	rqst.Keywords = keywords
+	rqst.ServiceId = serviceId
+
+	_, err := self.c.PublishService(context.Background(), rqst)
+
+	return err
 }

@@ -12,9 +12,12 @@ let config = {
     AdminProxy: 10002,
     RessourcePort: 10003,
     RessourceProxy: 10004,
+    ServicesDiscoveryPort: 10005,
+    ServicesDiscoveryProxy: 10006,
+    ServicesRepositoryPort: 10007,
+    ServicesRepositoryProxy: 10008,
     Protocol: "https",
-    IP: "",// not necessary... 
-    Domain: "globular3.omniscient.app",
+    Domain: "www.omniscient.app",
     Services: {}, // empty for start.
     SessionTimeout: 5
 };

@@ -137,12 +137,12 @@ func (self *ServicesDiscovery_Client) GetServiceDescriptor(service_id string, pu
 }
 
 /** Publish a service to service discovery **/
-func (self *ServicesDiscovery_Client) PublishService(descriptor *ServiceDescriptor) error {
-	rqst := new(PublishServiceRequest)
+func (self *ServicesDiscovery_Client) PublishServiceDescriptor(descriptor *ServiceDescriptor) error {
+	rqst := new(PublishServiceDescriptorRequest)
 	rqst.Descriptor_ = descriptor
 
 	// publish a service descriptor on the network.
-	_, err := self.c.PublishService(context.Background(), rqst)
+	_, err := self.c.PublishServiceDescriptor(context.Background(), rqst)
 
 	return err
 }

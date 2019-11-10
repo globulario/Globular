@@ -13,6 +13,7 @@ import { MonitoringServicePromiseClient } from './monitoring/monitoringpb/monito
 import { PlcServicePromiseClient } from './plc/plcpb/plc_grpc_web_pb';
 import { AdminServicePromiseClient } from './admin/admin_grpc_web_pb';
 import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb';
+import { ServiceDiscoveryPromiseClient, ServiceRepositoryClient } from './services/services_grpc_web_pb';
 /**
  * The service configuration information.
  */
@@ -38,12 +39,16 @@ export interface IConfig {
     Domain: string;
     PortHttp: Number;
     PortHttps: Number;
+    AdminPort: Number;
     AdminProxy: Number;
     RessourcePort: Number;
     RessourceProxy: Number;
+    ServicesDiscoveryPort: Number;
+    ServicesDiscoveryProxy: Number;
+    ServicesRepositoryPort: Number;
+    ServicesRepositoryProxy: Number;
     SessionTimeout: Number;
     Protocol: string;
-    IP: string;
     Services: IServices;
 }
 /**
@@ -54,6 +59,8 @@ export declare class Globular {
     config: IConfig | undefined;
     adminService: AdminServicePromiseClient | undefined;
     ressourceService: RessourceServicePromiseClient | undefined;
+    servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
+    servicesRepository: ServiceRepositoryClient | undefined;
     catalogService: CatalogServicePromiseClient | undefined;
     echoService: EchoServicePromiseClient | undefined;
     eventService: EventServicePromiseClient | undefined;

@@ -246,13 +246,11 @@ export class SendEmailWithAttachementsRqst extends jspb.Message {
   setEmail(value?: Email): void;
   hasEmail(): boolean;
   clearEmail(): void;
-  hasEmail(): boolean;
 
   getAttachements(): Attachement | undefined;
   setAttachements(value?: Attachement): void;
   hasAttachements(): boolean;
   clearAttachements(): void;
-  hasAttachements(): boolean;
 
   getDataCase(): SendEmailWithAttachementsRqst.DataCase;
 

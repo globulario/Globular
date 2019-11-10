@@ -47,11 +47,9 @@ export class SubscribeResponse extends jspb.Message {
   setEvt(value?: Event): void;
   hasEvt(): boolean;
   clearEvt(): void;
-  hasEvt(): boolean;
 
   getUuid(): string;
   setUuid(value: string): void;
-  hasUuid(): boolean;
 
   getResultCase(): SubscribeResponse.ResultCase;
 

@@ -92,5 +92,4 @@ func main() {
 	} else {
 		g.Listen()
 	}
-
 }

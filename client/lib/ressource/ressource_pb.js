@@ -1,3 +1,4 @@
+// source: ressource/ressource.proto
 /**
  * @fileoverview
  * @enhanceable

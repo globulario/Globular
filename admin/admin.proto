@@ -53,19 +53,31 @@ message RegisterExternalApplicationResponse {
   int64 service_pid = 1;
 }
 
-message SetRootPasswordRqst{
+message SetRootPasswordRequest{
 	string oldPassword = 1;
 	string newPassword = 2;
 }
 
-message SetRootPasswordRsp {
+message SetRootPasswordResponse {
 	string token = 1;
+}
+
+message PublishServiceRequest{
+	string serviceId = 1;
+	string dicorveryId = 2;
+	string repositoryId = 3;
+	string description = 4;
+	repeated string keywords = 5;
+}
+
+message PublishServiceResponse{
+	bool result = 1;
 }
 
 service AdminService {
 		
   //Set the root password
-  rpc SetRootPassword(SetRootPasswordRqst) returns(SetRootPasswordRsp);
+  rpc SetRootPassword(SetRootPasswordRequest) returns(SetRootPasswordResponse);
 	
   // Return configuration whitout all detail, no needed to be secure.
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
@@ -83,6 +95,7 @@ service AdminService {
   rpc StartService(StartServiceRequest) returns (StartServiceResponse);
 
   // Publish a service...
+  rpc PublishService(PublishServiceRequest) returns (PublishServiceResponse);
 
   // Pulblish all services...
 

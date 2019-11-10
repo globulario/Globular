@@ -144,7 +144,7 @@ export namespace StartServiceResponse {
   }
 }
 
-export class RegisterExternalServiceRequest extends jspb.Message {
+export class RegisterExternalApplicationRequest extends jspb.Message {
   getServiceId(): string;
   setServiceId(value: string): void;
 
@@ -157,14 +157,14 @@ export class RegisterExternalServiceRequest extends jspb.Message {
   addArgs(value: string, index?: number): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterExternalServiceRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterExternalServiceRequest): RegisterExternalServiceRequest.AsObject;
-  static serializeBinaryToWriter(message: RegisterExternalServiceRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterExternalServiceRequest;
-  static deserializeBinaryFromReader(message: RegisterExternalServiceRequest, reader: jspb.BinaryReader): RegisterExternalServiceRequest;
+  toObject(includeInstance?: boolean): RegisterExternalApplicationRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: RegisterExternalApplicationRequest): RegisterExternalApplicationRequest.AsObject;
+  static serializeBinaryToWriter(message: RegisterExternalApplicationRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RegisterExternalApplicationRequest;
+  static deserializeBinaryFromReader(message: RegisterExternalApplicationRequest, reader: jspb.BinaryReader): RegisterExternalApplicationRequest;
 }
 
-export namespace RegisterExternalServiceRequest {
+export namespace RegisterExternalApplicationRequest {
   export type AsObject = {
     serviceId: string,
     path: string,
@@ -172,19 +172,19 @@ export namespace RegisterExternalServiceRequest {
   }
 }
 
-export class RegisterExternalServiceResponse extends jspb.Message {
+export class RegisterExternalApplicationResponse extends jspb.Message {
   getServicePid(): number;
   setServicePid(value: number): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RegisterExternalServiceResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: RegisterExternalServiceResponse): RegisterExternalServiceResponse.AsObject;
-  static serializeBinaryToWriter(message: RegisterExternalServiceResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RegisterExternalServiceResponse;
-  static deserializeBinaryFromReader(message: RegisterExternalServiceResponse, reader: jspb.BinaryReader): RegisterExternalServiceResponse;
+  toObject(includeInstance?: boolean): RegisterExternalApplicationResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: RegisterExternalApplicationResponse): RegisterExternalApplicationResponse.AsObject;
+  static serializeBinaryToWriter(message: RegisterExternalApplicationResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RegisterExternalApplicationResponse;
+  static deserializeBinaryFromReader(message: RegisterExternalApplicationResponse, reader: jspb.BinaryReader): RegisterExternalApplicationResponse;
 }
 
-export namespace RegisterExternalServiceResponse {
+export namespace RegisterExternalApplicationResponse {
   export type AsObject = {
     servicePid: number,
   }

@@ -35,11 +35,11 @@ message ServiceBundle {
 	bytes binairies = 4;
 }
 
-message PublishServiceRequest {
+message PublishServiceDescriptorRequest {
 	ServiceDescriptor descriptor = 1;
 }
 
-message PublishServiceResponse {
+message PublishServiceDescriptorResponse {
 	bool result = 1;
 }
 
@@ -87,7 +87,7 @@ service ServiceDiscovery {
 	rpc GetServicesDescriptor(GetServicesDescriptorRequest) returns(GetServicesDescriptorResponse); 
 	
 	/** Publish a service to service discovery **/
-	rpc publishService(PublishServiceRequest) returns(PublishServiceResponse); 
+	rpc publishServiceDescriptor(PublishServiceDescriptorRequest) returns(PublishServiceDescriptorResponse); 
 	
 }
 

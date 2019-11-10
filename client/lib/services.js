@@ -16,6 +16,7 @@ var monitoring_grpc_web_pb_1 = require("./monitoring/monitoringpb/monitoring_grp
 var plc_grpc_web_pb_1 = require("./plc/plcpb/plc_grpc_web_pb");
 var admin_grpc_web_pb_1 = require("./admin/admin_grpc_web_pb");
 var ressource_grpc_web_pb_1 = require("./ressource/ressource_grpc_web_pb");
+var services_grpc_web_pb_1 = require("./services/services_grpc_web_pb");
 /**
  * Globular regroup all serivces in one object that can be use by
  * application to get access to sql, ldap, persistence... service.
@@ -27,7 +28,12 @@ var Globular = /** @class */ (function () {
         this.config = config;
         /** The admin service to access to other configurations. */
         this.adminService = new admin_grpc_web_pb_1.AdminServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.AdminProxy, null, null);
+        /** That service is use to control acces to ressource like method access and account. */
         this.ressourceService = new ressource_grpc_web_pb_1.RessourceServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy, null, null);
+        /** That service help to find and install or publish new service on the backend. */
+        this.servicesDicovery = new services_grpc_web_pb_1.ServiceDiscoveryPromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy, null, null);
+        /** Contain services bundle ready to be find by the discovery service. */
+        this.servicesRepository = new services_grpc_web_pb_1.ServiceRepositoryClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesRepositoryProxy, null, null);
         // Iinitialisation of services.
         if (this.config.Services['catalog_server'] != undefined) {
             var protocol = 'http';

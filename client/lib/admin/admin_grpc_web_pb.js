@@ -419,55 +419,55 @@ proto.admin.AdminServicePromiseClient.prototype.startService =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.admin.RegisterExternalServiceRequest,
- *   !proto.admin.RegisterExternalServiceResponse>}
+ *   !proto.admin.RegisterExternalApplicationRequest,
+ *   !proto.admin.RegisterExternalApplicationResponse>}
  */
-const methodInfo_AdminService_RegisterExternalService = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.admin.RegisterExternalServiceResponse,
-  /** @param {!proto.admin.RegisterExternalServiceRequest} request */
+const methodInfo_AdminService_RegisterExternalApplication = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.RegisterExternalApplicationResponse,
+  /** @param {!proto.admin.RegisterExternalApplicationRequest} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.admin.RegisterExternalServiceResponse.deserializeBinary
+  proto.admin.RegisterExternalApplicationResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.admin.RegisterExternalServiceRequest} request The
+ * @param {!proto.admin.RegisterExternalApplicationRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.admin.RegisterExternalServiceResponse)}
+ * @param {function(?grpc.web.Error, ?proto.admin.RegisterExternalApplicationResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.admin.RegisterExternalServiceResponse>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.RegisterExternalApplicationResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.admin.AdminServiceClient.prototype.registerExternalService =
+proto.admin.AdminServiceClient.prototype.registerExternalApplication =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/admin.AdminService/RegisterExternalService',
+      '/admin.AdminService/RegisterExternalApplication',
       request,
       metadata || {},
-      methodInfo_AdminService_RegisterExternalService,
+      methodInfo_AdminService_RegisterExternalApplication,
       callback);
 };
 
 
 /**
- * @param {!proto.admin.RegisterExternalServiceRequest} request The
+ * @param {!proto.admin.RegisterExternalApplicationRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.admin.RegisterExternalServiceResponse>}
+ * @return {!Promise<!proto.admin.RegisterExternalApplicationResponse>}
  *     A native promise that resolves to the response
  */
-proto.admin.AdminServicePromiseClient.prototype.registerExternalService =
+proto.admin.AdminServicePromiseClient.prototype.registerExternalApplication =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/admin.AdminService/RegisterExternalService',
+      '/admin.AdminService/RegisterExternalApplication',
       request,
       metadata || {},
-      methodInfo_AdminService_RegisterExternalService);
+      methodInfo_AdminService_RegisterExternalApplication);
 };
 
 

@@ -38,8 +38,8 @@ import {
 
 export class MonitoringServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,
@@ -162,8 +162,8 @@ export class MonitoringServiceClient {
 
 export class MonitoringServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,
