@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,64 +44,48 @@ func main() {
 				if err != nil {
 					fmt.Println(err)
 				}
+				Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "bin")
+				// copy the bin.
+				log.Println("---> copy ", dir+string(os.PathSeparator)+"bin", "to", path+string(os.PathSeparator)+"bin")
+				err = Utility.CopyDirectory(dir+string(os.PathSeparator)+"bin", path+string(os.PathSeparator)+"bin")
+				if err != nil {
+					log.Panicln("--> fail to copy bin ", err)
+				}
 
 				// install services.
-				for name, service := range g.Services {
+				for _, service := range g.Services {
 					s := service.(map[string]interface{})
-					p := s["Process"].(map[string]interface{})
+					name := s["Name"].(string)
 
 					// set the name.
-					name_ := name[0:strings.Index(name, "_")]
-
-					fmt.Println("install  service", name_)
-
 					Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + name)
-					execPath := path + string(os.PathSeparator) + name + string(os.PathSeparator) + name
-
+					execPath := dir + s["servicePath"].(string)
+					destPath := path + string(os.PathSeparator) + name + string(os.PathSeparator) + name
 					if string(os.PathSeparator) == "\\" {
 						execPath += ".exe" // in case of windows
+						destPath += ".exe"
 					}
 
-					fmt.Println("copy -->", execPath)
-					err := Utility.Copy(p["Path"].(string), execPath)
+					err := Utility.Copy(execPath, destPath)
 					if err != nil {
 						fmt.Println(err)
 					}
-					err = os.Chmod(execPath, 0755)
+
+					err = os.Chmod(destPath, 0755)
 					if err != nil {
 						fmt.Println(err)
 					}
-					configPath := p["Path"].(string)[0:strings.LastIndex(p["Path"].(string), string(os.PathSeparator))] + string(os.PathSeparator) + "config.json"
-					fmt.Println("copy -->", configPath)
+
+					configPath := dir + s["configPath"].(string)
 					if Utility.Exists(configPath) {
 						Utility.Copy(configPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+"config.json")
 					}
 
-					proxy := s["ProxyProcess"]
-					if proxy != nil {
-						// Here I will copy the proxy.
-						proxyExec := proxy.(map[string]interface{})["Path"].(string)[strings.LastIndex(proxy.(map[string]interface{})["Path"].(string), string(os.PathSeparator)):]
-						proxyPath := path + string(os.PathSeparator) + "bin" + proxyExec
-						Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "bin")
-						if !Utility.Exists(proxyPath) {
-							err := Utility.Copy(proxy.(map[string]interface{})["Path"].(string), proxyPath)
-							if err != nil {
-								fmt.Println(err)
-							}
-							err = os.Chmod(proxyPath, 0755)
-							if err != nil {
-								fmt.Println(err)
-							}
-						}
-
-						// In that case that mean it's a grpc service and a .proto file is required.
-						protoPath := p["Path"].(string)[:strings.Index(p["Path"].(string), name_)] + name_ + string(os.PathSeparator) + name_ + "pb" + string(os.PathSeparator) + name_ + ".proto"
-						err := Utility.Copy(protoPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+name_+".proto")
-						if err != nil {
-							fmt.Println(err)
-						}
-
+					protoPath := dir + s["protoPath"].(string)
+					if Utility.Exists(protoPath) {
+						Utility.Copy(protoPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+name+".proto")
 					}
+
 				}
 			}
 		}

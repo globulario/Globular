@@ -151,6 +151,7 @@ func NewGlobule() *Globule {
 	g.Domain = "localhost"
 	g.AdminPort = 10001
 	g.AdminProxy = 10002
+	g.AdminEmail = "admin@globular.app"
 	g.RessourcePort = 10003
 	g.RessourceProxy = 10004
 
@@ -402,6 +403,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 
 		/* in case of public domain server files **/
 		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+string(os.PathSeparator)+"server.pem")
+
 		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle)
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
 
@@ -444,8 +446,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
 	// test if the service is distant or not.
 	if s["Domain"].(string) != self.Domain {
-		return -1, -1, errors.New("Can not start a distant service localy!")
+		if s["Domain"].(string) != "localhost" {
+			return -1, -1, errors.New("Can not start a distant service localy!")
+		}
 	}
+
+	// set the domain of the service.
+	s["Domain"] = self.Domain
 
 	// if the service already exist.
 	srv := self.Services[s["Id"].(string)]
@@ -516,7 +523,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
 
 		// Init it configuration.
-		log.Println("----> ", s["Name"])
 		self.initClient(s["Name"].(string), s["Name"].(string), string(token))
 
 		// save it to the config.
@@ -552,6 +558,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
  * Call once when the server start.
  */
 func (self *Globule) initService(s map[string]interface{}) {
+	if s["Protocol"] == nil {
+		return
+	}
 
 	if s["Protocol"].(string) == "grpc" {
 		// The domain must be set in the sever configuration and not change after that.
@@ -618,8 +627,11 @@ func (self *Globule) initServices() {
 
 						s["servicePath"] = strings.Replace(strings.Replace(servicePath, self.path, "", -1), "\\", "/", -1)
 
+						s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+
 						//self.initService(s)
 						self.Services[s["Name"].(string)] = s
+
 					}
 				}
 			}
@@ -635,6 +647,11 @@ func (self *Globule) initServices() {
 			return nil
 		}
 		if err == nil && strings.HasSuffix(info.Name(), ".proto") {
+			name := info.Name()[0:strings.Index(info.Name(), ".")] + "_server"
+			if self.Services[name] != nil {
+				s := self.Services[name].(map[string]interface{})
+				s["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+			}
 
 			// here I will parse the service defintion file to extract the
 			// service difinition.
@@ -1012,6 +1029,7 @@ func (self *Globule) initClient(id string, name string, token string) {
 			self.clients[name+"_service"].Close()
 		}
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
+		log.Println("--> client ", name+"_service", "is now initialysed!")
 	} else {
 		log.Panicln(err)
 	}
@@ -1055,6 +1073,10 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 	config["AdminProxy"] = self.AdminProxy
 	config["RessourcePort"] = self.RessourcePort
 	config["RessourceProxy"] = self.RessourceProxy
+	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
+	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
+	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
+	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
 	config["Protocol"] = self.Protocol
 	config["Domain"] = self.Domain
 	config["ReadTimeout"] = self.ReadTimeout
@@ -1087,6 +1109,10 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	config["AdminProxy"] = self.AdminProxy
 	config["RessourcePort"] = self.RessourcePort
 	config["RessourceProxy"] = self.RessourceProxy
+	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
+	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
+	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
+	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
 	config["Protocol"] = self.Protocol
 	config["Domain"] = self.Domain
 	config["ReadTimeout"] = self.ReadTimeout
@@ -1312,10 +1338,14 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 
-	isDistant := config["Domain"].(string) != self.Domain
-	if isDistant {
-		return false
+	if config["Domain"].(string) != self.Domain {
+		if config["Domain"].(string) != "localhost" {
+			return false
+		}
 	}
+
+	// set the domain of the service.
+	config["Domain"] = self.Domain
 
 	// get the config path.
 	var servicePath string
@@ -1337,6 +1367,27 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 
 	// remove this info from the file to be save.
 	delete(config, "servicePath")
+
+	// In case of persistence_server information must be save in a temp
+	// file to be use by the interceptor for token validation.
+	if config["Name"] == "persistence_server" {
+		persistenceDomain := config["Domain"].(string)
+		persistencePort := int(config["Port"].(float64))
+
+		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+		certFile := self.creds + string(os.PathSeparator) + "server.crt"
+		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+
+		// I will wrote the info inside a stucture.
+		infos := map[string]interface{}{"domain": persistenceDomain, "port": persistencePort, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
+
+		infosStr, _ := Utility.ToJson(infos)
+
+		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
 
 	// so here I will get the previous information...
 	f, err := os.Open(path)
@@ -1364,36 +1415,14 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	// here I will write the file
 	err = ioutil.WriteFile(path, []byte(jsonStr), 0644)
 	if err != nil {
-		log.Println("fail to save config file: ", err)
+		log.Panicln("fail to save config file: ", err)
 	}
 
-	// In case of persistence_server information must be save in a temp
-	// file to be use by the interceptor for token validation.
-	if config["Name"] == "persistence_server" {
-		persistenceDomain := config["Domain"].(string)
-		persistencePort := int(config["Port"].(float64))
+	// set back internal infos...
+	config["servicePath"] = servicePath
+	config["Process"] = process
+	config["ProxyProcess"] = proxyProcess
 
-		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
-		certFile := self.creds + string(os.PathSeparator) + "server.crt"
-		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
-
-		// I will wrote the info inside a stucture.
-		infos := map[string]interface{}{"domain": persistenceDomain, "port": persistencePort, "certAuthorityTrust": certAuthorityTrust, "certFile": certFile, "keyFile": keyFile, "pwd": self.RootPassword}
-
-		infosStr, _ := Utility.ToJson(infos)
-
-		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
-		if err != nil {
-			log.Panicln(err)
-		}
-	}
-
-	if !isDistant {
-		// set back internal infos...
-		config["servicePath"] = servicePath
-		config["Process"] = process
-		config["ProxyProcess"] = proxyProcess
-	}
 	return true
 }
 
@@ -1425,6 +1454,10 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
 			self.RessourcePort = Utility.ToInt(config["RessourcePort"].(float64))
 			self.RessourceProxy = Utility.ToInt(config["RessourceProxy"].(float64))
+			self.ServicesDiscoveryPort = Utility.ToInt(config["ServicesDiscoveryPort"].(float64))
+			self.ServicesDiscoveryProxy = Utility.ToInt(config["ServicesDiscoveryProxy"].(float64))
+			self.ServicesRepositoryPort = Utility.ToInt(config["ServicesRepositoryPort"].(float64))
+			self.ServicesRepositoryProxy = Utility.ToInt(config["ServicesRepositoryProxy"].(float64))
 			self.Protocol = config["Protocol"].(string)
 			self.Domain = config["Domain"].(string)
 			self.ReadTimeout = time.Duration(Utility.ToInt(config["ReadTimeout"].(float64)))
@@ -2552,8 +2585,16 @@ func (self *Globule) Listen() {
 			args = append(args, `--accept-tos`)
 			args = append(args, `--key-type=rsa4096`)
 			args = append(args, `--path=`+self.certs)
-			args = append(args, `--csr="`+self.creds+string(os.PathSeparator)+"server.csr")
+			args = append(args, `--http`)
+			args = append(args, `--csr=`+self.creds+string(os.PathSeparator)+"server.csr")
 			args = append(args, `run`)
+
+			cmdStr := legoPath
+			for i := 0; i < len(args); i++ {
+				cmdStr += " " + args[i]
+			}
+
+			log.Println(cmdStr)
 
 			// Now I will run the command...
 			legoCmd := exec.Command(legoPath, args...)

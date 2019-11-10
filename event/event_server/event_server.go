@@ -73,7 +73,6 @@ type server struct {
 	AllowAllOrigins bool
 	AllowedOrigins  string // comma separated string.
 	Protocol        string
-	Address         string
 	Domain          string
 	// self-signed X.509 public keys for distribution
 	CertFile string
@@ -294,7 +293,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Address, err)
+		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
 		return
 	}
 
