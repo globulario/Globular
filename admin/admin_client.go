@@ -194,3 +194,18 @@ func (self *Admin_Client) PublishService(serviceId string, discoveryAddress stri
 
 	return err
 }
+
+/**
+ * Intall a new service or update an existing one.
+ */
+func (self *Admin_Client) InstallService(discoveryId string, publisherId string, serviceId string) error {
+
+	rqst := new(InstallServiceRequest)
+	rqst.DicorveryId = discoveryId
+	rqst.PublisherId = publisherId
+	rqst.ServiceId = serviceId
+
+	_, err := self.c.InstallService(context.Background(), rqst)
+
+	return err
+}

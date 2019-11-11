@@ -32,7 +32,7 @@ func TestPublishServiceDescriptor(t *testing.T) {
 
 func TestGetServiceDescriptor(t *testing.T) {
 
-	values, err := services_discovery.GetServiceDescriptor("echo_server", "globular.app")
+	values, err := services_discovery.GetServiceDescriptor("echo_server", "localhost")
 
 	if err != nil {
 		log.Panic(err)
@@ -44,14 +44,14 @@ func TestGetServiceDescriptor(t *testing.T) {
 func TestUploadServiceBundle(t *testing.T) {
 
 	// The service bundle...
-	err := services_repository.UploadBundle("localhost:10005", "echo_server", "globular.app", 0, "C:\\temp\\globular\\echo_server.7z")
+	err := services_repository.UploadBundle("localhost:10005", "echo_server", "localhost", 0, "C:\\temp\\globular\\echo_server.7z")
 	if err != nil {
 		log.Panicln(err)
 	}
 }
 
 func TestDownloadServiceBundle(t *testing.T) {
-	bundle, err := services_repository.DownloadLastVersionBundle("localhost:10005", "echo_server", "globular.app", 0)
+	bundle, err := services_repository.DownloadLastVersionBundle("localhost:10005", "echo_server", "localhost", 0)
 
 	if err != nil {
 		log.Panicln(err)

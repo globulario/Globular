@@ -40,6 +40,7 @@ func main() {
 				if err != nil {
 					fmt.Println(err)
 				}
+
 				err = os.Chmod(path+string(os.PathSeparator)+globularExec, 0755)
 				if err != nil {
 					fmt.Println(err)
@@ -47,7 +48,7 @@ func main() {
 				Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "bin")
 				// copy the bin.
 				log.Println("---> copy ", dir+string(os.PathSeparator)+"bin", "to", path+string(os.PathSeparator)+"bin")
-				err = Utility.CopyDirectory(dir+string(os.PathSeparator)+"bin", path+string(os.PathSeparator)+"bin")
+				err = Utility.CopyDir(dir+string(os.PathSeparator)+"bin", path+string(os.PathSeparator)+"bin")
 				if err != nil {
 					log.Panicln("--> fail to copy bin ", err)
 				}

@@ -211,7 +211,7 @@ func (self *ServicesRepository_Client) Close() {
 	self.cc.Close()
 }
 
-////////////////// TLS ///////////////////
+///////////////////////// TLS /////////////////////////
 
 // Get if the client is secure.
 func (self *ServicesRepository_Client) HasTLS() bool {
@@ -235,7 +235,7 @@ func (self *ServicesRepository_Client) GetCaFile() string {
 
 ///////////////////////// API /////////////////////////
 
-func (self *ServicesRepository_Client) DownloadLastVersionBundle(discoveryId string, serviceId string, publisherId string, platform int32) (*ServiceBundle, error) {
+func (self *ServicesRepository_Client) DownloadLastVersionBundle(discoveryId string, serviceId string, publisherId string, platform Platform) (*ServiceBundle, error) {
 
 	// Here I will find the service descriptor from the given information.
 	domain := strings.Split(discoveryId, ":")[0]
@@ -247,15 +247,17 @@ func (self *ServicesRepository_Client) DownloadLastVersionBundle(discoveryId str
 	}
 
 	// Dowload the last versions...
-	return self.DownloadBundle(descriptors[0])
+	return self.DownloadBundle(descriptors[0], platform)
 }
 
 /**
  * Download bundle from a repository and return it as an object in memory.
  */
-func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescriptor) (*ServiceBundle, error) {
+func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescriptor, platform Platform) (*ServiceBundle, error) {
+
 	rqst := &DownloadBundleRequest{
 		Descriptor_: descriptor,
+		Plaform:     platform,
 	}
 
 	stream, err := self.c.DownloadBundle(context.Background(), rqst)

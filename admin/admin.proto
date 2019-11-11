@@ -74,6 +74,17 @@ message PublishServiceResponse{
 	bool result = 1;
 }
 
+message InstallServiceRequest{
+	string dicorveryId = 1;
+	string serviceId = 2;
+	string publisherId = 3;
+	string version = 4;
+}
+
+message InstallServiceResponse{
+	bool result = 1;
+}
+
 service AdminService {
 		
   //Set the root password
@@ -98,6 +109,7 @@ service AdminService {
   rpc PublishService(PublishServiceRequest) returns (PublishServiceResponse);
 
   // Install a service...
+  rpc InstallService(InstallServiceRequest) returns (InstallServiceResponse);
 
   // Register external service to be start by Globular in order to run 
   // as exemple MongoDB and Prometheus.

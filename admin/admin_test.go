@@ -14,10 +14,8 @@ var (
 // Test various function here.
 func TestGetConfig(t *testing.T) {
 	log.Println("---> test get config.")
-
 	config, err := client.GetConfig()
 	if err != nil {
-
 		log.Println("---> ", err)
 	}
 
@@ -29,10 +27,8 @@ func TestGetFullConfig(t *testing.T) {
 
 	config, err := client.GetFullConfig()
 	if err != nil {
-
 		log.Println("---> ", err)
 	}
-
 	log.Println("config: ", config)
 }
 
@@ -95,22 +91,27 @@ func TestStartService(t *testing.T) {
 	}
 }*/
 
-/*
 // Test register/start external service.
-func TestRegisterExternalService(t *testing.T) {
+/*func TestRegisterExternalService(t *testing.T) {
 	// Start mongo db
-	pid, err := client.RegisterExternalService("mongoDB_srv_win64", "E:\\MongoDB\\bin\\mongod.exe", []string{"--port", "27017", "--dbpath", "E:\\MongoDB\\data\\db"})
+	pid, err := client.RegisterExternalApplication("mongoDB_srv_win64", "E:\\MongoDB\\bin\\mongod.exe", []string{"--port", "27017", "--dbpath", "E:\\MongoDB\\data\\db"})
 
 	if err == nil {
 		log.Println("---> mongo db start at port: ", pid)
 	} else {
 		log.Println("---> err", err)
 	}
-}
-*/
+}*/
 
 func TestPublishService(t *testing.T) {
 	err := client.PublishService("echo_server", "localhost:10005", "localhost:10007", "Echo is the simplest serive of all.", []string{"test", "echo"})
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func TestInstallService(t *testing.T) {
+	err := client.InstallService("localhost:10005", "localhost", "echo_server")
 	if err != nil {
 		log.Panicln(err)
 	}
