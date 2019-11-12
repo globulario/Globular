@@ -31,8 +31,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Utility"
+
+	"github.com/davecourtois/Globular/api"
 
 	// Admin service
 	"github.com/davecourtois/Globular/admin"
@@ -504,7 +505,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		err = s["Process"].(*exec.Cmd).Start()
 		if err != nil {
-			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
 
@@ -1540,9 +1541,9 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 			json.Unmarshal(jsonStr, &config)
 
 			// save the new paths...
-			config["servicePath"] = strings.ReplaceAll(dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
-			config["protoPath"] = strings.ReplaceAll(dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
-			config["configPath"] = strings.ReplaceAll(dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
+			config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
+			config["protoPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
+			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
 
 			// initialyse the new service.
 			self.initService(config)
@@ -1556,6 +1557,42 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 		Result: true,
 	}, nil
 
+}
+
+// Uninstall a service...
+func (self *Globule) UninstallService(ctx context.Context, rqst *admin.UninstallServiceRequest) (*admin.UninstallServiceResponse, error) {
+
+	// First of all I will stop the running service(s) instance.
+	for id, service := range self.Services {
+		// Stop the instance of the service.
+		s := service.(map[string]interface{})
+		if s["Name"] != nil {
+			if s["PublisherId"].(string) == rqst.PublisherId && s["Name"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {
+				self.stopService(s["Id"].(string))
+				delete(self.Services, id)
+				log.Println("---> remove service: ", id)
+			}
+		}
+	}
+
+	// Now I will remove the service.
+	// Service are located into the globular_services...
+	path := self.path + "/globular_services/" + rqst.PublisherId + "/" + rqst.ServiceId + "/" + rqst.Version
+
+	// remove directory and sub-directory.
+	err := os.RemoveAll(path)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// save the config.
+	self.saveConfig()
+
+	return &admin.UninstallServiceResponse{
+		Result: true,
+	}, nil
 }
 
 // return true if the configuation has change.
@@ -1694,28 +1731,44 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 	}, nil
 }
 
+func (self *Globule) stopService(serviceId string) error {
+	s := self.Services[serviceId].(map[string]interface{})
+	if s == nil {
+		return errors.New("No service found with id " + serviceId)
+	}
+
+	if s["Process"] == nil {
+		return errors.New("No process running")
+	}
+
+	if s["Process"].(*exec.Cmd).Process == nil {
+		return errors.New("No process running")
+	}
+
+	err := s["Process"].(*exec.Cmd).Process.Kill()
+	if err != nil {
+		return err
+	}
+
+	if s["ProxyProcess"] != nil {
+		err := s["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		if err != nil {
+			return err
+		}
+	}
+
+	time.Sleep(2 * time.Second)
+
+	return nil
+}
+
 // Stop a service
 func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceRequest) (*admin.StopServiceResponse, error) {
-	s := self.Services[rqst.ServiceId]
-	if s == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
-	}
-	err := s.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+	err := self.stopService(rqst.ServiceId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	if s.(map[string]interface{})["ProxyProcess"] != nil {
-		err := s.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
 	}
 
 	return &admin.StopServiceResponse{

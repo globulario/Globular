@@ -85,6 +85,16 @@ message InstallServiceResponse{
 	bool result = 1;
 }
 
+message UninstallServiceRequest{
+	string serviceId = 1;
+	string publisherId = 2;
+	string version = 3;
+}
+
+message UninstallServiceResponse{
+	bool result = 1;
+}
+
 service AdminService {
 		
   //Set the root password
@@ -110,6 +120,9 @@ service AdminService {
 
   // Install a service...
   rpc InstallService(InstallServiceRequest) returns (InstallServiceResponse);
+
+  // Uninstall a service...
+  rpc UninstallService(UninstallServiceRequest) returns (UninstallServiceResponse);
 
   // Register external service to be start by Globular in order to run 
   // as exemple MongoDB and Prometheus.

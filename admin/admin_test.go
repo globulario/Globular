@@ -4,6 +4,7 @@ import (
 	//"encoding/json"
 	"log"
 	"testing"
+	"time"
 )
 
 var (
@@ -103,15 +104,23 @@ func TestStartService(t *testing.T) {
 	}
 }*/
 
-func TestPublishService(t *testing.T) {
+/*func TestPublishService(t *testing.T) {
 	err := client.PublishService("echo_server", "localhost:10005", "localhost:10007", "Echo is the simplest serive of all.", []string{"test", "echo"})
 	if err != nil {
 		log.Panicln(err)
 	}
-}
+}*/
 
 func TestInstallService(t *testing.T) {
 	err := client.InstallService("localhost:10005", "localhost", "echo_server")
+	if err != nil {
+		log.Panicln(err)
+	}
+	time.Sleep(time.Second * 5)
+}
+
+func TestUninstallService(t *testing.T) {
+	err := client.UninstallService("localhost", "echo_server", "0.0.1")
 	if err != nil {
 		log.Panicln(err)
 	}

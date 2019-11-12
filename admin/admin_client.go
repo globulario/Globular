@@ -209,3 +209,18 @@ func (self *Admin_Client) InstallService(discoveryId string, publisherId string,
 
 	return err
 }
+
+/**
+ * Intall a new service or update an existing one.
+ */
+func (self *Admin_Client) UninstallService(publisherId string, serviceId string, version string) error {
+
+	rqst := new(UninstallServiceRequest)
+	rqst.PublisherId = publisherId
+	rqst.ServiceId = serviceId
+	rqst.Version = version
+
+	_, err := self.c.UninstallService(context.Background(), rqst)
+
+	return err
+}
