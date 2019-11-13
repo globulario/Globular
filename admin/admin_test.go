@@ -104,12 +104,12 @@ func TestStartService(t *testing.T) {
 	}
 }*/
 
-/*func TestPublishService(t *testing.T) {
+func TestPublishService(t *testing.T) {
 	err := client.PublishService("echo_server", "localhost:10005", "localhost:10007", "Echo is the simplest serive of all.", []string{"test", "echo"})
 	if err != nil {
 		log.Panicln(err)
 	}
-}*/
+}
 
 func TestInstallService(t *testing.T) {
 	err := client.InstallService("localhost:10005", "localhost", "echo_server")

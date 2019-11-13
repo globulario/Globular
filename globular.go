@@ -31,8 +31,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davecourtois/Utility"
-
 	"github.com/davecourtois/Globular/api"
 
 	// Admin service
@@ -62,8 +60,8 @@ import (
 	"github.com/davecourtois/Globular/spc/spc_client"
 	"github.com/davecourtois/Globular/sql/sql_client"
 	"github.com/davecourtois/Globular/storage/storage_client"
+	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -116,6 +114,8 @@ type Globule struct {
 	CertExpirationDelay        int
 	Certificate                string
 	CertificateAuthorityBundle string
+	Discoveries                []string // Contain the list of discovery service use to keep service up to date.
+	discorveriesEventHub       map[string]*event_client.Event_Client
 
 	// The list of method supported by this server.
 	methods []string
@@ -169,6 +169,10 @@ func NewGlobule() *Globule {
 	g.ReadTimeout = 5
 	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
+
+	// Set the list of discorvery service avalaible...
+	g.Discoveries = make([]string, 0)
+	g.discorveriesEventHub = make(map[string]*event_client.Event_Client, 0)
 
 	// Set the share service info...
 	g.Services = make(map[string]interface{}, 0)
@@ -302,6 +306,7 @@ func (self *Globule) registerIpToDns() {
 				ca := config["CertAuthorityTrust"].(string)
 				token := "" // The token...
 				client := dns_client.NewDns_Client(domain, port, hasTls, key, crt, ca, token)
+				Utility.MyIP()
 				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 
 				if err != nil {
@@ -467,6 +472,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	}
 
 	if s["Protocol"].(string) == "grpc" {
+
 		// Stop the previous client if there one.
 		if self.clients[s["Name"].(string)+"_service"] != nil {
 			self.clients[s["Name"].(string)+"_service"].Close()
@@ -1422,22 +1428,25 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// So here I will send an plublish event...
-	/*event, err := self.getEventHub()
+	event, err := self.getEventHub()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	err = os.Remove(packagePath)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I will send a event to be sure all server will update...
+	data, _ := json.Marshal(serviceDescriptor)
 
 	// Here I will send an event that the service has a new version...
-	event.Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":NEW_SERVICE_VERSION_EVENT", data)*/
-	err = os.Remove(packagePath)
-
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
+	event.Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", data)
 
 	return &admin.PublishServiceResponse{
 		Result: true,
@@ -2584,9 +2593,28 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 	var err error
 	// the file must be a zipped archive that contain a .proto, .config and executable.
 	bundle.Binairies, err = ioutil.ReadFile(path + string(os.PathSeparator) + id + ".tar.gz")
-
 	if err != nil {
 		return err
+	}
+
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		log.Println("---> fail to get local_ressource connection", err)
+		return err
+	}
+
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "ServiceBundle", `{"_id":"`+id+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	// init the map with json values.
+	checksum := make(map[string]interface{}, 0)
+	json.Unmarshal([]byte(jsonStr), &checksum)
+
+	// Test if the values change over time.
+	if Utility.CreateDataChecksum(bundle.Binairies) != checksum["checksum"].(string) {
+		return errors.New("The bundle data cheksum is not valid!")
 	}
 
 	const BufferSize = 1024 * 5 // the chunck size.
@@ -2620,6 +2648,7 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 
 /** Upload a service to a service directory **/
 func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundleServer) error {
+
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
 	for {
@@ -2635,7 +2664,6 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		} else {
 			buffer.Write(msg.Data)
 		}
-
 	}
 
 	// The buffer that contain the
@@ -2685,7 +2713,16 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		return err
 	}
 
-	return nil
+	checksum := Utility.CreateDataChecksum(bundle.Binairies)
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		log.Println("---> fail to get local_ressource connection", err)
+		return err
+	}
+
+	_, err = p.InsertOne("local_ressource", "local_ressource", "ServiceBundle", `{"_id":"`+id+`","checksum":"`+checksum+`"}`, "")
+
+	return err
 }
 
 /**
@@ -2712,6 +2749,66 @@ func (self *Globule) Listen() {
 	// Here I will save the server attribute
 	self.saveConfig()
 
+	// Here i will connect the service listener.
+	time.Sleep(5 * time.Second) // wait for services to start...
+
+	// append itself to service discoveries...
+	if !Utility.Contains(self.Discoveries, self.Domain+":"+strconv.Itoa(self.ServicesDiscoveryPort)) {
+		self.Discoveries = append(self.Discoveries, self.Domain+":"+strconv.Itoa(self.ServicesDiscoveryPort))
+	}
+
+	// hub --> channels --> subscriber(list of uuid's)
+	subscribers := make(map[string]map[string][]string, 0)
+
+	// Connect to service update events...
+	for i := 0; i < len(self.Discoveries); i++ {
+		// TODO see if 10015 will always be to port to use.
+		eventHub := event_client.NewEvent_Client(strings.Split(self.Discoveries[i], ":")[0], 10015, false, "", "", "", "")
+		data_chan := make(chan []byte)
+		subscribers[self.Discoveries[i]] = make(map[string][]string)
+		for _, s := range self.Services {
+			if s.(map[string]interface{})["PublisherId"] != nil {
+				id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
+				if subscribers[self.Discoveries[i]][id] == nil {
+					subscribers[self.Discoveries[i]][id] = make([]string, 0)
+				}
+
+				// each channel has it event...
+				uuid, err := eventHub.Subscribe(id, data_chan)
+				subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+
+				if err == nil {
+					log.Println("--> connected to event channel", id)
+					go func() {
+						for {
+							select {
+							case msg := <-data_chan:
+								descriptor := new(services.ServiceDescriptor)
+								json.Unmarshal(msg, descriptor)
+								// here I will update the service if it's version is lower
+								log.Println("---> new service", descriptor.GetId(), "was pulblish by", descriptor.GetPublisherId(), "with version", descriptor.GetVersion())
+
+								// TODO install the service automaticaly.
+								for _, s := range self.Services {
+									service := s.(map[string]interface{})
+									if service["PublisherId"] != nil {
+										if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
+											log.Println("-------> Need to updates?? ", service["Name"].(string))
+										}
+									}
+								}
+							}
+						}
+					}()
+				} else {
+					log.Println("--> fail to connect to event channel", id, err)
+				}
+			}
+		}
+		// keep on memorie...
+		self.discorveriesEventHub[self.Discoveries[i]] = eventHub
+	}
+
 	// Catch the Ctrl-C and SIGTERM from kill command
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill, syscall.SIGTERM)
@@ -2728,8 +2825,8 @@ func (self *Globule) Listen() {
 		// Here the server stop running,
 		// so I will close the services.
 		log.Println("Clean ressources.")
-
 		for key, value := range self.Services {
+
 			log.Println("Stop service ", key)
 			if value.(map[string]interface{})["Process"] != nil {
 				p := value.(map[string]interface{})["Process"]
@@ -2748,6 +2845,17 @@ func (self *Globule) Listen() {
 						log.Println("kill proxy process ", p.(*exec.Cmd).Process.Pid)
 						p.(*exec.Cmd).Process.Kill()
 					}
+				}
+			}
+		}
+
+		// Here I will disconnect service update event.
+		for id, subscriber := range subscribers {
+			eventHub := self.discorveriesEventHub[id]
+			for channelId, uuids := range subscriber {
+				for i := 0; i < len(uuids); i++ {
+					log.Println("---> disconnect ", id, channelId, uuids[i])
+					eventHub.UnSubscribe(channelId, uuids[i])
 				}
 			}
 		}

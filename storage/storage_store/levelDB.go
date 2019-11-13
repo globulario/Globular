@@ -24,6 +24,10 @@ func NewLevelDB_store() *LevelDB_store {
 
 // In that case the parameter contain the path.
 func (self *LevelDB_store) Open(optionsStr string) error {
+	if self.isOpen == true {
+		return nil // the connection is already open.
+	}
+
 	self.options = optionsStr
 	log.Println("--> try to open ", self.path, "db is open")
 	var err error

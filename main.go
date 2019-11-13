@@ -45,6 +45,7 @@ func main() {
 				if err != nil {
 					fmt.Println(err)
 				}
+
 				Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "bin")
 				// copy the bin.
 				log.Println("---> copy ", dir+string(os.PathSeparator)+"bin", "to", path+string(os.PathSeparator)+"bin")
@@ -86,7 +87,6 @@ func main() {
 					if Utility.Exists(protoPath) {
 						Utility.Copy(protoPath, path+string(os.PathSeparator)+name+string(os.PathSeparator)+name+".proto")
 					}
-
 				}
 			}
 		}
