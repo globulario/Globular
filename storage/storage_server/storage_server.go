@@ -66,6 +66,7 @@ type server struct {
 	TLS                bool
 	Version            string
 	PublisherId        string
+	KeepUpToDate       bool
 
 	// The map of connection...
 	Connections map[string]connection
@@ -414,6 +415,7 @@ func main() {
 	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
+	s_impl.PublisherId = "localhost"
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()

@@ -83,6 +83,7 @@ type server struct {
 	TLS                bool
 	Version            string
 	PublisherId        string
+	KeepUpToDate       bool
 
 	// Use to sync event channel manipulation.
 	subscribe_events_chan   chan *SubscribeEvent
@@ -281,6 +282,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
+	s_impl.PublisherId = "localhost"
 
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins

@@ -119,9 +119,10 @@ func TestInstallService(t *testing.T) {
 	time.Sleep(time.Second * 5)
 }
 
+/*
 func TestUninstallService(t *testing.T) {
 	err := client.UninstallService("localhost", "echo_server", "0.0.1")
 	if err != nil {
 		log.Panicln(err)
 	}
-}
+}*/

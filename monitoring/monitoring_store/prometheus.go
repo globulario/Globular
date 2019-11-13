@@ -119,16 +119,16 @@ func (self *PrometheusStore) LabelNames(ctx context.Context) ([]string, string, 
 
 // LabelValues performs a query for the values of the given label.
 func (self *PrometheusStore) LabelValues(ctx context.Context, label string) (string, string, error) {
-	results /*, warnings*/, err := self.c.LabelValues(ctx, label)
+	results, warnings, err := self.c.LabelValues(ctx, label)
 	if err != nil {
 		return "", "", err
 	}
 
 	var warningsStr string
-	/*warningsStr, err := Utility.ToJson(warnings)
+	warningsStr, err = Utility.ToJson(warnings)
 	if err != nil {
 		return "", "", err
-	}*/
+	}
 
 	resultsStr, err := Utility.ToJson(results)
 	if err != nil {
@@ -140,16 +140,16 @@ func (self *PrometheusStore) LabelValues(ctx context.Context, label string) (str
 
 // Query performs a query for the given time.
 func (self *PrometheusStore) Query(ctx context.Context, query string, ts time.Time) (string, string, error) {
-	results /*, warnings*/, err := self.c.Query(ctx, query, ts)
+	results, warnings, err := self.c.Query(ctx, query, ts)
 	if err != nil {
 		return "", "", err
 	}
 
 	var warningsStr string
-	/*warningsStr, err := Utility.ToJson(warnings)
+	warningsStr, err = Utility.ToJson(warnings)
 	if err != nil {
 		return "", "", err
-	}*/
+	}
 
 	resultsStr, err := Utility.ToJson(results)
 	if err != nil {
@@ -167,15 +167,15 @@ func (self *PrometheusStore) QueryRange(ctx context.Context, query string, start
 	r.Start = startTime
 	r.Step = time.Duration(step) * time.Millisecond
 
-	results /*, warnings*/, err := self.c.QueryRange(ctx, query, r)
+	results, warnings, err := self.c.QueryRange(ctx, query, r)
 	if err != nil {
 		return "", "", err
 	}
 	var warningsStr string
-	/*warningsStr, err := Utility.ToJson(warnings)
+	warningsStr, err = Utility.ToJson(warnings)
 	if err != nil {
 		return "", "", err
-	}*/
+	}
 
 	resultsStr, err := Utility.ToJson(results)
 	if err != nil {
@@ -187,16 +187,16 @@ func (self *PrometheusStore) QueryRange(ctx context.Context, query string, start
 
 // Series finds series by label matchers.
 func (self *PrometheusStore) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) (string, string, error) {
-	results /* warnings,*/, err := self.c.Series(ctx, matches, startTime, endTime)
+	results, warnings, err := self.c.Series(ctx, matches, startTime, endTime)
 	if err != nil {
 		return "", "", err
 	}
 
 	var warningsStr string
-	/*warningsStr, err := Utility.ToJson(warnings)
+	warningsStr, err = Utility.ToJson(warnings)
 	if err != nil {
 		return "", "", err
-	}*/
+	}
 
 	resultsStr, err := Utility.ToJson(results)
 	if err != nil {

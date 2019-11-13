@@ -58,6 +58,7 @@ type server struct {
 	TLS                bool
 	Version            string
 	PublisherId        string
+	KeepUpToDate       bool
 }
 
 // Create the configuration file if is not already exist.
@@ -133,7 +134,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = "globular.app"
+	s_impl.PublisherId = "localhost"
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

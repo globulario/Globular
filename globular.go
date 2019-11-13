@@ -1074,28 +1074,19 @@ func (self *Globule) initClients() {
  * Return globular configuration.
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
-	config := make(map[string]interface{}, 0)
-	config["Name"] = self.Name
-	config["PortHttp"] = self.PortHttp
-	config["PortHttps"] = self.PortHttps
-	config["AdminPort"] = self.AdminPort
-	config["AdminProxy"] = self.AdminProxy
-	config["RessourcePort"] = self.RessourcePort
-	config["RessourceProxy"] = self.RessourceProxy
-	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
-	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
-	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
-	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
-	config["Protocol"] = self.Protocol
-	config["Domain"] = self.Domain
-	config["ReadTimeout"] = self.ReadTimeout
-	config["WriteTimeout"] = self.WriteTimeout
-	config["IdleTimeout"] = self.IdleTimeout
-	config["SessionTimeout"] = self.SessionTimeout
-	config["CertExpirationDelay"] = self.CertExpirationDelay
+	config, err := Utility.ToMap(self)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
 
-	// return the full service configuration.
-	config["Services"] = self.Services
+	services := config["Services"].(map[string]interface{})
+	for _, service := range services {
+		// remove running information...
+		delete(service.(map[string]interface{}), "Process")
+		delete(service.(map[string]interface{}), "ProxyProcess")
+	}
 
 	str, err := Utility.ToJson(config)
 	if err != nil {
@@ -1107,6 +1098,7 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 	return &admin.GetConfigResponse{
 		Result: str,
 	}, nil
+
 }
 
 func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
@@ -1122,12 +1114,14 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
 	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
 	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
+	config["Discoveries"] = self.Discoveries
 	config["Protocol"] = self.Protocol
 	config["Domain"] = self.Domain
 	config["ReadTimeout"] = self.ReadTimeout
 	config["WriteTimeout"] = self.WriteTimeout
 	config["IdleTimeout"] = self.IdleTimeout
 	config["CertExpirationDelay"] = self.CertExpirationDelay
+	config["ExternalApplications"] = self.ExternalApplications
 
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
@@ -1141,6 +1135,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 		s["TLS"] = service_config.(map[string]interface{})["TLS"]
 		s["Version"] = service_config.(map[string]interface{})["Version"]
 		s["PublisherId"] = service_config.(map[string]interface{})["PublisherId"]
+		s["KeepUpToDate"] = service_config.(map[string]interface{})["KeepUpToDate"]
 		config["Services"].(map[string]interface{})[name] = s
 	}
 
@@ -1419,6 +1414,8 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("1417 -----------> descriptor:", serviceDescriptor)
+
 	// Upload the service to the repository.
 	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(platform), packagePath)
 	if err != nil {
@@ -1454,42 +1451,11 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 }
 
 // Install/Update a service on globular instance.
-func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServiceRequest) (*admin.InstallServiceResponse, error) {
-
-	// First off all I will get a connection to the discovery service and the repository.
-	discoveryDomain := strings.Split(rqst.DicorveryId, ":")[0]
-	discoveryPort := Utility.ToInt(strings.Split(rqst.DicorveryId, ":")[1])
-
-	// Connect to the dicovery services
-	services_discovery := services.NewServicesDiscovery_Client(discoveryDomain, discoveryPort, false, "", "", "", "")
-	if services_discovery == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
-	}
-
-	descriptors, err := services_discovery.GetServiceDescriptor(rqst.ServiceId, rqst.PublisherId)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// The first element in the array is the most recent descriptor
-	// so if no version is given the most recent will be taken.
-	descriptor := descriptors[0]
-	for i := 0; i < len(descriptors); i++ {
-		if descriptors[i].Version == rqst.Version {
-			descriptor = descriptors[i]
-			break
-		}
-	}
+func (self *Globule) installService(descriptor *services.ServiceDescriptor) error {
 
 	// repository must exist...
 	if len(descriptor.Repositories) == 0 {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service repository was found for service "+descriptor.Id)))
+		return errors.New("No service repository was found for service " + descriptor.Id)
 	}
 
 	var platform services.Platform
@@ -1543,7 +1509,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 			// I will repalce the service configuration with the new one...
 			jsonStr, err := ioutil.ReadFile(dest + string(os.PathSeparator) + "config.json")
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			config := make(map[string]interface{})
@@ -1559,7 +1525,49 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 
 			break
 		}
+	}
 
+	return nil
+
+}
+
+// Install/Update a service on globular instance.
+func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServiceRequest) (*admin.InstallServiceResponse, error) {
+
+	// First off all I will get a connection to the discovery service and the repository.
+	discoveryDomain := strings.Split(rqst.DicorveryId, ":")[0]
+	discoveryPort := Utility.ToInt(strings.Split(rqst.DicorveryId, ":")[1])
+
+	// Connect to the dicovery services
+	services_discovery := services.NewServicesDiscovery_Client(discoveryDomain, discoveryPort, false, "", "", "", "")
+	if services_discovery == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
+	}
+
+	descriptors, err := services_discovery.GetServiceDescriptor(rqst.ServiceId, rqst.PublisherId)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// The first element in the array is the most recent descriptor
+	// so if no version is given the most recent will be taken.
+	descriptor := descriptors[0]
+	for i := 0; i < len(descriptors); i++ {
+		if descriptors[i].Version == rqst.Version {
+			descriptor = descriptors[i]
+			break
+		}
+	}
+
+	err = self.installService(descriptor)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &admin.InstallServiceResponse{
@@ -2786,14 +2794,25 @@ func (self *Globule) Listen() {
 								descriptor := new(services.ServiceDescriptor)
 								json.Unmarshal(msg, descriptor)
 								// here I will update the service if it's version is lower
-								log.Println("---> new service", descriptor.GetId(), "was pulblish by", descriptor.GetPublisherId(), "with version", descriptor.GetVersion())
-
-								// TODO install the service automaticaly.
 								for _, s := range self.Services {
 									service := s.(map[string]interface{})
 									if service["PublisherId"] != nil {
 										if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
-											log.Println("-------> Need to updates?? ", service["Name"].(string))
+											if service["KeepUpToDate"].(bool) {
+												// Test if update is needed...
+												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
+													if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
+														if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
+															self.stopService(service["Id"].(string))
+															delete(self.Services, service["Id"].(string))
+															err = self.installService(descriptor)
+															if err != nil {
+																log.Println("---> fail to install service ", err)
+															}
+														}
+													}
+												}
+											}
 										}
 									}
 								}
