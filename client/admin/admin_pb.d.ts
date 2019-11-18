@@ -190,7 +190,7 @@ export namespace RegisterExternalApplicationResponse {
   }
 }
 
-export class SetRootPasswordRqst extends jspb.Message {
+export class SetRootPasswordRequest extends jspb.Message {
   getOldpassword(): string;
   setOldpassword(value: string): void;
 
@@ -198,35 +198,223 @@ export class SetRootPasswordRqst extends jspb.Message {
   setNewpassword(value: string): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): SetRootPasswordRqst.AsObject;
-  static toObject(includeInstance: boolean, msg: SetRootPasswordRqst): SetRootPasswordRqst.AsObject;
-  static serializeBinaryToWriter(message: SetRootPasswordRqst, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): SetRootPasswordRqst;
-  static deserializeBinaryFromReader(message: SetRootPasswordRqst, reader: jspb.BinaryReader): SetRootPasswordRqst;
+  toObject(includeInstance?: boolean): SetRootPasswordRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootPasswordRequest): SetRootPasswordRequest.AsObject;
+  static serializeBinaryToWriter(message: SetRootPasswordRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootPasswordRequest;
+  static deserializeBinaryFromReader(message: SetRootPasswordRequest, reader: jspb.BinaryReader): SetRootPasswordRequest;
 }
 
-export namespace SetRootPasswordRqst {
+export namespace SetRootPasswordRequest {
   export type AsObject = {
     oldpassword: string,
     newpassword: string,
   }
 }
 
-export class SetRootPasswordRsp extends jspb.Message {
+export class SetRootPasswordResponse extends jspb.Message {
   getToken(): string;
   setToken(value: string): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): SetRootPasswordRsp.AsObject;
-  static toObject(includeInstance: boolean, msg: SetRootPasswordRsp): SetRootPasswordRsp.AsObject;
-  static serializeBinaryToWriter(message: SetRootPasswordRsp, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): SetRootPasswordRsp;
-  static deserializeBinaryFromReader(message: SetRootPasswordRsp, reader: jspb.BinaryReader): SetRootPasswordRsp;
+  toObject(includeInstance?: boolean): SetRootPasswordResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootPasswordResponse): SetRootPasswordResponse.AsObject;
+  static serializeBinaryToWriter(message: SetRootPasswordResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootPasswordResponse;
+  static deserializeBinaryFromReader(message: SetRootPasswordResponse, reader: jspb.BinaryReader): SetRootPasswordResponse;
 }
 
-export namespace SetRootPasswordRsp {
+export namespace SetRootPasswordResponse {
   export type AsObject = {
     token: string,
+  }
+}
+
+export class PublishServiceRequest extends jspb.Message {
+  getServiceid(): string;
+  setServiceid(value: string): void;
+
+  getDicorveryid(): string;
+  setDicorveryid(value: string): void;
+
+  getRepositoryid(): string;
+  setRepositoryid(value: string): void;
+
+  getDescription(): string;
+  setDescription(value: string): void;
+
+  getKeywordsList(): Array<string>;
+  setKeywordsList(value: Array<string>): void;
+  clearKeywordsList(): void;
+  addKeywords(value: string, index?: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PublishServiceRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: PublishServiceRequest): PublishServiceRequest.AsObject;
+  static serializeBinaryToWriter(message: PublishServiceRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PublishServiceRequest;
+  static deserializeBinaryFromReader(message: PublishServiceRequest, reader: jspb.BinaryReader): PublishServiceRequest;
+}
+
+export namespace PublishServiceRequest {
+  export type AsObject = {
+    serviceid: string,
+    dicorveryid: string,
+    repositoryid: string,
+    description: string,
+    keywordsList: Array<string>,
+  }
+}
+
+export class PublishServiceResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PublishServiceResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: PublishServiceResponse): PublishServiceResponse.AsObject;
+  static serializeBinaryToWriter(message: PublishServiceResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PublishServiceResponse;
+  static deserializeBinaryFromReader(message: PublishServiceResponse, reader: jspb.BinaryReader): PublishServiceResponse;
+}
+
+export namespace PublishServiceResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class InstallServiceRequest extends jspb.Message {
+  getDicorveryid(): string;
+  setDicorveryid(value: string): void;
+
+  getServiceid(): string;
+  setServiceid(value: string): void;
+
+  getPublisherid(): string;
+  setPublisherid(value: string): void;
+
+  getVersion(): string;
+  setVersion(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): InstallServiceRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: InstallServiceRequest): InstallServiceRequest.AsObject;
+  static serializeBinaryToWriter(message: InstallServiceRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): InstallServiceRequest;
+  static deserializeBinaryFromReader(message: InstallServiceRequest, reader: jspb.BinaryReader): InstallServiceRequest;
+}
+
+export namespace InstallServiceRequest {
+  export type AsObject = {
+    dicorveryid: string,
+    serviceid: string,
+    publisherid: string,
+    version: string,
+  }
+}
+
+export class InstallServiceResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): InstallServiceResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: InstallServiceResponse): InstallServiceResponse.AsObject;
+  static serializeBinaryToWriter(message: InstallServiceResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): InstallServiceResponse;
+  static deserializeBinaryFromReader(message: InstallServiceResponse, reader: jspb.BinaryReader): InstallServiceResponse;
+}
+
+export namespace InstallServiceResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class UninstallServiceRequest extends jspb.Message {
+  getServiceid(): string;
+  setServiceid(value: string): void;
+
+  getPublisherid(): string;
+  setPublisherid(value: string): void;
+
+  getVersion(): string;
+  setVersion(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UninstallServiceRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: UninstallServiceRequest): UninstallServiceRequest.AsObject;
+  static serializeBinaryToWriter(message: UninstallServiceRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UninstallServiceRequest;
+  static deserializeBinaryFromReader(message: UninstallServiceRequest, reader: jspb.BinaryReader): UninstallServiceRequest;
+}
+
+export namespace UninstallServiceRequest {
+  export type AsObject = {
+    serviceid: string,
+    publisherid: string,
+    version: string,
+  }
+}
+
+export class UninstallServiceResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UninstallServiceResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: UninstallServiceResponse): UninstallServiceResponse.AsObject;
+  static serializeBinaryToWriter(message: UninstallServiceResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UninstallServiceResponse;
+  static deserializeBinaryFromReader(message: UninstallServiceResponse, reader: jspb.BinaryReader): UninstallServiceResponse;
+}
+
+export namespace UninstallServiceResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeployApplicationRequest extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getData(): Uint8Array | string;
+  getData_asU8(): Uint8Array;
+  getData_asB64(): string;
+  setData(value: Uint8Array | string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeployApplicationRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeployApplicationRequest): DeployApplicationRequest.AsObject;
+  static serializeBinaryToWriter(message: DeployApplicationRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeployApplicationRequest;
+  static deserializeBinaryFromReader(message: DeployApplicationRequest, reader: jspb.BinaryReader): DeployApplicationRequest;
+}
+
+export namespace DeployApplicationRequest {
+  export type AsObject = {
+    name: string,
+    data: Uint8Array | string,
+  }
+}
+
+export class DeployApplicationResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeployApplicationResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeployApplicationResponse): DeployApplicationResponse.AsObject;
+  static serializeBinaryToWriter(message: DeployApplicationResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeployApplicationResponse;
+  static deserializeBinaryFromReader(message: DeployApplicationResponse, reader: jspb.BinaryReader): DeployApplicationResponse;
+}
+
+export namespace DeployApplicationResponse {
+  export type AsObject = {
+    result: boolean,
   }
 }
 

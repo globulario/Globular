@@ -2,12 +2,16 @@ package admin
 
 import (
 	"context"
-	// "log"
+	//"log"
 
-	"github.com/davecourtois/Globular/api"
-	//	"github.com/davecourtois/Utility"
+	"bytes"
+	"io"
+	"os"
 	"strconv"
 
+	"github.com/davecourtois/Globular/api"
+
+	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
 
@@ -223,4 +227,61 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
 	_, err := self.c.UninstallService(context.Background(), rqst)
 
 	return err
+}
+
+/**
+ * Deploy the content of an application with a given name to the server.
+ */
+func (self *Admin_Client) DeployApplication(name string, path string) error {
+
+	rqst := new(DeployApplicationRequest)
+	rqst.Name = name
+
+	Utility.CreateDirIfNotExist(Utility.GenerateUUID(name))
+	Utility.CopyDirContent(path, Utility.GenerateUUID(name))
+
+	// Now I will open the data and create a archive from it.
+	var buffer bytes.Buffer
+	err := Utility.CompressDir(Utility.GenerateUUID(name), &buffer)
+	if err != nil {
+		return err
+	}
+
+	os.RemoveAll(Utility.GenerateUUID(name))
+
+	// Open the stream...
+	stream, err := self.c.DeployApplication(context.Background())
+	if err != nil {
+		return err
+	}
+
+	const BufferSize = 1024 * 5 // the chunck size.
+	for {
+		var data [BufferSize]byte
+		bytesread, err := buffer.Read(data[0:BufferSize])
+		if bytesread > 0 {
+			rqst := &DeployApplicationRequest{
+				Data: data[0:bytesread],
+				Name: name,
+			}
+			// send the data to the server.
+			err = stream.Send(rqst)
+		}
+
+		if err == io.EOF {
+			err = nil
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+
+	_, err = stream.CloseAndRecv()
+	if err != nil {
+		os.RemoveAll(Utility.GenerateUUID(name))
+		return err
+	}
+
+	return nil
+
 }

@@ -95,6 +95,15 @@ message UninstallServiceResponse{
 	bool result = 1;
 }
 
+message DeployApplicationRequest{
+	string name = 1;
+	bytes data = 2;
+}
+
+message DeployApplicationResponse{
+	bool result = 1;
+}
+
 service AdminService {
 		
   //Set the root password
@@ -127,5 +136,8 @@ service AdminService {
   // Register external service to be start by Globular in order to run 
   // as exemple MongoDB and Prometheus.
   rpc RegisterExternalApplication(RegisterExternalApplicationRequest) returns (RegisterExternalApplicationResponse);
+
+  // Deloyed a web application to a globular node.
+  rpc DeployApplication(stream DeployApplicationRequest) returns (DeployApplicationResponse);
 
 }

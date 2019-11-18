@@ -71,6 +71,7 @@ type server struct {
 	TLS                bool
 	Version            string
 	PublisherId        string
+	KeepUpToDate       bool
 
 	// Contain the configuration of the storage service use to store
 	// the actual values.

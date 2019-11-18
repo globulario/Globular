@@ -89,27 +89,27 @@ proto.admin.AdminServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.admin.SetRootPasswordRqst,
- *   !proto.admin.SetRootPasswordRsp>}
+ *   !proto.admin.SetRootPasswordRequest,
+ *   !proto.admin.SetRootPasswordResponse>}
  */
 const methodInfo_AdminService_SetRootPassword = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.admin.SetRootPasswordRsp,
-  /** @param {!proto.admin.SetRootPasswordRqst} request */
+  proto.admin.SetRootPasswordResponse,
+  /** @param {!proto.admin.SetRootPasswordRequest} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.admin.SetRootPasswordRsp.deserializeBinary
+  proto.admin.SetRootPasswordResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.admin.SetRootPasswordRqst} request The
+ * @param {!proto.admin.SetRootPasswordRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.admin.SetRootPasswordRsp)}
+ * @param {function(?grpc.web.Error, ?proto.admin.SetRootPasswordResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.admin.SetRootPasswordRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.SetRootPasswordResponse>|undefined}
  *     The XHR Node Readable Stream
  */
 proto.admin.AdminServiceClient.prototype.setRootPassword =
@@ -124,11 +124,11 @@ proto.admin.AdminServiceClient.prototype.setRootPassword =
 
 
 /**
- * @param {!proto.admin.SetRootPasswordRqst} request The
+ * @param {!proto.admin.SetRootPasswordRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.admin.SetRootPasswordRsp>}
+ * @return {!Promise<!proto.admin.SetRootPasswordResponse>}
  *     A native promise that resolves to the response
  */
 proto.admin.AdminServicePromiseClient.prototype.setRootPassword =
@@ -413,6 +413,171 @@ proto.admin.AdminServicePromiseClient.prototype.startService =
       request,
       metadata || {},
       methodInfo_AdminService_StartService);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.PublishServiceRequest,
+ *   !proto.admin.PublishServiceResponse>}
+ */
+const methodInfo_AdminService_PublishService = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.PublishServiceResponse,
+  /** @param {!proto.admin.PublishServiceRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.PublishServiceResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.PublishServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.PublishServiceResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.PublishServiceResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.publishService =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/PublishService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_PublishService,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.PublishServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.PublishServiceResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.publishService =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/PublishService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_PublishService);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.InstallServiceRequest,
+ *   !proto.admin.InstallServiceResponse>}
+ */
+const methodInfo_AdminService_InstallService = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.InstallServiceResponse,
+  /** @param {!proto.admin.InstallServiceRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.InstallServiceResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.InstallServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.InstallServiceResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.InstallServiceResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.installService =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/InstallService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_InstallService,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.InstallServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.InstallServiceResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.installService =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/InstallService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_InstallService);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.UninstallServiceRequest,
+ *   !proto.admin.UninstallServiceResponse>}
+ */
+const methodInfo_AdminService_UninstallService = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.UninstallServiceResponse,
+  /** @param {!proto.admin.UninstallServiceRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.UninstallServiceResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.UninstallServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.UninstallServiceResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.UninstallServiceResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.uninstallService =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/UninstallService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_UninstallService,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.UninstallServiceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.UninstallServiceResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.uninstallService =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/UninstallService',
+      request,
+      metadata || {},
+      methodInfo_AdminService_UninstallService);
 };
 
 

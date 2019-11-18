@@ -1,18 +1,26 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
+  DeployedApplicationRequest,
+  DeployedApplicationResponse,
   GetConfigRequest,
   GetConfigResponse,
+  InstallServiceRequest,
+  InstallServiceResponse,
+  PublishServiceRequest,
+  PublishServiceResponse,
   RegisterExternalApplicationRequest,
   RegisterExternalApplicationResponse,
   SaveConfigRequest,
   SaveConfigResponse,
-  SetRootPasswordRqst,
-  SetRootPasswordRsp,
+  SetRootPasswordRequest,
+  SetRootPasswordResponse,
   StartServiceRequest,
   StartServiceResponse,
   StopServiceRequest,
-  StopServiceResponse} from './admin_pb';
+  StopServiceResponse,
+  UninstallServiceRequest,
+  UninstallServiceResponse} from './admin_pb';
 
 export class AdminServiceClient {
   constructor (hostname: string,
@@ -20,11 +28,11 @@ export class AdminServiceClient {
                options?: null | { [index: string]: string; });
 
   setRootPassword(
-    request: SetRootPasswordRqst,
+    request: SetRootPasswordRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetRootPasswordRsp) => void
-  ): grpcWeb.ClientReadableStream<SetRootPasswordRsp>;
+               response: SetRootPasswordResponse) => void
+  ): grpcWeb.ClientReadableStream<SetRootPasswordResponse>;
 
   getConfig(
     request: GetConfigRequest,
@@ -61,6 +69,27 @@ export class AdminServiceClient {
                response: StartServiceResponse) => void
   ): grpcWeb.ClientReadableStream<StartServiceResponse>;
 
+  publishService(
+    request: PublishServiceRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: PublishServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<PublishServiceResponse>;
+
+  installService(
+    request: InstallServiceRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: InstallServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<InstallServiceResponse>;
+
+  uninstallService(
+    request: UninstallServiceRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: UninstallServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<UninstallServiceResponse>;
+
   registerExternalApplication(
     request: RegisterExternalApplicationRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -76,9 +105,9 @@ export class AdminServicePromiseClient {
                options?: null | { [index: string]: string; });
 
   setRootPassword(
-    request: SetRootPasswordRqst,
+    request: SetRootPasswordRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetRootPasswordRsp>;
+  ): Promise<SetRootPasswordResponse>;
 
   getConfig(
     request: GetConfigRequest,
@@ -104,6 +133,21 @@ export class AdminServicePromiseClient {
     request: StartServiceRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<StartServiceResponse>;
+
+  publishService(
+    request: PublishServiceRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<PublishServiceResponse>;
+
+  installService(
+    request: InstallServiceRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<InstallServiceResponse>;
+
+  uninstallService(
+    request: UninstallServiceRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<UninstallServiceResponse>;
 
   registerExternalApplication(
     request: RegisterExternalApplicationRequest,

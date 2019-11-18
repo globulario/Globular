@@ -1,0 +1,22 @@
+/**
+ * Admin functionality.
+ */
+syntax = "proto3";
+package ca;
+
+option go_package="ca";
+
+// Return the configuration of the whole server.
+message SignCertificateRequest {
+	string csr string;  // Certificate request.
+}
+
+message SignCertificateResponse {
+  string crt = 1;
+}
+
+
+service CertificateAuthority {
+  // Signed a certificate request.
+  rpc SignCertificate(SetRootPasswordRequest) returns(SetRootPasswordResponse);
+}

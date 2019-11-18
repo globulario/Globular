@@ -10,10 +10,11 @@ import (
 	"runtime"
 
 	// "github.com/gorilla/mux"
-	ps "github.com/mitchellh/go-ps"
-
+	//	"crypto/rand"
+	//	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"io"
 	"io/ioutil"
 	"log"
@@ -31,6 +32,8 @@ import (
 	"syscall"
 	"time"
 
+	ps "github.com/mitchellh/go-ps"
+
 	"github.com/davecourtois/Globular/api"
 
 	// Admin service
@@ -47,6 +50,8 @@ import (
 	// Client services.
 	"context"
 
+	"crypto"
+
 	"github.com/davecourtois/Globular/catalog/catalog_client"
 	"github.com/davecourtois/Globular/dns/dns_client"
 	"github.com/davecourtois/Globular/echo/echo_client"
@@ -62,6 +67,10 @@ import (
 	"github.com/davecourtois/Globular/storage/storage_client"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
+	"github.com/go-acme/lego/v3/certcrypto"
+	"github.com/go-acme/lego/v3/challenge/http01"
+	"github.com/go-acme/lego/v3/lego"
+	"github.com/go-acme/lego/v3/registration"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -114,6 +123,9 @@ type Globule struct {
 	CertExpirationDelay        int
 	Certificate                string
 	CertificateAuthorityBundle string
+	CertURL                    string
+	CertStableURL              string
+	registration               *registration.Resource
 	Discoveries                []string // Contain the list of discovery service use to keep service up to date.
 	discorveriesEventHub       map[string]*event_client.Event_Client
 
@@ -656,10 +668,14 @@ func (self *Globule) initServices() {
 			return nil
 		}
 		if err == nil && strings.HasSuffix(info.Name(), ".proto") {
-			name := info.Name()[0:strings.Index(info.Name(), ".")] + "_server"
-			if self.Services[name] != nil {
-				s := self.Services[name].(map[string]interface{})
-				s["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+			name := info.Name()[0:strings.Index(info.Name(), ".")]
+			s := self.Services[name]
+			if s == nil {
+				s = self.Services[name+"_server"]
+			}
+
+			if s != nil {
+				s.(map[string]interface{})["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
 			}
 
 			// here I will parse the service defintion file to extract the
@@ -943,8 +959,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	//path to file
 	name := path.Join(dir, upath)
 
+	// this is the ca certificate use to sign client certificate.
+	if upath == "/ca.crt" {
+		name = globule.creds + upath
+	}
+
 	//check if file exists
 	f, err := os.Open(name)
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.Error(w, "File "+upath+" not found!", http.StatusBadRequest)
@@ -1028,11 +1050,11 @@ func (self *Globule) initClient(id string, name string, token string) {
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
 
 	// Set the files.
-	keyFile := self.creds + string(os.PathSeparator) + "client.crt"
-	certFile := self.creds + string(os.PathSeparator) + "client.key"
+	keyFile := self.creds + string(os.PathSeparator) + "client.pem"
+	certFile := self.creds + string(os.PathSeparator) + "client.crt"
 	caFile := self.creds + string(os.PathSeparator) + "ca.crt"
 
-	results, err := Utility.CallFunction(fct, domain, port, hasTLS, certFile, keyFile, caFile, token)
+	results, err := Utility.CallFunction(fct, domain, port, hasTLS, keyFile, certFile, caFile, token)
 	if err == nil {
 		if self.clients[name+"_service"] != nil {
 			self.clients[name+"_service"].Close()
@@ -1149,6 +1171,50 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 	return &admin.GetConfigResponse{
 		Result: str,
 	}, nil
+}
+
+// Deloyed a web application to a globular node.
+func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicationServer) error {
+
+	// The bundle will cantain the necessary information to install the service.
+	var buffer bytes.Buffer
+	var name string
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			stream.SendAndClose(&admin.DeployApplicationResponse{
+				Result: true,
+			})
+			break
+		} else if err != nil {
+			return err
+		} else {
+			name = msg.Name
+			buffer.Write(msg.Data)
+		}
+	}
+
+	// Read bytes and extract it in the current directory.
+	r := bytes.NewReader(buffer.Bytes())
+	Utility.ExtractTarGz(r)
+
+	// Copy the files to it final destination
+	path := self.webRoot + string(os.PathSeparator) + name
+
+	// Remove the existing files.
+	if Utility.Exists(path) {
+		os.RemoveAll(path)
+	}
+
+	// Recreate the dir and move file in it.
+	Utility.CreateDirIfNotExist(path)
+	Utility.CopyDirContent(Utility.GenerateUUID(name), path)
+
+	// remove temporary files.
+	os.RemoveAll(Utility.GenerateUUID(name))
+
+	return nil
 }
 
 /**
@@ -1413,8 +1479,6 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	log.Println("1417 -----------> descriptor:", serviceDescriptor)
 
 	// Upload the service to the repository.
 	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(platform), packagePath)
@@ -2737,7 +2801,6 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
  * Listen for new connection.
  */
 func (self *Globule) Listen() {
-
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -3038,42 +3101,12 @@ func (self *Globule) Listen() {
 
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
-			args := make([]string, 0)
-			// Now I will get the new certificate.
-			legoPath := self.path + string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "lego"
-			if string(os.PathSeparator) == "\\" {
-				legoPath += ".exe" // in case of windows.
+			if self.Domain != "localhost" {
+				err := self.ObtainCertificateForCsr()
+				if err != nil {
+					log.Panicln(err)
+				}
 			}
-
-			args = append(args, `--email="`+self.AdminEmail+`"`)
-			args = append(args, `--accept-tos`)
-			args = append(args, `--key-type=rsa4096`)
-			args = append(args, `--path=`+self.certs)
-			args = append(args, `--http`)
-			args = append(args, `--csr=`+self.creds+string(os.PathSeparator)+"server.csr")
-			args = append(args, `run`)
-
-			cmdStr := legoPath
-			for i := 0; i < len(args); i++ {
-				cmdStr += " " + args[i]
-			}
-
-			log.Println(cmdStr)
-
-			// Now I will run the command...
-			legoCmd := exec.Command(legoPath, args...)
-			err := legoCmd.Run()
-
-			if err != nil {
-				log.Panicln("Fail to generate certificate with lego", err)
-			}
-
-			// Set the certificates paths...
-			self.Certificate = "certificates" + string(os.PathSeparator) + self.Domain + ".crt"
-			self.CertificateAuthorityBundle = "certificates" + string(os.PathSeparator) + self.Domain + ".issuer.crt"
-
-			// save the config with the values.
-			self.saveConfig()
 		}
 
 		// Start https server.
@@ -3437,4 +3470,103 @@ func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay i
 		log.Println(err)
 		return
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Certificate from let's encrytp via lego.
+////////////////////////////////////////////////////////////////////////////////
+
+///////// Implement the User Interface. ////////////
+
+/**
+ * Return the admin email.
+ */
+func (self *Globule) GetEmail() string {
+	return self.AdminEmail
+}
+
+/**
+ * Use the time of registration... Nil other wise.
+ */
+func (self *Globule) GetRegistration() *registration.Resource {
+	return self.registration
+}
+
+/**
+ * I will reuse the client public key here as key instead of generate another key
+ * and manage it...
+ */
+func (self *Globule) GetPrivateKey() crypto.PrivateKey {
+	keyPem, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "client.pem")
+	if err != nil {
+		return nil
+	}
+
+	keyBlock, _ := pem.Decode(keyPem)
+	privateKey, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		log.Panicln(err)
+	}
+	return privateKey
+}
+
+///////// End of Implement the User Interface. ////////////
+
+/**
+ * That function work correctly, but the DNS fail one time on tow to give the
+ * IP address that result in a fail request... The DNS must be fix!
+ */
+func (self *Globule) ObtainCertificateForCsr() error {
+
+	config := lego.NewConfig(self)
+	config.Certificate.KeyType = certcrypto.RSA2048
+
+	client, err := lego.NewClient(config)
+	if err != nil {
+		return err
+	}
+
+	err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(self.PortHttp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+	self.registration = reg
+	if err != nil {
+		return err
+	}
+
+	csrPem, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "server.csr")
+	if err != nil {
+		return err
+	}
+
+	csrBlock, _ := pem.Decode(csrPem)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		return err
+	}
+
+	resource, err := client.Certificate.ObtainForCSR(*csr, true)
+	if err != nil {
+		return err
+	}
+
+	// Keep certificates url in the config.
+	self.CertURL = resource.CertURL
+	self.CertStableURL = resource.CertStableURL
+
+	// Set the certificates paths...
+	self.Certificate = self.Domain + ".crt"
+	self.CertificateAuthorityBundle = self.Domain + ".issuer.crt"
+
+	// Save the certificate in the cerst folder.
+	ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.Certificate, resource.Certificate, 0400)
+	ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
+
+	// save the config with the values.
+	self.saveConfig()
+
+	return nil
 }
