@@ -1,14 +1,10 @@
 package dns_client
 
 import (
-	"context"
-	// "log"
 	"strconv"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/dns/dnspb"
-
-	// "github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
 
@@ -43,7 +39,7 @@ type DNS_Client struct {
 }
 
 // Create a connection to the service.
-func NewDns_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *DNS_Client {
+func NewDns_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *DNS_Client {
 	client := new(DNS_Client)
 	client.domain = domain
 	client.port = port
@@ -52,7 +48,7 @@ func NewDns_Client(domain string, port int, hasTLS bool, keyFile string, certFil
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = dnspb.NewDnsServiceClient(client.cc)
 	return client
 }
@@ -106,7 +102,7 @@ func (self *DNS_Client) GetA(domain string) (string, error) {
 		Domain: domain,
 	}
 
-	rsp, err := self.c.GetA(context.Background(), rqst)
+	rsp, err := self.c.GetA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +118,7 @@ func (self *DNS_Client) SetA(name string, ipv4 string, ttl uint32) (string, erro
 		Ttl:  ttl,
 	}
 
-	rsp, err := self.c.SetA(context.Background(), rqst)
+	rsp, err := self.c.SetA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +132,7 @@ func (self *DNS_Client) RemoveA(name string) error {
 		Name: name,
 	}
 
-	_, err := self.c.RemoveA(context.Background(), rqst)
+	_, err := self.c.RemoveA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -150,7 +146,7 @@ func (self *DNS_Client) GetAAAA(domain string) (string, error) {
 		Domain: domain,
 	}
 
-	rsp, err := self.c.GetAAAA(context.Background(), rqst)
+	rsp, err := self.c.GetAAAA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -166,7 +162,7 @@ func (self *DNS_Client) SetAAAA(name string, ipv6 string, ttl uint32) (string, e
 		Ttl:  ttl,
 	}
 
-	rsp, err := self.c.SetAAAA(context.Background(), rqst)
+	rsp, err := self.c.SetAAAA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -180,7 +176,7 @@ func (self *DNS_Client) RemoveAAAA(name string) error {
 		Name: name,
 	}
 
-	_, err := self.c.RemoveAAAA(context.Background(), rqst)
+	_, err := self.c.RemoveAAAA(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -194,7 +190,7 @@ func (self *DNS_Client) GetText(id string) ([]string, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetText(context.Background(), rqst)
+	rsp, err := self.c.GetText(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +207,7 @@ func (self *DNS_Client) SetText(id string, values []string, ttl uint32) error {
 		Ttl:    ttl,
 	}
 
-	_, err := self.c.SetText(context.Background(), rqst)
+	_, err := self.c.SetText(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -222,7 +218,7 @@ func (self *DNS_Client) RemoveText(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveText(context.Background(), rqst)
+	_, err := self.c.RemoveText(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -236,7 +232,7 @@ func (self *DNS_Client) GetNs(id string) (string, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetNs(context.Background(), rqst)
+	rsp, err := self.c.GetNs(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -253,7 +249,7 @@ func (self *DNS_Client) SetNs(id string, ns string, ttl uint32) error {
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetNs(context.Background(), rqst)
+	_, err := self.c.SetNs(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -264,7 +260,7 @@ func (self *DNS_Client) RemoveNs(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveNs(context.Background(), rqst)
+	_, err := self.c.RemoveNs(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -278,7 +274,7 @@ func (self *DNS_Client) GetCName(id string) (string, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetCName(context.Background(), rqst)
+	rsp, err := self.c.GetCName(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -295,7 +291,7 @@ func (self *DNS_Client) SetCName(id string, cname string, ttl uint32) error {
 		Ttl:   ttl,
 	}
 
-	_, err := self.c.SetCName(context.Background(), rqst)
+	_, err := self.c.SetCName(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -306,7 +302,7 @@ func (self *DNS_Client) RemoveCName(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveCName(context.Background(), rqst)
+	_, err := self.c.RemoveCName(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -320,7 +316,7 @@ func (self *DNS_Client) GetMx(id string) (map[string]interface{}, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetMx(context.Background(), rqst)
+	rsp, err := self.c.GetMx(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +340,7 @@ func (self *DNS_Client) SetMx(id string, preference uint16, mx string, ttl uint3
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetMx(context.Background(), rqst)
+	_, err := self.c.SetMx(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -355,7 +351,7 @@ func (self *DNS_Client) RemoveMx(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveMx(context.Background(), rqst)
+	_, err := self.c.RemoveMx(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -369,7 +365,7 @@ func (self *DNS_Client) GetSoa(id string) (map[string]interface{}, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetSoa(context.Background(), rqst)
+	rsp, err := self.c.GetSoa(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +399,7 @@ func (self *DNS_Client) SetSoa(id string, ns string, mbox string, serial uint32,
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetSoa(context.Background(), rqst)
+	_, err := self.c.SetSoa(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -414,7 +410,7 @@ func (self *DNS_Client) RemoveSoa(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveSoa(context.Background(), rqst)
+	_, err := self.c.RemoveSoa(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -428,7 +424,7 @@ func (self *DNS_Client) GetUri(id string) (map[string]interface{}, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetUri(context.Background(), rqst)
+	rsp, err := self.c.GetUri(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +450,7 @@ func (self *DNS_Client) SetUri(id string, priority uint32, weight uint32, target
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetUri(context.Background(), rqst)
+	_, err := self.c.SetUri(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -465,7 +461,7 @@ func (self *DNS_Client) RemoveUri(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveUri(context.Background(), rqst)
+	_, err := self.c.RemoveUri(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -479,7 +475,7 @@ func (self *DNS_Client) GetCaa(id string) (map[string]interface{}, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetCaa(context.Background(), rqst)
+	rsp, err := self.c.GetCaa(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +501,7 @@ func (self *DNS_Client) SetCaa(id string, flag uint32, tag string, value string,
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetCaa(context.Background(), rqst)
+	_, err := self.c.SetCaa(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -516,7 +512,7 @@ func (self *DNS_Client) RemoveCaa(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveCaa(context.Background(), rqst)
+	_, err := self.c.RemoveCaa(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -530,7 +526,7 @@ func (self *DNS_Client) GetAfsdb(id string) (map[string]interface{}, error) {
 		Id: id,
 	}
 
-	rsp, err := self.c.GetAfsdb(context.Background(), rqst)
+	rsp, err := self.c.GetAfsdb(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -554,7 +550,7 @@ func (self *DNS_Client) SetAfsdb(id string, subtype uint32, hostname string, ttl
 		Ttl: ttl,
 	}
 
-	_, err := self.c.SetAfsdb(context.Background(), rqst)
+	_, err := self.c.SetAfsdb(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -565,7 +561,7 @@ func (self *DNS_Client) RemoveAfsdb(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.RemoveAfsdb(context.Background(), rqst)
+	_, err := self.c.RemoveAfsdb(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}

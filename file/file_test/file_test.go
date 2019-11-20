@@ -52,7 +52,7 @@ func _TestReadDir(t *testing.T) {
 		ThumnailWidth:  256,
 	}
 
-	stream, err := c.ReadDir(context.Background(), rqst)
+	stream, err := c.ReadDir(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("Query error %v", err)
 	}
@@ -94,7 +94,7 @@ func TestGetThumbnails(t *testing.T) {
 		ThumnailWidth:  256,
 	}
 
-	stream, err := c.GetThumbnails(context.Background(), rqst)
+	stream, err := c.GetThumbnails(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("Query error %v", err)
 	}
@@ -135,7 +135,7 @@ func TestCreateDir(t *testing.T) {
 		Name: "TestDir",
 	}
 
-	rsp, err := c.CreateDir(context.Background(), rqst)
+	rsp, err := c.CreateDir(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while TestCreateDir: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestRenameDir(t *testing.T) {
 		NewName: "TestTestTestDir",
 	}
 
-	rsp, err := c.Rename(context.Background(), rqst)
+	rsp, err := c.Rename(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while TestRenameDir: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestDeleteDir(t *testing.T) {
 		Path: "C:\\Temp\\TestTestTestDir",
 	}
 
-	rsp, err := c.DeleteDir(context.Background(), rqst)
+	rsp, err := c.DeleteDir(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while TestDeleteDir: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestGetFileInof(t *testing.T) {
 		ThumnailWidth:  256,
 	}
 
-	rsp, err := c.GetFileInfo(context.Background(), rqst)
+	rsp, err := c.GetFileInfo(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while testing get file info: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestReadFile(t *testing.T) {
 		Path: "C:\\Temp\\Cargo\\WebApp\\Cargo\\Apps\\BrisOutil\\Upload\\515\\NGEN3603.JPG",
 	}
 
-	stream, err := c.ReadFile(context.Background(), rqst)
+	stream, err := c.ReadFile(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("ReadFile error %v", err)
 	}
@@ -274,7 +274,7 @@ func TestSaveFile(t *testing.T) {
 	c := filepb.NewFileServiceClient(cc)
 
 	// Open the stream...
-	stream, err := c.SaveFile(context.Background())
+	stream, err := c.SaveFile(api.GetClientContext(self))
 	if err != nil {
 		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
 	}
@@ -341,7 +341,7 @@ func TestDeleteFile(t *testing.T) {
 		Path: "C:\\Temp\\toto.bmp",
 	}
 
-	rsp, err := c.DeleteFile(context.Background(), rqst)
+	rsp, err := c.DeleteFile(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while testing get file info: %v", err)
 	}

@@ -2,7 +2,6 @@ package Interceptors
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -54,13 +53,6 @@ func GenerateToken(jwtKey []byte, timeout time.Duration, userName string) (strin
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
 		return "", err
-	}
-
-	if userName == "sa" {
-		// This is globular server itself.
-		log.Println("server token:", tokenString)
-	} else {
-		log.Println("generate token for", userName, ":", tokenString)
 	}
 
 	return tokenString, nil

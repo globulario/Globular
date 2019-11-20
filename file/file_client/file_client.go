@@ -1,7 +1,6 @@
 package file_client
 
 import (
-	"context"
 	"io"
 	"log"
 	"os"
@@ -45,7 +44,7 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *File_Client {
+func NewFile_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *File_Client {
 	client := new(File_Client)
 
 	client.name = "file"
@@ -55,7 +54,7 @@ func NewFile_Client(domain string, port int, hasTLS bool, keyFile string, certFi
 	client.caFile = caFile
 	client.domain = domain
 	client.port = port
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = filepb.NewFileServiceClient(client.cc)
 
 	return client
@@ -114,7 +113,7 @@ func (self *File_Client) ReadDir(path interface{}, recursive interface{}, thumbn
 		ThumnailWidth:  int32(Utility.ToInt(thumbnailWidth)),
 	}
 
-	stream, err := self.c.ReadDir(context.Background(), rqst)
+	stream, err := self.c.ReadDir(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +146,7 @@ func (self *File_Client) CreateDir(path interface{}, name interface{}) error {
 		Name: Utility.ToString(name),
 	}
 
-	_, err := self.c.CreateDir(context.Background(), rqst)
+	_, err := self.c.CreateDir(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -164,7 +163,7 @@ func (self *File_Client) ReadFile(path interface{}) ([]byte, error) {
 		Path: Utility.ToString(path),
 	}
 
-	stream, err := self.c.ReadFile(context.Background(), rqst)
+	stream, err := self.c.ReadFile(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +197,7 @@ func (self *File_Client) RenameDir(path interface{}, oldname interface{}, newnam
 		NewName: Utility.ToString(newname),
 	}
 
-	_, err := self.c.Rename(context.Background(), rqst)
+	_, err := self.c.Rename(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -211,7 +210,7 @@ func (self *File_Client) DeleteDir(path string) error {
 		Path: Utility.ToString(path),
 	}
 
-	_, err := self.c.DeleteDir(context.Background(), rqst)
+	_, err := self.c.DeleteDir(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -226,7 +225,7 @@ func (self *File_Client) GetFileInfo(path interface{}, recursive interface{}, th
 		ThumnailWidth:  int32(Utility.ToInt(thumbnailWidth)),
 	}
 
-	rsp, err := self.c.GetFileInfo(context.Background(), rqst)
+	rsp, err := self.c.GetFileInfo(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -240,7 +239,7 @@ func (self *File_Client) GetFileInfo(path interface{}, recursive interface{}, th
 func (self *File_Client) MoveFile(path interface{}, dest interface{}) error {
 
 	// Open the stream...
-	stream, err := self.c.SaveFile(context.Background())
+	stream, err := self.c.SaveFile(api.GetClientContext(self))
 	if err != nil {
 		return err
 	}
@@ -302,7 +301,7 @@ func (self *File_Client) DeleteFile(path string) error {
 		Path: Utility.ToString(path),
 	}
 
-	_, err := self.c.DeleteFile(context.Background(), rqst)
+	_, err := self.c.DeleteFile(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while testing get file info: %v", err)
 	}
@@ -321,7 +320,7 @@ func (self *File_Client) GetThumbnails(path interface{}, recursive interface{}, 
 		ThumnailWidth:  int32(Utility.ToInt(thumbnailWidth)),
 	}
 
-	stream, err := self.c.GetThumbnails(context.Background(), rqst)
+	stream, err := self.c.GetThumbnails(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}

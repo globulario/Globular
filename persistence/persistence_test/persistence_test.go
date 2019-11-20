@@ -14,14 +14,19 @@ import (
 // start: mongod --dbpath E:\Project\src\github.com\davecourtois\Globular\data\mongodb-data
 // Set the correct addresse here as needed.
 var (
-	token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZXhwIjoxNTczMzI5Njg0fQ.CYsfIIZmVNfIn4qoLuYW7Mnt9leK9MQtks5DfSu2hkw"
-	crt   = "/media/dave/ssd/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.crt"
-	key   = "/media/dave/ssd/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.pem"
-	ca    = "/media/dave/ssd/Project//src/github.com/davecourtois/Globular/config/grpc_tls/ca.crt"
+	/*
+		crt = "/media/dave/ssd/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.crt"
+		key = "/media/dave/ssd/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.pem"
+		ca  = "/media/dave/ssd/Project//src/github.com/davecourtois/Globular/config/grpc_tls/ca.crt"
+	*/
+
+	crt = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.crt"
+	key = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.pem"
+	ca  = "E:/Project//src/github.com/davecourtois/Globular/config/grpc_tls/ca.crt"
 
 	// Connect to the plc client.
-	client = persistence_client.NewPersistence_Client("localhost", 10035, true, key, crt, ca, token)
-	// client = persistence_client.NewPersistence_Client(addresse, false, "", "", "", token)
+	client = persistence_client.NewPersistence_Client("localhost", 10035, true, key, crt, ca)
+	// client = persistence_client.NewPersistence_Client(addresse, false, "", "", "")
 )
 
 // First test create a fresh new connection...

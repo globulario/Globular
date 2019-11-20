@@ -1,8 +1,6 @@
 package storage_client
 
 import (
-	"context"
-	// "log"
 	"strconv"
 
 	"github.com/davecourtois/Globular/api"
@@ -41,7 +39,7 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Storage_Client {
+func NewStorage_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Storage_Client {
 
 	client := new(Storage_Client)
 
@@ -53,7 +51,7 @@ func NewStorage_Client(domain string, port int, hasTLS bool, keyFile string, cer
 	client.certFile = certFile
 	client.caFile = caFile
 
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = storagepb.NewStorageServiceClient(client.cc)
 
 	return client
@@ -112,7 +110,7 @@ func (self *Storage_Client) CreateConnection(id string, name string, connectionT
 		},
 	}
 
-	_, err := self.c.CreateConnection(context.Background(), rqst)
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -125,7 +123,7 @@ func (self *Storage_Client) OpenConnection(id string, options string) error {
 		Options: options,
 	}
 
-	_, err := self.c.Open(context.Background(), rqst)
+	_, err := self.c.Open(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -139,7 +137,7 @@ func (self *Storage_Client) SetItem(connectionId string, key string, data []byte
 		Value: data,
 	}
 
-	_, err := self.c.SetItem(context.Background(), rqst)
+	_, err := self.c.SetItem(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -150,7 +148,7 @@ func (self *Storage_Client) GetItem(connectionId string, key string) ([]byte, er
 		Key: key,
 	}
 
-	rsp, err := self.c.GetItem(context.Background(), rqst)
+	rsp, err := self.c.GetItem(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +162,7 @@ func (self *Storage_Client) RemoveItem(connectionId string, key string) error {
 		Key: key,
 	}
 
-	_, err := self.c.RemoveItem(context.Background(), rqst)
+	_, err := self.c.RemoveItem(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -175,7 +173,7 @@ func (self *Storage_Client) Clear(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.Clear(context.Background(), rqst)
+	_, err := self.c.Clear(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -186,7 +184,7 @@ func (self *Storage_Client) Drop(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.Drop(context.Background(), rqst)
+	_, err := self.c.Drop(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -197,7 +195,7 @@ func (self *Storage_Client) CloseConnection(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.Close(context.Background(), rqst)
+	_, err := self.c.Close(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -208,6 +206,6 @@ func (self *Storage_Client) DeleteConnection(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
 	return err
 }

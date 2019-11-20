@@ -77,7 +77,7 @@ func TestCreateConnection(t *testing.T) {
 		},
 	}
 
-	rsp, err := c.CreateConnection(context.Background(), rqst)
+	rsp, err := c.CreateConnection(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestSearch(t *testing.T) {
 		},
 	}
 
-	rsp, err := c.Search(context.Background(), rqst)
+	rsp, err := c.Search(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestSearch(t *testing.T) {
 		Id: "test_ldap",
 	}
 
-	_, err = c.Close(context.Background(), rqst_)
+	_, err = c.Close(api.GetClientContext(self), rqst_)
 	if err != nil {
 		log.Fatalf("error while closing the connection: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestDeleteConnection(t *testing.T) {
 		Id: "test_ldap",
 	}
 
-	_, err := c.DeleteConnection(context.Background(), rqst)
+	_, err := c.DeleteConnection(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while deleting the connection: %v", err)
 	}

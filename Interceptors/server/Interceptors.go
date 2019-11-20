@@ -28,19 +28,13 @@ const (
 
 var (
 	client *persistence_client.Persistence_Client
-	token_ string // the last know sa token.
 )
 
 func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 	// Here I will need the persistence client to read user permission.
 	// Here I will read the server token, the service must run on the
 	// same computer as globular.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
-	if err != nil {
-		return nil, err
-	}
-
-	if client == nil || token_ != string(token) {
+	if client == nil {
 		// The root password to be able to perform query over persistence service.
 		infoStr, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_sa")
 		if err != nil {
@@ -53,6 +47,8 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 			return nil, err
 		}
 
+		// Local to the server so the information will be taken from
+		// information in the file.
 		root := infos["pwd"].(string)
 		domain := infos["domain"].(string)
 		port := int(infos["port"].(float64))
@@ -66,15 +62,12 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 		}
 
 		// Use the client sa connection.
-		client = persistence_client.NewPersistence_Client(domain, port, true, key, crt, ca, string(token))
+		client = persistence_client.NewPersistence_Client(domain, port, true, key, crt, ca)
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
 			log.Println(`--> Fail to create  the connection "local_ressource"`)
 			return nil, err
 		}
-
-		// keep the token for futher use
-		token_ = string(token)
 	}
 	return client, nil
 }

@@ -101,7 +101,7 @@ func TestCreateConnection(t *testing.T) {
 		},
 	}*/
 
-	rsp, err := c.CreateConnection(context.Background(), rqst)
+	rsp, err := c.CreateConnection(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestPingConnection(t *testing.T) {
 			Id: "bris_outil",
 		}
 	*/
-	rsp, err := c.Ping(context.Background(), rqst)
+	rsp, err := c.Ping(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestPingConnection(t *testing.T) {
 		Id: "non_existing_connection_id",
 	}
 
-	rsp, err = c.Ping(context.Background(), rqst)
+	rsp, err = c.Ping(api.GetClientContext(self), rqst)
 	if err != nil {
 		t.Log("Expected error: ", err.Error())
 	}
@@ -190,7 +190,7 @@ func TestQueryContext(t *testing.T) {
 		}
 	*/
 	// Because number of values can be high I will use a stream.
-	stream, err := c.QueryContext(context.Background(), rqst)
+	stream, err := c.QueryContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("Query error %v", err)
 	}
@@ -271,7 +271,7 @@ func TestInsertValue(t *testing.T) {
 		Tx: false,
 	}
 
-	rsp, err := c.ExecContext(context.Background(), rqst)
+	rsp, err := c.ExecContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalln("Fail ExecContext ", err)
 	}
@@ -305,7 +305,7 @@ func TestUpdateValue(t *testing.T) {
 		Tx: false,
 	}
 
-	rsp, err := c.ExecContext(context.Background(), rqst)
+	rsp, err := c.ExecContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalln("Fail ExecContext ", err)
 	}
@@ -338,7 +338,7 @@ func TestDeleteValue(t *testing.T) {
 		Tx: false,
 	}
 
-	rsp, err := c.ExecContext(context.Background(), rqst)
+	rsp, err := c.ExecContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalln("Fail ExecContext ", err)
 	}
@@ -367,7 +367,7 @@ func TestDeleteConnection(t *testing.T) {
 		Id: "bris_outil",
 	}
 
-	rsp, err := c.DeleteConnection(context.Background(), rqst)
+	rsp, err := c.DeleteConnection(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while Delete connection: %v", err)
 	}

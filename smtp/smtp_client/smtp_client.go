@@ -41,7 +41,7 @@ type SMTP_Client struct {
 }
 
 // Create a connection to the service.
-func NewSmtp_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SMTP_Client {
+func NewSmtp_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *SMTP_Client {
 	client := new(SMTP_Client)
 
 	client.domain = domain
@@ -52,7 +52,7 @@ func NewSmtp_Client(domain string, port int, hasTLS bool, keyFile string, certFi
 	client.certFile = certFile
 	client.caFile = caFile
 
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = smtppb.NewSmtpServiceClient(client.cc)
 
 	return client

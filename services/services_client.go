@@ -1,15 +1,13 @@
 package services
 
 import (
-	"context"
-	"log"
-	"strings"
-
 	"bytes"
 	"encoding/gob"
 	"io"
 	"io/ioutil"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Utility"
@@ -47,7 +45,7 @@ type ServicesDiscovery_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesDiscovery_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *ServicesDiscovery_Client {
+func NewServicesDiscovery_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *ServicesDiscovery_Client {
 	client := new(ServicesDiscovery_Client)
 
 	client.port = port
@@ -57,7 +55,7 @@ func NewServicesDiscovery_Client(domain string, port int, hasTLS bool, keyFile s
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceDiscoveryClient(client.cc)
 
 	return client
@@ -112,7 +110,7 @@ func (self *ServicesDiscovery_Client) GetCaFile() string {
  */
 func (self *ServicesDiscovery_Client) GetServicesDescriptor(service_id string) ([]*ServiceDescriptor, error) {
 	rqst := new(GetServicesDescriptorRequest)
-	rsp, err := self.c.GetServicesDescriptor(context.Background(), rqst)
+	rsp, err := self.c.GetServicesDescriptor(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +126,7 @@ func (self *ServicesDiscovery_Client) GetServiceDescriptor(service_id string, pu
 	rqst.ServiceId = service_id
 	rqst.PublisherId = publisher_id
 
-	rsp, err := self.c.GetServiceDescriptor(context.Background(), rqst)
+	rsp, err := self.c.GetServiceDescriptor(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +140,7 @@ func (self *ServicesDiscovery_Client) PublishServiceDescriptor(descriptor *Servi
 	rqst.Descriptor_ = descriptor
 
 	// publish a service descriptor on the network.
-	_, err := self.c.PublishServiceDescriptor(context.Background(), rqst)
+	_, err := self.c.PublishServiceDescriptor(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -177,7 +175,7 @@ type ServicesRepository_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesRepository_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *ServicesRepository_Client {
+func NewServicesRepository_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *ServicesRepository_Client {
 	client := new(ServicesRepository_Client)
 	client.port = port
 	client.domain = domain
@@ -186,7 +184,7 @@ func NewServicesRepository_Client(domain string, port int, hasTLS bool, keyFile 
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceRepositoryClient(client.cc)
 	return client
 }
@@ -240,7 +238,7 @@ func (self *ServicesRepository_Client) DownloadLastVersionBundle(discoveryId str
 	// Here I will find the service descriptor from the given information.
 	domain := strings.Split(discoveryId, ":")[0]
 	port := Utility.ToInt(strings.Split(discoveryId, ":")[1])
-	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "", "")
+	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "")
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return nil, err
@@ -260,7 +258,7 @@ func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescrip
 		Plaform:     platform,
 	}
 
-	stream, err := self.c.DownloadBundle(context.Background(), rqst)
+	stream, err := self.c.DownloadBundle(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -300,8 +298,9 @@ func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceI
 	bundle.Plaform = Platform(platform)
 	domain := strings.Split(discoveryId, ":")[0]
 	port := Utility.ToInt(strings.Split(discoveryId, ":")[1])
+
 	// Here I will find the service descriptor from the given information.
-	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "", "")
+	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "")
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return err
@@ -324,7 +323,7 @@ func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceI
 func (self *ServicesRepository_Client) uploadBundle(bundle *ServiceBundle) error {
 
 	// Open the stream...
-	stream, err := self.c.UploadBundle(context.Background())
+	stream, err := self.c.UploadBundle(api.GetClientContext(self))
 	if err != nil {
 		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
 	}

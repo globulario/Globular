@@ -1,17 +1,12 @@
 package ressource
 
 import (
-	"context"
-
 	"strconv"
 
-	"github.com/davecourtois/Globular/api"
-
-	//	"github.com/davecourtois/Utility"
 	"io/ioutil"
-	"log"
 	"os"
 
+	"github.com/davecourtois/Globular/api"
 	"google.golang.org/grpc"
 )
 
@@ -56,14 +51,7 @@ func NewRessource_Client(domain string, port int, hasTLS bool, keyFile string, c
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-
-	// The token will be taken from the config file of the server.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	client.cc = api.GetClientConnection(client, string(token))
+	client.cc = api.GetClientConnection(client)
 	client.c = NewRessourceServiceClient(client.cc)
 
 	return client
@@ -124,7 +112,7 @@ func (self *Ressource_Client) RegisterAccount(name string, email string, passwor
 		ConfirmPassword: confirmation_password,
 	}
 
-	_, err := self.c.RegisterAccount(context.Background(), rqst)
+	_, err := self.c.RegisterAccount(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -138,21 +126,31 @@ func (self *Ressource_Client) DeleteAccount(name string) error {
 		Name: name,
 	}
 
-	_, err := self.c.DeleteAccount(context.Background(), rqst)
+	_, err := self.c.DeleteAccount(api.GetClientContext(self), rqst)
 	return err
 }
 
 // Authenticate a user.
 func (self *Ressource_Client) Authenticate(name string, password string) (string, error) {
+	// remove the file if it already exist.
+	os.Remove(os.TempDir() + string(os.PathSeparator) + self.GetDomain() + "_token")
 
 	rqst := &AuthenticateRqst{
 		Name:     name,
 		Password: password,
 	}
 
-	rsp, err := self.c.Authenticate(context.Background(), rqst)
+	rsp, err := self.c.Authenticate(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
+
+	// Here I will save the token into the temporary directory the token will be valid for a given time (default is 15 minutes)
+	// it's the responsability of the client to keep it refresh... see Refresh token from the server...
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.GetDomain()+"_token", []byte(rsp.Token), 0644)
+	if err != nil {
+		return "", err
+	}
+
 	return rsp.Token, nil
 }

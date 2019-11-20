@@ -1,6 +1,7 @@
 #!/bin/bash
 protoc admin/admin.proto --go_out=plugins=grpc:.
 protoc ressource/ressource.proto --go_out=plugins=grpc:.
+protoc ca/ca.proto --go_out=plugins=grpc:.
 protoc services/services.proto --go_out=plugins=grpc:.
 protoc dns/dnspb/dns.proto --go_out=plugins=grpc:.
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
@@ -36,6 +37,8 @@ protoc admin/admin.proto --js_out=import_style=commonjs:client
 protoc admin/admin.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc ressource/ressource.proto --js_out=import_style=commonjs:client
 protoc ressource/ressource.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+protoc ca/ca.proto --js_out=import_style=commonjs:client
+protoc ca/ca.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc services/services.proto --js_out=import_style=commonjs:client
 protoc services/services.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client

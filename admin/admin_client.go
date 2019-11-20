@@ -1,9 +1,6 @@
 package admin
 
 import (
-	"context"
-	//"log"
-
 	"bytes"
 	"io"
 	"os"
@@ -46,7 +43,7 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Admin_Client {
+func NewAdmin_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Admin_Client {
 	client := new(Admin_Client)
 
 	client.port = port
@@ -56,7 +53,7 @@ func NewAdmin_Client(domain string, port int, hasTLS bool, keyFile string, certF
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = NewAdminServiceClient(client.cc)
 
 	return client
@@ -108,7 +105,7 @@ func (self *Admin_Client) GetCaFile() string {
 func (self *Admin_Client) GetConfig() (string, error) {
 	rqst := new(GetConfigRequest)
 
-	rsp, err := self.c.GetConfig(context.Background(), rqst)
+	rsp, err := self.c.GetConfig(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -120,7 +117,7 @@ func (self *Admin_Client) GetConfig() (string, error) {
 func (self *Admin_Client) GetFullConfig() (string, error) {
 	rqst := new(GetConfigRequest)
 
-	rsp, err := self.c.GetFullConfig(context.Background(), rqst)
+	rsp, err := self.c.GetFullConfig(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +130,7 @@ func (self *Admin_Client) SaveConfig(config string) error {
 		Config: config,
 	}
 
-	_, err := self.c.SaveConfig(context.Background(), rqst)
+	_, err := self.c.SaveConfig(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -144,7 +141,7 @@ func (self *Admin_Client) SaveConfig(config string) error {
 func (self *Admin_Client) StartService(id string) (int, int, error) {
 	rqst := new(StartServiceRequest)
 	rqst.ServiceId = id
-	rsp, err := self.c.StartService(context.Background(), rqst)
+	rsp, err := self.c.StartService(api.GetClientContext(self), rqst)
 	if err != nil {
 		return -1, -1, err
 	}
@@ -155,7 +152,7 @@ func (self *Admin_Client) StartService(id string) (int, int, error) {
 func (self *Admin_Client) StopService(id string) error {
 	rqst := new(StopServiceRequest)
 	rqst.ServiceId = id
-	_, err := self.c.StopService(context.Background(), rqst)
+	_, err := self.c.StopService(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -171,7 +168,7 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 		Args:      args,
 	}
 
-	rsp, err := self.c.RegisterExternalApplication(context.Background(), rqst)
+	rsp, err := self.c.RegisterExternalApplication(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return -1, err
@@ -194,7 +191,7 @@ func (self *Admin_Client) PublishService(serviceId string, discoveryAddress stri
 	rqst.Keywords = keywords
 	rqst.ServiceId = serviceId
 
-	_, err := self.c.PublishService(context.Background(), rqst)
+	_, err := self.c.PublishService(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -209,7 +206,7 @@ func (self *Admin_Client) InstallService(discoveryId string, publisherId string,
 	rqst.PublisherId = publisherId
 	rqst.ServiceId = serviceId
 
-	_, err := self.c.InstallService(context.Background(), rqst)
+	_, err := self.c.InstallService(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -224,7 +221,7 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
 	rqst.ServiceId = serviceId
 	rqst.Version = version
 
-	_, err := self.c.UninstallService(context.Background(), rqst)
+	_, err := self.c.UninstallService(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -250,7 +247,7 @@ func (self *Admin_Client) DeployApplication(name string, path string) error {
 	os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Open the stream...
-	stream, err := self.c.DeployApplication(context.Background())
+	stream, err := self.c.DeployApplication(api.GetClientContext(self))
 	if err != nil {
 		return err
 	}

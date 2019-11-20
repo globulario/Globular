@@ -1,7 +1,6 @@
 package sql_client
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"strconv"
@@ -43,7 +42,7 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *SQL_Client {
+func NewSql_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *SQL_Client {
 
 	client := new(SQL_Client)
 	client.port = port
@@ -53,7 +52,7 @@ func NewSql_Client(domain string, port int, hasTLS bool, keyFile string, certFil
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = sqlpb.NewSqlServiceClient(client.cc)
 
 	return client
@@ -109,7 +108,7 @@ func (self *SQL_Client) Ping(connectionId interface{}) (string, error) {
 		Id: Utility.ToString(connectionId),
 	}
 
-	rsp, err := self.c.Ping(context.Background(), rqst)
+	rsp, err := self.c.Ping(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +132,7 @@ func (self *SQL_Client) QueryContext(connectionId interface{}, query interface{}
 	}
 
 	// Because number of values can be high I will use a stream.
-	stream, err := self.c.QueryContext(context.Background(), rqst)
+	stream, err := self.c.QueryContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -186,7 +185,7 @@ func (self *SQL_Client) ExecContext(connectionId interface{}, query interface{},
 		Tx: Utility.ToBool(tx),
 	}
 
-	rsp, err := self.c.ExecContext(context.Background(), rqst)
+	rsp, err := self.c.ExecContext(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}

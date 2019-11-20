@@ -43,7 +43,7 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *PlcLink_Client {
+func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *PlcLink_Client {
 	client := new(PlcLink_Client)
 
 	client.domain = domain
@@ -53,7 +53,7 @@ func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, cer
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 
 	return client
@@ -114,7 +114,7 @@ func (self *PlcLink_Client) CreateConnection(id string, domain string, address s
 		},
 	}
 
-	_, err := self.c.CreateConnection(context.Background(), rqst)
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -125,7 +125,7 @@ func (self *PlcLink_Client) DeleteConnection(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -159,7 +159,7 @@ func (self *PlcLink_Client) Link(id string, frequency int32, src_domain string, 
 		},
 	}
 
-	_, err := self.c.Link(context.Background(), rqst)
+	_, err := self.c.Link(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -171,7 +171,7 @@ func (self *PlcLink_Client) UnLink(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.UnLink(context.Background(), rqst)
+	_, err := self.c.UnLink(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -183,7 +183,7 @@ func (self *PlcLink_Client) Suspend(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.Suspend(context.Background(), rqst)
+	_, err := self.c.Suspend(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -195,6 +195,6 @@ func (self *PlcLink_Client) Resume(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.Resume(context.Background(), rqst)
+	_, err := self.c.Resume(api.GetClientContext(self), rqst)
 	return err
 }

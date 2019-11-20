@@ -1,7 +1,6 @@
 package persistence_client
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 
@@ -43,7 +42,7 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Persistence_Client {
+func NewPersistence_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Persistence_Client {
 	client := new(Persistence_Client)
 	client.domain = domain
 	client.port = port
@@ -53,7 +52,7 @@ func NewPersistence_Client(domain string, port int, hasTLS bool, keyFile string,
 	client.certFile = certFile
 	client.caFile = caFile
 
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 
 	return client
@@ -120,7 +119,7 @@ func (self *Persistence_Client) CreateConnection(connectionId string, name strin
 		Save: save,
 	}
 
-	_, err := self.c.CreateConnection(context.Background(), rqst)
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -129,7 +128,7 @@ func (self *Persistence_Client) DeleteConnection(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -139,7 +138,7 @@ func (self *Persistence_Client) Connect(id string, password string) error {
 		Password:     password,
 	}
 
-	_, err := self.c.Connect(context.Background(), rqst)
+	_, err := self.c.Connect(api.GetClientContext(self), rqst)
 	return err
 }
 
@@ -149,7 +148,7 @@ func (self *Persistence_Client) Disconnect(connectionId string) error {
 		ConnectionId: connectionId,
 	}
 
-	_, err := self.c.Disconnect(context.Background(), rqst)
+	_, err := self.c.Disconnect(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -160,7 +159,7 @@ func (self *Persistence_Client) Ping(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.Ping(context.Background(), rqst)
+	_, err := self.c.Ping(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -176,7 +175,7 @@ func (self *Persistence_Client) FindOne(connectionId string, database string, co
 		Options:    options,
 	}
 
-	rsp, err := self.c.FindOne(context.Background(), rqst)
+	rsp, err := self.c.FindOne(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return "", err
@@ -196,7 +195,7 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 		Options:    options,
 	}
 
-	stream, err := self.c.Find(context.Background(), rqst)
+	stream, err := self.c.Find(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return "", err
@@ -241,7 +240,7 @@ func (self *Persistence_Client) Aggregate(connectionId, database string, collect
 		Options:    options,
 	}
 
-	stream, err := self.c.Aggregate(context.Background(), rqst)
+	stream, err := self.c.Aggregate(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return "", err
@@ -286,7 +285,7 @@ func (self *Persistence_Client) Count(connectionId string, database string, coll
 		Options:    options,
 	}
 
-	rsp, err := self.c.Count(context.Background(), rqst)
+	rsp, err := self.c.Count(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return 0, err
@@ -308,7 +307,7 @@ func (self *Persistence_Client) InsertOne(connectionId string, database string, 
 		Options:    options,
 	}
 
-	rsp, err := self.c.InsertOne(context.Background(), rqst)
+	rsp, err := self.c.InsertOne(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return "", err
@@ -319,7 +318,7 @@ func (self *Persistence_Client) InsertOne(connectionId string, database string, 
 
 func (self *Persistence_Client) InsertMany(connectionId string, database string, collection string, jsonStr string, options string) (string, error) {
 
-	stream, err := self.c.InsertMany(context.Background())
+	stream, err := self.c.InsertMany(api.GetClientContext(self))
 	if err != nil {
 		return "", err
 	}
@@ -382,7 +381,7 @@ func (self *Persistence_Client) ReplaceOne(connectionId string, database string,
 		Options:    options,
 	}
 
-	_, err := self.c.ReplaceOne(context.Background(), rqst)
+	_, err := self.c.ReplaceOne(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -398,7 +397,7 @@ func (self *Persistence_Client) UpdateOne(connectionId string, database string, 
 		Options:    options,
 	}
 
-	_, err := self.c.UpdateOne(context.Background(), rqst)
+	_, err := self.c.UpdateOne(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -417,7 +416,7 @@ func (self *Persistence_Client) Update(connectionId string, database string, col
 		Options:    options,
 	}
 
-	_, err := self.c.Update(context.Background(), rqst)
+	_, err := self.c.Update(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -435,7 +434,7 @@ func (self *Persistence_Client) DeleteOne(connectionId string, database string, 
 		Options:    options,
 	}
 
-	_, err := self.c.DeleteOne(context.Background(), rqst)
+	_, err := self.c.DeleteOne(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return err
@@ -457,7 +456,7 @@ func (self *Persistence_Client) Delete(connectionId string, database string, col
 		Options:    options,
 	}
 
-	_, err := self.c.Delete(context.Background(), rqst)
+	_, err := self.c.Delete(api.GetClientContext(self), rqst)
 
 	if err != nil {
 		return err
@@ -476,7 +475,7 @@ func (self *Persistence_Client) DeleteCollection(connectionId string, database s
 		Database:   database,
 		Collection: collection,
 	}
-	_, err := self.c.DeleteCollection(context.Background(), rqst_drop_collection)
+	_, err := self.c.DeleteCollection(api.GetClientContext(self), rqst_drop_collection)
 
 	return err
 }
@@ -491,7 +490,7 @@ func (self *Persistence_Client) DeleteDatabase(connectionId string, database str
 		Database: database,
 	}
 
-	_, err := self.c.DeleteDatabase(context.Background(), rqst_drop_db)
+	_, err := self.c.DeleteDatabase(api.GetClientContext(self), rqst_drop_db)
 
 	return err
 }
@@ -508,7 +507,7 @@ func (self *Persistence_Client) RunAdminCmd(connectionId string, user string, pw
 		Password:     pwd,
 	}
 
-	_, err := self.c.RunAdminCmd(context.Background(), rqst_drop_db)
+	_, err := self.c.RunAdminCmd(api.GetClientContext(self), rqst_drop_db)
 
 	return err
 }

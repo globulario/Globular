@@ -44,14 +44,14 @@ func TestGetServiceDescriptor(t *testing.T) {
 func TestUploadServiceBundle(t *testing.T) {
 
 	// The service bundle...
-	err := services_repository.UploadBundle("localhost:10005", "echo_server", "localhost", 0, "C:\\temp\\globular\\echo_server.7z")
+	err := services_repository.UploadBundle("localhost:8080", "echo_server", "localhost", 0, "C:\\temp\\globular\\echo_server.7z")
 	if err != nil {
 		log.Panicln(err)
 	}
 }
 
 func TestDownloadServiceBundle(t *testing.T) {
-	bundle, err := services_repository.DownloadLastVersionBundle("localhost:10005", "echo_server", "localhost", 0)
+	bundle, err := services_repository.DownloadLastVersionBundle("localhost:8080", "echo_server", "localhost", 0)
 
 	if err != nil {
 		log.Panicln(err)

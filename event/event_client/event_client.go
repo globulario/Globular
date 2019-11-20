@@ -1,15 +1,13 @@
 package event_client
 
 import (
-	"context"
 	"log"
 	"strconv"
 
+	"io"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
-
-	//	"github.com/davecourtois/Utility"
-	"io"
 
 	"google.golang.org/grpc"
 )
@@ -45,7 +43,7 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Event_Client {
+func NewEvent_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Event_Client {
 	client := new(Event_Client)
 	client.domain = domain
 	client.name = "event"
@@ -54,7 +52,7 @@ func NewEvent_Client(domain string, port int, hasTLS bool, keyFile string, certF
 	client.certFile = certFile
 	client.caFile = caFile
 	client.port = port
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	return client
 }
@@ -111,7 +109,7 @@ func (self *Event_Client) Publish(name string, data interface{}) error {
 		},
 	}
 
-	_, err := self.c.Publish(context.Background(), rqst)
+	_, err := self.c.Publish(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -126,7 +124,7 @@ func (self *Event_Client) Subscribe(name string, data_channel chan []byte) (stri
 		Name: name,
 	}
 
-	stream, err := self.c.Subscribe(context.Background(), rqst)
+	stream, err := self.c.Subscribe(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -169,7 +167,7 @@ func (self *Event_Client) UnSubscribe(name string, uuid string) error {
 		Uuid: uuid,
 	}
 
-	_, err := self.c.UnSubscribe(context.Background(), rqst)
+	_, err := self.c.UnSubscribe(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-FROM ubuntu
+ FROM ubuntu
 ADD /usr/local/lib/libplctag.so /usr/local/lib
 ADD /usr/local/lib/libgrpc++.so /usr/local/lib
 ADD /usr/local/lib/libgrpc++.so.1 /usr/local/lib

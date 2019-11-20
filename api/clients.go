@@ -1,15 +1,16 @@
 package api
 
 import (
-	"io/ioutil"
-	"log"
-
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"io/ioutil"
+	"log"
+	"os"
 
-	"github.com/davecourtois/Globular/Interceptors/Authenticate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 )
 
 // The client service interface.
@@ -44,8 +45,7 @@ type Client interface {
 /**
  * Get the client connection. The token is require to control access to ressource
  */
-func GetClientConnection(client Client, token string) *grpc.ClientConn {
-
+func GetClientConnection(client Client) *grpc.ClientConn {
 	var cc *grpc.ClientConn
 	var err error
 	if cc == nil {
@@ -86,11 +86,7 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 			})
 
 			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds),
-				grpc.WithPerRPCCredentials(
-					&Interceptors.Authentication{
-						Token: token,
-					}))
+			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds))
 
 			if err != nil {
 				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
@@ -104,4 +100,19 @@ func GetClientConnection(client Client, token string) *grpc.ClientConn {
 	}
 
 	return cc
+}
+
+/**
+ * That function is use to get the client context. If a token is found in the
+ * tmp directory for the client domain it's set in the metadata.
+ */
+func GetClientContext(client Client) context.Context {
+	// Token's are kept in temporary directory
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token")
+	if err == nil {
+		md := metadata.New(map[string]string{"token": string(token)})
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		return ctx
+	}
+	return context.Background()
 }

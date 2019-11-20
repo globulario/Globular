@@ -1,7 +1,6 @@
 package echo_client
 
 import (
-	"context"
 	"log"
 	"strconv"
 
@@ -42,7 +41,7 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Echo_Client {
+func NewEcho_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Echo_Client {
 	client := new(Echo_Client)
 	client.domain = domain
 	client.name = "echo"
@@ -51,7 +50,7 @@ func NewEcho_Client(domain string, port int, hasTLS bool, keyFile string, certFi
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = echopb.NewEchoServiceClient(client.cc)
 
 	return client
@@ -104,7 +103,7 @@ func (self *Echo_Client) Echo(msg interface{}) (string, error) {
 	rqst := &echopb.EchoRequest{
 		Message: Utility.ToString(msg),
 	}
-	ctx := context.Background()
+	ctx := api.GetClientContext(self)
 	rsp, err := self.c.Echo(ctx, rqst)
 	if err != nil {
 		return "", err

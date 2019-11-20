@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/davecourtois/Globular/admin"
+	"github.com/davecourtois/Globular/ressource"
 	"github.com/davecourtois/Utility"
 )
 
@@ -97,107 +96,40 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	var port int
 	var domain string
 
+	// The port and domain will be taken from the address.
 	if strings.Index(address, ":") > 0 {
 		domain = strings.Split(address, ":")[0]
 		port = Utility.ToInt(strings.Split(address, ":")[1])
 	} else {
-		port = g.AdminPort
 		domain = address
+		port = 443 // the default port.
 	}
 
-	// hasTLS bool, keyFile string, certFile string, caFile string, token string
+	config, err := g.GetRemoteClientConfig(domain, port)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	// First of all I will create a client...
 	log.Println("--> domain:", domain, port)
 	var keyPath string
 	var certPath string
 	var caPath string
-	var tls bool
-	if domain == "localhost" {
-		keyPath = g.creds + string(os.PathSeparator) + "client.pem"
-		certPath = g.creds + string(os.PathSeparator) + "client.crt"
-		caPath = g.creds + string(os.PathSeparator) + "ca.crt"
-	} else {
-		creds := g.creds + string(os.PathSeparator) + domain
-		Utility.CreateDirIfNotExist(creds)
-		log.Println("---> here I will generate the certificate for the client... ", creds)
-		// So here I will get the ca.crt file...
-		// Get the data
-		resp, err := http.Get("https://" + address + "/ca.crt")
+	keyPath, certPath, caPath, err = g.InitClientCredential(domain, port)
 
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		defer resp.Body.Close()
-
-		// Create the ca file.
-		out, err := os.Create(creds + string(os.PathSeparator) + "ca.crt")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		defer out.Close()
-
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Now I will generate the certificate for the client...
-		// Step 1: Generate client private key.
-		err = g.GenerateClientPrivateKey(creds, pwd)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Step 2: Generate the client signing request.
-		err = g.GenerateClientCertificateSigningRequest(creds, pwd, domain)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Step 3: Generate client signed certificate.
-		/* err = g.GenerateSignedClientCertificate(creds, pwd, g.CertExpirationDelay)
-		if err != nil {
-			log.Println(err)
-			return
-		}*/
-
-		// Now ask the ca to sign the certificate.
-
-		// Step 4: Convert to pem format.
-		err = g.KeyToPem("client", creds, pwd)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Set tls to true.
-		tls = true
-
-		keyPath = creds + string(os.PathSeparator) + "client.pem"
-		certPath = creds + string(os.PathSeparator) + "client.crt"
-		caPath = creds + string(os.PathSeparator) + "ca.crt"
-		log.Println("-----------------------------------> ", keyPath)
-		/*keyPath = g.creds + string(os.PathSeparator) + "client.pem"
-		certPath = g.creds + string(os.PathSeparator) + "client.crt"
-		caPath = g.creds + string(os.PathSeparator) + "ca.crt"*/
+	// Authenticate the user in order to get the token
+	ressource_client := ressource.NewRessource_Client(domain, Utility.ToInt(config["RessourcePort"].(float64)), config["Protocol"] == "https", keyPath, certPath, caPath)
+	_, err = ressource_client.Authenticate(user, pwd)
+	if err != nil {
+		log.Println(err)
+		return
 	}
-
-	// Token...
-	token := ""
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	client := admin.NewAdmin_Client(domain, g.AdminPort, tls, keyPath, certPath, caPath, token)
-
-	err := client.DeployApplication(name, path)
+	admin_client := admin.NewAdmin_Client(domain, Utility.ToInt(config["AdminPort"].(float64)), config["Protocol"] == "https", keyPath, certPath, caPath)
+	err = admin_client.DeployApplication(name, path)
 	if err != nil {
 		log.Println(err)
 		return
@@ -247,6 +179,15 @@ func install(g *Globule, path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Now I will copy the prototype files of the internal gRPC service
+	// admin, ressource, ca and services.
+	Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "proto")
+	Utility.CopyFile(dir+string(os.PathSeparator)+"admin"+string(os.PathSeparator)+"admin.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"admin.proto")
+	Utility.CopyFile(dir+string(os.PathSeparator)+"ca"+string(os.PathSeparator)+"ca.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"ca.proto")
+	Utility.CopyFile(dir+string(os.PathSeparator)+"ressource"+string(os.PathSeparator)+"ressource.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"ressource.proto")
+	Utility.CopyFile(dir+string(os.PathSeparator)+"services"+string(os.PathSeparator)+"services.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"services.proto")
+
 	for _, f := range files {
 		if !f.IsDir() {
 			err = os.Chmod(path+string(os.PathSeparator)+"bin"+string(os.PathSeparator)+f.Name(), 0755)

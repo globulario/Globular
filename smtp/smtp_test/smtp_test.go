@@ -78,7 +78,7 @@ func TestCreateConnection(t *testing.T) {
 		},
 	}
 
-	rsp, err := c.CreateConnection(context.Background(), rqst)
+	rsp, err := c.CreateConnection(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestSendEmail(t *testing.T) {
 		},
 	}
 
-	rsp, err := c.SendEmail(context.Background(), rqst)
+	rsp, err := c.SendEmail(api.GetClientContext(self), rqst)
 	if err != nil {
 		log.Fatalf("error while CreateConnection: %v", err)
 	}
@@ -171,7 +171,7 @@ func sendFile(id string, path string, stream smtppb.SmtpService_SendEmailWithAtt
 	c := smtppb.NewSmtpServiceClient(cc)
 
 	// Open the stream...
-	stream, err := c.SendEmailWithAttachements(context.Background())
+	stream, err := c.SendEmailWithAttachements(api.GetClientContext(self))
 	if err != nil {
 		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
 	}

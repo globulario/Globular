@@ -11,6 +11,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/emicklei/proto v1.8.0
 	github.com/glendc/go-external-ip v0.0.0-20170425150139-139229dcdddd // indirect
+	github.com/go-acme/lego/v3 v3.2.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2

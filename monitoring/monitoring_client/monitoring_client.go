@@ -1,8 +1,6 @@
 package monitoring_client
 
 import (
-	"context"
-
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/monitoring/monitoringpb"
 
@@ -44,7 +42,7 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *Monitoring_Client {
+func NewMonitoring_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Monitoring_Client {
 	client := new(Monitoring_Client)
 
 	client.domain = domain
@@ -54,7 +52,7 @@ func NewMonitoring_Client(domain string, port int, hasTLS bool, keyFile string, 
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	client.cc = api.GetClientConnection(client)
 	client.c = monitoringpb.NewMonitoringServiceClient(client.cc)
 
 	return client
@@ -115,7 +113,7 @@ func (self *Monitoring_Client) CreateConnection(id string, host string, storeTyp
 		},
 	}
 
-	_, err := self.c.CreateConnection(context.Background(), rqst)
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -126,7 +124,7 @@ func (self *Monitoring_Client) DeleteConnection(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.DeleteConnection(context.Background(), rqst)
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -137,7 +135,7 @@ func (self *Monitoring_Client) Config(connectionId string) (string, error) {
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.Config(context.Background(), rqst)
+	rsp, err := self.c.Config(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +149,7 @@ func (self *Monitoring_Client) Alerts(connectionId string) (string, error) {
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.Alerts(context.Background(), rqst)
+	rsp, err := self.c.Alerts(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +163,7 @@ func (self *Monitoring_Client) AlertManagers(connectionId string) (string, error
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.AlertManagers(context.Background(), rqst)
+	rsp, err := self.c.AlertManagers(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -179,7 +177,7 @@ func (self *Monitoring_Client) CleanTombstones(connectionId string) error {
 		ConnectionId: connectionId,
 	}
 
-	_, err := self.c.CleanTombstones(context.Background(), rqst)
+	_, err := self.c.CleanTombstones(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -196,7 +194,7 @@ func (self *Monitoring_Client) DeleteSeries(connectionId string, matches []strin
 		EndTime:      endTime,
 	}
 
-	_, err := self.c.DeleteSeries(context.Background(), rqst)
+	_, err := self.c.DeleteSeries(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -209,7 +207,7 @@ func (self *Monitoring_Client) Flags(connectionId string) (string, error) {
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.Flags(context.Background(), rqst)
+	rsp, err := self.c.Flags(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -223,7 +221,7 @@ func (self *Monitoring_Client) LabelNames(connectionId string) ([]string, string
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.LabelNames(context.Background(), rqst)
+	rsp, err := self.c.LabelNames(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, "", err
 	}
@@ -238,7 +236,7 @@ func (self *Monitoring_Client) LabelValues(connectionId string, label string) (s
 		Label:        label,
 	}
 
-	rsp, err := self.c.LabelValues(context.Background(), rqst)
+	rsp, err := self.c.LabelValues(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", "", err
 	}
@@ -254,7 +252,7 @@ func (self *Monitoring_Client) Query(connectionId string, query string, ts float
 		Ts:           ts,
 	}
 
-	rsp, err := self.c.Query(context.Background(), rqst)
+	rsp, err := self.c.Query(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", "", err
 	}
@@ -274,7 +272,7 @@ func (self *Monitoring_Client) QueryRange(connectionId string, query string, sta
 
 	var value string
 	var warning string
-	stream, err := self.c.QueryRange(context.Background(), rqst)
+	stream, err := self.c.QueryRange(api.GetClientContext(self), rqst)
 	for {
 		msg, err := stream.Recv()
 		if err == io.EOF {
@@ -306,7 +304,7 @@ func (self *Monitoring_Client) Series(connectionId string, matches []string, sta
 		EndTime:      endTime,
 	}
 
-	rsp, err := self.c.Series(context.Background(), rqst)
+	rsp, err := self.c.Series(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", "", err
 	}
@@ -322,7 +320,7 @@ func (self *Monitoring_Client) Snapshot(connectionId string, skipHead bool) (str
 		SkipHead:     skipHead,
 	}
 
-	rsp, err := self.c.Snapshot(context.Background(), rqst)
+	rsp, err := self.c.Snapshot(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -336,7 +334,7 @@ func (self *Monitoring_Client) Rules(connectionId string) (string, error) {
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.Rules(context.Background(), rqst)
+	rsp, err := self.c.Rules(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -350,7 +348,7 @@ func (self *Monitoring_Client) Targets(connectionId string) (string, error) {
 		ConnectionId: connectionId,
 	}
 
-	rsp, err := self.c.Targets(context.Background(), rqst)
+	rsp, err := self.c.Targets(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
@@ -367,7 +365,7 @@ func (self *Monitoring_Client) TargetsMetadata(connectionId string, matchTarget 
 		Limit:        limit,
 	}
 
-	rsp, err := self.c.TargetsMetadata(context.Background(), rqst)
+	rsp, err := self.c.TargetsMetadata(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
 	}
