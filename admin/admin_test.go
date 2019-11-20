@@ -4,16 +4,16 @@ import (
 	//"encoding/json"
 	"log"
 	"testing"
-	//"time"
+	"time"
 )
 
 var (
 	// Connect to the admin client.
-	client = NewAdmin_Client("localhost", 10001, false, "", "", "", "")
+	client = NewAdmin_Client("localhost", 10001, false, "", "", "")
 )
 
 // Test various function here.
-func TestGetConfig(t *testing.T) {
+/*func TestGetConfig(t *testing.T) {
 	log.Println("---> test get config.")
 	config, err := client.GetConfig()
 	if err != nil {
@@ -31,7 +31,7 @@ func TestGetFullConfig(t *testing.T) {
 		log.Println("---> ", err)
 	}
 	log.Println("config: ", config)
-}
+}*/
 
 /*
 func TestStopService(t *testing.T) {
@@ -104,32 +104,31 @@ func TestStartService(t *testing.T) {
 	}
 }*/
 
-/*func TestPublishService(t *testing.T) {
-	err := client.PublishService("echo_server", "localhost:10005", "localhost:10007", "Echo is the simplest serive of all.", []string{"test", "echo"})
+func TestPublishService(t *testing.T) {
+	err := client.PublishService("echo_server", "localhost:8080", "localhost:8080", "Echo is the simplest serive of all.", []string{"test", "echo"})
 	if err != nil {
 		log.Panicln(err)
 	}
-}*/
+}
 
-/*func TestInstallService(t *testing.T) {
-	err := client.InstallService("localhost:10005", "localhost", "echo_server")
+func TestInstallService(t *testing.T) {
+	err := client.InstallService("localhost:8080", "localhost", "echo_server")
 	if err != nil {
 		log.Panicln(err)
 	}
 	time.Sleep(time.Second * 5)
-}*/
+}
 
-/*
 func TestUninstallService(t *testing.T) {
 	err := client.UninstallService("localhost", "echo_server", "0.0.1")
 	if err != nil {
 		log.Panicln(err)
 	}
-}*/
+}
 
-func TestDeployApplication(t *testing.T) {
+/*func TestDeployApplication(t *testing.T) {
 	err := client.DeployApplication("testApp", "/home/dave/Documents/chitchat")
 	if err != nil {
 		log.Panicln(err)
 	}
-}
+}*/

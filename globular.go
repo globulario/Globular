@@ -1421,7 +1421,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 	self.saveConfig()
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_token")
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + string(os.PathSeparator) + "_token")
 	return &admin.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
@@ -1457,7 +1457,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
+	log.Println("---> services_discovery port ", services_discovery_config["ServicesDiscoveryPort"])
 	services_discovery := services.NewServicesDiscovery_Client(discoveryDomain, Utility.ToInt(services_discovery_config["ServicesDiscoveryPort"]), services_discovery_config["Protocol"].(string) == "https", services_discovery_keyPath, services_discovery_certPath, services_discovery_caPath)
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -1479,6 +1479,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("---> services_repository port ", services_discovery_config["ServicesRepositoryPort"])
 	// Connect to the repository services.
 	services_repository := services.NewServicesRepository_Client(repositoryDomain, Utility.ToInt(services_repository_config["ServicesRepositoryPort"]), services_repository_config["Protocol"].(string) == "https", services_repository_keyPath, services_repository_certPath, services_repository_caPath)
 	if services_repository == nil {
@@ -1533,7 +1534,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(platform), packagePath)
+	err = services_repository.UploadBundle(discoveryDomain, Utility.ToInt(services_discovery_config["ServicesDiscoveryPort"]), services_discovery_config["Protocol"].(string) == "https", services_discovery_keyPath, services_discovery_certPath, services_discovery_caPath, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(platform), packagePath)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2666,8 +2667,15 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 	}
 
 	// Append the self domain to the list of discoveries where the services can
-	if !Utility.Contains(rqst.Descriptor_.Discoveries, self.Domain+":"+strconv.Itoa(self.ServicesDiscoveryPort)) {
-		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, self.Domain+":"+strconv.Itoa(self.ServicesDiscoveryPort))
+	var port int
+	if self.Protocol == "https" {
+		port = self.PortHttps
+	} else {
+		port = self.PortHttp
+	}
+
+	if !Utility.Contains(rqst.Descriptor_.Discoveries, self.Domain+":"+strconv.Itoa(port)) {
+		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, self.Domain+":"+strconv.Itoa(port))
 	}
 
 	// Here I will test if the services already exist...
@@ -2802,6 +2810,7 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 /** Upload a service to a service directory **/
 func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundleServer) error {
 
+	log.Println("----> 2805")
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
 	for {
@@ -3699,16 +3708,16 @@ func (self *Globule) GetRemoteClientConfig(domain string, port int) (map[string]
 
 func (self *Globule) InitClientCredential(domain string, port int) (keyPath string, certPath string, caPath string, err error) {
 
-	// TODO token must be set by user... see how It's possible to keep that information
-	// on the server for each user.
-	os.Remove(os.TempDir() + string(os.PathSeparator) + domain + "_token")
-
 	if domain == "localhost" {
 		keyPath = self.creds + string(os.PathSeparator) + "client.pem"
 		certPath = self.creds + string(os.PathSeparator) + "client.crt"
 		caPath = self.creds + string(os.PathSeparator) + "ca.crt"
 		return
 	}
+
+	// TODO token must be set by user... see how It's possible to keep that information
+	// on the server for each user.
+	os.Remove(os.TempDir() + string(os.PathSeparator) + domain + "_token")
 
 	var config map[string]interface{}
 	config, err = self.GetRemoteClientConfig(domain, port)

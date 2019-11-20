@@ -7,10 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/davecourtois/Globular/api"
-	"github.com/davecourtois/Utility"
 
 	"google.golang.org/grpc"
 )
@@ -233,12 +231,9 @@ func (self *ServicesRepository_Client) GetCaFile() string {
 
 ///////////////////////// API /////////////////////////
 
-func (self *ServicesRepository_Client) DownloadLastVersionBundle(discoveryId string, serviceId string, publisherId string, platform Platform) (*ServiceBundle, error) {
+func (self *ServicesRepository_Client) DownloadLastVersionBundle(discovery_domain string, discovery_port int, discovery_has_tls bool, discovery_key_path string, discovery_cert_path string, discovery_ca_path string, serviceId string, publisherId string, platform Platform) (*ServiceBundle, error) {
 
-	// Here I will find the service descriptor from the given information.
-	domain := strings.Split(discoveryId, ":")[0]
-	port := Utility.ToInt(strings.Split(discoveryId, ":")[1])
-	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "")
+	discoveryService := NewServicesDiscovery_Client(discovery_domain, discovery_port, discovery_has_tls, discovery_key_path, discovery_cert_path, discovery_ca_path)
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return nil, err
@@ -291,16 +286,14 @@ func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescrip
 /**
  * Upload a service bundle.
  */
-func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceId string, publisherId string, platform int32, packagePath string) error {
+func (self *ServicesRepository_Client) UploadBundle(discovery_domain string, discovery_port int, discovery_has_tls bool, discovery_key_path string, discovery_cert_path string, discovery_ca_path string, serviceId string, publisherId string, platform int32, packagePath string) error {
 
 	// The service bundle...
 	bundle := new(ServiceBundle)
 	bundle.Plaform = Platform(platform)
-	domain := strings.Split(discoveryId, ":")[0]
-	port := Utility.ToInt(strings.Split(discoveryId, ":")[1])
 
 	// Here I will find the service descriptor from the given information.
-	discoveryService := NewServicesDiscovery_Client(domain, port, false, "", "", "")
+	discoveryService := NewServicesDiscovery_Client(discovery_domain, discovery_port, discovery_has_tls, discovery_key_path, discovery_cert_path, discovery_ca_path)
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return err
