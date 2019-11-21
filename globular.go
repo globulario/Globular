@@ -2824,7 +2824,6 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 	config := globule.getConfig()
 	code, _ := Utility.ToJson(config)
-	log.Println("---------> ", code)
 	http.ServeContent(w, r, "config", time.Now(), strings.NewReader(code))
 
 }
@@ -3268,12 +3267,10 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("https://" + address + "/config")
+
+	resp, err = http.Get("http://" + address + "/config")
 	if err != nil {
-		resp, err = http.Get("http://" + address + "/config")
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	var config map[string]interface{}

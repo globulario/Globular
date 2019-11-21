@@ -73,15 +73,14 @@ type Client interface {
  */
 func getClientConfig(address string, name string) (map[string]interface{}, error) {
 	address = strings.Split(address, ":")[0] + ":10000" // always the port 10000
+
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("https://" + address + "/client_config?address=" + address + "&name=" + name)
+
+	resp, err = http.Get("http://" + address + "/client_config?address=" + address + "&name=" + name)
 	if err != nil {
-		resp, err = http.Get("http://" + address + "/client_config?address=" + address + "&name=" + name)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	var config map[string]interface{}
