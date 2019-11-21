@@ -42,9 +42,9 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(config map[string]interface{}) *Persistence_Client {
+func NewPersistence_Client(address string, name string) *Persistence_Client {
 	client := new(Persistence_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 

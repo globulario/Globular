@@ -57,7 +57,7 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 		}
 
 		// Use the client sa connection.
-		client = persistence_client.NewPersistence_Client(infos)
+		client = persistence_client.NewPersistence_Client(infos["address"].(string), infos["name"].(string))
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
 			log.Println(`--> Fail to create  the connection "local_ressource"`)

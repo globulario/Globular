@@ -41,10 +41,10 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(config map[string]interface{}) *Ressource_Client {
+func NewRessource_Client(address string, name string) *Ressource_Client {
 
 	client := new(Ressource_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewRessourceServiceClient(client.cc)
 

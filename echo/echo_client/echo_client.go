@@ -41,9 +41,9 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(config map[string]interface{}) *Echo_Client {
+func NewEcho_Client(address string, name string) *Echo_Client {
 	client := new(Echo_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = echopb.NewEchoServiceClient(client.cc)
 

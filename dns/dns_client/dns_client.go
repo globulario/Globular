@@ -39,9 +39,9 @@ type DNS_Client struct {
 }
 
 // Create a connection to the service.
-func NewDns_Client(config map[string]interface{}) *DNS_Client {
+func NewDns_Client(address string, name string) *DNS_Client {
 	client := new(DNS_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = dnspb.NewDnsServiceClient(client.cc)
 	return client

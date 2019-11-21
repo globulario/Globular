@@ -39,9 +39,9 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(config map[string]interface{}) *Storage_Client {
+func NewStorage_Client(address string, name string) *Storage_Client {
 	client := new(Storage_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = storagepb.NewStorageServiceClient(client.cc)
 

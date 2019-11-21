@@ -43,9 +43,9 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(config map[string]interface{}) *Event_Client {
+func NewEvent_Client(address string, name string) *Event_Client {
 	client := new(Event_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	return client

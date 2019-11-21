@@ -94,24 +94,24 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 /**
  * Initialyse the client security and set it port to
  */
-func InitClient(client Client, config map[string]interface{}) {
+func InitClient(client Client, address string, name string) {
 	// Here I will initialyse the client
-	client_config, err := getClientConfig(config["address"].(string), config["name"].(string))
+	config, err := getClientConfig(address, name)
 	if err != nil {
 		//log.Panicln(err)
 		return
 	}
 
 	// Set client attributes.
-	client.SetDomain(client_config["Domain"].(string))
-	client.SetName(client_config["Name"].(string))
-	client.SetPort(int(client_config["Port"].(float64)))
+	client.SetDomain(config["Domain"].(string))
+	client.SetName(config["Name"].(string))
+	client.SetPort(int(config["Port"].(float64)))
 
 	// Set security values.
-	client.SetKeyFile(client_config["keyPath"].(string))
-	client.SetCertFile(client_config["certPath"].(string))
-	client.SetCaFile(client_config["caPath"].(string))
-	client.SetTLS(client_config["TLS"].(bool))
+	client.SetKeyFile(config["keyPath"].(string))
+	client.SetCertFile(config["certPath"].(string))
+	client.SetCaFile(config["caPath"].(string))
+	client.SetTLS(config["TLS"].(bool))
 }
 
 /**

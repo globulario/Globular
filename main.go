@@ -93,12 +93,9 @@ func main() {
 func deploy(g *Globule, name string, path string, address string, user string, pwd string) {
 
 	log.Println("deploy application...", name)
-	config := make(map[string]interface{})
-	config["address"] = address
-	config["name"] = "ressource"
 
 	// Authenticate the user in order to get the token
-	ressource_client := ressource.NewRessource_Client(config)
+	ressource_client := ressource.NewRessource_Client(address, "ressource")
 	_, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
@@ -107,7 +104,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client := admin.NewAdmin_Client(config)
+	admin_client := admin.NewAdmin_Client(address, "admin")
 	err = admin_client.DeployApplication(name, path)
 	if err != nil {
 		log.Println(err)

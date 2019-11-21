@@ -42,9 +42,9 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(config map[string]interface{}) *SQL_Client {
+func NewSql_Client(address string, name string) *SQL_Client {
 	client := new(SQL_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = sqlpb.NewSqlServiceClient(client.cc)
 

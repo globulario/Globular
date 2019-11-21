@@ -42,9 +42,9 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(config map[string]interface{}) *Monitoring_Client {
+func NewMonitoring_Client(address string, name string) *Monitoring_Client {
 	client := new(Monitoring_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = monitoringpb.NewMonitoringServiceClient(client.cc)
 

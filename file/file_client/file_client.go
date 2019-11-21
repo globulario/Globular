@@ -44,9 +44,9 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(config map[string]interface{}) *File_Client {
+func NewFile_Client(address string, name string) *File_Client {
 	client := new(File_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = filepb.NewFileServiceClient(client.cc)
 

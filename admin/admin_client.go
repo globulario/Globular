@@ -43,9 +43,9 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(config map[string]interface{}) *Admin_Client {
+func NewAdmin_Client(address string, name string) *Admin_Client {
 	client := new(Admin_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewAdminServiceClient(client.cc)
 

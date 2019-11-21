@@ -43,9 +43,9 @@ type ServicesDiscovery_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesDiscovery_Client(config map[string]interface{}) *ServicesDiscovery_Client {
+func NewServicesDiscovery_Client(address string, name string) *ServicesDiscovery_Client {
 	client := new(ServicesDiscovery_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceDiscoveryClient(client.cc)
 
@@ -201,9 +201,9 @@ type ServicesRepository_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesRepository_Client(config map[string]interface{}) *ServicesRepository_Client {
+func NewServicesRepository_Client(address string, name string) *ServicesRepository_Client {
 	client := new(ServicesRepository_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceRepositoryClient(client.cc)
 	return client
@@ -337,13 +337,8 @@ func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceI
 	bundle := new(ServiceBundle)
 	bundle.Plaform = Platform(platform)
 
-	// Set the client configuration.
-	config := make(map[string]interface{}, 0)
-	config["address"] = discoveryId
-	config["name"] = "services_discovery"
-
 	// Here I will find the service descriptor from the given information.
-	discoveryService := NewServicesDiscovery_Client(config)
+	discoveryService := NewServicesDiscovery_Client(discoveryId, "services_discovery")
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return err

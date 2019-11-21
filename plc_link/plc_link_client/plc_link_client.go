@@ -42,9 +42,9 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(config map[string]interface{}) *PlcLink_Client {
+func NewPlcLink_Client(address string, name string) *PlcLink_Client {
 	client := new(PlcLink_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 

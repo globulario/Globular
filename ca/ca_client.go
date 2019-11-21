@@ -38,10 +38,10 @@ type Ca_Client struct {
 }
 
 // Create a connection to the service.
-func NewCa_Client(config map[string]interface{}) *Ca_Client {
+func NewCa_Client(address string, name string) *Ca_Client {
 	client := new(Ca_Client)
 
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewCertificateAuthorityClient(client.cc)
 

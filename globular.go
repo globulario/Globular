@@ -306,11 +306,7 @@ func (self *Globule) registerIpToDns() {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
 
-				config := make(map[string]interface{}, 0)
-				config["address"] = self.DNS[i]["Address"].(string)
-				config["name"] = "dns_server" // the id of the service to get the config.
-
-				client := dns_client.NewDns_Client(config)
+				client := dns_client.NewDns_Client(self.DNS[i]["Address"].(string), "dns_server")
 
 				Utility.MyIP()
 				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
@@ -1030,17 +1026,11 @@ func (self *Globule) initClient(id string, name string) {
 		return
 	}
 
-	// The connection address.
-	// Create the address with the ip address.
-	config := make(map[string]interface{}, 0)
-	config["name"] = name
-	config["address"] = self.Services[id].(map[string]interface{})["Domain"].(string)
-
+	serviceName := name
 	name = strings.Split(name, "_")[0]
 
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
-
-	results, err := Utility.CallFunction(fct, config)
+	results, err := Utility.CallFunction(fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
 	if err == nil {
 		if self.clients[name+"_service"] != nil {
 			self.clients[name+"_service"].Close()
@@ -1411,23 +1401,15 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// Connect to the dicovery services
-	services_discovery_config := make(map[string]interface{}, 0)
-	services_discovery_config["address"] = rqst.DicorveryId
-	services_discovery_config["name"] = "services_discovery"
-
-	services_discovery := services.NewServicesDiscovery_Client(services_discovery_config)
+	services_discovery := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 	if services_discovery == nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
-	services_repository_config := make(map[string]interface{}, 0)
-	services_repository_config["address"] = rqst.RepositoryId
-	services_repository_config["name"] = "services_repository"
-
 	// Connect to the repository services.
-	services_repository := services.NewServicesRepository_Client(services_repository_config)
+	services_repository := services.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
 	if services_repository == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1542,12 +1524,7 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 	var services_repository *services.ServicesRepository_Client
 	for i := 0; i < len(descriptor.Repositories); i++ {
 
-		config := make(map[string]interface{}, 0)
-		config["address"] = descriptor.Repositories[i]
-		config["name"] = "services_repository"
-
-		services_repository = services.NewServicesRepository_Client(config)
-
+		services_repository = services.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
 		bundle, err := services_repository.DownloadBundle(descriptor, platform)
 		if err == nil {
 			id := descriptor.PublisherId + "%" + descriptor.Id + "%" + descriptor.Version
@@ -1603,12 +1580,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 
 	// Connect to the dicovery services
 	var services_discovery *services.ServicesDiscovery_Client
-
-	config := make(map[string]interface{}, 0)
-	config["address"] = rqst.DicorveryId
-	config["name"] = "services_discovery"
-
-	services_discovery = services.NewServicesDiscovery_Client(config)
+	services_discovery = services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -2775,11 +2747,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			config := make(map[string]interface{})
-			config["address"] = discoveryId
-			config["name"] = "services_discovery"
-
-			discoveryService := services.NewServicesDiscovery_Client(config)
+			discoveryService := services.NewServicesDiscovery_Client(discoveryId, "services_discovery")
 			discoveryService.PublishServiceDescriptor(bundle.Descriptor_)
 		}
 	}
@@ -2875,11 +2843,7 @@ func (self *Globule) Listen() {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 
-		config := make(map[string]interface{}, 0)
-		config["address"] = self.Discoveries[i]
-		config["name"] = "event_server"
-
-		eventHub := event_client.NewEvent_Client(config)
+		eventHub := event_client.NewEvent_Client(self.Discoveries[i], "event_server")
 		data_chan := make(chan []byte)
 		subscribers[self.Discoveries[i]] = make(map[string][]string)
 		for _, s := range self.Services {
@@ -3300,11 +3264,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 
 	// I will connect to the certificate authority of the server where the application must
 	// be deployed. Certificate autority run wihtout tls.
-	config := make(map[string]interface{}, 0)
-	config["address"] = address
-	config["name"] = "certificate_authority"
-
-	ca_client := ca.NewCa_Client(config)
+	ca_client := ca.NewCa_Client(address, "certificate_authority")
 
 	// Get the ca.crt certificate.
 	ca_crt, err := ca_client.GetCaCertificate()

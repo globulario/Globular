@@ -44,9 +44,9 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(config map[string]interface{}) *LDAP_Client {
+func NewLdap_Client(address string, name string) *LDAP_Client {
 	client := new(LDAP_Client)
-	api.InitClient(client, config)
+	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
