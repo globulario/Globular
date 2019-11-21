@@ -43,16 +43,9 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Admin_Client {
+func NewAdmin_Client(config map[string]interface{}) *Admin_Client {
 	client := new(Admin_Client)
-
-	client.port = port
-	client.domain = domain
-	client.name = "admin"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewAdminServiceClient(client.cc)
 
@@ -79,6 +72,21 @@ func (self *Admin_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Admin_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Admin_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Admin_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -100,6 +108,28 @@ func (self *Admin_Client) GetKeyFile() string {
 func (self *Admin_Client) GetCaFile() string {
 	return self.caFile
 }
+
+// Set the client is a secure client.
+func (self *Admin_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Admin_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Admin_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Admin_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+/////////////////////// API /////////////////////
 
 // Get server configuration.
 func (self *Admin_Client) GetConfig() (string, error) {

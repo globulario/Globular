@@ -44,16 +44,9 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *LDAP_Client {
+func NewLdap_Client(config map[string]interface{}) *LDAP_Client {
 	client := new(LDAP_Client)
-
-	client.name = "ldap"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
-	client.domain = domain
-	client.port = port
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
@@ -79,6 +72,21 @@ func (self *LDAP_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *LDAP_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *LDAP_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *LDAP_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -99,4 +107,24 @@ func (self *LDAP_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *LDAP_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *LDAP_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *LDAP_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *LDAP_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *LDAP_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }

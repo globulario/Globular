@@ -50,11 +50,6 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 		// Local to the server so the information will be taken from
 		// information in the file.
 		root := infos["pwd"].(string)
-		domain := infos["domain"].(string)
-		port := int(infos["port"].(float64))
-		crt := infos["certFile"].(string)
-		key := infos["keyFile"].(string)
-		ca := infos["certAuthorityTrust"].(string)
 
 		// close the
 		if client != nil {
@@ -62,7 +57,7 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 		}
 
 		// Use the client sa connection.
-		client = persistence_client.NewPersistence_Client(domain, port, true, key, crt, ca)
+		client = persistence_client.NewPersistence_Client(infos)
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
 			log.Println(`--> Fail to create  the connection "local_ressource"`)

@@ -42,16 +42,9 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Persistence_Client {
+func NewPersistence_Client(config map[string]interface{}) *Persistence_Client {
 	client := new(Persistence_Client)
-	client.domain = domain
-	client.port = port
-	client.name = "persistence"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
-
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 
@@ -80,6 +73,21 @@ func (self *Persistence_Client) Close() {
 	}
 }
 
+// Set grpc_service port.
+func (self *Persistence_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Persistence_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Persistence_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -101,6 +109,28 @@ func (self *Persistence_Client) GetKeyFile() string {
 func (self *Persistence_Client) GetCaFile() string {
 	return self.caFile
 }
+
+// Set the client is a secure client.
+func (self *Persistence_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Persistence_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Persistence_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Persistence_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+///////////////////////// API /////////////////////
 
 // Create a new datastore connection.
 func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string, save bool) error {

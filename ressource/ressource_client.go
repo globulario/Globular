@@ -41,16 +41,10 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Ressource_Client {
+func NewRessource_Client(config map[string]interface{}) *Ressource_Client {
 
 	client := new(Ressource_Client)
-	client.port = port
-	client.domain = domain
-	client.name = "ressource"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewRessourceServiceClient(client.cc)
 
@@ -78,6 +72,21 @@ func (self *Ressource_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Ressource_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Ressource_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Ressource_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -100,6 +109,27 @@ func (self *Ressource_Client) GetCaFile() string {
 	return self.caFile
 }
 
+// Set the client is a secure client.
+func (self *Ressource_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Ressource_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Ressource_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Ressource_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+////////////// API ////////////////
 // Register a new Account.
 func (self *Ressource_Client) RegisterAccount(name string, email string, password string, confirmation_password string) error {
 	rqst := &RegisterAccountRqst{

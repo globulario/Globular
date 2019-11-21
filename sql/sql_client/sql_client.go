@@ -42,16 +42,9 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *SQL_Client {
-
+func NewSql_Client(config map[string]interface{}) *SQL_Client {
 	client := new(SQL_Client)
-	client.port = port
-	client.domain = domain
-	client.name = "sql"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = sqlpb.NewSqlServiceClient(client.cc)
 
@@ -78,6 +71,21 @@ func (self *SQL_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *SQL_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *SQL_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *SQL_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -100,6 +108,27 @@ func (self *SQL_Client) GetCaFile() string {
 	return self.caFile
 }
 
+// Set the client is a secure client.
+func (self *SQL_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *SQL_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *SQL_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *SQL_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+////////////////////////// API ////////////////////////////
 // Test if a connection is found
 func (self *SQL_Client) Ping(connectionId interface{}) (string, error) {
 

@@ -93,34 +93,13 @@ func main() {
 func deploy(g *Globule, name string, path string, address string, user string, pwd string) {
 
 	log.Println("deploy application...", name)
-	var port int
-	var domain string
-
-	// The port and domain will be taken from the address.
-	if strings.Index(address, ":") > 0 {
-		domain = strings.Split(address, ":")[0]
-		port = Utility.ToInt(strings.Split(address, ":")[1])
-	} else {
-		domain = address
-		port = 443 // the default port.
-	}
-
-	config, err := g.GetRemoteClientConfig(domain, port)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// First of all I will create a client...
-	log.Println("--> domain:", domain, port)
-	var keyPath string
-	var certPath string
-	var caPath string
-	keyPath, certPath, caPath, err = g.InitClientCredential(domain, port)
+	config := make(map[string]interface{})
+	config["address"] = address
+	config["name"] = "ressource"
 
 	// Authenticate the user in order to get the token
-	ressource_client := ressource.NewRessource_Client(domain, Utility.ToInt(config["RessourcePort"].(float64)), config["Protocol"] == "https", keyPath, certPath, caPath)
-	_, err = ressource_client.Authenticate(user, pwd)
+	ressource_client := ressource.NewRessource_Client(config)
+	_, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return
@@ -128,7 +107,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client := admin.NewAdmin_Client(domain, Utility.ToInt(config["AdminPort"].(float64)), config["Protocol"] == "https", keyPath, certPath, caPath)
+	admin_client := admin.NewAdmin_Client(config)
 	err = admin_client.DeployApplication(name, path)
 	if err != nil {
 		log.Println(err)

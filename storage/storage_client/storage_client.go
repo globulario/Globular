@@ -39,18 +39,9 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Storage_Client {
-
+func NewStorage_Client(config map[string]interface{}) *Storage_Client {
 	client := new(Storage_Client)
-
-	client.name = "storage"
-	client.domain = domain
-	client.port = port
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
-
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = storagepb.NewStorageServiceClient(client.cc)
 
@@ -77,6 +68,21 @@ func (self *Storage_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Storage_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Storage_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Storage_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -97,6 +103,26 @@ func (self *Storage_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *Storage_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *Storage_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Storage_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Storage_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Storage_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }
 
 ////////////////// Service functionnality //////////////////////

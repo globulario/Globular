@@ -43,16 +43,9 @@ type ServicesDiscovery_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesDiscovery_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *ServicesDiscovery_Client {
+func NewServicesDiscovery_Client(config map[string]interface{}) *ServicesDiscovery_Client {
 	client := new(ServicesDiscovery_Client)
-
-	client.port = port
-	client.domain = domain
-	client.name = "admin"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceDiscoveryClient(client.cc)
 
@@ -79,6 +72,21 @@ func (self *ServicesDiscovery_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *ServicesDiscovery_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *ServicesDiscovery_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *ServicesDiscovery_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -99,6 +107,26 @@ func (self *ServicesDiscovery_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *ServicesDiscovery_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *ServicesDiscovery_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *ServicesDiscovery_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *ServicesDiscovery_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *ServicesDiscovery_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }
 
 ///////////////////////// API /////////////////////////
@@ -173,15 +201,9 @@ type ServicesRepository_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesRepository_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *ServicesRepository_Client {
+func NewServicesRepository_Client(config map[string]interface{}) *ServicesRepository_Client {
 	client := new(ServicesRepository_Client)
-	client.port = port
-	client.domain = domain
-	client.name = "admin"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewServiceRepositoryClient(client.cc)
 	return client
@@ -207,6 +229,21 @@ func (self *ServicesRepository_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *ServicesRepository_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *ServicesRepository_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *ServicesRepository_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ///////////////////////// TLS /////////////////////////
 
 // Get if the client is secure.
@@ -229,19 +266,27 @@ func (self *ServicesRepository_Client) GetCaFile() string {
 	return self.caFile
 }
 
-///////////////////////// API /////////////////////////
-
-func (self *ServicesRepository_Client) DownloadLastVersionBundle(discovery_domain string, discovery_port int, discovery_has_tls bool, discovery_key_path string, discovery_cert_path string, discovery_ca_path string, serviceId string, publisherId string, platform Platform) (*ServiceBundle, error) {
-
-	discoveryService := NewServicesDiscovery_Client(discovery_domain, discovery_port, discovery_has_tls, discovery_key_path, discovery_cert_path, discovery_ca_path)
-	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
-	if err != nil {
-		return nil, err
-	}
-
-	// Dowload the last versions...
-	return self.DownloadBundle(descriptors[0], platform)
+// Set the client is a secure client.
+func (self *ServicesRepository_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
 }
+
+// Set TLS certificate file path
+func (self *ServicesRepository_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *ServicesRepository_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *ServicesRepository_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+///////////////////////// API /////////////////////////
 
 /**
  * Download bundle from a repository and return it as an object in memory.
@@ -286,14 +331,19 @@ func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescrip
 /**
  * Upload a service bundle.
  */
-func (self *ServicesRepository_Client) UploadBundle(discovery_domain string, discovery_port int, discovery_has_tls bool, discovery_key_path string, discovery_cert_path string, discovery_ca_path string, serviceId string, publisherId string, platform int32, packagePath string) error {
+func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceId string, publisherId string, platform int32, packagePath string) error {
 
 	// The service bundle...
 	bundle := new(ServiceBundle)
 	bundle.Plaform = Platform(platform)
 
+	// Set the client configuration.
+	config := make(map[string]interface{}, 0)
+	config["address"] = discoveryId
+	config["name"] = "services_discovery"
+
 	// Here I will find the service descriptor from the given information.
-	discoveryService := NewServicesDiscovery_Client(discovery_domain, discovery_port, discovery_has_tls, discovery_key_path, discovery_cert_path, discovery_ca_path)
+	discoveryService := NewServicesDiscovery_Client(config)
 	descriptors, err := discoveryService.GetServiceDescriptor(serviceId, publisherId)
 	if err != nil {
 		return err

@@ -42,16 +42,9 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Monitoring_Client {
+func NewMonitoring_Client(config map[string]interface{}) *Monitoring_Client {
 	client := new(Monitoring_Client)
-
-	client.domain = domain
-	client.port = port
-	client.name = "Monitoring"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = monitoringpb.NewMonitoringServiceClient(client.cc)
 
@@ -78,6 +71,21 @@ func (self *Monitoring_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Monitoring_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Monitoring_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Monitoring_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -98,6 +106,26 @@ func (self *Monitoring_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *Monitoring_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *Monitoring_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Monitoring_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Monitoring_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Monitoring_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }
 
 ////////////////// Connections management functions //////////////////////////

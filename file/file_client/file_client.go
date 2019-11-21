@@ -44,16 +44,9 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *File_Client {
+func NewFile_Client(config map[string]interface{}) *File_Client {
 	client := new(File_Client)
-
-	client.name = "file"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
-	client.domain = domain
-	client.port = port
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = filepb.NewFileServiceClient(client.cc)
 
@@ -80,6 +73,21 @@ func (self *File_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *File_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *File_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *File_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -102,6 +110,27 @@ func (self *File_Client) GetCaFile() string {
 	return self.caFile
 }
 
+// Set the client is a secure client.
+func (self *File_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *File_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *File_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *File_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+///////////////////// API //////////////////////
 // Read the content of a dir and return it info.
 func (self *File_Client) ReadDir(path interface{}, recursive interface{}, thumbnailHeight interface{}, thumbnailWidth interface{}) (string, error) {
 

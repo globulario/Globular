@@ -4,12 +4,13 @@ import (
 	//"encoding/json"
 	"log"
 	"testing"
-	"time"
+	//	"time"
 )
 
 var (
 	// Connect to the admin client.
-	client = NewAdmin_Client("localhost", 10001, false, "", "", "")
+	config = map[string]interface{}{"name": "admin", "address": "localhost"}
+	client = NewAdmin_Client(config)
 )
 
 // Test various function here.
@@ -104,7 +105,7 @@ func TestStartService(t *testing.T) {
 	}
 }*/
 
-func TestPublishService(t *testing.T) {
+/*func TestPublishService(t *testing.T) {
 	err := client.PublishService("echo_server", "localhost:8080", "localhost:8080", "Echo is the simplest serive of all.", []string{"test", "echo"})
 	if err != nil {
 		log.Panicln(err)
@@ -117,7 +118,7 @@ func TestInstallService(t *testing.T) {
 		log.Panicln(err)
 	}
 	time.Sleep(time.Second * 5)
-}
+}*/
 
 func TestUninstallService(t *testing.T) {
 	err := client.UninstallService("localhost", "echo_server", "0.0.1")

@@ -38,16 +38,10 @@ type Ca_Client struct {
 }
 
 // Create a connection to the service.
-func NewCa_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Ca_Client {
+func NewCa_Client(config map[string]interface{}) *Ca_Client {
 	client := new(Ca_Client)
 
-	client.port = port
-	client.domain = domain
-	client.name = "Ca"
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = NewCertificateAuthorityClient(client.cc)
 
@@ -74,6 +68,21 @@ func (self *Ca_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Ca_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Ca_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Ca_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -94,6 +103,26 @@ func (self *Ca_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *Ca_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *Ca_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Ca_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Ca_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Ca_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }
 
 ////////////////////////////////////////////////////////////////////////////////

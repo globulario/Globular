@@ -1,7 +1,6 @@
 package plc_link_client
 
 import (
-	"context"
 	//	"log"
 	"strconv"
 
@@ -43,16 +42,9 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *PlcLink_Client {
+func NewPlcLink_Client(config map[string]interface{}) *PlcLink_Client {
 	client := new(PlcLink_Client)
-
-	client.domain = domain
-	client.name = "plc_link"
-	client.port = port
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 
@@ -99,6 +91,26 @@ func (self *PlcLink_Client) GetKeyFile() string {
 // Get the TLS key file path
 func (self *PlcLink_Client) GetCaFile() string {
 	return self.caFile
+}
+
+// Set the client is a secure client.
+func (self *PlcLink_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *PlcLink_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *PlcLink_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *PlcLink_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
 }
 
 ////////////////// API ///////////////////

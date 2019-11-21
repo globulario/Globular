@@ -41,15 +41,9 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string) *Echo_Client {
+func NewEcho_Client(config map[string]interface{}) *Echo_Client {
 	client := new(Echo_Client)
-	client.domain = domain
-	client.name = "echo"
-	client.port = port
-	client.hasTLS = hasTLS
-	client.keyFile = keyFile
-	client.certFile = certFile
-	client.caFile = caFile
+	api.InitClient(client, config)
 	client.cc = api.GetClientConnection(client)
 	client.c = echopb.NewEchoServiceClient(client.cc)
 
@@ -76,6 +70,21 @@ func (self *Echo_Client) Close() {
 	self.cc.Close()
 }
 
+// Set grpc_service port.
+func (self *Echo_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *Echo_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *Echo_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// TLS ///////////////////
 
 // Get if the client is secure.
@@ -98,6 +107,27 @@ func (self *Echo_Client) GetCaFile() string {
 	return self.caFile
 }
 
+// Set the client is a secure client.
+func (self *Echo_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *Echo_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *Echo_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *Echo_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+////////////////// Api //////////////////////
 func (self *Echo_Client) Echo(msg interface{}) (string, error) {
 	log.Println("echo service call: ", msg)
 	rqst := &echopb.EchoRequest{
