@@ -98,7 +98,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	ressource_client := ressource.NewRessource_Client(address, "ressource")
 	_, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 		return
 	}
 

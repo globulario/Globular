@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"io/ioutil"
+	//	"log"
 	"os"
 
 	"github.com/davecourtois/Globular/api"
@@ -162,8 +163,10 @@ func (self *Ressource_Client) DeleteAccount(name string) error {
 
 // Authenticate a user.
 func (self *Ressource_Client) Authenticate(name string, password string) (string, error) {
+	path := os.TempDir() + string(os.PathSeparator) + self.GetDomain() + "_token"
+
 	// remove the file if it already exist.
-	os.Remove(os.TempDir() + string(os.PathSeparator) + self.GetDomain() + "_token")
+	os.Remove(path)
 
 	rqst := &AuthenticateRqst{
 		Name:     name,
@@ -177,7 +180,7 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 
 	// Here I will save the token into the temporary directory the token will be valid for a given time (default is 15 minutes)
 	// it's the responsability of the client to keep it refresh... see Refresh token from the server...
-	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.GetDomain()+"_token", []byte(rsp.Token), 0644)
+	err = ioutil.WriteFile(path, []byte(rsp.Token), 0644)
 	if err != nil {
 		return "", err
 	}

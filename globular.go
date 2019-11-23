@@ -272,7 +272,6 @@ func NewGlobule() *Globule {
 	if err != nil {
 		log.Panicln(err)
 	}
-	log.Println("new sa token generated in file:", os.TempDir()+string(os.PathSeparator)+g.Domain+"_token")
 
 	// Here I will start the refresh token loop to refresh the server token.
 	// the token will be refresh 10 milliseconds before expiration.
@@ -295,7 +294,43 @@ func NewGlobule() *Globule {
 	// Keep in global var to by http handlers.
 	globule = g
 
+	// The configuration handler.
+	http.HandleFunc("/client_config", getClientConfigHanldler)
+	http.HandleFunc("/config", getConfigHanldler)
+
+	// Configuration must be reachable before services initialysation
+	go func() {
+		http.ListenAndServe(":10000", nil)
+	}()
+
 	return g
+}
+
+/**
+ * Return the server configuration
+ */
+func getClientConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	address := r.URL.Query().Get("address") // parameter address
+	name := r.URL.Query().Get("name")       // parameter name
+	config, err := getClientConfig(address, name)
+	if err != nil {
+		http.Error(w, "Client configuration "+name+" not found!", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(config)
+}
+
+/**
+ * Return the service configuration
+ */
+func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	//add prefix and clean
+	config := globule.getConfig()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(config)
 }
 
 /**
@@ -382,7 +417,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := "/bin/grpcwebproxy"
+	proxyPath := string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
 	if string(os.PathSeparator) == "\\" {
 		proxyPath += ".exe" // in case of windows.
 	}
@@ -1680,12 +1715,9 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	// In case of persistence_server information must be save in a temp
 	// file to be use by the interceptor for token validation.
 	if config["Name"] == "persistence_server" {
-		// The address
-		address := config["Domain"].(string)
 
 		// I will wrote the info inside a stucture.
-		infos := map[string]interface{}{"address": address, "name": "persistence_server"}
-
+		infos := map[string]interface{}{"address": self.Domain, "name": "persistence_server", "pwd": self.RootPassword}
 		infosStr, _ := Utility.ToJson(infos)
 
 		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
@@ -2702,7 +2734,6 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 /** Upload a service to a service directory **/
 func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundleServer) error {
 
-	log.Println("----> 2805")
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
 	for {
@@ -2773,42 +2804,10 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 	return err
 }
 
-func getClientConfigHanldler(w http.ResponseWriter, r *http.Request) {
-
-	address := r.URL.Query().Get("address") // parameter address
-	name := r.URL.Query().Get("name")       // parameter name
-	config, err := getClientConfig(address, name)
-	if err != nil {
-		http.Error(w, "Client configuration "+name+" not found!", http.StatusBadRequest)
-		return
-	}
-	jsonStr, _ := Utility.ToJson(config)
-	http.ServeContent(w, r, "client_config", time.Now(), strings.NewReader(jsonStr))
-
-}
-
-func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
-	//add prefix and clean
-
-	config := globule.getConfig()
-	code, _ := Utility.ToJson(config)
-	http.ServeContent(w, r, "config", time.Now(), strings.NewReader(code))
-
-}
-
 /**
  * Listen for new connection.
  */
 func (self *Globule) Listen() {
-
-	// The configuration handler.
-	http.HandleFunc("/client_config", getClientConfigHanldler)
-	http.HandleFunc("/config", getConfigHanldler)
-
-	// Configuration must be reachable before services initialysation
-	go func() {
-		http.ListenAndServe(":10000", nil)
-	}()
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -2969,7 +2968,7 @@ func (self *Globule) Listen() {
 
 	// Start the admin service to give access to server functionality from
 	// client side.
-	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy, false) // must be accessible to all clients...
+	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy, self.Protocol == "https") // must be accessible to all clients...
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -3178,13 +3177,15 @@ func (self *Globule) Listen() {
 func getClientConfig(address string, name string) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 	config["Name"] = name
-	config["Domain"] = strings.Split(address, ":")[0]
+	config["Domain"] = address
 
 	// First I will retreive the server configuration.
 	serverConfig, err := getRemoteConfig(address)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+
 	config["TLS"] = serverConfig["Protocol"].(string) == "https"
 	if name == "services_discovery" {
 		config["Port"] = Utility.ToInt(serverConfig["ServicesDiscoveryPort"])
@@ -3202,19 +3203,25 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 		config["Port"] = Utility.ToInt(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["Port"])
 		config["TLS"] = Utility.ToBool(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["TLS"])
 	} else {
-		return nil, errors.New("No service found whit name " + name + "was found on the server.")
+		return nil, errors.New("No service found whit name " + name + " exist on the server.")
 	}
 
 	// get / init credential values.
-	keyPath, certPath, caPath, err := getCredentialConfig(address)
-	if err != nil {
-		return nil, err
+	if config["TLS"] == false {
+		// set the credential function here
+		config["KeyFile"] = ""
+		config["CertFile"] = ""
+		config["CertAuthorityTrust"] = ""
+	} else {
+		keyPath, certPath, caPath, err := getCredentialConfig(address)
+		if err != nil {
+			return nil, err
+		}
+		// set the credential function here
+		config["KeyFile"] = keyPath
+		config["CertFile"] = certPath
+		config["CertAuthorityTrust"] = caPath
 	}
-
-	// set the credential function here
-	config["keyPath"] = keyPath
-	config["certPath"] = certPath
-	config["caPath"] = caPath
 
 	return config, nil
 }
@@ -3223,19 +3230,20 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
  * Get the remote client configuration.
  */
 func getRemoteConfig(address string) (map[string]interface{}, error) {
-	domain := strings.Split(address, ":")[0]
-	if domain == "localhost" {
+
+	if address == "localhost" {
 		return globule.getConfig(), nil
 	}
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-
-	resp, err = http.Get("http://" + address + "/config")
+	resp, err = http.Get("http://" + address + ":10000/config")
 	if err != nil {
 		return nil, err
 	}
+
+	defer resp.Body.Close()
 
 	var config map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&config)
@@ -3246,20 +3254,15 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 }
 
 func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
-	domain := strings.Split(address, ":")[0]
-
-	if domain == "localhost" {
+	ips, _ := net.LookupIP(globule.Domain)
+	if address == "localhost" || ips[0].String() == Utility.MyIP() {
 		keyPath = globule.creds + string(os.PathSeparator) + "client.pem"
 		certPath = globule.creds + string(os.PathSeparator) + "client.crt"
 		caPath = globule.creds + string(os.PathSeparator) + "ca.crt"
 		return
 	}
 
-	// TODO token must be set by user... see how It's possible to keep that information
-	// on the server for each user.
-	os.Remove(os.TempDir() + string(os.PathSeparator) + domain + "_token")
-
-	creds := globule.creds + string(os.PathSeparator) + domain
+	creds := globule.creds + string(os.PathSeparator) + address
 	Utility.CreateDirIfNotExist(creds)
 
 	// I will connect to the certificate authority of the server where the application must
@@ -3289,7 +3292,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	}
 
 	// Step 2: Generate the client signing request.
-	err = globule.GenerateClientCertificateSigningRequest(creds, globule.CertPassword, domain)
+	err = globule.GenerateClientCertificateSigningRequest(creds, globule.CertPassword, address)
 	if err != nil {
 		log.Println(err)
 		return

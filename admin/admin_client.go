@@ -3,6 +3,7 @@ package admin
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"strconv"
 
@@ -273,12 +274,13 @@ func (self *Admin_Client) DeployApplication(name string, path string) error {
 	if err != nil {
 		return err
 	}
-
+	// remove the dir and keep the archive in memory
 	os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Open the stream...
 	stream, err := self.c.DeployApplication(api.GetClientContext(self))
 	if err != nil {
+		log.Panicln(err)
 		return err
 	}
 

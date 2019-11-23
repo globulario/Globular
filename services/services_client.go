@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Globular/api"
-
 	"google.golang.org/grpc"
 )
 

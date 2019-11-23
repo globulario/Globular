@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -72,13 +73,20 @@ type Client interface {
  * A simple function to get the client configuration from http.
  */
 func getClientConfig(address string, name string) (map[string]interface{}, error) {
-	address = strings.Split(address, ":")[0] + ":10000" // always the port 10000
+
+	address = strings.Split(address, ":")[0]
+	var err error
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response
-	var err error
 
-	resp, err = http.Get("http://" + address + "/client_config?address=" + address + "&name=" + name)
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// Use the local server side to to get service configuration.
+	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
+
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +96,7 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	return config, nil
 }
 
@@ -98,7 +107,7 @@ func InitClient(client Client, address string, name string) {
 	// Here I will initialyse the client
 	config, err := getClientConfig(address, name)
 	if err != nil {
-		//log.Panicln(err)
+		log.Print(err)
 		return
 	}
 
@@ -108,9 +117,9 @@ func InitClient(client Client, address string, name string) {
 	client.SetPort(int(config["Port"].(float64)))
 
 	// Set security values.
-	client.SetKeyFile(config["keyPath"].(string))
-	client.SetCertFile(config["certPath"].(string))
-	client.SetCaFile(config["caPath"].(string))
+	client.SetKeyFile(config["KeyFile"].(string))
+	client.SetCertFile(config["CertFile"].(string))
+	client.SetCaFile(config["CertAuthorityTrust"].(string))
 	client.SetTLS(config["TLS"].(bool))
 }
 
@@ -124,7 +133,7 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 	if cc == nil {
 
 		if client.HasTLS() {
-			log.Println("Secure client")
+			log.Println("Secure client ", client.GetDomain(), client.GetName())
 			// Setup the login/pass simple test...
 
 			if len(client.GetKeyFile()) == 0 {
@@ -181,7 +190,8 @@ func GetClientConnection(client Client) *grpc.ClientConn {
  */
 func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directory
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token")
+	path := os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token"
+	token, err := ioutil.ReadFile(path)
 	if err == nil {
 		md := metadata.New(map[string]string{"token": string(token)})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)

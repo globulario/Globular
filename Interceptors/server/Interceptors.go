@@ -58,6 +58,7 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 
 		// Use the client sa connection.
 		client = persistence_client.NewPersistence_Client(infos["address"].(string), infos["name"].(string))
+
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
 			log.Println(`--> Fail to create  the connection "local_ressource"`)
@@ -98,15 +99,12 @@ func authenticateClient(ctx context.Context) (string, int64, error) {
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		token := strings.Join(md["token"], "")
-
 		// In that case no token was given...
 		if len(token) == 0 {
-			log.Println("no token was given.")
 			return "", 0, nil
 		}
 
 		log.Println("token from incoming: ", token)
-
 		return ValidateToken(token)
 	}
 

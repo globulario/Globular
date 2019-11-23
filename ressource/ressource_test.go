@@ -8,10 +8,7 @@ import (
 
 var (
 	// Connect to the plc client.
-	crt    = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.crt"
-	key    = "E:/Project/src/github.com/davecourtois/Globular/config/grpc_tls/client.pem"
-	ca     = "E:/Project//src/github.com/davecourtois/Globular/config/grpc_tls/ca.crt"
-	client = NewRessource_Client("localhost", 10003, true, key, crt, ca)
+	client = NewRessource_Client("localhost", "ressource")
 )
 
 // Remove an account.
