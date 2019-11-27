@@ -26,7 +26,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-
 	gomail "gopkg.in/gomail.v1"
 )
 
@@ -77,6 +76,7 @@ type server struct {
 func (self *server) init() {
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
@@ -363,6 +363,7 @@ func main() {
 	s_impl.Connections = make(map[string]connection)
 	s_impl.Name = Utility.GetExecName(os.Args[0])
 	s_impl.Port = port
+	s_impl.Domain = domain
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Version = "0.0.1"
@@ -426,6 +427,7 @@ func main() {
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println(s_impl.Name + " grpc service is starting")
+
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)

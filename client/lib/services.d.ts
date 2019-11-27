@@ -13,17 +13,20 @@ import { MonitoringServicePromiseClient } from './monitoring/monitoringpb/monito
 import { PlcServicePromiseClient } from './plc/plcpb/plc_grpc_web_pb';
 import { AdminServicePromiseClient } from './admin/admin_grpc_web_pb';
 import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb';
-import { ServiceDiscoveryPromiseClient, ServiceRepositoryClient } from './services/services_grpc_web_pb';
+import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from './services/services_grpc_web_pb';
+import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
 /**
  * The service configuration information.
  */
 export interface IServiceConfig {
     Name: string;
-    Address: string;
     Domain: string;
     Port: Number;
     Proxy: Number;
     TLS: Boolean;
+    KeepUpToDate: Boolean;
+    PublisherId: string;
+    Version: string;
 }
 /**
  * Define a map of services.
@@ -41,15 +44,57 @@ export interface IConfig {
     PortHttps: Number;
     AdminPort: Number;
     AdminProxy: Number;
+    AdminEmail: Number;
     RessourcePort: Number;
     RessourceProxy: Number;
     ServicesDiscoveryPort: Number;
     ServicesDiscoveryProxy: Number;
     ServicesRepositoryPort: Number;
     ServicesRepositoryProxy: Number;
+    CertificateAuthorityPort: Number;
+    CertificateAuthorityProxy: Number;
     SessionTimeout: Number;
     Protocol: string;
+    Discoveries: Array<string>;
+    DNS: Array<string>;
+    CertExpirationDelay: Number;
+    CertStableURL: string;
+    CertURL: string;
+    IdleTimeout: number;
     Services: IServices;
+}
+/**
+ * That local and distant event hub.
+ */
+export declare class EventHub {
+    readonly service: any;
+    readonly subscribers: any;
+    readonly subscriptions: any;
+    /**
+     * @param {*} service If undefined only local event will be allow.
+     */
+    constructor(service: any);
+    /**
+     * @param {*} name The name of the event to subcribe to.
+     * @param {*} onsubscribe That function return the uuid of the subscriber.
+     * @param {*} onevent That function is call when the event is use.
+     */
+    subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: (data: any) => any): void;
+    /**
+     *
+     * @param {*} name
+     * @param {*} uuid
+     */
+    unSubscribe(name: string, uuid: string): void;
+    /**
+     * Publish an event on the bus, or locally in case of local event.
+     * @param {*} name The  name of the event to publish
+     * @param {*} data The data associated with the event
+     * @param {*} local If the event is not local the data must be seraliaze before sent.
+     */
+    publish(name: string, data: any, local: boolean): void;
+    /** Dispatch the event localy */
+    dispatch(name: string, data: any): void;
 }
 /**
  * Globular regroup all serivces in one object that can be use by
@@ -60,7 +105,8 @@ export declare class Globular {
     adminService: AdminServicePromiseClient | undefined;
     ressourceService: RessourceServicePromiseClient | undefined;
     servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
-    servicesRepository: ServiceRepositoryClient | undefined;
+    servicesRepository: ServiceRepositoryPromiseClient | undefined;
+    certificateAuthority: CertificateAuthorityPromiseClient | undefined;
     catalogService: CatalogServicePromiseClient | undefined;
     echoService: EchoServicePromiseClient | undefined;
     eventService: EventServicePromiseClient | undefined;

@@ -376,7 +376,7 @@ export namespace UninstallServiceResponse {
   }
 }
 
-export class DeployedApplicationRequest extends jspb.Message {
+export class DeployApplicationRequest extends jspb.Message {
   getName(): string;
   setName(value: string): void;
 
@@ -386,33 +386,33 @@ export class DeployedApplicationRequest extends jspb.Message {
   setData(value: Uint8Array | string): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): DeployedApplicationRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: DeployedApplicationRequest): DeployedApplicationRequest.AsObject;
-  static serializeBinaryToWriter(message: DeployedApplicationRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): DeployedApplicationRequest;
-  static deserializeBinaryFromReader(message: DeployedApplicationRequest, reader: jspb.BinaryReader): DeployedApplicationRequest;
+  toObject(includeInstance?: boolean): DeployApplicationRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeployApplicationRequest): DeployApplicationRequest.AsObject;
+  static serializeBinaryToWriter(message: DeployApplicationRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeployApplicationRequest;
+  static deserializeBinaryFromReader(message: DeployApplicationRequest, reader: jspb.BinaryReader): DeployApplicationRequest;
 }
 
-export namespace DeployedApplicationRequest {
+export namespace DeployApplicationRequest {
   export type AsObject = {
     name: string,
     data: Uint8Array | string,
   }
 }
 
-export class DeployedApplicationResponse extends jspb.Message {
+export class DeployApplicationResponse extends jspb.Message {
   getResult(): boolean;
   setResult(value: boolean): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): DeployedApplicationResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: DeployedApplicationResponse): DeployedApplicationResponse.AsObject;
-  static serializeBinaryToWriter(message: DeployedApplicationResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): DeployedApplicationResponse;
-  static deserializeBinaryFromReader(message: DeployedApplicationResponse, reader: jspb.BinaryReader): DeployedApplicationResponse;
+  toObject(includeInstance?: boolean): DeployApplicationResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeployApplicationResponse): DeployApplicationResponse.AsObject;
+  static serializeBinaryToWriter(message: DeployApplicationResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeployApplicationResponse;
+  static deserializeBinaryFromReader(message: DeployApplicationResponse, reader: jspb.BinaryReader): DeployApplicationResponse;
 }
 
-export namespace DeployedApplicationResponse {
+export namespace DeployApplicationResponse {
   export type AsObject = {
     result: boolean,
   }

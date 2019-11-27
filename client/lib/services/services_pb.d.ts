@@ -82,39 +82,39 @@ export namespace ServiceBundle {
   }
 }
 
-export class PublishServiceRequest extends jspb.Message {
+export class PublishServiceDescriptorRequest extends jspb.Message {
   getDescriptor(): ServiceDescriptor | undefined;
   setDescriptor(value?: ServiceDescriptor): void;
   hasDescriptor(): boolean;
   clearDescriptor(): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): PublishServiceRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: PublishServiceRequest): PublishServiceRequest.AsObject;
-  static serializeBinaryToWriter(message: PublishServiceRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): PublishServiceRequest;
-  static deserializeBinaryFromReader(message: PublishServiceRequest, reader: jspb.BinaryReader): PublishServiceRequest;
+  toObject(includeInstance?: boolean): PublishServiceDescriptorRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: PublishServiceDescriptorRequest): PublishServiceDescriptorRequest.AsObject;
+  static serializeBinaryToWriter(message: PublishServiceDescriptorRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PublishServiceDescriptorRequest;
+  static deserializeBinaryFromReader(message: PublishServiceDescriptorRequest, reader: jspb.BinaryReader): PublishServiceDescriptorRequest;
 }
 
-export namespace PublishServiceRequest {
+export namespace PublishServiceDescriptorRequest {
   export type AsObject = {
     descriptor?: ServiceDescriptor.AsObject,
   }
 }
 
-export class PublishServiceResponse extends jspb.Message {
+export class PublishServiceDescriptorResponse extends jspb.Message {
   getResult(): boolean;
   setResult(value: boolean): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): PublishServiceResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: PublishServiceResponse): PublishServiceResponse.AsObject;
-  static serializeBinaryToWriter(message: PublishServiceResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): PublishServiceResponse;
-  static deserializeBinaryFromReader(message: PublishServiceResponse, reader: jspb.BinaryReader): PublishServiceResponse;
+  toObject(includeInstance?: boolean): PublishServiceDescriptorResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: PublishServiceDescriptorResponse): PublishServiceDescriptorResponse.AsObject;
+  static serializeBinaryToWriter(message: PublishServiceDescriptorResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PublishServiceDescriptorResponse;
+  static deserializeBinaryFromReader(message: PublishServiceDescriptorResponse, reader: jspb.BinaryReader): PublishServiceDescriptorResponse;
 }
 
-export namespace PublishServiceResponse {
+export namespace PublishServiceDescriptorResponse {
   export type AsObject = {
     result: boolean,
   }

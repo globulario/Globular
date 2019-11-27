@@ -104,6 +104,10 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
  * Initialyse the client security and set it port to
  */
 func InitClient(client Client, address string, name string) {
+	// Set the domain and the name from the incomming...
+	client.SetDomain(address)
+	client.SetName(name)
+
 	// Here I will initialyse the client
 	config, err := getClientConfig(address, name)
 	if err != nil {
@@ -112,8 +116,6 @@ func InitClient(client Client, address string, name string) {
 	}
 
 	// Set client attributes.
-	client.SetDomain(config["Domain"].(string))
-	client.SetName(config["Name"].(string))
 	client.SetPort(int(config["Port"].(float64)))
 
 	// Set security values.

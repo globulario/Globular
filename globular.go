@@ -32,8 +32,6 @@ import (
 	"syscall"
 	"time"
 
-	ps "github.com/mitchellh/go-ps"
-
 	"github.com/davecourtois/Globular/api"
 
 	// Admin service
@@ -118,8 +116,8 @@ type Globule struct {
 	Protocol                   string // The protocol of the service.
 	Services                   map[string]interface{}
 	ExternalApplications       map[string]ExternalApplication
-	Domain                     string                   // The domain (subdomain) name of your application
-	DNS                        []map[string]interface{} // Contain a list of domain name server where that computer use as sub-domain
+	Domain                     string        // The domain (subdomain) name of your application
+	DNS                        []interface{} // Contain a list of domain name server where that computer use as sub-domain
 	ReadTimeout                time.Duration
 	WriteTimeout               time.Duration
 	IdleTimeout                time.Duration
@@ -189,6 +187,7 @@ func NewGlobule() *Globule {
 	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
+	g.DNS = make([]interface{}, 0)
 
 	// Set the list of discorvery service avalaible...
 	g.Discoveries = make([]string, 0)
@@ -257,7 +256,7 @@ func NewGlobule() *Globule {
 	}
 
 	// Here I will kill proxies if there are running.
-	killProcessByName("grpcwebproxy")
+	Utility.KillProcessByName("grpcwebproxy")
 
 	// Here it suppose to be only one server instance per computer.
 	g.jwtKey = []byte(Utility.RandomUUID())
@@ -340,10 +339,9 @@ func (self *Globule) registerIpToDns() {
 	if self.DNS != nil {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
+				log.Println("register domain to dns:", self.DNS[i])
+				client := dns_client.NewDns_Client(self.DNS[i].(string), "dns_server")
 
-				client := dns_client.NewDns_Client(self.DNS[i]["Address"].(string), "dns_server")
-
-				Utility.MyIP()
 				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 
 				if err != nil {
@@ -357,54 +355,6 @@ func (self *Globule) registerIpToDns() {
 			}
 		}
 	}
-}
-
-/**
- * Get the list of process id by it name.
- */
-func getProcessIdsByName(name string) ([]int, error) {
-	processList, err := ps.Processes()
-	if err != nil {
-		return nil, errors.New("ps.Processes() Failed, are you using windows?")
-	}
-
-	pids := make([]int, 0)
-
-	// map ages
-	for x := range processList {
-		var process ps.Process
-		process = processList[x]
-		if strings.HasPrefix(process.Executable(), name) {
-			pids = append(pids, process.Pid())
-		}
-	}
-
-	return pids, nil
-}
-
-/**
- * Kill a process with a given name.
- */
-func killProcessByName(name string) error {
-	pids, err := getProcessIdsByName(name)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(pids); i++ {
-		proc, err := os.FindProcess(pids[i])
-
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println("Kill ", name, " pid ", pids[i])
-		// Kill the process
-		if !strings.HasPrefix(name, "Globular") {
-			proc.Kill()
-		}
-	}
-
-	return nil
 }
 
 /**
@@ -528,7 +478,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// Kill previous instance of the program...
-		killProcessByName(s["Name"].(string))
+		Utility.KillProcessByName(s["Name"].(string))
 
 		// Start the service process.
 		log.Println("try to start process ", s["Name"].(string))
@@ -574,7 +524,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// any other http server except this one...
 		if !strings.HasPrefix(s["Name"].(string), "Globular") {
 			// Kill previous instance of the program.
-			killProcessByName(s["Name"].(string))
+			Utility.KillProcessByName(s["Name"].(string))
 			log.Println("try to start process ", s["Name"].(string))
 			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
 			err = s["Process"].(*exec.Cmd).Start()
@@ -599,9 +549,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 /**
  * Call once when the server start.
  */
-func (self *Globule) initService(s map[string]interface{}) {
+func (self *Globule) initService(s map[string]interface{}) error {
 	if s["Protocol"] == nil {
-		return
+		return nil
 	}
 
 	if s["Protocol"].(string) == "grpc" {
@@ -625,10 +575,15 @@ func (self *Globule) initService(s map[string]interface{}) {
 		// Kill previous instance of the program.
 		if hasChange || s["Process"] == nil {
 			self.Services[s["Id"].(string)] = s
-			self.startService(s)
+			_, _, err := self.startService(s)
+			if err != nil {
+				return err
+			}
 			self.saveConfig()
 		}
 	}
+
+	return nil
 }
 
 /**
@@ -759,12 +714,15 @@ func (self *Globule) initServices() {
 	})
 
 	// Init services.
-	for _, s := range self.Services {
+	for id, s := range self.Services {
 		// Remove existing process information.
 		delete(s.(map[string]interface{}), "Process")
 		delete(s.(map[string]interface{}), "ProxyProcess")
-
-		self.initService(s.(map[string]interface{}))
+		log.Println("--> init service ", id)
+		err := self.initService(s.(map[string]interface{}))
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	// if a dns service exist I will set the name of that globule on the server.
@@ -776,8 +734,6 @@ func (self *Globule) initServices() {
 		} else {
 			log.Println("---> fail to register ip with dns", err)
 		}
-	} else {
-		log.Println("--> no dns service found!")
 	}
 
 	// set the ip into the DNS servers.
@@ -1247,7 +1203,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
  * Start the monitoring service with prometheus.
  */
 func (self *Globule) startMonitoring() error {
-	killProcessByName("prometheus")
+	Utility.KillProcessByName("prometheus")
 	var m *monitoring_client.Monitoring_Client
 	if self.clients["monitoring_service"] == nil {
 		log.Println("---> no monitoring service is configure.")
@@ -2230,8 +2186,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 		return nil, err
 	}
 
-	// in case of sa user.
-	if rqst.Password == self.RootPassword && rqst.Name == "sa" {
+	// in case of sa user.(admin)
+	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
 		// Generate a token to identify the user.
 		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
 		if err != nil {
@@ -2995,8 +2951,8 @@ func (self *Globule) Listen() {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
-			killProcessByName("mongod")
-			killProcessByName("prometheus")
+			Utility.KillProcessByName("mongod")
+			Utility.KillProcessByName("prometheus")
 		}()
 	}
 
@@ -3134,13 +3090,14 @@ func (self *Globule) Listen() {
 	if self.Protocol == "https" {
 		// if no certificates are specified I will try to get one from let's encrypts.
 		if len(self.Certificate) == 0 {
-			// I need to remove the gRPC certificate and recreate it.
-			Utility.RemoveDirContents(self.creds)
-			self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
 
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
 			if self.Domain != "localhost" {
+				// I need to remove the gRPC certificate and recreate it.
+				Utility.RemoveDirContents(self.creds)
+				self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
+				self.initServices() // must restart the services with new certificates.
 				err := self.ObtainCertificateForCsr()
 				if err != nil {
 					log.Panicln(err)

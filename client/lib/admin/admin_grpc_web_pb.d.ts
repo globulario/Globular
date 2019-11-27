@@ -1,8 +1,8 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
-  DeployedApplicationRequest,
-  DeployedApplicationResponse,
+  DeployApplicationRequest,
+  DeployApplicationResponse,
   GetConfigRequest,
   GetConfigResponse,
   InstallServiceRequest,

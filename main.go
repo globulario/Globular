@@ -181,6 +181,7 @@ func install(g *Globule, path string) {
 		// to be able to create the path.
 		configPath := dir + s["configPath"].(string)
 		if Utility.Exists(configPath) {
+			log.Println("install service ", name)
 			bytes, err := ioutil.ReadFile(configPath)
 			config := make(map[string]interface{}, 0)
 			json.Unmarshal(bytes, &config)

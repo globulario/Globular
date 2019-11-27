@@ -199,55 +199,55 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.getServicesDescriptor =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.services.PublishServiceRequest,
- *   !proto.services.PublishServiceResponse>}
+ *   !proto.services.PublishServiceDescriptorRequest,
+ *   !proto.services.PublishServiceDescriptorResponse>}
  */
-const methodInfo_ServiceDiscovery_publishService = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.services.PublishServiceResponse,
-  /** @param {!proto.services.PublishServiceRequest} request */
+const methodInfo_ServiceDiscovery_publishServiceDescriptor = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.services.PublishServiceDescriptorResponse,
+  /** @param {!proto.services.PublishServiceDescriptorRequest} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.services.PublishServiceResponse.deserializeBinary
+  proto.services.PublishServiceDescriptorResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.services.PublishServiceRequest} request The
+ * @param {!proto.services.PublishServiceDescriptorRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.services.PublishServiceResponse)}
+ * @param {function(?grpc.web.Error, ?proto.services.PublishServiceDescriptorResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.services.PublishServiceResponse>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.services.PublishServiceDescriptorResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.services.ServiceDiscoveryClient.prototype.publishService =
+proto.services.ServiceDiscoveryClient.prototype.publishServiceDescriptor =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/services.ServiceDiscovery/publishService',
+      '/services.ServiceDiscovery/publishServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_publishService,
+      methodInfo_ServiceDiscovery_publishServiceDescriptor,
       callback);
 };
 
 
 /**
- * @param {!proto.services.PublishServiceRequest} request The
+ * @param {!proto.services.PublishServiceDescriptorRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.services.PublishServiceResponse>}
+ * @return {!Promise<!proto.services.PublishServiceDescriptorResponse>}
  *     A native promise that resolves to the response
  */
-proto.services.ServiceDiscoveryPromiseClient.prototype.publishService =
+proto.services.ServiceDiscoveryPromiseClient.prototype.publishServiceDescriptor =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/services.ServiceDiscovery/publishService',
+      '/services.ServiceDiscovery/publishServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_publishService);
+      methodInfo_ServiceDiscovery_publishServiceDescriptor);
 };
 
 
