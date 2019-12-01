@@ -78,8 +78,19 @@ message GetServicesDescriptorResponse {
 	repeated ServiceDescriptor results = 1;
 }
 
+message FindServicesDescriptorRequest {
+	repeated string keywords = 1;
+}
+
+message FindServicesDescriptorResponse {
+	repeated ServiceDescriptor results = 1;
+}
+
 /** functionality to retreive a service **/
 service ServiceDiscovery {
+	/** Search service by keywords **/
+	rpc FindServices(FindServicesDescriptorRequest) returns (FindServicesDescriptorResponse);
+	
 	/** Return the list of all services **/
 	rpc GetServiceDescriptor(GetServiceDescriptorRequest) returns (GetServiceDescriptorResponse);
 	

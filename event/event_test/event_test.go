@@ -41,7 +41,7 @@ func TestEventService(t *testing.T) {
 	clients := make([]*event_client.Event_Client, size)
 	uuids := make([]string, size)
 	for i := 0; i < size; i++ {
-		c := event_client.NewEvent_Client(domain, 10015, false, "", "", "")
+		c := event_client.NewEvent_Client(domain, "event_server")
 		uuids[i] = subscribeTo(c, subject)
 		log.Println("client ", i)
 		clients[i] = c

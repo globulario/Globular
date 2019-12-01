@@ -14,8 +14,8 @@ import {
 
 export class SqlServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,
@@ -54,8 +54,8 @@ export class SqlServiceClient {
 
 export class SqlServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,

@@ -138,7 +138,5 @@ func (self *Echo_Client) Echo(msg interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	log.Println("--------> ", ctx)
 	return rsp.Message, nil
 }

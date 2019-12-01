@@ -20,22 +20,38 @@ func main() {
 	if len(os.Args) > 1 {
 
 		// Subcommands
+
+		// Intall command
 		installCommand := flag.NewFlagSet("install", flag.ExitOnError)
+		installCommand_path := installCommand.String("path", "", "You must specefied the intallation path. (Required)")
+
+		// Deploy command
 		deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
+		deployCommand_name := deployCommand.String("name", "", "You must specify an application name. (Required)")
+		deployCommand_path := deployCommand.String("path", "", "You must specify the path that contain the source (bundle.js, index.html...) of the application to deploy. (Required)")
+		deployCommand_user := deployCommand.String("u", "", "The user name. (Required)")
+		deployCommand_pwd := deployCommand.String("p", "", "The user password. (Required)")
+		deployCommand_address := deployCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
 
-		path := installCommand.String("path", "", "You must specefied the intallation path. (Required)")
-
-		name := deployCommand.String("name", "", "You must specify an application name. (Required)")
-		applicationPath := deployCommand.String("path", "", "You must specify the path that contain the source (bundle.js, index.html...) of the application to deploy. (Required)")
-		user := deployCommand.String("u", "", "The user name. (Required)")
-		pwd := deployCommand.String("p", "", "The user password. (Required)")
-		address := deployCommand.String("a", "", "The address (domain:port default admin port is 10001) of the server where to install the appliction (Required)")
+		// Publish command.
+		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
+		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Required)")
+		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
+		publishCommand_discovery := publishCommand.String("discovery", "", "You must specified the domain of the discovery service where to publish your service (Required)")
+		publishCommand_repository := publishCommand.String("repository", "", "You must specified the domain of the repository service where to publish your service (Required)")
+		publishCommand_user := publishCommand.String("u", "", "The user name. (Required)")
+		publishCommand_pwd := publishCommand.String("p", "", "The user password. (Required)")
+		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
+		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Required)")
+		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Required)")
 
 		switch os.Args[1] {
 		case "install":
 			installCommand.Parse(os.Args[2:])
 		case "deploy":
 			deployCommand.Parse(os.Args[2:])
+		case "publish":
+			publishCommand.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
@@ -44,46 +60,101 @@ func main() {
 		// Check if the command was parsed
 		if installCommand.Parsed() {
 			// Required Flags
-			if *path == "" {
+			if *installCommand_path == "" {
 				installCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			install(g, *path)
+			install(g, *installCommand_path)
 		}
 
 		if deployCommand.Parsed() {
 			// Required Flags
-			if *applicationPath == "" {
+			if *deployCommand_path == "" {
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *name == "" {
+			if *deployCommand_name == "" {
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *user == "" {
+			if *deployCommand_user == "" {
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *pwd == "" {
+			if *deployCommand_pwd == "" {
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *address == "" {
+			if *deployCommand_address == "" {
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			deploy(g, *name, *applicationPath, *address, *user, *pwd)
+			deploy(g, *deployCommand_name, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd)
+		}
+
+		if publishCommand.Parsed() {
+			if *publishCommand_name == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_path == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_discovery == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_repository == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_user == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_pwd == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_address == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_description == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_keywords == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			keywords := strings.Split(*publishCommand_keywords, ",")
+			for i := 0; i < len(keywords); i++ {
+				keywords[i] = strings.TrimSpace(keywords[i])
+			}
+
+			// Pulish the services.
+			publish(g, *publishCommand_name, *publishCommand_path, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
 		}
 
 	} else {
-		g.Listen()
+		g.Serve()
 	}
 }
 
@@ -112,6 +183,38 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	}
 
 	log.Println("Application", name, "was deployed successfully!")
+}
+
+/**
+ * That function is use to publish a service on the network.
+ * The service must contain
+ * - A .proto file that define it gRPC services interface.
+ * - A config.json file that define it service configuration.
+ * All file in the service directory will be part of the package, so take
+ * care to include all dependencies, dll... to be sure your services will run
+ * as expected.
+ */
+func publish(g *Globule, name string, path string, discoveryId string, repositoryId string, description string, keywords []string, address string, user string, pwd string) {
+	log.Println("publish service...", name, "at address", address)
+
+	// Authenticate the user in order to get the token
+	ressource_client := ressource.NewRessource_Client(address, "ressource")
+	_, err := ressource_client.Authenticate(user, pwd)
+	if err != nil {
+		log.Panicln(err)
+		return
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client := admin.NewAdmin_Client(address, "admin")
+	err = admin_client.PublishService(name, path, discoveryId, repositoryId, description, keywords)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	log.Println("Service", name, "was pulbish successfully!")
 }
 
 /**

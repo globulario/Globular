@@ -96,7 +96,6 @@ func ValidateToken(token string) (string, int64, error) {
 
 // authenticateAgent check the client credentials
 func authenticateClient(ctx context.Context) (string, int64, error) {
-
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		token := strings.Join(md["token"], "")
 		// In that case no token was given...
@@ -117,14 +116,16 @@ func canRunAction(roleName string, method string) error {
 	Database := "local_ressource"
 	Collection := "Roles"
 	Query := `{"_id":"` + roleName + `"}`
-
+	log.Println("---> query: ", Query)
 	client, err := getPersistenceClient()
 	if err != nil {
+		log.Println("---> 122: ", err)
 		return err
 	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"actions":1}}]`)
 	if err != nil {
+		log.Println("---> 128: ", err)
 		return err
 	}
 	role := make(map[string]interface{})
@@ -187,13 +188,13 @@ func validateUserAccess(userName string, method string) error {
 			return nil
 		}
 	}
-
-	return errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
+	err = errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
+	log.Println(err)
+	return err
 }
 
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-
 	clientID, _, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err

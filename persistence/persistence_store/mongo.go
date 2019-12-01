@@ -33,7 +33,7 @@ type MongoStore struct {
  */
 func (self *MongoStore) Connect(connectionId string, host string, port int32, user string, password string, database string, timeout int32, optionsStr string) error {
 
-	ctx := api.GetClientContext(self)
+	ctx := context.Background()
 	//ctx, _ := context.WithTimeout(api.GetClientContext(self), time.Duration(timeout)*time.Second)
 
 	if self.clients == nil {
@@ -84,7 +84,7 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 
 func (self *MongoStore) Disconnect(connectionId string) error {
 	// Close the conncetion
-	err := self.clients[connectionId].Disconnect(api.GetClientContext(self))
+	err := self.clients[connectionId].Disconnect(context.Background())
 	// remove it from the map.
 	delete(self.clients, connectionId)
 
@@ -258,7 +258,7 @@ func (self *MongoStore) Find(ctx context.Context, connectionId string, database 
 		return nil, err
 	}
 
-	defer cur.Close(api.GetClientContext(self))
+	defer cur.Close(context.Background())
 	results := make([]interface{}, 0)
 
 	for cur.Next(ctx) {
@@ -309,7 +309,7 @@ func (self *MongoStore) Aggregate(ctx context.Context, connectionId string, data
 	}
 
 	cur, err := collection_.Aggregate(ctx, p, opts...)
-	defer cur.Close(api.GetClientContext(self))
+	defer cur.Close(context.Background())
 
 	if err != nil {
 		return nil, err

@@ -116,16 +116,9 @@ func (self *server) init() {
 	// store it informations.
 	if self.StorageService != nil {
 		domain := self.StorageService["Domain"].(string)
-		port := int(self.StorageService["Port"].(float64))
-		hasTls := self.StorageService["TLS"].(bool)
-		keyFile := self.StorageService["KeyFile"].(string)
-		certFile := self.StorageService["CertFile"].(string)
-		caFile := self.StorageService["CertAuthorityTrust"].(string)
-
-		token := "" // TODO see if it's needed by the storage services.
 
 		// Create the connection with the server.
-		self.storageClient = storage_client.NewStorage_Client(domain, port, hasTls, keyFile, certFile, caFile, token)
+		self.storageClient = storage_client.NewStorage_Client(domain, "storage_server")
 
 	} else {
 		log.Panicln("No storage service is configure!")
@@ -1328,6 +1321,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
+	s_impl.PublisherId = domain // value by default.
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

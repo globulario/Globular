@@ -64,10 +64,11 @@ message SetRootPasswordResponse {
 
 message PublishServiceRequest{
 	string serviceId = 1;
-	string dicorveryId = 2;
-	string repositoryId = 3;
-	string description = 4;
-	repeated string keywords = 5;
+	string path = 2;
+	string dicorveryId = 3;
+	string repositoryId = 4;
+	string description = 5;
+	repeated string keywords = 6;
 }
 
 message PublishServiceResponse{

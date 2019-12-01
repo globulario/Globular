@@ -213,9 +213,10 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 /**
  * Publish a service from a runing globular server.
  */
-func (self *Admin_Client) PublishService(serviceId string, discoveryAddress string, repositoryAddress string, description string, keywords []string) error {
+func (self *Admin_Client) PublishService(serviceId string, path string, discoveryAddress string, repositoryAddress string, description string, keywords []string) error {
 
 	rqst := new(PublishServiceRequest)
+	rqst.Path = path
 	rqst.Description = description
 	rqst.DicorveryId = discoveryAddress
 	rqst.RepositoryId = repositoryAddress

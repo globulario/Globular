@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -192,7 +193,12 @@ func GetClientConnection(client Client) *grpc.ClientConn {
  */
 func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directory
-	path := os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token"
+	domain := client.GetDomain()
+	if Utility.IsLocal(domain) {
+		domain = "localhost"
+	}
+
+	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
 	token, err := ioutil.ReadFile(path)
 	if err == nil {
 		md := metadata.New(map[string]string{"token": string(token)})
