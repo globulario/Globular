@@ -89,14 +89,22 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 
 	if err != nil {
+
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
 
 	var config map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&config)
+	err = json.Unmarshal(data, &config)
+
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 	return config, nil
 }
@@ -134,8 +142,8 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 	var cc *grpc.ClientConn
 	var err error
 	if cc == nil {
-
 		if client.HasTLS() {
+
 			log.Println("Secure client ", client.GetDomain(), client.GetName())
 			// Setup the login/pass simple test...
 

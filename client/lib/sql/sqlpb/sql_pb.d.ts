@@ -205,11 +205,9 @@ export namespace QueryContextRqst {
 export class QueryContextRsp extends jspb.Message {
   getHeader(): string;
   setHeader(value: string): void;
-  hasHeader(): boolean;
 
   getRows(): string;
   setRows(value: string): void;
-  hasRows(): boolean;
 
   getResultCase(): QueryContextRsp.ResultCase;
 

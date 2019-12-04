@@ -62,13 +62,32 @@ message SetRootPasswordResponse {
 	string token = 1;
 }
 
+/** more can be append here **/
+enum Platform {
+	LINUX32 = 0;
+	LINUX64 = 1;
+	WIN32 = 2;
+	WIN64 = 3;
+}
+
 message PublishServiceRequest{
 	string serviceId = 1;
-	string path = 2;
-	string dicorveryId = 3;
-	string repositoryId = 4;
-	string description = 5;
-	repeated string keywords = 6;
+	string publisherId = 2;
+	string path = 3;
+	string dicorveryId = 4;
+	string repositoryId = 5;
+	string description = 6;
+	repeated string keywords = 7;
+	string version = 8;
+	Platform platform = 9;
+}
+
+message UploadServicePackageRequest{
+	bytes data = 1;
+}
+
+message UploadServicePackageResponse{
+	string path = 1;
 }
 
 message PublishServiceResponse{
@@ -124,6 +143,9 @@ service AdminService {
 
   // Start a service
   rpc StartService(StartServiceRequest) returns (StartServiceResponse);
+
+  // Create and upload service package
+  rpc UploadServicePackage(stream UploadServicePackageRequest) returns(UploadServicePackageResponse);
 
   // Publish a service...
   rpc PublishService(PublishServiceRequest) returns (PublishServiceResponse);

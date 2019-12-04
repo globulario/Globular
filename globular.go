@@ -835,7 +835,8 @@ func (self *Globule) registerMethods() error {
 	} else if count == 0 {
 		log.Println("need to create roles guest...")
 		guest["_id"] = "guest"
-		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/Publish"}
+		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
+			"/services.ServiceDiscovery/GetServiceDescriptor", "/services.ServiceDiscovery/GetServicesDescriptor", "/services.ServiceRepository/downloadBundle"}
 		jsonStr, _ := Utility.ToJson(guest)
 		_, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
 		if err != nil {
@@ -1421,50 +1422,38 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 }
 
-//
+// Upload a service package.
+func (self *Globule) UploadServicePackage(stream admin.AdminService_UploadServicePackageServer) error {
+	// The bundle will cantain the necessary information to install the service.
+	path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
+	fo, err := os.Create(path)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	defer fo.Close()
+
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			stream.SendAndClose(&admin.UploadServicePackageResponse{
+				Path: path,
+			})
+			break
+		} else if err != nil {
+			return err
+		} else {
+			fo.Write(msg.Data)
+		}
+	}
+
+	return nil
+}
 
 // Publish a service. The service must be install localy on the server.
 func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServiceRequest) (*admin.PublishServiceResponse, error) {
-	var s map[string]interface{}
-
-	if self.Services[rqst.ServiceId] == nil {
-		// Here I will try to read the service configuation.
-		configs, _ := Utility.FindFileByName(rqst.Path, "config.json")
-		log.Println("----> ", rqst.Path)
-		if len(configs) == 0 {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No configuration file was found")))
-		}
-
-		_, err := Utility.FindFileByName(rqst.Path, ".proto")
-		if len(configs) == 0 {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No prototype file was found")))
-		}
-
-		s = make(map[string]interface{}, 0)
-		data, err := ioutil.ReadFile(configs[0])
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-		err = json.Unmarshal(data, &s)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-	}
-
-	if s == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service named"+rqst.ServiceId+"was found on the server.")))
-	}
 
 	// Connect to the dicovery services
 	services_discovery := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
@@ -1482,45 +1471,16 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.RepositoryId)))
 	}
 
-	var platform services.Platform
-
-	// The first step will be to create the archive.
-	if runtime.GOOS == "windows" {
-		if runtime.GOARCH == "amd64" {
-			platform = services.Platform_WIN64
-		} else if runtime.GOARCH == "386" {
-			platform = services.Platform_WIN32
-		}
-	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
-		if runtime.GOARCH == "amd64" {
-			platform = services.Platform_LINUX64
-		} else if runtime.GOARCH == "386" {
-			platform = services.Platform_LINUX32
-		}
-	} else if runtime.GOOS == "darwin" {
-		/** TODO Deploy services on other platforme here... **/
-	}
-
-	// First of all I will create the archive for the service.
-	// If a path is given I will take it entire content. If not
-	// the proto, the config and the executable only will be taken.
-	packagePath, err := self.createServicePackage(s, platform, rqst.Path)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	// Now I will upload the service to the repository...
 	serviceDescriptor := &services.ServiceDescriptor{
-		Id:          s["Name"].(string),
-		PublisherId: self.Domain,
-		Version:     s["Version"].(string),
+		Id:          rqst.ServiceId,
+		PublisherId: rqst.PublisherId,
+		Version:     rqst.Version,
 		Description: rqst.Description,
 		Keywords:    rqst.Keywords,
 	}
 
-	err = services_discovery.PublishServiceDescriptor(serviceDescriptor)
+	err := services_discovery.PublishServiceDescriptor(serviceDescriptor)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1528,7 +1488,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(platform), packagePath)
+	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(rqst.Platform), rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1543,7 +1503,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = os.Remove(packagePath)
+	err = os.Remove(rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1589,7 +1549,6 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 
 	var services_repository *services.ServicesRepository_Client
 	for i := 0; i < len(descriptor.Repositories); i++ {
-
 		services_repository = services.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
 		bundle, err := services_repository.DownloadBundle(descriptor, platform)
 		if err == nil {
@@ -1629,6 +1588,14 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
 			config["protoPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
 			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
+
+			// Here I will append the execute permission to the service file.
+
+			// Set execute permission
+			err = os.Chmod(self.path+config["servicePath"].(string), 0755)
+			if err != nil {
+				fmt.Println(err)
+			}
 
 			// initialyse the new service.
 			self.initService(config)
@@ -2480,8 +2447,41 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 
 // Discovery
 func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServicesDescriptorRequest) (*services.FindServicesDescriptorResponse, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	kewordsStr, err := Utility.ToJson(rqst.Keywords)
+	if err != nil {
+		return nil, err
+	}
+
+	// Test...
+	query := `{"keywords": { "$all" : ` + kewordsStr + `}}`
+
+	data, err := p.Find("local_ressource", "local_ressource", "Services", query, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	log.Println("----------> 2460 retreived services: ", data)
+	descriptors := make([]*services.ServiceDescriptor, 0)
+	err = json.Unmarshal([]byte(data), &descriptors)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Return the list of Service Descriptor.
+	return &services.FindServicesDescriptorResponse{
+		Results: descriptors,
+	}, nil
+
 }
 
 //* Return the list of all services *
@@ -2550,86 +2550,6 @@ func (self *Globule) GetServicesDescriptor(ctx context.Context, rqst *services.G
 	return &services.GetServicesDescriptorResponse{
 		Results: descriptors,
 	}, nil
-}
-
-/** Create a service package **/
-func (self *Globule) createServicePackage(config map[string]interface{}, platform services.Platform, servicePath string) (string, error) {
-
-	// Take the information from the configuration...
-	id := config["PublisherId"].(string) + "%" + config["Name"].(string) + "%" + config["Version"].(string)
-	if platform == services.Platform_LINUX32 {
-		id += "%LINUX32"
-	} else if platform == services.Platform_LINUX64 {
-		id += "%LINUX64"
-	} else if platform == services.Platform_WIN32 {
-		id += "%WIN32"
-	} else if platform == services.Platform_WIN64 {
-		id += "%WIN64"
-	}
-
-	// So here I will create a directory and put file in it...
-	path := id
-	Utility.CreateDirIfNotExist(path)
-
-	if len(servicePath) == 0 {
-		// set the name.
-		execPath := self.path + config["servicePath"].(string)
-		destPath := path + string(os.PathSeparator) + config["Name"].(string)
-		if platform == services.Platform_WIN32 || platform == services.Platform_WIN64 {
-			execPath += ".exe" // in case of windows
-			destPath += ".exe"
-		}
-
-		err := Utility.Copy(execPath, destPath)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		// set the correct write options
-		err = os.Chmod(destPath, 0777)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		configPath := self.path + config["configPath"].(string)
-		if Utility.Exists(configPath) {
-			Utility.Copy(configPath, path+string(os.PathSeparator)+"config.json")
-		}
-
-		protoPath := self.path + config["protoPath"].(string)
-		if Utility.Exists(protoPath) {
-			Utility.Copy(protoPath, path+string(os.PathSeparator)+config["Name"].(string)+".proto")
-		}
-	} else {
-		// copy all the data.
-		Utility.CopyDirContent(servicePath, path)
-	}
-
-	// tar + gzip
-	var buf bytes.Buffer
-	Utility.CompressDir(path, &buf)
-
-	// write the .tar.gzip
-	fileToWrite, err := os.OpenFile(os.TempDir()+string(os.PathSeparator)+id+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))
-	if err != nil {
-		panic(err)
-	}
-
-	if _, err := io.Copy(fileToWrite, &buf); err != nil {
-		panic(err)
-	}
-
-	// close the file.
-	fileToWrite.Close()
-
-	// Remove the dir when the archive is created.
-	err = os.RemoveAll(path)
-
-	if err != nil {
-		return "", err
-	}
-
-	return os.TempDir() + string(os.PathSeparator) + id + ".tar.gz", nil
 }
 
 //* Publish a service to service discovery *
@@ -2817,7 +2737,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		id += "%WIN64"
 	}
 
-	repositoryId := self.Domain + ":" + strconv.Itoa(self.ServicesRepositoryPort)
+	repositoryId := self.Domain
 	// Now I will append the address of the repository into the service descriptor.
 	if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
 		bundle.Descriptor_.Repositories = append(bundle.Descriptor_.Repositories, repositoryId)

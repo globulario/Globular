@@ -131,6 +131,21 @@ func (self *ServicesDiscovery_Client) SetCaFile(caFile string) {
 ///////////////////////// API /////////////////////////
 
 /**
+ * Find a services by keywords.
+ */
+func (self *ServicesDiscovery_Client) FindServices(keywords []string) ([]*ServiceDescriptor, error) {
+	rqst := new(FindServicesDescriptorRequest)
+	rqst.Keywords = keywords
+
+	rsp, err := self.c.FindServices(api.GetClientContext(self), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsp.GetResults(), nil
+}
+
+/**
  * Get list of service descriptor for one service with  various version.
  */
 func (self *ServicesDiscovery_Client) GetServicesDescriptor(service_id string) ([]*ServiceDescriptor, error) {
@@ -310,6 +325,10 @@ func (self *ServicesRepository_Client) DownloadBundle(descriptor *ServiceDescrip
 			// end of stream...
 			break
 		}
+		if err != nil {
+			return nil, err
+		}
+
 		_, err = buffer.Write(msg.Data)
 		if err != nil {
 			return nil, err

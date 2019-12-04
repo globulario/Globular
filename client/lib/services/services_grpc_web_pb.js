@@ -89,6 +89,61 @@ proto.services.ServiceDiscoveryPromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.services.FindServicesDescriptorRequest,
+ *   !proto.services.FindServicesDescriptorResponse>}
+ */
+const methodInfo_ServiceDiscovery_FindServices = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.services.FindServicesDescriptorResponse,
+  /** @param {!proto.services.FindServicesDescriptorRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.FindServicesDescriptorResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.services.FindServicesDescriptorRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.services.FindServicesDescriptorResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.services.FindServicesDescriptorResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.services.ServiceDiscoveryClient.prototype.findServices =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/services.ServiceDiscovery/FindServices',
+      request,
+      metadata || {},
+      methodInfo_ServiceDiscovery_FindServices,
+      callback);
+};
+
+
+/**
+ * @param {!proto.services.FindServicesDescriptorRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.services.FindServicesDescriptorResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.services.ServiceDiscoveryPromiseClient.prototype.findServices =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/services.ServiceDiscovery/FindServices',
+      request,
+      metadata || {},
+      methodInfo_ServiceDiscovery_FindServices);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.services.GetServiceDescriptorRequest,
  *   !proto.services.GetServiceDescriptorResponse>}
  */

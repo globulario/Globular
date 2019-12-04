@@ -20,7 +20,9 @@ import {
   StopServiceRequest,
   StopServiceResponse,
   UninstallServiceRequest,
-  UninstallServiceResponse} from './admin_pb';
+  UninstallServiceResponse,
+  UploadServicePackageRequest,
+  UploadServicePackageResponse} from './admin_pb';
 
 export class AdminServiceClient {
   constructor (hostname: string,

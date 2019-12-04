@@ -1,10 +1,15 @@
 package admin
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 
 	"github.com/davecourtois/Globular/api"
@@ -210,18 +215,179 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 
 /////////////////////////// Services management functions ////////////////////////
 
+/** Create a service package **/
+func (self *Admin_Client) createServicePackage(publisherId string, serviceId string, version string, platform Platform, servicePath string) (string, error) {
+
+	// Take the information from the configuration...
+	id := publisherId + "%" + serviceId + "%" + version
+	if platform == Platform_LINUX32 {
+		id += "%LINUX32"
+	} else if platform == Platform_LINUX64 {
+		id += "%LINUX64"
+	} else if platform == Platform_WIN32 {
+		id += "%WIN32"
+	} else if platform == Platform_WIN64 {
+		id += "%WIN64"
+	}
+
+	// So here I will create a directory and put file in it...
+	path := id
+	Utility.CreateDirIfNotExist(path)
+
+	// copy all the data.
+	Utility.CopyDirContent(servicePath, path)
+
+	// tar + gzip
+	var buf bytes.Buffer
+	Utility.CompressDir(path, &buf)
+
+	// write the .tar.gzip
+	fileToWrite, err := os.OpenFile(os.TempDir()+string(os.PathSeparator)+id+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := io.Copy(fileToWrite, &buf); err != nil {
+		panic(err)
+	}
+
+	// close the file.
+	fileToWrite.Close()
+
+	// Remove the dir when the archive is created.
+	err = os.RemoveAll(path)
+
+	if err != nil {
+		return "", err
+	}
+
+	return os.TempDir() + string(os.PathSeparator) + id + ".tar.gz", nil
+}
+
+/**
+ * Create and Upload the service archive on the server.
+ */
+func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string) (string, error) {
+	// Here I will try to read the service configuation from the path.
+	configs, _ := Utility.FindFileByName(path, "config.json")
+	if len(configs) == 0 {
+		return "", errors.New("No configuration file was found")
+	}
+
+	_, err := Utility.FindFileByName(path, ".proto")
+	if len(configs) == 0 {
+		return "", errors.New("No prototype file was found")
+	}
+
+	s := make(map[string]interface{}, 0)
+	data, err := ioutil.ReadFile(configs[0])
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(data, &s)
+	if err != nil {
+		return "", err
+	}
+
+	// set the correct information inside the configuration
+	s["PublisherId"] = publisherId
+	s["Version"] = version
+	s["Name"] = serviceId
+
+	jsonStr, _ := Utility.ToJson(&s)
+	ioutil.WriteFile(configs[0], []byte(jsonStr), 0644)
+
+	var platform Platform
+
+	// The first step will be to create the archive.
+	if runtime.GOOS == "windows" {
+		if runtime.GOARCH == "amd64" {
+			platform = Platform_WIN64
+		} else if runtime.GOARCH == "386" {
+			platform = Platform_WIN32
+		}
+	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
+		if runtime.GOARCH == "amd64" {
+			platform = Platform_LINUX64
+		} else if runtime.GOARCH == "386" {
+			platform = Platform_LINUX32
+		}
+	} else if runtime.GOOS == "darwin" {
+		/** TODO Deploy services on other platforme here... **/
+	}
+
+	// First of all I will create the archive for the service.
+	// If a path is given I will take it entire content. If not
+	// the proto, the config and the executable only will be taken.
+	packagePath, err := self.createServicePackage(publisherId, serviceId, version, platform, path)
+	if err != nil {
+		return "", err
+	}
+
+	// Remove the file when it's transfer on the server...
+	defer os.Remove(packagePath)
+
+	// Read the package data.
+	packageFile, err := os.Open(packagePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer packageFile.Close()
+
+	// Now I will create the request to upload the package on the server.
+	// Open the stream...
+	stream, err := self.c.UploadServicePackage(api.GetClientContext(self))
+	if err != nil {
+		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
+	}
+
+	const chunksize = 1024 * 5 // the chunck size.
+	var count int
+	reader := bufio.NewReader(packageFile)
+	part := make([]byte, chunksize)
+
+	for {
+		if count, err = reader.Read(part); err != nil {
+			break
+		}
+		rqst := &UploadServicePackageRequest{
+			Data: part[:count],
+		}
+		// send the data to the server.
+		err = stream.Send(rqst)
+	}
+	if err != io.EOF {
+		return "", err
+	} else {
+		err = nil
+	}
+
+	// get the file path on the server where the package is store before being
+	// publish.
+	rsp, err := stream.CloseAndRecv()
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.Path, nil
+}
+
 /**
  * Publish a service from a runing globular server.
  */
-func (self *Admin_Client) PublishService(serviceId string, path string, discoveryAddress string, repositoryAddress string, description string, keywords []string) error {
+func (self *Admin_Client) PublishService(path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string) error {
 
 	rqst := new(PublishServiceRequest)
 	rqst.Path = path
+	rqst.PublisherId = publisherId
 	rqst.Description = description
 	rqst.DicorveryId = discoveryAddress
 	rqst.RepositoryId = repositoryAddress
 	rqst.Keywords = keywords
+	rqst.Version = version
 	rqst.ServiceId = serviceId
+	rqst.Platform = Platform(platform)
 
 	_, err := self.c.PublishService(api.GetClientContext(self), rqst)
 

@@ -278,6 +278,46 @@ export namespace GetServicesDescriptorResponse {
   }
 }
 
+export class FindServicesDescriptorRequest extends jspb.Message {
+  getKeywordsList(): Array<string>;
+  setKeywordsList(value: Array<string>): void;
+  clearKeywordsList(): void;
+  addKeywords(value: string, index?: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): FindServicesDescriptorRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: FindServicesDescriptorRequest): FindServicesDescriptorRequest.AsObject;
+  static serializeBinaryToWriter(message: FindServicesDescriptorRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): FindServicesDescriptorRequest;
+  static deserializeBinaryFromReader(message: FindServicesDescriptorRequest, reader: jspb.BinaryReader): FindServicesDescriptorRequest;
+}
+
+export namespace FindServicesDescriptorRequest {
+  export type AsObject = {
+    keywordsList: Array<string>,
+  }
+}
+
+export class FindServicesDescriptorResponse extends jspb.Message {
+  getResultsList(): Array<ServiceDescriptor>;
+  setResultsList(value: Array<ServiceDescriptor>): void;
+  clearResultsList(): void;
+  addResults(value?: ServiceDescriptor, index?: number): ServiceDescriptor;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): FindServicesDescriptorResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: FindServicesDescriptorResponse): FindServicesDescriptorResponse.AsObject;
+  static serializeBinaryToWriter(message: FindServicesDescriptorResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): FindServicesDescriptorResponse;
+  static deserializeBinaryFromReader(message: FindServicesDescriptorResponse, reader: jspb.BinaryReader): FindServicesDescriptorResponse;
+}
+
+export namespace FindServicesDescriptorResponse {
+  export type AsObject = {
+    resultsList: Array<ServiceDescriptor.AsObject>,
+  }
+}
+
 export enum Platform { 
   LINUX32 = 0,
   LINUX64 = 1,

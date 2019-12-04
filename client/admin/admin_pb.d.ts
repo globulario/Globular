@@ -234,6 +234,9 @@ export class PublishServiceRequest extends jspb.Message {
   getServiceid(): string;
   setServiceid(value: string): void;
 
+  getPath(): string;
+  setPath(value: string): void;
+
   getDicorveryid(): string;
   setDicorveryid(value: string): void;
 
@@ -248,6 +251,12 @@ export class PublishServiceRequest extends jspb.Message {
   clearKeywordsList(): void;
   addKeywords(value: string, index?: number): void;
 
+  getVersion(): string;
+  setVersion(value: string): void;
+
+  getPlatform(): Platform;
+  setPlatform(value: Platform): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PublishServiceRequest.AsObject;
   static toObject(includeInstance: boolean, msg: PublishServiceRequest): PublishServiceRequest.AsObject;
@@ -259,10 +268,51 @@ export class PublishServiceRequest extends jspb.Message {
 export namespace PublishServiceRequest {
   export type AsObject = {
     serviceid: string,
+    path: string,
     dicorveryid: string,
     repositoryid: string,
     description: string,
     keywordsList: Array<string>,
+    version: string,
+    platform: Platform,
+  }
+}
+
+export class UploadServicePackageRequest extends jspb.Message {
+  getData(): Uint8Array | string;
+  getData_asU8(): Uint8Array;
+  getData_asB64(): string;
+  setData(value: Uint8Array | string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UploadServicePackageRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: UploadServicePackageRequest): UploadServicePackageRequest.AsObject;
+  static serializeBinaryToWriter(message: UploadServicePackageRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UploadServicePackageRequest;
+  static deserializeBinaryFromReader(message: UploadServicePackageRequest, reader: jspb.BinaryReader): UploadServicePackageRequest;
+}
+
+export namespace UploadServicePackageRequest {
+  export type AsObject = {
+    data: Uint8Array | string,
+  }
+}
+
+export class UploadServicePackageResponse extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UploadServicePackageResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: UploadServicePackageResponse): UploadServicePackageResponse.AsObject;
+  static serializeBinaryToWriter(message: UploadServicePackageResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UploadServicePackageResponse;
+  static deserializeBinaryFromReader(message: UploadServicePackageResponse, reader: jspb.BinaryReader): UploadServicePackageResponse;
+}
+
+export namespace UploadServicePackageResponse {
+  export type AsObject = {
+    path: string,
   }
 }
 
@@ -418,3 +468,9 @@ export namespace DeployApplicationResponse {
   }
 }
 
+export enum Platform { 
+  LINUX32 = 0,
+  LINUX64 = 1,
+  WIN32 = 2,
+  WIN64 = 3,
+}

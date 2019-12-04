@@ -3,6 +3,8 @@ import * as grpcWeb from 'grpc-web';
 import {
   DownloadBundleRequest,
   DownloadBundleResponse,
+  FindServicesDescriptorRequest,
+  FindServicesDescriptorResponse,
   GetServiceDescriptorRequest,
   GetServiceDescriptorResponse,
   GetServicesDescriptorRequest,
@@ -16,6 +18,13 @@ export class ServiceDiscoveryClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  findServices(
+    request: FindServicesDescriptorRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: FindServicesDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<FindServicesDescriptorResponse>;
 
   getServiceDescriptor(
     request: GetServiceDescriptorRequest,
@@ -56,6 +65,11 @@ export class ServiceDiscoveryPromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  findServices(
+    request: FindServicesDescriptorRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<FindServicesDescriptorResponse>;
 
   getServiceDescriptor(
     request: GetServiceDescriptorRequest,

@@ -116,16 +116,13 @@ func canRunAction(roleName string, method string) error {
 	Database := "local_ressource"
 	Collection := "Roles"
 	Query := `{"_id":"` + roleName + `"}`
-	log.Println("---> query: ", Query)
 	client, err := getPersistenceClient()
 	if err != nil {
-		log.Println("---> 122: ", err)
 		return err
 	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"actions":1}}]`)
 	if err != nil {
-		log.Println("---> 128: ", err)
 		return err
 	}
 	role := make(map[string]interface{})
