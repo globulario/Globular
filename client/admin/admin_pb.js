@@ -2133,7 +2133,7 @@ proto.admin.SetRootPasswordResponse.prototype.setToken = function(value) {
  * @private {!Array<number>}
  * @const
  */
-proto.admin.PublishServiceRequest.repeatedFields_ = [6];
+proto.admin.PublishServiceRequest.repeatedFields_ = [7];
 
 
 
@@ -2167,13 +2167,14 @@ proto.admin.PublishServiceRequest.prototype.toObject = function(opt_includeInsta
 proto.admin.PublishServiceRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     serviceid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    path: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    dicorveryid: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    repositoryid: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    description: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    keywordsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
-    version: jspb.Message.getFieldWithDefault(msg, 7, ""),
-    platform: jspb.Message.getFieldWithDefault(msg, 8, 0)
+    publisherid: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    path: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    dicorveryid: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    repositoryid: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    description: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    keywordsList: (f = jspb.Message.getRepeatedField(msg, 7)) == null ? undefined : f,
+    version: jspb.Message.getFieldWithDefault(msg, 8, ""),
+    platform: jspb.Message.getFieldWithDefault(msg, 9, 0)
   };
 
   if (includeInstance) {
@@ -2216,29 +2217,33 @@ proto.admin.PublishServiceRequest.deserializeBinaryFromReader = function(msg, re
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
-      msg.setPath(value);
+      msg.setPublisherid(value);
       break;
     case 3:
       var value = /** @type {string} */ (reader.readString());
-      msg.setDicorveryid(value);
+      msg.setPath(value);
       break;
     case 4:
       var value = /** @type {string} */ (reader.readString());
-      msg.setRepositoryid(value);
+      msg.setDicorveryid(value);
       break;
     case 5:
       var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
+      msg.setRepositoryid(value);
       break;
     case 6:
       var value = /** @type {string} */ (reader.readString());
-      msg.addKeywords(value);
+      msg.setDescription(value);
       break;
     case 7:
       var value = /** @type {string} */ (reader.readString());
-      msg.setVersion(value);
+      msg.addKeywords(value);
       break;
     case 8:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setVersion(value);
+      break;
+    case 9:
       var value = /** @type {!proto.admin.Platform} */ (reader.readEnum());
       msg.setPlatform(value);
       break;
@@ -2278,52 +2283,59 @@ proto.admin.PublishServiceRequest.serializeBinaryToWriter = function(message, wr
       f
     );
   }
-  f = message.getPath();
+  f = message.getPublisherid();
   if (f.length > 0) {
     writer.writeString(
       2,
       f
     );
   }
-  f = message.getDicorveryid();
+  f = message.getPath();
   if (f.length > 0) {
     writer.writeString(
       3,
       f
     );
   }
-  f = message.getRepositoryid();
+  f = message.getDicorveryid();
   if (f.length > 0) {
     writer.writeString(
       4,
       f
     );
   }
-  f = message.getDescription();
+  f = message.getRepositoryid();
   if (f.length > 0) {
     writer.writeString(
       5,
       f
     );
   }
+  f = message.getDescription();
+  if (f.length > 0) {
+    writer.writeString(
+      6,
+      f
+    );
+  }
   f = message.getKeywordsList();
   if (f.length > 0) {
     writer.writeRepeatedString(
-      6,
+      7,
       f
     );
   }
   f = message.getVersion();
   if (f.length > 0) {
     writer.writeString(
-      7,
+      8,
       f
     );
   }
   f = message.getPlatform();
   if (f !== 0.0) {
     writer.writeEnum(
-      8,
+      9,
       f
     );
   }
@@ -2346,77 +2358,92 @@ proto.admin.PublishServiceRequest.prototype.setServiceid = function(value) {
 
 
 /**
- * optional string path = 2;
+ * optional string publisherId = 2;
  * @return {string}
  */
-proto.admin.PublishServiceRequest.prototype.getPath = function() {
+proto.admin.PublishServiceRequest.prototype.getPublisherid = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /** @param {string} value */
-proto.admin.PublishServiceRequest.prototype.setPath = function(value) {
+proto.admin.PublishServiceRequest.prototype.setPublisherid = function(value) {
   jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
 /**
- * optional string dicorveryId = 3;
+ * optional string path = 3;
  * @return {string}
  */
-proto.admin.PublishServiceRequest.prototype.getDicorveryid = function() {
+proto.admin.PublishServiceRequest.prototype.getPath = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /** @param {string} value */
-proto.admin.PublishServiceRequest.prototype.setDicorveryid = function(value) {
+proto.admin.PublishServiceRequest.prototype.setPath = function(value) {
   jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
 /**
- * optional string repositoryId = 4;
+ * optional string dicorveryId = 4;
  * @return {string}
  */
-proto.admin.PublishServiceRequest.prototype.getRepositoryid = function() {
+proto.admin.PublishServiceRequest.prototype.getDicorveryid = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
 /** @param {string} value */
-proto.admin.PublishServiceRequest.prototype.setRepositoryid = function(value) {
+proto.admin.PublishServiceRequest.prototype.setDicorveryid = function(value) {
   jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
 /**
- * optional string description = 5;
+ * optional string repositoryId = 5;
  * @return {string}
  */
-proto.admin.PublishServiceRequest.prototype.getDescription = function() {
+proto.admin.PublishServiceRequest.prototype.getRepositoryid = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
 };
 
 
 /** @param {string} value */
-proto.admin.PublishServiceRequest.prototype.setDescription = function(value) {
+proto.admin.PublishServiceRequest.prototype.setRepositoryid = function(value) {
   jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
 /**
- * repeated string keywords = 6;
+ * optional string description = 6;
+ * @return {string}
+ */
+proto.admin.PublishServiceRequest.prototype.getDescription = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/** @param {string} value */
+proto.admin.PublishServiceRequest.prototype.setDescription = function(value) {
+  jspb.Message.setProto3StringField(this, 6, value);
+};
+
+
+/**
+ * repeated string keywords = 7;
  * @return {!Array<string>}
  */
 proto.admin.PublishServiceRequest.prototype.getKeywordsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 6));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 7));
 };
 
 
 /** @param {!Array<string>} value */
 proto.admin.PublishServiceRequest.prototype.setKeywordsList = function(value) {
-  jspb.Message.setField(this, 6, value || []);
+  jspb.Message.setField(this, 7, value || []);
 };
 
 
@@ -2425,7 +2452,7 @@ proto.admin.PublishServiceRequest.prototype.setKeywordsList = function(value) {
  * @param {number=} opt_index
  */
 proto.admin.PublishServiceRequest.prototype.addKeywords = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 6, value, opt_index);
+  jspb.Message.addToRepeatedField(this, 7, value, opt_index);
 };
 
 
@@ -2438,32 +2465,32 @@ proto.admin.PublishServiceRequest.prototype.clearKeywordsList = function() {
 
 
 /**
- * optional string version = 7;
+ * optional string version = 8;
  * @return {string}
  */
 proto.admin.PublishServiceRequest.prototype.getVersion = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 7, ""));
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 8, ""));
 };
 
 
 /** @param {string} value */
 proto.admin.PublishServiceRequest.prototype.setVersion = function(value) {
-  jspb.Message.setProto3StringField(this, 7, value);
+  jspb.Message.setProto3StringField(this, 8, value);
 };
 
 
 /**
- * optional Platform platform = 8;
+ * optional Platform platform = 9;
  * @return {!proto.admin.Platform}
  */
 proto.admin.PublishServiceRequest.prototype.getPlatform = function() {
-  return /** @type {!proto.admin.Platform} */ (jspb.Message.getFieldWithDefault(this, 8, 0));
+  return /** @type {!proto.admin.Platform} */ (jspb.Message.getFieldWithDefault(this, 9, 0));
 };
 
 
 /** @param {!proto.admin.Platform} value */
 proto.admin.PublishServiceRequest.prototype.setPlatform = function(value) {
-  jspb.Message.setProto3EnumField(this, 8, value);
+  jspb.Message.setProto3EnumField(this, 9, value);
 };
 
 

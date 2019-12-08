@@ -86,6 +86,9 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 	}
 
 	// Use the local server side to to get service configuration.
+	if Utility.IsLocal(address) {
+		address = "localhost"
+	}
 	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 
 	if err != nil {

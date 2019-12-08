@@ -470,7 +470,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	// test if the service is distant or not.
 	if !Utility.IsLocal(s["Domain"].(string)) {
 		return -1, -1, errors.New("Can not start a distant service localy!")
-
 	}
 
 	// set the domain of the service.

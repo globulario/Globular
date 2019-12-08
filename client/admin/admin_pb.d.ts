@@ -234,6 +234,9 @@ export class PublishServiceRequest extends jspb.Message {
   getServiceid(): string;
   setServiceid(value: string): void;
 
+  getPublisherid(): string;
+  setPublisherid(value: string): void;
+
   getPath(): string;
   setPath(value: string): void;
 
@@ -268,6 +271,7 @@ export class PublishServiceRequest extends jspb.Message {
 export namespace PublishServiceRequest {
   export type AsObject = {
     serviceid: string,
+    publisherid: string,
     path: string,
     dicorveryid: string,
     repositoryid: string,
