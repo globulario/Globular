@@ -2779,6 +2779,8 @@ func (self *Globule) Listen() {
 		self.Discoveries = append(self.Discoveries, self.Domain)
 	}
 
+	//log.Panicln(self.Domain)
+
 	// hub --> channels --> subscriber(list of uuid's)
 	subscribers := make(map[string]map[string][]string, 0)
 

@@ -145,6 +145,10 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 	var cc *grpc.ClientConn
 	var err error
 	if cc == nil {
+		address := client.GetAddress()
+		if Utility.IsLocal(client.GetDomain()) {
+			address = "localhost" + address[strings.Index(address, ":"):]
+		}
 		if client.HasTLS() {
 
 			log.Println("Secure client ", client.GetDomain(), client.GetName())
@@ -182,13 +186,13 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			})
 
 			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(client.GetAddress(), grpc.WithTransportCredentials(creds))
+			cc, err = grpc.Dial(address, grpc.WithTransportCredentials(creds))
 
 			if err != nil {
 				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
 			}
 		} else {
-			cc, err = grpc.Dial(client.GetAddress(), grpc.WithInsecure())
+			cc, err = grpc.Dial(address, grpc.WithInsecure())
 			if err != nil {
 				log.Fatalf("could not connect: %v", err)
 			}

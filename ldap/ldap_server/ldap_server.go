@@ -50,8 +50,7 @@ type connection struct {
 	User     string
 	Password string
 	Port     int32
-	// conn *LDAP.LDAPConnection
-	conn *LDAP.Conn
+	conn     *LDAP.Conn
 }
 
 type server struct {
