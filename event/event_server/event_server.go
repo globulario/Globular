@@ -84,6 +84,7 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
+	KeepAlive bool
 
 	// Use to sync event channel manipulation.
 	subscribe_events_chan   chan *SubscribeEvent
@@ -347,7 +348,11 @@ func main() {
 		go s_impl.run()
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				log.Fatalf("error opening file: %v", err)
+			}
+			defer f.Close()
 		}
 		log.Println(s_impl.Name + " grpc service is closed")
 	}()

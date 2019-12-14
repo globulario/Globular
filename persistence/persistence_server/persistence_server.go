@@ -74,6 +74,7 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
+	KeepAlive          bool
 
 	Connections map[string]connection
 

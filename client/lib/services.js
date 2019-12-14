@@ -171,7 +171,7 @@ exports.EventHub = EventHub;
  * application to get access to sql, ldap, persistence... service.
  */
 var Globular = /** @class */ (function () {
-    /** The */
+    /** The configuation. */
     function Globular(config) {
         // Keep the config...
         this.config = config;

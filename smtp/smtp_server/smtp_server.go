@@ -68,6 +68,7 @@ type server struct {
 	TLS                bool
 	PublisherId        string
 	KeepUpToDate       bool
+	KeepAlive          bool
 
 	// The map of connection...
 	Connections map[string]connection
@@ -430,7 +431,11 @@ func main() {
 
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				log.Fatalf("error opening file: %v", err)
+			}
+			defer f.Close()
 		}
 
 		log.Println(s_impl.Name + " grpc service is closed")

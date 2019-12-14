@@ -28,6 +28,7 @@ export interface IServiceConfig {
   Proxy: Number;
   TLS: Boolean;
   KeepUpToDate: Boolean;
+  KeepAlive: Boolean;
   PublisherId: string;
   Version: string;
 }
@@ -262,7 +263,7 @@ export class Globular {
   plcService_siemens: PlcServicePromiseClient | undefined;
   plcLinkService: PlcLinkServicePromiseClient | undefined;
 
-  /** The */
+  /** The configuation. */
   constructor(config: IConfig) {
     // Keep the config...
     this.config = config;

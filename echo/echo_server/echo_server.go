@@ -59,6 +59,7 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
+	KeepAlive          bool
 }
 
 // Create the configuration file if is not already exist.
@@ -198,7 +199,11 @@ func main() {
 		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				log.Fatalf("error opening file: %v", err)
+			}
+			defer f.Close()
 		}
 		log.Println(s_impl.Name + " grpc service is closed")
 	}()

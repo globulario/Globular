@@ -308,57 +308,64 @@ func install(g *Globule, path string) {
 	// install services...
 	for id, service := range g.Services {
 		s := service.(map[string]interface{})
-		name := s["Name"].(string)
-		// I will read the configuration file to have nessecary service information
-		// to be able to create the path.
-		configPath := dir + s["configPath"].(string)
-		if Utility.Exists(configPath) {
-			log.Println("install service ", name)
-			bytes, err := ioutil.ReadFile(configPath)
-			config := make(map[string]interface{}, 0)
-			json.Unmarshal(bytes, &config)
+		if s["Name"] != nil {
+			name := s["Name"].(string)
+			// I will read the configuration file to have nessecary service information
+			// to be able to create the path.
+			configPath := dir + s["configPath"].(string)
+			if Utility.Exists(configPath) {
+				log.Println("install service ", name)
+				bytes, err := ioutil.ReadFile(configPath)
+				config := make(map[string]interface{}, 0)
+				json.Unmarshal(bytes, &config)
 
-			if err == nil {
-				// set the name.
-				if config["PublisherId"] != nil && config["Version"] != nil {
-					var serviceDir = path + string(os.PathSeparator) + "globular_services"
-					if len(config["PublisherId"].(string)) == 0 {
-						serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
-					} else {
-						serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+				if err == nil {
+					// set the name.
+					if config["PublisherId"] != nil && config["Version"] != nil {
+						var serviceDir = path + string(os.PathSeparator) + "globular_services"
+						if len(config["PublisherId"].(string)) == 0 {
+							serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+						} else {
+							serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+						}
+						Utility.CreateDirIfNotExist(serviceDir)
+
+						execPath := dir + s["servicePath"].(string)
+						destPath := serviceDir + string(os.PathSeparator) + name
+						if string(os.PathSeparator) == "\\" {
+							execPath += ".exe" // in case of windows
+							destPath += ".exe"
+						}
+
+						err := Utility.Copy(execPath, destPath)
+						if err != nil {
+
+							log.Panicln(execPath, destPath, err)
+						}
+
+						// Set execute permission
+						err = os.Chmod(destPath, 0755)
+						if err != nil {
+							fmt.Println(err)
+						}
+
+						// Copy the service config file.
+						if Utility.Exists(configPath) {
+							Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
+						}
+
+						// Copy the proto file.
+						protoPath := dir + s["protoPath"].(string)
+						if Utility.Exists(protoPath) {
+							Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
+						}
+
+						// Copy the schema file.
+						schemaPath := dir + s["schemaPath"].(string)
+						if Utility.Exists(schemaPath) {
+							Utility.Copy(schemaPath, serviceDir+string(os.PathSeparator)+schemaPath[strings.LastIndex(schemaPath, "/"):])
+						}
 					}
-					Utility.CreateDirIfNotExist(serviceDir)
-
-					execPath := dir + s["servicePath"].(string)
-					destPath := serviceDir + string(os.PathSeparator) + name
-					if string(os.PathSeparator) == "\\" {
-						execPath += ".exe" // in case of windows
-						destPath += ".exe"
-					}
-
-					err := Utility.Copy(execPath, destPath)
-					if err != nil {
-
-						log.Panicln(execPath, destPath, err)
-					}
-
-					// Set execute permission
-					err = os.Chmod(destPath, 0755)
-					if err != nil {
-						fmt.Println(err)
-					}
-
-					// Copy the service config file.
-					if Utility.Exists(configPath) {
-						Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
-					}
-
-					// Copy the proto file.
-					protoPath := dir + s["protoPath"].(string)
-					if Utility.Exists(protoPath) {
-						Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
-					}
-
 				} else {
 					log.Println("service", id, "configuration is incomplete!")
 				}

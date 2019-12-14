@@ -463,6 +463,23 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 }
 
 /**
+ * That function will
+ */
+func (self *Globule) keepServiceAlive(s map[string]interface{}) {
+	// In case the service must not be kept alive.
+	if !s["KeepAlive"].(bool) {
+		return
+	}
+
+	s["Process"].(*exec.Cmd).Wait()
+	time.Sleep(time.Second * 10)
+	_, _, err := self.startService(s)
+	if err != nil {
+		return
+	}
+}
+
+/**
  * Start a local service.
  */
 func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
@@ -480,7 +497,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	if srv != nil {
 		if srv.(map[string]interface{})["Process"] != nil {
 			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
-				srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+				if srv.(map[string]interface{})["Process"].(*exec.Cmd).Process != nil {
+					srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+				}
 			}
 		}
 	}
@@ -524,6 +543,10 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
+		go func() {
+			self.keepServiceAlive(s)
+		}()
+
 		if err != nil {
 			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
@@ -554,6 +577,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			Utility.KillProcessByName(s["Name"].(string))
 			log.Println("try to start process ", s["Name"].(string))
 			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
+
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
 				log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
@@ -565,8 +589,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 	}
 
+	if s["Process"].(*exec.Cmd).Process == nil {
+		return -1, -1, errors.New("Fail to start process " + s["Name"].(string))
+	}
+
 	// Return the pid of the service.
 	if s["ProxyProcess"] != nil {
+
 		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
 	}
 
@@ -626,6 +655,7 @@ func (self *Globule) initServices() {
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
 
+	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
 	if !Utility.Exists(configPath) {
 		// Each service contain a file name config.json that describe service.
@@ -649,14 +679,11 @@ func (self *Globule) initServices() {
 							// otherwise the service configuration file will be use.
 							path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
 							s["Id"] = s["Name"].(string)
-							servicePath := path_ + string(os.PathSeparator) + s["Name"].(string)
-							strings.Index(servicePath, self.path)
 
-							s["servicePath"] = strings.Replace(strings.Replace(servicePath, self.path, "", -1), "\\", "/", -1)
-
+							s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
 							s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+							s["schemaPath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+"schema.json", self.path, "", -1), "\\", "/", -1)
 
-							log.Println("--> set service ", s["Name"])
 							self.Services[s["Name"].(string)] = s
 
 						} else {
@@ -1169,6 +1196,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 		s["Version"] = service_config.(map[string]interface{})["Version"]
 		s["PublisherId"] = service_config.(map[string]interface{})["PublisherId"]
 		s["KeepUpToDate"] = service_config.(map[string]interface{})["KeepUpToDate"]
+		s["KeepAlive"] = service_config.(map[string]interface{})["KeepAlive"]
 		config["Services"].(map[string]interface{})[name] = s
 	}
 
@@ -1587,6 +1615,7 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
 			config["protoPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
 			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
+			config["schemaPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"schema.json", string(os.PathSeparator), "/")
 
 			// Here I will append the execute permission to the service file.
 
@@ -2929,7 +2958,11 @@ func (self *Globule) Listen() {
 			go func() {
 				// no web-rpc server.
 				if err := admin_server.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
+					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+					if err != nil {
+						log.Fatalf("error opening file: %v", err)
+					}
+					defer f.Close()
 				}
 				log.Println("Adim grpc service is closed")
 			}()
@@ -2960,7 +2993,11 @@ func (self *Globule) Listen() {
 
 				// no web-rpc server.
 				if err := ressource_server.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
+					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+					if err != nil {
+						log.Fatalf("error opening file: %v", err)
+					}
+					defer f.Close()
 				}
 				log.Println("Adim grpc service is closed")
 			}()
@@ -2989,7 +3026,11 @@ func (self *Globule) Listen() {
 
 				// no web-rpc server.
 				if err := services_discovery_server.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
+					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+					if err != nil {
+						log.Fatalf("error opening file: %v", err)
+					}
+					defer f.Close()
 				}
 				log.Println("services discovery grpc service is closed")
 			}()
@@ -3018,7 +3059,11 @@ func (self *Globule) Listen() {
 
 				// no web-rpc server.
 				if err := services_repository_server.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
+					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+					if err != nil {
+						log.Fatalf("error opening file: %v", err)
+					}
+					defer f.Close()
 				}
 				log.Println("services repository grpc service is closed")
 			}()
@@ -3047,7 +3092,11 @@ func (self *Globule) Listen() {
 
 				// no web-rpc server.
 				if err := certificate_authority_server.Serve(lis); err != nil {
-					log.Fatalf("failed to serve: %v", err)
+					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+					if err != nil {
+						log.Fatalf("error opening file: %v", err)
+					}
+					defer f.Close()
 				}
 				log.Println("services repository grpc service is closed")
 			}()
