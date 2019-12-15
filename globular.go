@@ -543,11 +543,14 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
+
+		s["State"] = "running"
 		go func() {
 			self.keepServiceAlive(s)
 		}()
 
 		if err != nil {
+			s["State"] = "fail"
 			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
@@ -581,8 +584,10 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
 				log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+				s["State"] = "fail"
 				return -1, -1, err
 			}
+			s["State"] = "running"
 			self.Services[s["Id"].(string)] = s
 
 			return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
@@ -590,12 +595,12 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	}
 
 	if s["Process"].(*exec.Cmd).Process == nil {
+		s["State"] = "fail"
 		return -1, -1, errors.New("Fail to start process " + s["Name"].(string))
 	}
 
 	// Return the pid of the service.
 	if s["ProxyProcess"] != nil {
-
 		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
 	}
 
@@ -1118,7 +1123,7 @@ func (self *Globule) initClients() {
 	Utility.RegisterFunction("NewMonitoring_Client", monitoring_client.NewMonitoring_Client)
 	Utility.RegisterFunction("NewDns_Client", dns_client.NewDns_Client)
 
-	// That service is program in c++
+	// Those services are written in c++
 	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)
 	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
 }
@@ -1197,6 +1202,9 @@ func (self *Globule) getConfig() map[string]interface{} {
 		s["PublisherId"] = service_config.(map[string]interface{})["PublisherId"]
 		s["KeepUpToDate"] = service_config.(map[string]interface{})["KeepUpToDate"]
 		s["KeepAlive"] = service_config.(map[string]interface{})["KeepAlive"]
+		s["State"] = service_config.(map[string]interface{})["State"]
+		s["Id"] = name
+		s["Name"] = service_config.(map[string]interface{})["Name"]
 		config["Services"].(map[string]interface{})[name] = s
 	}
 
@@ -1860,10 +1868,16 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 }
 
 func (self *Globule) stopService(serviceId string) error {
+	if (self.Services[serviceId]) == nil {
+		return errors.New("no service with id " + serviceId + " is define on the server!")
+	}
 	s := self.Services[serviceId].(map[string]interface{})
 	if s == nil {
 		return errors.New("No service found with id " + serviceId)
 	}
+
+	// Set keep alive to false...
+	s["KeepAlive"] = false
 
 	if s["Process"] == nil {
 		return errors.New("No process running")
@@ -3128,16 +3142,16 @@ func (self *Globule) Listen() {
 
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
-			if !Utility.IsLocal(self.Domain) {
-				// I need to remove the gRPC certificate and recreate it.
-				Utility.RemoveDirContents(self.creds)
-				self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
-				self.initServices() // must restart the services with new certificates.
-				err := self.ObtainCertificateForCsr()
-				if err != nil {
-					log.Panicln(err)
-				}
+
+			// I need to remove the gRPC certificate and recreate it.
+			Utility.RemoveDirContents(self.creds)
+			self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
+			self.initServices() // must restart the services with new certificates.
+			err := self.ObtainCertificateForCsr()
+			if err != nil {
+				log.Panicln(err)
 			}
+
 		}
 
 		// Start https server.

@@ -22,7 +22,9 @@ import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event } from './e
  * The service configuration information.
  */
 export interface IServiceConfig {
+  Id: string;
   Name: string;
+  State: string;
   Domain: string;
   Port: Number;
   Proxy: Number;

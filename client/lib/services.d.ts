@@ -19,7 +19,9 @@ import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
  * The service configuration information.
  */
 export interface IServiceConfig {
+    Id: string;
     Name: string;
+    State: string;
     Domain: string;
     Port: Number;
     Proxy: Number;
