@@ -24,9 +24,86 @@ export namespace Event {
   }
 }
 
+export class QuitRequest extends jspb.Message {
+  getUuid(): string;
+  setUuid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): QuitRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: QuitRequest): QuitRequest.AsObject;
+  static serializeBinaryToWriter(message: QuitRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): QuitRequest;
+  static deserializeBinaryFromReader(message: QuitRequest, reader: jspb.BinaryReader): QuitRequest;
+}
+
+export namespace QuitRequest {
+  export type AsObject = {
+    uuid: string,
+  }
+}
+
+export class QuitResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): QuitResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: QuitResponse): QuitResponse.AsObject;
+  static serializeBinaryToWriter(message: QuitResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): QuitResponse;
+  static deserializeBinaryFromReader(message: QuitResponse, reader: jspb.BinaryReader): QuitResponse;
+}
+
+export namespace QuitResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class OnEventRequest extends jspb.Message {
+  getUuid(): string;
+  setUuid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): OnEventRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: OnEventRequest): OnEventRequest.AsObject;
+  static serializeBinaryToWriter(message: OnEventRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): OnEventRequest;
+  static deserializeBinaryFromReader(message: OnEventRequest, reader: jspb.BinaryReader): OnEventRequest;
+}
+
+export namespace OnEventRequest {
+  export type AsObject = {
+    uuid: string,
+  }
+}
+
+export class OnEventResponse extends jspb.Message {
+  getEvt(): Event | undefined;
+  setEvt(value?: Event): void;
+  hasEvt(): boolean;
+  clearEvt(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): OnEventResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: OnEventResponse): OnEventResponse.AsObject;
+  static serializeBinaryToWriter(message: OnEventResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): OnEventResponse;
+  static deserializeBinaryFromReader(message: OnEventResponse, reader: jspb.BinaryReader): OnEventResponse;
+}
+
+export namespace OnEventResponse {
+  export type AsObject = {
+    evt?: Event.AsObject,
+  }
+}
+
 export class SubscribeRequest extends jspb.Message {
   getName(): string;
   setName(value: string): void;
+
+  getUuid(): string;
+  setUuid(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): SubscribeRequest.AsObject;
@@ -39,19 +116,13 @@ export class SubscribeRequest extends jspb.Message {
 export namespace SubscribeRequest {
   export type AsObject = {
     name: string,
+    uuid: string,
   }
 }
 
 export class SubscribeResponse extends jspb.Message {
-  getEvt(): Event | undefined;
-  setEvt(value?: Event): void;
-  hasEvt(): boolean;
-  clearEvt(): void;
-
-  getUuid(): string;
-  setUuid(value: string): void;
-
-  getResultCase(): SubscribeResponse.ResultCase;
+  getResult(): boolean;
+  setResult(value: boolean): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): SubscribeResponse.AsObject;
@@ -63,14 +134,7 @@ export class SubscribeResponse extends jspb.Message {
 
 export namespace SubscribeResponse {
   export type AsObject = {
-    evt?: Event.AsObject,
-    uuid: string,
-  }
-
-  export enum ResultCase { 
-    RESULT_NOT_SET = 0,
-    EVT = 1,
-    UUID = 2,
+    result: boolean,
   }
 }
 

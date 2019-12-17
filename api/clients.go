@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Utility"
+	// "github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -85,10 +85,6 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 		Timeout: 5 * time.Second,
 	}
 
-	// Use the local server side to to get service configuration.
-	if Utility.IsLocal(address) {
-		address = "localhost"
-	}
 	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 
 	if err != nil {
@@ -146,9 +142,6 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 	var err error
 	if cc == nil {
 		address := client.GetAddress()
-		if Utility.IsLocal(client.GetDomain()) {
-			address = "localhost" + address[strings.Index(address, ":"):]
-		}
 		if client.HasTLS() {
 
 			log.Println("Secure client ", client.GetDomain(), client.GetName())
@@ -209,10 +202,6 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directory
 	domain := client.GetDomain()
-	if Utility.IsLocal(domain) {
-		domain = "localhost"
-	}
-
 	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
 	token, err := ioutil.ReadFile(path)
 	if err == nil {

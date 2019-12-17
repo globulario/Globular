@@ -1,8 +1,12 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
+  OnEventRequest,
+  OnEventResponse,
   PublishRequest,
   PublishResponse,
+  QuitRequest,
+  QuitResponse,
   SubscribeRequest,
   SubscribeResponse,
   UnSubscribeRequest,
@@ -10,12 +14,26 @@ import {
 
 export class EventServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
+
+  onEvent(
+    request: OnEventRequest,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<OnEventResponse>;
+
+  quit(
+    request: QuitRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: QuitResponse) => void
+  ): grpcWeb.ClientReadableStream<QuitResponse>;
 
   subscribe(
     request: SubscribeRequest,
-    metadata?: grpcWeb.Metadata
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SubscribeResponse) => void
   ): grpcWeb.ClientReadableStream<SubscribeResponse>;
 
   unSubscribe(
@@ -36,13 +54,23 @@ export class EventServiceClient {
 
 export class EventServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
+
+  onEvent(
+    request: OnEventRequest,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<OnEventResponse>;
+
+  quit(
+    request: QuitRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<QuitResponse>;
 
   subscribe(
     request: SubscribeRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<SubscribeResponse>;
+  ): Promise<SubscribeResponse>;
 
   unSubscribe(
     request: UnSubscribeRequest,

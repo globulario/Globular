@@ -11,15 +11,29 @@ message Event{
 	bytes data = 2; // must be anything...
 }
 
+message QuitRequest{
+	string uuid = 1;
+}
+
+message QuitResponse{
+	bool result = 1;
+}
+
+message OnEventRequest{
+	string uuid = 1;
+}
+
+message OnEventResponse{
+	Event evt = 1;
+}
+
 message SubscribeRequest {
   string name = 1; // the event Topic.
+  string uuid = 2; // the subscriber uuid
 }
 
 message SubscribeResponse {
-	oneof result {
-	  Event evt = 1; // Event receive from channel.
-	  string uuid = 2; // the subscriber uuid.
-	}
+  bool result = 1;
 }
 
 message UnSubscribeRequest {
@@ -43,9 +57,15 @@ message PublishResponse{
  * A gRpc event bus.
  */
 service EventService {
+  // One stream by client.
+  rpc OnEvent(OnEventRequest) returns (stream OnEventResponse) {};
+
+  // Return from OnEvent.
+  rpc Quit(QuitRequest) returns (QuitResponse){};
+
   // Connect to an event channel or create it if it not already exist
   // and stay in that function until UnSubscribe is call.
-  rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {};
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse) {};
 
   // Disconnect to an event channel.(Return from Subscribe)
   rpc UnSubscribe(UnSubscribeRequest) returns (UnSubscribeResponse) {};

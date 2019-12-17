@@ -70,9 +70,10 @@ export interface IConfig {
  * That local and distant event hub.
  */
 export declare class EventHub {
-    readonly service: any;
-    readonly subscribers: any;
-    readonly subscriptions: any;
+    private service;
+    private subscribers;
+    private subscriptions;
+    private uuid;
     /**
      * @param {*} service If undefined only local event will be allow.
      */
@@ -82,7 +83,7 @@ export declare class EventHub {
      * @param {*} onsubscribe That function return the uuid of the subscriber.
      * @param {*} onevent That function is call when the event is use.
      */
-    subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: (data: any) => any): void;
+    subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: (data: any) => any, local: boolean): void;
     /**
      *
      * @param {*} name

@@ -28,6 +28,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/davecourtois/Globular/event/eventpb"
+
 	"github.com/davecourtois/Globular/api"
 
 	// Admin service
@@ -408,8 +410,8 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// Use in a local network or in test.
 	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-
-	if srv.(map[string]interface{})["TLS"].(bool) == true {
+	hasTls := Utility.ToBool(srv.(map[string]interface{})["TLS"])
+	if hasTls == true {
 		log.Println("---> start secure service: ", srv.(map[string]interface{})["Name"])
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
@@ -467,7 +469,8 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
  */
 func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 	// In case the service must not be kept alive.
-	if !s["KeepAlive"].(bool) {
+	keepAlive := Utility.ToBool(s["KeepAlive"])
+	if !keepAlive {
 		return
 	}
 
@@ -510,8 +513,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		if self.clients[s["Name"].(string)+"_service"] != nil {
 			self.clients[s["Name"].(string)+"_service"].Close()
 		}
-
-		if s["TLS"].(bool) {
+		hasTls := Utility.ToBool(s["TLS"])
+		if hasTls {
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
@@ -617,7 +620,8 @@ func (self *Globule) initService(s map[string]interface{}) error {
 
 	if s["Protocol"].(string) == "grpc" {
 		// The domain must be set in the sever configuration and not change after that.
-		if s["TLS"].(bool) {
+		hasTls := Utility.ToBool(s["TLS"])
+		if hasTls {
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
@@ -1899,7 +1903,9 @@ func (self *Globule) stopService(serviceId string) error {
 		}
 	}
 
-	time.Sleep(2 * time.Second)
+	s["State"] = "stopped"
+
+	log.Println("stop service", s["Name"])
 
 	return nil
 }
@@ -2278,7 +2284,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested ressource.
 func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
-	log.Println("---> authenticate: ", rqst.Name)
+
 	// Get the persistence connection
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -2509,7 +2515,7 @@ func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServic
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-	log.Println("----------> 2460 retreived services: ", data)
+
 	descriptors := make([]*services.ServiceDescriptor, 0)
 	err = json.Unmarshal([]byte(data), &descriptors)
 
@@ -2523,7 +2529,6 @@ func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServic
 	return &services.FindServicesDescriptorResponse{
 		Results: descriptors,
 	}, nil
-
 }
 
 //* Return the list of all services *
@@ -2822,15 +2827,11 @@ func (self *Globule) Listen() {
 		self.Discoveries = append(self.Discoveries, self.Domain)
 	}
 
-	//log.Panicln(self.Domain)
-
-	// hub --> channels --> subscriber(list of uuid's)
 	subscribers := make(map[string]map[string][]string, 0)
 
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		eventHub := event_client.NewEvent_Client(self.Discoveries[i], "event_server")
-		data_chan := make(chan []byte)
 		subscribers[self.Discoveries[i]] = make(map[string][]string)
 		for _, s := range self.Services {
 			if s.(map[string]interface{})["PublisherId"] != nil {
@@ -2839,34 +2840,26 @@ func (self *Globule) Listen() {
 					subscribers[self.Discoveries[i]][id] = make([]string, 0)
 				}
 				// each channel has it event...
-				uuid, err := eventHub.Subscribe(id, data_chan)
-				subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
-				if err == nil {
-					go func() {
-						for {
-							select {
-							case msg := <-data_chan:
-								descriptor := new(services.ServiceDescriptor)
-								json.Unmarshal(msg, descriptor)
-								// here I will update the service if it's version is lower
-								for _, s := range self.Services {
-									service := s.(map[string]interface{})
-									if service["PublisherId"] != nil {
-										if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
-											if service["KeepUpToDate"] != nil {
-												if service["KeepUpToDate"].(bool) {
-													// Test if update is needed...
-													if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
-														if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
-															if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-																self.stopService(service["Id"].(string))
-																delete(self.Services, service["Id"].(string))
-																err = self.installService(descriptor)
-																if err != nil {
-																	log.Println("---> fail to install service ", err)
-																}
-															}
-														}
+				uuid := Utility.RandomUUID()
+				fct := func(evt *eventpb.Event) {
+					descriptor := new(services.ServiceDescriptor)
+					json.Unmarshal(evt.GetData(), descriptor)
+					// here I will update the service if it's version is lower
+					for _, s := range self.Services {
+						service := s.(map[string]interface{})
+						if service["PublisherId"] != nil {
+							if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
+								if service["KeepUpToDate"] != nil {
+									if service["KeepUpToDate"].(bool) {
+										// Test if update is needed...
+										if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
+											if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
+												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
+													self.stopService(service["Id"].(string))
+													delete(self.Services, service["Id"].(string))
+													err := self.installService(descriptor)
+													if err != nil {
+														log.Println("---> fail to install service ", err)
 													}
 												}
 											}
@@ -2875,12 +2868,13 @@ func (self *Globule) Listen() {
 								}
 							}
 						}
-					}()
-				} else {
-					log.Println("--> fail to connect to event channel", id, err)
+					}
 				}
-			}
 
+				// So here I will subscribe to service update event.
+				eventHub.Subscribe(id, uuid, fct)
+				subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+			}
 		}
 		// keep on memorie...
 		self.discorveriesEventHub[self.Discoveries[i]] = eventHub

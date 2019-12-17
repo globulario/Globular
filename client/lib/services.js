@@ -45,59 +45,68 @@ var EventHub = /** @class */ (function () {
      * @param {*} service If undefined only local event will be allow.
      */
     function EventHub(service) {
+        var _this = this;
         // The network event bus.
         this.service = service;
         // Subscriber function map.
         this.subscribers = {};
         // Subscription name/uuid's maps
         this.subscriptions = {};
+        // This is the client uuid
+        this.uuid = randomUUID();
+        // Open the connection with the server.
+        if (this.service != undefined) {
+            // The first step is to subscribe to an event channel.
+            var rqst = new event_pb_1.OnEventRequest();
+            rqst.setUuid(this.uuid);
+            var stream = this.service.onEvent(rqst, {});
+            // Get the stream and set event on it...
+            stream.on('data', function (rsp) {
+                var evt = rsp.getEvt();
+                var data = new TextDecoder("utf-8").decode(evt.getData());
+                // dispatch the event localy.
+                _this.dispatch(evt.getName(), data);
+            });
+            stream.on('status', function (status) {
+                if (status.code == 0) {
+                    /** Nothing to do here. */
+                }
+            });
+            stream.on('end', function () {
+                // stream end signal
+                /** Nothing to do here. */
+            });
+        }
     }
     /**
      * @param {*} name The name of the event to subcribe to.
      * @param {*} onsubscribe That function return the uuid of the subscriber.
      * @param {*} onevent That function is call when the event is use.
      */
-    EventHub.prototype.subscribe = function (name, onsubscribe, onevent) {
+    EventHub.prototype.subscribe = function (name, onsubscribe, onevent, local) {
+        var _this = this;
         // Register the local subscriber.
         var uuid = randomUUID();
-        if (this.subscribers[name] == undefined) {
-            this.subscribers[name] = {};
-            if (this.service != undefined) {
-                // The first step is to subscribe to an event channel.
-                var rqst = new event_pb_1.SubscribeRequest();
-                rqst.setName(name);
-                if (this.service != null) {
-                    var stream = this.service.subscribe(rqst, {});
-                    // Get the stream and set event on it...
-                    stream.on('data', function (hub, name) {
-                        return function (rsp) {
-                            if (rsp.hasUuid()) {
-                                hub.subscriptions[name] = rsp.getUuid();
-                            }
-                            else if (rsp.hasEvt()) {
-                                var evt = rsp.getEvt();
-                                var data = new TextDecoder("utf-8").decode(evt.getData());
-                                // dispatch the event localy.
-                                hub.dispatch(name, data);
-                            }
-                        };
-                    }(this, name));
-                    stream.on('status', function (status) {
-                        if (status.code == 0) {
-                            /** Nothing to do here. */
-                        }
-                    });
-                    stream.on('end', function () {
-                        // stream end signal
-                        /** Nothing to do here. */
-                    });
+        if (!local) {
+            var rqst = new event_pb_1.SubscribeRequest;
+            rqst.setName(name);
+            rqst.setUuid(this.uuid);
+            this.service.subscribe(rqst).then(function (rsp) {
+                if (_this.subscribers[name] == undefined) {
+                    _this.subscribers[name] = {};
                 }
-            }
+                _this.subscribers[name][uuid] = onevent;
+                onsubscribe(uuid);
+            });
         }
-        // Set the event callback function.
-        this.subscribers[name][uuid] = onevent;
-        // call on subscribe call back.
-        onsubscribe(uuid);
+        else {
+            // create a uuid and call onsubscribe callback.
+            if (this.subscribers[name] == undefined) {
+                this.subscribers[name] = {};
+            }
+            this.subscribers[name][uuid] = onevent;
+            onsubscribe(uuid);
+        }
     };
     /**
      *
@@ -134,7 +143,7 @@ var EventHub = /** @class */ (function () {
      * @param {*} local If the event is not local the data must be seraliaze before sent.
      */
     EventHub.prototype.publish = function (name, data, local) {
-        if (this.service == undefined || local) {
+        if (local == true) {
             this.dispatch(name, data);
         }
         else {

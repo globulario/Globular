@@ -71,8 +71,165 @@ func (m *Event) GetData() []byte {
 	return nil
 }
 
+type QuitRequest struct {
+	Uuid                 string   `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *QuitRequest) Reset()         { *m = QuitRequest{} }
+func (m *QuitRequest) String() string { return proto.CompactTextString(m) }
+func (*QuitRequest) ProtoMessage()    {}
+func (*QuitRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7c88e0126701e74a, []int{1}
+}
+
+func (m *QuitRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_QuitRequest.Unmarshal(m, b)
+}
+func (m *QuitRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_QuitRequest.Marshal(b, m, deterministic)
+}
+func (m *QuitRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QuitRequest.Merge(m, src)
+}
+func (m *QuitRequest) XXX_Size() int {
+	return xxx_messageInfo_QuitRequest.Size(m)
+}
+func (m *QuitRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QuitRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QuitRequest proto.InternalMessageInfo
+
+func (m *QuitRequest) GetUuid() string {
+	if m != nil {
+		return m.Uuid
+	}
+	return ""
+}
+
+type QuitResponse struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *QuitResponse) Reset()         { *m = QuitResponse{} }
+func (m *QuitResponse) String() string { return proto.CompactTextString(m) }
+func (*QuitResponse) ProtoMessage()    {}
+func (*QuitResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7c88e0126701e74a, []int{2}
+}
+
+func (m *QuitResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_QuitResponse.Unmarshal(m, b)
+}
+func (m *QuitResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_QuitResponse.Marshal(b, m, deterministic)
+}
+func (m *QuitResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QuitResponse.Merge(m, src)
+}
+func (m *QuitResponse) XXX_Size() int {
+	return xxx_messageInfo_QuitResponse.Size(m)
+}
+func (m *QuitResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QuitResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QuitResponse proto.InternalMessageInfo
+
+func (m *QuitResponse) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type OnEventRequest struct {
+	Uuid                 string   `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *OnEventRequest) Reset()         { *m = OnEventRequest{} }
+func (m *OnEventRequest) String() string { return proto.CompactTextString(m) }
+func (*OnEventRequest) ProtoMessage()    {}
+func (*OnEventRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7c88e0126701e74a, []int{3}
+}
+
+func (m *OnEventRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_OnEventRequest.Unmarshal(m, b)
+}
+func (m *OnEventRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_OnEventRequest.Marshal(b, m, deterministic)
+}
+func (m *OnEventRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OnEventRequest.Merge(m, src)
+}
+func (m *OnEventRequest) XXX_Size() int {
+	return xxx_messageInfo_OnEventRequest.Size(m)
+}
+func (m *OnEventRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_OnEventRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_OnEventRequest proto.InternalMessageInfo
+
+func (m *OnEventRequest) GetUuid() string {
+	if m != nil {
+		return m.Uuid
+	}
+	return ""
+}
+
+type OnEventResponse struct {
+	Evt                  *Event   `protobuf:"bytes,1,opt,name=evt,proto3" json:"evt,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *OnEventResponse) Reset()         { *m = OnEventResponse{} }
+func (m *OnEventResponse) String() string { return proto.CompactTextString(m) }
+func (*OnEventResponse) ProtoMessage()    {}
+func (*OnEventResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7c88e0126701e74a, []int{4}
+}
+
+func (m *OnEventResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_OnEventResponse.Unmarshal(m, b)
+}
+func (m *OnEventResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_OnEventResponse.Marshal(b, m, deterministic)
+}
+func (m *OnEventResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OnEventResponse.Merge(m, src)
+}
+func (m *OnEventResponse) XXX_Size() int {
+	return xxx_messageInfo_OnEventResponse.Size(m)
+}
+func (m *OnEventResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_OnEventResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_OnEventResponse proto.InternalMessageInfo
+
+func (m *OnEventResponse) GetEvt() *Event {
+	if m != nil {
+		return m.Evt
+	}
+	return nil
+}
+
 type SubscribeRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Uuid                 string   `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -82,7 +239,7 @@ func (m *SubscribeRequest) Reset()         { *m = SubscribeRequest{} }
 func (m *SubscribeRequest) String() string { return proto.CompactTextString(m) }
 func (*SubscribeRequest) ProtoMessage()    {}
 func (*SubscribeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{1}
+	return fileDescriptor_7c88e0126701e74a, []int{5}
 }
 
 func (m *SubscribeRequest) XXX_Unmarshal(b []byte) error {
@@ -110,21 +267,25 @@ func (m *SubscribeRequest) GetName() string {
 	return ""
 }
 
+func (m *SubscribeRequest) GetUuid() string {
+	if m != nil {
+		return m.Uuid
+	}
+	return ""
+}
+
 type SubscribeResponse struct {
-	// Types that are valid to be assigned to Result:
-	//	*SubscribeResponse_Evt
-	//	*SubscribeResponse_Uuid
-	Result               isSubscribeResponse_Result `protobuf_oneof:"result"`
-	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
-	XXX_unrecognized     []byte                     `json:"-"`
-	XXX_sizecache        int32                      `json:"-"`
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
 func (m *SubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*SubscribeResponse) ProtoMessage()    {}
 func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{2}
+	return fileDescriptor_7c88e0126701e74a, []int{6}
 }
 
 func (m *SubscribeResponse) XXX_Unmarshal(b []byte) error {
@@ -145,49 +306,11 @@ func (m *SubscribeResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SubscribeResponse proto.InternalMessageInfo
 
-type isSubscribeResponse_Result interface {
-	isSubscribeResponse_Result()
-}
-
-type SubscribeResponse_Evt struct {
-	Evt *Event `protobuf:"bytes,1,opt,name=evt,proto3,oneof"`
-}
-
-type SubscribeResponse_Uuid struct {
-	Uuid string `protobuf:"bytes,2,opt,name=uuid,proto3,oneof"`
-}
-
-func (*SubscribeResponse_Evt) isSubscribeResponse_Result() {}
-
-func (*SubscribeResponse_Uuid) isSubscribeResponse_Result() {}
-
-func (m *SubscribeResponse) GetResult() isSubscribeResponse_Result {
+func (m *SubscribeResponse) GetResult() bool {
 	if m != nil {
 		return m.Result
 	}
-	return nil
-}
-
-func (m *SubscribeResponse) GetEvt() *Event {
-	if x, ok := m.GetResult().(*SubscribeResponse_Evt); ok {
-		return x.Evt
-	}
-	return nil
-}
-
-func (m *SubscribeResponse) GetUuid() string {
-	if x, ok := m.GetResult().(*SubscribeResponse_Uuid); ok {
-		return x.Uuid
-	}
-	return ""
-}
-
-// XXX_OneofWrappers is for the internal use of the proto package.
-func (*SubscribeResponse) XXX_OneofWrappers() []interface{} {
-	return []interface{}{
-		(*SubscribeResponse_Evt)(nil),
-		(*SubscribeResponse_Uuid)(nil),
-	}
+	return false
 }
 
 type UnSubscribeRequest struct {
@@ -202,7 +325,7 @@ func (m *UnSubscribeRequest) Reset()         { *m = UnSubscribeRequest{} }
 func (m *UnSubscribeRequest) String() string { return proto.CompactTextString(m) }
 func (*UnSubscribeRequest) ProtoMessage()    {}
 func (*UnSubscribeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{3}
+	return fileDescriptor_7c88e0126701e74a, []int{7}
 }
 
 func (m *UnSubscribeRequest) XXX_Unmarshal(b []byte) error {
@@ -248,7 +371,7 @@ func (m *UnSubscribeResponse) Reset()         { *m = UnSubscribeResponse{} }
 func (m *UnSubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*UnSubscribeResponse) ProtoMessage()    {}
 func (*UnSubscribeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{4}
+	return fileDescriptor_7c88e0126701e74a, []int{8}
 }
 
 func (m *UnSubscribeResponse) XXX_Unmarshal(b []byte) error {
@@ -287,7 +410,7 @@ func (m *PublishRequest) Reset()         { *m = PublishRequest{} }
 func (m *PublishRequest) String() string { return proto.CompactTextString(m) }
 func (*PublishRequest) ProtoMessage()    {}
 func (*PublishRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{5}
+	return fileDescriptor_7c88e0126701e74a, []int{9}
 }
 
 func (m *PublishRequest) XXX_Unmarshal(b []byte) error {
@@ -326,7 +449,7 @@ func (m *PublishResponse) Reset()         { *m = PublishResponse{} }
 func (m *PublishResponse) String() string { return proto.CompactTextString(m) }
 func (*PublishResponse) ProtoMessage()    {}
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7c88e0126701e74a, []int{6}
+	return fileDescriptor_7c88e0126701e74a, []int{10}
 }
 
 func (m *PublishResponse) XXX_Unmarshal(b []byte) error {
@@ -356,6 +479,10 @@ func (m *PublishResponse) GetResult() bool {
 
 func init() {
 	proto.RegisterType((*Event)(nil), "event.Event")
+	proto.RegisterType((*QuitRequest)(nil), "event.QuitRequest")
+	proto.RegisterType((*QuitResponse)(nil), "event.QuitResponse")
+	proto.RegisterType((*OnEventRequest)(nil), "event.OnEventRequest")
+	proto.RegisterType((*OnEventResponse)(nil), "event.OnEventResponse")
 	proto.RegisterType((*SubscribeRequest)(nil), "event.SubscribeRequest")
 	proto.RegisterType((*SubscribeResponse)(nil), "event.SubscribeResponse")
 	proto.RegisterType((*UnSubscribeRequest)(nil), "event.UnSubscribeRequest")
@@ -367,27 +494,29 @@ func init() {
 func init() { proto.RegisterFile("event/eventpb/event.proto", fileDescriptor_7c88e0126701e74a) }
 
 var fileDescriptor_7c88e0126701e74a = []byte{
-	// 305 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0x4b, 0x4f, 0x83, 0x40,
-	0x10, 0x06, 0xed, 0x8b, 0x29, 0xf1, 0x31, 0x6a, 0xa5, 0x1c, 0x0c, 0xd9, 0x83, 0xa9, 0x07, 0xdb,
-	0xa6, 0xde, 0x8c, 0x27, 0x12, 0x4d, 0x8f, 0x66, 0x9b, 0x5e, 0xbc, 0x41, 0xbb, 0x89, 0x24, 0x15,
-	0x90, 0x65, 0xf9, 0xa9, 0xfe, 0x1e, 0xc3, 0xb0, 0xd4, 0xbe, 0x34, 0x5e, 0x60, 0x76, 0x66, 0xbe,
-	0xd7, 0x66, 0xa1, 0x2f, 0x0a, 0x11, 0xe7, 0x23, 0xfa, 0xa6, 0x61, 0xf5, 0x1f, 0xa6, 0x59, 0x92,
-	0x27, 0xd8, 0xa4, 0x03, 0x1b, 0x41, 0xf3, 0xb9, 0x2c, 0x10, 0xa1, 0x11, 0x07, 0x1f, 0xc2, 0x31,
-	0x3d, 0x73, 0x60, 0x71, 0xaa, 0xcb, 0xde, 0x32, 0xc8, 0x03, 0xe7, 0xc8, 0x33, 0x07, 0x36, 0xa7,
-	0x9a, 0xdd, 0xc2, 0xd9, 0x4c, 0x85, 0x72, 0x91, 0x45, 0xa1, 0xe0, 0xe2, 0x53, 0x09, 0x79, 0x10,
-	0xcb, 0xe6, 0x70, 0xbe, 0xb1, 0x27, 0xd3, 0x24, 0x96, 0x02, 0x3d, 0x38, 0x16, 0x45, 0x4e, 0x7b,
-	0xdd, 0x89, 0x3d, 0xac, 0xfc, 0x90, 0xfe, 0xd4, 0xe0, 0xe5, 0x08, 0x2f, 0xa1, 0xa1, 0x54, 0xb4,
-	0x24, 0x49, 0x6b, 0x6a, 0x70, 0x3a, 0xf9, 0x1d, 0x68, 0x65, 0x42, 0xaa, 0x55, 0xce, 0x9e, 0x00,
-	0xe7, 0xf1, 0x7f, 0x0c, 0x94, 0xbd, 0x1f, 0xa6, 0x8a, 0x87, 0xdd, 0xc3, 0xc5, 0x16, 0x5a, 0xdb,
-	0xea, 0xd5, 0xf4, 0x44, 0xd0, 0xe1, 0xb5, 0xd8, 0x18, 0x4e, 0x5e, 0x55, 0xb8, 0x8a, 0xe4, 0x7b,
-	0x2d, 0x74, 0xf3, 0x6b, 0x00, 0xb2, 0xcf, 0xee, 0xe0, 0x74, 0x8d, 0xf8, 0x9b, 0x7c, 0xf2, 0x65,
-	0x82, 0x4d, 0xc8, 0x99, 0xc8, 0x8a, 0x68, 0x21, 0xd0, 0x07, 0x6b, 0x6d, 0x0d, 0xaf, 0x35, 0xf7,
-	0x6e, 0x54, 0xd7, 0xd9, 0x1f, 0x54, 0x42, 0xcc, 0x18, 0x9b, 0xf8, 0x02, 0xdd, 0x8d, 0x80, 0xd8,
-	0xd7, 0xcb, 0xfb, 0x57, 0xe6, 0xba, 0x87, 0x46, 0x35, 0x13, 0x3e, 0x42, 0x5b, 0xe7, 0xc0, 0x2b,
-	0xbd, 0xb8, 0x7d, 0x13, 0x6e, 0x6f, 0xb7, 0x5d, 0x63, 0x7d, 0xeb, 0xad, 0xad, 0x1f, 0x5c, 0xd8,
-	0xa2, 0xb7, 0xf6, 0xf0, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x2b, 0xfd, 0xed, 0x15, 0x88, 0x02, 0x00,
-	0x00,
+	// 352 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0x5d, 0x4f, 0xf2, 0x30,
+	0x14, 0x66, 0xbc, 0x7c, 0xbc, 0x1c, 0x16, 0xd0, 0x43, 0x44, 0xd8, 0x85, 0xc1, 0xc6, 0x18, 0x8c,
+	0x91, 0x2f, 0xef, 0x08, 0x17, 0xc6, 0x44, 0x6f, 0xd5, 0x11, 0x6f, 0xbc, 0x63, 0xd0, 0xc4, 0x25,
+	0x38, 0xe6, 0xba, 0xee, 0x1f, 0xfa, 0xbf, 0xcc, 0xda, 0xae, 0xd9, 0x06, 0x61, 0x89, 0x37, 0xdb,
+	0x69, 0xcf, 0xf3, 0x91, 0xf3, 0xb4, 0x85, 0x3e, 0x8d, 0xa8, 0x17, 0x8e, 0xc5, 0xd7, 0x77, 0xe4,
+	0x7f, 0xe4, 0x07, 0xbb, 0x70, 0x87, 0x55, 0xb1, 0x20, 0x63, 0xa8, 0x3e, 0xc5, 0x05, 0x22, 0x54,
+	0xbc, 0xd5, 0x17, 0xed, 0x19, 0x03, 0x63, 0xd8, 0xb0, 0x45, 0x1d, 0xef, 0x6d, 0x56, 0xe1, 0xaa,
+	0x57, 0x1e, 0x18, 0x43, 0xd3, 0x16, 0x35, 0xb9, 0x84, 0xe6, 0x1b, 0x77, 0x43, 0x9b, 0x7e, 0x73,
+	0xca, 0x04, 0x8d, 0x73, 0x77, 0x93, 0xd0, 0xe2, 0x9a, 0x5c, 0x83, 0x29, 0x21, 0xcc, 0xdf, 0x79,
+	0x8c, 0x62, 0x17, 0x6a, 0x01, 0x65, 0x7c, 0x1b, 0x0a, 0xd4, 0x7f, 0x5b, 0xad, 0xc8, 0x15, 0xb4,
+	0x5e, 0x3c, 0xe1, 0x7e, 0x4c, 0x6d, 0x0a, 0x6d, 0x8d, 0x52, 0x82, 0x17, 0xf0, 0x8f, 0x46, 0x52,
+	0xad, 0x39, 0x33, 0x47, 0x72, 0x2c, 0x09, 0x89, 0x1b, 0x64, 0x0e, 0x27, 0x4b, 0xee, 0xb0, 0x75,
+	0xe0, 0x3a, 0x34, 0x25, 0x7d, 0x68, 0x3e, 0x61, 0x57, 0x4e, 0xd9, 0xdd, 0xc2, 0x69, 0x8a, 0x5b,
+	0x30, 0xc1, 0x02, 0xf0, 0xdd, 0xfb, 0xb3, 0xd5, 0x1d, 0x74, 0x32, 0xec, 0x02, 0xb3, 0x09, 0xb4,
+	0x5e, 0xb9, 0xb3, 0x75, 0xd9, 0x67, 0x62, 0x54, 0x94, 0xc3, 0x0d, 0xb4, 0x35, 0xe3, 0xb8, 0xf8,
+	0xec, 0xa7, 0x0c, 0xa6, 0x60, 0x2e, 0x69, 0x10, 0xb9, 0x6b, 0x8a, 0x0b, 0xa8, 0xab, 0xd8, 0xf1,
+	0x4c, 0x29, 0x67, 0x0f, 0xcb, 0xea, 0xe6, 0xb7, 0xa5, 0x05, 0x29, 0x4d, 0x0c, 0x9c, 0x42, 0x25,
+	0xbe, 0x02, 0x88, 0x0a, 0x93, 0xba, 0x32, 0x56, 0x27, 0xb3, 0x97, 0x90, 0xf0, 0x01, 0x1a, 0x3a,
+	0x0b, 0x3c, 0x57, 0x98, 0x7c, 0xb6, 0x56, 0x6f, 0xbf, 0xa1, 0x15, 0x9e, 0xa1, 0x99, 0xca, 0x13,
+	0xfb, 0x0a, 0xba, 0x7f, 0x42, 0x96, 0x75, 0xa8, 0xa5, 0x75, 0xe6, 0x50, 0x57, 0xb1, 0xe9, 0xd1,
+	0xb3, 0xc1, 0xeb, 0xd1, 0x73, 0xe9, 0x92, 0xd2, 0x63, 0xe3, 0xa3, 0xae, 0x5e, 0x9b, 0x53, 0x13,
+	0x0f, 0xed, 0xfe, 0x37, 0x00, 0x00, 0xff, 0xff, 0x94, 0xf5, 0x28, 0xff, 0x85, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -402,9 +531,13 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EventServiceClient interface {
+	// One stream by client.
+	OnEvent(ctx context.Context, in *OnEventRequest, opts ...grpc.CallOption) (EventService_OnEventClient, error)
+	// Return from OnEvent.
+	Quit(ctx context.Context, in *QuitRequest, opts ...grpc.CallOption) (*QuitResponse, error)
 	// Connect to an event channel or create it if it not already exist
 	// and stay in that function until UnSubscribe is call.
-	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (EventService_SubscribeClient, error)
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
 	// Disconnect to an event channel.(Return from Subscribe)
 	UnSubscribe(ctx context.Context, in *UnSubscribeRequest, opts ...grpc.CallOption) (*UnSubscribeResponse, error)
 	// Publish event on channel.
@@ -419,12 +552,12 @@ func NewEventServiceClient(cc *grpc.ClientConn) EventServiceClient {
 	return &eventServiceClient{cc}
 }
 
-func (c *eventServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (EventService_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_EventService_serviceDesc.Streams[0], "/event.EventService/Subscribe", opts...)
+func (c *eventServiceClient) OnEvent(ctx context.Context, in *OnEventRequest, opts ...grpc.CallOption) (EventService_OnEventClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_EventService_serviceDesc.Streams[0], "/event.EventService/OnEvent", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &eventServiceSubscribeClient{stream}
+	x := &eventServiceOnEventClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -434,21 +567,39 @@ func (c *eventServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest
 	return x, nil
 }
 
-type EventService_SubscribeClient interface {
-	Recv() (*SubscribeResponse, error)
+type EventService_OnEventClient interface {
+	Recv() (*OnEventResponse, error)
 	grpc.ClientStream
 }
 
-type eventServiceSubscribeClient struct {
+type eventServiceOnEventClient struct {
 	grpc.ClientStream
 }
 
-func (x *eventServiceSubscribeClient) Recv() (*SubscribeResponse, error) {
-	m := new(SubscribeResponse)
+func (x *eventServiceOnEventClient) Recv() (*OnEventResponse, error) {
+	m := new(OnEventResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *eventServiceClient) Quit(ctx context.Context, in *QuitRequest, opts ...grpc.CallOption) (*QuitResponse, error) {
+	out := new(QuitResponse)
+	err := c.cc.Invoke(ctx, "/event.EventService/Quit", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *eventServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	out := new(SubscribeResponse)
+	err := c.cc.Invoke(ctx, "/event.EventService/Subscribe", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *eventServiceClient) UnSubscribe(ctx context.Context, in *UnSubscribeRequest, opts ...grpc.CallOption) (*UnSubscribeResponse, error) {
@@ -471,9 +622,13 @@ func (c *eventServiceClient) Publish(ctx context.Context, in *PublishRequest, op
 
 // EventServiceServer is the server API for EventService service.
 type EventServiceServer interface {
+	// One stream by client.
+	OnEvent(*OnEventRequest, EventService_OnEventServer) error
+	// Return from OnEvent.
+	Quit(context.Context, *QuitRequest) (*QuitResponse, error)
 	// Connect to an event channel or create it if it not already exist
 	// and stay in that function until UnSubscribe is call.
-	Subscribe(*SubscribeRequest, EventService_SubscribeServer) error
+	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
 	// Disconnect to an event channel.(Return from Subscribe)
 	UnSubscribe(context.Context, *UnSubscribeRequest) (*UnSubscribeResponse, error)
 	// Publish event on channel.
@@ -484,8 +639,14 @@ type EventServiceServer interface {
 type UnimplementedEventServiceServer struct {
 }
 
-func (*UnimplementedEventServiceServer) Subscribe(req *SubscribeRequest, srv EventService_SubscribeServer) error {
-	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+func (*UnimplementedEventServiceServer) OnEvent(req *OnEventRequest, srv EventService_OnEventServer) error {
+	return status.Errorf(codes.Unimplemented, "method OnEvent not implemented")
+}
+func (*UnimplementedEventServiceServer) Quit(ctx context.Context, req *QuitRequest) (*QuitResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Quit not implemented")
+}
+func (*UnimplementedEventServiceServer) Subscribe(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (*UnimplementedEventServiceServer) UnSubscribe(ctx context.Context, req *UnSubscribeRequest) (*UnSubscribeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnSubscribe not implemented")
@@ -498,25 +659,61 @@ func RegisterEventServiceServer(s *grpc.Server, srv EventServiceServer) {
 	s.RegisterService(&_EventService_serviceDesc, srv)
 }
 
-func _EventService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeRequest)
+func _EventService_OnEvent_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(OnEventRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EventServiceServer).Subscribe(m, &eventServiceSubscribeServer{stream})
+	return srv.(EventServiceServer).OnEvent(m, &eventServiceOnEventServer{stream})
 }
 
-type EventService_SubscribeServer interface {
-	Send(*SubscribeResponse) error
+type EventService_OnEventServer interface {
+	Send(*OnEventResponse) error
 	grpc.ServerStream
 }
 
-type eventServiceSubscribeServer struct {
+type eventServiceOnEventServer struct {
 	grpc.ServerStream
 }
 
-func (x *eventServiceSubscribeServer) Send(m *SubscribeResponse) error {
+func (x *eventServiceOnEventServer) Send(m *OnEventResponse) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _EventService_Quit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventServiceServer).Quit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/event.EventService/Quit",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventServiceServer).Quit(ctx, req.(*QuitRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EventService_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventServiceServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/event.EventService/Subscribe",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventServiceServer).Subscribe(ctx, req.(*SubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _EventService_UnSubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -560,6 +757,14 @@ var _EventService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*EventServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Quit",
+			Handler:    _EventService_Quit_Handler,
+		},
+		{
+			MethodName: "Subscribe",
+			Handler:    _EventService_Subscribe_Handler,
+		},
+		{
 			MethodName: "UnSubscribe",
 			Handler:    _EventService_UnSubscribe_Handler,
 		},
@@ -570,8 +775,8 @@ var _EventService_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Subscribe",
-			Handler:       _EventService_Subscribe_Handler,
+			StreamName:    "OnEvent",
+			Handler:       _EventService_OnEvent_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -8,7 +8,7 @@ import (
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
-
+	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
 
@@ -40,6 +40,12 @@ type Event_Client struct {
 
 	// certificate authority file
 	caFile string
+
+	// the client uuid.
+	uuid string
+
+	// The event channel.
+	actions chan map[string]interface{}
 }
 
 // Create a connection to the service.
@@ -48,7 +54,63 @@ func NewEvent_Client(address string, name string) *Event_Client {
 	api.InitClient(client, address, name)
 	client.cc = api.GetClientConnection(client)
 	client.c = eventpb.NewEventServiceClient(client.cc)
+	client.uuid = Utility.RandomUUID()
+
+	// The channel where data will be exchange.
+	client.actions = make(chan map[string]interface{})
+
+	// Here I will also open the event stream to receive event from server.
+	go func() {
+		client.run()
+	}()
+
 	return client
+}
+
+/**
+ * Process event from the server. Only one stream is needed between the server
+ * and the client. Local handler are kept in a map with a unique uuid, so many
+ * handler can exist for a single event.
+ */
+func (self *Event_Client) run() {
+
+	// Create the channel.
+	data_channel := make(chan *eventpb.Event, 0)
+
+	// start listenting to events from the server...
+	self.onEvent(self.uuid, data_channel)
+
+	// the map that will contain the event handler.
+	handlers := make(map[string]map[string]func(*eventpb.Event))
+
+	for {
+		select {
+		case evt := <-data_channel:
+			// So here I received an event, I will dispatch it to it function.
+			handlers_ := handlers[evt.Name]
+			if handlers_ != nil {
+				for _, fct := range handlers_ {
+					// Call the handler.
+					fct(evt)
+				}
+			}
+		case action := <-self.actions:
+			if action["action"].(string) == "subscribe" {
+				if handlers[action["name"].(string)] == nil {
+					handlers[action["name"].(string)] = make(map[string]func(*eventpb.Event))
+				}
+				// Set it handler.
+				handlers[action["name"].(string)][action["uuid"].(string)] = action["fct"].(func(*eventpb.Event))
+			} else if action["action"].(string) == "unsubscribe" {
+				// Now I will remove the handler...
+				for _, handler := range handlers {
+					if handler[action["uuid"].(string)] != nil {
+						delete(handler, action["uuid"].(string))
+					}
+				}
+			}
+		}
+	}
 }
 
 // Return the domain
@@ -147,19 +209,15 @@ func (self *Event_Client) Publish(name string, data interface{}) error {
 	return nil
 }
 
-// Subscribe to an event it return it subscriber uuid. The uuid must be use
-// to unsubscribe from the channel. data_channel is use to get event data.
-func (self *Event_Client) Subscribe(name string, data_channel chan []byte) (string, error) {
-	rqst := &eventpb.SubscribeRequest{
-		Name: name,
+func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event) error {
+	rqst := &eventpb.OnEventRequest{
+		Uuid: uuid,
 	}
 
-	stream, err := self.c.Subscribe(api.GetClientContext(self), rqst)
+	stream, err := self.c.OnEvent(api.GetClientContext(self), rqst)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	uuid_channel := make(chan string)
 
 	// Run in it own goroutine.
 	go func() {
@@ -169,32 +227,52 @@ func (self *Event_Client) Subscribe(name string, data_channel chan []byte) (stri
 				// end of stream...
 				break
 			}
-
 			if err != nil {
+				log.Println("-----> fail to publish event: ", err)
 				break
 			}
-
 			// Get the result...
-			switch v := msg.Result.(type) {
-			case *eventpb.SubscribeResponse_Uuid:
-				uuid_channel <- v.Uuid
-			case *eventpb.SubscribeResponse_Evt:
-				data_channel <- v.Evt.Data
-			}
+			data_channel <- msg.Evt
+
 		}
 	}()
 
-	uuid := <-uuid_channel
 	// Wait for subscriber uuid and return it to the function caller.
-	return uuid, nil
+	return nil
+}
+
+// Subscribe to an event it return it subscriber uuid. The uuid must be use
+// to unsubscribe from the channel. data_channel is use to get event data.
+func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *eventpb.Event)) error {
+	rqst := &eventpb.SubscribeRequest{
+		Name: name,
+		Uuid: self.uuid,
+	}
+
+	_, err := self.c.Subscribe(api.GetClientContext(self), rqst)
+	if err != nil {
+		return err
+	}
+
+	action := make(map[string]interface{})
+	action["action"] = "subscribe"
+	action["uuid"] = uuid
+	action["name"] = name
+	action["fct"] = fct
+
+	// set the action.
+	self.actions <- action
+	return nil
 }
 
 // Exit event channel.
 func (self *Event_Client) UnSubscribe(name string, uuid string) error {
 	log.Println("UnSubscribe event ", name)
+
+	// Unsubscribe from the event channel.
 	rqst := &eventpb.UnSubscribeRequest{
 		Name: name,
-		Uuid: uuid,
+		Uuid: self.uuid,
 	}
 
 	_, err := self.c.UnSubscribe(api.GetClientContext(self), rqst)
@@ -202,5 +280,12 @@ func (self *Event_Client) UnSubscribe(name string, uuid string) error {
 		return err
 	}
 
+	action := make(map[string]interface{})
+	action["action"] = "unsubscribe"
+	action["uuid"] = uuid
+	action["name"] = name
+
+	// set the action.
+	self.actions <- action
 	return nil
 }

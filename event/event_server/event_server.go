@@ -14,20 +14,15 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"time"
+
 	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
-
-	//"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
-
-	//"google.golang.org/grpc/status"
-	"time"
-
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/reflection"
 )
 
 // TODO take care of TLS/https
@@ -44,25 +39,6 @@ var (
 	// the default domain.
 	domain string = "localhost"
 )
-
-// Channel's use by the server.
-type SubscribeEvent struct {
-	name string // The name of the event
-	uuid string // The subscriber unique
-	data chan []byte
-	quit chan chan bool
-}
-
-type UnSubscribeEvent struct {
-	name string // The name of the event
-	uuid string // The subscriber unique
-	quit chan bool
-}
-
-type PublishEvent struct {
-	name string // The name of the event
-	data []byte
-}
 
 // Value need by Globular to start the services...
 type server struct {
@@ -84,14 +60,10 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
-	KeepAlive bool
+	KeepAlive          bool
 
 	// Use to sync event channel manipulation.
-	subscribe_events_chan   chan *SubscribeEvent
-	unsubscribe_events_chan chan *UnSubscribeEvent
-	pulish_events_chan      chan *PublishEvent
-
-	quit chan string
+	actions chan map[string]interface{}
 }
 
 // Create the configuration file if is not already exist.
@@ -130,132 +102,165 @@ func (self *server) save() error {
 // That function process channel operation and run in it own go routine.
 func (self *server) run() {
 
-	// a -> event name -> subscriber uuid -> channel
-	events := make(map[string]map[string]*SubscribeEvent, 0)
+	channels := make(map[string][]string)
+	streams := make(map[string]eventpb.EventService_OnEventServer)
+	quits := make(map[string]chan bool)
 
-	self.subscribe_events_chan = make(chan *SubscribeEvent, 0)
-	self.unsubscribe_events_chan = make(chan *UnSubscribeEvent, 0)
-	self.pulish_events_chan = make(chan *PublishEvent, 0)
+	// Here will create the action channel.
+	self.actions = make(chan map[string]interface{})
 
 	for {
 		select {
-		case evt := <-self.subscribe_events_chan:
-			log.Println("---> subscribe event receive: ", evt.name)
-			if events[evt.name] == nil {
-				events[evt.name] = make(map[string]*SubscribeEvent, 0)
-			}
-			events[evt.name][evt.uuid] = evt
-
-		case evt := <-self.unsubscribe_events_chan:
-			log.Println("---> unsubscribe event receive: ", evt.name, evt.uuid)
-			if events[evt.name] != nil {
-				if events[evt.name][evt.uuid] != nil {
-					events[evt.name][evt.uuid].quit <- evt.quit
-					delete(events[evt.name], evt.uuid)
-				} else {
-					log.Println("--> no subscriber found with uuid ", evt.uuid)
+		case a := <-self.actions:
+			action := a["action"].(string)
+			if action == "onevent" {
+				streams[a["uuid"].(string)] = a["stream"].(eventpb.EventService_OnEventServer)
+				quits[a["uuid"].(string)] = a["quit"].(chan bool)
+			} else if action == "subscribe" {
+				if channels[a["name"].(string)] == nil {
+					channels[a["name"].(string)] = make([]string, 0)
 				}
-			}
-
-		case evt := <-self.pulish_events_chan:
-			log.Println("---> publish event receive: ", evt.name)
-			if events[evt.name] != nil {
-				for _, subscriber := range events[evt.name] {
-					// publish the data on the channel.
-					subscriber.data <- evt.data
+				if !Utility.Contains(channels[a["name"].(string)], a["uuid"].(string)) {
+					channels[a["name"].(string)] = append(channels[a["name"].(string)], a["uuid"].(string))
 				}
-			}
+			} else if action == "publish" {
+				if channels[a["name"].(string)] != nil {
+					for i := 0; i < len(channels[a["name"].(string)]); i++ {
+						uuid := channels[a["name"].(string)][i]
+						stream := streams[uuid]
+						if stream != nil {
+							// Here I will send data to stream.
+							err := stream.Send(&eventpb.OnEventResponse{
+								Evt: &eventpb.Event{
+									Name: a["name"].(string),
+									Data: a["data"].([]byte),
+								},
+							})
 
+							// In case of error I will remove the subscriber
+							// from the list.
+							if err != nil {
+								log.Println("error publish event to ", uuid, err)
+								// remove uuid from all channels.
+								for name, channel := range channels {
+									uuids := make([]string, 0)
+									for i := 0; i < len(channel); i++ {
+										if uuid != channel[i] {
+											uuids = append(uuids, channel[i])
+										}
+									}
+									channels[name] = uuids
+								}
+								// return from OnEvent
+								quits[uuid] <- true
+								// remove the channel from the map.
+								delete(quits, uuid)
+							}
+						}
+					}
+				}
+			} else if action == "unsubscribe" {
+				uuids := make([]string, 0)
+				for i := 0; i < len(channels[a["name"].(string)]); i++ {
+					if a["uuid"].(string) != channels[a["name"].(string)][i] {
+						uuids = append(uuids, channels[a["name"].(string)][i])
+					}
+				}
+				channels[a["name"].(string)] = uuids
+			} else if action == "quit" {
+				// remove uuid from all channels.
+				for name, channel := range channels {
+					uuids := make([]string, 0)
+					for i := 0; i < len(channel); i++ {
+						if a["uuid"].(string) != channel[i] {
+							uuids = append(uuids, channel[i])
+						}
+					}
+					channels[name] = uuids
+				}
+				// return from OnEvent
+				quits[a["uuid"].(string)] <- true
+				// remove the channel from the map.
+				delete(quits, a["uuid"].(string))
+			}
 		}
 	}
-
 }
 
 // Connect to an event channel or create it if it not already exist
 // and stay in that function until UnSubscribe is call.
-func (self *server) Subscribe(rqst *eventpb.SubscribeRequest, stream eventpb.EventService_SubscribeServer) error {
+func (self *server) Quit(ctx context.Context, rqst *eventpb.QuitRequest) (*eventpb.QuitResponse, error) {
+	quit := make(map[string]interface{})
+	quit["action"] = "quit"
+	quit["uuid"] = rqst.Uuid
 
-	// create a new channel.
-	uuid := Utility.RandomUUID()
-	evt := new(SubscribeEvent)
-	evt.name = rqst.Name
-	evt.data = make(chan []byte)
-	evt.quit = make(chan chan bool)
-	evt.uuid = uuid
+	self.actions <- quit
 
-	// subscribe to the channel.
-	self.subscribe_events_chan <- evt
+	return &eventpb.QuitResponse{
+		Result: true,
+	}, nil
+}
 
-	// send back the uuid to client for furder unsubscribe request.
-	stream.Send(&eventpb.SubscribeResponse{
-		Result: &eventpb.SubscribeResponse_Uuid{
-			Uuid: evt.uuid,
-		},
-	})
+// Connect to an event channel or create it if it not already exist
+// and stay in that function until UnSubscribe is call.
+func (self *server) OnEvent(rqst *eventpb.OnEventRequest, stream eventpb.EventService_OnEventServer) error {
+	onevent := make(map[string]interface{})
+	onevent["action"] = "onevent"
+	onevent["stream"] = stream
+	onevent["uuid"] = rqst.Uuid
+	onevent["quit"] = make(chan bool)
 
-	for {
-		select {
-		case data := <-evt.data:
+	self.actions <- onevent
 
-			err := stream.Send(&eventpb.SubscribeResponse{
-				Result: &eventpb.SubscribeResponse_Evt{
-					Evt: &eventpb.Event{
-						Name: rqst.Name,
-						Data: data,
-					},
-				},
-			})
-			if err != nil {
-				// Remove it from the list of subscribers.
-				evt_ := new(UnSubscribeEvent)
-				evt_.name = rqst.Name
-				evt_.uuid = uuid
-				evt_.quit = make(chan bool) // no used...
-				self.unsubscribe_events_chan <- evt_
-				log.Println("error", uuid, err.Error())
-				break
-			}
+	log.Println(onevent["uuid"])
 
-		case quit_channel := <-evt.quit:
-			// exit
-			log.Println("--> quit subscription ", uuid)
-			quit_channel <- true
-			return nil
-		}
-	}
+	// wait util unsbscribe or connection is close.
+	<-onevent["quit"].(chan bool)
 
 	return nil
 }
 
+func (self *server) Subscribe(ctx context.Context, rqst *eventpb.SubscribeRequest) (*eventpb.SubscribeResponse, error) {
+	subscribe := make(map[string]interface{})
+	subscribe["action"] = "subscribe"
+	subscribe["name"] = rqst.Name
+	subscribe["uuid"] = rqst.Uuid
+	self.actions <- subscribe
+
+	return &eventpb.SubscribeResponse{
+		Result: true,
+	}, nil
+}
+
 // Disconnect to an event channel.(Return from Subscribe)
 func (self *server) UnSubscribe(ctx context.Context, rqst *eventpb.UnSubscribeRequest) (*eventpb.UnSubscribeResponse, error) {
-	evt := new(UnSubscribeEvent)
-	evt.name = rqst.Name
-	evt.uuid = rqst.Uuid
-	evt.quit = make(chan bool)
-	self.unsubscribe_events_chan <- evt
+	unsubscribe := make(map[string]interface{})
+	unsubscribe["action"] = "unsubscribe"
+	unsubscribe["name"] = rqst.Name
+	unsubscribe["uuid"] = rqst.Uuid
 
-	//  wait for the subscription loop function to stop
-	<-evt.quit
+	self.actions <- unsubscribe
 
 	return &eventpb.UnSubscribeResponse{
 		Result: true,
 	}, nil
-
 }
 
 // Publish event on channel.
 func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (*eventpb.PublishResponse, error) {
-	evt := new(PublishEvent)
-	evt.name = rqst.Evt.Name
-	evt.data = rqst.Evt.Data
+	publish := make(map[string]interface{})
+	publish["action"] = "publish"
+	publish["name"] = rqst.Evt.Name
+	publish["data"] = rqst.Evt.Data
 
-	// dispatch the evt.
-	self.pulish_events_chan <- evt
+	// publish the data.
+	self.actions <- publish
 
 	return &eventpb.PublishResponse{
 		Result: true,
 	}, nil
+
+	return nil, nil
 }
 
 // That service is use to give access to SQL.
@@ -341,11 +346,12 @@ func main() {
 	}
 
 	eventpb.RegisterEventServiceServer(grpcServer, s_impl)
-	reflection.Register(grpcServer)
+
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
 		log.Println(s_impl.Name + " grpc service is starting")
 		go s_impl.run()
+
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
 			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -361,5 +367,4 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	<-ch
-
 }

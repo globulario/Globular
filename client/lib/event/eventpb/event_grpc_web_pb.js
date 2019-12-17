@@ -89,6 +89,111 @@ proto.event.EventServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.event.OnEventRequest,
+ *   !proto.event.OnEventResponse>}
+ */
+const methodInfo_EventService_OnEvent = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.event.OnEventResponse,
+  /** @param {!proto.event.OnEventRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.event.OnEventResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.event.OnEventRequest} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.event.OnEventResponse>}
+ *     The XHR Node Readable Stream
+ */
+proto.event.EventServiceClient.prototype.onEvent =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/event.EventService/OnEvent',
+      request,
+      metadata || {},
+      methodInfo_EventService_OnEvent);
+};
+
+
+/**
+ * @param {!proto.event.OnEventRequest} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.event.OnEventResponse>}
+ *     The XHR Node Readable Stream
+ */
+proto.event.EventServicePromiseClient.prototype.onEvent =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/event.EventService/OnEvent',
+      request,
+      metadata || {},
+      methodInfo_EventService_OnEvent);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.event.QuitRequest,
+ *   !proto.event.QuitResponse>}
+ */
+const methodInfo_EventService_Quit = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.event.QuitResponse,
+  /** @param {!proto.event.QuitRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.event.QuitResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.event.QuitRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.event.QuitResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.event.QuitResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.event.EventServiceClient.prototype.quit =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/event.EventService/Quit',
+      request,
+      metadata || {},
+      methodInfo_EventService_Quit,
+      callback);
+};
+
+
+/**
+ * @param {!proto.event.QuitRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.event.QuitResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.event.EventServicePromiseClient.prototype.quit =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/event.EventService/Quit',
+      request,
+      metadata || {},
+      methodInfo_EventService_Quit);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.event.SubscribeRequest,
  *   !proto.event.SubscribeResponse>}
  */
@@ -103,32 +208,37 @@ const methodInfo_EventService_Subscribe = new grpc.web.AbstractClientBase.Method
 
 
 /**
- * @param {!proto.event.SubscribeRequest} request The request proto
+ * @param {!proto.event.SubscribeRequest} request The
+ *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!grpc.web.ClientReadableStream<!proto.event.SubscribeResponse>}
+ * @param {function(?grpc.web.Error, ?proto.event.SubscribeResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.event.SubscribeResponse>|undefined}
  *     The XHR Node Readable Stream
  */
 proto.event.EventServiceClient.prototype.subscribe =
-    function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
       '/event.EventService/Subscribe',
       request,
       metadata || {},
-      methodInfo_EventService_Subscribe);
+      methodInfo_EventService_Subscribe,
+      callback);
 };
 
 
 /**
- * @param {!proto.event.SubscribeRequest} request The request proto
+ * @param {!proto.event.SubscribeRequest} request The
+ *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!grpc.web.ClientReadableStream<!proto.event.SubscribeResponse>}
- *     The XHR Node Readable Stream
+ * @return {!Promise<!proto.event.SubscribeResponse>}
+ *     A native promise that resolves to the response
  */
 proto.event.EventServicePromiseClient.prototype.subscribe =
     function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
+  return this.client_.unaryCall(this.hostname_ +
       '/event.EventService/Subscribe',
       request,
       metadata || {},
