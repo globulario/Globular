@@ -228,9 +228,11 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 				break
 			}
 			if err != nil {
-				log.Println("-----> fail to publish event: ", err)
+				// oher error stop processing stream.
+				log.Println("event stream error: ", err)
 				break
 			}
+
 			// Get the result...
 			data_channel <- msg.Evt
 

@@ -187,35 +187,52 @@ func NewGlobule() *Globule {
 	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
-	g.DNS = make([]string, 0)
+
+	// Configuration must be reachable before services initialysation
+	go func() {
+		http.ListenAndServe(":10000", nil)
+	}()
+
+	// Keep in global var to by http handlers.
+	globule = g
+
+	return g
+}
+
+/**
+ * Initialize the server directories.
+ */
+func (self *Globule) initDirectories() {
+	// Intialise directories
+	self.DNS = make([]string, 0)
 
 	// Set the list of discorvery service avalaible...
-	g.Discoveries = make([]string, 0)
-	g.discorveriesEventHub = make(map[string]*event_client.Event_Client, 0)
+	self.Discoveries = make([]string, 0)
+	self.discorveriesEventHub = make(map[string]*event_client.Event_Client, 0)
 
 	// Set the share service info...
-	g.Services = make(map[string]interface{}, 0)
+	self.Services = make(map[string]interface{}, 0)
 
 	// Set external map services.
-	g.ExternalApplications = make(map[string]ExternalApplication, 0)
+	self.ExternalApplications = make(map[string]ExternalApplication, 0)
 
 	// Set the map of client.
-	g.clients = make(map[string]api.Client, 0)
+	self.clients = make(map[string]api.Client, 0)
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	g.path = dir // keep the installation path.
+	self.path = dir // keep the installation path.
 
 	// if globular is found.
-	g.webRoot = dir + string(os.PathSeparator) + "webroot" // The default directory to server.
+	self.webRoot = dir + string(os.PathSeparator) + "webroot" // The default directory to server.
 
 	// keep the root in global variable for the file handler.
-	root = g.webRoot
-	Utility.CreateDirIfNotExist(g.webRoot) // Create the directory if it not exist.
+	root = self.webRoot
+	Utility.CreateDirIfNotExist(self.webRoot) // Create the directory if it not exist.
 
-	if !Utility.Exists(g.webRoot + string(os.PathSeparator) + "index.html") {
+	if !Utility.Exists(self.webRoot + string(os.PathSeparator) + "index.html") {
 
 		// in that case I will create a new index.html file.
-		ioutil.WriteFile(g.webRoot+string(os.PathSeparator)+"index.html", []byte(
+		ioutil.WriteFile(self.webRoot+string(os.PathSeparator)+"index.html", []byte(
 			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 
@@ -232,48 +249,41 @@ func NewGlobule() *Globule {
 	}
 
 	// Create the directory if is not exist.
-	g.data = dir + string(os.PathSeparator) + "data"
-	Utility.CreateDirIfNotExist(g.data)
+	self.data = dir + string(os.PathSeparator) + "data"
+	Utility.CreateDirIfNotExist(self.data)
 
 	// Configuration directory
-	g.config = dir + string(os.PathSeparator) + "config"
-	Utility.CreateDirIfNotExist(g.config)
+	self.config = dir + string(os.PathSeparator) + "config"
+	Utility.CreateDirIfNotExist(self.config)
 
 	// Create the creds directory if it not already exist.
-	g.creds = g.config + string(os.PathSeparator) + "grpc_tls"
-	Utility.CreateDirIfNotExist(g.creds)
+	self.creds = self.config + string(os.PathSeparator) + "grpc_tls"
+	Utility.CreateDirIfNotExist(self.creds)
 
 	// https certificates.
-	g.certs = g.config + string(os.PathSeparator) + "http_tls"
-	Utility.CreateDirIfNotExist(g.certs)
+	self.certs = self.config + string(os.PathSeparator) + "http_tls"
+	Utility.CreateDirIfNotExist(self.certs)
 
 	// Initialyse globular from it configuration file.
-	file, err := ioutil.ReadFile(g.config + string(os.PathSeparator) + "config.json")
+	file, err := ioutil.ReadFile(self.config + string(os.PathSeparator) + "config.json")
 
 	// Init the service with the default port address
 	if err == nil {
-		json.Unmarshal(file, &g)
+		json.Unmarshal(file, &self)
 	}
+}
 
-	// Keep in global var to by http handlers.
-	globule = g
+/**
+ * Start serving the content.
+ */
+func (self *Globule) Serve() {
+
+	// initialyse directories.
+	self.initDirectories()
 
 	// The configuration handler.
 	http.HandleFunc("/client_config", getClientConfigHanldler)
 	http.HandleFunc("/config", getConfigHanldler)
-
-	// Configuration must be reachable before services initialysation
-	go func() {
-		http.ListenAndServe(":10000", nil)
-	}()
-
-	return g
-}
-
-/**
- * Serve
- */
-func (self *Globule) Serve() {
 
 	// Here I will kill proxies if there are running.
 	Utility.KillProcessByName("grpcwebproxy")
@@ -287,7 +297,7 @@ func (self *Globule) Serve() {
 
 	// The token that identify the server with other services
 	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
-	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"localhost_token", []byte(token), 0644)
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -300,7 +310,7 @@ func (self *Globule) Serve() {
 			select {
 			case <-ticker.C:
 				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
-				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"localhost_token", []byte(token), 0644)
+				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
 				if err != nil {
 					log.Panicln(err)
 				}
@@ -475,7 +485,7 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 	}
 
 	s["Process"].(*exec.Cmd).Wait()
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 	_, _, err := self.startService(s)
 	if err != nil {
 		return
@@ -870,7 +880,7 @@ func (self *Globule) registerMethods() error {
 	} else if count == 0 {
 		log.Println("need to create roles guest...")
 		guest["_id"] = "guest"
-		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
+		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/OnEvent", "/event.EventService/Quit", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
 			"/services.ServiceDiscovery/GetServiceDescriptor", "/services.ServiceDiscovery/GetServicesDescriptor", "/services.ServiceRepository/downloadBundle"}
 		jsonStr, _ := Utility.ToJson(guest)
 		_, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
@@ -1177,7 +1187,8 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
 	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
 	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
-	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
+	config["SessionTimeout"] = self.SessionTimeout
+	config["CertificateAuthorityProxy"] = self.CertificateAuthorityProxy
 	config["Discoveries"] = self.Discoveries
 	config["DNS"] = self.DNS
 	config["Protocol"] = self.Protocol
@@ -1454,7 +1465,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 	self.saveConfig()
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + string(os.PathSeparator) + "_token")
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
 	return &admin.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
@@ -2246,7 +2257,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// Here I will insert the account in the database.
-	id, err := p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
 
 	// Each account will have their own database and a use that can read and write
 	// into it.
@@ -2273,9 +2284,25 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 
 	}
 
+	// Generate a token to identify the user.
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	name, expireAt, _ := Interceptors_.ValidateToken(tokenString)
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	// Now I will
 	return &ressource.RegisterAccountRsp{
-		Result: id,
+		Result: tokenString, // Return the token string.
 	}, nil
 }
 
@@ -2355,8 +2382,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 
 	// save the newly create token into the database.
 	name, expireAt, _ := Interceptors_.ValidateToken(tokenString)
-	p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, "")
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	err = p.ReplaceOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2381,15 +2407,11 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	}
 
 	// first of all I will validate the current token.
-	name, expireAt, err := Interceptors_.ValidateToken(rqst.Token)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
+	name, expireAt, _ := Interceptors_.ValidateToken(rqst.Token)
 	// If the token is older than seven day without being refresh then I retrun an error.
-	if time.Now().Sub(time.Unix(expireAt, 0)) > (7 * 24 * time.Hour) {
+	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
+		log.Println("expire at ----->", expireAt, time.Unix(expireAt, 0).String())
+		log.Println("max expire at ----->", time.Now().AddDate(0, 0, -7).String())
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token cannot be refresh after 7 day")))
@@ -2407,8 +2429,10 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
+		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(float64)), 0)
+
 		// That mean a newer token was already refresh.
-		if lastTokenInfo["expireAt"].(int64) > expireAt {
+		if savedTokenExpireAt.Before(time.Unix(expireAt, 0)) {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")))
@@ -2425,8 +2449,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	// get back the new expireAt
 	name, expireAt, _ = Interceptors_.ValidateToken(tokenString)
 
-	p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, "")
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	err = p.ReplaceOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3132,22 +3155,6 @@ func (self *Globule) Listen() {
 	// Start the http server.
 	if self.Protocol == "https" {
 		// if no certificates are specified I will try to get one from let's encrypts.
-		if len(self.Certificate) == 0 {
-
-			// Here is the command to be execute in order to ge the certificates.
-			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
-
-			// I need to remove the gRPC certificate and recreate it.
-			Utility.RemoveDirContents(self.creds)
-			self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
-			self.initServices() // must restart the services with new certificates.
-			err := self.ObtainCertificateForCsr()
-			if err != nil {
-				log.Panicln(err)
-			}
-
-		}
-
 		// Start https server.
 		server := &http.Server{
 			Addr: ":" + strconv.Itoa(self.PortHttps),
@@ -3156,8 +3163,31 @@ func (self *Globule) Listen() {
 			},
 		}
 
+		// Here I will generate the certificate if it not already exist.
+
+		// TODO generate self signed certificate for localhost...
+		if len(self.Certificate) == 0 {
+
+			// Here is the command to be execute in order to ge the certificates.
+			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/grpc_tls/server.csr run
+			// I need to remove the gRPC certificate and recreate it.
+			Utility.RemoveDirContents(self.creds)
+
+			self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
+
+			time.Sleep(15 * time.Second)
+
+			self.initServices() // must restart the services with new certificates.
+			err := self.ObtainCertificateForCsr()
+			if err != nil {
+				log.Panicln(err)
+			}
+		}
 		// get the value from the configuration files.
-		server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+		err := server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+		if err != nil {
+			log.Panicln(err)
+		}
 	} else {
 
 		// local - non secure connection.

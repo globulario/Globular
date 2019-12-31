@@ -78,7 +78,7 @@ type server struct {
 	// the actual values.
 	DnsPort         int    // the dns port
 	DnsRoot         string // must be the domain managed by the server.
-	StorageService  map[string]interface{}
+	StorageService  string // The domain of the loacal storage.
 	StorageDataPath string
 
 	// The dns records... https://en.wikipedia.org/wiki/List_of_DNS_record_types
@@ -98,9 +98,10 @@ func (self *server) init() {
 	file, err := ioutil.ReadFile(dir + "/config.json")
 
 	// default value.
-	self.DnsPort = 53
+	self.DnsPort = 5353 // 53 is the default dns port.
 	self.DnsRoot = "example.com"
-	self.StorageDataPath = ""
+	self.StorageService = "localhost"
+	self.StorageDataPath = os.TempDir()
 
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
@@ -115,11 +116,9 @@ func (self *server) init() {
 	// Here I will initialyse the storage service.
 	// note that a storage server must be accessible by the dns service to
 	// store it informations.
-	if self.StorageService != nil {
-		domain := self.StorageService["Domain"].(string)
-
+	if self.StorageService != "" {
 		// Create the connection with the server.
-		self.storageClient = storage_client.NewStorage_Client(domain, "storage_server")
+		self.storageClient = storage_client.NewStorage_Client(self.StorageService, "storage_server")
 
 	} else {
 		log.Panicln("No storage service is configure!")

@@ -74,25 +74,30 @@ func main() {
 		if deployCommand.Parsed() {
 			// Required Flags
 			if *deployCommand_path == "" {
+				fmt.Print("No application 'dist' path was given")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 			if *deployCommand_name == "" {
+				fmt.Print("No applicaiton 'name' was given")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
 			if *deployCommand_user == "" {
+				fmt.Print("You must authenticate yourself")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
 			if *deployCommand_pwd == "" {
+				fmt.Print("You must specifie the user password.")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
 			if *deployCommand_address == "" {
+				fmt.Print("You must sepcie the server address")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
@@ -107,7 +112,7 @@ func main() {
 			}
 
 			if *publishCommand_publisher_id == "" {
-				deployCommand.PrintDefaults()
+				publishCommand.PrintDefaults()
 				os.Exit(1)
 			}
 

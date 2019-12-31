@@ -76,7 +76,11 @@ type server struct {
 	KeepUpToDate       bool
 	KeepAlive          bool
 
+	// saved connections
 	Connections map[string]connection
+
+	// unsaved connections
+	connections map[string]connection
 
 	// The map of store (also connections...)
 	stores map[string]persistence_store.Store
@@ -86,6 +90,7 @@ type server struct {
 func (self *server) init() {
 	// init the connections map.
 	self.Connections = make(map[string]connection)
+	self.connections = make(map[string]connection)
 
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -125,41 +130,51 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	var c connection
 	var err error
 
-	// Set the connection info from the request.
-	c.Id = rqst.Connection.Id
-	c.Name = rqst.Connection.Name
-	c.Host = rqst.Connection.Host
-	c.Port = rqst.Connection.Port
-	c.User = rqst.Connection.User
-	c.password = rqst.Connection.Password // The password must never be store here.
-	c.Store = rqst.Connection.Store
+	// use existing connection as we can.
+	if _, ok := self.connections[rqst.Connection.Id]; ok {
+		c = self.connections[rqst.Connection.Id]
+	} else if _, ok := self.Connections[rqst.Connection.Id]; ok {
+		c = self.Connections[rqst.Connection.Id]
+	} else {
 
-	if c.Store == persistencepb.StoreType_MONGO {
-		// here I will create a new mongo data store.
-		s := new(persistence_store.MongoStore)
+		// Set the connection info from the request.
+		c.Id = rqst.Connection.Id
+		c.Name = rqst.Connection.Name
+		c.Host = rqst.Connection.Host
+		c.Port = rqst.Connection.Port
+		c.User = rqst.Connection.User
+		c.password = rqst.Connection.Password // The password must never be store here.
+		c.Store = rqst.Connection.Store
 
-		// Now I will try to connect...
-		err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
-		if err != nil {
-			// codes.
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		if c.Store == persistencepb.StoreType_MONGO {
+			// here I will create a new mongo data store.
+			s := new(persistence_store.MongoStore)
+
+			// Now I will try to connect...
+			err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
+			if err != nil {
+				// codes.
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+			// keep the store for futur call...
+			self.stores[c.Id] = s
 		}
 
-		// keep the store for futur call...
-		self.stores[c.Id] = s
-	}
-
-	// If the connection need to save in the server configuration.
-	if rqst.Save == true {
-		self.Connections[c.Id] = c
-		// In that case I will save it in file.
-		err = self.save()
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		// If the connection need to save in the server configuration.
+		if rqst.Save == true {
+			self.Connections[c.Id] = c
+			// In that case I will save it in file.
+			err = self.save()
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		} else {
+			self.connections[c.Id] = c
 		}
 	}
 
@@ -167,6 +182,12 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	err = self.stores[c.Id].Ping(ctx, c.Id)
 
 	if err != nil {
+		self.stores[c.Id].Disconnect(c.Id)
+		if _, ok := self.connections[rqst.Connection.Id]; ok {
+			delete(self.connections, rqst.Connection.Id)
+		} else if _, ok := self.Connections[rqst.Connection.Id]; ok {
+			delete(self.Connections, rqst.Connection.Id)
+		}
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
