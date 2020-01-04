@@ -16,7 +16,7 @@ var (
 	// client = dns_client.NewDns_Client("localhost", 10033, false, key, crt, ca, token)
 
 	// Try to connect to a nameserver.
-	client = dns_client.NewDns_Client("localhost", "dns_server")
+	client = dns_client.NewDns_Client("ns2.globular.app", "dns_server")
 	//client = dns_client.NewDns_Client("www.omniscient.app", "35.183.163.145:10033", false, key, crt, ca, token)
 	//client = dns_client.NewDns_Client("www.omniscient.app", "44.225.184.139:10033", false, key, crt, ca, token)
 
@@ -25,8 +25,8 @@ var (
 
 // Test various function here.
 func TestSetA(t *testing.T) {
-	// Connect to the plc client.
-	domain, err := client.SetA("toto", Utility.MyIP())
+	// Set ip address
+	domain, err := client.SetA("globular4", Utility.MyIP(), 1000)
 	if err == nil {
 		log.Println("--> your domain is ", domain)
 	} else {
@@ -38,7 +38,7 @@ func TestResolve(t *testing.T) {
 
 	// Connect to the plc client.
 	log.Println("---> test resolve A")
-	ipv4, err := client.GetA("toto.example.com.")
+	ipv4, err := client.GetA("globular4.omniscient.app")
 	if err == nil {
 		log.Println("--> your ip is ", ipv4)
 	} else {
@@ -46,7 +46,7 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestRemoveA(t *testing.T) {
+/*func TestRemoveA(t *testing.T) {
 
 	// Connect to the plc client.
 	log.Println("---> test resolve A")
@@ -56,9 +56,9 @@ func TestRemoveA(t *testing.T) {
 	} else {
 		log.Panicln(err)
 	}
-}
+}*/
 
-func TestTextValue(t *testing.T) {
+/*func TestTextValue(t *testing.T) {
 	// Connect to the plc client.
 	log.Println("---> test set text")
 	err := client.SetText("toto", []string{"toto", "titi", "tata"})
@@ -79,4 +79,4 @@ func TestTextValue(t *testing.T) {
 	if err != nil {
 		log.Panicln(err)
 	}
-}
+}*/

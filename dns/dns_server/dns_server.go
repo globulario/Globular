@@ -190,7 +190,7 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 		return nil, err
 	}
 
-	log.Println("domain: ", "A:"+domain, " with uuid", uuid, "is set!")
+	log.Println("domain: ", "A:"+domain, " with uuid", uuid, "is set with ipv4 address", rqst.A)
 
 	self.setTtl(uuid, rqst.Ttl)
 
@@ -220,14 +220,18 @@ func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*d
 
 func (self *server) get_ipv4(domain string) (string, uint32, error) {
 	domain = strings.ToLower(domain)
+	if strings.HasSuffix(domain, ".") {
+		domain = domain[:len(domain)-1]
+	}
 	err := self.openConnection()
 	if err != nil {
 		return "", 0, err
 	}
-
+	log.Println("-----> look for domain A:" + domain)
 	uuid := Utility.GenerateUUID("A:" + domain)
 	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
+		log.Println("------> 231 ", uuid)
 		return "", 0, err
 	}
 
@@ -297,6 +301,9 @@ func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAAReques
 
 func (self *server) get_ipv6(domain string) (string, uint32, error) {
 	domain = strings.ToLower(domain)
+	if strings.HasSuffix(domain, ".") {
+		domain = domain[:len(domain)-1]
+	}
 	fmt.Println("Try get dns entry ", domain)
 	err := self.openConnection()
 	if err != nil {
@@ -1029,7 +1036,7 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		domain := msg.Question[0].Name
 		msg.Authoritative = true
 		address, ttl, err := s.get_ipv4(domain) // get the address name from the
-
+		log.Println("---> look for A ", domain)
 		if err == nil {
 			log.Println("---> ask for domain: ", domain, " address to redirect is ", address)
 			msg.Answer = append(msg.Answer, &dns.A{
@@ -1037,7 +1044,7 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				A:   net.ParseIP(address),
 			})
 		} else {
-			log.Println(err)
+			log.Println("fail to retreive ipv4 address for "+domain, err)
 		}
 
 	case dns.TypeAAAA:

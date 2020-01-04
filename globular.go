@@ -1249,6 +1249,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
+
 	var name string
 	for {
 		msg, err := stream.Recv()
