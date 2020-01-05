@@ -7,10 +7,13 @@ import (
 
 	//	"time"
 
-	//"go.mongodb.org/mongo-driver/bson"
 	"encoding/json"
-
 	"errors"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	//"github.com/iancoleman/orderedmap"
+
 	//"github.com/davecourtois/Utility"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -395,8 +398,8 @@ func (self *MongoStore) Update(ctx context.Context, connectionId string, databas
 		return err
 	}
 
-	v := make(map[string]interface{})
-	err = json.Unmarshal([]byte(value), &v)
+	v := new(bson.D)
+	err = bson.UnmarshalExtJSON([]byte(value), true, &v)
 	if err != nil {
 		return err
 	}
@@ -437,8 +440,8 @@ func (self *MongoStore) UpdateOne(ctx context.Context, connectionId string, data
 		return err
 	}
 
-	v := make(map[string]interface{})
-	err = json.Unmarshal([]byte(value), &v)
+	v := new(bson.D)
+	err = bson.UnmarshalExtJSON([]byte(value), true, &v)
 	if err != nil {
 		return err
 	}
@@ -479,8 +482,8 @@ func (self *MongoStore) ReplaceOne(ctx context.Context, connectionId string, dat
 		return err
 	}
 
-	v := make(map[string]interface{})
-	err = json.Unmarshal([]byte(value), &v)
+	v := new(bson.D)
+	err = bson.UnmarshalExtJSON([]byte(value), true, &v)
 	if err != nil {
 		return err
 	}
@@ -495,6 +498,7 @@ func (self *MongoStore) ReplaceOne(ctx context.Context, connectionId string, dat
 	}
 
 	_, err = collection_.ReplaceOne(ctx, q, v, opts...)
+
 	if err != nil {
 		return err
 	}

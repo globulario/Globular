@@ -80,7 +80,6 @@ func TestDeleteRole(t *testing.T) {
 	}
 }
 
-/*
 // Remove an account.
 func TestDeleteAccount(t *testing.T) {
 
@@ -91,4 +90,3 @@ func TestDeleteAccount(t *testing.T) {
 		log.Println("---> ", err)
 	}
 }
-*/

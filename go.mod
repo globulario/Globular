@@ -17,6 +17,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/gopcua/opcua v0.1.6 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
+	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/kalafut/imohash v1.0.0 // indirect
 	github.com/lib/pq v1.2.0
 	github.com/miekg/dns v1.1.22

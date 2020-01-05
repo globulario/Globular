@@ -2238,6 +2238,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 
 	// set the account object and set it basic roles.
 	account := make(map[string]interface{})
+	account["_id"] = rqst.Account.Name
 	account["name"] = rqst.Account.Name
 	account["email"] = rqst.Account.Email
 	account["password"] = rqst.Account.Password
@@ -2250,7 +2251,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	account["roles"] = []map[string]interface{}{guest}
 
 	// serialyse the account and save it.
-	accountStr, err := Utility.ToJson(account)
+	accountStr, err := json.Marshal(account)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2258,7 +2259,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// Here I will insert the account in the database.
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Accounts", accountStr, "")
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Accounts", string(accountStr), "")
 
 	// Each account will have their own database and a use that can read and write
 	// into it.
@@ -2472,7 +2473,15 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}
 
 	// Try to delete the account...
-	err = p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
+	err = p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.Name+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Delete the token.
+	err = p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+rqst.Name+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2486,6 +2495,14 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 
 	// I will execute the sript with the admin function.
 	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, dropUserScript)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Remove the user database.
+	err = p.DeleteDatabase("local_ressource", rqst.Name+"_db")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
