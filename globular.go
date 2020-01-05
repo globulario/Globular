@@ -2884,6 +2884,13 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 	return &ressource.RemoveAccountRoleRsp{Result: true}, nil
 }
 
+/**
+ * Return the list of all actions avalaible on the server.
+ */
+func (self *Globule) GetAllActions(ctx context.Context, rqst *ressource.GetAllActionsRqst) (*ressource.GetAllActionsRsp, error) {
+	return &ressource.GetAllActionsRsp{Actions: self.methods}, nil
+}
+
 //////////////////////////////// Services management  //////////////////////////
 
 /**

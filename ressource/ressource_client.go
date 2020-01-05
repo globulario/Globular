@@ -267,3 +267,15 @@ func (self *Ressource_Client) RemoveAccountRole(accountId string, roleId string)
 
 	return err
 }
+
+/**
+ * Return the list of all available actions on the server.
+ */
+func (self *Ressource_Client) GetAllActions() ([]string, error) {
+	rqst := &GetAllActionsRqst{}
+	rsp, err := self.c.GetAllActions(api.GetClientContext(self), rqst)
+	if err != nil {
+		return nil, err
+	}
+	return rsp.Actions, err
+}

@@ -109,6 +109,15 @@ message RemoveRoleActionRsp{
 	bool result = 1;
 }
 
+
+message GetAllActionsRqst{
+
+}
+
+message GetAllActionsRsp{
+	repeated string actions = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -145,4 +154,7 @@ service RessourceService {
 	
 	/** Remove an action to existing role. **/
 	rpc RemoveRoleAction(RemoveRoleActionRqst) returns(RemoveRoleActionRsp);
+	
+	/** Get all actions **/
+	rpc GetAllActions(GetAllActionsRqst) returns(GetAllActionsRsp);
 }

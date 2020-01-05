@@ -442,3 +442,37 @@ export namespace RemoveRoleActionRsp {
   }
 }
 
+export class GetAllActionsRqst extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetAllActionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetAllActionsRqst): GetAllActionsRqst.AsObject;
+  static serializeBinaryToWriter(message: GetAllActionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetAllActionsRqst;
+  static deserializeBinaryFromReader(message: GetAllActionsRqst, reader: jspb.BinaryReader): GetAllActionsRqst;
+}
+
+export namespace GetAllActionsRqst {
+  export type AsObject = {
+  }
+}
+
+export class GetAllActionsRsp extends jspb.Message {
+  getActionsList(): Array<string>;
+  setActionsList(value: Array<string>): void;
+  clearActionsList(): void;
+  addActions(value: string, index?: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetAllActionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetAllActionsRsp): GetAllActionsRsp.AsObject;
+  static serializeBinaryToWriter(message: GetAllActionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetAllActionsRsp;
+  static deserializeBinaryFromReader(message: GetAllActionsRsp, reader: jspb.BinaryReader): GetAllActionsRsp;
+}
+
+export namespace GetAllActionsRsp {
+  export type AsObject = {
+    actionsList: Array<string>,
+  }
+}
+

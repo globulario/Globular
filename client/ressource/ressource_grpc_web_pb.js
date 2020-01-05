@@ -636,5 +636,60 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeRoleAction =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetAllActionsRqst,
+ *   !proto.ressource.GetAllActionsRsp>}
+ */
+const methodInfo_RessourceService_GetAllActions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetAllActionsRsp,
+  /** @param {!proto.ressource.GetAllActionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllActionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetAllActionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetAllActionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetAllActionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getAllActions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllActions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllActions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetAllActionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetAllActionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getAllActions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllActions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllActions);
+};
+
+
 module.exports = proto.ressource;
 

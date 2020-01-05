@@ -13,6 +13,8 @@ import {
   DeleteAccountRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
+  GetAllActionsRqst,
+  GetAllActionsRsp,
   RefreshTokenRqst,
   RefreshTokenRsp,
   RegisterAccountRqst,
@@ -97,6 +99,13 @@ export class RessourceServiceClient {
                response: RemoveRoleActionRsp) => void
   ): grpcWeb.ClientReadableStream<RemoveRoleActionRsp>;
 
+  getAllActions(
+    request: GetAllActionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetAllActionsRsp) => void
+  ): grpcWeb.ClientReadableStream<GetAllActionsRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
@@ -153,6 +162,11 @@ export class RessourceServicePromiseClient {
     request: RemoveRoleActionRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<RemoveRoleActionRsp>;
+
+  getAllActions(
+    request: GetAllActionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetAllActionsRsp>;
 
 }
 
