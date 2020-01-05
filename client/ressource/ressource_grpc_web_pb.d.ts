@@ -1,14 +1,26 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
+  AddAccountRoleRqst,
+  AddAccountRoleRsp,
+  AddRoleActionRqst,
+  AddRoleActionRsp,
   AuthenticateRqst,
   AuthenticateRsp,
+  CreateRoleRqst,
+  CreateRoleRsp,
   DeleteAccountRqst,
   DeleteAccountRsp,
+  DeleteRoleRqst,
+  DeleteRoleRsp,
   RefreshTokenRqst,
   RefreshTokenRsp,
   RegisterAccountRqst,
-  RegisterAccountRsp} from './ressource_pb';
+  RegisterAccountRsp,
+  RemoveAccountRoleRqst,
+  RemoveAccountRoleRsp,
+  RemoveRoleActionRqst,
+  RemoveRoleActionRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
@@ -43,6 +55,48 @@ export class RessourceServiceClient {
                response: RefreshTokenRsp) => void
   ): grpcWeb.ClientReadableStream<RefreshTokenRsp>;
 
+  addAccountRole(
+    request: AddAccountRoleRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: AddAccountRoleRsp) => void
+  ): grpcWeb.ClientReadableStream<AddAccountRoleRsp>;
+
+  removeAccountRole(
+    request: RemoveAccountRoleRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveAccountRoleRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveAccountRoleRsp>;
+
+  createRole(
+    request: CreateRoleRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: CreateRoleRsp) => void
+  ): grpcWeb.ClientReadableStream<CreateRoleRsp>;
+
+  deleteRole(
+    request: DeleteRoleRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteRoleRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteRoleRsp>;
+
+  addRoleAction(
+    request: AddRoleActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: AddRoleActionRsp) => void
+  ): grpcWeb.ClientReadableStream<AddRoleActionRsp>;
+
+  removeRoleAction(
+    request: RemoveRoleActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveRoleActionRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveRoleActionRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
@@ -69,6 +123,36 @@ export class RessourceServicePromiseClient {
     request: RefreshTokenRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<RefreshTokenRsp>;
+
+  addAccountRole(
+    request: AddAccountRoleRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<AddAccountRoleRsp>;
+
+  removeAccountRole(
+    request: RemoveAccountRoleRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveAccountRoleRsp>;
+
+  createRole(
+    request: CreateRoleRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<CreateRoleRsp>;
+
+  deleteRole(
+    request: DeleteRoleRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteRoleRsp>;
+
+  addRoleAction(
+    request: AddRoleActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<AddRoleActionRsp>;
+
+  removeRoleAction(
+    request: RemoveRoleActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveRoleActionRsp>;
 
 }
 

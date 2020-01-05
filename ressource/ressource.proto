@@ -56,6 +56,59 @@ message RefreshTokenRsp {
 	string token = 1;
 }
 
+message AddAccountRoleRqst{
+	string accountId = 1;
+	string roleId = 2;
+}
+
+message AddAccountRoleRsp{
+	bool result = 1;
+}
+
+message RemoveAccountRoleRqst{
+	string accountId = 1;
+	string roleId = 2;
+}
+
+message RemoveAccountRoleRsp{
+	bool result = 1;
+}
+
+message CreateRoleRqst{
+	Role role = 1;
+}
+
+message CreateRoleRsp{
+	bool result = 1;
+}
+
+message DeleteRoleRqst{
+	string roleId = 1;
+}
+
+message DeleteRoleRsp{
+	bool result = 1;
+}
+
+
+message AddRoleActionRqst{
+	string roleId = 1;
+	string action = 2;
+}
+
+message AddRoleActionRsp{
+	bool result = 1;
+}
+
+message RemoveRoleActionRqst{
+	string roleId = 1;
+	string action = 2;
+}
+
+message RemoveRoleActionRsp{
+	bool result = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -74,5 +127,22 @@ service RessourceService {
 	
 	/** Refresh token get a new token **/
 	rpc RefreshToken(RefreshTokenRqst) returns(RefreshTokenRsp);
+	
+	/** Add role to a given account **/
+	rpc AddAccountRole(AddAccountRoleRqst) returns(AddAccountRoleRsp);
 
+	/** Remove a role from a given account **/
+	rpc RemoveAccountRole(RemoveAccountRoleRqst) returns(RemoveAccountRoleRsp);
+	
+	/** Create a role with given action list **/
+	rpc CreateRole(CreateRoleRqst) returns(CreateRoleRsp);
+	
+	/** Delete a role with a given id **/
+	rpc DeleteRole(DeleteRoleRqst) returns(DeleteRoleRsp);
+	
+	/** Append an action to existing role. **/
+	rpc AddRoleAction(AddRoleActionRqst) returns(AddRoleActionRsp);
+	
+	/** Remove an action to existing role. **/
+	rpc RemoveRoleAction(RemoveRoleActionRqst) returns(RemoveRoleActionRsp);
 }

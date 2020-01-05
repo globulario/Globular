@@ -2504,6 +2504,369 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}, nil
 }
 
+//* Create a role with given action list *
+func (self *Globule) CreateRole(ctx context.Context, rqst *ressource.CreateRoleRqst) (*ressource.CreateRoleRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	name := rqst.Role.Name
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, _ := p.FindOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.Role.Name+`"}`, ``)
+	if len(values) != 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+name+"already exist!")))
+	}
+
+	// Here will create the new role.
+	role := make(map[string]interface{}, 0)
+	role["_id"] = name
+	role["actions"] = rqst.Role.Actions
+
+	jsonStr, _ := Utility.ToJson(role)
+
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.CreateRoleRsp{Result: true}, nil
+}
+
+//* Delete a role with a given id *
+func (self *Globule) DeleteRole(ctx context.Context, rqst *ressource.DeleteRoleRqst) (*ressource.DeleteRoleRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, _ := p.Find("local_ressource", "local_ressource", "Accounts", `{}`, ``)
+	if len(values) != 0 {
+		accounts := make([]map[string]interface{}, 0)
+		err := json.Unmarshal([]byte(values), &accounts)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		for i := 0; i < len(accounts); i++ {
+			if accounts[i]["roles"] != nil {
+				roles := accounts[i]["roles"].([]interface{})
+				roles_ := make([]interface{}, 0)
+				needSave := false
+				for j := 0; j < len(roles); j++ {
+					// TODO remove the role with name rqst.roleId from the account.
+					role := roles[j].(map[string]interface{})
+					if role["$id"] == rqst.RoleId {
+						needSave = true
+					} else {
+						roles_ = append(roles_, role)
+					}
+				}
+
+				// Here I will save the role.
+				if needSave {
+					accounts[i]["roles"] = roles_
+					// Here I will save the role.
+					jsonStr := "{"
+					jsonStr += `"name":"` + accounts[i]["name"].(string) + `",`
+					jsonStr += `"email":"` + accounts[i]["email"].(string) + `",`
+					jsonStr += `"password":"` + accounts[i]["password"].(string) + `",`
+					jsonStr += `"roles":[`
+					for j := 0; j < len(accounts[i]["roles"].([]interface{})); j++ {
+						jsonStr += `{`
+						jsonStr += `"$ref":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
+						jsonStr += `"$id":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
+						jsonStr += `"$db":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+						jsonStr += `}`
+						if j < len(accounts[i]["roles"].([]interface{}))-1 {
+							jsonStr += `,`
+						}
+					}
+					jsonStr += `]`
+					jsonStr += "}"
+
+					err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+accounts[i]["name"].(string)+`"}`, jsonStr, ``)
+					if err != nil {
+						return nil, status.Errorf(
+							codes.Internal,
+							Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+					}
+				}
+			}
+		}
+	}
+
+	err = p.DeleteOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &ressource.DeleteRoleRsp{Result: true}, nil
+}
+
+//* Append an action to existing role. *
+func (self *Globule) AddRoleAction(ctx context.Context, rqst *ressource.AddRoleActionRqst) (*ressource.AddRoleActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	role := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &role)
+
+	needSave := false
+	if role["actions"] == nil {
+		role["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		for i := 0; i < len(role["actions"].([]interface{})); i++ {
+			if role["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			role["actions"] = append(role["actions"].([]interface{}), rqst.Action)
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+rqst.RoleId+"already contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(role)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.AddRoleActionRsp{Result: true}, nil
+}
+
+//* Remove an action to existing role. *
+func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *ressource.RemoveRoleActionRqst) (*ressource.RemoveRoleActionRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	role := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &role)
+
+	needSave := false
+	if role["actions"] == nil {
+		role["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		actions := make([]interface{}, 0)
+		for i := 0; i < len(role["actions"].([]interface{})); i++ {
+			if role["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+			} else {
+				actions = append(actions, role["actions"].([]interface{})[i])
+			}
+		}
+		if exist {
+			role["actions"] = actions
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+rqst.RoleId+"not contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(role)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.RemoveRoleActionRsp{Result: true}, nil
+}
+
+//* Add role to a given account *
+func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAccountRoleRqst) (*ressource.AddAccountRoleRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.AccountId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account named "+rqst.AccountId+" exist!")))
+	}
+
+	account := make(map[string]interface{}, 0)
+	json.Unmarshal([]byte(values), &account)
+
+	// Now I will test if the account already contain the role.
+	if account["roles"] != nil {
+		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			if account["roles"].([]interface{})[j].(map[string]interface{})["$id"] == rqst.RoleId {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+rqst.RoleId+" aleready exist in account "+rqst.AccountId+"!")))
+			}
+		}
+
+		// append the newly created role.
+		account["roles"] = append(account["roles"].([]interface{}), map[string]interface{}{"$ref": "Roles", "$id": rqst.RoleId, "$db": "local_ressource"})
+
+		// Here I will save the role.
+		jsonStr := "{"
+		jsonStr += `"name":"` + account["name"].(string) + `",`
+		jsonStr += `"email":"` + account["email"].(string) + `",`
+		jsonStr += `"password":"` + account["password"].(string) + `",`
+		jsonStr += `"roles":[`
+		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			jsonStr += `{`
+			jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
+			jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
+			jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+			jsonStr += `}`
+			if j < len(account["roles"].([]interface{}))-1 {
+				jsonStr += `,`
+			}
+
+		}
+		jsonStr += `]`
+		jsonStr += "}"
+
+		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+	}
+	return &ressource.AddAccountRoleRsp{Result: true}, nil
+}
+
+//* Remove a role from a given account *
+func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.RemoveAccountRoleRqst) (*ressource.RemoveAccountRoleRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.AccountId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account named "+rqst.AccountId+" exist!")))
+	}
+
+	account := make(map[string]interface{}, 0)
+	json.Unmarshal([]byte(values), &account)
+
+	// Now I will test if the account already contain the role.
+	if account["roles"] != nil {
+		roles := make([]interface{}, 0)
+		needSave := false
+		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			if account["roles"].([]interface{})[j].(map[string]interface{})["$id"] == rqst.RoleId {
+				needSave = true
+			} else {
+				roles = append(roles, account["roles"].([]interface{})[j])
+			}
+		}
+
+		if needSave == false {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Account named "+rqst.AccountId+" does not contain role "+rqst.RoleId+"!")))
+		}
+
+		// append the newly created role.
+		account["roles"] = roles
+
+		// Here I will save the role.
+		jsonStr := "{"
+		jsonStr += `"name":"` + account["name"].(string) + `",`
+		jsonStr += `"email":"` + account["email"].(string) + `",`
+		jsonStr += `"password":"` + account["password"].(string) + `",`
+		jsonStr += `"roles":[`
+		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			jsonStr += `{`
+			jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
+			jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
+			jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+			jsonStr += `}`
+			if j < len(account["roles"].([]interface{}))-1 {
+				jsonStr += `,`
+			}
+
+		}
+		jsonStr += `]`
+		jsonStr += "}"
+
+		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+	}
+	return &ressource.RemoveAccountRoleRsp{Result: true}, nil
+}
+
 //////////////////////////////// Services management  //////////////////////////
 
 /**

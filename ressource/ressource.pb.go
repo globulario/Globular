@@ -466,6 +466,506 @@ func (m *RefreshTokenRsp) GetToken() string {
 	return ""
 }
 
+type AddAccountRoleRqst struct {
+	AccountId            string   `protobuf:"bytes,1,opt,name=accountId,proto3" json:"accountId,omitempty"`
+	RoleId               string   `protobuf:"bytes,2,opt,name=roleId,proto3" json:"roleId,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddAccountRoleRqst) Reset()         { *m = AddAccountRoleRqst{} }
+func (m *AddAccountRoleRqst) String() string { return proto.CompactTextString(m) }
+func (*AddAccountRoleRqst) ProtoMessage()    {}
+func (*AddAccountRoleRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{10}
+}
+
+func (m *AddAccountRoleRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddAccountRoleRqst.Unmarshal(m, b)
+}
+func (m *AddAccountRoleRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddAccountRoleRqst.Marshal(b, m, deterministic)
+}
+func (m *AddAccountRoleRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddAccountRoleRqst.Merge(m, src)
+}
+func (m *AddAccountRoleRqst) XXX_Size() int {
+	return xxx_messageInfo_AddAccountRoleRqst.Size(m)
+}
+func (m *AddAccountRoleRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddAccountRoleRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddAccountRoleRqst proto.InternalMessageInfo
+
+func (m *AddAccountRoleRqst) GetAccountId() string {
+	if m != nil {
+		return m.AccountId
+	}
+	return ""
+}
+
+func (m *AddAccountRoleRqst) GetRoleId() string {
+	if m != nil {
+		return m.RoleId
+	}
+	return ""
+}
+
+type AddAccountRoleRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddAccountRoleRsp) Reset()         { *m = AddAccountRoleRsp{} }
+func (m *AddAccountRoleRsp) String() string { return proto.CompactTextString(m) }
+func (*AddAccountRoleRsp) ProtoMessage()    {}
+func (*AddAccountRoleRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{11}
+}
+
+func (m *AddAccountRoleRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddAccountRoleRsp.Unmarshal(m, b)
+}
+func (m *AddAccountRoleRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddAccountRoleRsp.Marshal(b, m, deterministic)
+}
+func (m *AddAccountRoleRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddAccountRoleRsp.Merge(m, src)
+}
+func (m *AddAccountRoleRsp) XXX_Size() int {
+	return xxx_messageInfo_AddAccountRoleRsp.Size(m)
+}
+func (m *AddAccountRoleRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddAccountRoleRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddAccountRoleRsp proto.InternalMessageInfo
+
+func (m *AddAccountRoleRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type RemoveAccountRoleRqst struct {
+	AccountId            string   `protobuf:"bytes,1,opt,name=accountId,proto3" json:"accountId,omitempty"`
+	RoleId               string   `protobuf:"bytes,2,opt,name=roleId,proto3" json:"roleId,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAccountRoleRqst) Reset()         { *m = RemoveAccountRoleRqst{} }
+func (m *RemoveAccountRoleRqst) String() string { return proto.CompactTextString(m) }
+func (*RemoveAccountRoleRqst) ProtoMessage()    {}
+func (*RemoveAccountRoleRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{12}
+}
+
+func (m *RemoveAccountRoleRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAccountRoleRqst.Unmarshal(m, b)
+}
+func (m *RemoveAccountRoleRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAccountRoleRqst.Marshal(b, m, deterministic)
+}
+func (m *RemoveAccountRoleRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAccountRoleRqst.Merge(m, src)
+}
+func (m *RemoveAccountRoleRqst) XXX_Size() int {
+	return xxx_messageInfo_RemoveAccountRoleRqst.Size(m)
+}
+func (m *RemoveAccountRoleRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAccountRoleRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAccountRoleRqst proto.InternalMessageInfo
+
+func (m *RemoveAccountRoleRqst) GetAccountId() string {
+	if m != nil {
+		return m.AccountId
+	}
+	return ""
+}
+
+func (m *RemoveAccountRoleRqst) GetRoleId() string {
+	if m != nil {
+		return m.RoleId
+	}
+	return ""
+}
+
+type RemoveAccountRoleRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveAccountRoleRsp) Reset()         { *m = RemoveAccountRoleRsp{} }
+func (m *RemoveAccountRoleRsp) String() string { return proto.CompactTextString(m) }
+func (*RemoveAccountRoleRsp) ProtoMessage()    {}
+func (*RemoveAccountRoleRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{13}
+}
+
+func (m *RemoveAccountRoleRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveAccountRoleRsp.Unmarshal(m, b)
+}
+func (m *RemoveAccountRoleRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveAccountRoleRsp.Marshal(b, m, deterministic)
+}
+func (m *RemoveAccountRoleRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveAccountRoleRsp.Merge(m, src)
+}
+func (m *RemoveAccountRoleRsp) XXX_Size() int {
+	return xxx_messageInfo_RemoveAccountRoleRsp.Size(m)
+}
+func (m *RemoveAccountRoleRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveAccountRoleRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveAccountRoleRsp proto.InternalMessageInfo
+
+func (m *RemoveAccountRoleRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type CreateRoleRqst struct {
+	Role                 *Role    `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateRoleRqst) Reset()         { *m = CreateRoleRqst{} }
+func (m *CreateRoleRqst) String() string { return proto.CompactTextString(m) }
+func (*CreateRoleRqst) ProtoMessage()    {}
+func (*CreateRoleRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{14}
+}
+
+func (m *CreateRoleRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateRoleRqst.Unmarshal(m, b)
+}
+func (m *CreateRoleRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateRoleRqst.Marshal(b, m, deterministic)
+}
+func (m *CreateRoleRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateRoleRqst.Merge(m, src)
+}
+func (m *CreateRoleRqst) XXX_Size() int {
+	return xxx_messageInfo_CreateRoleRqst.Size(m)
+}
+func (m *CreateRoleRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateRoleRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateRoleRqst proto.InternalMessageInfo
+
+func (m *CreateRoleRqst) GetRole() *Role {
+	if m != nil {
+		return m.Role
+	}
+	return nil
+}
+
+type CreateRoleRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateRoleRsp) Reset()         { *m = CreateRoleRsp{} }
+func (m *CreateRoleRsp) String() string { return proto.CompactTextString(m) }
+func (*CreateRoleRsp) ProtoMessage()    {}
+func (*CreateRoleRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{15}
+}
+
+func (m *CreateRoleRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateRoleRsp.Unmarshal(m, b)
+}
+func (m *CreateRoleRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateRoleRsp.Marshal(b, m, deterministic)
+}
+func (m *CreateRoleRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateRoleRsp.Merge(m, src)
+}
+func (m *CreateRoleRsp) XXX_Size() int {
+	return xxx_messageInfo_CreateRoleRsp.Size(m)
+}
+func (m *CreateRoleRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateRoleRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateRoleRsp proto.InternalMessageInfo
+
+func (m *CreateRoleRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type DeleteRoleRqst struct {
+	RoleId               string   `protobuf:"bytes,1,opt,name=roleId,proto3" json:"roleId,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteRoleRqst) Reset()         { *m = DeleteRoleRqst{} }
+func (m *DeleteRoleRqst) String() string { return proto.CompactTextString(m) }
+func (*DeleteRoleRqst) ProtoMessage()    {}
+func (*DeleteRoleRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{16}
+}
+
+func (m *DeleteRoleRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteRoleRqst.Unmarshal(m, b)
+}
+func (m *DeleteRoleRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteRoleRqst.Marshal(b, m, deterministic)
+}
+func (m *DeleteRoleRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteRoleRqst.Merge(m, src)
+}
+func (m *DeleteRoleRqst) XXX_Size() int {
+	return xxx_messageInfo_DeleteRoleRqst.Size(m)
+}
+func (m *DeleteRoleRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteRoleRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteRoleRqst proto.InternalMessageInfo
+
+func (m *DeleteRoleRqst) GetRoleId() string {
+	if m != nil {
+		return m.RoleId
+	}
+	return ""
+}
+
+type DeleteRoleRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteRoleRsp) Reset()         { *m = DeleteRoleRsp{} }
+func (m *DeleteRoleRsp) String() string { return proto.CompactTextString(m) }
+func (*DeleteRoleRsp) ProtoMessage()    {}
+func (*DeleteRoleRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{17}
+}
+
+func (m *DeleteRoleRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteRoleRsp.Unmarshal(m, b)
+}
+func (m *DeleteRoleRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteRoleRsp.Marshal(b, m, deterministic)
+}
+func (m *DeleteRoleRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteRoleRsp.Merge(m, src)
+}
+func (m *DeleteRoleRsp) XXX_Size() int {
+	return xxx_messageInfo_DeleteRoleRsp.Size(m)
+}
+func (m *DeleteRoleRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteRoleRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteRoleRsp proto.InternalMessageInfo
+
+func (m *DeleteRoleRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type AddRoleActionRqst struct {
+	RoleId               string   `protobuf:"bytes,1,opt,name=roleId,proto3" json:"roleId,omitempty"`
+	Action               string   `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddRoleActionRqst) Reset()         { *m = AddRoleActionRqst{} }
+func (m *AddRoleActionRqst) String() string { return proto.CompactTextString(m) }
+func (*AddRoleActionRqst) ProtoMessage()    {}
+func (*AddRoleActionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{18}
+}
+
+func (m *AddRoleActionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddRoleActionRqst.Unmarshal(m, b)
+}
+func (m *AddRoleActionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddRoleActionRqst.Marshal(b, m, deterministic)
+}
+func (m *AddRoleActionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddRoleActionRqst.Merge(m, src)
+}
+func (m *AddRoleActionRqst) XXX_Size() int {
+	return xxx_messageInfo_AddRoleActionRqst.Size(m)
+}
+func (m *AddRoleActionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddRoleActionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddRoleActionRqst proto.InternalMessageInfo
+
+func (m *AddRoleActionRqst) GetRoleId() string {
+	if m != nil {
+		return m.RoleId
+	}
+	return ""
+}
+
+func (m *AddRoleActionRqst) GetAction() string {
+	if m != nil {
+		return m.Action
+	}
+	return ""
+}
+
+type AddRoleActionRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddRoleActionRsp) Reset()         { *m = AddRoleActionRsp{} }
+func (m *AddRoleActionRsp) String() string { return proto.CompactTextString(m) }
+func (*AddRoleActionRsp) ProtoMessage()    {}
+func (*AddRoleActionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{19}
+}
+
+func (m *AddRoleActionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddRoleActionRsp.Unmarshal(m, b)
+}
+func (m *AddRoleActionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddRoleActionRsp.Marshal(b, m, deterministic)
+}
+func (m *AddRoleActionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddRoleActionRsp.Merge(m, src)
+}
+func (m *AddRoleActionRsp) XXX_Size() int {
+	return xxx_messageInfo_AddRoleActionRsp.Size(m)
+}
+func (m *AddRoleActionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddRoleActionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddRoleActionRsp proto.InternalMessageInfo
+
+func (m *AddRoleActionRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type RemoveRoleActionRqst struct {
+	RoleId               string   `protobuf:"bytes,1,opt,name=roleId,proto3" json:"roleId,omitempty"`
+	Action               string   `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveRoleActionRqst) Reset()         { *m = RemoveRoleActionRqst{} }
+func (m *RemoveRoleActionRqst) String() string { return proto.CompactTextString(m) }
+func (*RemoveRoleActionRqst) ProtoMessage()    {}
+func (*RemoveRoleActionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{20}
+}
+
+func (m *RemoveRoleActionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveRoleActionRqst.Unmarshal(m, b)
+}
+func (m *RemoveRoleActionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveRoleActionRqst.Marshal(b, m, deterministic)
+}
+func (m *RemoveRoleActionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveRoleActionRqst.Merge(m, src)
+}
+func (m *RemoveRoleActionRqst) XXX_Size() int {
+	return xxx_messageInfo_RemoveRoleActionRqst.Size(m)
+}
+func (m *RemoveRoleActionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveRoleActionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveRoleActionRqst proto.InternalMessageInfo
+
+func (m *RemoveRoleActionRqst) GetRoleId() string {
+	if m != nil {
+		return m.RoleId
+	}
+	return ""
+}
+
+func (m *RemoveRoleActionRqst) GetAction() string {
+	if m != nil {
+		return m.Action
+	}
+	return ""
+}
+
+type RemoveRoleActionRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveRoleActionRsp) Reset()         { *m = RemoveRoleActionRsp{} }
+func (m *RemoveRoleActionRsp) String() string { return proto.CompactTextString(m) }
+func (*RemoveRoleActionRsp) ProtoMessage()    {}
+func (*RemoveRoleActionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{21}
+}
+
+func (m *RemoveRoleActionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveRoleActionRsp.Unmarshal(m, b)
+}
+func (m *RemoveRoleActionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveRoleActionRsp.Marshal(b, m, deterministic)
+}
+func (m *RemoveRoleActionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveRoleActionRsp.Merge(m, src)
+}
+func (m *RemoveRoleActionRsp) XXX_Size() int {
+	return xxx_messageInfo_RemoveRoleActionRsp.Size(m)
+}
+func (m *RemoveRoleActionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveRoleActionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveRoleActionRsp proto.InternalMessageInfo
+
+func (m *RemoveRoleActionRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 func init() {
 	proto.RegisterType((*Account)(nil), "ressource.Account")
 	proto.RegisterType((*Role)(nil), "ressource.Role")
@@ -477,36 +977,63 @@ func init() {
 	proto.RegisterType((*AuthenticateRsp)(nil), "ressource.AuthenticateRsp")
 	proto.RegisterType((*RefreshTokenRqst)(nil), "ressource.RefreshTokenRqst")
 	proto.RegisterType((*RefreshTokenRsp)(nil), "ressource.RefreshTokenRsp")
+	proto.RegisterType((*AddAccountRoleRqst)(nil), "ressource.AddAccountRoleRqst")
+	proto.RegisterType((*AddAccountRoleRsp)(nil), "ressource.AddAccountRoleRsp")
+	proto.RegisterType((*RemoveAccountRoleRqst)(nil), "ressource.RemoveAccountRoleRqst")
+	proto.RegisterType((*RemoveAccountRoleRsp)(nil), "ressource.RemoveAccountRoleRsp")
+	proto.RegisterType((*CreateRoleRqst)(nil), "ressource.CreateRoleRqst")
+	proto.RegisterType((*CreateRoleRsp)(nil), "ressource.CreateRoleRsp")
+	proto.RegisterType((*DeleteRoleRqst)(nil), "ressource.DeleteRoleRqst")
+	proto.RegisterType((*DeleteRoleRsp)(nil), "ressource.DeleteRoleRsp")
+	proto.RegisterType((*AddRoleActionRqst)(nil), "ressource.AddRoleActionRqst")
+	proto.RegisterType((*AddRoleActionRsp)(nil), "ressource.AddRoleActionRsp")
+	proto.RegisterType((*RemoveRoleActionRqst)(nil), "ressource.RemoveRoleActionRqst")
+	proto.RegisterType((*RemoveRoleActionRsp)(nil), "ressource.RemoveRoleActionRsp")
 }
 
 func init() { proto.RegisterFile("ressource/ressource.proto", fileDescriptor_f22aaa66144afcde) }
 
 var fileDescriptor_f22aaa66144afcde = []byte{
-	// 382 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x53, 0xdd, 0x4e, 0xf2, 0x40,
-	0x14, 0x0c, 0x85, 0x0f, 0x3e, 0x0e, 0x1a, 0xea, 0xd1, 0x98, 0x5a, 0x7f, 0x42, 0x7a, 0x03, 0x1a,
-	0x82, 0x09, 0xfa, 0x02, 0x10, 0x13, 0x13, 0x6f, 0x24, 0xd5, 0x2b, 0x6f, 0x4c, 0xad, 0x07, 0x69,
-	0x2c, 0xdd, 0xba, 0xbb, 0xd5, 0x77, 0xf0, 0xb1, 0x7c, 0x32, 0xd3, 0xd2, 0x42, 0xb7, 0xb6, 0xdc,
-	0x75, 0xf6, 0xcc, 0x4e, 0xe7, 0xcc, 0x64, 0xe1, 0x88, 0x93, 0x10, 0x2c, 0xe2, 0x2e, 0x5d, 0xae,
-	0xbf, 0x46, 0x21, 0x67, 0x92, 0x61, 0x7b, 0x7d, 0x60, 0xdd, 0x43, 0x6b, 0xe2, 0xba, 0x2c, 0x0a,
-	0x24, 0x22, 0x34, 0x02, 0x67, 0x49, 0x46, 0xad, 0x57, 0x1b, 0xb4, 0xed, 0xe4, 0x1b, 0x0f, 0xe0,
-	0x1f, 0x2d, 0x1d, 0xcf, 0x37, 0xb4, 0xe4, 0x70, 0x05, 0xd0, 0x84, 0xff, 0xa1, 0x23, 0xc4, 0x17,
-	0xe3, 0xaf, 0x46, 0x3d, 0x19, 0xac, 0xb1, 0x75, 0x0d, 0x0d, 0x9b, 0xf9, 0x54, 0xaa, 0x66, 0x40,
-	0xcb, 0x71, 0xa5, 0xc7, 0x02, 0x61, 0x68, 0xbd, 0xfa, 0xa0, 0x6d, 0x67, 0xd0, 0xfa, 0xae, 0xc1,
-	0xbe, 0x4d, 0x6f, 0x9e, 0x90, 0xc4, 0x53, 0x3f, 0xf6, 0x87, 0x90, 0x38, 0x8c, 0x6f, 0x24, 0x30,
-	0x11, 0xea, 0x8c, 0x71, 0xb4, 0x59, 0x26, 0x23, 0x66, 0x14, 0xc5, 0x97, 0xa6, 0xfa, 0xc2, 0x73,
-	0xd0, 0x5d, 0x16, 0xcc, 0x3d, 0xbe, 0x7c, 0x2e, 0x78, 0xef, 0xa6, 0xe7, 0xb3, 0x6c, 0x85, 0x21,
-	0x60, 0xd1, 0x8b, 0x08, 0xf1, 0x10, 0x9a, 0x9c, 0x44, 0xe4, 0xcb, 0x74, 0xa5, 0x14, 0x59, 0x7d,
-	0xd8, 0xbb, 0x21, 0x9f, 0x24, 0xe5, 0x7d, 0x97, 0x6c, 0x6f, 0x5d, 0x80, 0xae, 0x12, 0xb7, 0x88,
-	0x4e, 0x41, 0x9f, 0x44, 0x72, 0x41, 0x81, 0xf4, 0x5c, 0x47, 0x52, 0x95, 0xe6, 0xb6, 0x8d, 0xad,
-	0x3e, 0x74, 0x15, 0x0d, 0x11, 0xc6, 0x75, 0x4a, 0xf6, 0x4e, 0x41, 0xaa, 0xb1, 0x02, 0xd6, 0x00,
-	0x74, 0x9b, 0xe6, 0x9c, 0xc4, 0xe2, 0x31, 0xc6, 0xc9, 0xcf, 0xca, 0x99, 0x7d, 0xe8, 0x2a, 0xcc,
-	0x2a, 0xc9, 0xf1, 0x8f, 0x16, 0x6b, 0xa6, 0x45, 0x3d, 0x10, 0xff, 0xf4, 0x5c, 0xc2, 0x59, 0x7c,
-	0x5b, 0xc9, 0x15, 0xcf, 0x72, 0x75, 0x96, 0xf4, 0x6f, 0x9e, 0x6e, 0x99, 0x8b, 0x10, 0xef, 0x60,
-	0x57, 0x89, 0x14, 0x4f, 0x72, 0xfc, 0x3f, 0xad, 0x98, 0xc7, 0x95, 0x53, 0x11, 0xe2, 0x2d, 0xec,
-	0xe4, 0xe3, 0xc2, 0x3c, 0xb9, 0xd8, 0x85, 0x69, 0x56, 0x0d, 0x57, 0x42, 0xf9, 0x90, 0x14, 0xa1,
-	0x62, 0xce, 0x8a, 0x50, 0x21, 0xda, 0x69, 0xe7, 0x69, 0xf3, 0x50, 0x5f, 0x9a, 0xc9, 0xd3, 0xbd,
-	0xfa, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xd2, 0x74, 0x06, 0x8f, 0xd7, 0x03, 0x00, 0x00,
+	// 619 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0x4f, 0x6f, 0xd3, 0x4e,
+	0x10, 0x55, 0xda, 0xfc, 0xd2, 0x66, 0xfa, 0xcb, 0xbf, 0xa1, 0x20, 0xd7, 0x84, 0x12, 0x99, 0x43,
+	0x02, 0x94, 0x20, 0x15, 0xf8, 0x00, 0x69, 0x11, 0xa8, 0x91, 0x2a, 0x2a, 0x17, 0x71, 0xe0, 0x82,
+	0x82, 0x33, 0xa5, 0x16, 0x8e, 0xd7, 0x78, 0x9d, 0xf2, 0x1d, 0x38, 0xf1, 0x91, 0xd1, 0xae, 0xbd,
+	0xf1, 0xae, 0x1d, 0xfb, 0x02, 0x37, 0xcf, 0xce, 0xf3, 0x9b, 0x99, 0xe7, 0x79, 0x2b, 0xc3, 0x51,
+	0x4c, 0x9c, 0xb3, 0x75, 0xec, 0xd1, 0xcb, 0xcd, 0xd3, 0x34, 0x8a, 0x59, 0xc2, 0xb0, 0xbd, 0x39,
+	0x70, 0x3e, 0xc0, 0xde, 0xcc, 0xf3, 0xd8, 0x3a, 0x4c, 0x10, 0xa1, 0x19, 0x2e, 0x56, 0x64, 0x35,
+	0x46, 0x8d, 0x49, 0xdb, 0x95, 0xcf, 0x78, 0x08, 0xff, 0xd1, 0x6a, 0xe1, 0x07, 0xd6, 0x8e, 0x3c,
+	0x4c, 0x03, 0xb4, 0x61, 0x3f, 0x5a, 0x70, 0xfe, 0x93, 0xc5, 0x4b, 0x6b, 0x57, 0x26, 0x36, 0xb1,
+	0xf3, 0x1a, 0x9a, 0x2e, 0x0b, 0x68, 0x2b, 0x9b, 0x05, 0x7b, 0x0b, 0x2f, 0xf1, 0x59, 0xc8, 0xad,
+	0x9d, 0xd1, 0xee, 0xa4, 0xed, 0xaa, 0xd0, 0xf9, 0xd5, 0x80, 0x7b, 0x2e, 0x7d, 0xf3, 0x79, 0x42,
+	0x71, 0xd6, 0x8f, 0xfb, 0x83, 0x27, 0x78, 0x22, 0xde, 0x90, 0xa1, 0x24, 0x3a, 0x38, 0xc5, 0x69,
+	0x3e, 0x8c, 0x02, 0x2a, 0x88, 0xd1, 0xd7, 0x8e, 0xd9, 0x17, 0x3e, 0x85, 0xbe, 0xc7, 0xc2, 0x1b,
+	0x3f, 0x5e, 0x7d, 0x29, 0xf4, 0xde, 0xcb, 0xce, 0xaf, 0xd4, 0x08, 0x27, 0x80, 0xc5, 0x5e, 0x78,
+	0x84, 0x0f, 0xa0, 0x15, 0x13, 0x5f, 0x07, 0x49, 0x36, 0x52, 0x16, 0x39, 0x63, 0x18, 0xbc, 0xa5,
+	0x80, 0x12, 0xd2, 0xfb, 0xde, 0x32, 0xbd, 0xf3, 0x0c, 0xfa, 0x26, 0xb0, 0x86, 0xf4, 0x0c, 0xfa,
+	0xb3, 0x75, 0x72, 0x4b, 0x61, 0xe2, 0x7b, 0x8b, 0x84, 0xaa, 0x38, 0xeb, 0x26, 0x76, 0xc6, 0xd0,
+	0x33, 0x38, 0x78, 0x24, 0x3e, 0x67, 0xc2, 0xbe, 0x53, 0x98, 0x71, 0xa4, 0x81, 0x33, 0x81, 0xbe,
+	0x4b, 0x37, 0x31, 0xf1, 0xdb, 0x8f, 0x22, 0x96, 0xc5, 0xb6, 0x23, 0xc7, 0xd0, 0x33, 0x90, 0x95,
+	0x94, 0x73, 0xc0, 0xd9, 0x72, 0xa9, 0x06, 0x65, 0x41, 0x3a, 0xc1, 0x10, 0xda, 0xd9, 0xa7, 0xba,
+	0x58, 0x66, 0xf8, 0xfc, 0x40, 0x6a, 0xc1, 0x02, 0xba, 0x50, 0x93, 0x64, 0x91, 0xf3, 0x1c, 0x06,
+	0x05, 0xae, 0x92, 0x70, 0xfb, 0x1b, 0xe1, 0x2e, 0xe1, 0xbe, 0x4b, 0x2b, 0x76, 0x47, 0xff, 0xa6,
+	0xf6, 0x14, 0x0e, 0xcb, 0x74, 0x35, 0xe5, 0xdf, 0x40, 0xf7, 0x3c, 0x26, 0xa1, 0xb6, 0xaa, 0xfb,
+	0x04, 0x9a, 0x82, 0x2b, 0x5b, 0xdf, 0x9e, 0xb6, 0xbe, 0x12, 0x22, 0x93, 0xce, 0x18, 0x3a, 0xda,
+	0x6b, 0x35, 0xfc, 0x13, 0xe8, 0xa6, 0x3b, 0xb4, 0xe1, 0xcf, 0x3b, 0x6f, 0x18, 0x9d, 0x8f, 0xa1,
+	0xa3, 0x21, 0x6b, 0x28, 0xcf, 0xa5, 0xbc, 0x02, 0x35, 0x93, 0x66, 0xac, 0x63, 0x15, 0xe7, 0xa9,
+	0x65, 0x95, 0x4e, 0x69, 0x24, 0x76, 0xdb, 0x24, 0xa9, 0x29, 0xf8, 0x4e, 0x69, 0xfa, 0x97, 0x35,
+	0x5f, 0x88, 0x2b, 0xa3, 0xc0, 0x53, 0x5d, 0xf6, 0xf4, 0x77, 0x4b, 0xac, 0x79, 0x26, 0xfe, 0x35,
+	0xc5, 0x77, 0xbe, 0x47, 0x78, 0x25, 0x16, 0xda, 0xb0, 0x3a, 0x1e, 0xeb, 0x9f, 0xa8, 0x7c, 0x25,
+	0xd9, 0x8f, 0x6a, 0xf2, 0x3c, 0xc2, 0xb9, 0xd2, 0x5d, 0xf1, 0x0d, 0x35, 0x7c, 0xe9, 0xa2, 0xb0,
+	0x1f, 0x56, 0x66, 0x79, 0x84, 0xef, 0xe1, 0x7f, 0xdd, 0xc1, 0xa8, 0x83, 0x8b, 0xd7, 0x83, 0x6d,
+	0x57, 0x25, 0x53, 0x22, 0xdd, 0xb7, 0x06, 0x51, 0xd1, 0xfa, 0x06, 0x51, 0xd1, 0xed, 0x97, 0xd0,
+	0x35, 0xbd, 0x88, 0xba, 0x1c, 0x65, 0xcb, 0xdb, 0xc3, 0xea, 0x34, 0x8f, 0xf0, 0x13, 0x0c, 0x4a,
+	0xf6, 0xc2, 0x91, 0x51, 0x7f, 0x8b, 0x97, 0xed, 0xc7, 0xb5, 0x08, 0x1e, 0xe1, 0x0c, 0x20, 0xf7,
+	0x13, 0x1e, 0x69, 0x70, 0xd3, 0x9d, 0xb6, 0xb5, 0x3d, 0x95, 0x52, 0xe4, 0xfe, 0x31, 0x28, 0x4c,
+	0x03, 0x1a, 0x14, 0xa6, 0xe3, 0xe6, 0xd0, 0x31, 0x4c, 0x81, 0x05, 0x31, 0xcc, 0xfd, 0x37, 0x56,
+	0xa1, 0x64, 0xa6, 0x6b, 0xb1, 0xbc, 0xe6, 0xb2, 0x63, 0x59, 0x86, 0x02, 0xe3, 0x71, 0x1d, 0x80,
+	0x47, 0x67, 0x07, 0x9f, 0xf3, 0x3f, 0x81, 0xaf, 0x2d, 0xf9, 0x6f, 0xf0, 0xea, 0x4f, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x63, 0xde, 0xbc, 0xca, 0x38, 0x08, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -529,6 +1056,18 @@ type RessourceServiceClient interface {
 	Authenticate(ctx context.Context, in *AuthenticateRqst, opts ...grpc.CallOption) (*AuthenticateRsp, error)
 	//* Refresh token get a new token *
 	RefreshToken(ctx context.Context, in *RefreshTokenRqst, opts ...grpc.CallOption) (*RefreshTokenRsp, error)
+	//* Add role to a given account *
+	AddAccountRole(ctx context.Context, in *AddAccountRoleRqst, opts ...grpc.CallOption) (*AddAccountRoleRsp, error)
+	//* Remove a role from a given account *
+	RemoveAccountRole(ctx context.Context, in *RemoveAccountRoleRqst, opts ...grpc.CallOption) (*RemoveAccountRoleRsp, error)
+	//* Create a role with given action list *
+	CreateRole(ctx context.Context, in *CreateRoleRqst, opts ...grpc.CallOption) (*CreateRoleRsp, error)
+	//* Delete a role with a given id *
+	DeleteRole(ctx context.Context, in *DeleteRoleRqst, opts ...grpc.CallOption) (*DeleteRoleRsp, error)
+	//* Append an action to existing role. *
+	AddRoleAction(ctx context.Context, in *AddRoleActionRqst, opts ...grpc.CallOption) (*AddRoleActionRsp, error)
+	//* Remove an action to existing role. *
+	RemoveRoleAction(ctx context.Context, in *RemoveRoleActionRqst, opts ...grpc.CallOption) (*RemoveRoleActionRsp, error)
 }
 
 type ressourceServiceClient struct {
@@ -575,6 +1114,60 @@ func (c *ressourceServiceClient) RefreshToken(ctx context.Context, in *RefreshTo
 	return out, nil
 }
 
+func (c *ressourceServiceClient) AddAccountRole(ctx context.Context, in *AddAccountRoleRqst, opts ...grpc.CallOption) (*AddAccountRoleRsp, error) {
+	out := new(AddAccountRoleRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/AddAccountRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) RemoveAccountRole(ctx context.Context, in *RemoveAccountRoleRqst, opts ...grpc.CallOption) (*RemoveAccountRoleRsp, error) {
+	out := new(RemoveAccountRoleRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/RemoveAccountRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) CreateRole(ctx context.Context, in *CreateRoleRqst, opts ...grpc.CallOption) (*CreateRoleRsp, error) {
+	out := new(CreateRoleRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/CreateRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) DeleteRole(ctx context.Context, in *DeleteRoleRqst, opts ...grpc.CallOption) (*DeleteRoleRsp, error) {
+	out := new(DeleteRoleRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/DeleteRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) AddRoleAction(ctx context.Context, in *AddRoleActionRqst, opts ...grpc.CallOption) (*AddRoleActionRsp, error) {
+	out := new(AddRoleActionRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/AddRoleAction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) RemoveRoleAction(ctx context.Context, in *RemoveRoleActionRqst, opts ...grpc.CallOption) (*RemoveRoleActionRsp, error) {
+	out := new(RemoveRoleActionRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/RemoveRoleAction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RessourceServiceServer is the server API for RessourceService service.
 type RessourceServiceServer interface {
 	//* Register a new Account *
@@ -585,6 +1178,18 @@ type RessourceServiceServer interface {
 	Authenticate(context.Context, *AuthenticateRqst) (*AuthenticateRsp, error)
 	//* Refresh token get a new token *
 	RefreshToken(context.Context, *RefreshTokenRqst) (*RefreshTokenRsp, error)
+	//* Add role to a given account *
+	AddAccountRole(context.Context, *AddAccountRoleRqst) (*AddAccountRoleRsp, error)
+	//* Remove a role from a given account *
+	RemoveAccountRole(context.Context, *RemoveAccountRoleRqst) (*RemoveAccountRoleRsp, error)
+	//* Create a role with given action list *
+	CreateRole(context.Context, *CreateRoleRqst) (*CreateRoleRsp, error)
+	//* Delete a role with a given id *
+	DeleteRole(context.Context, *DeleteRoleRqst) (*DeleteRoleRsp, error)
+	//* Append an action to existing role. *
+	AddRoleAction(context.Context, *AddRoleActionRqst) (*AddRoleActionRsp, error)
+	//* Remove an action to existing role. *
+	RemoveRoleAction(context.Context, *RemoveRoleActionRqst) (*RemoveRoleActionRsp, error)
 }
 
 // UnimplementedRessourceServiceServer can be embedded to have forward compatible implementations.
@@ -602,6 +1207,24 @@ func (*UnimplementedRessourceServiceServer) Authenticate(ctx context.Context, re
 }
 func (*UnimplementedRessourceServiceServer) RefreshToken(ctx context.Context, req *RefreshTokenRqst) (*RefreshTokenRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (*UnimplementedRessourceServiceServer) AddAccountRole(ctx context.Context, req *AddAccountRoleRqst) (*AddAccountRoleRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddAccountRole not implemented")
+}
+func (*UnimplementedRessourceServiceServer) RemoveAccountRole(ctx context.Context, req *RemoveAccountRoleRqst) (*RemoveAccountRoleRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveAccountRole not implemented")
+}
+func (*UnimplementedRessourceServiceServer) CreateRole(ctx context.Context, req *CreateRoleRqst) (*CreateRoleRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRole not implemented")
+}
+func (*UnimplementedRessourceServiceServer) DeleteRole(ctx context.Context, req *DeleteRoleRqst) (*DeleteRoleRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRole not implemented")
+}
+func (*UnimplementedRessourceServiceServer) AddRoleAction(ctx context.Context, req *AddRoleActionRqst) (*AddRoleActionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddRoleAction not implemented")
+}
+func (*UnimplementedRessourceServiceServer) RemoveRoleAction(ctx context.Context, req *RemoveRoleActionRqst) (*RemoveRoleActionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveRoleAction not implemented")
 }
 
 func RegisterRessourceServiceServer(s *grpc.Server, srv RessourceServiceServer) {
@@ -680,6 +1303,114 @@ func _RessourceService_RefreshToken_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RessourceService_AddAccountRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAccountRoleRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).AddAccountRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/AddAccountRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).AddAccountRole(ctx, req.(*AddAccountRoleRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_RemoveAccountRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAccountRoleRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).RemoveAccountRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/RemoveAccountRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).RemoveAccountRole(ctx, req.(*RemoveAccountRoleRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_CreateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRoleRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).CreateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/CreateRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).CreateRole(ctx, req.(*CreateRoleRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_DeleteRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRoleRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).DeleteRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/DeleteRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).DeleteRole(ctx, req.(*DeleteRoleRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_AddRoleAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRoleActionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).AddRoleAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/AddRoleAction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).AddRoleAction(ctx, req.(*AddRoleActionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_RemoveRoleAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveRoleActionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).RemoveRoleAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/RemoveRoleAction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).RemoveRoleAction(ctx, req.(*RemoveRoleActionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _RessourceService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "ressource.RessourceService",
 	HandlerType: (*RessourceServiceServer)(nil),
@@ -699,6 +1430,30 @@ var _RessourceService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshToken",
 			Handler:    _RessourceService_RefreshToken_Handler,
+		},
+		{
+			MethodName: "AddAccountRole",
+			Handler:    _RessourceService_AddAccountRole_Handler,
+		},
+		{
+			MethodName: "RemoveAccountRole",
+			Handler:    _RessourceService_RemoveAccountRole_Handler,
+		},
+		{
+			MethodName: "CreateRole",
+			Handler:    _RessourceService_CreateRole_Handler,
+		},
+		{
+			MethodName: "DeleteRole",
+			Handler:    _RessourceService_DeleteRole_Handler,
+		},
+		{
+			MethodName: "AddRoleAction",
+			Handler:    _RessourceService_AddRoleAction_Handler,
+		},
+		{
+			MethodName: "RemoveRoleAction",
+			Handler:    _RessourceService_RemoveRoleAction_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

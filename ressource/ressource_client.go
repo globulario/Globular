@@ -192,3 +192,78 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 
 	return rsp.Token, nil
 }
+
+/**
+ * Create a new role with given action list.
+ */
+func (self *Ressource_Client) CreateRole(name string, actions []string) error {
+	rqst := new(CreateRoleRqst)
+	role := new(Role)
+	role.Name = name
+	role.Actions = actions
+	rqst.Role = role
+	_, err := self.c.CreateRole(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+func (self *Ressource_Client) DeleteRole(name string) error {
+	rqst := new(DeleteRoleRqst)
+	rqst.RoleId = name
+
+	_, err := self.c.DeleteRole(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
+ * Add a action to a given role.
+ */
+func (self *Ressource_Client) AddRoleAction(roleId string, action string) error {
+	rqst := &AddRoleActionRqst{
+		RoleId: roleId,
+		Action: action,
+	}
+	_, err := self.c.AddRoleAction(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
+ * Remove action from a given role.
+ */
+func (self *Ressource_Client) RemoveRoleAction(roleId string, action string) error {
+	rqst := &RemoveRoleActionRqst{
+		RoleId: roleId,
+		Action: action,
+	}
+	_, err := self.c.RemoveRoleAction(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
+ * Set role to a account
+ */
+func (self *Ressource_Client) AddAccountRole(accountId string, roleId string) error {
+	rqst := &AddAccountRoleRqst{
+		AccountId: accountId,
+		RoleId:    roleId,
+	}
+	_, err := self.c.AddAccountRole(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
+ * Remove role from an account
+ */
+func (self *Ressource_Client) RemoveAccountRole(accountId string, roleId string) error {
+	rqst := &RemoveAccountRoleRqst{
+		AccountId: accountId,
+		RoleId:    roleId,
+	}
+	_, err := self.c.RemoveAccountRole(api.GetClientContext(self), rqst)
+
+	return err
+}

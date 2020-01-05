@@ -208,3 +208,237 @@ export namespace RefreshTokenRsp {
   }
 }
 
+export class AddAccountRoleRqst extends jspb.Message {
+  getAccountid(): string;
+  setAccountid(value: string): void;
+
+  getRoleid(): string;
+  setRoleid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddAccountRoleRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: AddAccountRoleRqst): AddAccountRoleRqst.AsObject;
+  static serializeBinaryToWriter(message: AddAccountRoleRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddAccountRoleRqst;
+  static deserializeBinaryFromReader(message: AddAccountRoleRqst, reader: jspb.BinaryReader): AddAccountRoleRqst;
+}
+
+export namespace AddAccountRoleRqst {
+  export type AsObject = {
+    accountid: string,
+    roleid: string,
+  }
+}
+
+export class AddAccountRoleRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddAccountRoleRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: AddAccountRoleRsp): AddAccountRoleRsp.AsObject;
+  static serializeBinaryToWriter(message: AddAccountRoleRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddAccountRoleRsp;
+  static deserializeBinaryFromReader(message: AddAccountRoleRsp, reader: jspb.BinaryReader): AddAccountRoleRsp;
+}
+
+export namespace AddAccountRoleRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RemoveAccountRoleRqst extends jspb.Message {
+  getAccountid(): string;
+  setAccountid(value: string): void;
+
+  getRoleid(): string;
+  setRoleid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveAccountRoleRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveAccountRoleRqst): RemoveAccountRoleRqst.AsObject;
+  static serializeBinaryToWriter(message: RemoveAccountRoleRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveAccountRoleRqst;
+  static deserializeBinaryFromReader(message: RemoveAccountRoleRqst, reader: jspb.BinaryReader): RemoveAccountRoleRqst;
+}
+
+export namespace RemoveAccountRoleRqst {
+  export type AsObject = {
+    accountid: string,
+    roleid: string,
+  }
+}
+
+export class RemoveAccountRoleRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveAccountRoleRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveAccountRoleRsp): RemoveAccountRoleRsp.AsObject;
+  static serializeBinaryToWriter(message: RemoveAccountRoleRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveAccountRoleRsp;
+  static deserializeBinaryFromReader(message: RemoveAccountRoleRsp, reader: jspb.BinaryReader): RemoveAccountRoleRsp;
+}
+
+export namespace RemoveAccountRoleRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class CreateRoleRqst extends jspb.Message {
+  getRole(): Role | undefined;
+  setRole(value?: Role): void;
+  hasRole(): boolean;
+  clearRole(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateRoleRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateRoleRqst): CreateRoleRqst.AsObject;
+  static serializeBinaryToWriter(message: CreateRoleRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateRoleRqst;
+  static deserializeBinaryFromReader(message: CreateRoleRqst, reader: jspb.BinaryReader): CreateRoleRqst;
+}
+
+export namespace CreateRoleRqst {
+  export type AsObject = {
+    role?: Role.AsObject,
+  }
+}
+
+export class CreateRoleRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateRoleRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateRoleRsp): CreateRoleRsp.AsObject;
+  static serializeBinaryToWriter(message: CreateRoleRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateRoleRsp;
+  static deserializeBinaryFromReader(message: CreateRoleRsp, reader: jspb.BinaryReader): CreateRoleRsp;
+}
+
+export namespace CreateRoleRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteRoleRqst extends jspb.Message {
+  getRoleid(): string;
+  setRoleid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRoleRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRoleRqst): DeleteRoleRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteRoleRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRoleRqst;
+  static deserializeBinaryFromReader(message: DeleteRoleRqst, reader: jspb.BinaryReader): DeleteRoleRqst;
+}
+
+export namespace DeleteRoleRqst {
+  export type AsObject = {
+    roleid: string,
+  }
+}
+
+export class DeleteRoleRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRoleRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRoleRsp): DeleteRoleRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteRoleRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRoleRsp;
+  static deserializeBinaryFromReader(message: DeleteRoleRsp, reader: jspb.BinaryReader): DeleteRoleRsp;
+}
+
+export namespace DeleteRoleRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class AddRoleActionRqst extends jspb.Message {
+  getRoleid(): string;
+  setRoleid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddRoleActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: AddRoleActionRqst): AddRoleActionRqst.AsObject;
+  static serializeBinaryToWriter(message: AddRoleActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddRoleActionRqst;
+  static deserializeBinaryFromReader(message: AddRoleActionRqst, reader: jspb.BinaryReader): AddRoleActionRqst;
+}
+
+export namespace AddRoleActionRqst {
+  export type AsObject = {
+    roleid: string,
+    action: string,
+  }
+}
+
+export class AddRoleActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddRoleActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: AddRoleActionRsp): AddRoleActionRsp.AsObject;
+  static serializeBinaryToWriter(message: AddRoleActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddRoleActionRsp;
+  static deserializeBinaryFromReader(message: AddRoleActionRsp, reader: jspb.BinaryReader): AddRoleActionRsp;
+}
+
+export namespace AddRoleActionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RemoveRoleActionRqst extends jspb.Message {
+  getRoleid(): string;
+  setRoleid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveRoleActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveRoleActionRqst): RemoveRoleActionRqst.AsObject;
+  static serializeBinaryToWriter(message: RemoveRoleActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveRoleActionRqst;
+  static deserializeBinaryFromReader(message: RemoveRoleActionRqst, reader: jspb.BinaryReader): RemoveRoleActionRqst;
+}
+
+export namespace RemoveRoleActionRqst {
+  export type AsObject = {
+    roleid: string,
+    action: string,
+  }
+}
+
+export class RemoveRoleActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveRoleActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveRoleActionRsp): RemoveRoleActionRsp.AsObject;
+  static serializeBinaryToWriter(message: RemoveRoleActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveRoleActionRsp;
+  static deserializeBinaryFromReader(message: RemoveRoleActionRsp, reader: jspb.BinaryReader): RemoveRoleActionRsp;
+}
+
+export namespace RemoveRoleActionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
