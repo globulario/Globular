@@ -16,7 +16,7 @@ import (
 var (
 
 	// Connect to the plc client.
-	client = persistence_client.NewPersistence_Client("localhost", "persistence_server")
+	client = persistence_client.NewPersistence_Client("globular4.omniscient.app", "persistence_server")
 )
 
 // First test create a fresh new connection...

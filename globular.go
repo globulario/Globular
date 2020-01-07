@@ -116,9 +116,6 @@ type Globule struct {
 	ExternalApplications       map[string]ExternalApplication
 	Domain                     string   // The domain (subdomain) name of your application
 	DNS                        []string // Contain a list of domain name server where that computer use as sub-domain
-	ReadTimeout                time.Duration
-	WriteTimeout               time.Duration
-	IdleTimeout                time.Duration
 	SessionTimeout             time.Duration
 	CertExpirationDelay        int
 	CertPassword               string
@@ -181,10 +178,7 @@ func NewGlobule() *Globule {
 	g.CertificateAuthorityProxy = 10010
 
 	// set default values.
-	g.IdleTimeout = 120
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
-	g.ReadTimeout = 5
-	g.WriteTimeout = 5
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
@@ -192,6 +186,16 @@ func NewGlobule() *Globule {
 	go func() {
 		http.ListenAndServe(":10000", nil)
 	}()
+
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	// Initialyse globular from it configuration file.
+	g.config = dir + string(os.PathSeparator) + "config"
+	file, err := ioutil.ReadFile(g.config + string(os.PathSeparator) + "config.json")
+	// Init the service with the default port address
+	if err == nil {
+		json.Unmarshal(file, &g)
+	}
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -1193,9 +1197,6 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["DNS"] = self.DNS
 	config["Protocol"] = self.Protocol
 	config["Domain"] = self.Domain
-	config["ReadTimeout"] = self.ReadTimeout
-	config["WriteTimeout"] = self.WriteTimeout
-	config["IdleTimeout"] = self.IdleTimeout
 	config["CertExpirationDelay"] = self.CertExpirationDelay
 	config["ExternalApplications"] = self.ExternalApplications
 	config["CertURL"] = self.CertURL
@@ -1847,9 +1848,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
 		self.Protocol = config["Protocol"].(string)
 		self.Domain = config["Domain"].(string)
-		self.ReadTimeout = time.Duration(Utility.ToInt(config["ReadTimeout"].(float64)))
-		self.WriteTimeout = time.Duration(Utility.ToInt(config["WriteTimeout"].(float64)))
-		self.IdleTimeout = time.Duration(Utility.ToInt(config["IdleTimeout"].(float64)))
 		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
 
 		// That will save the services if they have changed.

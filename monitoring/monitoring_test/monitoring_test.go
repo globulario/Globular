@@ -12,8 +12,7 @@ import (
 
 // Set the correct addresse here as needed.
 var (
-	client = monitoring_client.NewMonitoring_Client("localhost", 10019, false, "", "", "")
-	//client = monitoring_client.NewMonitoring_Client("localhost", 10019, false, "", "", "", "")
+	client = monitoring_client.NewMonitoring_Client("localhost", "monitoring_server")
 )
 
 // First test create a fresh new connection...

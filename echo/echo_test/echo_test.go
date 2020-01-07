@@ -12,7 +12,7 @@ import (
 func TestEcho(t *testing.T) {
 
 	// Connect to the plc client.
-	client := echo_client.NewEcho_Client("localhost", "echo_server")
+	client := echo_client.NewEcho_Client("globular4.omniscient.app", "echo_server")
 
 	val, err := client.Echo("Ceci est un test")
 	if err != nil {
