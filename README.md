@@ -1,6 +1,6 @@
 # [Globular](https://www.globular.io)
 
-Why Globular
+## Why Globular?
 If gRPC is of great help with service implementation, it does nothing about service management. In fact, service management is out of the scope of gRPC, but it’s the main purpose of globular. Managing service manually can be easy if you have only couple of service, and the number of application is limited. Over time number of application and services has tendency to increase, and when that happened, you can became a victim of your success.
 
 What propertie must be define on a service to make it manageable? At this time, 8 properties have been target. I will describe each of those properties and explain why they are essential. To be manageable a service must be,
@@ -21,4 +21,5 @@ What propertie must be define on a service to make it manageable? At this time, 
 
 * Securable: The TLS variable defines if the service must use a secure network or not.
 
-By following simple rule you can make your microservice manageable by Globular. Click [here](https://www.globular.io) To learn more about globular
+
+Click [here](https://www.globular.io) and learn more about globular!
