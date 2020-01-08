@@ -7,9 +7,9 @@ What propertie must be define on a service to make it manageable? At this time, 
 
 * Identifiable: The service Id identified a running service on a given server with a given domain. The Id must be unique on the server, and must not change over time, or application that using it will stop working correctly.
 
-* Nameable: Because multiple instances of the same service must be able to run at the same time, in redundancy, instance must share the same service name.
+* Nameable: Multiple instances of the same service must be able to run at the same time, in redundancy, instance must share the same service name.
 
-* Version able: Because service interface can change overtime, application must be able to get access to specific service version. With version service functionality are not freeze in time.
+* Version able: Service interface can change overtime, application must be able to get access to specific service version. With version service functionality are not freeze in time.
 
 * Updateable: When many service instances are running it can be difficult and error prone to update them one by one.
 
