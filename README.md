@@ -21,7 +21,7 @@ What propertie must be define on a service to make it manageable? To be manageab
 
 * Securable: The TLS variable defines if the service must use a secure network or not.
 
-By using Globular you will be able to manage your microservices and make it avaible to your web-application.
+By using Globular you will be able to manage your microservices and make them avaible to your web-applications.
 
 Click [here](https://www.globular.io) and learn more about globular!
 
