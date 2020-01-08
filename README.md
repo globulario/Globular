@@ -25,4 +25,4 @@ By using Globular you will be able to manage your microservices and make it avai
 
 Click [here](https://www.globular.io) and learn more about globular!
 
-** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial he's on the way. All documentation must be written before the end of feburary.
+** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
