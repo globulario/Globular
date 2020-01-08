@@ -1,7 +1,7 @@
 # [Globular](https://www.globular.io)
 
 ## Why Globular?
-If gRPC is of great help with service implementation, it does nothing about service management. In fact, service management is out of the scope of gRPC, but it’s the main purpose of globular. Managing service manually can be easy if you have only couple of service, and the number of application is limited. Over time number of application and services has tendency to increase, and when that happened, you can became a victim of your success.
+If gRPC is of great help with service implementation, it does nothing about service management. In fact, service management is out of gRPC  scope, but it’s the main purpose of globular. Managing service manually can be easy if you have only couple of service, and the number of application is limited. Over time number of application and services has tendency to increase, and when that happened, you can became a victim of your success.
 
 What propertie must be define on a service to make it manageable? To be manageable a service must be,
 
