@@ -691,5 +691,225 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllActions =
 };
 
 
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetPermissionsRqst,
+ *   !proto.ressource.GetPermissionsRsp>}
+ */
+const methodInfo_RessourceService_GetPermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetPermissionsRsp,
+  /** @param {!proto.ressource.GetPermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetPermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetPermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetPermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getPermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetPermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetPermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getPermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetPermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.SetPermissionRqst,
+ *   !proto.ressource.SetPermissionRsp>}
+ */
+const methodInfo_RessourceService_SetPermission = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.SetPermissionRsp,
+  /** @param {!proto.ressource.SetPermissionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SetPermissionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.SetPermissionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.SetPermissionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.SetPermissionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.setPermission =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/SetPermission',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SetPermission,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.SetPermissionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.SetPermissionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.setPermission =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/SetPermission',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SetPermission);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeletePermissionsRqst,
+ *   !proto.ressource.DeletePermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeletePermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeletePermissionsRsp,
+  /** @param {!proto.ressource.DeletePermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeletePermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeletePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeletePermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeletePermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deletePermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeletePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeletePermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeletePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeletePermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deletePermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeletePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeletePermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetAllFilesInfoRqst,
+ *   !proto.ressource.GetAllFilesInfoRsp>}
+ */
+const methodInfo_RessourceService_GetAllFilesInfo = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetAllFilesInfoRsp,
+  /** @param {!proto.ressource.GetAllFilesInfoRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllFilesInfoRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetAllFilesInfoRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetAllFilesInfoRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetAllFilesInfoRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getAllFilesInfo =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllFilesInfo',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllFilesInfo,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetAllFilesInfoRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetAllFilesInfoRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllFilesInfo',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllFilesInfo);
+};
+
+
 module.exports = proto.ressource;
 
