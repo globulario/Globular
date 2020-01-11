@@ -10,9 +10,12 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/davecourtois/Globular/Interceptors/Authenticate"
+	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
+	"github.com/davecourtois/Globular/ressource"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -30,6 +33,10 @@ var (
 	client *persistence_client.Persistence_Client
 )
 
+/**
+ * Get the persistence servcice connection.
+ * That connection is used to retreive roles and application information.
+ */
 func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 	// Here I will need the persistence client to read user permission.
 	// Here I will read the server token, the service must run on the
@@ -103,7 +110,6 @@ func authenticateClient(ctx context.Context) (string, int64, error) {
 			return "", 0, nil
 		}
 
-		log.Println("token from incoming: ", token)
 		return ValidateToken(token)
 	}
 
@@ -142,6 +148,108 @@ func canRunAction(roleName string, method string) error {
 	return errors.New("Permission denied!")
 }
 
+/**
+ * Return the file permission necessary for a given method.
+ */
+func getFilePermissionForMethod(method string, req interface{}) (string, int32) {
+	var path string
+	var permission int32
+	if method == "/file.FileService/ReadDir" {
+		rqst := req.(filepb.ReadDirRequest)
+		path = rqst.GetPath()
+		permission = 4
+	} else if method == "/file.FileService/CreateDir" {
+		rqst := req.(filepb.CreateDirRequest)
+		path = rqst.GetPath()
+		permission = 2
+	} else if method == "/file.FileService/DeleteDir" {
+		rqst := req.(filepb.DeleteDirRequest)
+		path = rqst.GetPath()
+		permission = 2
+	} else if method == "/file.FileService/Rename" {
+		rqst := req.(filepb.RenameRequest)
+		path = rqst.GetPath() + "/" + rqst.GetOldName()
+		permission = 2
+	} else if method == "/file.FileService/GetFileInfo" {
+		rqst := req.(filepb.ReadFileRequest)
+		path = rqst.GetPath()
+		permission = 4
+	} else if method == "/file.FileService/ReadFile" {
+		rqst := req.(filepb.SaveFileRequest)
+		path = rqst.GetPath()
+		permission = 4
+	} else if method == "/file.FileService/SaveFile" {
+		rqst := req.(filepb.SaveFileRequest)
+		path = rqst.GetPath()
+		permission = 2
+	} else if method == "/file.FileService/DeleteFile" {
+		rqst := req.(filepb.DeleteFileRequest)
+		path = rqst.GetPath()
+		permission = 2
+	} else if method == "/file.FileService/GetThumbnails" {
+		rqst := req.(filepb.GetThumbnailsRequest)
+		path = rqst.GetPath()
+		permission = 4
+	} else if method == "/file.FileService/WriteExcelFile" {
+		rqst := req.(filepb.WriteExcelFileRequest)
+		path = rqst.GetPath()
+		permission = 2
+	}
+
+	return path, permission
+}
+
+/**
+ * Validate if a user or a role has write to do operation on a file or a directorty.
+ */
+func validateFileAccess(userName string, method string, req interface{}) error {
+	if !strings.HasPrefix(method, "/file.FileService") {
+		return nil
+	}
+
+	// if the user is the super admin no validation is required.
+	if userName == "sa" {
+		return nil
+	}
+
+	// Now I will get the user roles and validate if the user can execute the
+	// method.
+	Id := "local_ressource"
+	Database := "local_ressource"
+	Collection := "Accounts"
+	Query := `{"name":"` + userName + `"}`
+
+	client, err := getPersistenceClient()
+	if err != nil {
+		return err
+	}
+
+	path, permission := getFilePermissionForMethod(method, req)
+	log.Println(path, permission)
+	// Find file permissions.
+
+	// Find the user role.
+	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
+	if err != nil {
+		return err
+	}
+
+	account := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &account)
+	if err != nil {
+		return err
+	}
+
+	roles := account["roles"].([]interface{})
+	for i := 0; i < len(roles); i++ {
+		//role := roles[i].(map[string]interface{})
+	}
+	return nil
+}
+
+/**
+ * Validate user access by role
+ */
 func validateUserAccess(userName string, method string) error {
 
 	// if the user is the super admin no validation is required.
@@ -185,9 +293,85 @@ func validateUserAccess(userName string, method string) error {
 			return nil
 		}
 	}
+
 	err = errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
 	log.Println(err)
 	return err
+}
+
+/**
+ * Log error in database.
+ */
+func logError(ctx context.Context, method string, err error) {
+	// The name of the applicaition.
+	application := "undefined"
+	userId := "undefined"
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		application = strings.Join(md["application"], "")
+		token := strings.Join(md["token"], "")
+		userId, _, _ = ValidateToken(token)
+	}
+	saveInfo(application, userId, method, err)
+}
+
+func saveInfo(application string, userId string, method string, err_ error) error {
+	p, err := getPersistenceClient()
+	if err != nil {
+		return err
+	}
+
+	info := make(map[string]interface{})
+	info["application"] = application
+	info["userId"] = userId
+	info["method"] = method
+	info["date"] = time.Now().Unix() // save it as unix time.if
+
+	db := "Logs"
+	if err_ != nil {
+		db = "Errors"
+		info["error"] = err_.Error()
+	}
+
+	data, _ := json.Marshal(&info)
+	_, err = p.InsertOne("local_ressource", "local_ressource", db, string(data), "")
+
+	if err != nil {
+		return err
+	}
+
+	log.Println(application, userId, method, err_)
+
+	return nil
+}
+
+/**
+ * Here I will log application actions. That's can be usefull to monitor
+ * application utilisation.
+ */
+func logAction(ctx context.Context, method string, result interface{}) {
+
+	var application string
+	var userId string
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		application = strings.Join(md["application"], "")
+		token := strings.Join(md["token"], "")
+		userId, _, _ = ValidateToken(token)
+	}
+
+	// Here I will save only some methode informations...
+	if method == "/ressource.RessourceService/RegisterAccount" {
+		token := result.(*ressource.RegisterAccountRsp).Result
+		userId, _, _ = ValidateToken(token)
+		saveInfo(application, userId, method, nil)
+	} else if method == "/ressource.RessourceService/Authenticate" {
+		token := result.(*ressource.AuthenticateRsp).Token
+		userId, _, _ = ValidateToken(token)
+		saveInfo(application, userId, method, nil)
+	} else if method == "/admin.AdminService/DeployApplication" || method == "/admin.AdminService/PublishService" || method == "/admin.AdminService/RegisterExternalApplication" || method == "/admin.AdminService/UninstallService" || method == "/admin.AdminService/InstallService" {
+		saveInfo(application, userId, method, nil)
+	}
 }
 
 // unaryInterceptor calls authenticateClient with current context
@@ -197,12 +381,29 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		return nil, err
 	}
 
+	// Validate the user access.
 	err = validateUserAccess(clientID, info.FullMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx = context.WithValue(ctx, clientIDKey, clientID)
+	// Validate file access
+	err = validateFileAccess(clientID, info.FullMethod, req)
+	if err != nil {
+		return nil, err
+	}
 
-	return handler(ctx, req)
+	// Execute the action.
+	ctx = context.WithValue(ctx, clientIDKey, clientID)
+	result, err := handler(ctx, req)
+
+	if err != nil {
+		logError(ctx, info.FullMethod, err)
+		return nil, err
+	}
+
+	// Log the action as needed for info.
+	logAction(ctx, info.FullMethod, result)
+
+	return result, nil
 }

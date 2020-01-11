@@ -463,7 +463,7 @@ func main() {
 		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}
 		grpcServer = grpc.NewServer(opts...)
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}...)
 	}
 
 	storagepb.RegisterStorageServiceServer(grpcServer, s_impl)

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Globular/Interceptors/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -84,8 +85,8 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 		Timeout: 5 * time.Second,
 	}
 
+	log.Println("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
-
 	if err != nil {
 
 		return nil, err
@@ -178,13 +179,13 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			})
 
 			// Create a connection with the TLS credentials
-			cc, err = grpc.Dial(address, grpc.WithTransportCredentials(creds))
+			cc, err = grpc.Dial(address, grpc.WithTransportCredentials(creds), Interceptors.WithClientUnaryInterceptor())
 
 			if err != nil {
 				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
 			}
 		} else {
-			cc, err = grpc.Dial(address, grpc.WithInsecure())
+			cc, err = grpc.Dial(address, grpc.WithInsecure(), Interceptors.WithClientUnaryInterceptor())
 			if err != nil {
 				log.Fatalf("could not connect: %v", err)
 			}

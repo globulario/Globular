@@ -418,7 +418,7 @@ func main() {
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}...)
 	}
 
 	// Register the smtp service.

@@ -279,3 +279,76 @@ func (self *Ressource_Client) GetAllActions() ([]string, error) {
 	}
 	return rsp.Actions, err
 }
+
+/////////////////////////////// File permissions ///////////////////////////////
+
+/**
+ * Set file permission for a given user.
+ */
+func (self *Ressource_Client) SetFilePermissionByUser(userId string, path string, permission int32) error {
+	rqst := &SetPermissionRqst{
+		Permission: &FilePermission{
+			Owner: &FilePermission_User{
+				User: userId,
+			},
+			Path:   path,
+			Number: permission,
+		},
+	}
+
+	_, err := self.c.SetPermission(api.GetClientContext(self), rqst)
+	return err
+}
+
+/**
+ * Set file permission for a given role.
+ */
+func (self *Ressource_Client) SetFilePermissionByRole(roleId string, path string, permission int32) error {
+	rqst := &SetPermissionRqst{
+		Permission: &FilePermission{
+			Owner: &FilePermission_Role{
+				Role: roleId,
+			},
+			Path:   path,
+			Number: permission,
+		},
+	}
+
+	_, err := self.c.SetPermission(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) GetFilePermissions(path string) ([]*FilePermission, error) {
+	rqst := &GetPermissionsRqst{
+		Path: path,
+	}
+
+	rsp, err := self.c.GetPermissions(api.GetClientContext(self), rqst)
+	if err != nil {
+		return nil, err
+	}
+	return rsp.GetPermissions(), nil
+}
+
+func (self *Ressource_Client) DeleteFilePermissions(path string, owner string) error {
+	rqst := &DeletePermissionsRqst{
+		Path:  path,
+		Owner: owner,
+	}
+
+	_, err := self.c.DeletePermissions(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
+	rqst := &GetAllFilesInfoRqst{}
+
+	rsp, err := self.c.GetAllFilesInfo(api.GetClientContext(self), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.GetResult(), nil
+
+}

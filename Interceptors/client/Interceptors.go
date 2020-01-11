@@ -21,6 +21,8 @@ func clientInterceptor(
 	// Logic before invoking the invoker
 	start := time.Now()
 
+	// TODO intercept client call here...
+
 	// Calls the invoker to execute RPC
 	err := invoker(ctx, method, req, reply, cc, opts...)
 
@@ -36,5 +38,6 @@ func clientInterceptor(
  * func value
  */
 func WithClientUnaryInterceptor() grpc.DialOption {
+
 	return grpc.WithUnaryInterceptor(clientInterceptor)
 }

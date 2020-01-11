@@ -11,10 +11,16 @@ import {
   CreateRoleRsp,
   DeleteAccountRqst,
   DeleteAccountRsp,
+  DeletePermissionsRqst,
+  DeletePermissionsRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
   GetAllActionsRqst,
   GetAllActionsRsp,
+  GetAllFilesInfoRqst,
+  GetAllFilesInfoRsp,
+  GetPermissionsRqst,
+  GetPermissionsRsp,
   RefreshTokenRqst,
   RefreshTokenRsp,
   RegisterAccountRqst,
@@ -22,12 +28,14 @@ import {
   RemoveAccountRoleRqst,
   RemoveAccountRoleRsp,
   RemoveRoleActionRqst,
-  RemoveRoleActionRsp} from './ressource_pb';
+  RemoveRoleActionRsp,
+  SetPermissionRqst,
+  SetPermissionRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -106,12 +114,40 @@ export class RessourceServiceClient {
                response: GetAllActionsRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllActionsRsp>;
 
+  getPermissions(
+    request: GetPermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetPermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<GetPermissionsRsp>;
+
+  setPermission(
+    request: SetPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<SetPermissionRsp>;
+
+  deletePermissions(
+    request: DeletePermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeletePermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<DeletePermissionsRsp>;
+
+  getAllFilesInfo(
+    request: GetAllFilesInfoRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetAllFilesInfoRsp) => void
+  ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -167,6 +203,26 @@ export class RessourceServicePromiseClient {
     request: GetAllActionsRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllActionsRsp>;
+
+  getPermissions(
+    request: GetPermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetPermissionsRsp>;
+
+  setPermission(
+    request: SetPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetPermissionRsp>;
+
+  deletePermissions(
+    request: DeletePermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeletePermissionsRsp>;
+
+  getAllFilesInfo(
+    request: GetAllFilesInfoRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetAllFilesInfoRsp>;
 
 }
 

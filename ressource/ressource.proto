@@ -118,6 +118,57 @@ message GetAllActionsRsp{
 	repeated string actions = 1;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// File permissions
+////////////////////////////////////////////////////////////////////////////////
+
+// Define a permission to a file or a directory.
+message FilePermission {
+	int32 number = 1;
+	string path = 2;
+	oneof owner {
+		string user = 3;
+		string role = 4;
+	}
+}
+
+// Get the permission for a given file.
+message GetPermissionsRqst{
+	string path = 1;
+}
+
+message GetPermissionsRsp{
+	repeated FilePermission permissions = 1;
+}
+
+// set the permission for a given file.
+message SetPermissionRqst{
+	FilePermission permission = 1;
+}
+
+message SetPermissionRsp{
+	bool result = 1;
+}
+
+// set the permission for a given file.
+message DeletePermissionsRqst{
+	string path = 1;
+	string owner = 2;
+}
+
+message DeletePermissionsRsp{
+	bool result = 1;
+}
+
+// Retrun a json with the root file information.
+message GetAllFilesInfoRqst{
+	
+}
+
+message GetAllFilesInfoRsp{
+	string result = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -157,4 +208,16 @@ service RessourceService {
 	
 	/** Get all actions **/
 	rpc GetAllActions(GetAllActionsRqst) returns(GetAllActionsRsp);
+	
+	/** Get All permissions for a given file/dir **/
+	rpc GetPermissions(GetPermissionsRqst) returns(GetPermissionsRsp);
+	
+	/** Set a file permission, create new one if not already exist. **/
+	rpc SetPermission(SetPermissionRqst) returns(SetPermissionRsp);
+	
+	/** Delete a file permissions **/
+	rpc DeletePermissions(DeletePermissionsRqst) returns(DeletePermissionsRsp);
+	
+	/** Retrun a json string with all file info **/
+	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);
 }

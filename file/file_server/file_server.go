@@ -293,7 +293,6 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 // Directory operations
 ////////////////////////////////////////////////////////////////////////////////
 func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileService_ReadDirServer) error {
-	log.Println("--> try to read dir ")
 	path := rqst.GetPath()
 
 	// The root will specefied by the server.
@@ -650,7 +649,7 @@ func main() {
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor)}...)
 	}
 
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)
