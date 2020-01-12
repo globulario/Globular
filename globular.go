@@ -884,7 +884,7 @@ func (self *Globule) registerMethods() error {
 	} else if count == 0 {
 		log.Println("need to create roles guest...")
 		guest["_id"] = "guest"
-		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/OnEvent", "/event.EventService/Quit", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
+		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/ressource.RessourceService/GetAllFilesInfo", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/OnEvent", "/event.EventService/Quit", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
 			"/services.ServiceDiscovery/GetServiceDescriptor", "/services.ServiceDiscovery/GetServicesDescriptor", "/services.ServiceRepository/downloadBundle", "/persistence.PersistenceService/Find", "/persistence.PersistenceService/FindOne", "/persistence.PersistenceService/Count", "/ressource.RessourceService/GetAllActions"}
 		jsonStr, _ := Utility.ToJson(guest)
 		_, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")

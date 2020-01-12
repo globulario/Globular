@@ -386,7 +386,12 @@ func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest
 		path = self.Root + path
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
-
+	log.Println("---> delete dir ", path)
+	if !Utility.Exists(path) {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No directory with path "+path+" was found!")))
+	}
 	err := os.RemoveAll(path)
 	if err != nil {
 		return nil, status.Errorf(
