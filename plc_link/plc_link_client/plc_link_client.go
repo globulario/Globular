@@ -1,6 +1,7 @@
 package plc_link_client
 
 import (
+	"context"
 	//	"log"
 	"strconv"
 
@@ -42,10 +43,17 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(address string, name string) *PlcLink_Client {
+func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *PlcLink_Client {
 	client := new(PlcLink_Client)
-	api.InitClient(client, address, name)
-	client.cc = api.GetClientConnection(client)
+
+	client.domain = domain
+	client.name = "plc_link"
+	client.port = port
+	client.hasTLS = hasTLS
+	client.keyFile = keyFile
+	client.certFile = certFile
+	client.caFile = caFile
+	client.cc = api.GetClientConnection(client, token)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 
 	return client
@@ -93,26 +101,6 @@ func (self *PlcLink_Client) GetCaFile() string {
 	return self.caFile
 }
 
-// Set the client is a secure client.
-func (self *PlcLink_Client) SetTLS(hasTls bool) {
-	self.hasTLS = hasTls
-}
-
-// Set TLS certificate file path
-func (self *PlcLink_Client) SetCertFile(certFile string) {
-	self.certFile = certFile
-}
-
-// Set TLS key file path
-func (self *PlcLink_Client) SetKeyFile(keyFile string) {
-	self.keyFile = keyFile
-}
-
-// Set TLS authority trust certificate file path
-func (self *PlcLink_Client) SetCaFile(caFile string) {
-	self.caFile = caFile
-}
-
 ////////////////// API ///////////////////
 
 // Create a new connection with a plc service.
@@ -126,7 +114,7 @@ func (self *PlcLink_Client) CreateConnection(id string, domain string, address s
 		},
 	}
 
-	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
+	_, err := self.c.CreateConnection(context.Background(), rqst)
 	return err
 }
 
@@ -137,7 +125,7 @@ func (self *PlcLink_Client) DeleteConnection(connectionId string) error {
 		Id: connectionId,
 	}
 
-	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
+	_, err := self.c.DeleteConnection(context.Background(), rqst)
 	return err
 }
 
@@ -171,7 +159,7 @@ func (self *PlcLink_Client) Link(id string, frequency int32, src_domain string, 
 		},
 	}
 
-	_, err := self.c.Link(api.GetClientContext(self), rqst)
+	_, err := self.c.Link(context.Background(), rqst)
 	return err
 }
 
@@ -183,7 +171,7 @@ func (self *PlcLink_Client) UnLink(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.UnLink(api.GetClientContext(self), rqst)
+	_, err := self.c.UnLink(context.Background(), rqst)
 	return err
 }
 
@@ -195,7 +183,7 @@ func (self *PlcLink_Client) Suspend(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.Suspend(api.GetClientContext(self), rqst)
+	_, err := self.c.Suspend(context.Background(), rqst)
 	return err
 }
 
@@ -207,6 +195,6 @@ func (self *PlcLink_Client) Resume(id string) error {
 		Id: id,
 	}
 
-	_, err := self.c.Resume(api.GetClientContext(self), rqst)
+	_, err := self.c.Resume(context.Background(), rqst)
 	return err
 }
