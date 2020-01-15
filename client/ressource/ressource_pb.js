@@ -1,4 +1,3 @@
-// source: ressource/ressource.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -28,7 +27,6 @@ goog.exportSymbol('proto.ressource.DeletePermissionsRsp', null, global);
 goog.exportSymbol('proto.ressource.DeleteRoleRqst', null, global);
 goog.exportSymbol('proto.ressource.DeleteRoleRsp', null, global);
 goog.exportSymbol('proto.ressource.FilePermission', null, global);
-goog.exportSymbol('proto.ressource.FilePermission.OwnerCase', null, global);
 goog.exportSymbol('proto.ressource.GetAllActionsRqst', null, global);
 goog.exportSymbol('proto.ressource.GetAllActionsRsp', null, global);
 goog.exportSymbol('proto.ressource.GetAllFilesInfoRqst', null, global);

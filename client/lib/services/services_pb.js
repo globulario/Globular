@@ -1,4 +1,3 @@
-// source: services/services.proto
 /**
  * @fileoverview
  * @enhanceable

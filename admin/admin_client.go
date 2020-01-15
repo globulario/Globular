@@ -239,7 +239,7 @@ func (self *Admin_Client) createServicePackage(publisherId string, serviceId str
 
 	// tar + gzip
 	var buf bytes.Buffer
-	Utility.CompressDir(path, &buf)
+	Utility.CompressDir("", path, &buf)
 
 	// write the .tar.gzip
 	fileToWrite, err := os.OpenFile(os.TempDir()+string(os.PathSeparator)+id+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))
@@ -437,7 +437,7 @@ func (self *Admin_Client) DeployApplication(name string, path string) error {
 
 	// Now I will open the data and create a archive from it.
 	var buffer bytes.Buffer
-	err := Utility.CompressDir(Utility.GenerateUUID(name), &buffer)
+	err := Utility.CompressDir("", Utility.GenerateUUID(name), &buffer)
 	if err != nil {
 		return err
 	}

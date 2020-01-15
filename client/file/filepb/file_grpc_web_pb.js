@@ -304,6 +304,61 @@ proto.file.FileServicePromiseClient.prototype.rename =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.file.CreateArchiveRequest,
+ *   !proto.file.CreateArchiveResponse>}
+ */
+const methodInfo_FileService_CreateAchive = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.file.CreateArchiveResponse,
+  /** @param {!proto.file.CreateArchiveRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.file.CreateArchiveResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.file.CreateArchiveRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.file.CreateArchiveResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.file.CreateArchiveResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.file.FileServiceClient.prototype.createAchive =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/file.FileService/CreateAchive',
+      request,
+      metadata || {},
+      methodInfo_FileService_CreateAchive,
+      callback);
+};
+
+
+/**
+ * @param {!proto.file.CreateArchiveRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.file.CreateArchiveResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.file.FileServicePromiseClient.prototype.createAchive =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/file.FileService/CreateAchive',
+      request,
+      metadata || {},
+      methodInfo_FileService_CreateAchive);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.file.GetFileInfoRequest,
  *   !proto.file.GetFileInfoResponse>}
  */

@@ -1,6 +1,8 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
+  CreateArchiveRequest,
+  CreateArchiveResponse,
   CreateDirRequest,
   CreateDirResponse,
   DeleteDirRequest,
@@ -24,8 +26,8 @@ import {
 
 export class FileServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   readDir(
     request: ReadDirRequest,
@@ -52,6 +54,13 @@ export class FileServiceClient {
     callback: (err: grpcWeb.Error,
                response: RenameResponse) => void
   ): grpcWeb.ClientReadableStream<RenameResponse>;
+
+  createAchive(
+    request: CreateArchiveRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: CreateArchiveResponse) => void
+  ): grpcWeb.ClientReadableStream<CreateArchiveResponse>;
 
   getFileInfo(
     request: GetFileInfoRequest,
@@ -88,8 +97,8 @@ export class FileServiceClient {
 
 export class FileServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   readDir(
     request: ReadDirRequest,
@@ -110,6 +119,11 @@ export class FileServicePromiseClient {
     request: RenameRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<RenameResponse>;
+
+  createAchive(
+    request: CreateArchiveRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<CreateArchiveResponse>;
 
   getFileInfo(
     request: GetFileInfoRequest,

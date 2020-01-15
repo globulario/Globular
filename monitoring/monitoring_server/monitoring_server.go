@@ -18,11 +18,11 @@ import (
 	"github.com/davecourtois/Globular/Interceptors/server"
 	"github.com/davecourtois/Globular/monitoring/monitoring_store"
 	"github.com/davecourtois/Globular/monitoring/monitoringpb"
-	"github.com/davecourtois/Utility"
-	"google.golang.org/grpc"
 
 	"time"
 
+	"github.com/davecourtois/Utility"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
@@ -44,12 +44,12 @@ var (
 	domain string = "localhost"
 )
 
-// This is the connction to a datastore.
+// Keep connection information here.
 type connection struct {
-	Id    string
-	Host  string
-	Store monitoringpb.StoreType
-	Port  int32
+	Id   string // The connection id
+	Host string // can also be ipv4 addresse.
+	Port int32
+	Type monitoringpb.StoreType // Only Prometheus at this time.
 }
 
 // Value need by Globular to start the services...
@@ -72,17 +72,17 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
-	KeepAlive          bool
 
-	// saved connections
-	Connections map[string]*connection
-
-	// The map of store (also connections...)
-	stores map[string]monitoring_store.Store
+	// That map contain the list of active connections.
+	Connections map[string]connection
+	stores      map[string]monitoring_store.Store
 }
 
 // Create the configuration file if is not already exist.
 func (self *server) init() {
+	// Initialyse connection maps.
+	self.Connections = make(map[string]connection, 0)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
@@ -92,13 +92,20 @@ func (self *server) init() {
 		self.save()
 	}
 
-	// open the connection with store.
+	// Initialyse stores.
+	self.stores = make(map[string]monitoring_store.Store, 0)
 	for _, c := range self.Connections {
-		if c.Store == monitoringpb.StoreType_PROMETHEUS {
-			s, _ := monitoring_store.NewPrometheusStore(c.Host + ":" + Utility.ToString(c.Port))
-			self.stores[c.Id] = s
+		if c.Type == monitoringpb.StoreType_PROMETHEUS {
+			address := "http://" + c.Host + ":" + Utility.ToString(c.Port)
+			store, err := monitoring_store.NewPrometheusStore(address)
+			if err == nil {
+				self.stores[c.Id] = store
+			} else {
+				log.Println("fail to connect to "+address, err)
+			}
 		}
 	}
+
 }
 
 // Save the configuration values.
@@ -121,33 +128,41 @@ func (self *server) save() error {
 // Create a connection.
 func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.CreateConnectionRqst) (*monitoringpb.CreateConnectionRsp, error) {
 	fmt.Println("Try to create a new connection")
+	var c connection
 
-	var err error
-	c := new(connection)
-	c.Host = rqst.Connection.Host
+	// Set the connection info from the request.
 	c.Id = rqst.Connection.Id
+	c.Host = rqst.Connection.Host
 	c.Port = rqst.Connection.Port
-	c.Store = rqst.Connection.Store
+	c.Type = rqst.Connection.Store
 
-	// set the connection into the map.
+	// set or update the connection and save it in json file.
 	self.Connections[c.Id] = c
 
-	if self.stores[c.Id] == nil {
-		if c.Store == monitoringpb.StoreType_PROMETHEUS {
-			s, err := monitoring_store.NewPrometheusStore(c.Host + ":" + Utility.ToString(c.Port))
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	var store monitoring_store.Store
+	var err error
+	address := "http://" + c.Host + ":" + Utility.ToString(c.Port)
 
-			// keep the store in the map.
-			self.stores[c.Id] = s
-
-		} else {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Invlaid monitoring store type!")))
-		}
+	if c.Type == monitoringpb.StoreType_PROMETHEUS {
+		store, err = monitoring_store.NewPrometheusStore(address)
 	}
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if store == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to store!")))
+	}
+
+	// Keep the ref to the store.
+	self.stores[c.Id] = store
+
+	// In that case I will save it in file.
 	err = self.save()
 	if err != nil {
 		return nil, status.Errorf(
@@ -155,25 +170,32 @@ func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.Cre
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Print the success message here.
+	log.Println("Connection " + c.Id + " was created with success!")
+
 	return &monitoringpb.CreateConnectionRsp{
 		Result: true,
 	}, nil
-
 }
 
 // Delete a connection.
 func (self *server) DeleteConnection(ctx context.Context, rqst *monitoringpb.DeleteConnectionRqst) (*monitoringpb.DeleteConnectionRsp, error) {
-	if self.Connections[rqst.Id] == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.Id)))
+	id := rqst.GetId()
+	if _, ok := self.Connections[id]; !ok {
+		return &monitoringpb.DeleteConnectionRsp{
+			Result: true,
+		}, nil
 	}
 
-	delete(self.Connections, rqst.Id)
-	if self.stores[rqst.Id] != nil {
-		delete(self.stores, rqst.Id)
-	}
+	delete(self.Connections, id)
 
+	// In that case I will save it in file.
 	err := self.save()
 	if err != nil {
 		return nil, status.Errorf(
@@ -181,22 +203,25 @@ func (self *server) DeleteConnection(ctx context.Context, rqst *monitoringpb.Del
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// return success.
 	return &monitoringpb.DeleteConnectionRsp{
 		Result: true,
 	}, nil
+
 }
 
 // Alerts returns a list of all active alerts.
 func (self *server) Alerts(ctx context.Context, rqst *monitoringpb.AlertsRequest) (*monitoringpb.AlertsResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := s.Alerts(ctx)
+	str, err := store.Alerts(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -204,21 +229,22 @@ func (self *server) Alerts(ctx context.Context, rqst *monitoringpb.AlertsRequest
 	}
 
 	return &monitoringpb.AlertsResponse{
-		Results: results,
+		Results: str,
 	}, nil
 }
 
 // AlertManagers returns an overview of the current state of the Prometheus alert manager discovery.
 func (self *server) AlertManagers(ctx context.Context, rqst *monitoringpb.AlertManagersRequest) (*monitoringpb.AlertManagersResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := s.AlertManagers(ctx)
+	str, err := store.AlertManagers(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -226,21 +252,22 @@ func (self *server) AlertManagers(ctx context.Context, rqst *monitoringpb.AlertM
 	}
 
 	return &monitoringpb.AlertManagersResponse{
-		Results: results,
+		Results: str,
 	}, nil
 }
 
 // CleanTombstones removes the deleted data from disk and cleans up the existing tombstones.
 func (self *server) CleanTombstones(ctx context.Context, rqst *monitoringpb.CleanTombstonesRequest) (*monitoringpb.CleanTombstonesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := s.CleanTombstones(ctx)
+	err := store.CleanTombstones(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -254,15 +281,16 @@ func (self *server) CleanTombstones(ctx context.Context, rqst *monitoringpb.Clea
 
 // Config returns the current Prometheus configuration.
 func (self *server) Config(ctx context.Context, rqst *monitoringpb.ConfigRequest) (*monitoringpb.ConfigResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := s.Config(ctx)
+	configStr, err := store.Config(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -270,22 +298,26 @@ func (self *server) Config(ctx context.Context, rqst *monitoringpb.ConfigRequest
 	}
 
 	return &monitoringpb.ConfigResponse{
-		Results: results,
+		Results: configStr,
 	}, nil
 }
 
 // DeleteSeries deletes data for a selection of series in a time range.
 func (self *server) DeleteSeries(ctx context.Context, rqst *monitoringpb.DeleteSeriesRequest) (*monitoringpb.DeleteSeriesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-	startTime := time.Unix(int64(Utility.ToInt(rqst.StartTime)), 0)
-	endTime := time.Unix(int64(Utility.ToInt(rqst.EndTime)), 0)
-	err := s.DeleteSeries(ctx, rqst.Matches, startTime, endTime)
+
+	// convert input arguments...
+	startTime := time.Unix(int64(rqst.GetStartTime()), 0)
+	endTime := time.Unix(int64(rqst.GetEndTime()), 0)
+
+	err := store.DeleteSeries(ctx, rqst.GetMatches(), startTime, endTime)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -299,15 +331,16 @@ func (self *server) DeleteSeries(ctx context.Context, rqst *monitoringpb.DeleteS
 
 // Flags returns the flag values that Prometheus was launched with.
 func (self *server) Flags(ctx context.Context, rqst *monitoringpb.FlagsRequest) (*monitoringpb.FlagsResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := s.Flags(ctx)
+	str, err := store.Flags(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -315,21 +348,22 @@ func (self *server) Flags(ctx context.Context, rqst *monitoringpb.FlagsRequest) 
 	}
 
 	return &monitoringpb.FlagsResponse{
-		Results: results,
+		Results: str,
 	}, nil
 }
 
 // LabelNames returns all the unique label names present in the block in sorted order.
 func (self *server) LabelNames(ctx context.Context, rqst *monitoringpb.LabelNamesRequest) (*monitoringpb.LabelNamesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	labels, warnings, err := s.LabelNames(ctx)
+	strs, str, err := store.LabelNames(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -337,22 +371,23 @@ func (self *server) LabelNames(ctx context.Context, rqst *monitoringpb.LabelName
 	}
 
 	return &monitoringpb.LabelNamesResponse{
-		Labels:   labels,
-		Warnings: warnings,
+		Labels:   strs,
+		Warnings: str,
 	}, nil
 }
 
 // LabelValues performs a query for the values of the given label.
 func (self *server) LabelValues(ctx context.Context, rqst *monitoringpb.LabelValuesRequest) (*monitoringpb.LabelValuesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	labelValues, warnings, err := s.LabelValues(ctx, rqst.Label)
+	resultStr, warnings, err := store.LabelValues(ctx, rqst.Label)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -360,24 +395,24 @@ func (self *server) LabelValues(ctx context.Context, rqst *monitoringpb.LabelVal
 	}
 
 	return &monitoringpb.LabelValuesResponse{
-		LabelValues: labelValues,
+		LabelValues: resultStr,
 		Warnings:    warnings,
 	}, nil
 }
 
 // Query performs a query for the given time.
 func (self *server) Query(ctx context.Context, rqst *monitoringpb.QueryRequest) (*monitoringpb.QueryResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	ts := time.Unix(int64(rqst.Ts), 0)
+	ts := time.Unix(int64(rqst.GetTs()), 0)
+	resultStr, warnings, err := store.Query(ctx, rqst.Query, ts)
 
-	results, warnings, err := s.Query(ctx, rqst.Query, ts)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -385,71 +420,65 @@ func (self *server) Query(ctx context.Context, rqst *monitoringpb.QueryRequest) 
 	}
 
 	return &monitoringpb.QueryResponse{
-		Value:    results,
+		Value:    resultStr,
 		Warnings: warnings,
 	}, nil
 }
 
 // QueryRange performs a query for the given range.
 func (self *server) QueryRange(rqst *monitoringpb.QueryRangeRequest, stream monitoringpb.MonitoringService_QueryRangeServer) error {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
+
+	store := self.stores[rqst.ConnectionId]
+	ctx := stream.Context()
+
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// So here I will return the results.
-	startTime := time.Unix(int64(Utility.ToInt(rqst.StartTime)), 0)
-	endTime := time.Unix(int64(Utility.ToInt(rqst.EndTime)), 0)
-	results, warnings, err := s.QueryRange(stream.Context(), rqst.Query, startTime, endTime, rqst.Step)
+	startTime := time.Unix(int64(rqst.GetStartTime()), 0)
+	endTime := time.Unix(int64(rqst.GetEndTime()), 0)
+	step := rqst.Step
 
-	// I will now stream back the results.
+	resultStr, warnings, err := store.QueryRange(ctx, rqst.GetQuery(), startTime, endTime, step)
+
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	size := 1024 // send 1024 bytes at time
-	for i := 0; i < len(results); i += size {
-		// Send the last bytes as necessary.
-		if len(results)-size <= i {
-			stream.Send(
-				&monitoringpb.QueryRangeResponse{
-					Value:    results[i:], // character at time.
-					Warnings: warnings,
-				},
-			)
-			return nil
+	maxSize := 2000
+	for i := 0; i < len(resultStr); i += maxSize {
+		rsp := new(monitoringpb.QueryRangeResponse)
+		rsp.Warnings = warnings
+		if i+maxSize < len(resultStr) {
+			rsp.Value = resultStr[i : i+maxSize]
+		} else {
+			rsp.Value = resultStr[i:]
 		}
-
-		stream.Send(
-			&monitoringpb.QueryRangeResponse{
-				Value:    results[i : i+size], // character at time.
-				Warnings: warnings,
-			},
-		)
-
+		stream.Send(rsp)
 	}
 
 	return nil
-
 }
 
 // Series finds series by label matchers.
 func (self *server) Series(ctx context.Context, rqst *monitoringpb.SeriesRequest) (*monitoringpb.SeriesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+	startTime := time.Unix(int64(rqst.GetStartTime()), 0)
+	endTime := time.Unix(int64(rqst.GetEndTime()), 0)
 
-	startTime := time.Unix(int64(Utility.ToInt(rqst.StartTime)), 0)
-	endTime := time.Unix(int64(Utility.ToInt(rqst.EndTime)), 0)
-	results, warnings, err := s.Series(ctx, rqst.Matches, startTime, endTime)
+	resultStr, warnings, err := store.Series(ctx, rqst.GetMatches(), startTime, endTime)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -457,7 +486,7 @@ func (self *server) Series(ctx context.Context, rqst *monitoringpb.SeriesRequest
 	}
 
 	return &monitoringpb.SeriesResponse{
-		LabelSet: results,
+		LabelSet: resultStr,
 		Warnings: warnings,
 	}, nil
 }
@@ -465,15 +494,16 @@ func (self *server) Series(ctx context.Context, rqst *monitoringpb.SeriesRequest
 // Snapshot creates a snapshot of all current data into snapshots/<datetime>-<rand>
 // under the TSDB's data directory and returns the directory as response.
 func (self *server) Snapshot(ctx context.Context, rqst *monitoringpb.SnapshotRequest) (*monitoringpb.SnapshotResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := s.Snapshot(ctx, rqst.SkipHead)
+	resultStr, err := store.Snapshot(ctx, rqst.GetSkipHead())
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -481,21 +511,22 @@ func (self *server) Snapshot(ctx context.Context, rqst *monitoringpb.SnapshotReq
 	}
 
 	return &monitoringpb.SnapshotResponse{
-		Result: result,
+		Result: resultStr,
 	}, nil
 }
 
 // Rules returns a list of alerting and recording rules that are currently loaded.
 func (self *server) Rules(ctx context.Context, rqst *monitoringpb.RulesRequest) (*monitoringpb.RulesResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := s.Rules(ctx)
+	resultStr, err := store.Rules(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -503,21 +534,22 @@ func (self *server) Rules(ctx context.Context, rqst *monitoringpb.RulesRequest) 
 	}
 
 	return &monitoringpb.RulesResponse{
-		Result: result,
+		Result: resultStr,
 	}, nil
 }
 
 // Targets returns an overview of the current state of the Prometheus target discovery.
 func (self *server) Targets(ctx context.Context, rqst *monitoringpb.TargetsRequest) (*monitoringpb.TargetsResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := s.Targets(ctx)
+	resultStr, err := store.Targets(ctx)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -525,21 +557,22 @@ func (self *server) Targets(ctx context.Context, rqst *monitoringpb.TargetsReque
 	}
 
 	return &monitoringpb.TargetsResponse{
-		Result: result,
+		Result: resultStr,
 	}, nil
 }
 
 // TargetsMetadata returns metadata about metrics currently scraped by the target.
 func (self *server) TargetsMetadata(ctx context.Context, rqst *monitoringpb.TargetsMetadataRequest) (*monitoringpb.TargetsMetadataResponse, error) {
-	s := self.stores[rqst.ConnectionId]
-	if s == nil {
-		return nil,
-			status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No connection found with id "+rqst.ConnectionId)))
+	store := self.stores[rqst.ConnectionId]
+	if store == nil {
+		err := errors.New("No store connection exist for id " + rqst.ConnectionId)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := s.TargetsMetadata(ctx, rqst.MatchTarget, rqst.Metric, rqst.Limit)
+	resultStr, err := store.TargetsMetadata(ctx, rqst.GetMatchTarget(), rqst.GetMetric(), rqst.GetLimit())
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -547,7 +580,7 @@ func (self *server) TargetsMetadata(ctx context.Context, rqst *monitoringpb.Targ
 	}
 
 	return &monitoringpb.TargetsMetadataResponse{
-		Result: result,
+		Result: resultStr,
 	}, nil
 }
 
@@ -576,7 +609,6 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = "localhost"
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
@@ -599,8 +631,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("could not load server key pair: %s", err)
 			return
-		} else {
-			log.Println("load certificate from ", s_impl.CertFile, s_impl.KeyFile)
 		}
 
 		// Create a certificate pool from the certificate authority
@@ -640,11 +670,7 @@ func main() {
 		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
-			}
-			defer f.Close()
+			log.Fatalf("failed to serve: %v", err)
 		}
 		log.Println(s_impl.Name + " grpc service is closed")
 	}()

@@ -100,6 +100,16 @@ message GetThumbnailsResponse {
 }
 
 // Write the execel file on the server.
+message CreateArchiveRequest{
+	string path = 1; // The directory to archive
+	string name = 2; // the name
+}
+
+message CreateArchiveResponse{
+	string result = 1;
+}
+
+// Write the execel file on the server.
 message WriteExcelFileRequest{
 	string path = 1;
 	string data = 2; // JSON object containing {{"name":"page1", "data"[[1,2,3][4,5,6][7,8,9]]}}
@@ -124,6 +134,9 @@ service FileService {
 	
 	// Rename a file/directory
 	rpc Rename(RenameRequest) returns (RenameResponse){};
+	
+	// Create an archive from a given dir and set it with name.
+	rpc CreateAchive(CreateArchiveRequest) returns (CreateArchiveResponse);
 	
 	// Get file info, if the file exist it return the file size, name, thumnail...
 	rpc GetFileInfo(GetFileInfoRequest) returns (GetFileInfoResponse){};

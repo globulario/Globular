@@ -1,4 +1,3 @@
-// source: ca/ca.proto
 /**
  * @fileoverview
  * @enhanceable

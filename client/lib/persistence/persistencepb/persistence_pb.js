@@ -1,4 +1,3 @@
-// source: persistence/persistencepb/persistence.proto
 /**
  * @fileoverview
  * @enhanceable

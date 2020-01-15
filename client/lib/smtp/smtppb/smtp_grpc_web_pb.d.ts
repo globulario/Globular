@@ -12,8 +12,8 @@ import {
 
 export class SmtpServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,
@@ -40,8 +40,8 @@ export class SmtpServiceClient {
 
 export class SmtpServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createConnection(
     request: CreateConnectionRqst,

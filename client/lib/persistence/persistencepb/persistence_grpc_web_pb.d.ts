@@ -46,8 +46,8 @@ import {
 
 export class PersistenceServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createDatabase(
     request: CreateDatabaseRqst,
@@ -189,8 +189,8 @@ export class PersistenceServiceClient {
 
 export class PersistenceServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   createDatabase(
     request: CreateDatabaseRqst,

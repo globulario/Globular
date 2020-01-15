@@ -144,6 +144,61 @@ proto.admin.AdminServicePromiseClient.prototype.setRootPassword =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.SetRootEmailRequest,
+ *   !proto.admin.SetRootEmailResponse>}
+ */
+const methodInfo_AdminService_SetRootEmail = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.SetRootEmailResponse,
+  /** @param {!proto.admin.SetRootEmailRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetRootEmailResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.SetRootEmailRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.SetRootEmailResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.SetRootEmailResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.setRootEmail =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/SetRootEmail',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetRootEmail,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.SetRootEmailRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.SetRootEmailResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.setRootEmail =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/SetRootEmail',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetRootEmail);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.admin.GetConfigRequest,
  *   !proto.admin.GetConfigResponse>}
  */

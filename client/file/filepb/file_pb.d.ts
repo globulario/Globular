@@ -269,11 +269,13 @@ export namespace ReadFileResponse {
 export class SaveFileRequest extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
+  hasPath(): boolean;
 
   getData(): Uint8Array | string;
   getData_asU8(): Uint8Array;
   getData_asB64(): string;
   setData(value: Uint8Array | string): void;
+  hasData(): boolean;
 
   getFileCase(): SaveFileRequest.FileCase;
 
@@ -399,6 +401,46 @@ export class GetThumbnailsResponse extends jspb.Message {
 export namespace GetThumbnailsResponse {
   export type AsObject = {
     data: Uint8Array | string,
+  }
+}
+
+export class CreateArchiveRequest extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateArchiveRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateArchiveRequest): CreateArchiveRequest.AsObject;
+  static serializeBinaryToWriter(message: CreateArchiveRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateArchiveRequest;
+  static deserializeBinaryFromReader(message: CreateArchiveRequest, reader: jspb.BinaryReader): CreateArchiveRequest;
+}
+
+export namespace CreateArchiveRequest {
+  export type AsObject = {
+    path: string,
+    name: string,
+  }
+}
+
+export class CreateArchiveResponse extends jspb.Message {
+  getResult(): string;
+  setResult(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateArchiveResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateArchiveResponse): CreateArchiveResponse.AsObject;
+  static serializeBinaryToWriter(message: CreateArchiveResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateArchiveResponse;
+  static deserializeBinaryFromReader(message: CreateArchiveResponse, reader: jspb.BinaryReader): CreateArchiveResponse;
+}
+
+export namespace CreateArchiveResponse {
+  export type AsObject = {
+    result: string,
   }
 }
 

@@ -14,6 +14,7 @@ config.json
 plc*
 spc*
 dist*
+config
 catalog
 data
 webroot

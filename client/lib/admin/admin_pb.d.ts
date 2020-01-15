@@ -230,6 +230,46 @@ export namespace SetRootPasswordResponse {
   }
 }
 
+export class SetRootEmailRequest extends jspb.Message {
+  getOldemail(): string;
+  setOldemail(value: string): void;
+
+  getNewemail(): string;
+  setNewemail(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRootEmailRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootEmailRequest): SetRootEmailRequest.AsObject;
+  static serializeBinaryToWriter(message: SetRootEmailRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootEmailRequest;
+  static deserializeBinaryFromReader(message: SetRootEmailRequest, reader: jspb.BinaryReader): SetRootEmailRequest;
+}
+
+export namespace SetRootEmailRequest {
+  export type AsObject = {
+    oldemail: string,
+    newemail: string,
+  }
+}
+
+export class SetRootEmailResponse extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRootEmailResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRootEmailResponse): SetRootEmailResponse.AsObject;
+  static serializeBinaryToWriter(message: SetRootEmailResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRootEmailResponse;
+  static deserializeBinaryFromReader(message: SetRootEmailResponse, reader: jspb.BinaryReader): SetRootEmailResponse;
+}
+
+export namespace SetRootEmailResponse {
+  export type AsObject = {
+    token: string,
+  }
+}
+
 export class PublishServiceRequest extends jspb.Message {
   getServiceid(): string;
   setServiceid(value: string): void;

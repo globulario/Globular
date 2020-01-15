@@ -357,6 +357,45 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 	}, nil
 }
 
+// Create an archive from a given dir and set it with name.
+func (self *server) CreateAchive(ctx context.Context, rqst *filepb.CreateArchiveRequest) (*filepb.CreateArchiveResponse, error) {
+	path := rqst.GetPath()
+
+	// The roo will be the Root specefied by the server.
+	if strings.HasPrefix(path, "/") {
+		path = self.Root + path
+		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	}
+
+	if !Utility.Exists(path) {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No file found with path '"+path+"'")))
+	}
+
+	var buf bytes.Buffer
+	Utility.CompressDir(self.Root, path, &buf)
+
+	dest := path[0:strings.LastIndex(path, string(os.PathSeparator))] + string(os.PathSeparator) + rqst.GetName() + ".tgz"
+
+	// Now I will save the file to the destination.
+	err := ioutil.WriteFile(dest, buf.Bytes(), 0644)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Remove the
+	path = strings.Replace(rqst.Path, "\\", "/", -1)
+	dest = path[0:strings.LastIndex(path, "/")] + "/" + rqst.GetName() + ".tgz"
+
+	return &filepb.CreateArchiveResponse{
+		Result: dest,
+	}, nil
+
+}
+
 // Rename a file or a directory.
 func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*filepb.RenameResponse, error) {
 	path := rqst.GetPath()

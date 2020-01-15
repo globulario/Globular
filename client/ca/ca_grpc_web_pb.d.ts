@@ -8,8 +8,8 @@ import {
 
 export class CertificateAuthorityClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   signCertificate(
     request: SignCertificateRequest,
@@ -29,8 +29,8 @@ export class CertificateAuthorityClient {
 
 export class CertificateAuthorityPromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   signCertificate(
     request: SignCertificateRequest,

@@ -13,6 +13,8 @@ import {
   RegisterExternalApplicationResponse,
   SaveConfigRequest,
   SaveConfigResponse,
+  SetRootEmailRequest,
+  SetRootEmailResponse,
   SetRootPasswordRequest,
   SetRootPasswordResponse,
   StartServiceRequest,
@@ -26,8 +28,8 @@ import {
 
 export class AdminServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRequest,
@@ -35,6 +37,13 @@ export class AdminServiceClient {
     callback: (err: grpcWeb.Error,
                response: SetRootPasswordResponse) => void
   ): grpcWeb.ClientReadableStream<SetRootPasswordResponse>;
+
+  setRootEmail(
+    request: SetRootEmailRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetRootEmailResponse) => void
+  ): grpcWeb.ClientReadableStream<SetRootEmailResponse>;
 
   getConfig(
     request: GetConfigRequest,
@@ -103,13 +112,18 @@ export class AdminServiceClient {
 
 export class AdminServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<SetRootPasswordResponse>;
+
+  setRootEmail(
+    request: SetRootEmailRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetRootEmailResponse>;
 
   getConfig(
     request: GetConfigRequest,

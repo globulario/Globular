@@ -956,7 +956,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
-
+	log.Println("---> upload file call!")
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -972,7 +972,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
-
+	log.Println("---> path ", path)
 	if strings.HasPrefix(path, "/") {
 		path = globule.webRoot + path
 		// create the dir if not already exist.
@@ -989,6 +989,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file.
 		out, err := os.Create(path + "/" + files[i].Filename)
+		log.Println("---> save file ", path+"/"+files[i].Filename)
 
 		defer out.Close()
 		if err != nil {
@@ -1512,6 +1513,36 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 		Token: string(token),
 	}, nil
 
+}
+
+//Set the root password
+func (self *Globule) SetRootEmail(ctx context.Context, rqst *admin.SetRootEmailRequest) (*admin.SetRootEmailResponse, error) {
+	// Here I will set the root password.
+
+	if self.AdminEmail != rqst.OldEmail {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given!")))
+	}
+
+	// Now I will update de sa password.
+	self.AdminEmail = rqst.NewEmail
+
+	// save the configuration.
+	self.saveConfig()
+
+	// read the token.
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Return the token.
+	return &admin.SetRootEmailResponse{
+		Token: string(token),
+	}, nil
 }
 
 // Upload a service package.
