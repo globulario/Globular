@@ -237,10 +237,16 @@ export class EventHub {
 
   /** Dispatch the event localy */
   dispatch(name: string, data: any) {
-    for (var uuid in this.subscribers[name]) {
-      // call the event callback function.
-      this.subscribers[name][uuid](data)
-    }
+      for (var uuid in this.subscribers[name]) {
+          // call the event callback function.
+          if(this.subscribers != undefined){
+              if(this.subscribers[name] != undefined){
+                  if(this.subscribers[name][uuid]!= undefined){
+                      this.subscribers[name][uuid](data);
+                  }
+              }
+          }
+      }
   }
 }
 

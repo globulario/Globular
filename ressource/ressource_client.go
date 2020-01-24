@@ -243,6 +243,32 @@ func (self *Ressource_Client) RemoveRoleAction(roleId string, action string) err
 }
 
 /**
+ * Add a action to a given application.
+ */
+func (self *Ressource_Client) AddApplicationAction(applicationId string, action string) error {
+	rqst := &AddApplicationActionRqst{
+		ApplicationId: applicationId,
+		Action:        action,
+	}
+	_, err := self.c.AddApplicationAction(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
+ * Remove action from a given application.
+ */
+func (self *Ressource_Client) RemoveApplicationAction(applicationId string, action string) error {
+	rqst := &RemoveApplicationActionRqst{
+		ApplicationId: applicationId,
+		Action:        action,
+	}
+	_, err := self.c.RemoveApplicationAction(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+/**
  * Set role to a account
  */
 func (self *Ressource_Client) AddAccountRole(accountId string, roleId string) error {

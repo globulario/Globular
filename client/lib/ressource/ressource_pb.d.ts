@@ -442,6 +442,86 @@ export namespace RemoveRoleActionRsp {
   }
 }
 
+export class AddApplicationActionRqst extends jspb.Message {
+  getApplicationid(): string;
+  setApplicationid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddApplicationActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: AddApplicationActionRqst): AddApplicationActionRqst.AsObject;
+  static serializeBinaryToWriter(message: AddApplicationActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddApplicationActionRqst;
+  static deserializeBinaryFromReader(message: AddApplicationActionRqst, reader: jspb.BinaryReader): AddApplicationActionRqst;
+}
+
+export namespace AddApplicationActionRqst {
+  export type AsObject = {
+    applicationid: string,
+    action: string,
+  }
+}
+
+export class AddApplicationActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddApplicationActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: AddApplicationActionRsp): AddApplicationActionRsp.AsObject;
+  static serializeBinaryToWriter(message: AddApplicationActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddApplicationActionRsp;
+  static deserializeBinaryFromReader(message: AddApplicationActionRsp, reader: jspb.BinaryReader): AddApplicationActionRsp;
+}
+
+export namespace AddApplicationActionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RemoveApplicationActionRqst extends jspb.Message {
+  getApplicationid(): string;
+  setApplicationid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveApplicationActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveApplicationActionRqst): RemoveApplicationActionRqst.AsObject;
+  static serializeBinaryToWriter(message: RemoveApplicationActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveApplicationActionRqst;
+  static deserializeBinaryFromReader(message: RemoveApplicationActionRqst, reader: jspb.BinaryReader): RemoveApplicationActionRqst;
+}
+
+export namespace RemoveApplicationActionRqst {
+  export type AsObject = {
+    applicationid: string,
+    action: string,
+  }
+}
+
+export class RemoveApplicationActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveApplicationActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveApplicationActionRsp): RemoveApplicationActionRsp.AsObject;
+  static serializeBinaryToWriter(message: RemoveApplicationActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveApplicationActionRsp;
+  static deserializeBinaryFromReader(message: RemoveApplicationActionRsp, reader: jspb.BinaryReader): RemoveApplicationActionRsp;
+}
+
+export namespace RemoveApplicationActionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
 export class GetAllActionsRqst extends jspb.Message {
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetAllActionsRqst.AsObject;
@@ -473,6 +553,42 @@ export class GetAllActionsRsp extends jspb.Message {
 export namespace GetAllActionsRsp {
   export type AsObject = {
     actionsList: Array<string>,
+  }
+}
+
+export class RemoveApplicationRqst extends jspb.Message {
+  getApplicationid(): string;
+  setApplicationid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveApplicationRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveApplicationRqst): RemoveApplicationRqst.AsObject;
+  static serializeBinaryToWriter(message: RemoveApplicationRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveApplicationRqst;
+  static deserializeBinaryFromReader(message: RemoveApplicationRqst, reader: jspb.BinaryReader): RemoveApplicationRqst;
+}
+
+export namespace RemoveApplicationRqst {
+  export type AsObject = {
+    applicationid: string,
+  }
+}
+
+export class RemoveApplicationRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveApplicationRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveApplicationRsp): RemoveApplicationRsp.AsObject;
+  static serializeBinaryToWriter(message: RemoveApplicationRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveApplicationRsp;
+  static deserializeBinaryFromReader(message: RemoveApplicationRsp, reader: jspb.BinaryReader): RemoveApplicationRsp;
+}
+
+export namespace RemoveApplicationRsp {
+  export type AsObject = {
+    result: boolean,
   }
 }
 
@@ -659,6 +775,38 @@ export class GetAllFilesInfoRsp extends jspb.Message {
 }
 
 export namespace GetAllFilesInfoRsp {
+  export type AsObject = {
+    result: string,
+  }
+}
+
+export class GetAllApplicationsInfoRqst extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetAllApplicationsInfoRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetAllApplicationsInfoRqst): GetAllApplicationsInfoRqst.AsObject;
+  static serializeBinaryToWriter(message: GetAllApplicationsInfoRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetAllApplicationsInfoRqst;
+  static deserializeBinaryFromReader(message: GetAllApplicationsInfoRqst, reader: jspb.BinaryReader): GetAllApplicationsInfoRqst;
+}
+
+export namespace GetAllApplicationsInfoRqst {
+  export type AsObject = {
+  }
+}
+
+export class GetAllApplicationsInfoRsp extends jspb.Message {
+  getResult(): string;
+  setResult(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetAllApplicationsInfoRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetAllApplicationsInfoRsp): GetAllApplicationsInfoRsp.AsObject;
+  static serializeBinaryToWriter(message: GetAllApplicationsInfoRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetAllApplicationsInfoRsp;
+  static deserializeBinaryFromReader(message: GetAllApplicationsInfoRsp, reader: jspb.BinaryReader): GetAllApplicationsInfoRsp;
+}
+
+export namespace GetAllApplicationsInfoRsp {
   export type AsObject = {
     result: string,
   }

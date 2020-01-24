@@ -3,6 +3,8 @@ import * as grpcWeb from 'grpc-web';
 import {
   AddAccountRoleRqst,
   AddAccountRoleRsp,
+  AddApplicationActionRqst,
+  AddApplicationActionRsp,
   AddRoleActionRqst,
   AddRoleActionRsp,
   AuthenticateRqst,
@@ -17,6 +19,8 @@ import {
   DeleteRoleRsp,
   GetAllActionsRqst,
   GetAllActionsRsp,
+  GetAllApplicationsInfoRqst,
+  GetAllApplicationsInfoRsp,
   GetAllFilesInfoRqst,
   GetAllFilesInfoRsp,
   GetPermissionsRqst,
@@ -27,6 +31,10 @@ import {
   RegisterAccountRsp,
   RemoveAccountRoleRqst,
   RemoveAccountRoleRsp,
+  RemoveApplicationActionRqst,
+  RemoveApplicationActionRsp,
+  RemoveApplicationRqst,
+  RemoveApplicationRsp,
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
   SetPermissionRqst,
@@ -107,6 +115,20 @@ export class RessourceServiceClient {
                response: RemoveRoleActionRsp) => void
   ): grpcWeb.ClientReadableStream<RemoveRoleActionRsp>;
 
+  addApplicationAction(
+    request: AddApplicationActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: AddApplicationActionRsp) => void
+  ): grpcWeb.ClientReadableStream<AddApplicationActionRsp>;
+
+  removeApplicationAction(
+    request: RemoveApplicationActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveApplicationActionRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveApplicationActionRsp>;
+
   getAllActions(
     request: GetAllActionsRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -141,6 +163,20 @@ export class RessourceServiceClient {
     callback: (err: grpcWeb.Error,
                response: GetAllFilesInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
+
+  getAllApplicationsInfo(
+    request: GetAllApplicationsInfoRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetAllApplicationsInfoRsp) => void
+  ): grpcWeb.ClientReadableStream<GetAllApplicationsInfoRsp>;
+
+  removeApplication(
+    request: RemoveApplicationRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveApplicationRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveApplicationRsp>;
 
 }
 
@@ -199,6 +235,16 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<RemoveRoleActionRsp>;
 
+  addApplicationAction(
+    request: AddApplicationActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<AddApplicationActionRsp>;
+
+  removeApplicationAction(
+    request: RemoveApplicationActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveApplicationActionRsp>;
+
   getAllActions(
     request: GetAllActionsRqst,
     metadata?: grpcWeb.Metadata
@@ -223,6 +269,16 @@ export class RessourceServicePromiseClient {
     request: GetAllFilesInfoRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllFilesInfoRsp>;
+
+  getAllApplicationsInfo(
+    request: GetAllApplicationsInfoRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetAllApplicationsInfoRsp>;
+
+  removeApplication(
+    request: RemoveApplicationRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveApplicationRsp>;
 
 }
 

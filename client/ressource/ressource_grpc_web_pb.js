@@ -639,6 +639,116 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeRoleAction =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.AddApplicationActionRqst,
+ *   !proto.ressource.AddApplicationActionRsp>}
+ */
+const methodInfo_RessourceService_AddApplicationAction = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.AddApplicationActionRsp,
+  /** @param {!proto.ressource.AddApplicationActionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddApplicationActionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.AddApplicationActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.AddApplicationActionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.AddApplicationActionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.addApplicationAction =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/AddApplicationAction',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_AddApplicationAction,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.AddApplicationActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.AddApplicationActionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.addApplicationAction =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/AddApplicationAction',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_AddApplicationAction);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RemoveApplicationActionRqst,
+ *   !proto.ressource.RemoveApplicationActionRsp>}
+ */
+const methodInfo_RessourceService_RemoveApplicationAction = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RemoveApplicationActionRsp,
+  /** @param {!proto.ressource.RemoveApplicationActionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemoveApplicationActionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RemoveApplicationActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RemoveApplicationActionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RemoveApplicationActionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.removeApplicationAction =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RemoveApplicationAction',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RemoveApplicationAction,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RemoveApplicationActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RemoveApplicationActionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.removeApplicationAction =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RemoveApplicationAction',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RemoveApplicationAction);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.GetAllActionsRqst,
  *   !proto.ressource.GetAllActionsRsp>}
  */
@@ -908,6 +1018,116 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
       request,
       metadata || {},
       methodInfo_RessourceService_GetAllFilesInfo);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetAllApplicationsInfoRqst,
+ *   !proto.ressource.GetAllApplicationsInfoRsp>}
+ */
+const methodInfo_RessourceService_GetAllApplicationsInfo = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetAllApplicationsInfoRsp,
+  /** @param {!proto.ressource.GetAllApplicationsInfoRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllApplicationsInfoRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetAllApplicationsInfoRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetAllApplicationsInfoRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetAllApplicationsInfoRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getAllApplicationsInfo =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllApplicationsInfo',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllApplicationsInfo,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetAllApplicationsInfoRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetAllApplicationsInfoRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getAllApplicationsInfo =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetAllApplicationsInfo',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetAllApplicationsInfo);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RemoveApplicationRqst,
+ *   !proto.ressource.RemoveApplicationRsp>}
+ */
+const methodInfo_RessourceService_RemoveApplication = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RemoveApplicationRsp,
+  /** @param {!proto.ressource.RemoveApplicationRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemoveApplicationRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RemoveApplicationRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RemoveApplicationRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RemoveApplicationRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.removeApplication =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RemoveApplication',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RemoveApplication,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RemoveApplicationRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RemoveApplicationRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.removeApplication =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RemoveApplication',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RemoveApplication);
 };
 
 

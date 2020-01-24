@@ -8,7 +8,7 @@ import (
 
 var (
 	// Connect to the plc client.
-	client = NewRessource_Client("localhost", "ressource")
+	client = NewRessource_Client("www.globular.io", "ressource")
 )
 
 /*
@@ -22,7 +22,7 @@ func TestRegisterAccount(t *testing.T) {
 	}
 }
 */
-func TestAuthenticate(t *testing.T) {
+/*func TestAuthenticate(t *testing.T) {
 	log.Println("---> test authenticate account.")
 	//token, err := client.Authenticate("dave.courtois60@gmail.com", "1234")
 	token, err := client.Authenticate("sa", "adminadmin")
@@ -31,7 +31,7 @@ func TestAuthenticate(t *testing.T) {
 	} else {
 		log.Println("---> ", token)
 	}
-}
+}*/
 
 /*
 func TestCreateRole(t *testing.T) {

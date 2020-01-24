@@ -568,7 +568,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		if err != nil {
 			s["State"] = "fail"
-			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			//log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
 
@@ -884,7 +884,7 @@ func (self *Globule) registerMethods() error {
 	} else if count == 0 {
 		log.Println("need to create roles guest...")
 		guest["_id"] = "guest"
-		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/ressource.RessourceService/GetAllFilesInfo", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/OnEvent", "/event.EventService/Quit", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
+		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount", "/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/ressource.RessourceService/GetAllFilesInfo", "/ressource.RessourceService/GetAllApplicationsInfo", "/event.EventService/Subscribe", "/event.EventService/UnSubscribe", "/event.EventService/OnEvent", "/event.EventService/Quit", "/event.EventService/Publish", "/services.ServiceDiscovery/FindServices",
 			"/services.ServiceDiscovery/GetServiceDescriptor", "/services.ServiceDiscovery/GetServicesDescriptor", "/services.ServiceRepository/downloadBundle", "/persistence.PersistenceService/Find", "/persistence.PersistenceService/FindOne", "/persistence.PersistenceService/Count", "/ressource.RessourceService/GetAllActions"}
 		jsonStr, _ := Utility.ToJson(guest)
 		_, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
@@ -893,7 +893,6 @@ func (self *Globule) registerMethods() error {
 		}
 		log.Println("role guest was created!")
 	}
-
 	return nil
 }
 
@@ -2957,6 +2956,173 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 	return &ressource.RemoveAccountRoleRsp{Result: true}, nil
 }
 
+//* Append an action to existing application. *
+func (self *Globule) AddApplicationAction(ctx context.Context, rqst *ressource.AddApplicationActionRqst) (*ressource.AddApplicationActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, ``)
+	if err != nil {
+
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	application := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &application)
+
+	needSave := false
+	if application["actions"] == nil {
+		application["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		for i := 0; i < len(application["actions"].([]interface{})); i++ {
+			if application["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			application["actions"] = append(application["actions"].([]interface{}), rqst.Action)
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Application named "+rqst.ApplicationId+" already contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(application)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.AddApplicationActionRsp{Result: true}, nil
+}
+
+//* Remove an action to existing application. *
+func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressource.RemoveApplicationActionRqst) (*ressource.RemoveApplicationActionRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	role := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &role)
+
+	needSave := false
+	if role["actions"] == nil {
+		role["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		actions := make([]interface{}, 0)
+		for i := 0; i < len(role["actions"].([]interface{})); i++ {
+			if role["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+			} else {
+				actions = append(actions, role["actions"].([]interface{})[i])
+			}
+		}
+		if exist {
+			role["actions"] = actions
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Application named "+rqst.ApplicationId+" not contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(role)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.RemoveApplicationActionRsp{Result: true}, nil
+}
+
+//* Delete an application from the server. *
+func (self *Globule) RemoveApplication(ctx context.Context, rqst *ressource.RemoveApplicationRqst) (*ressource.RemoveApplicationRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	application := make(map[string]interface{})
+	err = json.Unmarshal([]byte(jsonStr), &application)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// First of all I will remove the directory.
+	err = os.RemoveAll(application["path"].(string))
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Now I will remove the database create for the application.
+	err = p.DeleteDatabase("local_ressource", rqst.ApplicationId+"_db")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Finaly I will remove the entry in  the table.
+	err = p.DeleteOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ressource.RemoveApplicationRsp{
+		Result: true,
+	}, nil
+}
+
 /**
  * Return the list of all actions avalaible on the server.
  */
@@ -3376,6 +3542,28 @@ func (self *Globule) GetAllFilesInfo(ctx context.Context, rqst *ressource.GetAll
 		return nil, err
 	}
 	return &ressource.GetAllFilesInfoRsp{Result: string(jsonStr)}, nil
+}
+
+func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource.GetAllApplicationsInfoRqst) (*ressource.GetAllApplicationsInfoRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// So here I will get the list of retreived permission.
+	jsonStr, err := p.Find("local_ressource", "local_ressource", "Applications", `{}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.GetAllApplicationsInfoRsp{
+		Result: jsonStr,
+	}, nil
+
 }
 
 //////////////////////////////// Services management  //////////////////////////

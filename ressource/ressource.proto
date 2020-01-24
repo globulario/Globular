@@ -109,6 +109,23 @@ message RemoveRoleActionRsp{
 	bool result = 1;
 }
 
+message AddApplicationActionRqst{
+	string applicationId = 1;
+	string action = 2;
+}
+
+message AddApplicationActionRsp{
+	bool result = 1;
+}
+
+message RemoveApplicationActionRqst{
+	string applicationId = 1;
+	string action = 2;
+}
+
+message RemoveApplicationActionRsp{
+	bool result = 1;
+}
 
 message GetAllActionsRqst{
 
@@ -116,6 +133,14 @@ message GetAllActionsRqst{
 
 message GetAllActionsRsp{
 	repeated string actions = 1;
+}
+
+message RemoveApplicationRqst{
+	string applicationId = 1;
+}
+
+message RemoveApplicationRsp{
+	bool result = 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -169,6 +194,15 @@ message GetAllFilesInfoRsp{
 	string result = 1;
 }
 
+// Retrun a json with applications informations.
+message GetAllApplicationsInfoRqst{
+	
+}
+
+message GetAllApplicationsInfoRsp{
+	string result = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -206,6 +240,12 @@ service RessourceService {
 	/** Remove an action to existing role. **/
 	rpc RemoveRoleAction(RemoveRoleActionRqst) returns(RemoveRoleActionRsp);
 	
+	/** Append an action to existing applications. **/
+	rpc AddApplicationAction(AddApplicationActionRqst) returns(AddApplicationActionRsp);
+	
+	/** Remove an action to existing applications. **/
+	rpc RemoveApplicationAction(RemoveApplicationActionRqst) returns(RemoveApplicationActionRsp);
+	
 	/** Get all actions **/
 	rpc GetAllActions(GetAllActionsRqst) returns(GetAllActionsRsp);
 	
@@ -220,4 +260,10 @@ service RessourceService {
 	
 	/** Retrun a json string with all file info **/
 	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);
+	
+	/** Return a json string with all applications informations **/
+	rpc GetAllApplicationsInfo(GetAllApplicationsInfoRqst) returns(GetAllApplicationsInfoRsp);
+	
+	/** Delete an application from the server. **/
+	rpc RemoveApplication(RemoveApplicationRqst) returns(RemoveApplicationRsp);
 }

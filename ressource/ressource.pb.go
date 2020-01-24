@@ -966,6 +966,178 @@ func (m *RemoveRoleActionRsp) GetResult() bool {
 	return false
 }
 
+type AddApplicationActionRqst struct {
+	ApplicationId        string   `protobuf:"bytes,1,opt,name=applicationId,proto3" json:"applicationId,omitempty"`
+	Action               string   `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddApplicationActionRqst) Reset()         { *m = AddApplicationActionRqst{} }
+func (m *AddApplicationActionRqst) String() string { return proto.CompactTextString(m) }
+func (*AddApplicationActionRqst) ProtoMessage()    {}
+func (*AddApplicationActionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{22}
+}
+
+func (m *AddApplicationActionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddApplicationActionRqst.Unmarshal(m, b)
+}
+func (m *AddApplicationActionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddApplicationActionRqst.Marshal(b, m, deterministic)
+}
+func (m *AddApplicationActionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddApplicationActionRqst.Merge(m, src)
+}
+func (m *AddApplicationActionRqst) XXX_Size() int {
+	return xxx_messageInfo_AddApplicationActionRqst.Size(m)
+}
+func (m *AddApplicationActionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddApplicationActionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddApplicationActionRqst proto.InternalMessageInfo
+
+func (m *AddApplicationActionRqst) GetApplicationId() string {
+	if m != nil {
+		return m.ApplicationId
+	}
+	return ""
+}
+
+func (m *AddApplicationActionRqst) GetAction() string {
+	if m != nil {
+		return m.Action
+	}
+	return ""
+}
+
+type AddApplicationActionRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AddApplicationActionRsp) Reset()         { *m = AddApplicationActionRsp{} }
+func (m *AddApplicationActionRsp) String() string { return proto.CompactTextString(m) }
+func (*AddApplicationActionRsp) ProtoMessage()    {}
+func (*AddApplicationActionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{23}
+}
+
+func (m *AddApplicationActionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddApplicationActionRsp.Unmarshal(m, b)
+}
+func (m *AddApplicationActionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddApplicationActionRsp.Marshal(b, m, deterministic)
+}
+func (m *AddApplicationActionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddApplicationActionRsp.Merge(m, src)
+}
+func (m *AddApplicationActionRsp) XXX_Size() int {
+	return xxx_messageInfo_AddApplicationActionRsp.Size(m)
+}
+func (m *AddApplicationActionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddApplicationActionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AddApplicationActionRsp proto.InternalMessageInfo
+
+func (m *AddApplicationActionRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type RemoveApplicationActionRqst struct {
+	ApplicationId        string   `protobuf:"bytes,1,opt,name=applicationId,proto3" json:"applicationId,omitempty"`
+	Action               string   `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveApplicationActionRqst) Reset()         { *m = RemoveApplicationActionRqst{} }
+func (m *RemoveApplicationActionRqst) String() string { return proto.CompactTextString(m) }
+func (*RemoveApplicationActionRqst) ProtoMessage()    {}
+func (*RemoveApplicationActionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{24}
+}
+
+func (m *RemoveApplicationActionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveApplicationActionRqst.Unmarshal(m, b)
+}
+func (m *RemoveApplicationActionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveApplicationActionRqst.Marshal(b, m, deterministic)
+}
+func (m *RemoveApplicationActionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveApplicationActionRqst.Merge(m, src)
+}
+func (m *RemoveApplicationActionRqst) XXX_Size() int {
+	return xxx_messageInfo_RemoveApplicationActionRqst.Size(m)
+}
+func (m *RemoveApplicationActionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveApplicationActionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveApplicationActionRqst proto.InternalMessageInfo
+
+func (m *RemoveApplicationActionRqst) GetApplicationId() string {
+	if m != nil {
+		return m.ApplicationId
+	}
+	return ""
+}
+
+func (m *RemoveApplicationActionRqst) GetAction() string {
+	if m != nil {
+		return m.Action
+	}
+	return ""
+}
+
+type RemoveApplicationActionRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveApplicationActionRsp) Reset()         { *m = RemoveApplicationActionRsp{} }
+func (m *RemoveApplicationActionRsp) String() string { return proto.CompactTextString(m) }
+func (*RemoveApplicationActionRsp) ProtoMessage()    {}
+func (*RemoveApplicationActionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{25}
+}
+
+func (m *RemoveApplicationActionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveApplicationActionRsp.Unmarshal(m, b)
+}
+func (m *RemoveApplicationActionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveApplicationActionRsp.Marshal(b, m, deterministic)
+}
+func (m *RemoveApplicationActionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveApplicationActionRsp.Merge(m, src)
+}
+func (m *RemoveApplicationActionRsp) XXX_Size() int {
+	return xxx_messageInfo_RemoveApplicationActionRsp.Size(m)
+}
+func (m *RemoveApplicationActionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveApplicationActionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveApplicationActionRsp proto.InternalMessageInfo
+
+func (m *RemoveApplicationActionRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 type GetAllActionsRqst struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -976,7 +1148,7 @@ func (m *GetAllActionsRqst) Reset()         { *m = GetAllActionsRqst{} }
 func (m *GetAllActionsRqst) String() string { return proto.CompactTextString(m) }
 func (*GetAllActionsRqst) ProtoMessage()    {}
 func (*GetAllActionsRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{22}
+	return fileDescriptor_f22aaa66144afcde, []int{26}
 }
 
 func (m *GetAllActionsRqst) XXX_Unmarshal(b []byte) error {
@@ -1008,7 +1180,7 @@ func (m *GetAllActionsRsp) Reset()         { *m = GetAllActionsRsp{} }
 func (m *GetAllActionsRsp) String() string { return proto.CompactTextString(m) }
 func (*GetAllActionsRsp) ProtoMessage()    {}
 func (*GetAllActionsRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{23}
+	return fileDescriptor_f22aaa66144afcde, []int{27}
 }
 
 func (m *GetAllActionsRsp) XXX_Unmarshal(b []byte) error {
@@ -1036,6 +1208,84 @@ func (m *GetAllActionsRsp) GetActions() []string {
 	return nil
 }
 
+type RemoveApplicationRqst struct {
+	ApplicationId        string   `protobuf:"bytes,1,opt,name=applicationId,proto3" json:"applicationId,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveApplicationRqst) Reset()         { *m = RemoveApplicationRqst{} }
+func (m *RemoveApplicationRqst) String() string { return proto.CompactTextString(m) }
+func (*RemoveApplicationRqst) ProtoMessage()    {}
+func (*RemoveApplicationRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{28}
+}
+
+func (m *RemoveApplicationRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveApplicationRqst.Unmarshal(m, b)
+}
+func (m *RemoveApplicationRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveApplicationRqst.Marshal(b, m, deterministic)
+}
+func (m *RemoveApplicationRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveApplicationRqst.Merge(m, src)
+}
+func (m *RemoveApplicationRqst) XXX_Size() int {
+	return xxx_messageInfo_RemoveApplicationRqst.Size(m)
+}
+func (m *RemoveApplicationRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveApplicationRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveApplicationRqst proto.InternalMessageInfo
+
+func (m *RemoveApplicationRqst) GetApplicationId() string {
+	if m != nil {
+		return m.ApplicationId
+	}
+	return ""
+}
+
+type RemoveApplicationRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RemoveApplicationRsp) Reset()         { *m = RemoveApplicationRsp{} }
+func (m *RemoveApplicationRsp) String() string { return proto.CompactTextString(m) }
+func (*RemoveApplicationRsp) ProtoMessage()    {}
+func (*RemoveApplicationRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{29}
+}
+
+func (m *RemoveApplicationRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RemoveApplicationRsp.Unmarshal(m, b)
+}
+func (m *RemoveApplicationRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RemoveApplicationRsp.Marshal(b, m, deterministic)
+}
+func (m *RemoveApplicationRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RemoveApplicationRsp.Merge(m, src)
+}
+func (m *RemoveApplicationRsp) XXX_Size() int {
+	return xxx_messageInfo_RemoveApplicationRsp.Size(m)
+}
+func (m *RemoveApplicationRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RemoveApplicationRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RemoveApplicationRsp proto.InternalMessageInfo
+
+func (m *RemoveApplicationRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 // Define a permission to a file or a directory.
 type FilePermission struct {
 	Number int32  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
@@ -1053,7 +1303,7 @@ func (m *FilePermission) Reset()         { *m = FilePermission{} }
 func (m *FilePermission) String() string { return proto.CompactTextString(m) }
 func (*FilePermission) ProtoMessage()    {}
 func (*FilePermission) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{24}
+	return fileDescriptor_f22aaa66144afcde, []int{30}
 }
 
 func (m *FilePermission) XXX_Unmarshal(b []byte) error {
@@ -1145,7 +1395,7 @@ func (m *GetPermissionsRqst) Reset()         { *m = GetPermissionsRqst{} }
 func (m *GetPermissionsRqst) String() string { return proto.CompactTextString(m) }
 func (*GetPermissionsRqst) ProtoMessage()    {}
 func (*GetPermissionsRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{25}
+	return fileDescriptor_f22aaa66144afcde, []int{31}
 }
 
 func (m *GetPermissionsRqst) XXX_Unmarshal(b []byte) error {
@@ -1184,7 +1434,7 @@ func (m *GetPermissionsRsp) Reset()         { *m = GetPermissionsRsp{} }
 func (m *GetPermissionsRsp) String() string { return proto.CompactTextString(m) }
 func (*GetPermissionsRsp) ProtoMessage()    {}
 func (*GetPermissionsRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{26}
+	return fileDescriptor_f22aaa66144afcde, []int{32}
 }
 
 func (m *GetPermissionsRsp) XXX_Unmarshal(b []byte) error {
@@ -1224,7 +1474,7 @@ func (m *SetPermissionRqst) Reset()         { *m = SetPermissionRqst{} }
 func (m *SetPermissionRqst) String() string { return proto.CompactTextString(m) }
 func (*SetPermissionRqst) ProtoMessage()    {}
 func (*SetPermissionRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{27}
+	return fileDescriptor_f22aaa66144afcde, []int{33}
 }
 
 func (m *SetPermissionRqst) XXX_Unmarshal(b []byte) error {
@@ -1263,7 +1513,7 @@ func (m *SetPermissionRsp) Reset()         { *m = SetPermissionRsp{} }
 func (m *SetPermissionRsp) String() string { return proto.CompactTextString(m) }
 func (*SetPermissionRsp) ProtoMessage()    {}
 func (*SetPermissionRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{28}
+	return fileDescriptor_f22aaa66144afcde, []int{34}
 }
 
 func (m *SetPermissionRsp) XXX_Unmarshal(b []byte) error {
@@ -1304,7 +1554,7 @@ func (m *DeletePermissionsRqst) Reset()         { *m = DeletePermissionsRqst{} }
 func (m *DeletePermissionsRqst) String() string { return proto.CompactTextString(m) }
 func (*DeletePermissionsRqst) ProtoMessage()    {}
 func (*DeletePermissionsRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{29}
+	return fileDescriptor_f22aaa66144afcde, []int{35}
 }
 
 func (m *DeletePermissionsRqst) XXX_Unmarshal(b []byte) error {
@@ -1350,7 +1600,7 @@ func (m *DeletePermissionsRsp) Reset()         { *m = DeletePermissionsRsp{} }
 func (m *DeletePermissionsRsp) String() string { return proto.CompactTextString(m) }
 func (*DeletePermissionsRsp) ProtoMessage()    {}
 func (*DeletePermissionsRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{30}
+	return fileDescriptor_f22aaa66144afcde, []int{36}
 }
 
 func (m *DeletePermissionsRsp) XXX_Unmarshal(b []byte) error {
@@ -1389,7 +1639,7 @@ func (m *GetAllFilesInfoRqst) Reset()         { *m = GetAllFilesInfoRqst{} }
 func (m *GetAllFilesInfoRqst) String() string { return proto.CompactTextString(m) }
 func (*GetAllFilesInfoRqst) ProtoMessage()    {}
 func (*GetAllFilesInfoRqst) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{31}
+	return fileDescriptor_f22aaa66144afcde, []int{37}
 }
 
 func (m *GetAllFilesInfoRqst) XXX_Unmarshal(b []byte) error {
@@ -1421,7 +1671,7 @@ func (m *GetAllFilesInfoRsp) Reset()         { *m = GetAllFilesInfoRsp{} }
 func (m *GetAllFilesInfoRsp) String() string { return proto.CompactTextString(m) }
 func (*GetAllFilesInfoRsp) ProtoMessage()    {}
 func (*GetAllFilesInfoRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f22aaa66144afcde, []int{32}
+	return fileDescriptor_f22aaa66144afcde, []int{38}
 }
 
 func (m *GetAllFilesInfoRsp) XXX_Unmarshal(b []byte) error {
@@ -1443,6 +1693,77 @@ func (m *GetAllFilesInfoRsp) XXX_DiscardUnknown() {
 var xxx_messageInfo_GetAllFilesInfoRsp proto.InternalMessageInfo
 
 func (m *GetAllFilesInfoRsp) GetResult() string {
+	if m != nil {
+		return m.Result
+	}
+	return ""
+}
+
+// Retrun a json with applications informations.
+type GetAllApplicationsInfoRqst struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAllApplicationsInfoRqst) Reset()         { *m = GetAllApplicationsInfoRqst{} }
+func (m *GetAllApplicationsInfoRqst) String() string { return proto.CompactTextString(m) }
+func (*GetAllApplicationsInfoRqst) ProtoMessage()    {}
+func (*GetAllApplicationsInfoRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{39}
+}
+
+func (m *GetAllApplicationsInfoRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAllApplicationsInfoRqst.Unmarshal(m, b)
+}
+func (m *GetAllApplicationsInfoRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAllApplicationsInfoRqst.Marshal(b, m, deterministic)
+}
+func (m *GetAllApplicationsInfoRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAllApplicationsInfoRqst.Merge(m, src)
+}
+func (m *GetAllApplicationsInfoRqst) XXX_Size() int {
+	return xxx_messageInfo_GetAllApplicationsInfoRqst.Size(m)
+}
+func (m *GetAllApplicationsInfoRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAllApplicationsInfoRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAllApplicationsInfoRqst proto.InternalMessageInfo
+
+type GetAllApplicationsInfoRsp struct {
+	Result               string   `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetAllApplicationsInfoRsp) Reset()         { *m = GetAllApplicationsInfoRsp{} }
+func (m *GetAllApplicationsInfoRsp) String() string { return proto.CompactTextString(m) }
+func (*GetAllApplicationsInfoRsp) ProtoMessage()    {}
+func (*GetAllApplicationsInfoRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{40}
+}
+
+func (m *GetAllApplicationsInfoRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetAllApplicationsInfoRsp.Unmarshal(m, b)
+}
+func (m *GetAllApplicationsInfoRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetAllApplicationsInfoRsp.Marshal(b, m, deterministic)
+}
+func (m *GetAllApplicationsInfoRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAllApplicationsInfoRsp.Merge(m, src)
+}
+func (m *GetAllApplicationsInfoRsp) XXX_Size() int {
+	return xxx_messageInfo_GetAllApplicationsInfoRsp.Size(m)
+}
+func (m *GetAllApplicationsInfoRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetAllApplicationsInfoRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetAllApplicationsInfoRsp proto.InternalMessageInfo
+
+func (m *GetAllApplicationsInfoRsp) GetResult() string {
 	if m != nil {
 		return m.Result
 	}
@@ -1472,8 +1793,14 @@ func init() {
 	proto.RegisterType((*AddRoleActionRsp)(nil), "ressource.AddRoleActionRsp")
 	proto.RegisterType((*RemoveRoleActionRqst)(nil), "ressource.RemoveRoleActionRqst")
 	proto.RegisterType((*RemoveRoleActionRsp)(nil), "ressource.RemoveRoleActionRsp")
+	proto.RegisterType((*AddApplicationActionRqst)(nil), "ressource.AddApplicationActionRqst")
+	proto.RegisterType((*AddApplicationActionRsp)(nil), "ressource.AddApplicationActionRsp")
+	proto.RegisterType((*RemoveApplicationActionRqst)(nil), "ressource.RemoveApplicationActionRqst")
+	proto.RegisterType((*RemoveApplicationActionRsp)(nil), "ressource.RemoveApplicationActionRsp")
 	proto.RegisterType((*GetAllActionsRqst)(nil), "ressource.GetAllActionsRqst")
 	proto.RegisterType((*GetAllActionsRsp)(nil), "ressource.GetAllActionsRsp")
+	proto.RegisterType((*RemoveApplicationRqst)(nil), "ressource.RemoveApplicationRqst")
+	proto.RegisterType((*RemoveApplicationRsp)(nil), "ressource.RemoveApplicationRsp")
 	proto.RegisterType((*FilePermission)(nil), "ressource.FilePermission")
 	proto.RegisterType((*GetPermissionsRqst)(nil), "ressource.GetPermissionsRqst")
 	proto.RegisterType((*GetPermissionsRsp)(nil), "ressource.GetPermissionsRsp")
@@ -1483,68 +1810,79 @@ func init() {
 	proto.RegisterType((*DeletePermissionsRsp)(nil), "ressource.DeletePermissionsRsp")
 	proto.RegisterType((*GetAllFilesInfoRqst)(nil), "ressource.GetAllFilesInfoRqst")
 	proto.RegisterType((*GetAllFilesInfoRsp)(nil), "ressource.GetAllFilesInfoRsp")
+	proto.RegisterType((*GetAllApplicationsInfoRqst)(nil), "ressource.GetAllApplicationsInfoRqst")
+	proto.RegisterType((*GetAllApplicationsInfoRsp)(nil), "ressource.GetAllApplicationsInfoRsp")
 }
 
 func init() { proto.RegisterFile("ressource/ressource.proto", fileDescriptor_f22aaa66144afcde) }
 
 var fileDescriptor_f22aaa66144afcde = []byte{
-	// 881 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x57, 0xdd, 0x4e, 0xdb, 0x48,
-	0x14, 0xde, 0x40, 0xf8, 0xc9, 0xc9, 0x92, 0x9f, 0x21, 0xac, 0x82, 0x37, 0x40, 0xe4, 0xbd, 0x48,
-	0x76, 0x97, 0xcd, 0x4a, 0xec, 0xf6, 0xa2, 0xea, 0x55, 0xa0, 0x82, 0x82, 0x44, 0x1b, 0x99, 0x8a,
-	0x8b, 0xde, 0x54, 0x21, 0x19, 0x8a, 0x55, 0xc7, 0x36, 0x1e, 0x07, 0xde, 0xa1, 0x6f, 0xd1, 0x37,
-	0xad, 0x66, 0xc6, 0x13, 0xcf, 0xf1, 0x24, 0xa3, 0x4a, 0xed, 0x9d, 0xcf, 0x99, 0x2f, 0xdf, 0xf9,
-	0xf1, 0x99, 0xef, 0xc4, 0xb0, 0x9f, 0x50, 0xc6, 0xa2, 0x79, 0x32, 0xa1, 0xff, 0x2e, 0x9e, 0x06,
-	0x71, 0x12, 0xa5, 0x11, 0xa9, 0x2c, 0x1c, 0xee, 0x3b, 0xd8, 0x1a, 0x4e, 0x26, 0xd1, 0x3c, 0x4c,
-	0x09, 0x81, 0x72, 0x38, 0x9e, 0xd1, 0x76, 0xa9, 0x5b, 0xea, 0x57, 0x3c, 0xf1, 0x4c, 0x5a, 0xb0,
-	0x41, 0x67, 0x63, 0x3f, 0x68, 0xaf, 0x09, 0xa7, 0x34, 0x88, 0x03, 0xdb, 0xf1, 0x98, 0xb1, 0xe7,
-	0x28, 0x99, 0xb6, 0xd7, 0xc5, 0xc1, 0xc2, 0x76, 0xff, 0x87, 0xb2, 0x17, 0x05, 0x74, 0x29, 0x5b,
-	0x1b, 0xb6, 0xc6, 0x93, 0xd4, 0x8f, 0x42, 0xd6, 0x5e, 0xeb, 0xae, 0xf7, 0x2b, 0x9e, 0x32, 0xdd,
-	0x2f, 0x25, 0xd8, 0xf5, 0xe8, 0x27, 0x9f, 0xa5, 0x34, 0xc9, 0xf2, 0xf1, 0x1e, 0x59, 0x4a, 0x8e,
-	0xf9, 0x2f, 0x84, 0x29, 0x88, 0xaa, 0x27, 0x64, 0x90, 0x17, 0xa3, 0x80, 0x0a, 0x82, 0xf2, 0x5a,
-	0xc3, 0x79, 0x91, 0x3f, 0xa1, 0x31, 0x89, 0xc2, 0x7b, 0x3f, 0x99, 0x7d, 0x2c, 0xe4, 0x5e, 0xcf,
-	0xfc, 0x23, 0x55, 0xc2, 0x31, 0x90, 0x62, 0x2e, 0x2c, 0x26, 0xbf, 0xc1, 0x66, 0x42, 0xd9, 0x3c,
-	0x48, 0xb3, 0x92, 0x32, 0xcb, 0xed, 0x41, 0xf3, 0x35, 0x0d, 0x68, 0x4a, 0xf5, 0xbc, 0x97, 0x54,
-	0xef, 0xfe, 0x05, 0x0d, 0x0c, 0xb4, 0x90, 0x9e, 0x42, 0x63, 0x38, 0x4f, 0x1f, 0x68, 0x98, 0xfa,
-	0x93, 0x71, 0x4a, 0x57, 0x71, 0xda, 0x2a, 0x76, 0x7b, 0x50, 0x47, 0x1c, 0x2c, 0xe6, 0xaf, 0x33,
-	0x8d, 0x3e, 0xd3, 0x30, 0xe3, 0x90, 0x86, 0xdb, 0x87, 0x86, 0x47, 0xef, 0x13, 0xca, 0x1e, 0xde,
-	0x73, 0x5b, 0x04, 0x5b, 0x8e, 0xec, 0x41, 0x1d, 0x21, 0x57, 0x52, 0x5e, 0x01, 0x19, 0x4e, 0xa7,
-	0xaa, 0xd0, 0x28, 0x90, 0x15, 0x74, 0xa0, 0x92, 0xbd, 0xaa, 0xcb, 0x69, 0x86, 0xcf, 0x1d, 0xa2,
-	0x17, 0x51, 0x40, 0x2f, 0x55, 0x25, 0x99, 0xe5, 0xfe, 0x0d, 0xcd, 0x02, 0x97, 0xd1, 0xb8, 0xed,
-	0x45, 0xe3, 0xae, 0x61, 0xcf, 0xa3, 0xb3, 0xe8, 0x89, 0xfe, 0x9c, 0xd8, 0x03, 0x68, 0x99, 0x74,
-	0x96, 0xf0, 0x2f, 0xa0, 0x76, 0x96, 0x50, 0xde, 0x6d, 0x15, 0xf7, 0x0f, 0x28, 0x73, 0xae, 0x6c,
-	0x7c, 0xeb, 0xda, 0xf8, 0x0a, 0x88, 0x38, 0x74, 0x7b, 0xb0, 0xa3, 0xfd, 0xcc, 0xc2, 0xdf, 0x87,
-	0x9a, 0x9c, 0xa1, 0x05, 0x7f, 0x9e, 0x79, 0x09, 0x65, 0xde, 0x83, 0x1d, 0x0d, 0x69, 0xa1, 0x3c,
-	0x13, 0xed, 0xe5, 0xa8, 0xa1, 0xb8, 0x8c, 0x36, 0x56, 0xee, 0x97, 0x57, 0x56, 0xf5, 0x49, 0x5a,
-	0x7c, 0xb6, 0x31, 0x89, 0x25, 0xe0, 0xb9, 0xea, 0xe9, 0x0f, 0xc6, 0xfc, 0x87, 0x4b, 0x46, 0x81,
-	0xc7, 0x12, 0x76, 0x17, 0x9a, 0x17, 0x34, 0x1d, 0x06, 0x81, 0x84, 0x32, 0x1e, 0xd3, 0x3d, 0x86,
-	0x06, 0x76, 0xb2, 0x58, 0x57, 0xa9, 0x12, 0x56, 0xa9, 0x47, 0xa8, 0x9d, 0xfb, 0x01, 0x1d, 0xd1,
-	0x64, 0xe6, 0x33, 0xe6, 0x47, 0x21, 0x0f, 0x16, 0xce, 0x67, 0x77, 0x34, 0x11, 0xc1, 0x36, 0xbc,
-	0xcc, 0xe2, 0x77, 0x35, 0x1e, 0xa7, 0x0f, 0x59, 0xc6, 0xe2, 0x99, 0xb4, 0xa0, 0x3c, 0x67, 0x34,
-	0x91, 0xaa, 0xf3, 0xe6, 0x17, 0x4f, 0x58, 0xdc, 0x2b, 0xe6, 0xa3, 0xac, 0xbc, 0xdc, 0x3a, 0xdd,
-	0x82, 0x8d, 0xe8, 0x39, 0xa4, 0x89, 0xdb, 0x07, 0x72, 0x41, 0xd3, 0x3c, 0x22, 0x53, 0x52, 0x20,
-	0xe8, 0x4b, 0x39, 0xbd, 0x3b, 0x12, 0xf5, 0xe9, 0x48, 0x16, 0x93, 0x57, 0x50, 0x8d, 0x73, 0x8f,
-	0xa8, 0xa7, 0x7a, 0xb2, 0xaf, 0x0d, 0x21, 0xae, 0xc7, 0xd3, 0xd1, 0xee, 0x5b, 0x68, 0xde, 0xe8,
-	0x8c, 0x22, 0xf4, 0x4b, 0x80, 0x1c, 0x93, 0x4d, 0xb5, 0x85, 0x50, 0x03, 0xf3, 0x21, 0xc1, 0x7c,
-	0x96, 0xb7, 0x35, 0x84, 0x3d, 0x39, 0xbe, 0xdf, 0x51, 0x3a, 0xd7, 0x20, 0xd1, 0x2d, 0xb5, 0xa5,
-	0x64, 0xeb, 0x06, 0xd0, 0x32, 0x29, 0x2c, 0x21, 0xf7, 0x60, 0x57, 0xce, 0x02, 0x2f, 0x81, 0x5d,
-	0x86, 0xf7, 0x51, 0x36, 0x22, 0xa4, 0xe8, 0x5e, 0x2d, 0xdc, 0x27, 0x5f, 0x2b, 0x5c, 0x4c, 0xb3,
-	0x66, 0xdc, 0xd0, 0xe4, 0xc9, 0x9f, 0x50, 0x32, 0xe2, 0xb2, 0x89, 0x16, 0x0a, 0x39, 0xd4, 0x85,
-	0xc0, 0x5c, 0x7c, 0xce, 0x81, 0xe5, 0x9c, 0xc5, 0xe4, 0x4a, 0xdd, 0x6e, 0xc5, 0xd7, 0xd1, 0xf0,
-	0xc6, 0x3a, 0x72, 0x7e, 0x5f, 0x79, 0xca, 0x62, 0x72, 0x01, 0xbf, 0xea, 0x7b, 0x82, 0xe8, 0xe0,
-	0xe2, 0x12, 0x72, 0x9c, 0x55, 0x87, 0x92, 0x48, 0xdf, 0x0e, 0x88, 0xa8, 0xb8, 0x60, 0x10, 0x51,
-	0x71, 0xa7, 0x5c, 0x43, 0x0d, 0x2b, 0x3e, 0xd1, 0xdb, 0x61, 0x2e, 0x16, 0xa7, 0xb3, 0xfa, 0x98,
-	0xc5, 0xe4, 0x16, 0x9a, 0x86, 0x88, 0x93, 0x2e, 0x8a, 0xbf, 0x64, 0x63, 0x38, 0x47, 0x56, 0x04,
-	0x8b, 0xc9, 0x10, 0x20, 0x57, 0x6d, 0xa2, 0x5f, 0x02, 0xbc, 0x03, 0x9c, 0xf6, 0xf2, 0x23, 0x49,
-	0x91, 0xab, 0x34, 0xa2, 0xc0, 0x32, 0x8f, 0x28, 0xb0, 0xae, 0x5f, 0xc1, 0x0e, 0x92, 0x5e, 0x52,
-	0x68, 0x06, 0x56, 0x59, 0x34, 0x0a, 0x86, 0x64, 0xdf, 0xf0, 0xe1, 0xc5, 0x92, 0x4a, 0xcc, 0x36,
-	0x14, 0x18, 0x0f, 0x6d, 0x00, 0x99, 0x20, 0xd2, 0x58, 0x94, 0xa0, 0x21, 0xc9, 0x28, 0x41, 0x43,
-	0x9b, 0xaf, 0xa1, 0x86, 0x45, 0x0e, 0x4d, 0x86, 0xa9, 0x94, 0x4e, 0x67, 0xf5, 0xb1, 0x4c, 0x0d,
-	0x29, 0x12, 0x4a, 0xcd, 0xd0, 0x3e, 0x94, 0x9a, 0xa1, 0x64, 0xb7, 0xea, 0x7f, 0xa0, 0x9e, 0x5d,
-	0xd7, 0x78, 0x6d, 0xc5, 0x04, 0x8f, 0xac, 0x08, 0x16, 0x73, 0xf1, 0x28, 0xe8, 0x0f, 0x12, 0x8f,
-	0x25, 0x92, 0xe5, 0x1c, 0x58, 0xce, 0x59, 0x7c, 0x5a, 0xfd, 0x90, 0x7f, 0x00, 0xdc, 0x6d, 0x8a,
-	0x4f, 0x82, 0xff, 0xbe, 0x05, 0x00, 0x00, 0xff, 0xff, 0x55, 0x45, 0xc6, 0x14, 0x2f, 0x0c, 0x00,
-	0x00,
+	// 1031 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0x5f, 0x6f, 0xdb, 0x36,
+	0x10, 0x9f, 0x53, 0xa7, 0x69, 0x2e, 0x8d, 0x63, 0x5f, 0x9c, 0xd6, 0x51, 0xdd, 0x36, 0x50, 0xdb,
+	0xd9, 0xdb, 0xb2, 0x0c, 0x4b, 0xbb, 0x87, 0x61, 0xd8, 0x83, 0xd3, 0xa1, 0x59, 0x02, 0x64, 0x0b,
+	0x94, 0xa1, 0x18, 0xb6, 0x87, 0xc2, 0x75, 0x98, 0x45, 0x98, 0x2c, 0xb1, 0xa2, 0xdc, 0x7e, 0x87,
+	0x7d, 0x95, 0x7d, 0xc9, 0x81, 0x14, 0x65, 0xf1, 0x44, 0x89, 0x0d, 0xb0, 0xed, 0x4d, 0x24, 0x7f,
+	0xfa, 0xdd, 0x1f, 0x1d, 0xef, 0x77, 0x82, 0xdd, 0x94, 0x09, 0x91, 0x2c, 0xd2, 0x19, 0xfb, 0x6a,
+	0xf9, 0x74, 0xc0, 0xd3, 0x24, 0x4b, 0x70, 0x7d, 0xb9, 0xe1, 0xff, 0x0c, 0x6b, 0x93, 0xd9, 0x2c,
+	0x59, 0xc4, 0x19, 0x22, 0xb4, 0xe3, 0xe9, 0x9c, 0x0d, 0x5a, 0x7b, 0xad, 0xf1, 0x7a, 0xa0, 0x9e,
+	0xb1, 0x0f, 0xab, 0x6c, 0x3e, 0x0d, 0xa3, 0xc1, 0x8a, 0xda, 0xcc, 0x17, 0xe8, 0xc1, 0x1d, 0x3e,
+	0x15, 0xe2, 0x43, 0x92, 0x5e, 0x0e, 0x6e, 0xa9, 0x83, 0xe5, 0xda, 0x7f, 0x01, 0xed, 0x20, 0x89,
+	0x58, 0x2d, 0xdb, 0x00, 0xd6, 0xa6, 0xb3, 0x2c, 0x4c, 0x62, 0x31, 0x58, 0xd9, 0xbb, 0x35, 0x5e,
+	0x0f, 0x8a, 0xa5, 0xff, 0x57, 0x0b, 0xb6, 0x03, 0xf6, 0x47, 0x28, 0x32, 0x96, 0x6a, 0x7f, 0x82,
+	0x77, 0x22, 0xc3, 0x7d, 0xf9, 0x86, 0x5a, 0x2a, 0xa2, 0x8d, 0x43, 0x3c, 0x28, 0x83, 0x29, 0x80,
+	0x05, 0x84, 0xf8, 0xb5, 0x42, 0xfd, 0xc2, 0xcf, 0xa0, 0x3b, 0x4b, 0xe2, 0xab, 0x30, 0x9d, 0xbf,
+	0xa9, 0xf8, 0xbe, 0xa5, 0xf7, 0xcf, 0x8b, 0x10, 0xf6, 0x01, 0xab, 0xbe, 0x08, 0x8e, 0xf7, 0xe0,
+	0x76, 0xca, 0xc4, 0x22, 0xca, 0x74, 0x48, 0x7a, 0xe5, 0x8f, 0xa0, 0xf7, 0x03, 0x8b, 0x58, 0xc6,
+	0x4c, 0xbf, 0x6b, 0xa2, 0xf7, 0x3f, 0x87, 0x2e, 0x05, 0x3a, 0x48, 0x8f, 0xa0, 0x3b, 0x59, 0x64,
+	0xd7, 0x2c, 0xce, 0xc2, 0xd9, 0x34, 0x63, 0x4d, 0x9c, 0xae, 0x88, 0xfd, 0x11, 0x6c, 0x11, 0x0e,
+	0xc1, 0xe5, 0xe7, 0xcc, 0x92, 0x3f, 0x59, 0xac, 0x39, 0xf2, 0x85, 0x3f, 0x86, 0x6e, 0xc0, 0xae,
+	0x52, 0x26, 0xae, 0x7f, 0x91, 0x6b, 0x65, 0xac, 0x1e, 0x39, 0x82, 0x2d, 0x82, 0x6c, 0xa4, 0x3c,
+	0x05, 0x9c, 0x5c, 0x5e, 0x16, 0x81, 0x26, 0x51, 0x1e, 0xc1, 0x10, 0xd6, 0xf5, 0xa7, 0x3a, 0xb9,
+	0xd4, 0xf8, 0x72, 0x43, 0xe5, 0x22, 0x89, 0xd8, 0x49, 0x11, 0x89, 0x5e, 0xf9, 0x5f, 0x40, 0xaf,
+	0xc2, 0x65, 0x25, 0xee, 0xce, 0x32, 0x71, 0x67, 0xb0, 0x13, 0xb0, 0x79, 0xf2, 0x9e, 0xfd, 0x37,
+	0xb6, 0x0f, 0xa0, 0x6f, 0xd3, 0x39, 0xcc, 0x7f, 0x03, 0x9d, 0x97, 0x29, 0x93, 0xd9, 0x2e, 0xec,
+	0x3e, 0x81, 0xb6, 0xe4, 0xd2, 0xe5, 0xbb, 0x65, 0x94, 0xaf, 0x82, 0xa8, 0x43, 0x7f, 0x04, 0x9b,
+	0xc6, 0x6b, 0x0e, 0xfe, 0x31, 0x74, 0xf2, 0x1a, 0x5a, 0xf2, 0x97, 0x9e, 0xb7, 0x88, 0xe7, 0x23,
+	0xd8, 0x34, 0x90, 0x0e, 0xca, 0x97, 0x2a, 0xbd, 0x12, 0x35, 0x51, 0x97, 0xd1, 0xc5, 0x2a, 0xf7,
+	0xf3, 0x2b, 0x5b, 0xe4, 0x29, 0x5f, 0xc9, 0xda, 0xa6, 0x24, 0x0e, 0x83, 0xaf, 0x8a, 0x9c, 0xfe,
+	0x4b, 0x9b, 0x5f, 0xca, 0x96, 0x51, 0xe1, 0x71, 0x98, 0xfd, 0x15, 0x06, 0xb2, 0x8c, 0x38, 0x8f,
+	0xe4, 0x75, 0x08, 0x93, 0xd8, 0x30, 0xfd, 0x14, 0x36, 0xa7, 0xe5, 0xc1, 0xd2, 0x03, 0xba, 0xd9,
+	0xe8, 0xc8, 0xd7, 0x70, 0xbf, 0x96, 0xd9, 0xe1, 0xcc, 0xef, 0xf0, 0x40, 0xd7, 0xd5, 0xff, 0xe0,
+	0xcf, 0x0b, 0xf0, 0x9a, 0xc8, 0x1d, 0x2e, 0x6d, 0x43, 0xef, 0x98, 0x65, 0x93, 0x28, 0xca, 0xa1,
+	0x42, 0x3a, 0xe2, 0xef, 0x43, 0x97, 0x6e, 0x0a, 0x6e, 0x76, 0xf1, 0x16, 0xed, 0xe2, 0xdf, 0x2f,
+	0x2f, 0x5f, 0x69, 0xf8, 0xe6, 0xf1, 0x18, 0x97, 0xcd, 0x78, 0xdd, 0xe1, 0xf1, 0x3b, 0xe8, 0xbc,
+	0x0a, 0x23, 0x76, 0xce, 0xd2, 0x79, 0x28, 0x44, 0x98, 0xc4, 0x12, 0x19, 0x2f, 0xe6, 0x6f, 0x59,
+	0xaa, 0x90, 0xab, 0x81, 0x5e, 0xc9, 0xd6, 0xc9, 0xa7, 0xd9, 0xb5, 0xce, 0x93, 0x7a, 0xc6, 0x3e,
+	0xb4, 0x17, 0x82, 0xa5, 0xb9, 0x08, 0xfc, 0xf8, 0x49, 0xa0, 0x56, 0x72, 0x57, 0x5d, 0xd7, 0x76,
+	0xb1, 0x2b, 0x57, 0x47, 0x6b, 0xb0, 0x9a, 0x7c, 0x88, 0x59, 0xea, 0x8f, 0x01, 0x8f, 0x59, 0x56,
+	0x5a, 0x14, 0x45, 0x67, 0x56, 0xf4, 0xad, 0x92, 0xde, 0x3f, 0x57, 0xe9, 0x34, 0x91, 0x82, 0xe3,
+	0x77, 0xb0, 0xc1, 0xcb, 0x1d, 0x95, 0xbe, 0x8d, 0xc3, 0x5d, 0xa3, 0x27, 0xd0, 0x78, 0x02, 0x13,
+	0xed, 0xff, 0x04, 0xbd, 0x0b, 0x93, 0x51, 0x99, 0xfe, 0x16, 0xa0, 0xc4, 0xe8, 0x26, 0xe3, 0x20,
+	0x34, 0xc0, 0xf2, 0xce, 0x52, 0x3e, 0x47, 0xaa, 0x27, 0xb0, 0x93, 0x77, 0x93, 0x1b, 0x84, 0x2e,
+	0x25, 0x41, 0x65, 0xab, 0x18, 0x1a, 0xf2, 0xd4, 0x1d, 0x40, 0xdf, 0xa6, 0x70, 0x98, 0xdc, 0x81,
+	0xed, 0xbc, 0xf4, 0x64, 0x08, 0xe2, 0x24, 0xbe, 0x4a, 0x74, 0x45, 0x62, 0x75, 0xdb, 0xa1, 0xa3,
+	0x43, 0xf0, 0x74, 0xfd, 0x96, 0x25, 0x55, 0x72, 0x3d, 0x87, 0xdd, 0x86, 0xd3, 0x66, 0xca, 0xc3,
+	0xbf, 0xef, 0x4a, 0xb9, 0xd4, 0xf9, 0xbd, 0x60, 0xe9, 0xfb, 0x70, 0xc6, 0xf0, 0x5c, 0x0a, 0x23,
+	0x19, 0x19, 0xf0, 0x91, 0xd9, 0xea, 0xed, 0xd1, 0xc6, 0x7b, 0xe8, 0x38, 0x17, 0x1c, 0x4f, 0x8b,
+	0xfe, 0x5d, 0xf0, 0x0d, 0x0d, 0xbc, 0x35, 0x70, 0x78, 0x0f, 0x1a, 0x4f, 0x05, 0xc7, 0x63, 0xb8,
+	0x6b, 0x4e, 0x02, 0x68, 0x82, 0xab, 0x63, 0x86, 0xe7, 0x35, 0x1d, 0xe6, 0x44, 0xa6, 0xfe, 0x13,
+	0xa2, 0xea, 0x08, 0x41, 0x88, 0xaa, 0x53, 0xc3, 0x19, 0x74, 0xa8, 0xa6, 0xa3, 0x99, 0x0e, 0x7b,
+	0x74, 0xf0, 0x86, 0xcd, 0xc7, 0x82, 0xe3, 0x6b, 0xe8, 0x59, 0x32, 0x8d, 0x7b, 0xc4, 0x7e, 0xcd,
+	0x4c, 0xe0, 0x3d, 0x76, 0x22, 0x04, 0xc7, 0x09, 0x40, 0xa9, 0xcb, 0x68, 0xde, 0x2b, 0xaa, 0xf2,
+	0xde, 0xa0, 0xfe, 0x28, 0xa7, 0x28, 0x75, 0x98, 0x50, 0x50, 0x21, 0x27, 0x14, 0x54, 0xb9, 0x4f,
+	0x61, 0x93, 0x88, 0x2b, 0x56, 0x92, 0x41, 0x75, 0x94, 0x94, 0x82, 0x25, 0xca, 0x17, 0xb2, 0x78,
+	0xa9, 0x68, 0xa2, 0x9d, 0x86, 0x0a, 0xe3, 0x23, 0x17, 0x40, 0x70, 0x7c, 0x03, 0xfd, 0x3a, 0x01,
+	0xc4, 0x27, 0x95, 0x8f, 0x56, 0xa7, 0x75, 0x9e, 0xff, 0x31, 0x90, 0xe0, 0x78, 0x0d, 0xf7, 0x1b,
+	0x14, 0x0d, 0x3f, 0xb5, 0xbf, 0x61, 0xad, 0x99, 0x67, 0x37, 0xc0, 0xe5, 0xb9, 0x26, 0x82, 0x47,
+	0x72, 0x6d, 0xe9, 0x23, 0xc9, 0xb5, 0x25, 0x94, 0x67, 0xd0, 0xa1, 0x12, 0x40, 0x8a, 0xdc, 0xd6,
+	0x11, 0x6f, 0xd8, 0x7c, 0x9c, 0xbb, 0x46, 0xfa, 0x35, 0x71, 0xcd, 0x52, 0x06, 0xe2, 0x9a, 0xd5,
+	0xe7, 0x5f, 0x17, 0x3f, 0x2d, 0xa6, 0x77, 0x7b, 0x56, 0x05, 0x56, 0x1d, 0x7c, 0xec, 0x44, 0x08,
+	0x2e, 0xfb, 0x60, 0xa5, 0x3b, 0x93, 0x3e, 0x58, 0xd3, 0xd0, 0xbd, 0x87, 0x8e, 0x73, 0xc1, 0x91,
+	0xc1, 0xbd, 0xfa, 0x1e, 0x8d, 0xcf, 0xec, 0xdc, 0xd7, 0x34, 0x79, 0xef, 0xe9, 0xc7, 0x61, 0xa4,
+	0x83, 0x94, 0x87, 0x75, 0x1d, 0x84, 0x0e, 0x36, 0x75, 0x1d, 0x84, 0xcc, 0x2e, 0x47, 0x1b, 0xbf,
+	0x95, 0x3f, 0xdb, 0x6f, 0x6f, 0xab, 0xdf, 0xef, 0xe7, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xce,
+	0x95, 0xcb, 0xd5, 0x9b, 0x0f, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1579,6 +1917,10 @@ type RessourceServiceClient interface {
 	AddRoleAction(ctx context.Context, in *AddRoleActionRqst, opts ...grpc.CallOption) (*AddRoleActionRsp, error)
 	//* Remove an action to existing role. *
 	RemoveRoleAction(ctx context.Context, in *RemoveRoleActionRqst, opts ...grpc.CallOption) (*RemoveRoleActionRsp, error)
+	//* Append an action to existing applications. *
+	AddApplicationAction(ctx context.Context, in *AddApplicationActionRqst, opts ...grpc.CallOption) (*AddApplicationActionRsp, error)
+	//* Remove an action to existing applications. *
+	RemoveApplicationAction(ctx context.Context, in *RemoveApplicationActionRqst, opts ...grpc.CallOption) (*RemoveApplicationActionRsp, error)
 	//* Get all actions *
 	GetAllActions(ctx context.Context, in *GetAllActionsRqst, opts ...grpc.CallOption) (*GetAllActionsRsp, error)
 	//* Get All permissions for a given file/dir *
@@ -1589,6 +1931,10 @@ type RessourceServiceClient interface {
 	DeletePermissions(ctx context.Context, in *DeletePermissionsRqst, opts ...grpc.CallOption) (*DeletePermissionsRsp, error)
 	//* Retrun a json string with all file info *
 	GetAllFilesInfo(ctx context.Context, in *GetAllFilesInfoRqst, opts ...grpc.CallOption) (*GetAllFilesInfoRsp, error)
+	//* Return a json string with all applications informations *
+	GetAllApplicationsInfo(ctx context.Context, in *GetAllApplicationsInfoRqst, opts ...grpc.CallOption) (*GetAllApplicationsInfoRsp, error)
+	//* Delete an application from the server. *
+	RemoveApplication(ctx context.Context, in *RemoveApplicationRqst, opts ...grpc.CallOption) (*RemoveApplicationRsp, error)
 }
 
 type ressourceServiceClient struct {
@@ -1689,6 +2035,24 @@ func (c *ressourceServiceClient) RemoveRoleAction(ctx context.Context, in *Remov
 	return out, nil
 }
 
+func (c *ressourceServiceClient) AddApplicationAction(ctx context.Context, in *AddApplicationActionRqst, opts ...grpc.CallOption) (*AddApplicationActionRsp, error) {
+	out := new(AddApplicationActionRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/AddApplicationAction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) RemoveApplicationAction(ctx context.Context, in *RemoveApplicationActionRqst, opts ...grpc.CallOption) (*RemoveApplicationActionRsp, error) {
+	out := new(RemoveApplicationActionRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/RemoveApplicationAction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *ressourceServiceClient) GetAllActions(ctx context.Context, in *GetAllActionsRqst, opts ...grpc.CallOption) (*GetAllActionsRsp, error) {
 	out := new(GetAllActionsRsp)
 	err := c.cc.Invoke(ctx, "/ressource.RessourceService/GetAllActions", in, out, opts...)
@@ -1734,6 +2098,24 @@ func (c *ressourceServiceClient) GetAllFilesInfo(ctx context.Context, in *GetAll
 	return out, nil
 }
 
+func (c *ressourceServiceClient) GetAllApplicationsInfo(ctx context.Context, in *GetAllApplicationsInfoRqst, opts ...grpc.CallOption) (*GetAllApplicationsInfoRsp, error) {
+	out := new(GetAllApplicationsInfoRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/GetAllApplicationsInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) RemoveApplication(ctx context.Context, in *RemoveApplicationRqst, opts ...grpc.CallOption) (*RemoveApplicationRsp, error) {
+	out := new(RemoveApplicationRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/RemoveApplication", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RessourceServiceServer is the server API for RessourceService service.
 type RessourceServiceServer interface {
 	//* Register a new Account *
@@ -1756,6 +2138,10 @@ type RessourceServiceServer interface {
 	AddRoleAction(context.Context, *AddRoleActionRqst) (*AddRoleActionRsp, error)
 	//* Remove an action to existing role. *
 	RemoveRoleAction(context.Context, *RemoveRoleActionRqst) (*RemoveRoleActionRsp, error)
+	//* Append an action to existing applications. *
+	AddApplicationAction(context.Context, *AddApplicationActionRqst) (*AddApplicationActionRsp, error)
+	//* Remove an action to existing applications. *
+	RemoveApplicationAction(context.Context, *RemoveApplicationActionRqst) (*RemoveApplicationActionRsp, error)
 	//* Get all actions *
 	GetAllActions(context.Context, *GetAllActionsRqst) (*GetAllActionsRsp, error)
 	//* Get All permissions for a given file/dir *
@@ -1766,6 +2152,10 @@ type RessourceServiceServer interface {
 	DeletePermissions(context.Context, *DeletePermissionsRqst) (*DeletePermissionsRsp, error)
 	//* Retrun a json string with all file info *
 	GetAllFilesInfo(context.Context, *GetAllFilesInfoRqst) (*GetAllFilesInfoRsp, error)
+	//* Return a json string with all applications informations *
+	GetAllApplicationsInfo(context.Context, *GetAllApplicationsInfoRqst) (*GetAllApplicationsInfoRsp, error)
+	//* Delete an application from the server. *
+	RemoveApplication(context.Context, *RemoveApplicationRqst) (*RemoveApplicationRsp, error)
 }
 
 // UnimplementedRessourceServiceServer can be embedded to have forward compatible implementations.
@@ -1802,6 +2192,12 @@ func (*UnimplementedRessourceServiceServer) AddRoleAction(ctx context.Context, r
 func (*UnimplementedRessourceServiceServer) RemoveRoleAction(ctx context.Context, req *RemoveRoleActionRqst) (*RemoveRoleActionRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveRoleAction not implemented")
 }
+func (*UnimplementedRessourceServiceServer) AddApplicationAction(ctx context.Context, req *AddApplicationActionRqst) (*AddApplicationActionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddApplicationAction not implemented")
+}
+func (*UnimplementedRessourceServiceServer) RemoveApplicationAction(ctx context.Context, req *RemoveApplicationActionRqst) (*RemoveApplicationActionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveApplicationAction not implemented")
+}
 func (*UnimplementedRessourceServiceServer) GetAllActions(ctx context.Context, req *GetAllActionsRqst) (*GetAllActionsRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllActions not implemented")
 }
@@ -1816,6 +2212,12 @@ func (*UnimplementedRessourceServiceServer) DeletePermissions(ctx context.Contex
 }
 func (*UnimplementedRessourceServiceServer) GetAllFilesInfo(ctx context.Context, req *GetAllFilesInfoRqst) (*GetAllFilesInfoRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllFilesInfo not implemented")
+}
+func (*UnimplementedRessourceServiceServer) GetAllApplicationsInfo(ctx context.Context, req *GetAllApplicationsInfoRqst) (*GetAllApplicationsInfoRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllApplicationsInfo not implemented")
+}
+func (*UnimplementedRessourceServiceServer) RemoveApplication(ctx context.Context, req *RemoveApplicationRqst) (*RemoveApplicationRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveApplication not implemented")
 }
 
 func RegisterRessourceServiceServer(s *grpc.Server, srv RessourceServiceServer) {
@@ -2002,6 +2404,42 @@ func _RessourceService_RemoveRoleAction_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RessourceService_AddApplicationAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddApplicationActionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).AddApplicationAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/AddApplicationAction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).AddApplicationAction(ctx, req.(*AddApplicationActionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_RemoveApplicationAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveApplicationActionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).RemoveApplicationAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/RemoveApplicationAction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).RemoveApplicationAction(ctx, req.(*RemoveApplicationActionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RessourceService_GetAllActions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAllActionsRqst)
 	if err := dec(in); err != nil {
@@ -2092,6 +2530,42 @@ func _RessourceService_GetAllFilesInfo_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RessourceService_GetAllApplicationsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllApplicationsInfoRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).GetAllApplicationsInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/GetAllApplicationsInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).GetAllApplicationsInfo(ctx, req.(*GetAllApplicationsInfoRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_RemoveApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveApplicationRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).RemoveApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/RemoveApplication",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).RemoveApplication(ctx, req.(*RemoveApplicationRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _RessourceService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "ressource.RessourceService",
 	HandlerType: (*RessourceServiceServer)(nil),
@@ -2137,6 +2611,14 @@ var _RessourceService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RessourceService_RemoveRoleAction_Handler,
 		},
 		{
+			MethodName: "AddApplicationAction",
+			Handler:    _RessourceService_AddApplicationAction_Handler,
+		},
+		{
+			MethodName: "RemoveApplicationAction",
+			Handler:    _RessourceService_RemoveApplicationAction_Handler,
+		},
+		{
 			MethodName: "GetAllActions",
 			Handler:    _RessourceService_GetAllActions_Handler,
 		},
@@ -2155,6 +2637,14 @@ var _RessourceService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllFilesInfo",
 			Handler:    _RessourceService_GetAllFilesInfo_Handler,
+		},
+		{
+			MethodName: "GetAllApplicationsInfo",
+			Handler:    _RessourceService_GetAllApplicationsInfo_Handler,
+		},
+		{
+			MethodName: "RemoveApplication",
+			Handler:    _RessourceService_RemoveApplication_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

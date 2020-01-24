@@ -169,7 +169,13 @@ var EventHub = /** @class */ (function () {
     EventHub.prototype.dispatch = function (name, data) {
         for (var uuid in this.subscribers[name]) {
             // call the event callback function.
-            this.subscribers[name][uuid](data);
+            if (this.subscribers != undefined) {
+                if (this.subscribers[name] != undefined) {
+                    if (this.subscribers[name][uuid] != undefined) {
+                        this.subscribers[name][uuid](data);
+                    }
+                }
+            }
         }
     };
     return EventHub;
