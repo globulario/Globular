@@ -251,7 +251,7 @@ func validateFileAccess(userName string, method string, req interface{}) error {
  * Validate user access by role
  */
 func validateUserAccess(userName string, method string) error {
-	log.Println("validate user access: ", userName, " for ", method)
+
 	// if the user is the super admin no validation is required.
 	if userName == "sa" {
 		return nil

@@ -607,6 +607,10 @@ export class FilePermission extends jspb.Message {
   setRole(value: string): void;
   hasRole(): boolean;
 
+  getApplication(): string;
+  setApplication(value: string): void;
+  hasApplication(): boolean;
+
   getOwnerCase(): FilePermission.OwnerCase;
 
   serializeBinary(): Uint8Array;
@@ -623,12 +627,14 @@ export namespace FilePermission {
     path: string,
     user: string,
     role: string,
+    application: string,
   }
 
   export enum OwnerCase { 
     OWNER_NOT_SET = 0,
     USER = 3,
     ROLE = 4,
+    APPLICATION = 5,
   }
 }
 
@@ -651,10 +657,8 @@ export namespace GetPermissionsRqst {
 }
 
 export class GetPermissionsRsp extends jspb.Message {
-  getPermissionsList(): Array<FilePermission>;
-  setPermissionsList(value: Array<FilePermission>): void;
-  clearPermissionsList(): void;
-  addPermissions(value?: FilePermission, index?: number): FilePermission;
+  getPermissions(): string;
+  setPermissions(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetPermissionsRsp.AsObject;
@@ -666,7 +670,7 @@ export class GetPermissionsRsp extends jspb.Message {
 
 export namespace GetPermissionsRsp {
   export type AsObject = {
-    permissionsList: Array<FilePermission.AsObject>,
+    permissions: string,
   }
 }
 

@@ -154,6 +154,7 @@ message FilePermission {
 	oneof owner {
 		string user = 3;
 		string role = 4;
+		string application = 5;
 	}
 }
 
@@ -163,7 +164,7 @@ message GetPermissionsRqst{
 }
 
 message GetPermissionsRsp{
-	repeated FilePermission permissions = 1;
+	string permissions = 1;
 }
 
 // set the permission for a given file.

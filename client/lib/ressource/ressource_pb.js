@@ -735,7 +735,7 @@ if (goog.DEBUG && !COMPILED) {
  * @constructor
  */
 proto.ressource.GetPermissionsRsp = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ressource.GetPermissionsRsp.repeatedFields_, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ressource.GetPermissionsRsp, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -5118,7 +5118,7 @@ proto.ressource.RemoveApplicationRsp.prototype.setResult = function(value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ressource.FilePermission.oneofGroups_ = [[3,4]];
+proto.ressource.FilePermission.oneofGroups_ = [[3,4,5]];
 
 /**
  * @enum {number}
@@ -5126,7 +5126,8 @@ proto.ressource.FilePermission.oneofGroups_ = [[3,4]];
 proto.ressource.FilePermission.OwnerCase = {
   OWNER_NOT_SET: 0,
   USER: 3,
-  ROLE: 4
+  ROLE: 4,
+  APPLICATION: 5
 };
 
 /**
@@ -5170,7 +5171,8 @@ proto.ressource.FilePermission.toObject = function(includeInstance, msg) {
     number: jspb.Message.getFieldWithDefault(msg, 1, 0),
     path: jspb.Message.getFieldWithDefault(msg, 2, ""),
     user: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    role: jspb.Message.getFieldWithDefault(msg, 4, "")
+    role: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    application: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -5222,6 +5224,10 @@ proto.ressource.FilePermission.deserializeBinaryFromReader = function(msg, reade
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setRole(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setApplication(value);
       break;
     default:
       reader.skipField();
@@ -5277,6 +5283,13 @@ proto.ressource.FilePermission.serializeBinaryToWriter = function(message, write
   if (f != null) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = /** @type {string} */ (jspb.Message.getField(message, 5));
+  if (f != null) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -5374,6 +5387,38 @@ proto.ressource.FilePermission.prototype.clearRole = function() {
  */
 proto.ressource.FilePermission.prototype.hasRole = function() {
   return jspb.Message.getField(this, 4) != null;
+};
+
+
+/**
+ * optional string application = 5;
+ * @return {string}
+ */
+proto.ressource.FilePermission.prototype.getApplication = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.ressource.FilePermission.prototype.setApplication = function(value) {
+  jspb.Message.setOneofField(this, 5, proto.ressource.FilePermission.oneofGroups_[0], value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ */
+proto.ressource.FilePermission.prototype.clearApplication = function() {
+  jspb.Message.setOneofField(this, 5, proto.ressource.FilePermission.oneofGroups_[0], undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ressource.FilePermission.prototype.hasApplication = function() {
+  return jspb.Message.getField(this, 5) != null;
 };
 
 
@@ -5505,13 +5550,6 @@ proto.ressource.GetPermissionsRqst.prototype.setPath = function(value) {
 
 
 
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.ressource.GetPermissionsRsp.repeatedFields_ = [1];
-
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -5543,8 +5581,7 @@ proto.ressource.GetPermissionsRsp.prototype.toObject = function(opt_includeInsta
  */
 proto.ressource.GetPermissionsRsp.toObject = function(includeInstance, msg) {
   var f, obj = {
-    permissionsList: jspb.Message.toObjectList(msg.getPermissionsList(),
-    proto.ressource.FilePermission.toObject, includeInstance)
+    permissions: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -5582,9 +5619,8 @@ proto.ressource.GetPermissionsRsp.deserializeBinaryFromReader = function(msg, re
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = new proto.ressource.FilePermission;
-      reader.readMessage(value,proto.ressource.FilePermission.deserializeBinaryFromReader);
-      msg.addPermissions(value);
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPermissions(value);
       break;
     default:
       reader.skipField();
@@ -5615,48 +5651,28 @@ proto.ressource.GetPermissionsRsp.prototype.serializeBinary = function() {
  */
 proto.ressource.GetPermissionsRsp.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getPermissionsList();
+  f = message.getPermissions();
   if (f.length > 0) {
-    writer.writeRepeatedMessage(
+    writer.writeString(
       1,
-      f,
-      proto.ressource.FilePermission.serializeBinaryToWriter
+      f
     );
   }
 };
 
 
 /**
- * repeated FilePermission permissions = 1;
- * @return {!Array<!proto.ressource.FilePermission>}
+ * optional string permissions = 1;
+ * @return {string}
  */
-proto.ressource.GetPermissionsRsp.prototype.getPermissionsList = function() {
-  return /** @type{!Array<!proto.ressource.FilePermission>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.ressource.FilePermission, 1));
+proto.ressource.GetPermissionsRsp.prototype.getPermissions = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
-/** @param {!Array<!proto.ressource.FilePermission>} value */
-proto.ressource.GetPermissionsRsp.prototype.setPermissionsList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
-};
-
-
-/**
- * @param {!proto.ressource.FilePermission=} opt_value
- * @param {number=} opt_index
- * @return {!proto.ressource.FilePermission}
- */
-proto.ressource.GetPermissionsRsp.prototype.addPermissions = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ressource.FilePermission, opt_index);
-};
-
-
-/**
- * Clears the list making it empty but non-null.
- */
-proto.ressource.GetPermissionsRsp.prototype.clearPermissionsList = function() {
-  this.setPermissionsList([]);
+/** @param {string} value */
+proto.ressource.GetPermissionsRsp.prototype.setPermissions = function(value) {
+  jspb.Message.setProto3StringField(this, 1, value);
 };
 
 

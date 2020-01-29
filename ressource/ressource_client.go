@@ -344,14 +344,14 @@ func (self *Ressource_Client) SetFilePermissionByRole(roleId string, path string
 	return err
 }
 
-func (self *Ressource_Client) GetFilePermissions(path string) ([]*FilePermission, error) {
+func (self *Ressource_Client) GetFilePermissions(path string) (string, error) {
 	rqst := &GetPermissionsRqst{
 		Path: path,
 	}
 
 	rsp, err := self.c.GetPermissions(api.GetClientContext(self), rqst)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	return rsp.GetPermissions(), nil
 }
