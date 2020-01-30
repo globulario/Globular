@@ -71,6 +71,26 @@ message SetRootEmailResponse {
 	string token = 1;
 }
 
+message SetPasswordRequest{
+	string accountId = 1;
+	string oldPassword = 2;
+	string newPassword = 3;
+}
+
+message SetPasswordResponse {
+	string token = 1;
+}
+
+message SetEmailRequest{
+	string accountId = 1;
+	string oldEmail = 2;
+	string newEmail = 3;
+}
+
+message SetEmailResponse {
+	string token = 1;
+}
+
 /** more can be append here **/
 enum Platform {
 	LINUX32 = 0;
@@ -141,6 +161,12 @@ service AdminService {
   //Set the root email
   rpc SetRootEmail(SetRootEmailRequest) returns(SetRootEmailResponse);
 	
+  //Set the account password
+  rpc SetPassword(SetPasswordRequest) returns(SetPasswordResponse);
+
+  //Set the account email
+  rpc SetEmail(SetEmailRequest) returns(SetEmailResponse);
+
   // Return configuration whitout all detail, no needed to be secure.
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
 

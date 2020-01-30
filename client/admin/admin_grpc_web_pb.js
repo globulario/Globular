@@ -199,6 +199,116 @@ proto.admin.AdminServicePromiseClient.prototype.setRootEmail =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.SetPasswordRequest,
+ *   !proto.admin.SetPasswordResponse>}
+ */
+const methodInfo_AdminService_SetPassword = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.SetPasswordResponse,
+  /** @param {!proto.admin.SetPasswordRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetPasswordResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.SetPasswordRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.SetPasswordResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.SetPasswordResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.setPassword =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/SetPassword',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetPassword,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.SetPasswordRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.SetPasswordResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.setPassword =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/SetPassword',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetPassword);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.admin.SetEmailRequest,
+ *   !proto.admin.SetEmailResponse>}
+ */
+const methodInfo_AdminService_SetEmail = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.admin.SetEmailResponse,
+  /** @param {!proto.admin.SetEmailRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetEmailResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.admin.SetEmailRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.admin.SetEmailResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.admin.SetEmailResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.admin.AdminServiceClient.prototype.setEmail =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/admin.AdminService/SetEmail',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetEmail,
+      callback);
+};
+
+
+/**
+ * @param {!proto.admin.SetEmailRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.admin.SetEmailResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.admin.AdminServicePromiseClient.prototype.setEmail =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/admin.AdminService/SetEmail',
+      request,
+      metadata || {},
+      methodInfo_AdminService_SetEmail);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.admin.GetConfigRequest,
  *   !proto.admin.GetConfigResponse>}
  */

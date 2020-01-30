@@ -13,6 +13,10 @@ import {
   RegisterExternalApplicationResponse,
   SaveConfigRequest,
   SaveConfigResponse,
+  SetEmailRequest,
+  SetEmailResponse,
+  SetPasswordRequest,
+  SetPasswordResponse,
   SetRootEmailRequest,
   SetRootEmailResponse,
   SetRootPasswordRequest,
@@ -44,6 +48,20 @@ export class AdminServiceClient {
     callback: (err: grpcWeb.Error,
                response: SetRootEmailResponse) => void
   ): grpcWeb.ClientReadableStream<SetRootEmailResponse>;
+
+  setPassword(
+    request: SetPasswordRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetPasswordResponse) => void
+  ): grpcWeb.ClientReadableStream<SetPasswordResponse>;
+
+  setEmail(
+    request: SetEmailRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetEmailResponse) => void
+  ): grpcWeb.ClientReadableStream<SetEmailResponse>;
 
   getConfig(
     request: GetConfigRequest,
@@ -124,6 +142,16 @@ export class AdminServicePromiseClient {
     request: SetRootEmailRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<SetRootEmailResponse>;
+
+  setPassword(
+    request: SetPasswordRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetPasswordResponse>;
+
+  setEmail(
+    request: SetEmailRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetEmailResponse>;
 
   getConfig(
     request: GetConfigRequest,

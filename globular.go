@@ -1484,8 +1484,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 	// Now update the sa password in mongo db.
 	changeRootPasswordScript := fmt.Sprintf(
-		"db=db.getSiblingDB('%s_db');db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');",
-		"sa", rqst.OldPassword, rqst.NewPassword)
+		"db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');", "sa", rqst.NewPassword)
 
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -1514,6 +1513,173 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 }
 
 //Set the root password
+func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordRequest) (*admin.SetPasswordResponse, error) {
+
+	// First of all I will get the user information from the database.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	account := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &account)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if len(rqst.OldPassword) == 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("You must give your old password!")))
+	}
+
+	// Test the old password.
+	if Utility.GenerateUUID(rqst.OldPassword) != account["password"] {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong password given!")))
+	}
+
+	// Now update the sa password in mongo db.
+	changePasswordScript := fmt.Sprintf(
+		"db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');", account["name"].(string), rqst.NewPassword)
+
+	// I will execute the sript with the admin function.
+	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, changePasswordScript)
+	if err != nil {
+		log.Println("---> fail to run script:")
+		log.Println(changePasswordScript)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I will update the user information.
+	account["password"] = Utility.GenerateUUID(rqst.NewPassword)
+
+	// Here I will save the role.
+	jsonStr := "{"
+	jsonStr += `"name":"` + account["name"].(string) + `",`
+	jsonStr += `"email":"` + account["email"].(string) + `",`
+	jsonStr += `"password":"` + account["password"].(string) + `",`
+	jsonStr += `"roles":[`
+	for j := 0; j < len(account["roles"].([]interface{})); j++ {
+		jsonStr += `{`
+		jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
+		jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
+		jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+		jsonStr += `}`
+		if j < len(account["roles"].([]interface{}))-1 {
+			jsonStr += `,`
+		}
+	}
+	jsonStr += `]`
+	jsonStr += "}"
+
+	err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	return &admin.SetPasswordResponse{
+		Token: string(token),
+	}, nil
+
+}
+
+//Set the root password
+func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) (*admin.SetEmailResponse, error) {
+	log.Println("----> SetEmail")
+	// Here I will set the root password.
+	// First of all I will get the user information from the database.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	account := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &account)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if account["email"].(string) != rqst.OldEmail {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given!")))
+	}
+
+	account["email"] = rqst.NewEmail
+
+	// Here I will save the role.
+	jsonStr := "{"
+	jsonStr += `"name":"` + account["name"].(string) + `",`
+	jsonStr += `"email":"` + account["email"].(string) + `",`
+	jsonStr += `"password":"` + account["password"].(string) + `",`
+	jsonStr += `"roles":[`
+	for j := 0; j < len(account["roles"].([]interface{})); j++ {
+		jsonStr += `{`
+		jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
+		jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
+		jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+		jsonStr += `}`
+		if j < len(account["roles"].([]interface{}))-1 {
+			jsonStr += `,`
+		}
+	}
+	jsonStr += `]`
+	jsonStr += "}"
+
+	// set the new email.
+	account["email"] = rqst.NewEmail
+
+	err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// read the token.
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Return the token.
+	return &admin.SetEmailResponse{
+		Token: string(token),
+	}, nil
+}
+
+//Set the root email
 func (self *Globule) SetRootEmail(ctx context.Context, rqst *admin.SetRootEmailRequest) (*admin.SetRootEmailResponse, error) {
 	// Here I will set the root password.
 
@@ -2551,6 +2717,14 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// Delete permissions
+	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.Name+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	// Delete the token.
 	err = p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+rqst.Name+`"}`, "")
 	if err != nil {
@@ -2703,6 +2877,15 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *ressource.DeleteRoleR
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	// Delete permissions
+	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.RoleId+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	return &ressource.DeleteRoleRsp{Result: true}, nil
 }
 
@@ -3115,6 +3298,14 @@ func (self *Globule) RemoveApplication(ctx context.Context, rqst *ressource.Remo
 	err = p.DeleteOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, "")
 	if err != nil {
 		return nil, err
+	}
+
+	// Delete permissions
+	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.ApplicationId+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &ressource.RemoveApplicationRsp{
