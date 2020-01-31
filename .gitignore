@@ -15,7 +15,6 @@ plc*
 spc*
 dist*
 config
-catalog
 data
 webroot
 node_modules
