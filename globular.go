@@ -345,8 +345,38 @@ func (self *Globule) Serve() {
 	// Here i will connect the service listener.
 	time.Sleep(5 * time.Second) // wait for services to start...
 
+	// Create application connections.
+	self.createApplicationConnection()
+
 	// lisen
 	self.Listen()
+}
+
+func (self *Globule) createApplicationConnection() error {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	values, _ := p.Find("local_ressource", "local_ressource", "Applications", "{}", "")
+
+	applications := make([]map[string]interface{}, 0)
+	err = json.Unmarshal([]byte(values), &applications)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(applications); i++ {
+		// Open the user database connection.
+		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "localhost", 27017, 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
+		if err != nil {
+			log.Panicln("-----> osti!")
+			return err
+		}
+		log.Println("----------------------------------------------------------------------------------------------------> application: ", applications[i])
+	}
+
+	return nil
 }
 
 /**
@@ -1302,23 +1332,32 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	count, err := p.Count("local_ressource", "local_ressource", "Applications", `{"_id":"`+name+`"}`, "")
 	application := make(map[string]interface{})
 	application["_id"] = name
+	application["password"] = Utility.GenerateUUID(name)
 	application["path"] = path
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
 	if err != nil || count == 0 {
 
 		// create the application database.
-		createApplicationsDbScript := fmt.Sprintf("db=db.getSiblingDB('%s_db');db.createCollection('application_data');", name)
+		createApplicationUserDbScript := fmt.Sprintf(
+			"db=db.getSiblingDB('%s_db');db.createCollection('application_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
+			name, name, application["password"].(string), name)
 
-		// I will execute the sript with the admin function.
-		err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createApplicationsDbScript)
+		err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
 		if err != nil {
+			log.Println("----------------> fail to run admin script")
+			log.Println(createApplicationUserDbScript)
 			return err
 		}
 
 		application["creation_date"] = time.Now().Unix() // save it as unix time.
 		data, _ := json.Marshal(&application)
 		_, err := p.InsertOne("local_ressource", "local_ressource", "Applications", string(data), "")
+		if err != nil {
+			return err
+		}
+
+		err = p.CreateConnection(name+"_db", name+"_db", "localhost", 27017, 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}

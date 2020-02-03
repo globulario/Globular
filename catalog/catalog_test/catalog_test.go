@@ -293,3 +293,20 @@ func TestRemoveItemdescriptionCategory(t *testing.T) {
 		log.Println(err)
 	}
 }
+
+func TestSaveLocalisation(t *testing.T) {
+	localisation := new(catalogpb.Localisation)
+	localisation.Id = "P001"
+	localisation.LanguageCode = "fr"
+	localisation.Name = "Magasin"
+
+	row0 := new(catalogpb.Localisation)
+	row0.Id = "r0"
+	row0.Name = "Rangé 0"
+	row0.LanguageCode = "fr"
+
+	localisation.SubLocalisations = make([]*catalogpb.Localisation, 0)
+	localisation.SubLocalisations = append(localisation.SubLocalisations, row0)
+
+	client.SaveLocalisation("catalog_db_test", localisation)
+}

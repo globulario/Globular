@@ -242,7 +242,8 @@ func validateFileAccess(userName string, method string, req interface{}) error {
 
 	roles := account["roles"].([]interface{})
 	for i := 0; i < len(roles); i++ {
-		//role := roles[i].(map[string]interface{})
+		role := roles[i].(map[string]interface{})
+		log.Println("----> 246 ", role)
 	}
 	return nil
 }
@@ -251,7 +252,7 @@ func validateFileAccess(userName string, method string, req interface{}) error {
  * Validate user access by role
  */
 func validateUserAccess(userName string, method string) error {
-
+	log.Println("-------> ", userName, method)
 	// if the user is the super admin no validation is required.
 	if userName == "sa" {
 		return nil
@@ -272,17 +273,20 @@ func validateUserAccess(userName string, method string) error {
 
 	client, err := getPersistenceClient()
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	account := make(map[string]interface{})
 	err = json.Unmarshal([]byte(values), &account)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -376,11 +380,13 @@ func logAction(ctx context.Context, method string, result interface{}) {
 
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+
+	log.Println("-------> 384")
 	clientID, _, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Println("-------> 389")
 	// Validate the user access.
 	err = validateUserAccess(clientID, info.FullMethod)
 	if err != nil {

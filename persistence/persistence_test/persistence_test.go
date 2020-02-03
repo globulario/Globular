@@ -16,11 +16,11 @@ import (
 var (
 
 	// Connect to the plc client.
-	client = persistence_client.NewPersistence_Client("globular4.omniscient.app", "persistence_server")
+	client = persistence_client.NewPersistence_Client("localhost", "persistence_server")
 )
 
 // First test create a fresh new connection...
-func TestCreateConnection(t *testing.T) {
+/*func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 	user := "sa"
 	pwd := "adminadmin"
@@ -28,9 +28,9 @@ func TestCreateConnection(t *testing.T) {
 	if err != nil {
 		log.Println("fail to create connection! ", err)
 	}
-}
+}*/
 
-func TestPingConnection(t *testing.T) {
+/*func TestPingConnection(t *testing.T) {
 	log.Println("Test ping connection")
 
 	err := client.Ping("mongo_db_test_connection")
@@ -38,7 +38,7 @@ func TestPingConnection(t *testing.T) {
 		log.Fatalln(err)
 	}
 	log.Println("Ping mongo_db_test_connection successed!")
-}
+}*/
 
 // First test create a fresh new connection...
 /*func TestPersistMany(t *testing.T) {
@@ -61,7 +61,7 @@ func TestPingConnection(t *testing.T) {
 	log.Println(ids)
 }*/
 
-func TestPersistOne(t *testing.T) {
+/*func TestPersistOne(t *testing.T) {
 
 	Id := "mongo_db_test_connection"
 	Database := "TestMongoDB"
@@ -74,10 +74,35 @@ func TestPersistOne(t *testing.T) {
 	}
 
 	log.Println("one entity persist with id ", id)
+}*/
+
+func TestCreateConnection(t *testing.T) {
+	fmt.Println("Connection creation test.")
+	user := "chitchat"
+	pwd := "8b6021d3-5e4a-38a0-9057-0e127754938b"
+	err := client.CreateConnection("chitchat_db", "chitchat_db", "localhost", 27017, 0, user, pwd, 500, "", true)
+	if err != nil {
+		log.Println("fail to create connection! ", err)
+	}
+}
+
+func TestPersistOne(t *testing.T) {
+
+	Id := "chitchat_db"
+	Database := "chitchat_db"
+	Collection := "Room"
+	JsonStr := `{"_id":"test"}`
+	id, err := client.InsertOne(Id, Database, Collection, JsonStr, "")
+
+	if err != nil {
+		log.Fatalf("TestPersistOne fail %v", err)
+	}
+
+	log.Println("one entity persist with id ", id)
 }
 
 /** Test find one **/
-func TestUpdate(t *testing.T) {
+/*func TestUpdate(t *testing.T) {
 	fmt.Println("Update test.")
 
 	Id := "mongo_db_test_connection"
@@ -91,10 +116,10 @@ func TestUpdate(t *testing.T) {
 		log.Fatalf("TestUpdate fail %v", err)
 	}
 	log.Println("---> update success!")
-}
+}*/
 
 /** Test find many **/
-func TestFind(t *testing.T) {
+/*func TestFind(t *testing.T) {
 	fmt.Println("Find many test.")
 
 	Id := "mongo_db_test_connection"
@@ -110,10 +135,10 @@ func TestFind(t *testing.T) {
 	log.Println(values)
 	log.Println("--> end of find!")
 
-}
+}*/
 
 /** Test find one **/
-func TestFindOne(t *testing.T) {
+/*func TestFindOne(t *testing.T) {
 	fmt.Println("Find one test.")
 
 	Id := "mongo_db_test_connection"
@@ -127,10 +152,10 @@ func TestFindOne(t *testing.T) {
 	}
 
 	log.Println(values)
-}
+}*/
 
 /** Test remove **/
-func TestRemove(t *testing.T) {
+/*func TestRemove(t *testing.T) {
 	fmt.Println("Test Remove")
 
 	Id := "mongo_db_test_connection"
@@ -144,7 +169,7 @@ func TestRemove(t *testing.T) {
 	}
 
 	log.Println("---> Delete success!")
-}
+}*/
 
 /*func TestRemoveMany(t *testing.T) {
 	fmt.Println("Test Remove")
@@ -197,10 +222,10 @@ func TestRemove(t *testing.T) {
 
 }*/
 
-func TestDeleteConnection(t *testing.T) {
+/*func TestDeleteConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 	err := client.DeleteConnection("mongo_db_test_connection")
 	if err != nil {
 		log.Println("fail to delete connection! ", err)
 	}
-}
+}*/

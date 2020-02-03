@@ -125,6 +125,7 @@ func (self *server) run() {
 				}
 			} else if action == "publish" {
 				if channels[a["name"].(string)] != nil {
+					toDelete := make([]string, 0)
 					for i := 0; i < len(channels[a["name"].(string)]); i++ {
 						uuid := channels[a["name"].(string)][i]
 						stream := streams[uuid]
@@ -140,23 +141,30 @@ func (self *server) run() {
 							// In case of error I will remove the subscriber
 							// from the list.
 							if err != nil {
+								// append to channle list to be close.
+								toDelete = append(toDelete, uuid)
 								log.Println("error publish event to ", uuid, err)
-								// remove uuid from all channels.
-								for name, channel := range channels {
-									uuids := make([]string, 0)
-									for i := 0; i < len(channel); i++ {
-										if uuid != channel[i] {
-											uuids = append(uuids, channel[i])
-										}
-									}
-									channels[name] = uuids
-								}
-								// return from OnEvent
-								quits[uuid] <- true
-								// remove the channel from the map.
-								delete(quits, uuid)
 							}
 						}
+					}
+
+					// remove closed channel
+					for i := 0; i < len(toDelete); i++ {
+						uuid := toDelete[i]
+						// remove uuid from all channels.
+						for name, channel := range channels {
+							uuids := make([]string, 0)
+							for i := 0; i < len(channel); i++ {
+								if uuid != channel[i] {
+									uuids = append(uuids, channel[i])
+								}
+							}
+							channels[name] = uuids
+						}
+						// return from OnEvent
+						quits[uuid] <- true
+						// remove the channel from the map.
+						delete(quits, uuid)
 					}
 				}
 			} else if action == "unsubscribe" {
@@ -212,8 +220,6 @@ func (self *server) OnEvent(rqst *eventpb.OnEventRequest, stream eventpb.EventSe
 
 	self.actions <- onevent
 
-	log.Println(onevent["uuid"])
-
 	// wait util unsbscribe or connection is close.
 	<-onevent["quit"].(chan bool)
 
@@ -255,7 +261,7 @@ func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (
 
 	// publish the data.
 	self.actions <- publish
-
+	log.Println("----> publish event ", rqst.Evt.Name)
 	return &eventpb.PublishResponse{
 		Result: true,
 	}, nil
