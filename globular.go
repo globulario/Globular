@@ -345,9 +345,6 @@ func (self *Globule) Serve() {
 	// Here i will connect the service listener.
 	time.Sleep(5 * time.Second) // wait for services to start...
 
-	// Create application connections.
-	self.createApplicationConnection()
-
 	// lisen
 	self.Listen()
 }
@@ -370,10 +367,8 @@ func (self *Globule) createApplicationConnection() error {
 		// Open the user database connection.
 		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "localhost", 27017, 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
 		if err != nil {
-			log.Panicln("-----> osti!")
 			return err
 		}
-		log.Println("----------------------------------------------------------------------------------------------------> application: ", applications[i])
 	}
 
 	return nil
@@ -927,6 +922,10 @@ func (self *Globule) registerMethods() error {
 		}
 		log.Println("role guest was created!")
 	}
+
+	// Create connection application.
+	self.createApplicationConnection()
+
 	return nil
 }
 

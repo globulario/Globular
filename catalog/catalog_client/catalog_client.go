@@ -151,7 +151,7 @@ func (self *Catalog_Client) CreateConnection(connectionId string, name string, h
  * Create a new unit of measure
  */
 func (self *Catalog_Client) SaveUnitOfMesure(connectionId string, id string, languageCode string, name string, abreviation string, description string) error {
-	rqst := &catalogpb.SaveUnitOfMesureRequest{
+	rqst := &catalogpb.SaveUnitOfMeasureRequest{
 		ConnectionId: connectionId,
 		UnitOfMeasure: &catalogpb.UnitOfMeasure{
 			Id:           id,
@@ -162,7 +162,7 @@ func (self *Catalog_Client) SaveUnitOfMesure(connectionId string, id string, lan
 		},
 	}
 
-	_, err := self.c.SaveUnitOfMesure(api.GetClientContext(self), rqst)
+	_, err := self.c.SaveUnitOfMeasure(api.GetClientContext(self), rqst)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (self *Catalog_Client) SaveSupplier(connectionId string, id string, name st
 /**
  * Save package supplier.
  */
-func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, supplier_ref_str string, packege_ref_str string, price_str string, date int64) error {
+func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, supplier_ref_str string, packege_ref_str string, price_str string, date int64, qte int64) error {
 
 	// Supplier Ref.
 	supplierRef := new(catalogpb.Reference)
@@ -350,7 +350,7 @@ func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, 
 
 	rqst := new(catalogpb.SavePackageSupplierRequest)
 	rqst.ConnectionId = connectionId
-	rqst.PackageSupplier = &catalogpb.PackageSupplier{Id: id, Supplier: supplierRef, Package: packageRef, Price: price, Date: date}
+	rqst.PackageSupplier = &catalogpb.PackageSupplier{Id: id, Supplier: supplierRef, Package: packageRef, Price: price, Date: date, Qte: qte}
 
 	_, err = self.c.SavePackageSupplier(api.GetClientContext(self), rqst)
 	return err
@@ -473,5 +473,19 @@ func (self *Catalog_Client) SaveLocalisation(connectionId string, localisation *
 	}
 
 	_, err := self.c.SaveLocalisation(api.GetClientContext(self), rqst)
+	return err
+}
+
+/**
+ * Save Item Localisation.
+ */
+func (self *Catalog_Client) SaveInventory(connectionId string, inventory *catalogpb.Inventory) error {
+
+	rqst := &catalogpb.SaveInventoryRequest{
+		ConnectionId: connectionId,
+		Inventory:    inventory,
+	}
+
+	_, err := self.c.SaveInventory(api.GetClientContext(self), rqst)
 	return err
 }

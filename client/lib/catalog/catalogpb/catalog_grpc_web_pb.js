@@ -199,55 +199,55 @@ proto.catalog.CatalogServicePromiseClient.prototype.deleteConnection =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.catalog.SaveUnitOfMesureRequest,
- *   !proto.catalog.SaveUnitOfMesureResponse>}
+ *   !proto.catalog.SaveUnitOfMeasureRequest,
+ *   !proto.catalog.SaveUnitOfMeasureResponse>}
  */
-const methodInfo_CatalogService_SaveUnitOfMesure = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.catalog.SaveUnitOfMesureResponse,
-  /** @param {!proto.catalog.SaveUnitOfMesureRequest} request */
+const methodInfo_CatalogService_SaveUnitOfMeasure = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveUnitOfMeasureResponse,
+  /** @param {!proto.catalog.SaveUnitOfMeasureRequest} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.catalog.SaveUnitOfMesureResponse.deserializeBinary
+  proto.catalog.SaveUnitOfMeasureResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.catalog.SaveUnitOfMesureRequest} request The
+ * @param {!proto.catalog.SaveUnitOfMeasureRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.catalog.SaveUnitOfMesureResponse)}
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveUnitOfMeasureResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveUnitOfMesureResponse>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveUnitOfMeasureResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.catalog.CatalogServiceClient.prototype.saveUnitOfMesure =
+proto.catalog.CatalogServiceClient.prototype.saveUnitOfMeasure =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/catalog.CatalogService/SaveUnitOfMesure',
+      '/catalog.CatalogService/SaveUnitOfMeasure',
       request,
       metadata || {},
-      methodInfo_CatalogService_SaveUnitOfMesure,
+      methodInfo_CatalogService_SaveUnitOfMeasure,
       callback);
 };
 
 
 /**
- * @param {!proto.catalog.SaveUnitOfMesureRequest} request The
+ * @param {!proto.catalog.SaveUnitOfMeasureRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.catalog.SaveUnitOfMesureResponse>}
+ * @return {!Promise<!proto.catalog.SaveUnitOfMeasureResponse>}
  *     A native promise that resolves to the response
  */
-proto.catalog.CatalogServicePromiseClient.prototype.saveUnitOfMesure =
+proto.catalog.CatalogServicePromiseClient.prototype.saveUnitOfMeasure =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/catalog.CatalogService/SaveUnitOfMesure',
+      '/catalog.CatalogService/SaveUnitOfMeasure',
       request,
       metadata || {},
-      methodInfo_CatalogService_SaveUnitOfMesure);
+      methodInfo_CatalogService_SaveUnitOfMeasure);
 };
 
 
@@ -413,6 +413,1271 @@ proto.catalog.CatalogServicePromiseClient.prototype.saveItemInstance =
       request,
       metadata || {},
       methodInfo_CatalogService_SaveItemInstance);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveManufacturerRequest,
+ *   !proto.catalog.SaveManufacturerResponse>}
+ */
+const methodInfo_CatalogService_SaveManufacturer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveManufacturerResponse,
+  /** @param {!proto.catalog.SaveManufacturerRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveManufacturerResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveManufacturerResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveManufacturerResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveManufacturer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveManufacturer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveManufacturerResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveManufacturer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveManufacturer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveSupplierRequest,
+ *   !proto.catalog.SaveSupplierResponse>}
+ */
+const methodInfo_CatalogService_SaveSupplier = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveSupplierResponse,
+  /** @param {!proto.catalog.SaveSupplierRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveSupplierResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveSupplierResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveSupplierResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveSupplier =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveSupplier,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveSupplierResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveSupplier =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveSupplier);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveLocalisationRequest,
+ *   !proto.catalog.SaveLocalisationResponse>}
+ */
+const methodInfo_CatalogService_SaveLocalisation = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveLocalisationResponse,
+  /** @param {!proto.catalog.SaveLocalisationRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveLocalisationResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveLocalisationRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveLocalisationResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveLocalisationResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveLocalisation =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveLocalisation',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveLocalisation,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveLocalisationRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveLocalisationResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveLocalisation =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveLocalisation',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveLocalisation);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveInventoryRequest,
+ *   !proto.catalog.SaveInventoryResponse>}
+ */
+const methodInfo_CatalogService_SaveInventory = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveInventoryResponse,
+  /** @param {!proto.catalog.SaveInventoryRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveInventoryResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveInventoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveInventoryResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveInventoryResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveInventory =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveInventory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveInventory,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveInventoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveInventoryResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveInventory =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveInventory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveInventory);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SavePackageRequest,
+ *   !proto.catalog.SavePackageResponse>}
+ */
+const methodInfo_CatalogService_SavePackage = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SavePackageResponse,
+  /** @param {!proto.catalog.SavePackageRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SavePackageResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SavePackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SavePackageResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SavePackageResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.savePackage =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SavePackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SavePackage,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SavePackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SavePackageResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.savePackage =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SavePackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SavePackage);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SavePackageSupplierRequest,
+ *   !proto.catalog.SavePackageSupplierResponse>}
+ */
+const methodInfo_CatalogService_SavePackageSupplier = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SavePackageSupplierResponse,
+  /** @param {!proto.catalog.SavePackageSupplierRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SavePackageSupplierResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SavePackageSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SavePackageSupplierResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SavePackageSupplierResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.savePackageSupplier =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SavePackageSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SavePackageSupplier,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SavePackageSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SavePackageSupplierResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.savePackageSupplier =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SavePackageSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SavePackageSupplier);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveItemManufacturerRequest,
+ *   !proto.catalog.SaveItemManufacturerResponse>}
+ */
+const methodInfo_CatalogService_SaveItemManufacturer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveItemManufacturerResponse,
+  /** @param {!proto.catalog.SaveItemManufacturerRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveItemManufacturerResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveItemManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveItemManufacturerResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveItemManufacturerResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveItemManufacturer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveItemManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveItemManufacturer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveItemManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveItemManufacturerResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveItemManufacturer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveItemManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveItemManufacturer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.SaveCategoryRequest,
+ *   !proto.catalog.SaveCategoryResponse>}
+ */
+const methodInfo_CatalogService_SaveCategory = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.SaveCategoryResponse,
+  /** @param {!proto.catalog.SaveCategoryRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.SaveCategoryResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.SaveCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.SaveCategoryResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.SaveCategoryResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.saveCategory =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/SaveCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveCategory,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.SaveCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.SaveCategoryResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.saveCategory =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/SaveCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_SaveCategory);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.AppendItemDefinitionCategoryRequest,
+ *   !proto.catalog.AppendItemDefinitionCategoryResponse>}
+ */
+const methodInfo_CatalogService_AppendItemDefinitionCategory = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.AppendItemDefinitionCategoryResponse,
+  /** @param {!proto.catalog.AppendItemDefinitionCategoryRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.AppendItemDefinitionCategoryResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.AppendItemDefinitionCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.AppendItemDefinitionCategoryResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.AppendItemDefinitionCategoryResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.appendItemDefinitionCategory =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/AppendItemDefinitionCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_AppendItemDefinitionCategory,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.AppendItemDefinitionCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.AppendItemDefinitionCategoryResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.appendItemDefinitionCategory =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/AppendItemDefinitionCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_AppendItemDefinitionCategory);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.RemoveItemDefinitionCategoryRequest,
+ *   !proto.catalog.RemoveItemDefinitionCategoryResponse>}
+ */
+const methodInfo_CatalogService_RemoveItemDefinitionCategory = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.RemoveItemDefinitionCategoryResponse,
+  /** @param {!proto.catalog.RemoveItemDefinitionCategoryRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.RemoveItemDefinitionCategoryResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.RemoveItemDefinitionCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.RemoveItemDefinitionCategoryResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.RemoveItemDefinitionCategoryResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.removeItemDefinitionCategory =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/RemoveItemDefinitionCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_RemoveItemDefinitionCategory,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.RemoveItemDefinitionCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.RemoveItemDefinitionCategoryResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.removeItemDefinitionCategory =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/RemoveItemDefinitionCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_RemoveItemDefinitionCategory);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetSupplierRequest,
+ *   !proto.catalog.GetSupplierResponse>}
+ */
+const methodInfo_CatalogService_getSupplier = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetSupplierResponse,
+  /** @param {!proto.catalog.GetSupplierRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetSupplierResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetSupplierResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetSupplierResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getSupplier =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSupplier,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetSupplierResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getSupplier =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSupplier);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetSupplierPackagesRequest,
+ *   !proto.catalog.GetSupplierPackagesResponse>}
+ */
+const methodInfo_CatalogService_getSupplierPackages = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetSupplierPackagesResponse,
+  /** @param {!proto.catalog.GetSupplierPackagesRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetSupplierPackagesResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetSupplierPackagesRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetSupplierPackagesResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetSupplierPackagesResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getSupplierPackages =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getSupplierPackages',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSupplierPackages,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetSupplierPackagesRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetSupplierPackagesResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getSupplierPackages =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getSupplierPackages',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSupplierPackages);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetPackageRequest,
+ *   !proto.catalog.GetPackageResponse>}
+ */
+const methodInfo_CatalogService_getPackage = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetPackageResponse,
+  /** @param {!proto.catalog.GetPackageRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetPackageResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetPackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetPackageResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetPackageResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getPackage =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getPackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getPackage,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetPackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetPackageResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getPackage =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getPackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getPackage);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeletePackageRequest,
+ *   !proto.catalog.DeletePackageResponse>}
+ */
+const methodInfo_CatalogService_deletePackage = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeletePackageResponse,
+  /** @param {!proto.catalog.DeletePackageRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeletePackageResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeletePackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeletePackageResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeletePackageResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deletePackage =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deletePackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePackage,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeletePackageRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeletePackageResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deletePackage =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deletePackage',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePackage);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeletePackageSupplierRequest,
+ *   !proto.catalog.DeletePackageSupplierResponse>}
+ */
+const methodInfo_CatalogService_deletePackageSupplier = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeletePackageSupplierResponse,
+  /** @param {!proto.catalog.DeletePackageSupplierRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeletePackageSupplierResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeletePackageSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeletePackageSupplierResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeletePackageSupplierResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deletePackageSupplier =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deletePackageSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePackageSupplier,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeletePackageSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeletePackageSupplierResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deletePackageSupplier =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deletePackageSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePackageSupplier);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteSupplierRequest,
+ *   !proto.catalog.DeleteSupplierResponse>}
+ */
+const methodInfo_CatalogService_deleteSupplier = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteSupplierResponse,
+  /** @param {!proto.catalog.DeleteSupplierRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteSupplierResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteSupplierResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteSupplierResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteSupplier =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteSupplier,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteSupplierRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteSupplierResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteSupplier =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteSupplier',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteSupplier);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeletePropertyDefinitionRequest,
+ *   !proto.catalog.DeletePropertyDefinitionResponse>}
+ */
+const methodInfo_CatalogService_deletePropertyDefinition = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeletePropertyDefinitionResponse,
+  /** @param {!proto.catalog.DeletePropertyDefinitionRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeletePropertyDefinitionResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeletePropertyDefinitionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeletePropertyDefinitionResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeletePropertyDefinitionResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deletePropertyDefinition =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deletePropertyDefinition',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePropertyDefinition,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeletePropertyDefinitionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeletePropertyDefinitionResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deletePropertyDefinition =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deletePropertyDefinition',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deletePropertyDefinition);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteUnitOfMeasureRequest,
+ *   !proto.catalog.DeleteUnitOfMeasureResponse>}
+ */
+const methodInfo_CatalogService_deleteUnitOfMeasure = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteUnitOfMeasureResponse,
+  /** @param {!proto.catalog.DeleteUnitOfMeasureRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteUnitOfMeasureResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteUnitOfMeasureRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteUnitOfMeasureResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteUnitOfMeasureResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteUnitOfMeasure =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteUnitOfMeasure',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteUnitOfMeasure,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteUnitOfMeasureRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteUnitOfMeasureResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteUnitOfMeasure =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteUnitOfMeasure',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteUnitOfMeasure);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteItemInstanceRequest,
+ *   !proto.catalog.DeleteItemInstanceResponse>}
+ */
+const methodInfo_CatalogService_deleteItemInstance = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteItemInstanceResponse,
+  /** @param {!proto.catalog.DeleteItemInstanceRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteItemInstanceResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteItemInstanceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteItemInstanceResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteItemInstanceResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteItemInstance =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteItemInstance',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteItemInstance,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteItemInstanceRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteItemInstanceResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteItemInstance =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteItemInstance',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteItemInstance);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteManufacturerRequest,
+ *   !proto.catalog.DeleteManufacturerResponse>}
+ */
+const methodInfo_CatalogService_deleteManufacturer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteManufacturerResponse,
+  /** @param {!proto.catalog.DeleteManufacturerRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteManufacturerResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteManufacturerResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteManufacturerResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteManufacturer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteManufacturer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteManufacturerResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteManufacturer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteManufacturer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteItemManufacturerRequest,
+ *   !proto.catalog.DeleteItemManufacturerResponse>}
+ */
+const methodInfo_CatalogService_deleteItemManufacturer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteItemManufacturerResponse,
+  /** @param {!proto.catalog.DeleteItemManufacturerRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteItemManufacturerResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteItemManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteItemManufacturerResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteItemManufacturerResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteItemManufacturer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteItemManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteItemManufacturer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteItemManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteItemManufacturerResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteItemManufacturer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteItemManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteItemManufacturer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteCategoryRequest,
+ *   !proto.catalog.DeleteCategoryResponse>}
+ */
+const methodInfo_CatalogService_deleteCategory = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteCategoryResponse,
+  /** @param {!proto.catalog.DeleteCategoryRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteCategoryResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteCategoryResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteCategoryResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteCategory =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteCategory,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteCategoryRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteCategoryResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteCategory =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteCategory',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteCategory);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.DeleteLocalisationRequest,
+ *   !proto.catalog.DeleteLocalisationResponse>}
+ */
+const methodInfo_CatalogService_deleteLocalisation = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.DeleteLocalisationResponse,
+  /** @param {!proto.catalog.DeleteLocalisationRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.DeleteLocalisationResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.DeleteLocalisationRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.DeleteLocalisationResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.DeleteLocalisationResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.deleteLocalisation =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/deleteLocalisation',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteLocalisation,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.DeleteLocalisationRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.DeleteLocalisationResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.deleteLocalisation =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/deleteLocalisation',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_deleteLocalisation);
 };
 
 

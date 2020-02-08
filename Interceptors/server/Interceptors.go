@@ -102,18 +102,23 @@ func ValidateToken(token string) (string, int64, error) {
 }
 
 // authenticateAgent check the client credentials
-func authenticateClient(ctx context.Context) (string, int64, error) {
+func authenticateClient(ctx context.Context) (string, string, int64, error) {
+	var userId string
+	var applicationId string
+	var expired int64
+	var err error
+
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		applicationId = strings.Join(md["application"], "")
 		token := strings.Join(md["token"], "")
 		// In that case no token was given...
-		if len(token) == 0 {
-			return "", 0, nil
+		if len(token) > 0 {
+			userId, expired, err = ValidateToken(token)
 		}
-
-		return ValidateToken(token)
+		return applicationId, userId, expired, err
 	}
 
-	return "", 0, fmt.Errorf("missing credentials")
+	return "", "", 0, fmt.Errorf("missing credentials")
 }
 
 // Test if a role can use action.
@@ -252,7 +257,7 @@ func validateFileAccess(userName string, method string, req interface{}) error {
  * Validate user access by role
  */
 func validateUserAccess(userName string, method string) error {
-	log.Println("-------> ", userName, method)
+
 	// if the user is the super admin no validation is required.
 	if userName == "sa" {
 		return nil
@@ -381,22 +386,26 @@ func logAction(ctx context.Context, method string, result interface{}) {
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
-	log.Println("-------> 384")
-	clientID, _, err := authenticateClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	log.Println("-------> 389")
-	// Validate the user access.
-	err = validateUserAccess(clientID, info.FullMethod)
+	applicationID, clientID, _, err := authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate file access
-	err = validateFileAccess(clientID, info.FullMethod, req)
-	if err != nil {
-		return nil, err
+	// Validate the user access.
+	if len(clientID) > 0 {
+		err = validateUserAccess(clientID, info.FullMethod)
+		if err != nil {
+			return nil, err
+		}
+
+		// Validate file access
+		err = validateFileAccess(clientID, info.FullMethod, req)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(applicationID) > 0 {
+		// TODO validate application action here.
+		log.Println("---------> validatage application action permission! ", applicationID)
 	}
 
 	// Execute the action.

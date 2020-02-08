@@ -50,17 +50,12 @@ message DeleteConnectionRsp {
 	bool result = 1;
 }
 
-message Language{
-	string code = 1;
-	string name = 2;
-}
-
 // Property define a range of information.
 message PropertyDefinition{
 	// Unique univeral identifier.
 	string id = 1;
-	string languageCode = 2;
-	string name = 3;
+	string name = 2;
+	string languageCode = 3;
 	string abreviation = 4;
 	string description = 5;
 	
@@ -91,8 +86,8 @@ message PropertyDefinitions{
 message ItemDefinition {
 	// Unique univeral identifier.
 	string id = 1;
-	string languageCode = 2;
-	string name = 3; // The oficial item name
+	string name = 2; // The oficial item name
+	string languageCode = 3;
 	string abreviation = 4;
 	string description = 5;
     repeated string alias = 6; // also named ...
@@ -136,8 +131,8 @@ message RemoveItemDefinitionCategoryResponse{
 // The unit of measure.
 message UnitOfMeasure{
 	string id = 1;
-	string languageCode = 2;
-	string name = 3;
+	string name = 2; // can be language dependant
+	string languageCode = 3;
 	string abreviation = 4;
 	string description = 5;
 }
@@ -145,7 +140,7 @@ message UnitOfMeasure{
 // The category
 message Category{
 	string id = 1;
-	string name = 2;
+	string name = 2; // can be language dependant
 	string languageCode = 3;
 	References categories = 4;
 }
@@ -153,7 +148,7 @@ message Category{
 // The localisation
 message Localisation {
 	string id = 1;
-	string name = 2;
+	string name = 2; // can be language dependant
 	string languageCode = 3;
 	repeated Localisation subLocalisations = 4;
 }
@@ -161,14 +156,13 @@ message Localisation {
 // The Inventory
 message Inventory {
 	string id = 1;
-	string name = 2;
-	string languageCode = 3;
-	UnitOfMeasure unitOfMeasure = 4;
-	int64 safetyStock = 5;
-	int64 reorderQte = 6;
-	int64 qte = 7;
-	double factor = 8;
-	Reference localisation = 9;
+	int64 safetyStock = 2;
+	int64 reorderQte = 3;
+	int64 qte = 4;
+	double factor = 5;
+	string unitOfMeasureId = 6;
+	string localisationId = 7;
+	Reference itemInstance = 8;
 }
 
 // The currency
@@ -184,7 +178,7 @@ message Price {
 	Currency currency = 2;
 }
 
-// The package
+// The Package
 message Package {
 	string id = 1;
 	string languageCode = 2;
@@ -206,6 +200,7 @@ message PackageSupplier {
 	Reference package = 3;
 	Price price = 4;
 	int64 date = 5;
+	int64 qte = 6; // number of pacakge order. for the price.
 }
 
 // The manufacturer.
@@ -267,12 +262,12 @@ message ItemInstance {
 	repeated PropertyValue values = 3;
 }
 
-message SaveUnitOfMesureRequest{
+message SaveUnitOfMeasureRequest{
 	string connectionId = 1;
 	UnitOfMeasure unitOfMeasure = 2;
 }
 
-message SaveUnitOfMesureResponse{
+message SaveUnitOfMeasureResponse{
 	string id = 1;
 }
 
@@ -375,6 +370,138 @@ message SaveItemManufacturerResponse {
 	string id = 1;
 }
 
+
+
+/////////////////////////// Getter functions ///////////////////////////////////
+message GetSupplierRequest{
+	string connectionId = 1;
+	string supplierId = 2;
+}
+
+message GetSupplierResponse{
+	Supplier supplier = 1;
+}
+
+message GetSupplierPackagesRequest{
+	string connectionId = 1;
+	string supplierId = 2;
+}
+
+message GetSupplierPackagesResponse{
+	repeated PackageSupplier pacakgesSupplier = 1;
+}
+
+message GetPackageRequest{
+	string connectionId = 1;
+	string packageId = 2; // must be the _id
+}
+
+message GetPackageResponse{
+	Package pacakge = 1;
+}
+
+//////////// Delete ///////////
+	
+// Delete a package supplier
+message DeletePackageSupplierRequest{
+	string connectionId = 1;
+	PackageSupplier packageSupplier = 2;
+}
+
+message DeletePackageSupplierResponse{
+	bool result = 1;
+}
+	
+// Delete a package
+message DeletePackageRequest{
+	string connectionId = 1;
+	Package package = 2;
+}
+
+message DeletePackageResponse{
+	bool result = 1;
+}
+
+// Delete a supplier
+message DeleteSupplierRequest{
+	string connectionId = 1;
+	Supplier supplier = 2;
+}
+
+message DeleteSupplierResponse{
+	bool result = 1;
+}
+	
+// Delete propertie definition
+message DeletePropertyDefinitionRequest{
+	string connectionId = 1;
+	PropertyDefinition propertyDefinition = 2;
+}
+
+message DeletePropertyDefinitionResponse{
+	bool result = 1;
+}
+	
+// Delete unit of measure
+message DeleteUnitOfMeasureRequest{
+	string connectionId = 1;
+	UnitOfMeasure unitOfMeasure = 2;
+}
+
+message DeleteUnitOfMeasureResponse{
+	bool result = 1;
+}
+	
+// Delete Item Instance
+message DeleteItemInstanceRequest{
+	string connectionId = 1;
+	ItemInstance instance = 2;
+}
+
+message DeleteItemInstanceResponse{
+	bool result = 1;
+}
+	
+// Delete Manufacturer
+message DeleteManufacturerRequest{
+	string connectionId = 1;
+	Manufacturer manufacturer = 2;
+}
+
+message DeleteManufacturerResponse{
+	bool result = 1;
+}
+	
+// Delete Item Manufacturer
+message DeleteItemManufacturerRequest{
+	string connectionId = 1;
+	ItemManufacturer itemManufacturer= 2;
+}
+
+message DeleteItemManufacturerResponse{
+	bool result = 1;
+}
+	
+// Delete Category
+message DeleteCategoryRequest{
+	string connectionId = 1;
+	Category category = 2;
+}
+
+message DeleteCategoryResponse{
+	bool result = 1;
+}
+	
+// Delete Localisation
+message DeleteLocalisationRequest{
+	string connectionId = 1;
+	Localisation localisation = 2;
+}
+
+message DeleteLocalisationResponse{
+	bool result = 1;
+}
+
 service CatalogService {
   	// Save function.
 	
@@ -387,7 +514,7 @@ service CatalogService {
 	//////////////////////// Save (Create) functions ///////////////////////////
 	
 	// Save unit of measure exemple inch 
-	rpc SaveUnitOfMesure(SaveUnitOfMesureRequest) returns (SaveUnitOfMesureResponse){};
+	rpc SaveUnitOfMeasure(SaveUnitOfMeasureRequest) returns (SaveUnitOfMeasureResponse){};
 	
 	// Save property definition return the Id of the Saved property
 	rpc SavePropertyDefinition(SavePropertyDefinitionRequest) returns (SavePropertyDefinitionResponse){};
@@ -428,5 +555,45 @@ service CatalogService {
 	// Remove a Category from item definition.
 	rpc RemoveItemDefinitionCategory(RemoveItemDefinitionCategoryRequest) returns (RemoveItemDefinitionCategoryResponse);
 	
+	// Getter function.
+	rpc getSupplier(GetSupplierRequest) returns (GetSupplierResponse);
 	
+	// Get Supplier Packages
+	rpc getSupplierPackages(GetSupplierPackagesRequest) returns (GetSupplierPackagesResponse);
+	
+	// Getter function for pacakge.
+	rpc getPackage(GetPackageRequest) returns (GetPackageResponse);
+	
+
+	// Delete functions.
+	
+	// Delete a package.
+	rpc deletePackage(DeletePackageRequest) returns (DeletePackageResponse);
+	
+	// Delete a package supplier
+	rpc deletePackageSupplier(DeletePackageSupplierRequest) returns (DeletePackageSupplierResponse);
+	
+	// Delete a supplier
+	rpc deleteSupplier(DeleteSupplierRequest) returns (DeleteSupplierResponse);
+	
+	// Delete propertie definition
+	rpc deletePropertyDefinition(DeletePropertyDefinitionRequest) returns (DeletePropertyDefinitionResponse);
+	
+	// Delete unit of measure
+	rpc deleteUnitOfMeasure(DeleteUnitOfMeasureRequest) returns (DeleteUnitOfMeasureResponse);
+	
+	// Delete Item Instance
+	rpc deleteItemInstance(DeleteItemInstanceRequest) returns (DeleteItemInstanceResponse);
+	
+	// Delete Manufacturer
+	rpc deleteManufacturer(DeleteManufacturerRequest) returns (DeleteManufacturerResponse);
+	
+	// Delete Item Manufacturer
+	rpc deleteItemManufacturer(DeleteItemManufacturerRequest) returns (DeleteItemManufacturerResponse);
+	
+	// Delete Category
+	rpc deleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+	
+	// Delete Localisation
+	rpc deleteLocalisation(DeleteLocalisationRequest) returns (DeleteLocalisationResponse);
 }

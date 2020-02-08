@@ -1,11 +1,14 @@
 import * as jspb from "google-protobuf"
 
 export class Reference extends jspb.Message {
-  getRefdbname(): string;
-  setRefdbname(value: string): void;
+  getRefcolid(): string;
+  setRefcolid(value: string): void;
 
   getRefobjid(): string;
   setRefobjid(value: string): void;
+
+  getRefdbname(): string;
+  setRefdbname(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Reference.AsObject;
@@ -17,8 +20,9 @@ export class Reference extends jspb.Message {
 
 export namespace Reference {
   export type AsObject = {
-    refdbname: string,
+    refcolid: string,
     refobjid: string,
+    refdbname: string,
   }
 }
 
@@ -166,37 +170,15 @@ export namespace DeleteConnectionRsp {
   }
 }
 
-export class Language extends jspb.Message {
-  getCode(): string;
-  setCode(value: string): void;
-
-  getName(): string;
-  setName(value: string): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): Language.AsObject;
-  static toObject(includeInstance: boolean, msg: Language): Language.AsObject;
-  static serializeBinaryToWriter(message: Language, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): Language;
-  static deserializeBinaryFromReader(message: Language, reader: jspb.BinaryReader): Language;
-}
-
-export namespace Language {
-  export type AsObject = {
-    code: string,
-    name: string,
-  }
-}
-
 export class PropertyDefinition extends jspb.Message {
   getId(): string;
   setId(value: string): void;
 
-  getLanguagecode(): string;
-  setLanguagecode(value: string): void;
-
   getName(): string;
   setName(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
 
   getAbreviation(): string;
   setAbreviation(value: string): void;
@@ -233,8 +215,8 @@ export class PropertyDefinition extends jspb.Message {
 export namespace PropertyDefinition {
   export type AsObject = {
     id: string,
-    languagecode: string,
     name: string,
+    languagecode: string,
     abreviation: string,
     description: string,
     type: PropertyDefinition.Type,
@@ -277,11 +259,11 @@ export class ItemDefinition extends jspb.Message {
   getId(): string;
   setId(value: string): void;
 
-  getLanguagecode(): string;
-  setLanguagecode(value: string): void;
-
   getName(): string;
   setName(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
 
   getAbreviation(): string;
   setAbreviation(value: string): void;
@@ -319,6 +301,11 @@ export class ItemDefinition extends jspb.Message {
   hasEquivalentsitemdefintionsrefs(): boolean;
   clearEquivalentsitemdefintionsrefs(): void;
 
+  getCategories(): Reference | undefined;
+  setCategories(value?: Reference): void;
+  hasCategories(): boolean;
+  clearCategories(): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ItemDefinition.AsObject;
   static toObject(includeInstance: boolean, msg: ItemDefinition): ItemDefinition.AsObject;
@@ -330,8 +317,8 @@ export class ItemDefinition extends jspb.Message {
 export namespace ItemDefinition {
   export type AsObject = {
     id: string,
-    languagecode: string,
     name: string,
+    languagecode: string,
     abreviation: string,
     description: string,
     aliasList: Array<string>,
@@ -340,6 +327,103 @@ export namespace ItemDefinition {
     propertiesids?: References.AsObject,
     releadeditemdefintionsrefs?: References.AsObject,
     equivalentsitemdefintionsrefs?: References.AsObject,
+    categories?: Reference.AsObject,
+  }
+}
+
+export class AppendItemDefinitionCategoryRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getCategory(): Reference | undefined;
+  setCategory(value?: Reference): void;
+  hasCategory(): boolean;
+  clearCategory(): void;
+
+  getItemdefinition(): Reference | undefined;
+  setItemdefinition(value?: Reference): void;
+  hasItemdefinition(): boolean;
+  clearItemdefinition(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AppendItemDefinitionCategoryRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: AppendItemDefinitionCategoryRequest): AppendItemDefinitionCategoryRequest.AsObject;
+  static serializeBinaryToWriter(message: AppendItemDefinitionCategoryRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AppendItemDefinitionCategoryRequest;
+  static deserializeBinaryFromReader(message: AppendItemDefinitionCategoryRequest, reader: jspb.BinaryReader): AppendItemDefinitionCategoryRequest;
+}
+
+export namespace AppendItemDefinitionCategoryRequest {
+  export type AsObject = {
+    connectionid: string,
+    category?: Reference.AsObject,
+    itemdefinition?: Reference.AsObject,
+  }
+}
+
+export class AppendItemDefinitionCategoryResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AppendItemDefinitionCategoryResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: AppendItemDefinitionCategoryResponse): AppendItemDefinitionCategoryResponse.AsObject;
+  static serializeBinaryToWriter(message: AppendItemDefinitionCategoryResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AppendItemDefinitionCategoryResponse;
+  static deserializeBinaryFromReader(message: AppendItemDefinitionCategoryResponse, reader: jspb.BinaryReader): AppendItemDefinitionCategoryResponse;
+}
+
+export namespace AppendItemDefinitionCategoryResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RemoveItemDefinitionCategoryRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getCategory(): Reference | undefined;
+  setCategory(value?: Reference): void;
+  hasCategory(): boolean;
+  clearCategory(): void;
+
+  getItemdefinition(): Reference | undefined;
+  setItemdefinition(value?: Reference): void;
+  hasItemdefinition(): boolean;
+  clearItemdefinition(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveItemDefinitionCategoryRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveItemDefinitionCategoryRequest): RemoveItemDefinitionCategoryRequest.AsObject;
+  static serializeBinaryToWriter(message: RemoveItemDefinitionCategoryRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveItemDefinitionCategoryRequest;
+  static deserializeBinaryFromReader(message: RemoveItemDefinitionCategoryRequest, reader: jspb.BinaryReader): RemoveItemDefinitionCategoryRequest;
+}
+
+export namespace RemoveItemDefinitionCategoryRequest {
+  export type AsObject = {
+    connectionid: string,
+    category?: Reference.AsObject,
+    itemdefinition?: Reference.AsObject,
+  }
+}
+
+export class RemoveItemDefinitionCategoryResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemoveItemDefinitionCategoryResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: RemoveItemDefinitionCategoryResponse): RemoveItemDefinitionCategoryResponse.AsObject;
+  static serializeBinaryToWriter(message: RemoveItemDefinitionCategoryResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemoveItemDefinitionCategoryResponse;
+  static deserializeBinaryFromReader(message: RemoveItemDefinitionCategoryResponse, reader: jspb.BinaryReader): RemoveItemDefinitionCategoryResponse;
+}
+
+export namespace RemoveItemDefinitionCategoryResponse {
+  export type AsObject = {
+    result: boolean,
   }
 }
 
@@ -347,11 +431,11 @@ export class UnitOfMeasure extends jspb.Message {
   getId(): string;
   setId(value: string): void;
 
-  getLanguagecode(): string;
-  setLanguagecode(value: string): void;
-
   getName(): string;
   setName(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
 
   getAbreviation(): string;
   setAbreviation(value: string): void;
@@ -370,10 +454,310 @@ export class UnitOfMeasure extends jspb.Message {
 export namespace UnitOfMeasure {
   export type AsObject = {
     id: string,
-    languagecode: string,
     name: string,
+    languagecode: string,
     abreviation: string,
     description: string,
+  }
+}
+
+export class Category extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
+
+  getCategories(): References | undefined;
+  setCategories(value?: References): void;
+  hasCategories(): boolean;
+  clearCategories(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Category.AsObject;
+  static toObject(includeInstance: boolean, msg: Category): Category.AsObject;
+  static serializeBinaryToWriter(message: Category, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Category;
+  static deserializeBinaryFromReader(message: Category, reader: jspb.BinaryReader): Category;
+}
+
+export namespace Category {
+  export type AsObject = {
+    id: string,
+    name: string,
+    languagecode: string,
+    categories?: References.AsObject,
+  }
+}
+
+export class Localisation extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
+
+  getSublocalisationsList(): Array<Localisation>;
+  setSublocalisationsList(value: Array<Localisation>): void;
+  clearSublocalisationsList(): void;
+  addSublocalisations(value?: Localisation, index?: number): Localisation;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Localisation.AsObject;
+  static toObject(includeInstance: boolean, msg: Localisation): Localisation.AsObject;
+  static serializeBinaryToWriter(message: Localisation, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Localisation;
+  static deserializeBinaryFromReader(message: Localisation, reader: jspb.BinaryReader): Localisation;
+}
+
+export namespace Localisation {
+  export type AsObject = {
+    id: string,
+    name: string,
+    languagecode: string,
+    sublocalisationsList: Array<Localisation.AsObject>,
+  }
+}
+
+export class Inventory extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getSafetystock(): number;
+  setSafetystock(value: number): void;
+
+  getReorderqte(): number;
+  setReorderqte(value: number): void;
+
+  getQte(): number;
+  setQte(value: number): void;
+
+  getFactor(): number;
+  setFactor(value: number): void;
+
+  getUnitofmeasureid(): string;
+  setUnitofmeasureid(value: string): void;
+
+  getLocalisationid(): string;
+  setLocalisationid(value: string): void;
+
+  getIteminstance(): Reference | undefined;
+  setIteminstance(value?: Reference): void;
+  hasIteminstance(): boolean;
+  clearIteminstance(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Inventory.AsObject;
+  static toObject(includeInstance: boolean, msg: Inventory): Inventory.AsObject;
+  static serializeBinaryToWriter(message: Inventory, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Inventory;
+  static deserializeBinaryFromReader(message: Inventory, reader: jspb.BinaryReader): Inventory;
+}
+
+export namespace Inventory {
+  export type AsObject = {
+    id: string,
+    safetystock: number,
+    reorderqte: number,
+    qte: number,
+    factor: number,
+    unitofmeasureid: string,
+    localisationid: string,
+    iteminstance?: Reference.AsObject,
+  }
+}
+
+export class Price extends jspb.Message {
+  getValue(): number;
+  setValue(value: number): void;
+
+  getCurrency(): Currency;
+  setCurrency(value: Currency): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Price.AsObject;
+  static toObject(includeInstance: boolean, msg: Price): Price.AsObject;
+  static serializeBinaryToWriter(message: Price, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Price;
+  static deserializeBinaryFromReader(message: Price, reader: jspb.BinaryReader): Price;
+}
+
+export namespace Price {
+  export type AsObject = {
+    value: number,
+    currency: Currency,
+  }
+}
+
+export class Package extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getLanguagecode(): string;
+  setLanguagecode(value: string): void;
+
+  getDescription(): string;
+  setDescription(value: string): void;
+
+  getItemdefinitions(): References | undefined;
+  setItemdefinitions(value?: References): void;
+  hasItemdefinitions(): boolean;
+  clearItemdefinitions(): void;
+
+  getUnitofmeasure(): Reference | undefined;
+  setUnitofmeasure(value?: Reference): void;
+  hasUnitofmeasure(): boolean;
+  clearUnitofmeasure(): void;
+
+  getQte(): number;
+  setQte(value: number): void;
+
+  getInventory(): Reference | undefined;
+  setInventory(value?: Reference): void;
+  hasInventory(): boolean;
+  clearInventory(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Package.AsObject;
+  static toObject(includeInstance: boolean, msg: Package): Package.AsObject;
+  static serializeBinaryToWriter(message: Package, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Package;
+  static deserializeBinaryFromReader(message: Package, reader: jspb.BinaryReader): Package;
+}
+
+export namespace Package {
+  export type AsObject = {
+    id: string,
+    languagecode: string,
+    description: string,
+    itemdefinitions?: References.AsObject,
+    unitofmeasure?: Reference.AsObject,
+    qte: number,
+    inventory?: Reference.AsObject,
+  }
+}
+
+export class Supplier extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Supplier.AsObject;
+  static toObject(includeInstance: boolean, msg: Supplier): Supplier.AsObject;
+  static serializeBinaryToWriter(message: Supplier, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Supplier;
+  static deserializeBinaryFromReader(message: Supplier, reader: jspb.BinaryReader): Supplier;
+}
+
+export namespace Supplier {
+  export type AsObject = {
+    id: string,
+    name: string,
+  }
+}
+
+export class PackageSupplier extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getSupplier(): Reference | undefined;
+  setSupplier(value?: Reference): void;
+  hasSupplier(): boolean;
+  clearSupplier(): void;
+
+  getPackage(): Reference | undefined;
+  setPackage(value?: Reference): void;
+  hasPackage(): boolean;
+  clearPackage(): void;
+
+  getPrice(): Price | undefined;
+  setPrice(value?: Price): void;
+  hasPrice(): boolean;
+  clearPrice(): void;
+
+  getDate(): number;
+  setDate(value: number): void;
+
+  getQte(): number;
+  setQte(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PackageSupplier.AsObject;
+  static toObject(includeInstance: boolean, msg: PackageSupplier): PackageSupplier.AsObject;
+  static serializeBinaryToWriter(message: PackageSupplier, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PackageSupplier;
+  static deserializeBinaryFromReader(message: PackageSupplier, reader: jspb.BinaryReader): PackageSupplier;
+}
+
+export namespace PackageSupplier {
+  export type AsObject = {
+    id: string,
+    supplier?: Reference.AsObject,
+    pb_package?: Reference.AsObject,
+    price?: Price.AsObject,
+    date: number,
+    qte: number,
+  }
+}
+
+export class Manufacturer extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Manufacturer.AsObject;
+  static toObject(includeInstance: boolean, msg: Manufacturer): Manufacturer.AsObject;
+  static serializeBinaryToWriter(message: Manufacturer, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Manufacturer;
+  static deserializeBinaryFromReader(message: Manufacturer, reader: jspb.BinaryReader): Manufacturer;
+}
+
+export namespace Manufacturer {
+  export type AsObject = {
+    id: string,
+    name: string,
+  }
+}
+
+export class ItemManufacturer extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  getManufacturer(): Reference | undefined;
+  setManufacturer(value?: Reference): void;
+  hasManufacturer(): boolean;
+  clearManufacturer(): void;
+
+  getItem(): Reference | undefined;
+  setItem(value?: Reference): void;
+  hasItem(): boolean;
+  clearItem(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ItemManufacturer.AsObject;
+  static toObject(includeInstance: boolean, msg: ItemManufacturer): ItemManufacturer.AsObject;
+  static serializeBinaryToWriter(message: ItemManufacturer, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ItemManufacturer;
+  static deserializeBinaryFromReader(message: ItemManufacturer, reader: jspb.BinaryReader): ItemManufacturer;
+}
+
+export namespace ItemManufacturer {
+  export type AsObject = {
+    id: string,
+    manufacturer?: Reference.AsObject,
+    item?: Reference.AsObject,
   }
 }
 
@@ -597,7 +981,7 @@ export namespace ItemInstance {
   }
 }
 
-export class SaveUnitOfMesureRequest extends jspb.Message {
+export class SaveUnitOfMeasureRequest extends jspb.Message {
   getConnectionid(): string;
   setConnectionid(value: string): void;
 
@@ -607,33 +991,33 @@ export class SaveUnitOfMesureRequest extends jspb.Message {
   clearUnitofmeasure(): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): SaveUnitOfMesureRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: SaveUnitOfMesureRequest): SaveUnitOfMesureRequest.AsObject;
-  static serializeBinaryToWriter(message: SaveUnitOfMesureRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): SaveUnitOfMesureRequest;
-  static deserializeBinaryFromReader(message: SaveUnitOfMesureRequest, reader: jspb.BinaryReader): SaveUnitOfMesureRequest;
+  toObject(includeInstance?: boolean): SaveUnitOfMeasureRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveUnitOfMeasureRequest): SaveUnitOfMeasureRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveUnitOfMeasureRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveUnitOfMeasureRequest;
+  static deserializeBinaryFromReader(message: SaveUnitOfMeasureRequest, reader: jspb.BinaryReader): SaveUnitOfMeasureRequest;
 }
 
-export namespace SaveUnitOfMesureRequest {
+export namespace SaveUnitOfMeasureRequest {
   export type AsObject = {
     connectionid: string,
     unitofmeasure?: UnitOfMeasure.AsObject,
   }
 }
 
-export class SaveUnitOfMesureResponse extends jspb.Message {
+export class SaveUnitOfMeasureResponse extends jspb.Message {
   getId(): string;
   setId(value: string): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): SaveUnitOfMesureResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: SaveUnitOfMesureResponse): SaveUnitOfMesureResponse.AsObject;
-  static serializeBinaryToWriter(message: SaveUnitOfMesureResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): SaveUnitOfMesureResponse;
-  static deserializeBinaryFromReader(message: SaveUnitOfMesureResponse, reader: jspb.BinaryReader): SaveUnitOfMesureResponse;
+  toObject(includeInstance?: boolean): SaveUnitOfMeasureResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveUnitOfMeasureResponse): SaveUnitOfMeasureResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveUnitOfMeasureResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveUnitOfMeasureResponse;
+  static deserializeBinaryFromReader(message: SaveUnitOfMeasureResponse, reader: jspb.BinaryReader): SaveUnitOfMeasureResponse;
 }
 
-export namespace SaveUnitOfMesureResponse {
+export namespace SaveUnitOfMeasureResponse {
   export type AsObject = {
     id: string,
   }
@@ -765,6 +1149,893 @@ export namespace SaveItemInstanceResponse {
   }
 }
 
+export class SaveManufacturerRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getManufacturer(): Manufacturer | undefined;
+  setManufacturer(value?: Manufacturer): void;
+  hasManufacturer(): boolean;
+  clearManufacturer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveManufacturerRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveManufacturerRequest): SaveManufacturerRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveManufacturerRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveManufacturerRequest;
+  static deserializeBinaryFromReader(message: SaveManufacturerRequest, reader: jspb.BinaryReader): SaveManufacturerRequest;
+}
+
+export namespace SaveManufacturerRequest {
+  export type AsObject = {
+    connectionid: string,
+    manufacturer?: Manufacturer.AsObject,
+  }
+}
+
+export class SaveManufacturerResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveManufacturerResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveManufacturerResponse): SaveManufacturerResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveManufacturerResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveManufacturerResponse;
+  static deserializeBinaryFromReader(message: SaveManufacturerResponse, reader: jspb.BinaryReader): SaveManufacturerResponse;
+}
+
+export namespace SaveManufacturerResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SaveSupplierRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getSupplier(): Supplier | undefined;
+  setSupplier(value?: Supplier): void;
+  hasSupplier(): boolean;
+  clearSupplier(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveSupplierRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveSupplierRequest): SaveSupplierRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveSupplierRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveSupplierRequest;
+  static deserializeBinaryFromReader(message: SaveSupplierRequest, reader: jspb.BinaryReader): SaveSupplierRequest;
+}
+
+export namespace SaveSupplierRequest {
+  export type AsObject = {
+    connectionid: string,
+    supplier?: Supplier.AsObject,
+  }
+}
+
+export class SaveSupplierResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveSupplierResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveSupplierResponse): SaveSupplierResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveSupplierResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveSupplierResponse;
+  static deserializeBinaryFromReader(message: SaveSupplierResponse, reader: jspb.BinaryReader): SaveSupplierResponse;
+}
+
+export namespace SaveSupplierResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SaveLocalisationRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getLocalisation(): Localisation | undefined;
+  setLocalisation(value?: Localisation): void;
+  hasLocalisation(): boolean;
+  clearLocalisation(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveLocalisationRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveLocalisationRequest): SaveLocalisationRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveLocalisationRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveLocalisationRequest;
+  static deserializeBinaryFromReader(message: SaveLocalisationRequest, reader: jspb.BinaryReader): SaveLocalisationRequest;
+}
+
+export namespace SaveLocalisationRequest {
+  export type AsObject = {
+    connectionid: string,
+    localisation?: Localisation.AsObject,
+  }
+}
+
+export class SaveLocalisationResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveLocalisationResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveLocalisationResponse): SaveLocalisationResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveLocalisationResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveLocalisationResponse;
+  static deserializeBinaryFromReader(message: SaveLocalisationResponse, reader: jspb.BinaryReader): SaveLocalisationResponse;
+}
+
+export namespace SaveLocalisationResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SaveCategoryRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getCategory(): Category | undefined;
+  setCategory(value?: Category): void;
+  hasCategory(): boolean;
+  clearCategory(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveCategoryRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveCategoryRequest): SaveCategoryRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveCategoryRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveCategoryRequest;
+  static deserializeBinaryFromReader(message: SaveCategoryRequest, reader: jspb.BinaryReader): SaveCategoryRequest;
+}
+
+export namespace SaveCategoryRequest {
+  export type AsObject = {
+    connectionid: string,
+    category?: Category.AsObject,
+  }
+}
+
+export class SaveCategoryResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveCategoryResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveCategoryResponse): SaveCategoryResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveCategoryResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveCategoryResponse;
+  static deserializeBinaryFromReader(message: SaveCategoryResponse, reader: jspb.BinaryReader): SaveCategoryResponse;
+}
+
+export namespace SaveCategoryResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SaveInventoryRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getInventory(): Inventory | undefined;
+  setInventory(value?: Inventory): void;
+  hasInventory(): boolean;
+  clearInventory(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveInventoryRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveInventoryRequest): SaveInventoryRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveInventoryRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveInventoryRequest;
+  static deserializeBinaryFromReader(message: SaveInventoryRequest, reader: jspb.BinaryReader): SaveInventoryRequest;
+}
+
+export namespace SaveInventoryRequest {
+  export type AsObject = {
+    connectionid: string,
+    inventory?: Inventory.AsObject,
+  }
+}
+
+export class SaveInventoryResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveInventoryResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveInventoryResponse): SaveInventoryResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveInventoryResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveInventoryResponse;
+  static deserializeBinaryFromReader(message: SaveInventoryResponse, reader: jspb.BinaryReader): SaveInventoryResponse;
+}
+
+export namespace SaveInventoryResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SavePackageRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPackage(): Package | undefined;
+  setPackage(value?: Package): void;
+  hasPackage(): boolean;
+  clearPackage(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SavePackageRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SavePackageRequest): SavePackageRequest.AsObject;
+  static serializeBinaryToWriter(message: SavePackageRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SavePackageRequest;
+  static deserializeBinaryFromReader(message: SavePackageRequest, reader: jspb.BinaryReader): SavePackageRequest;
+}
+
+export namespace SavePackageRequest {
+  export type AsObject = {
+    connectionid: string,
+    pb_package?: Package.AsObject,
+  }
+}
+
+export class SavePackageResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SavePackageResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SavePackageResponse): SavePackageResponse.AsObject;
+  static serializeBinaryToWriter(message: SavePackageResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SavePackageResponse;
+  static deserializeBinaryFromReader(message: SavePackageResponse, reader: jspb.BinaryReader): SavePackageResponse;
+}
+
+export namespace SavePackageResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SavePackageSupplierRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPackagesupplier(): PackageSupplier | undefined;
+  setPackagesupplier(value?: PackageSupplier): void;
+  hasPackagesupplier(): boolean;
+  clearPackagesupplier(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SavePackageSupplierRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SavePackageSupplierRequest): SavePackageSupplierRequest.AsObject;
+  static serializeBinaryToWriter(message: SavePackageSupplierRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SavePackageSupplierRequest;
+  static deserializeBinaryFromReader(message: SavePackageSupplierRequest, reader: jspb.BinaryReader): SavePackageSupplierRequest;
+}
+
+export namespace SavePackageSupplierRequest {
+  export type AsObject = {
+    connectionid: string,
+    packagesupplier?: PackageSupplier.AsObject,
+  }
+}
+
+export class SavePackageSupplierResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SavePackageSupplierResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SavePackageSupplierResponse): SavePackageSupplierResponse.AsObject;
+  static serializeBinaryToWriter(message: SavePackageSupplierResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SavePackageSupplierResponse;
+  static deserializeBinaryFromReader(message: SavePackageSupplierResponse, reader: jspb.BinaryReader): SavePackageSupplierResponse;
+}
+
+export namespace SavePackageSupplierResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class SaveItemManufacturerRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getItemmanafacturer(): ItemManufacturer | undefined;
+  setItemmanafacturer(value?: ItemManufacturer): void;
+  hasItemmanafacturer(): boolean;
+  clearItemmanafacturer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveItemManufacturerRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveItemManufacturerRequest): SaveItemManufacturerRequest.AsObject;
+  static serializeBinaryToWriter(message: SaveItemManufacturerRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveItemManufacturerRequest;
+  static deserializeBinaryFromReader(message: SaveItemManufacturerRequest, reader: jspb.BinaryReader): SaveItemManufacturerRequest;
+}
+
+export namespace SaveItemManufacturerRequest {
+  export type AsObject = {
+    connectionid: string,
+    itemmanafacturer?: ItemManufacturer.AsObject,
+  }
+}
+
+export class SaveItemManufacturerResponse extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SaveItemManufacturerResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SaveItemManufacturerResponse): SaveItemManufacturerResponse.AsObject;
+  static serializeBinaryToWriter(message: SaveItemManufacturerResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SaveItemManufacturerResponse;
+  static deserializeBinaryFromReader(message: SaveItemManufacturerResponse, reader: jspb.BinaryReader): SaveItemManufacturerResponse;
+}
+
+export namespace SaveItemManufacturerResponse {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class GetSupplierRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getSupplierid(): string;
+  setSupplierid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSupplierRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSupplierRequest): GetSupplierRequest.AsObject;
+  static serializeBinaryToWriter(message: GetSupplierRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSupplierRequest;
+  static deserializeBinaryFromReader(message: GetSupplierRequest, reader: jspb.BinaryReader): GetSupplierRequest;
+}
+
+export namespace GetSupplierRequest {
+  export type AsObject = {
+    connectionid: string,
+    supplierid: string,
+  }
+}
+
+export class GetSupplierResponse extends jspb.Message {
+  getSupplier(): Supplier | undefined;
+  setSupplier(value?: Supplier): void;
+  hasSupplier(): boolean;
+  clearSupplier(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSupplierResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSupplierResponse): GetSupplierResponse.AsObject;
+  static serializeBinaryToWriter(message: GetSupplierResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSupplierResponse;
+  static deserializeBinaryFromReader(message: GetSupplierResponse, reader: jspb.BinaryReader): GetSupplierResponse;
+}
+
+export namespace GetSupplierResponse {
+  export type AsObject = {
+    supplier?: Supplier.AsObject,
+  }
+}
+
+export class GetSupplierPackagesRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getSupplierid(): string;
+  setSupplierid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSupplierPackagesRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSupplierPackagesRequest): GetSupplierPackagesRequest.AsObject;
+  static serializeBinaryToWriter(message: GetSupplierPackagesRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSupplierPackagesRequest;
+  static deserializeBinaryFromReader(message: GetSupplierPackagesRequest, reader: jspb.BinaryReader): GetSupplierPackagesRequest;
+}
+
+export namespace GetSupplierPackagesRequest {
+  export type AsObject = {
+    connectionid: string,
+    supplierid: string,
+  }
+}
+
+export class GetSupplierPackagesResponse extends jspb.Message {
+  getPacakgessupplierList(): Array<PackageSupplier>;
+  setPacakgessupplierList(value: Array<PackageSupplier>): void;
+  clearPacakgessupplierList(): void;
+  addPacakgessupplier(value?: PackageSupplier, index?: number): PackageSupplier;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSupplierPackagesResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSupplierPackagesResponse): GetSupplierPackagesResponse.AsObject;
+  static serializeBinaryToWriter(message: GetSupplierPackagesResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSupplierPackagesResponse;
+  static deserializeBinaryFromReader(message: GetSupplierPackagesResponse, reader: jspb.BinaryReader): GetSupplierPackagesResponse;
+}
+
+export namespace GetSupplierPackagesResponse {
+  export type AsObject = {
+    pacakgessupplierList: Array<PackageSupplier.AsObject>,
+  }
+}
+
+export class GetPackageRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPackageid(): string;
+  setPackageid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPackageRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPackageRequest): GetPackageRequest.AsObject;
+  static serializeBinaryToWriter(message: GetPackageRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPackageRequest;
+  static deserializeBinaryFromReader(message: GetPackageRequest, reader: jspb.BinaryReader): GetPackageRequest;
+}
+
+export namespace GetPackageRequest {
+  export type AsObject = {
+    connectionid: string,
+    packageid: string,
+  }
+}
+
+export class GetPackageResponse extends jspb.Message {
+  getPacakge(): Package | undefined;
+  setPacakge(value?: Package): void;
+  hasPacakge(): boolean;
+  clearPacakge(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPackageResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPackageResponse): GetPackageResponse.AsObject;
+  static serializeBinaryToWriter(message: GetPackageResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPackageResponse;
+  static deserializeBinaryFromReader(message: GetPackageResponse, reader: jspb.BinaryReader): GetPackageResponse;
+}
+
+export namespace GetPackageResponse {
+  export type AsObject = {
+    pacakge?: Package.AsObject,
+  }
+}
+
+export class DeletePackageSupplierRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPackagesupplier(): PackageSupplier | undefined;
+  setPackagesupplier(value?: PackageSupplier): void;
+  hasPackagesupplier(): boolean;
+  clearPackagesupplier(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePackageSupplierRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePackageSupplierRequest): DeletePackageSupplierRequest.AsObject;
+  static serializeBinaryToWriter(message: DeletePackageSupplierRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePackageSupplierRequest;
+  static deserializeBinaryFromReader(message: DeletePackageSupplierRequest, reader: jspb.BinaryReader): DeletePackageSupplierRequest;
+}
+
+export namespace DeletePackageSupplierRequest {
+  export type AsObject = {
+    connectionid: string,
+    packagesupplier?: PackageSupplier.AsObject,
+  }
+}
+
+export class DeletePackageSupplierResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePackageSupplierResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePackageSupplierResponse): DeletePackageSupplierResponse.AsObject;
+  static serializeBinaryToWriter(message: DeletePackageSupplierResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePackageSupplierResponse;
+  static deserializeBinaryFromReader(message: DeletePackageSupplierResponse, reader: jspb.BinaryReader): DeletePackageSupplierResponse;
+}
+
+export namespace DeletePackageSupplierResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeletePackageRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPackage(): Package | undefined;
+  setPackage(value?: Package): void;
+  hasPackage(): boolean;
+  clearPackage(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePackageRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePackageRequest): DeletePackageRequest.AsObject;
+  static serializeBinaryToWriter(message: DeletePackageRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePackageRequest;
+  static deserializeBinaryFromReader(message: DeletePackageRequest, reader: jspb.BinaryReader): DeletePackageRequest;
+}
+
+export namespace DeletePackageRequest {
+  export type AsObject = {
+    connectionid: string,
+    pb_package?: Package.AsObject,
+  }
+}
+
+export class DeletePackageResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePackageResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePackageResponse): DeletePackageResponse.AsObject;
+  static serializeBinaryToWriter(message: DeletePackageResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePackageResponse;
+  static deserializeBinaryFromReader(message: DeletePackageResponse, reader: jspb.BinaryReader): DeletePackageResponse;
+}
+
+export namespace DeletePackageResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteSupplierRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getSupplier(): Supplier | undefined;
+  setSupplier(value?: Supplier): void;
+  hasSupplier(): boolean;
+  clearSupplier(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteSupplierRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteSupplierRequest): DeleteSupplierRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteSupplierRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteSupplierRequest;
+  static deserializeBinaryFromReader(message: DeleteSupplierRequest, reader: jspb.BinaryReader): DeleteSupplierRequest;
+}
+
+export namespace DeleteSupplierRequest {
+  export type AsObject = {
+    connectionid: string,
+    supplier?: Supplier.AsObject,
+  }
+}
+
+export class DeleteSupplierResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteSupplierResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteSupplierResponse): DeleteSupplierResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteSupplierResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteSupplierResponse;
+  static deserializeBinaryFromReader(message: DeleteSupplierResponse, reader: jspb.BinaryReader): DeleteSupplierResponse;
+}
+
+export namespace DeleteSupplierResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeletePropertyDefinitionRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getPropertydefinition(): PropertyDefinition | undefined;
+  setPropertydefinition(value?: PropertyDefinition): void;
+  hasPropertydefinition(): boolean;
+  clearPropertydefinition(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePropertyDefinitionRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePropertyDefinitionRequest): DeletePropertyDefinitionRequest.AsObject;
+  static serializeBinaryToWriter(message: DeletePropertyDefinitionRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePropertyDefinitionRequest;
+  static deserializeBinaryFromReader(message: DeletePropertyDefinitionRequest, reader: jspb.BinaryReader): DeletePropertyDefinitionRequest;
+}
+
+export namespace DeletePropertyDefinitionRequest {
+  export type AsObject = {
+    connectionid: string,
+    propertydefinition?: PropertyDefinition.AsObject,
+  }
+}
+
+export class DeletePropertyDefinitionResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePropertyDefinitionResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePropertyDefinitionResponse): DeletePropertyDefinitionResponse.AsObject;
+  static serializeBinaryToWriter(message: DeletePropertyDefinitionResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePropertyDefinitionResponse;
+  static deserializeBinaryFromReader(message: DeletePropertyDefinitionResponse, reader: jspb.BinaryReader): DeletePropertyDefinitionResponse;
+}
+
+export namespace DeletePropertyDefinitionResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteUnitOfMeasureRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getUnitofmeasure(): UnitOfMeasure | undefined;
+  setUnitofmeasure(value?: UnitOfMeasure): void;
+  hasUnitofmeasure(): boolean;
+  clearUnitofmeasure(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteUnitOfMeasureRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteUnitOfMeasureRequest): DeleteUnitOfMeasureRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteUnitOfMeasureRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteUnitOfMeasureRequest;
+  static deserializeBinaryFromReader(message: DeleteUnitOfMeasureRequest, reader: jspb.BinaryReader): DeleteUnitOfMeasureRequest;
+}
+
+export namespace DeleteUnitOfMeasureRequest {
+  export type AsObject = {
+    connectionid: string,
+    unitofmeasure?: UnitOfMeasure.AsObject,
+  }
+}
+
+export class DeleteUnitOfMeasureResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteUnitOfMeasureResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteUnitOfMeasureResponse): DeleteUnitOfMeasureResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteUnitOfMeasureResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteUnitOfMeasureResponse;
+  static deserializeBinaryFromReader(message: DeleteUnitOfMeasureResponse, reader: jspb.BinaryReader): DeleteUnitOfMeasureResponse;
+}
+
+export namespace DeleteUnitOfMeasureResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteItemInstanceRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getInstance(): ItemInstance | undefined;
+  setInstance(value?: ItemInstance): void;
+  hasInstance(): boolean;
+  clearInstance(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteItemInstanceRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteItemInstanceRequest): DeleteItemInstanceRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteItemInstanceRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteItemInstanceRequest;
+  static deserializeBinaryFromReader(message: DeleteItemInstanceRequest, reader: jspb.BinaryReader): DeleteItemInstanceRequest;
+}
+
+export namespace DeleteItemInstanceRequest {
+  export type AsObject = {
+    connectionid: string,
+    instance?: ItemInstance.AsObject,
+  }
+}
+
+export class DeleteItemInstanceResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteItemInstanceResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteItemInstanceResponse): DeleteItemInstanceResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteItemInstanceResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteItemInstanceResponse;
+  static deserializeBinaryFromReader(message: DeleteItemInstanceResponse, reader: jspb.BinaryReader): DeleteItemInstanceResponse;
+}
+
+export namespace DeleteItemInstanceResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteManufacturerRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getManufacturer(): Manufacturer | undefined;
+  setManufacturer(value?: Manufacturer): void;
+  hasManufacturer(): boolean;
+  clearManufacturer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteManufacturerRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteManufacturerRequest): DeleteManufacturerRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteManufacturerRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteManufacturerRequest;
+  static deserializeBinaryFromReader(message: DeleteManufacturerRequest, reader: jspb.BinaryReader): DeleteManufacturerRequest;
+}
+
+export namespace DeleteManufacturerRequest {
+  export type AsObject = {
+    connectionid: string,
+    manufacturer?: Manufacturer.AsObject,
+  }
+}
+
+export class DeleteManufacturerResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteManufacturerResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteManufacturerResponse): DeleteManufacturerResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteManufacturerResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteManufacturerResponse;
+  static deserializeBinaryFromReader(message: DeleteManufacturerResponse, reader: jspb.BinaryReader): DeleteManufacturerResponse;
+}
+
+export namespace DeleteManufacturerResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteItemManufacturerRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getItemmanufacturer(): ItemManufacturer | undefined;
+  setItemmanufacturer(value?: ItemManufacturer): void;
+  hasItemmanufacturer(): boolean;
+  clearItemmanufacturer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteItemManufacturerRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteItemManufacturerRequest): DeleteItemManufacturerRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteItemManufacturerRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteItemManufacturerRequest;
+  static deserializeBinaryFromReader(message: DeleteItemManufacturerRequest, reader: jspb.BinaryReader): DeleteItemManufacturerRequest;
+}
+
+export namespace DeleteItemManufacturerRequest {
+  export type AsObject = {
+    connectionid: string,
+    itemmanufacturer?: ItemManufacturer.AsObject,
+  }
+}
+
+export class DeleteItemManufacturerResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteItemManufacturerResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteItemManufacturerResponse): DeleteItemManufacturerResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteItemManufacturerResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteItemManufacturerResponse;
+  static deserializeBinaryFromReader(message: DeleteItemManufacturerResponse, reader: jspb.BinaryReader): DeleteItemManufacturerResponse;
+}
+
+export namespace DeleteItemManufacturerResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteCategoryRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getCategory(): Category | undefined;
+  setCategory(value?: Category): void;
+  hasCategory(): boolean;
+  clearCategory(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteCategoryRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteCategoryRequest): DeleteCategoryRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteCategoryRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteCategoryRequest;
+  static deserializeBinaryFromReader(message: DeleteCategoryRequest, reader: jspb.BinaryReader): DeleteCategoryRequest;
+}
+
+export namespace DeleteCategoryRequest {
+  export type AsObject = {
+    connectionid: string,
+    category?: Category.AsObject,
+  }
+}
+
+export class DeleteCategoryResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteCategoryResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteCategoryResponse): DeleteCategoryResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteCategoryResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteCategoryResponse;
+  static deserializeBinaryFromReader(message: DeleteCategoryResponse, reader: jspb.BinaryReader): DeleteCategoryResponse;
+}
+
+export namespace DeleteCategoryResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteLocalisationRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getLocalisation(): Localisation | undefined;
+  setLocalisation(value?: Localisation): void;
+  hasLocalisation(): boolean;
+  clearLocalisation(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteLocalisationRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteLocalisationRequest): DeleteLocalisationRequest.AsObject;
+  static serializeBinaryToWriter(message: DeleteLocalisationRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteLocalisationRequest;
+  static deserializeBinaryFromReader(message: DeleteLocalisationRequest, reader: jspb.BinaryReader): DeleteLocalisationRequest;
+}
+
+export namespace DeleteLocalisationRequest {
+  export type AsObject = {
+    connectionid: string,
+    localisation?: Localisation.AsObject,
+  }
+}
+
+export class DeleteLocalisationResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteLocalisationResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteLocalisationResponse): DeleteLocalisationResponse.AsObject;
+  static serializeBinaryToWriter(message: DeleteLocalisationResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteLocalisationResponse;
+  static deserializeBinaryFromReader(message: DeleteLocalisationResponse, reader: jspb.BinaryReader): DeleteLocalisationResponse;
+}
+
+export namespace DeleteLocalisationResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
 export enum StoreType { 
   MONGO = 0,
+}
+export enum Currency { 
+  us = 0,
+  can = 1,
+  euro = 2,
 }
