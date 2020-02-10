@@ -128,54 +128,13 @@ func TestSaveManufacturer(t *testing.T) {
 
 func TestSavePackage(t *testing.T) {
 
-	itemDefinitions_en := &catalogpb.References{
-		Values: []*catalogpb.Reference{
-			&catalogpb.Reference{
-				RefDbName: "catalogue_2_db",
-				RefObjId:  Utility.GenerateUUID("PIPE" + "en"),
-				RefColId:  "ItemDefinition",
-			},
-		},
-	}
-
-	var marshaler jsonpb.Marshaler
-	itemDefinitions_en_str, _ := marshaler.MarshalToString(itemDefinitions_en)
-
-	unitOfMeasure_en := &catalogpb.Reference{
-		RefDbName: "catalogue_2_db",
-		RefObjId:  Utility.GenerateUUID("INCH" + "en"),
-		RefColId:  "UnitOfMeasure",
-	}
-
-	unitOfMeasure_en_str, _ := marshaler.MarshalToString(unitOfMeasure_en)
-
-	err := client.SavePackage("catalogue_2_db", "pipe_pack_1", "en", "package of six pipe", itemDefinitions_en_str, unitOfMeasure_en_str, 6, "")
+	err := client.SavePackage("catalogue_2_db", "pipe_pack_1", "pipe six pack", "en", "package of six pipe", nil)
 
 	if err != nil {
 		log.Println(err)
 	}
 
-	itemDefinitions_fr := &catalogpb.References{
-		Values: []*catalogpb.Reference{
-			&catalogpb.Reference{
-				RefDbName: "catalogue_2_db",
-				RefObjId:  Utility.GenerateUUID("PIPE" + "fr"),
-				RefColId:  "ItemDefinition",
-			},
-		},
-	}
-
-	itemDefinitions_fr_str, _ := marshaler.MarshalToString(itemDefinitions_fr)
-
-	unitOfMeasure_fr := &catalogpb.Reference{
-		RefDbName: "catalogue_2_db",
-		RefObjId:  Utility.GenerateUUID("INCH" + "fr"),
-		RefColId:  "UnitOfMeasure",
-	}
-
-	unitOfMeasure_fr_str, _ := marshaler.MarshalToString(unitOfMeasure_fr)
-
-	err = client.SavePackage("catalogue_2_db", "pipe_pack_1", "fr", "paquet de six tuyaux", itemDefinitions_fr_str, unitOfMeasure_fr_str, 6, "")
+	err = client.SavePackage("catalogue_2_db", "pipe_pack_1", "tuyaux packet de six", "fr", "paquet de six tuyaux", nil)
 
 	if err != nil {
 		log.Println(err)
@@ -323,19 +282,13 @@ func TestSaveLocalisation(t *testing.T) {
 }
 
 func TestSaveInventory(t *testing.T) {
-	itemInstanceRef := &catalogpb.Reference{
-		RefDbName: "catalogue_2_db",
-		RefObjId:  Utility.GenerateUUID("instance_0"),
-		RefColId:  "ItemInstance",
-	}
 
 	inventory := new(catalogpb.Inventory)
 	inventory.Id = "instance_0" // can be anything...
-	inventory.ItemInstance = itemInstanceRef
 	inventory.LocalisationId = "loc0"
 	inventory.SafetyStock = 10
-	inventory.ReorderQte = 7
-	inventory.Qte = 8
+	inventory.Reorderquantity = 7
+	inventory.Quantity = 8
 	inventory.UnitOfMeasureId = "EACH"
 	inventory.Factor = 1.0
 

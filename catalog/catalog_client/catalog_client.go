@@ -199,22 +199,20 @@ func (self *Catalog_Client) SavePropertyDefinition(connectionId string, id strin
  */
 func (self *Catalog_Client) SaveItemDefinition(connectionId string, id string, languageCode string, name string, abreviation string, description string, properties_str string, properties_ids_str string) error {
 
-	properties := new(catalogpb.PropertyDefinitions)
-	properties_ids := new(catalogpb.References)
+	properties := new(catalogpb.References)
 
 	jsonpb.UnmarshalString(properties_str, properties)
-	jsonpb.UnmarshalString(properties_ids_str, properties_ids)
+	jsonpb.UnmarshalString(properties_ids_str, properties)
 
 	rqst := &catalogpb.SaveItemDefinitionRequest{
 		ConnectionId: connectionId,
 		ItemDefinition: &catalogpb.ItemDefinition{
-			Id:            id,
-			LanguageCode:  languageCode,
-			Name:          name,
-			Description:   description,
-			Abreviation:   abreviation,
-			Properties:    properties,
-			PropertiesIds: properties_ids,
+			Id:           id,
+			LanguageCode: languageCode,
+			Name:         name,
+			Description:  description,
+			Abreviation:  abreviation,
+			Properties:   properties,
 		},
 	}
 
@@ -270,38 +268,25 @@ func (self *Catalog_Client) SaveManufacturer(connectionId string, id string, nam
 
 /**
  * Save package, create it if it not already exist.
+ * TODO append subPackage param and itemInstance...
  */
-func (self *Catalog_Client) SavePackage(connectionId string, id string, languageCode string, description string, items_ref_str string, unit_of_measure_str string, qte int64, inventory_ref_str string) error {
-	itemsRef := new(catalogpb.References)
-	err := jsonpb.UnmarshalString(items_ref_str, itemsRef)
-	if err != nil {
-		return err
-	}
-
-	unitOfMesure := new(catalogpb.Reference)
-	err = jsonpb.UnmarshalString(unit_of_measure_str, unitOfMesure)
-	if err != nil {
-		return err
-	}
-
-	inventoryRef := new(catalogpb.Reference)
-	jsonpb.UnmarshalString(inventory_ref_str, inventoryRef)
+func (self *Catalog_Client) SavePackage(connectionId string, id string, name string, languageCode string, description string, inventories []*catalogpb.Inventory) error {
 
 	// The request.
 	rqst := &catalogpb.SavePackageRequest{
 		Package: &catalogpb.Package{
-			Id:              id,
-			LanguageCode:    languageCode,
-			Description:     description,
-			UnitOfMeasure:   unitOfMesure,
-			ItemDefinitions: itemsRef,
-			Qte:             qte,
-			Inventory:       inventoryRef,
+			Id:            id,
+			Name:          name,
+			LanguageCode:  languageCode,
+			Description:   description,
+			Inventories:   inventories,
+			Subpackages:   make([]*catalogpb.SubPackage, 0),
+			ItemInstances: make([]*catalogpb.ItemInstancePackage, 0),
 		},
 		ConnectionId: connectionId,
 	}
 
-	_, err = self.c.SavePackage(api.GetClientContext(self), rqst)
+	_, err := self.c.SavePackage(api.GetClientContext(self), rqst)
 
 	return err
 }
@@ -326,7 +311,7 @@ func (self *Catalog_Client) SaveSupplier(connectionId string, id string, name st
 /**
  * Save package supplier.
  */
-func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, supplier_ref_str string, packege_ref_str string, price_str string, date int64, qte int64) error {
+func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, supplier_ref_str string, packege_ref_str string, price_str string, date int64, qty int64) error {
 
 	// Supplier Ref.
 	supplierRef := new(catalogpb.Reference)
@@ -350,7 +335,7 @@ func (self *Catalog_Client) SavePackageSupplier(connectionId string, id string, 
 
 	rqst := new(catalogpb.SavePackageSupplierRequest)
 	rqst.ConnectionId = connectionId
-	rqst.PackageSupplier = &catalogpb.PackageSupplier{Id: id, Supplier: supplierRef, Package: packageRef, Price: price, Date: date, Qte: qte}
+	rqst.PackageSupplier = &catalogpb.PackageSupplier{Id: id, Supplier: supplierRef, Package: packageRef, Price: price, Date: date, Quantity: qty}
 
 	_, err = self.c.SavePackageSupplier(api.GetClientContext(self), rqst)
 	return err

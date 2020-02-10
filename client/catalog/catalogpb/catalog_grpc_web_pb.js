@@ -1024,6 +1024,171 @@ proto.catalog.CatalogServicePromiseClient.prototype.getSupplier =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetSuppliersRequest,
+ *   !proto.catalog.GetSuppliersResponse>}
+ */
+const methodInfo_CatalogService_getSuppliers = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetSuppliersResponse,
+  /** @param {!proto.catalog.GetSuppliersRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetSuppliersResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetSuppliersRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetSuppliersResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetSuppliersResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getSuppliers =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getSuppliers',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSuppliers,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetSuppliersRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetSuppliersResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getSuppliers =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getSuppliers',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getSuppliers);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetManufacturerRequest,
+ *   !proto.catalog.GetManufacturerResponse>}
+ */
+const methodInfo_CatalogService_getManufacturer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetManufacturerResponse,
+  /** @param {!proto.catalog.GetManufacturerRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetManufacturerResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetManufacturerResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetManufacturerResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getManufacturer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getManufacturer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetManufacturerRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetManufacturerResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getManufacturer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getManufacturer',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getManufacturer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetManufacturersRequest,
+ *   !proto.catalog.GetManufacturersResponse>}
+ */
+const methodInfo_CatalogService_getManufacturers = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetManufacturersResponse,
+  /** @param {!proto.catalog.GetManufacturersRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetManufacturersResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetManufacturersRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetManufacturersResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetManufacturersResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getManufacturers =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getManufacturers',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getManufacturers,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetManufacturersRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetManufacturersResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getManufacturers =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getManufacturers',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getManufacturers);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.catalog.GetSupplierPackagesRequest,
  *   !proto.catalog.GetSupplierPackagesResponse>}
  */
@@ -1128,6 +1293,171 @@ proto.catalog.CatalogServicePromiseClient.prototype.getPackage =
       request,
       metadata || {},
       methodInfo_CatalogService_getPackage);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetPackagesRequest,
+ *   !proto.catalog.GetPackagesResponse>}
+ */
+const methodInfo_CatalogService_getPackages = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetPackagesResponse,
+  /** @param {!proto.catalog.GetPackagesRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetPackagesResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetPackagesRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetPackagesResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetPackagesResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getPackages =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getPackages',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getPackages,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetPackagesRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetPackagesResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getPackages =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getPackages',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getPackages);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetUnitOfMeasureRequest,
+ *   !proto.catalog.GetUnitOfMeasureResponse>}
+ */
+const methodInfo_CatalogService_getUnitOfMeasure = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetUnitOfMeasureResponse,
+  /** @param {!proto.catalog.GetUnitOfMeasureRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetUnitOfMeasureResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetUnitOfMeasureRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetUnitOfMeasureResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetUnitOfMeasureResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getUnitOfMeasure =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getUnitOfMeasure',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getUnitOfMeasure,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetUnitOfMeasureRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetUnitOfMeasureResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getUnitOfMeasure =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getUnitOfMeasure',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getUnitOfMeasure);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.catalog.GetUnitOfMeasuresRequest,
+ *   !proto.catalog.GetUnitOfMeasuresResponse>}
+ */
+const methodInfo_CatalogService_getUnitOfMeasures = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.catalog.GetUnitOfMeasuresResponse,
+  /** @param {!proto.catalog.GetUnitOfMeasuresRequest} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.catalog.GetUnitOfMeasuresResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.catalog.GetUnitOfMeasuresRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.catalog.GetUnitOfMeasuresResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.catalog.GetUnitOfMeasuresResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.catalog.CatalogServiceClient.prototype.getUnitOfMeasures =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/catalog.CatalogService/getUnitOfMeasures',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getUnitOfMeasures,
+      callback);
+};
+
+
+/**
+ * @param {!proto.catalog.GetUnitOfMeasuresRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.catalog.GetUnitOfMeasuresResponse>}
+ *     A native promise that resolves to the response
+ */
+proto.catalog.CatalogServicePromiseClient.prototype.getUnitOfMeasures =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/catalog.CatalogService/getUnitOfMeasures',
+      request,
+      metadata || {},
+      methodInfo_CatalogService_getUnitOfMeasures);
 };
 
 

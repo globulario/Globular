@@ -189,15 +189,10 @@ export class PropertyDefinition extends jspb.Message {
   getType(): PropertyDefinition.Type;
   setType(value: PropertyDefinition.Type): void;
 
-  getProperties(): PropertyDefinitions | undefined;
-  setProperties(value?: PropertyDefinitions): void;
+  getProperties(): References | undefined;
+  setProperties(value?: References): void;
   hasProperties(): boolean;
   clearProperties(): void;
-
-  getPropertiesids(): References | undefined;
-  setPropertiesids(value?: References): void;
-  hasPropertiesids(): boolean;
-  clearPropertiesids(): void;
 
   getChoicesList(): Array<string>;
   setChoicesList(value: Array<string>): void;
@@ -220,8 +215,7 @@ export namespace PropertyDefinition {
     abreviation: string,
     description: string,
     type: PropertyDefinition.Type,
-    properties?: PropertyDefinitions.AsObject,
-    propertiesids?: References.AsObject,
+    properties?: References.AsObject,
     choicesList: Array<string>,
   }
 
@@ -281,28 +275,23 @@ export class ItemDefinition extends jspb.Message {
   clearKeywordsList(): void;
   addKeywords(value: string, index?: number): void;
 
-  getProperties(): PropertyDefinitions | undefined;
-  setProperties(value?: PropertyDefinitions): void;
+  getProperties(): References | undefined;
+  setProperties(value?: References): void;
   hasProperties(): boolean;
   clearProperties(): void;
 
-  getPropertiesids(): References | undefined;
-  setPropertiesids(value?: References): void;
-  hasPropertiesids(): boolean;
-  clearPropertiesids(): void;
+  getReleadeditemdefintions(): References | undefined;
+  setReleadeditemdefintions(value?: References): void;
+  hasReleadeditemdefintions(): boolean;
+  clearReleadeditemdefintions(): void;
 
-  getReleadeditemdefintionsrefs(): References | undefined;
-  setReleadeditemdefintionsrefs(value?: References): void;
-  hasReleadeditemdefintionsrefs(): boolean;
-  clearReleadeditemdefintionsrefs(): void;
+  getEquivalentsitemdefintions(): References | undefined;
+  setEquivalentsitemdefintions(value?: References): void;
+  hasEquivalentsitemdefintions(): boolean;
+  clearEquivalentsitemdefintions(): void;
 
-  getEquivalentsitemdefintionsrefs(): References | undefined;
-  setEquivalentsitemdefintionsrefs(value?: References): void;
-  hasEquivalentsitemdefintionsrefs(): boolean;
-  clearEquivalentsitemdefintionsrefs(): void;
-
-  getCategories(): Reference | undefined;
-  setCategories(value?: Reference): void;
+  getCategories(): References | undefined;
+  setCategories(value?: References): void;
   hasCategories(): boolean;
   clearCategories(): void;
 
@@ -323,11 +312,10 @@ export namespace ItemDefinition {
     description: string,
     aliasList: Array<string>,
     keywordsList: Array<string>,
-    properties?: PropertyDefinitions.AsObject,
-    propertiesids?: References.AsObject,
-    releadeditemdefintionsrefs?: References.AsObject,
-    equivalentsitemdefintionsrefs?: References.AsObject,
-    categories?: Reference.AsObject,
+    properties?: References.AsObject,
+    releadeditemdefintions?: References.AsObject,
+    equivalentsitemdefintions?: References.AsObject,
+    categories?: References.AsObject,
   }
 }
 
@@ -532,11 +520,11 @@ export class Inventory extends jspb.Message {
   getSafetystock(): number;
   setSafetystock(value: number): void;
 
-  getReorderqte(): number;
-  setReorderqte(value: number): void;
+  getReorderquantity(): number;
+  setReorderquantity(value: number): void;
 
-  getQte(): number;
-  setQte(value: number): void;
+  getQuantity(): number;
+  setQuantity(value: number): void;
 
   getFactor(): number;
   setFactor(value: number): void;
@@ -546,11 +534,6 @@ export class Inventory extends jspb.Message {
 
   getLocalisationid(): string;
   setLocalisationid(value: string): void;
-
-  getIteminstance(): Reference | undefined;
-  setIteminstance(value?: Reference): void;
-  hasIteminstance(): boolean;
-  clearIteminstance(): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Inventory.AsObject;
@@ -564,12 +547,11 @@ export namespace Inventory {
   export type AsObject = {
     id: string,
     safetystock: number,
-    reorderqte: number,
-    qte: number,
+    reorderquantity: number,
+    quantity: number,
     factor: number,
     unitofmeasureid: string,
     localisationid: string,
-    iteminstance?: Reference.AsObject,
   }
 }
 
@@ -595,9 +577,72 @@ export namespace Price {
   }
 }
 
+export class SubPackage extends jspb.Message {
+  getUnitofmeasure(): Reference | undefined;
+  setUnitofmeasure(value?: Reference): void;
+  hasUnitofmeasure(): boolean;
+  clearUnitofmeasure(): void;
+
+  getPackage(): Reference | undefined;
+  setPackage(value?: Reference): void;
+  hasPackage(): boolean;
+  clearPackage(): void;
+
+  getQuantity(): number;
+  setQuantity(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SubPackage.AsObject;
+  static toObject(includeInstance: boolean, msg: SubPackage): SubPackage.AsObject;
+  static serializeBinaryToWriter(message: SubPackage, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SubPackage;
+  static deserializeBinaryFromReader(message: SubPackage, reader: jspb.BinaryReader): SubPackage;
+}
+
+export namespace SubPackage {
+  export type AsObject = {
+    unitofmeasure?: Reference.AsObject,
+    pb_package?: Reference.AsObject,
+    quantity: number,
+  }
+}
+
+export class ItemInstancePackage extends jspb.Message {
+  getUnitofmeasure(): Reference | undefined;
+  setUnitofmeasure(value?: Reference): void;
+  hasUnitofmeasure(): boolean;
+  clearUnitofmeasure(): void;
+
+  getIteminstance(): Reference | undefined;
+  setIteminstance(value?: Reference): void;
+  hasIteminstance(): boolean;
+  clearIteminstance(): void;
+
+  getQuantity(): number;
+  setQuantity(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ItemInstancePackage.AsObject;
+  static toObject(includeInstance: boolean, msg: ItemInstancePackage): ItemInstancePackage.AsObject;
+  static serializeBinaryToWriter(message: ItemInstancePackage, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ItemInstancePackage;
+  static deserializeBinaryFromReader(message: ItemInstancePackage, reader: jspb.BinaryReader): ItemInstancePackage;
+}
+
+export namespace ItemInstancePackage {
+  export type AsObject = {
+    unitofmeasure?: Reference.AsObject,
+    iteminstance?: Reference.AsObject,
+    quantity: number,
+  }
+}
+
 export class Package extends jspb.Message {
   getId(): string;
   setId(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
 
   getLanguagecode(): string;
   setLanguagecode(value: string): void;
@@ -605,23 +650,20 @@ export class Package extends jspb.Message {
   getDescription(): string;
   setDescription(value: string): void;
 
-  getItemdefinitions(): References | undefined;
-  setItemdefinitions(value?: References): void;
-  hasItemdefinitions(): boolean;
-  clearItemdefinitions(): void;
+  getSubpackagesList(): Array<SubPackage>;
+  setSubpackagesList(value: Array<SubPackage>): void;
+  clearSubpackagesList(): void;
+  addSubpackages(value?: SubPackage, index?: number): SubPackage;
 
-  getUnitofmeasure(): Reference | undefined;
-  setUnitofmeasure(value?: Reference): void;
-  hasUnitofmeasure(): boolean;
-  clearUnitofmeasure(): void;
+  getIteminstancesList(): Array<ItemInstancePackage>;
+  setIteminstancesList(value: Array<ItemInstancePackage>): void;
+  clearIteminstancesList(): void;
+  addIteminstances(value?: ItemInstancePackage, index?: number): ItemInstancePackage;
 
-  getQte(): number;
-  setQte(value: number): void;
-
-  getInventory(): Reference | undefined;
-  setInventory(value?: Reference): void;
-  hasInventory(): boolean;
-  clearInventory(): void;
+  getInventoriesList(): Array<Inventory>;
+  setInventoriesList(value: Array<Inventory>): void;
+  clearInventoriesList(): void;
+  addInventories(value?: Inventory, index?: number): Inventory;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Package.AsObject;
@@ -634,12 +676,12 @@ export class Package extends jspb.Message {
 export namespace Package {
   export type AsObject = {
     id: string,
+    name: string,
     languagecode: string,
     description: string,
-    itemdefinitions?: References.AsObject,
-    unitofmeasure?: Reference.AsObject,
-    qte: number,
-    inventory?: Reference.AsObject,
+    subpackagesList: Array<SubPackage.AsObject>,
+    iteminstancesList: Array<ItemInstancePackage.AsObject>,
+    inventoriesList: Array<Inventory.AsObject>,
   }
 }
 
@@ -687,8 +729,8 @@ export class PackageSupplier extends jspb.Message {
   getDate(): number;
   setDate(value: number): void;
 
-  getQte(): number;
-  setQte(value: number): void;
+  getQuantity(): number;
+  setQuantity(value: number): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PackageSupplier.AsObject;
@@ -705,7 +747,7 @@ export namespace PackageSupplier {
     pb_package?: Reference.AsObject,
     price?: Price.AsObject,
     date: number,
-    qte: number,
+    quantity: number,
   }
 }
 
@@ -1527,6 +1569,26 @@ export namespace GetSupplierResponse {
   }
 }
 
+export class Suppliers extends jspb.Message {
+  getSuppliersList(): Array<Supplier>;
+  setSuppliersList(value: Array<Supplier>): void;
+  clearSuppliersList(): void;
+  addSuppliers(value?: Supplier, index?: number): Supplier;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Suppliers.AsObject;
+  static toObject(includeInstance: boolean, msg: Suppliers): Suppliers.AsObject;
+  static serializeBinaryToWriter(message: Suppliers, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Suppliers;
+  static deserializeBinaryFromReader(message: Suppliers, reader: jspb.BinaryReader): Suppliers;
+}
+
+export namespace Suppliers {
+  export type AsObject = {
+    suppliersList: Array<Supplier.AsObject>,
+  }
+}
+
 export class GetSupplierPackagesRequest extends jspb.Message {
   getConnectionid(): string;
   setConnectionid(value: string): void;
@@ -1550,10 +1612,10 @@ export namespace GetSupplierPackagesRequest {
 }
 
 export class GetSupplierPackagesResponse extends jspb.Message {
-  getPacakgessupplierList(): Array<PackageSupplier>;
-  setPacakgessupplierList(value: Array<PackageSupplier>): void;
-  clearPacakgessupplierList(): void;
-  addPacakgessupplier(value?: PackageSupplier, index?: number): PackageSupplier;
+  getPackagessupplierList(): Array<PackageSupplier>;
+  setPackagessupplierList(value: Array<PackageSupplier>): void;
+  clearPackagessupplierList(): void;
+  addPackagessupplier(value?: PackageSupplier, index?: number): PackageSupplier;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetSupplierPackagesResponse.AsObject;
@@ -1565,7 +1627,181 @@ export class GetSupplierPackagesResponse extends jspb.Message {
 
 export namespace GetSupplierPackagesResponse {
   export type AsObject = {
-    pacakgessupplierList: Array<PackageSupplier.AsObject>,
+    packagessupplierList: Array<PackageSupplier.AsObject>,
+  }
+}
+
+export class GetSuppliersRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getOptions(): string;
+  setOptions(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSuppliersRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSuppliersRequest): GetSuppliersRequest.AsObject;
+  static serializeBinaryToWriter(message: GetSuppliersRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSuppliersRequest;
+  static deserializeBinaryFromReader(message: GetSuppliersRequest, reader: jspb.BinaryReader): GetSuppliersRequest;
+}
+
+export namespace GetSuppliersRequest {
+  export type AsObject = {
+    connectionid: string,
+    query: string,
+    options: string,
+  }
+}
+
+export class GetSuppliersResponse extends jspb.Message {
+  getSuppliersList(): Array<Supplier>;
+  setSuppliersList(value: Array<Supplier>): void;
+  clearSuppliersList(): void;
+  addSuppliers(value?: Supplier, index?: number): Supplier;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetSuppliersResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetSuppliersResponse): GetSuppliersResponse.AsObject;
+  static serializeBinaryToWriter(message: GetSuppliersResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetSuppliersResponse;
+  static deserializeBinaryFromReader(message: GetSuppliersResponse, reader: jspb.BinaryReader): GetSuppliersResponse;
+}
+
+export namespace GetSuppliersResponse {
+  export type AsObject = {
+    suppliersList: Array<Supplier.AsObject>,
+  }
+}
+
+export class Manufacturers extends jspb.Message {
+  getManufacturersList(): Array<Manufacturer>;
+  setManufacturersList(value: Array<Manufacturer>): void;
+  clearManufacturersList(): void;
+  addManufacturers(value?: Manufacturer, index?: number): Manufacturer;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Manufacturers.AsObject;
+  static toObject(includeInstance: boolean, msg: Manufacturers): Manufacturers.AsObject;
+  static serializeBinaryToWriter(message: Manufacturers, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Manufacturers;
+  static deserializeBinaryFromReader(message: Manufacturers, reader: jspb.BinaryReader): Manufacturers;
+}
+
+export namespace Manufacturers {
+  export type AsObject = {
+    manufacturersList: Array<Manufacturer.AsObject>,
+  }
+}
+
+export class GetManufacturerRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getManufacturerid(): string;
+  setManufacturerid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetManufacturerRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetManufacturerRequest): GetManufacturerRequest.AsObject;
+  static serializeBinaryToWriter(message: GetManufacturerRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetManufacturerRequest;
+  static deserializeBinaryFromReader(message: GetManufacturerRequest, reader: jspb.BinaryReader): GetManufacturerRequest;
+}
+
+export namespace GetManufacturerRequest {
+  export type AsObject = {
+    connectionid: string,
+    manufacturerid: string,
+  }
+}
+
+export class GetManufacturerResponse extends jspb.Message {
+  getManufacturer(): Manufacturer | undefined;
+  setManufacturer(value?: Manufacturer): void;
+  hasManufacturer(): boolean;
+  clearManufacturer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetManufacturerResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetManufacturerResponse): GetManufacturerResponse.AsObject;
+  static serializeBinaryToWriter(message: GetManufacturerResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetManufacturerResponse;
+  static deserializeBinaryFromReader(message: GetManufacturerResponse, reader: jspb.BinaryReader): GetManufacturerResponse;
+}
+
+export namespace GetManufacturerResponse {
+  export type AsObject = {
+    manufacturer?: Manufacturer.AsObject,
+  }
+}
+
+export class GetManufacturersRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getOptions(): string;
+  setOptions(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetManufacturersRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetManufacturersRequest): GetManufacturersRequest.AsObject;
+  static serializeBinaryToWriter(message: GetManufacturersRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetManufacturersRequest;
+  static deserializeBinaryFromReader(message: GetManufacturersRequest, reader: jspb.BinaryReader): GetManufacturersRequest;
+}
+
+export namespace GetManufacturersRequest {
+  export type AsObject = {
+    connectionid: string,
+    query: string,
+    options: string,
+  }
+}
+
+export class GetManufacturersResponse extends jspb.Message {
+  getManufacturersList(): Array<Manufacturer>;
+  setManufacturersList(value: Array<Manufacturer>): void;
+  clearManufacturersList(): void;
+  addManufacturers(value?: Manufacturer, index?: number): Manufacturer;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetManufacturersResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetManufacturersResponse): GetManufacturersResponse.AsObject;
+  static serializeBinaryToWriter(message: GetManufacturersResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetManufacturersResponse;
+  static deserializeBinaryFromReader(message: GetManufacturersResponse, reader: jspb.BinaryReader): GetManufacturersResponse;
+}
+
+export namespace GetManufacturersResponse {
+  export type AsObject = {
+    manufacturersList: Array<Manufacturer.AsObject>,
+  }
+}
+
+export class Packages extends jspb.Message {
+  getPackagesList(): Array<Package>;
+  setPackagesList(value: Array<Package>): void;
+  clearPackagesList(): void;
+  addPackages(value?: Package, index?: number): Package;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Packages.AsObject;
+  static toObject(includeInstance: boolean, msg: Packages): Packages.AsObject;
+  static serializeBinaryToWriter(message: Packages, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Packages;
+  static deserializeBinaryFromReader(message: Packages, reader: jspb.BinaryReader): Packages;
+}
+
+export namespace Packages {
+  export type AsObject = {
+    packagesList: Array<Package.AsObject>,
   }
 }
 
@@ -1608,6 +1844,160 @@ export class GetPackageResponse extends jspb.Message {
 export namespace GetPackageResponse {
   export type AsObject = {
     pacakge?: Package.AsObject,
+  }
+}
+
+export class GetPackagesRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getOptions(): string;
+  setOptions(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPackagesRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPackagesRequest): GetPackagesRequest.AsObject;
+  static serializeBinaryToWriter(message: GetPackagesRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPackagesRequest;
+  static deserializeBinaryFromReader(message: GetPackagesRequest, reader: jspb.BinaryReader): GetPackagesRequest;
+}
+
+export namespace GetPackagesRequest {
+  export type AsObject = {
+    connectionid: string,
+    query: string,
+    options: string,
+  }
+}
+
+export class GetPackagesResponse extends jspb.Message {
+  getPackagesList(): Array<Package>;
+  setPackagesList(value: Array<Package>): void;
+  clearPackagesList(): void;
+  addPackages(value?: Package, index?: number): Package;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPackagesResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPackagesResponse): GetPackagesResponse.AsObject;
+  static serializeBinaryToWriter(message: GetPackagesResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPackagesResponse;
+  static deserializeBinaryFromReader(message: GetPackagesResponse, reader: jspb.BinaryReader): GetPackagesResponse;
+}
+
+export namespace GetPackagesResponse {
+  export type AsObject = {
+    packagesList: Array<Package.AsObject>,
+  }
+}
+
+export class UnitOfMeasures extends jspb.Message {
+  getUnitofmeasuresList(): Array<UnitOfMeasure>;
+  setUnitofmeasuresList(value: Array<UnitOfMeasure>): void;
+  clearUnitofmeasuresList(): void;
+  addUnitofmeasures(value?: UnitOfMeasure, index?: number): UnitOfMeasure;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UnitOfMeasures.AsObject;
+  static toObject(includeInstance: boolean, msg: UnitOfMeasures): UnitOfMeasures.AsObject;
+  static serializeBinaryToWriter(message: UnitOfMeasures, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UnitOfMeasures;
+  static deserializeBinaryFromReader(message: UnitOfMeasures, reader: jspb.BinaryReader): UnitOfMeasures;
+}
+
+export namespace UnitOfMeasures {
+  export type AsObject = {
+    unitofmeasuresList: Array<UnitOfMeasure.AsObject>,
+  }
+}
+
+export class GetUnitOfMeasureRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getUnitofmeasureid(): string;
+  setUnitofmeasureid(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetUnitOfMeasureRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetUnitOfMeasureRequest): GetUnitOfMeasureRequest.AsObject;
+  static serializeBinaryToWriter(message: GetUnitOfMeasureRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetUnitOfMeasureRequest;
+  static deserializeBinaryFromReader(message: GetUnitOfMeasureRequest, reader: jspb.BinaryReader): GetUnitOfMeasureRequest;
+}
+
+export namespace GetUnitOfMeasureRequest {
+  export type AsObject = {
+    connectionid: string,
+    unitofmeasureid: string,
+  }
+}
+
+export class GetUnitOfMeasureResponse extends jspb.Message {
+  getUnitofmeasure(): UnitOfMeasure | undefined;
+  setUnitofmeasure(value?: UnitOfMeasure): void;
+  hasUnitofmeasure(): boolean;
+  clearUnitofmeasure(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetUnitOfMeasureResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetUnitOfMeasureResponse): GetUnitOfMeasureResponse.AsObject;
+  static serializeBinaryToWriter(message: GetUnitOfMeasureResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetUnitOfMeasureResponse;
+  static deserializeBinaryFromReader(message: GetUnitOfMeasureResponse, reader: jspb.BinaryReader): GetUnitOfMeasureResponse;
+}
+
+export namespace GetUnitOfMeasureResponse {
+  export type AsObject = {
+    unitofmeasure?: UnitOfMeasure.AsObject,
+  }
+}
+
+export class GetUnitOfMeasuresRequest extends jspb.Message {
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getOptions(): string;
+  setOptions(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetUnitOfMeasuresRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetUnitOfMeasuresRequest): GetUnitOfMeasuresRequest.AsObject;
+  static serializeBinaryToWriter(message: GetUnitOfMeasuresRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetUnitOfMeasuresRequest;
+  static deserializeBinaryFromReader(message: GetUnitOfMeasuresRequest, reader: jspb.BinaryReader): GetUnitOfMeasuresRequest;
+}
+
+export namespace GetUnitOfMeasuresRequest {
+  export type AsObject = {
+    connectionid: string,
+    query: string,
+    options: string,
+  }
+}
+
+export class GetUnitOfMeasuresResponse extends jspb.Message {
+  getUnitofmeasuresList(): Array<UnitOfMeasure>;
+  setUnitofmeasuresList(value: Array<UnitOfMeasure>): void;
+  clearUnitofmeasuresList(): void;
+  addUnitofmeasures(value?: UnitOfMeasure, index?: number): UnitOfMeasure;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetUnitOfMeasuresResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetUnitOfMeasuresResponse): GetUnitOfMeasuresResponse.AsObject;
+  static serializeBinaryToWriter(message: GetUnitOfMeasuresResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetUnitOfMeasuresResponse;
+  static deserializeBinaryFromReader(message: GetUnitOfMeasuresResponse, reader: jspb.BinaryReader): GetUnitOfMeasuresResponse;
+}
+
+export namespace GetUnitOfMeasuresResponse {
+  export type AsObject = {
+    unitofmeasuresList: Array<UnitOfMeasure.AsObject>,
   }
 }
 

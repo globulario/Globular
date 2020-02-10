@@ -27,12 +27,24 @@ import {
   DeleteSupplierResponse,
   DeleteUnitOfMeasureRequest,
   DeleteUnitOfMeasureResponse,
+  GetManufacturerRequest,
+  GetManufacturerResponse,
+  GetManufacturersRequest,
+  GetManufacturersResponse,
   GetPackageRequest,
   GetPackageResponse,
+  GetPackagesRequest,
+  GetPackagesResponse,
   GetSupplierPackagesRequest,
   GetSupplierPackagesResponse,
   GetSupplierRequest,
   GetSupplierResponse,
+  GetSuppliersRequest,
+  GetSuppliersResponse,
+  GetUnitOfMeasureRequest,
+  GetUnitOfMeasureResponse,
+  GetUnitOfMeasuresRequest,
+  GetUnitOfMeasuresResponse,
   RemoveItemDefinitionCategoryRequest,
   RemoveItemDefinitionCategoryResponse,
   SaveCategoryRequest,
@@ -184,6 +196,27 @@ export class CatalogServiceClient {
                response: GetSupplierResponse) => void
   ): grpcWeb.ClientReadableStream<GetSupplierResponse>;
 
+  getSuppliers(
+    request: GetSuppliersRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetSuppliersResponse) => void
+  ): grpcWeb.ClientReadableStream<GetSuppliersResponse>;
+
+  getManufacturer(
+    request: GetManufacturerRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<GetManufacturerResponse>;
+
+  getManufacturers(
+    request: GetManufacturersRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetManufacturersResponse) => void
+  ): grpcWeb.ClientReadableStream<GetManufacturersResponse>;
+
   getSupplierPackages(
     request: GetSupplierPackagesRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -197,6 +230,27 @@ export class CatalogServiceClient {
     callback: (err: grpcWeb.Error,
                response: GetPackageResponse) => void
   ): grpcWeb.ClientReadableStream<GetPackageResponse>;
+
+  getPackages(
+    request: GetPackagesRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetPackagesResponse) => void
+  ): grpcWeb.ClientReadableStream<GetPackagesResponse>;
+
+  getUnitOfMeasure(
+    request: GetUnitOfMeasureRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetUnitOfMeasureResponse) => void
+  ): grpcWeb.ClientReadableStream<GetUnitOfMeasureResponse>;
+
+  getUnitOfMeasures(
+    request: GetUnitOfMeasuresRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetUnitOfMeasuresResponse) => void
+  ): grpcWeb.ClientReadableStream<GetUnitOfMeasuresResponse>;
 
   deletePackage(
     request: DeletePackageRequest,
@@ -360,6 +414,21 @@ export class CatalogServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<GetSupplierResponse>;
 
+  getSuppliers(
+    request: GetSuppliersRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetSuppliersResponse>;
+
+  getManufacturer(
+    request: GetManufacturerRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetManufacturerResponse>;
+
+  getManufacturers(
+    request: GetManufacturersRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetManufacturersResponse>;
+
   getSupplierPackages(
     request: GetSupplierPackagesRequest,
     metadata?: grpcWeb.Metadata
@@ -369,6 +438,21 @@ export class CatalogServicePromiseClient {
     request: GetPackageRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<GetPackageResponse>;
+
+  getPackages(
+    request: GetPackagesRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetPackagesResponse>;
+
+  getUnitOfMeasure(
+    request: GetUnitOfMeasureRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetUnitOfMeasureResponse>;
+
+  getUnitOfMeasures(
+    request: GetUnitOfMeasuresRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetUnitOfMeasuresResponse>;
 
   deletePackage(
     request: DeletePackageRequest,

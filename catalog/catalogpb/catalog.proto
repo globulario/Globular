@@ -70,9 +70,8 @@ message PropertyDefinition{
 	
 	Type type = 6;
 	
-	// Use when the propety is an aggregate
-	PropertyDefinitions properties = 7;
-	References propertiesIds = 8;
+	// Properties.
+	References properties = 8;
 	
 	// Use when property is an enumeration
 	repeated string choices = 9;
@@ -93,17 +92,17 @@ message ItemDefinition {
     repeated string alias = 6; // also named ...
     repeated string keyWords = 7; // Help to retreive the item. (use it insted of category)
 	
-	PropertyDefinitions properties = 8;
-	References propertiesIds = 9;
+	// Reference to properties
+	References properties = 9; // Reuse of existing properties...
 	
 	// releaded items.
-	References releadedItemDefintionsRefs = 10;
+	References releadedItemDefintions = 10;
 	
 	// equivalent items
-	References equivalentsItemDefintionsRefs = 11;
+	References equivalentsItemDefintions = 11;
 	
 	// the categorie the item belong to.
-	Reference categories = 12;
+	References categories = 12;
 }
 
 // Append a category to an item definition
@@ -157,12 +156,11 @@ message Localisation {
 message Inventory {
 	string id = 1;
 	int64 safetyStock = 2;
-	int64 reorderQte = 3;
-	int64 qte = 4;
+	int64 reorderquantity = 3;
+	int64 quantity = 4;
 	double factor = 5;
 	string unitOfMeasureId = 6;
 	string localisationId = 7;
-	Reference itemInstance = 8;
 }
 
 // The currency
@@ -178,15 +176,34 @@ message Price {
 	Currency currency = 2;
 }
 
+// SubPackage
+message SubPackage{
+	Reference unitOfMeasure = 1;
+	Reference package = 2; // subpackage...
+	int64 quantity = 3;
+}
+
+// Item instance pacakge.
+message ItemInstancePackage{
+	Reference unitOfMeasure = 1;
+	Reference itemInstance = 2; // item instance...
+	int64 quantity = 3;
+}
+
 // The Package
 message Package {
 	string id = 1;
-	string languageCode = 2;
-	string description = 3;
-	References itemDefinitions = 4;
-	Reference unitOfMeasure = 5;
-	int64 qte = 6;
-	Reference inventory = 7;
+	string name = 2;
+	string languageCode = 3;
+	string description = 4;
+	
+	// a package of package
+	repeated SubPackage subpackages = 5;
+	
+	// the item contain in the package with there quantity and unit of measure.
+	repeated ItemInstancePackage itemInstances = 6;
+
+	repeated Inventory inventories = 7; // list of inventory
 }
 
 message Supplier {
@@ -200,7 +217,7 @@ message PackageSupplier {
 	Reference package = 3;
 	Price price = 4;
 	int64 date = 5;
-	int64 qte = 6; // number of pacakge order. for the price.
+	int64 quantity = 6; // number of pacakge order. for the price.
 }
 
 // The manufacturer.
@@ -382,13 +399,57 @@ message GetSupplierResponse{
 	Supplier supplier = 1;
 }
 
+message Suppliers {
+	repeated Supplier suppliers = 1;
+}
+
 message GetSupplierPackagesRequest{
 	string connectionId = 1;
 	string supplierId = 2;
 }
 
 message GetSupplierPackagesResponse{
-	repeated PackageSupplier pacakgesSupplier = 1;
+	repeated PackageSupplier packagesSupplier = 1;
+}
+
+message GetSuppliersRequest{
+	string connectionId = 1;
+	string query = 2;
+	string options = 3;
+}
+
+message GetSuppliersResponse{
+	repeated Supplier suppliers = 1;
+}
+
+
+// List of packages use to unmarshal package list.
+message Manufacturers {
+	repeated Manufacturer manufacturers = 1;
+}
+
+message GetManufacturerRequest{
+	string connectionId = 1;
+	string manufacturerId = 2; // must be the _id
+}
+
+message GetManufacturerResponse{
+	Manufacturer manufacturer = 1;
+}
+
+message GetManufacturersRequest{
+	string connectionId = 1;
+	string query = 2; // all is return if nothing is given.
+	string options = 3;
+}
+
+message GetManufacturersResponse{
+	repeated Manufacturer manufacturers = 1;
+}
+
+// List of packages use to unmarshal package list.
+message Packages {
+	repeated Package packages = 1;
 }
 
 message GetPackageRequest{
@@ -398,6 +459,40 @@ message GetPackageRequest{
 
 message GetPackageResponse{
 	Package pacakge = 1;
+}
+
+message GetPackagesRequest{
+	string connectionId = 1;
+	string query = 2; // all is return if nothing is given.
+	string options = 3;
+}
+
+message GetPackagesResponse{
+	repeated Package packages = 1;
+}
+
+// List of unit of measures use to marshal list.
+message UnitOfMeasures{
+	repeated UnitOfMeasure unitOfMeasures = 1;
+}
+
+message GetUnitOfMeasureRequest{
+	string connectionId = 1;
+	string unitOfMeasureId = 2; // must be the _id or id + languageCode
+}
+
+message GetUnitOfMeasureResponse{
+	UnitOfMeasure unitOfMeasure = 1;
+}
+
+message GetUnitOfMeasuresRequest{
+	string connectionId = 1;
+	string query = 2; // all is return if nothing is given.
+	string options = 3;
+}
+
+message GetUnitOfMeasuresResponse{
+	repeated UnitOfMeasure unitOfMeasures = 1;
 }
 
 //////////// Delete ///////////
@@ -556,14 +651,26 @@ service CatalogService {
 	rpc RemoveItemDefinitionCategory(RemoveItemDefinitionCategoryRequest) returns (RemoveItemDefinitionCategoryResponse);
 	
 	// Getter function.
+	
+	// Get supplier
 	rpc getSupplier(GetSupplierRequest) returns (GetSupplierResponse);
+	rpc getSuppliers(GetSuppliersRequest) returns (GetSuppliersResponse);
+	
+	// Get manufacturers
+	rpc getManufacturer(GetManufacturerRequest) returns (GetManufacturerResponse);
+	rpc getManufacturers(GetManufacturersRequest) returns (GetManufacturersResponse);
+	
 	
 	// Get Supplier Packages
 	rpc getSupplierPackages(GetSupplierPackagesRequest) returns (GetSupplierPackagesResponse);
 	
 	// Getter function for pacakge.
 	rpc getPackage(GetPackageRequest) returns (GetPackageResponse);
+	rpc getPackages(GetPackagesRequest) returns (GetPackagesResponse);
 	
+	// Getter for unit of measure
+	rpc getUnitOfMeasure(GetUnitOfMeasureRequest) returns (GetUnitOfMeasureResponse);
+	rpc getUnitOfMeasures(GetUnitOfMeasuresRequest) returns (GetUnitOfMeasuresResponse);
 
 	// Delete functions.
 	
