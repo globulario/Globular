@@ -208,6 +208,7 @@ func TestSaveCategory(t *testing.T) {
 	client.SaveCategory("catalogue_2_db", "Pipes", "Tuyaux", "fr", "")
 }
 
+/*
 func TestAppendItemdescriptionCategory(t *testing.T) {
 	client.SaveCategory("catalogue_2_db", "Pipes", "Tuyaux", "fr", "")
 	itemDefinitionRef := &catalogpb.Reference{
@@ -255,6 +256,7 @@ func TestRemoveItemdescriptionCategory(t *testing.T) {
 		log.Println(err)
 	}
 }
+*/
 
 func TestSaveLocalisation(t *testing.T) {
 	mag0 := new(catalogpb.Localisation)
@@ -263,34 +265,35 @@ func TestSaveLocalisation(t *testing.T) {
 	mag0.Name = "Magasin"
 
 	row0 := new(catalogpb.Localisation)
-	row0.Id = "r0"
+	row0.Id = "P001_r0"
 	row0.Name = "Rangé 0"
 	row0.LanguageCode = "fr"
 
 	loc0 := new(catalogpb.Localisation)
-	loc0.Id = "loc0"
+	loc0.Id = "P001_r0_loc0"
 	loc0.Name = "localisation 0"
 	loc0.LanguageCode = "fr"
 
-	mag0.SubLocalisations = make([]*catalogpb.Localisation, 0)
-	mag0.SubLocalisations = append(mag0.SubLocalisations, row0)
+	mag0.SubLocalisations = new(catalogpb.References)
+	mag0.SubLocalisations.Values = append(mag0.SubLocalisations.Values, &catalogpb.Reference{RefDbName: "catalogue_2_db", RefColId: "Localisation", RefObjId: row0.Id + row0.LanguageCode})
 
-	row0.SubLocalisations = make([]*catalogpb.Localisation, 0)
-	row0.SubLocalisations = append(mag0.SubLocalisations, loc0)
+	row0.SubLocalisations = new(catalogpb.References)
+	row0.SubLocalisations.Values = append(row0.SubLocalisations.Values, &catalogpb.Reference{RefDbName: "catalogue_2_db", RefColId: "Localisation", RefObjId: loc0.Id + loc0.LanguageCode})
 
 	client.SaveLocalisation("catalogue_2_db", loc0)
+	client.SaveLocalisation("catalogue_2_db", row0)
+	client.SaveLocalisation("catalogue_2_db", mag0)
 }
 
 func TestSaveInventory(t *testing.T) {
 
 	inventory := new(catalogpb.Inventory)
-	inventory.Id = "instance_0" // can be anything...
 	inventory.LocalisationId = "loc0"
+	inventory.PacakgeId = "pipe_pack_1"
 	inventory.SafetyStock = 10
 	inventory.Reorderquantity = 7
 	inventory.Quantity = 8
-	inventory.UnitOfMeasureId = "EACH"
 	inventory.Factor = 1.0
 
-	client.SaveInventory("catalogue_2_db", inventory)
+	//client.SaveInventory("catalogue_2_db", inventory)
 }

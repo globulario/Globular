@@ -13,7 +13,6 @@ protoc ldap/ldappb/ldap.proto --go_out=plugins=grpc:.
 protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
 protoc persistence/persistencepb/persistence.proto --go_out=plugins=grpc:.
 protoc monitoring/monitoringpb/monitoring.proto --go_out=plugins=grpc:.
-protoc catalog/catalogpb/catalog.proto --go_out=plugins=grpc:.
 protoc -I. -I /media/dave/ssd/Project/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --grpc-gateway_out=logtostderr=true:. opc_ua/opc_uapb/opc_ua.proto --go_out=plugins=grpc:.
 
 #plc service.
@@ -67,5 +66,6 @@ protoc plc_link/plc_linkpb/plc_link.proto --js_out=import_style=commonjs:client
 protoc plc_link/plc_linkpb/plc_link.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 
 # in the client folder ex: in /WebRoot/js/echo_client do command: npx webpack client.js to generate the dist/main.js file use in client application.
+protoc catalog/catalogpb/catalog.proto --go_out=plugins=grpc:.
 protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
 protoc catalog/catalogpb/catalog.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client

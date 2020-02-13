@@ -279,7 +279,6 @@ func (self *Catalog_Client) SavePackage(connectionId string, id string, name str
 			Name:          name,
 			LanguageCode:  languageCode,
 			Description:   description,
-			Inventories:   inventories,
 			Subpackages:   make([]*catalogpb.SubPackage, 0),
 			ItemInstances: make([]*catalogpb.ItemInstancePackage, 0),
 		},
@@ -458,19 +457,5 @@ func (self *Catalog_Client) SaveLocalisation(connectionId string, localisation *
 	}
 
 	_, err := self.c.SaveLocalisation(api.GetClientContext(self), rqst)
-	return err
-}
-
-/**
- * Save Item Localisation.
- */
-func (self *Catalog_Client) SaveInventory(connectionId string, inventory *catalogpb.Inventory) error {
-
-	rqst := &catalogpb.SaveInventoryRequest{
-		ConnectionId: connectionId,
-		Inventory:    inventory,
-	}
-
-	_, err := self.c.SaveInventory(api.GetClientContext(self), rqst)
 	return err
 }

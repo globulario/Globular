@@ -2692,8 +2692,6 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	name, expireAt, _ := Interceptors_.ValidateToken(rqst.Token)
 	// If the token is older than seven day without being refresh then I retrun an error.
 	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
-		log.Println("expire at ----->", expireAt, time.Unix(expireAt, 0).String())
-		log.Println("max expire at ----->", time.Now().AddDate(0, 0, -7).String())
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token cannot be refresh after 7 day")))

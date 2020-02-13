@@ -9,6 +9,8 @@ import {
   DeleteCategoryResponse,
   DeleteConnectionRqst,
   DeleteConnectionRsp,
+  DeleteInventoryRequest,
+  DeleteInventoryResponse,
   DeleteItemInstanceRequest,
   DeleteItemInstanceResponse,
   DeleteItemManufacturerRequest,
@@ -27,6 +29,24 @@ import {
   DeleteSupplierResponse,
   DeleteUnitOfMeasureRequest,
   DeleteUnitOfMeasureResponse,
+  GetCategoriesRequest,
+  GetCategoriesResponse,
+  GetCategoryRequest,
+  GetCategoryResponse,
+  GetInventoriesRequest,
+  GetInventoriesResponse,
+  GetItemDefinitionRequest,
+  GetItemDefinitionResponse,
+  GetItemDefinitionsRequest,
+  GetItemDefinitionsResponse,
+  GetItemInstanceRequest,
+  GetItemInstanceResponse,
+  GetItemInstancesRequest,
+  GetItemInstancesResponse,
+  GetLocalisationRequest,
+  GetLocalisationResponse,
+  GetLocalisationsRequest,
+  GetLocalisationsResponse,
   GetManufacturerRequest,
   GetManufacturerResponse,
   GetManufacturersRequest,
@@ -119,6 +139,13 @@ export class CatalogServiceClient {
                response: SaveItemInstanceResponse) => void
   ): grpcWeb.ClientReadableStream<SaveItemInstanceResponse>;
 
+  saveInventory(
+    request: SaveInventoryRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SaveInventoryResponse) => void
+  ): grpcWeb.ClientReadableStream<SaveInventoryResponse>;
+
   saveManufacturer(
     request: SaveManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -139,13 +166,6 @@ export class CatalogServiceClient {
     callback: (err: grpcWeb.Error,
                response: SaveLocalisationResponse) => void
   ): grpcWeb.ClientReadableStream<SaveLocalisationResponse>;
-
-  saveInventory(
-    request: SaveInventoryRequest,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.Error,
-               response: SaveInventoryResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveInventoryResponse>;
 
   savePackage(
     request: SavePackageRequest,
@@ -251,6 +271,76 @@ export class CatalogServiceClient {
     callback: (err: grpcWeb.Error,
                response: GetUnitOfMeasuresResponse) => void
   ): grpcWeb.ClientReadableStream<GetUnitOfMeasuresResponse>;
+
+  getItemDefinition(
+    request: GetItemDefinitionRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetItemDefinitionResponse) => void
+  ): grpcWeb.ClientReadableStream<GetItemDefinitionResponse>;
+
+  getItemDefinitions(
+    request: GetItemDefinitionsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetItemDefinitionsResponse) => void
+  ): grpcWeb.ClientReadableStream<GetItemDefinitionsResponse>;
+
+  getItemInstance(
+    request: GetItemInstanceRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetItemInstanceResponse) => void
+  ): grpcWeb.ClientReadableStream<GetItemInstanceResponse>;
+
+  getItemInstances(
+    request: GetItemInstancesRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetItemInstancesResponse) => void
+  ): grpcWeb.ClientReadableStream<GetItemInstancesResponse>;
+
+  getLocalisation(
+    request: GetLocalisationRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetLocalisationResponse) => void
+  ): grpcWeb.ClientReadableStream<GetLocalisationResponse>;
+
+  getLocalisations(
+    request: GetLocalisationsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetLocalisationsResponse) => void
+  ): grpcWeb.ClientReadableStream<GetLocalisationsResponse>;
+
+  getCategory(
+    request: GetCategoryRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<GetCategoryResponse>;
+
+  getCategories(
+    request: GetCategoriesRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetCategoriesResponse) => void
+  ): grpcWeb.ClientReadableStream<GetCategoriesResponse>;
+
+  getInventories(
+    request: GetInventoriesRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetInventoriesResponse) => void
+  ): grpcWeb.ClientReadableStream<GetInventoriesResponse>;
+
+  deleteInventory(
+    request: DeleteInventoryRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteInventoryResponse) => void
+  ): grpcWeb.ClientReadableStream<DeleteInventoryResponse>;
 
   deletePackage(
     request: DeletePackageRequest,
@@ -359,6 +449,11 @@ export class CatalogServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<SaveItemInstanceResponse>;
 
+  saveInventory(
+    request: SaveInventoryRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SaveInventoryResponse>;
+
   saveManufacturer(
     request: SaveManufacturerRequest,
     metadata?: grpcWeb.Metadata
@@ -373,11 +468,6 @@ export class CatalogServicePromiseClient {
     request: SaveLocalisationRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<SaveLocalisationResponse>;
-
-  saveInventory(
-    request: SaveInventoryRequest,
-    metadata?: grpcWeb.Metadata
-  ): Promise<SaveInventoryResponse>;
 
   savePackage(
     request: SavePackageRequest,
@@ -453,6 +543,56 @@ export class CatalogServicePromiseClient {
     request: GetUnitOfMeasuresRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<GetUnitOfMeasuresResponse>;
+
+  getItemDefinition(
+    request: GetItemDefinitionRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetItemDefinitionResponse>;
+
+  getItemDefinitions(
+    request: GetItemDefinitionsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetItemDefinitionsResponse>;
+
+  getItemInstance(
+    request: GetItemInstanceRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetItemInstanceResponse>;
+
+  getItemInstances(
+    request: GetItemInstancesRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetItemInstancesResponse>;
+
+  getLocalisation(
+    request: GetLocalisationRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetLocalisationResponse>;
+
+  getLocalisations(
+    request: GetLocalisationsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetLocalisationsResponse>;
+
+  getCategory(
+    request: GetCategoryRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetCategoryResponse>;
+
+  getCategories(
+    request: GetCategoriesRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetCategoriesResponse>;
+
+  getInventories(
+    request: GetInventoriesRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetInventoriesResponse>;
+
+  deleteInventory(
+    request: DeleteInventoryRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteInventoryResponse>;
 
   deletePackage(
     request: DeletePackageRequest,
