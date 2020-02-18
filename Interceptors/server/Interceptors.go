@@ -208,8 +208,13 @@ func getFilePermissionForMethod(method string, req interface{}) (string, int32) 
  * Validate if a user or a role has write to do operation on a file or a directorty.
  */
 func validateFileAccess(userName string, method string, req interface{}) error {
+
 	if !strings.HasPrefix(method, "/file.FileService") {
 		return nil
+	}
+
+	if len(userName) == 0 {
+		return errors.New("No user  name was given to validate method access " + method)
 	}
 
 	// if the user is the super admin no validation is required.
@@ -217,8 +222,6 @@ func validateFileAccess(userName string, method string, req interface{}) error {
 		return nil
 	}
 
-	// Now I will get the user roles and validate if the user can execute the
-	// method.
 	Id := "local_ressource"
 	Database := "local_ressource"
 	Collection := "Accounts"
@@ -258,6 +261,10 @@ func validateFileAccess(userName string, method string, req interface{}) error {
  */
 func validateUserAccess(userName string, method string) error {
 
+	if len(userName) == 0 {
+		return errors.New("No user  name was given to validate method access " + method)
+	}
+
 	// if the user is the super admin no validation is required.
 	if userName == "sa" {
 		return nil
@@ -269,18 +276,17 @@ func validateUserAccess(userName string, method string) error {
 		return nil
 	}
 
+	client, err := getPersistenceClient()
+	if err != nil {
+		return err
+	}
+
 	// Now I will get the user roles and validate if the user can execute the
 	// method.
 	Id := "local_ressource"
 	Database := "local_ressource"
 	Collection := "Accounts"
 	Query := `{"name":"` + userName + `"}`
-
-	client, err := getPersistenceClient()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
@@ -325,6 +331,7 @@ func logError(ctx context.Context, method string, err error) {
 }
 
 func saveInfo(application string, userId string, method string, err_ error) error {
+
 	p, err := getPersistenceClient()
 	if err != nil {
 		return err
@@ -392,7 +399,10 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	}
 
 	// Validate the user access.
-	if len(clientID) > 0 {
+	if len(applicationID) > 0 {
+		// TODO validate application action here.
+		log.Println("---------> validate application action permission! ", applicationID)
+	} else if len(clientID) > 0 {
 		err = validateUserAccess(clientID, info.FullMethod)
 		if err != nil {
 			return nil, err
@@ -403,9 +413,6 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		if err != nil {
 			return nil, err
 		}
-	} else if len(applicationID) > 0 {
-		// TODO validate application action here.
-		log.Println("---------> validatage application action permission! ", applicationID)
 	}
 
 	// Execute the action.

@@ -617,6 +617,7 @@ func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst
 
 	result, err := store.FindOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
+		err = errors.New(rqst.Collection + " " + rqst.Query + " " + err.Error())
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
