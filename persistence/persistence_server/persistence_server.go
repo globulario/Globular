@@ -103,6 +103,24 @@ func (self *server) init() {
 
 	// initialyse store connection here.
 	self.stores = make(map[string]persistence_store.Store)
+	// Here I will initialyse the connection.
+	for _, c := range self.Connections {
+		if c.Store == persistencepb.StoreType_MONGO {
+			// here I will create a new mongo data store.
+			s := new(persistence_store.MongoStore)
+
+			// Now I will try to connect...
+			err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
+
+			// keep the store for futur call...
+			if err == nil {
+				log.Println("---> create connection ", c.Id)
+				self.stores[c.Id] = s
+			} else {
+				log.Panicln(err.Error())
+			}
+		}
+	}
 }
 
 // Save the configuration values.

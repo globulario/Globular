@@ -80,7 +80,7 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 		log.Println("--->65 fail to connect whit user: ", user, password)
 		return err
 	}
-
+	log.Println("---> connect success 83 ", connectionId, client != nil)
 	self.clients[connectionId] = client
 	return nil
 }
@@ -187,6 +187,7 @@ func (self *MongoStore) InsertOne(ctx context.Context, connectionId string, data
 	}
 
 	// Get the collection object.
+	log.Println("----> ", connectionId, self.clients[connectionId])
 	collection_ := self.clients[connectionId].Database(database).Collection(collection)
 
 	result, err := collection_.InsertOne(ctx, entity, opts...)

@@ -1,7 +1,7 @@
 package Globular
 
 import (
-	"fmt"
+	//"fmt"
 	//"io/ioutil"
 	"log"
 
@@ -75,7 +75,7 @@ var (
 
 	log.Println("one entity persist with id ", id)
 }*/
-
+/*
 func TestCreateConnection(t *testing.T) {
 	fmt.Println("Connection creation test.")
 	user := "chitchat"
@@ -84,7 +84,7 @@ func TestCreateConnection(t *testing.T) {
 	if err != nil {
 		log.Println("fail to create connection! ", err)
 	}
-}
+}*/
 
 func TestPersistOne(t *testing.T) {
 
