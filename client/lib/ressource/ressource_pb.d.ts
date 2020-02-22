@@ -816,3 +816,135 @@ export namespace GetAllApplicationsInfoRsp {
   }
 }
 
+export class UserSyncInfos extends jspb.Message {
+  getBase(): string;
+  setBase(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getId(): string;
+  setId(value: string): void;
+
+  getEmail(): string;
+  setEmail(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UserSyncInfos.AsObject;
+  static toObject(includeInstance: boolean, msg: UserSyncInfos): UserSyncInfos.AsObject;
+  static serializeBinaryToWriter(message: UserSyncInfos, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UserSyncInfos;
+  static deserializeBinaryFromReader(message: UserSyncInfos, reader: jspb.BinaryReader): UserSyncInfos;
+}
+
+export namespace UserSyncInfos {
+  export type AsObject = {
+    base: string,
+    query: string,
+    id: string,
+    email: string,
+  }
+}
+
+export class GroupSyncInfos extends jspb.Message {
+  getBase(): string;
+  setBase(value: string): void;
+
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GroupSyncInfos.AsObject;
+  static toObject(includeInstance: boolean, msg: GroupSyncInfos): GroupSyncInfos.AsObject;
+  static serializeBinaryToWriter(message: GroupSyncInfos, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GroupSyncInfos;
+  static deserializeBinaryFromReader(message: GroupSyncInfos, reader: jspb.BinaryReader): GroupSyncInfos;
+}
+
+export namespace GroupSyncInfos {
+  export type AsObject = {
+    base: string,
+    query: string,
+    id: string,
+  }
+}
+
+export class LdapSyncInfos extends jspb.Message {
+  getLdapseriveid(): string;
+  setLdapseriveid(value: string): void;
+
+  getConnectionid(): string;
+  setConnectionid(value: string): void;
+
+  getRefresh(): number;
+  setRefresh(value: number): void;
+
+  getUsersyncinfos(): UserSyncInfos | undefined;
+  setUsersyncinfos(value?: UserSyncInfos): void;
+  hasUsersyncinfos(): boolean;
+  clearUsersyncinfos(): void;
+
+  getGroupsyncinfos(): GroupSyncInfos | undefined;
+  setGroupsyncinfos(value?: GroupSyncInfos): void;
+  hasGroupsyncinfos(): boolean;
+  clearGroupsyncinfos(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LdapSyncInfos.AsObject;
+  static toObject(includeInstance: boolean, msg: LdapSyncInfos): LdapSyncInfos.AsObject;
+  static serializeBinaryToWriter(message: LdapSyncInfos, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LdapSyncInfos;
+  static deserializeBinaryFromReader(message: LdapSyncInfos, reader: jspb.BinaryReader): LdapSyncInfos;
+}
+
+export namespace LdapSyncInfos {
+  export type AsObject = {
+    ldapseriveid: string,
+    connectionid: string,
+    refresh: number,
+    usersyncinfos?: UserSyncInfos.AsObject,
+    groupsyncinfos?: GroupSyncInfos.AsObject,
+  }
+}
+
+export class SynchronizeLdapRqst extends jspb.Message {
+  getSyncinfo(): LdapSyncInfos | undefined;
+  setSyncinfo(value?: LdapSyncInfos): void;
+  hasSyncinfo(): boolean;
+  clearSyncinfo(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SynchronizeLdapRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: SynchronizeLdapRqst): SynchronizeLdapRqst.AsObject;
+  static serializeBinaryToWriter(message: SynchronizeLdapRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SynchronizeLdapRqst;
+  static deserializeBinaryFromReader(message: SynchronizeLdapRqst, reader: jspb.BinaryReader): SynchronizeLdapRqst;
+}
+
+export namespace SynchronizeLdapRqst {
+  export type AsObject = {
+    syncinfo?: LdapSyncInfos.AsObject,
+  }
+}
+
+export class SynchronizeLdapRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SynchronizeLdapRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: SynchronizeLdapRsp): SynchronizeLdapRsp.AsObject;
+  static serializeBinaryToWriter(message: SynchronizeLdapRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SynchronizeLdapRsp;
+  static deserializeBinaryFromReader(message: SynchronizeLdapRsp, reader: jspb.BinaryReader): SynchronizeLdapRsp;
+}
+
+export namespace SynchronizeLdapRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+

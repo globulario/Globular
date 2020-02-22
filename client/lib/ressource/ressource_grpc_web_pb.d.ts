@@ -38,7 +38,9 @@ import {
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
   SetPermissionRqst,
-  SetPermissionRsp} from './ressource_pb';
+  SetPermissionRsp,
+  SynchronizeLdapRqst,
+  SynchronizeLdapRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
@@ -65,6 +67,13 @@ export class RessourceServiceClient {
     callback: (err: grpcWeb.Error,
                response: AuthenticateRsp) => void
   ): grpcWeb.ClientReadableStream<AuthenticateRsp>;
+
+  synchronizeLdap(
+    request: SynchronizeLdapRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SynchronizeLdapRsp) => void
+  ): grpcWeb.ClientReadableStream<SynchronizeLdapRsp>;
 
   refreshToken(
     request: RefreshTokenRqst,
@@ -199,6 +208,11 @@ export class RessourceServicePromiseClient {
     request: AuthenticateRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<AuthenticateRsp>;
+
+  synchronizeLdap(
+    request: SynchronizeLdapRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SynchronizeLdapRsp>;
 
   refreshToken(
     request: RefreshTokenRqst,

@@ -112,6 +112,7 @@ type Globule struct {
 	ServicesRepositoryProxy    int    // The ressource management proxy port
 	Protocol                   string // The protocol of the service.
 	Services                   map[string]interface{}
+	LdapSyncInfos              []interface{} // Contain LdapSyncInfos...
 	ExternalApplications       map[string]ExternalApplication
 	Domain                     string   // The domain (subdomain) name of your application
 	DNS                        []string // Contain a list of domain name server where that computer use as sub-domain
@@ -180,6 +181,9 @@ func NewGlobule() *Globule {
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
+
+	// Contain the list of ldap syncronization info.
+	g.LdapSyncInfos = make([]interface{}, 0)
 
 	// Configuration must be reachable before services initialysation
 	go func() {
@@ -2479,6 +2483,59 @@ func (self *Globule) registerSa() error {
 
 	// Get the list of all services method.
 	return self.registerMethods()
+}
+
+/** Append new LDAP synchronization informations. **/
+func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.SynchronizeLdapRqst) (*ressource.SynchronizeLdapRsp, error) {
+	if rqst.SyncInfo == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync infos was given!")))
+	}
+
+	serviceId := rqst.SyncInfo.LdapSeriveId
+	if strings.HasSuffix(serviceId, "_server") {
+		serviceId = strings.Replace(serviceId, "_server", "_service", -1)
+	}
+
+	ldap_ := self.clients[serviceId]
+	if ldap_ == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP service found with id "+rqst.SyncInfo.LdapSeriveId)))
+	}
+
+	if rqst.SyncInfo.UserSyncInfos == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync users infos was given!")))
+	}
+	log.Println("---> ", rqst.SyncInfo)
+	log.Println("---> ", rqst.SyncInfo.UserSyncInfos.Base)
+	log.Println("---> ", rqst.SyncInfo.UserSyncInfos.Query)
+
+	// Cast the the correct type.
+	ldap := ldap_.(*ldap_client.LDAP_Client)
+	accountsInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email})
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	for i := 0; i < len(accountsInfo); i++ {
+		// Print the list of account...
+		log.Println("----> ", accountsInfo[i])
+	}
+
+	if rqst.SyncInfo.GroupSyncInfos == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync groups infos was given!")))
+	}
+
+	return nil, nil
 }
 
 /* Register a new Account */

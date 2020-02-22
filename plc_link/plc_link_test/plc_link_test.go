@@ -9,7 +9,6 @@ import (
 
 var (
 // Connect to the plc client.
-
 //client = NewPlcLink_Client.("localhost", 10027, false, "", "", "")
 //client = plc_link_client.NewPlcLink_Client("localhost", 10027, false, "", "", "")
 )

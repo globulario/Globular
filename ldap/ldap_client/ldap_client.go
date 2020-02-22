@@ -5,6 +5,8 @@ import (
 	// "log"
 	"strconv"
 
+	"encoding/json"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/ldap/ldappb"
 	"google.golang.org/grpc"
@@ -127,4 +129,30 @@ func (self *LDAP_Client) SetKeyFile(keyFile string) {
 // Set TLS authority trust certificate file path
 func (self *LDAP_Client) SetCaFile(caFile string) {
 	self.caFile = caFile
+}
+
+////////////////////////// LDAP ////////////////////////////////////////////////
+
+func (self *LDAP_Client) Search(connectionId string, BaseDN string, Filter string, Attributes []string) ([][]string, error) {
+
+	// I will execute a simple ldap search here...
+	rqst := &ldappb.SearchRqst{
+		Search: &ldappb.Search{
+			Id:         connectionId,
+			BaseDN:     BaseDN,
+			Filter:     Filter,
+			Attributes: Attributes,
+		},
+	}
+
+	rsp, err := self.c.Search(api.GetClientContext(self), rqst)
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([][]string, 0)
+	err = json.Unmarshal([]byte(rsp.Result), &values)
+
+	return values, err
+
 }

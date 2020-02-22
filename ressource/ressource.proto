@@ -204,6 +204,38 @@ message GetAllApplicationsInfoRsp{
 	string result = 1;
 }
 
+message UserSyncInfos{
+	string base = 1;
+	string query = 2; // ldap query to get the list of users.
+	string id = 3; // user account id
+	string email = 4; // ldap email attribute
+}
+
+message GroupSyncInfos{
+	string base = 1;
+	string query = 2; // ldap query
+	string id = 3;
+}
+
+// That Information is use to synchronize LDAP user with Globular Account and
+// LDAP group with Globular Role.
+message LdapSyncInfos {
+	string ldapSeriveId = 1;
+	string connectionId = 2;
+	int32 refresh = 3;
+	UserSyncInfos userSyncInfos = 4;
+	GroupSyncInfos groupSyncInfos = 5;
+}
+
+// Create Account and Roles from LDAP User and Groups
+message SynchronizeLdapRqst{
+	LdapSyncInfos syncInfo = 1;
+}
+
+message SynchronizeLdapRsp{
+	bool result = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -219,6 +251,9 @@ service RessourceService {
 	
 	/** Authenticate a user **/
 	rpc Authenticate(AuthenticateRqst) returns(AuthenticateRsp);
+	
+	/** Synchronize Ressource with LDAP if connection exist **/
+	rpc SynchronizeLdap(SynchronizeLdapRqst) returns(SynchronizeLdapRsp);
 	
 	/** Refresh token get a new token **/
 	rpc RefreshToken(RefreshTokenRqst) returns(RefreshTokenRsp);

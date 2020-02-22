@@ -254,6 +254,61 @@ proto.ressource.RessourceServicePromiseClient.prototype.authenticate =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.SynchronizeLdapRqst,
+ *   !proto.ressource.SynchronizeLdapRsp>}
+ */
+const methodInfo_RessourceService_SynchronizeLdap = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.SynchronizeLdapRsp,
+  /** @param {!proto.ressource.SynchronizeLdapRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SynchronizeLdapRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.SynchronizeLdapRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.SynchronizeLdapRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.SynchronizeLdapRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.synchronizeLdap =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/SynchronizeLdap',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SynchronizeLdap,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.SynchronizeLdapRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.SynchronizeLdapRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.synchronizeLdap =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/SynchronizeLdap',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SynchronizeLdap);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.RefreshTokenRqst,
  *   !proto.ressource.RefreshTokenRsp>}
  */
