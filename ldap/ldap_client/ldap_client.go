@@ -132,8 +132,47 @@ func (self *LDAP_Client) SetCaFile(caFile string) {
 }
 
 ////////////////////////// LDAP ////////////////////////////////////////////////
+func (self *LDAP_Client) CreateConnection(connectionId string, user string, password string, host string, port int32) error {
+	// Create a new connection
+	rqst := &ldappb.CreateConnectionRqst{
+		Connection: &ldappb.Connection{
+			Id:       connectionId,
+			User:     user,
+			Password: password,
+			Port:     port,
+			Host:     host, //"mon-dc-p01.UD6.UF6",
+		},
+	}
 
-func (self *LDAP_Client) Search(connectionId string, BaseDN string, Filter string, Attributes []string) ([][]string, error) {
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+func (self *LDAP_Client) DeleteConnection(connectionId string) error {
+
+	rqst := &ldappb.DeleteConnectionRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+func (self *LDAP_Client) Authenticate(connectionId string, userId string, password string) error {
+
+	rqst := &ldappb.AuthenticateRqst{
+		Id:    connectionId,
+		Login: userId,
+		Pwd:   password,
+	}
+
+	_, err := self.c.Authenticate(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *LDAP_Client) Search(connectionId string, BaseDN string, Filter string, Attributes []string) ([][]interface{}, error) {
 
 	// I will execute a simple ldap search here...
 	rqst := &ldappb.SearchRqst{
@@ -150,7 +189,7 @@ func (self *LDAP_Client) Search(connectionId string, BaseDN string, Filter strin
 		return nil, err
 	}
 
-	values := make([][]string, 0)
+	values := make([][]interface{}, 0)
 	err = json.Unmarshal([]byte(rsp.Result), &values)
 
 	return values, err

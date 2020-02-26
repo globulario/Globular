@@ -1,6 +1,9 @@
 import * as jspb from "google-protobuf"
 
 export class Account extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
   getName(): string;
   setName(value: string): void;
 
@@ -20,6 +23,7 @@ export class Account extends jspb.Message {
 
 export namespace Account {
   export type AsObject = {
+    id: string,
     name: string,
     email: string,
     password: string,
@@ -27,6 +31,9 @@ export namespace Account {
 }
 
 export class Role extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
   getName(): string;
   setName(value: string): void;
 
@@ -45,6 +52,7 @@ export class Role extends jspb.Message {
 
 export namespace Role {
   export type AsObject = {
+    id: string,
     name: string,
     actionsList: Array<string>,
   }
@@ -97,8 +105,8 @@ export namespace RegisterAccountRsp {
 }
 
 export class DeleteAccountRqst extends jspb.Message {
-  getName(): string;
-  setName(value: string): void;
+  getId(): string;
+  setId(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): DeleteAccountRqst.AsObject;
@@ -110,7 +118,7 @@ export class DeleteAccountRqst extends jspb.Message {
 
 export namespace DeleteAccountRqst {
   export type AsObject = {
-    name: string,
+    id: string,
   }
 }
 

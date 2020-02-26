@@ -152,9 +152,9 @@ func (self *Ressource_Client) RegisterAccount(name string, email string, passwor
 }
 
 // Delete an account.
-func (self *Ressource_Client) DeleteAccount(name string) error {
+func (self *Ressource_Client) DeleteAccount(id string) error {
 	rqst := &DeleteAccountRqst{
-		Name: name,
+		Id: id,
 	}
 
 	_, err := self.c.DeleteAccount(api.GetClientContext(self), rqst)

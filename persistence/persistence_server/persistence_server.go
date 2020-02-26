@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecourtois/Globular/Interceptors/server"
@@ -285,15 +286,15 @@ func (self *server) Disconnect(ctx context.Context, rqst *persistencepb.Disconne
 
 // Create a database
 func (self *server) CreateDatabase(ctx context.Context, rqst *persistencepb.CreateDatabaseRqst) (*persistencepb.CreateDatabaseRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.CreateDatabase(ctx, rqst.GetId(), rqst.Database)
+	err := store.CreateDatabase(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -307,15 +308,15 @@ func (self *server) CreateDatabase(ctx context.Context, rqst *persistencepb.Crea
 
 // Delete a database
 func (self *server) DeleteDatabase(ctx context.Context, rqst *persistencepb.DeleteDatabaseRqst) (*persistencepb.DeleteDatabaseRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteDatabase(ctx, rqst.GetId(), rqst.Database)
+	err := store.DeleteDatabase(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -329,15 +330,15 @@ func (self *server) DeleteDatabase(ctx context.Context, rqst *persistencepb.Dele
 
 // Create a Collection
 func (self *server) CreateCollection(ctx context.Context, rqst *persistencepb.CreateCollectionRqst) (*persistencepb.CreateCollectionRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.CreateCollection(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.OptionsStr)
+	err := store.CreateCollection(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.OptionsStr)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -351,15 +352,15 @@ func (self *server) CreateCollection(ctx context.Context, rqst *persistencepb.Cr
 
 // Delete collection
 func (self *server) DeleteCollection(ctx context.Context, rqst *persistencepb.DeleteCollectionRqst) (*persistencepb.DeleteCollectionRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteCollection(ctx, rqst.GetId(), rqst.Database, rqst.Collection)
+	err := store.DeleteCollection(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -373,15 +374,15 @@ func (self *server) DeleteCollection(ctx context.Context, rqst *persistencepb.De
 
 // Ping a sql connection.
 func (self *server) Ping(ctx context.Context, rqst *persistencepb.PingConnectionRqst) (*persistencepb.PingConnectionRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Ping(ctx, rqst.GetId())
+	err := store.Ping(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -396,15 +397,15 @@ func (self *server) Ping(ctx context.Context, rqst *persistencepb.PingConnection
 
 // Get the number of entry in a collection
 func (self *server) Count(ctx context.Context, rqst *persistencepb.CountRqst) (*persistencepb.CountRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	count, err := store.Count(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	count, err := store.Count(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -418,9 +419,9 @@ func (self *server) Count(ctx context.Context, rqst *persistencepb.CountRqst) (*
 
 // Implementation of the Persistence method.
 func (self *server) InsertOne(ctx context.Context, rqst *persistencepb.InsertOneRqst) (*persistencepb.InsertOneRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -442,7 +443,7 @@ func (self *server) InsertOne(ctx context.Context, rqst *persistencepb.InsertOne
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	var id interface{}
-	id, err = store.InsertOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, entity, rqst.Options)
+	id, err = store.InsertOne(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, entity, rqst.Options)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -499,7 +500,7 @@ func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertMan
 		}
 
 		var results []interface{}
-		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, entities, rqst.Options)
+		results, err = self.stores[rqst.Id].InsertMany(stream.Context(), strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, entities, rqst.Options)
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
@@ -515,16 +516,16 @@ func (self *server) InsertMany(stream persistencepb.PersistenceService_InsertMan
 // Find many
 func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.PersistenceService_FindServer) error {
 
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := store.Find(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	results, err := store.Find(stream.Context(), strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -570,16 +571,16 @@ func (self *server) Find(rqst *persistencepb.FindRqst, stream persistencepb.Pers
 
 func (self *server) Aggregate(rqst *persistencepb.AggregateRqst, stream persistencepb.PersistenceService_AggregateServer) error {
 
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	results, err := store.Aggregate(stream.Context(), rqst.GetId(), rqst.Database, rqst.Collection, rqst.Pipeline, rqst.Options)
+	results, err := store.Aggregate(stream.Context(), strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Pipeline, rqst.Options)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -625,15 +626,15 @@ func (self *server) Aggregate(rqst *persistencepb.AggregateRqst, stream persiste
 
 // Find one
 func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst) (*persistencepb.FindOneResp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	result, err := store.FindOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	result, err := store.FindOne(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		err = errors.New(rqst.Collection + " " + rqst.Query + " " + err.Error())
 		return nil, status.Errorf(
@@ -655,15 +656,15 @@ func (self *server) FindOne(ctx context.Context, rqst *persistencepb.FindOneRqst
 
 // Update a single or many value depending of the query
 func (self *server) Update(ctx context.Context, rqst *persistencepb.UpdateRqst) (*persistencepb.UpdateRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Update(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.Update(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -675,15 +676,15 @@ func (self *server) Update(ctx context.Context, rqst *persistencepb.UpdateRqst) 
 
 // Update a single docuemnt value(s)
 func (self *server) UpdateOne(ctx context.Context, rqst *persistencepb.UpdateOneRqst) (*persistencepb.UpdateOneRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.UpdateOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.UpdateOne(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -695,15 +696,15 @@ func (self *server) UpdateOne(ctx context.Context, rqst *persistencepb.UpdateOne
 
 // Replace one document by another.
 func (self *server) ReplaceOne(ctx context.Context, rqst *persistencepb.ReplaceOneRqst) (*persistencepb.ReplaceOneRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.ReplaceOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
+	err := store.ReplaceOne(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Value, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -715,15 +716,15 @@ func (self *server) ReplaceOne(ctx context.Context, rqst *persistencepb.ReplaceO
 
 // Delete many or one.
 func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) (*persistencepb.DeleteRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.Delete(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	err := store.Delete(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -735,15 +736,15 @@ func (self *server) Delete(ctx context.Context, rqst *persistencepb.DeleteRqst) 
 
 // Delete one document at time
 func (self *server) DeleteOne(ctx context.Context, rqst *persistencepb.DeleteOneRqst) (*persistencepb.DeleteOneRsp, error) {
-	store := self.stores[rqst.GetId()]
+	store := self.stores[strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")]
 	if store == nil {
-		err := errors.New("No store connection exist for id " + rqst.GetId())
+		err := errors.New("No store connection exist for id " + strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"))
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err := store.DeleteOne(ctx, rqst.GetId(), rqst.Database, rqst.Collection, rqst.Query, rqst.Options)
+	err := store.DeleteOne(ctx, strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_"), strings.ReplaceAll(strings.ReplaceAll(rqst.Database, "@", "_"), ".", "_"), rqst.Collection, rqst.Query, rqst.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -756,7 +757,7 @@ func (self *server) DeleteOne(ctx context.Context, rqst *persistencepb.DeleteOne
 // Remove a connection from the map and the file.
 func (self *server) DeleteConnection(ctx context.Context, rqst *persistencepb.DeleteConnectionRqst) (*persistencepb.DeleteConnectionRsp, error) {
 
-	id := rqst.GetId()
+	id := strings.ReplaceAll(strings.ReplaceAll(rqst.Id, "@", "_"), ".", "_")
 	if _, ok := self.Connections[id]; !ok {
 		return &persistencepb.DeleteConnectionRsp{
 			Result: true,

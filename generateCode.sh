@@ -13,7 +13,6 @@ protoc ldap/ldappb/ldap.proto --go_out=plugins=grpc:.
 protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
 protoc persistence/persistencepb/persistence.proto --go_out=plugins=grpc:.
 protoc monitoring/monitoringpb/monitoring.proto --go_out=plugins=grpc:.
-protoc -I. -I /media/dave/ssd/Project/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --grpc-gateway_out=logtostderr=true:. opc_ua/opc_uapb/opc_ua.proto --go_out=plugins=grpc:.
 
 #plc service.
 protoc plc/plcpb/plc.proto --go_out=plugins=grpc:.

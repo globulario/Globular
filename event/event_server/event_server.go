@@ -261,7 +261,6 @@ func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (
 
 	// publish the data.
 	self.actions <- publish
-	log.Println("----> publish event ", rqst.Evt.Name)
 	return &eventpb.PublishResponse{
 		Result: true,
 	}, nil

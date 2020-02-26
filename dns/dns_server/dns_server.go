@@ -227,11 +227,9 @@ func (self *server) get_ipv4(domain string) (string, uint32, error) {
 	if err != nil {
 		return "", 0, err
 	}
-	log.Println("-----> look for domain A:" + domain)
 	uuid := Utility.GenerateUUID("A:" + domain)
 	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		log.Println("------> 231 ", uuid)
 		return "", 0, err
 	}
 
@@ -371,12 +369,9 @@ func (self *server) getText(id string) ([]string, uint32, error) {
 		return nil, 0, err
 	}
 	uuid := Utility.GenerateUUID("TXT:" + id)
-	log.Println("---> look for uuid ", uuid)
 	data, err := self.storageClient.GetItem(connectionId, uuid)
 	if err != nil {
-		log.Println("--> err: 361 ", err)
 	}
-	log.Println("---> data retreived: ", string(data))
 	values := make([]string, 0)
 
 	err = json.Unmarshal(data, &values)
@@ -1067,7 +1062,6 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		msg.Authoritative = true
 		id := msg.Question[0].Name
 		afsdb, ttl, err := s.getAfsdb(id)
-		log.Println("---> look for AFSDB ", id)
 		if err == nil {
 			msg.Answer = append(msg.Answer, &dns.AFSDB{
 				Hdr:      dns.RR_Header{Name: domain, Rrtype: dns.TypeAFSDB, Class: dns.ClassINET, Ttl: ttl},
@@ -1112,7 +1106,6 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		log.Println("---> look for txt ", id)
 		values, ttl, err := s.getText(id)
 		if err == nil {
-			log.Println("---> values found ", values)
 			// in case of empty string I will return the certificate validation key.
 			msg.Answer = append(msg.Answer, &dns.TXT{
 				// keep text values.
@@ -1120,12 +1113,11 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				Txt: values,
 			})
 		} else {
-			log.Println("---> fail to retreive txt!", err)
+			log.Println("fail to retreive txt!", err)
 		}
 
 	case dns.TypeNS:
 		id := msg.Question[0].Name
-		log.Println("---> look for ns ", id)
 		ns, ttl, err := s.getNs(id)
 		if err == nil {
 			// in case of empty string I will return the certificate validation key.
@@ -1138,7 +1130,6 @@ func (this *handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	case dns.TypeMX:
 		id := msg.Question[0].Name // the id where the values is store.
-		log.Println("---> look for mx ", id)
 		mx, ttl, err := s.getMx(id)
 
 		if err == nil {

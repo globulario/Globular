@@ -219,7 +219,6 @@ func getThumbnails(info *fileInfo) []interface{} {
 			thumbnail["path"] = info.Files[i].Path
 			thumbnail["thumbnail"] = info.Files[i].Thumbnail
 			thumbnails = append(thumbnails, thumbnail)
-			log.Println("--> file path ", thumbnail["path"], ":", len(thumbnail["thumbnail"]))
 		} else {
 			thumbnails = append(thumbnails, getThumbnails(info.Files[i])...)
 		}
@@ -305,7 +304,6 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 	log.Println("--> read dir: ", path)
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
 	if err != nil {
-		log.Println("--> read dir error: ", err)
 		return err
 	}
 

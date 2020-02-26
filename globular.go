@@ -112,7 +112,7 @@ type Globule struct {
 	ServicesRepositoryProxy    int    // The ressource management proxy port
 	Protocol                   string // The protocol of the service.
 	Services                   map[string]interface{}
-	LdapSyncInfos              []interface{} // Contain LdapSyncInfos...
+	LdapSyncInfos              map[string]interface{} // Contain LdapSyncInfos...
 	ExternalApplications       map[string]ExternalApplication
 	Domain                     string   // The domain (subdomain) name of your application
 	DNS                        []string // Contain a list of domain name server where that computer use as sub-domain
@@ -183,7 +183,7 @@ func NewGlobule() *Globule {
 	g.CertPassword = "1111"
 
 	// Contain the list of ldap syncronization info.
-	g.LdapSyncInfos = make([]interface{}, 0)
+	g.LdapSyncInfos = make(map[string]interface{}, 0)
 
 	// Configuration must be reachable before services initialysation
 	go func() {
@@ -415,12 +415,10 @@ func (self *Globule) registerIpToDns() {
 				log.Println("register domain to dns:", self.DNS[i])
 				client := dns_client.NewDns_Client(self.DNS[i], "dns_server")
 
-				domain, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
+				_, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 
 				if err != nil {
 					log.Println(err)
-				} else {
-					log.Println("---> register ip ", Utility.MyIP(), "with", domain)
 				}
 
 				// TODO also register the ipv6 here...
@@ -454,7 +452,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 	hasTls := Utility.ToBool(srv.(map[string]interface{})["TLS"])
 	if hasTls == true {
-		log.Println("---> start secure service: ", srv.(map[string]interface{})["Name"])
+		log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
 		/* Services gRpc backend. */
@@ -475,8 +473,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
 
 	} else {
-		log.Println("---> start non secure service: ", srv.(map[string]interface{})["Name"])
-
+		log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
 		// Now I will save the file with those new information in it.
 		proxyArgs = append(proxyArgs, "--run_http_server=true")
 		proxyArgs = append(proxyArgs, "--run_tls_server=false")
@@ -549,6 +546,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 	}
 
+	servicePath := self.path + s["servicePath"].(string)
 	if s["Protocol"].(string) == "grpc" {
 
 		// Stop the previous client if there one.
@@ -574,7 +572,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Start the service process.
 		log.Println("try to start process ", s["Name"].(string))
 
-		servicePath := self.path + s["servicePath"].(string)
 		if string(os.PathSeparator) == "\\" {
 			servicePath += ".exe" // in case of windows.
 		}
@@ -624,7 +621,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			// Kill previous instance of the program.
 			Utility.KillProcessByName(s["Name"].(string))
 			log.Println("try to start process ", s["Name"].(string))
-			s["Process"] = exec.Command(s["servicePath"].(string), Utility.ToString(s["Port"]))
+
+			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
@@ -717,7 +715,6 @@ func (self *Globule) initServices() {
 				return nil
 			}
 			if err == nil && info.Name() == "config.json" {
-				log.Println("--> config found at ", path)
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
@@ -737,8 +734,6 @@ func (self *Globule) initServices() {
 
 							self.Services[s["Name"].(string)] = s
 
-						} else {
-							log.Println("--> no protocol found")
 						}
 					} else {
 						log.Println("fail to unmarshal configuration ", err)
@@ -828,11 +823,10 @@ func (self *Globule) initServices() {
 	})
 
 	// Init services.
-	for id, s := range self.Services {
+	for _, s := range self.Services {
 		// Remove existing process information.
 		delete(s.(map[string]interface{}), "Process")
 		delete(s.(map[string]interface{}), "ProxyProcess")
-		log.Println("--> init service ", id)
 		err := self.initService(s.(map[string]interface{}))
 		if err != nil {
 			log.Println(err)
@@ -842,11 +836,9 @@ func (self *Globule) initServices() {
 	// if a dns service exist I will set the name of that globule on the server.
 	if self.clients["dns_service"] != nil {
 		// Set the server
-		domain, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
-		if err == nil {
-			log.Println("---> set domain ", domain, "with ip", Utility.MyIP())
-		} else {
-			log.Println("---> fail to register ip with dns", err)
+		_, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
+		if err != nil {
+			log.Println("fail to register ip with dns", err)
 		}
 	}
 
@@ -872,7 +864,6 @@ func (self *Globule) registerMethods() error {
 	// Here I will create the sa role if it dosen't exist.
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		log.Println("---> fail to get local_ressource connection", err)
 		return err
 	}
 
@@ -880,11 +871,11 @@ func (self *Globule) registerMethods() error {
 	count, err := p.Count("local_ressource", "local_ressource", "Roles", `{ "_id":"sa"}`, "")
 	admin := make(map[string]interface{})
 	if err != nil {
-		log.Println("---> fail to count local ressource.", err)
 		return err
 	} else if count == 0 {
 		log.Println("need to create admin roles...")
 		admin["_id"] = "sa"
+		admin["name"] = "sa"
 		admin["actions"] = self.methods
 		jsonStr, _ := Utility.ToJson(admin)
 		id, err := p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
@@ -894,6 +885,7 @@ func (self *Globule) registerMethods() error {
 		log.Println("role with id", id, "was created!")
 	} else {
 		admin["_id"] = "sa"
+		admin["name"] = "sa"
 		admin["actions"] = self.methods
 		jsonStr, _ := Utility.ToJson(admin)
 		// I will set the role actions...
@@ -912,6 +904,7 @@ func (self *Globule) registerMethods() error {
 	} else if count == 0 {
 		log.Println("need to create roles guest...")
 		guest["_id"] = "guest"
+		guest["name"] = "guest"
 		guest["actions"] = []string{"/admin.AdminService/GetConfig", "/ressource.RessourceService/RegisterAccount",
 			"/ressource.RessourceService/Authenticate", "/ressource.RessourceService/RefreshToken", "/ressource.RessourceService/GetPermissions",
 			"/ressource.RessourceService/GetAllFilesInfo", "/ressource.RessourceService/GetAllApplicationsInfo", "/event.EventService/Subscribe",
@@ -992,7 +985,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("---> upload file call!")
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -1008,7 +1000,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
-	log.Println("---> path ", path)
 	if strings.HasPrefix(path, "/") {
 		path = globule.webRoot + path
 		// create the dir if not already exist.
@@ -1025,7 +1016,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file.
 		out, err := os.Create(path + "/" + files[i].Filename)
-		log.Println("---> save file ", path+"/"+files[i].Filename)
 
 		defer out.Close()
 		if err != nil {
@@ -1151,7 +1141,6 @@ func (self *Globule) initClient(id string, name string) {
 			self.clients[name+"_service"].Close()
 		}
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
-		log.Println("--> client ", name+"_service", "is now initialysed!")
 	} else {
 		log.Panicln(err)
 	}
@@ -1348,7 +1337,6 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 
 		err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
 		if err != nil {
-			log.Println("----------------> fail to run admin script")
 			log.Println(createApplicationUserDbScript)
 			return err
 		}
@@ -1383,7 +1371,6 @@ func (self *Globule) startMonitoring() error {
 	Utility.KillProcessByName("prometheus")
 	var m *monitoring_client.Monitoring_Client
 	if self.clients["monitoring_service"] == nil {
-		log.Println("---> no monitoring service is configure.")
 		return errors.New("No monitoring service are available to store monitoring information.")
 	}
 
@@ -1427,6 +1414,11 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
     - targets: ['localhost:9100']
+    
+  - job_name: 'plc_exporter'
+    scrape_interval: 500ms
+    static_configs:
+    - targets: ['localhost:2112']
 `
 		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"prometheus.yml", []byte(config), 0644)
 		if err != nil {
@@ -1461,7 +1453,6 @@ inhibit_rules:
 		}
 	}
 
-	log.Println("---> start prometheus alert manager")
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	err := alertmanager.Start()
 	if err != nil {
@@ -1469,7 +1460,6 @@ inhibit_rules:
 		// do not return here in that case simply continue without node exporter metrics.
 	}
 
-	log.Println("---> start prometheus node exporter on port 9100")
 	node_exporter := exec.Command("node_exporter")
 	err = node_exporter.Start()
 	if err != nil {
@@ -1477,7 +1467,6 @@ inhibit_rules:
 		// do not return here in that case simply continue without node exporter metrics.
 	}
 
-	log.Println("---> start prometheus on port 9090")
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
 	if err != nil {
@@ -1501,7 +1490,6 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	// That service made user of persistence service.
 	var p *persistence_client.Persistence_Client
 	if self.clients["persistence_service"] == nil {
-		log.Println("---> no persistence service is configure.")
 		return nil, errors.New("No persistence service are available to store ressource information.")
 	}
 
@@ -1543,7 +1531,6 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 	// I will execute the sript with the admin function.
 	err = p.RunAdminCmd("local_ressource", "sa", rqst.OldPassword, changeRootPasswordScript)
 	if err != nil {
-		log.Println("---> fail to run script: ")
 		log.Println(changeRootPasswordScript)
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1559,61 +1546,51 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 }
 
-//Set the root password
-func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordRequest) (*admin.SetPasswordResponse, error) {
+func (self *Globule) setPassword(accountId string, oldPassword string, newPassword string) error {
 
 	// First of all I will get the user information from the database.
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
-	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+accountId+`"}`, ``)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	account := make(map[string]interface{})
 	err = json.Unmarshal([]byte(values), &account)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
-	if len(rqst.OldPassword) == 0 {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("You must give your old password!")))
+	if len(oldPassword) == 0 {
+		return errors.New("You must give your old password!")
 	}
 
 	// Test the old password.
-	if Utility.GenerateUUID(rqst.OldPassword) != account["password"] {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong password given!")))
+	if oldPassword != account["password"] {
+		if Utility.GenerateUUID(oldPassword) != account["password"] {
+			return errors.New("Wrong password given!")
+		}
 	}
 
 	// Now update the sa password in mongo db.
+	name := account["name"].(string)
+	name = strings.ReplaceAll(strings.ReplaceAll(name, ".", "_"), "@", "_")
+
 	changePasswordScript := fmt.Sprintf(
-		"db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');", account["name"].(string), rqst.NewPassword)
+		"db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');", name, newPassword)
 
 	// I will execute the sript with the admin function.
 	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, changePasswordScript)
 	if err != nil {
-		log.Println("---> fail to run script:")
-		log.Println(changePasswordScript)
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Here I will update the user information.
-	account["password"] = Utility.GenerateUUID(rqst.NewPassword)
+	account["password"] = Utility.GenerateUUID(newPassword)
 
 	// Here I will save the role.
 	jsonStr := "{"
@@ -1622,10 +1599,14 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordReq
 	jsonStr += `"password":"` + account["password"].(string) + `",`
 	jsonStr += `"roles":[`
 	for j := 0; j < len(account["roles"].([]interface{})); j++ {
+		db := account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string)
+		db = strings.ReplaceAll(db, "@", "_")
+		db = strings.ReplaceAll(db, ".", "_")
+
 		jsonStr += `{`
 		jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
 		jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
-		jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+		jsonStr += `"$db":"` + db + `"`
 		jsonStr += `}`
 		if j < len(account["roles"].([]interface{}))-1 {
 			jsonStr += `,`
@@ -1635,6 +1616,20 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordReq
 	jsonStr += "}"
 
 	err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+//Set the root password
+func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordRequest) (*admin.SetPasswordResponse, error) {
+
+	// First of all I will get the user information from the database.
+	err := self.setPassword(rqst.AccountId, rqst.OldPassword, rqst.NewPassword)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1650,7 +1645,7 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordReq
 
 //Set the root password
 func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) (*admin.SetEmailResponse, error) {
-	log.Println("----> SetEmail")
+
 	// Here I will set the root password.
 	// First of all I will get the user information from the database.
 	p, err := self.getPersistenceSaConnection()
@@ -1690,10 +1685,13 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) 
 	jsonStr += `"password":"` + account["password"].(string) + `",`
 	jsonStr += `"roles":[`
 	for j := 0; j < len(account["roles"].([]interface{})); j++ {
+		db := account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string)
+		db = strings.ReplaceAll(db, "@", "_")
+		db = strings.ReplaceAll(db, ".", "_")
 		jsonStr += `{`
 		jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
 		jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
-		jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+		jsonStr += `"$db":"` + db + `"`
 		jsonStr += `}`
 		if j < len(account["roles"].([]interface{}))-1 {
 			jsonStr += `,`
@@ -1997,7 +1995,6 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *admin.Uninstall
 			if s["PublisherId"].(string) == rqst.PublisherId && s["Name"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {
 				self.stopService(s["Id"].(string))
 				delete(self.Services, id)
-				log.Println("---> remove service: ", id)
 			}
 		}
 	}
@@ -2388,7 +2385,6 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 
 /** Stop mongod process **/
 func (self *Globule) stopMongod() error {
-	log.Println("---> stop mongo db")
 	closeCmd := exec.Command("mongo", "--eval", "db=db.getSiblingDB('admin');db.adminCommand( { shutdown: 1 } );")
 	err := closeCmd.Run()
 	time.Sleep(1 * time.Second)
@@ -2444,7 +2440,6 @@ func (self *Globule) registerSa() error {
 
 		// Now I will start the command
 		mongod := exec.Command("mongod", "--port", "27017", "--dbpath", dataPath)
-		log.Println("---> start mongod without auth ", dataPath)
 		err = mongod.Start()
 		if err != nil {
 			log.Println("fail to start mongo db", err)
@@ -2454,14 +2449,12 @@ func (self *Globule) registerSa() error {
 		self.waitForMongo(60, false)
 
 		// Now I will create a new user name sa and give it all admin write.
-		log.Println("---> create sa user in mongo db")
 		createSaScript := fmt.Sprintf(
 			`db=db.getSiblingDB('admin');db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']});`, "sa", self.RootPassword) // must be change...
 
 		createSaCmd := exec.Command("mongo", "--eval", createSaScript)
 		err = createSaCmd.Run()
 		if err != nil {
-			log.Println("---> fail to run script ", err)
 			// remove the mongodb-data
 			os.RemoveAll(dataPath)
 			log.Println(createSaScript)
@@ -2471,7 +2464,6 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Now I will start mongod with auth available.
-	log.Println("---> start mongo db whith auth ", dataPath)
 	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--dbpath", dataPath)
 	err := mongod.Start()
 	if err != nil {
@@ -2487,6 +2479,7 @@ func (self *Globule) registerSa() error {
 
 /** Append new LDAP synchronization informations. **/
 func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.SynchronizeLdapRqst) (*ressource.SynchronizeLdapRsp, error) {
+
 	if rqst.SyncInfo == nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2502,7 +2495,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	if ldap_ == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP service found with id "+rqst.SyncInfo.LdapSeriveId)))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP service found with id "+serviceId)))
 	}
 
 	if rqst.SyncInfo.UserSyncInfos == nil {
@@ -2510,13 +2503,62 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync users infos was given!")))
 	}
-	log.Println("---> ", rqst.SyncInfo)
-	log.Println("---> ", rqst.SyncInfo.UserSyncInfos.Base)
-	log.Println("---> ", rqst.SyncInfo.UserSyncInfos.Query)
+
+	syncInfo, err := Utility.ToMap(rqst.SyncInfo)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] == nil {
+		self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = make([]interface{}, 0)
+		self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{}), syncInfo)
+	} else {
+		syncInfos := self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{})
+		exist := false
+		for i := 0; i < len(syncInfos); i++ {
+			if syncInfos[i].(map[string]interface{})["ldapSeriveId"] == syncInfo["ldapSeriveId"] {
+				if syncInfos[i].(map[string]interface{})["connectionId"] == syncInfo["connectionId"] {
+					// set the connection info.
+					syncInfos[i] = syncInfo
+					exist = true
+					// save the config.
+					self.saveConfig()
+
+					break
+				}
+			}
+		}
+
+		if !exist {
+			self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{}), syncInfo)
+			// save the config.
+			self.saveConfig()
+
+		}
+	}
 
 	// Cast the the correct type.
 	ldap := ldap_.(*ldap_client.LDAP_Client)
-	accountsInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email})
+
+	// Searh for roles.
+	rolesInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Print role info.
+	for i := 0; i < len(rolesInfo); i++ {
+		name := rolesInfo[i][0].([]interface{})[0].(string)
+		id := Utility.GenerateUUID(rolesInfo[i][1].([]interface{})[0].(string))
+		self.createRole(id, name, []string{})
+	}
+
+	// Synchronize account and user info...
+	accountsInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -2524,9 +2566,54 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < len(accountsInfo); i++ {
 		// Print the list of account...
-		log.Println("----> ", accountsInfo[i])
+		// I will not set the password...
+		name := strings.ToLower(accountsInfo[i][0].([]interface{})[0].(string))
+
+		if len(accountsInfo[i][1].([]interface{})) > 0 {
+			email := strings.ToLower(accountsInfo[i][1].([]interface{})[0].(string))
+			if len(email) > 0 {
+				id := Utility.GenerateUUID(strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)))
+				if len(id) > 0 {
+
+					roles := make([]interface{}, 0)
+					roles = append(roles, "guest")
+					// Here I will set the roles of the user.
+					if len(accountsInfo[i][3].([]interface{})) > 0 {
+						for j := 0; j < len(accountsInfo[i][3].([]interface{})); j++ {
+							roles = append(roles, Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)))
+						}
+					}
+
+					// Try to create account...
+					err := self.registerAccount(id, name, email, id, roles)
+					if err == nil {
+						log.Println("register account ", id)
+					} else {
+						rolesStr := `[{"$ref":"Roles","$id":"guest","$db":"local_ressource"}`
+						for j := 0; j < len(accountsInfo[i][3].([]interface{})); j++ {
+							rolesStr += `,{"$ref":"Roles","$id":"` + Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)) + `","$db":"local_ressource"}`
+						}
+
+						rolesStr += `]`
+						err := p.UpdateOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+id+`"}`, `{ "$set":{"roles":`+rolesStr+`}}`, "")
+						if err == nil {
+							log.Println("account ", id, " was update!")
+						} else {
+							log.Println("fail to update account ", id, err)
+						}
+
+					}
+				}
+			}
+		}
 	}
 
 	if rqst.SyncInfo.GroupSyncInfos == nil {
@@ -2535,7 +2622,78 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync groups infos was given!")))
 	}
 
-	return nil, nil
+	return &ressource.SynchronizeLdapRsp{
+		Result: true,
+	}, nil
+}
+
+func (self *Globule) registerAccount(id string, name string, email string, password string, roles []interface{}) error {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	// first of all the Persistence service must be active.
+	count, err := p.Count("local_ressource", "local_ressource", "Accounts", `{"name":"`+name+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	// one account already exist for the name.
+	if count == 1 {
+		return errors.New("account with name " + name + " already exist!")
+	}
+
+	// set the account object and set it basic roles.
+	account := make(map[string]interface{})
+	account["_id"] = id
+	account["name"] = name
+	account["email"] = email
+	account["password"] = Utility.GenerateUUID(password) // hide the password...
+
+	account["roles"] = make([]map[string]interface{}, 0)
+	for i := 0; i < len(roles); i++ {
+		role := make(map[string]interface{}, 0)
+		role["$id"] = roles[i]
+		role["$ref"] = "Roles"
+		role["$db"] = "local_ressource"
+		account["roles"] = append(account["roles"].([]map[string]interface{}), role)
+	}
+
+	// serialyse the account and save it.
+	accountStr, err := json.Marshal(account)
+	if err != nil {
+		return err
+	}
+
+	// Here I will insert the account in the database.
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Accounts", string(accountStr), "")
+
+	// replace @ and . by _
+	name = strings.ReplaceAll(strings.ReplaceAll(name, "@", "_"), ".", "_")
+
+	// Each account will have their own database and a use that can read and write
+	// into it.
+	// Here I will wrote the script for mongoDB...
+	createUserScript := fmt.Sprintf(
+		"db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
+		name, name, password, name)
+
+	// I will execute the sript with the admin function.
+	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createUserScript)
+	if err != nil {
+		return err
+	}
+
+	err = p.CreateConnection(name+"_db", name+"_db", "localhost", 27017, 0, name, password, 5000, "", false)
+	if err != nil {
+		return errors.New("No persistence service are available to store ressource information.")
+	}
+
+	return nil
+
 }
 
 /* Register a new Account */
@@ -2543,88 +2701,33 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	if rqst.ConfirmPassword != rqst.Password {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Password dosen't match!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to confirm your password!")))
+
 	}
 
-	// encode the password and keep it in the account itself.
-	rqst.Account.Password = Utility.GenerateUUID(rqst.Password)
+	if rqst.Account == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account information was given!")))
 
-	// That service made user of persistence service.
-	p, err := self.getPersistenceSaConnection()
+	}
+
+	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Password, []interface{}{"guest"})
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// first of all the Persistence service must be active.
-	count, err := p.Count("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Account.Name+`"}`, "")
-
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// one account already exist for the name.
-	if count == 1 {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("account with name "+rqst.Account.Name+" already exist!")))
-	}
-
-	// set the account object and set it basic roles.
-	account := make(map[string]interface{})
-	account["_id"] = rqst.Account.Name
-	account["name"] = rqst.Account.Name
-	account["email"] = rqst.Account.Email
-	account["password"] = rqst.Account.Password
-
-	// reference the guest role.
-	guest := make(map[string]interface{}, 0)
-	guest["$id"] = "guest"
-	guest["$ref"] = "Roles"
-	guest["$db"] = "local_ressource"
-	account["roles"] = []map[string]interface{}{guest}
-
-	// serialyse the account and save it.
-	accountStr, err := json.Marshal(account)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Here I will insert the account in the database.
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Accounts", string(accountStr), "")
-
-	// Each account will have their own database and a use that can read and write
-	// into it.
-	// Here I will wrote the script for mongoDB...
-	createUserScript := fmt.Sprintf(
-		"db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
-		rqst.Account.Name, rqst.Account.Name, rqst.Password, rqst.Account.Name)
-
-	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, createUserScript)
-	if err != nil {
-		log.Println("---> fail to run script: ")
-		log.Println(createUserScript)
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	err = p.CreateConnection(rqst.Account.Name+"_db", rqst.Account.Name+"_db", "localhost", 27017, 0, rqst.Account.Name, rqst.Password, 5000, "", false)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store ressource information.")))
-
 	}
 
 	// Generate a token to identify the user.
 	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	p, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2698,9 +2801,28 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	}
 
 	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("wrong password for account "+objects[0]["name"].(string))))
+		// Here I will try to made use of ldap if there is a service configure.ldap
+		if self.clients["ldap_service"] != nil {
+			err := self.clients["ldap_service"].(*ldap_client.LDAP_Client).Authenticate("", objects[0]["name"].(string), rqst.Password)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+			// Set the password whit
+			err = self.setPassword(objects[0]["_id"].(string), objects[0]["password"].(string), rqst.Password)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		} else {
+			err := errors.New("wrong password for account " + objects[0]["name"].(string))
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	// Generate a token to identify the user.
@@ -2711,8 +2833,11 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	name_ := objects[0]["name"].(string)
+	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")
+
 	// Open the user database connection.
-	err = p.CreateConnection(objects[0]["name"].(string)+"_db", objects[0]["name"].(string)+"_db", "localhost", 27017, 0, objects[0]["name"].(string), rqst.Password, 5000, "", false)
+	err = p.CreateConnection(name_+"_db", name_+"_db", "localhost", 27017, 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2807,8 +2932,23 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 		return nil, err
 	}
 
+	accountStr, _ := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.Id+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	account := make(map[string]interface{}, 0)
+	err = json.Unmarshal([]byte(accountStr), &account)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	// Try to delete the account...
-	err = p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.Name+`"}`, "")
+	err = p.DeleteOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.Id+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2816,7 +2956,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}
 
 	// Delete permissions
-	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.Name+`"}`, "")
+	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.Id+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2824,17 +2964,20 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}
 
 	// Delete the token.
-	err = p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+rqst.Name+`"}`, "")
+	err = p.DeleteOne("local_ressource", "local_ressource", "Tokens", `{"_id":"`+rqst.Id+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	name := account["name"].(string)
+	name = strings.ReplaceAll(strings.ReplaceAll(name, ".", "_"), "@", "_")
+
 	// Here I will drop the db user.
 	dropUserScript := fmt.Sprintf(
 		`db=db.getSiblingDB('admin');db.dropUser('%s', {w: 'majority', wtimeout: 4000})`,
-		rqst.Name)
+		name)
 
 	// I will execute the sript with the admin function.
 	err = p.RunAdminCmd("local_ressource", "sa", self.RootPassword, dropUserScript)
@@ -2845,14 +2988,14 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}
 
 	// Remove the user database.
-	err = p.DeleteDatabase("local_ressource", rqst.Name+"_db")
+	err = p.DeleteDatabase("local_ressource", name+"_db")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = p.DeleteConnection(rqst.Name + "_db")
+	err = p.DeleteConnection(name + "_db")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2860,37 +3003,44 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 	}
 
 	return &ressource.DeleteAccountRsp{
-		Result: rqst.Name,
+		Result: rqst.Id,
 	}, nil
+}
+
+func (self *Globule) createRole(id string, name string, actions []string) error {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, _ := p.FindOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+id+`"}`, ``)
+	if len(values) != 0 {
+		return errors.New("Role named " + name + "already exist!")
+	}
+
+	// Here will create the new role.
+	role := make(map[string]interface{}, 0)
+	role["_id"] = id
+	role["name"] = name
+	role["actions"] = actions
+
+	jsonStr, _ := Utility.ToJson(role)
+
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //* Create a role with given action list *
 func (self *Globule) CreateRole(ctx context.Context, rqst *ressource.CreateRoleRqst) (*ressource.CreateRoleRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return nil, err
-	}
-
-	name := rqst.Role.Name
-
-	// Here I will test if a newer token exist for that user if it's the case
-	// I will not refresh that token.
-	values, _ := p.FindOne("local_ressource", "local_ressource", "Roles", `{"_id":"`+rqst.Role.Name+`"}`, ``)
-	if len(values) != 0 {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+name+"already exist!")))
-	}
-
-	// Here will create the new role.
-	role := make(map[string]interface{}, 0)
-	role["_id"] = name
-	role["actions"] = rqst.Role.Actions
-
-	jsonStr, _ := Utility.ToJson(role)
-
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Roles", jsonStr, "")
+	err := self.createRole(rqst.Role.Id, rqst.Role.Name, rqst.Role.Actions)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2946,10 +3096,13 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *ressource.DeleteRoleR
 					jsonStr += `"password":"` + accounts[i]["password"].(string) + `",`
 					jsonStr += `"roles":[`
 					for j := 0; j < len(accounts[i]["roles"].([]interface{})); j++ {
+						db := accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string)
+						db = strings.ReplaceAll(db, "@", "_")
+						db = strings.ReplaceAll(db, ".", "_")
 						jsonStr += `{`
 						jsonStr += `"$ref":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
 						jsonStr += `"$id":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
-						jsonStr += `"$db":"` + accounts[i]["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+						jsonStr += `"$db":"` + db + `"`
 						jsonStr += `}`
 						if j < len(accounts[i]["roles"].([]interface{}))-1 {
 							jsonStr += `,`
@@ -3110,7 +3263,7 @@ func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAcco
 
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
-	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.AccountId+`"}`, ``)
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3140,10 +3293,13 @@ func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAcco
 		jsonStr += `"password":"` + account["password"].(string) + `",`
 		jsonStr += `"roles":[`
 		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			db := account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string)
+			db = strings.ReplaceAll(db, "@", "_")
+			db = strings.ReplaceAll(db, ".", "_")
 			jsonStr += `{`
 			jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
 			jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
-			jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+			jsonStr += `"$db":"` + db + `"`
 			jsonStr += `}`
 			if j < len(account["roles"].([]interface{}))-1 {
 				jsonStr += `,`
@@ -3153,7 +3309,7 @@ func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAcco
 		jsonStr += `]`
 		jsonStr += "}"
 
-		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, jsonStr, ``)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -3174,7 +3330,7 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
-	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.AccountId+`"}`, ``)
+	values, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3212,10 +3368,13 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 		jsonStr += `"password":"` + account["password"].(string) + `",`
 		jsonStr += `"roles":[`
 		for j := 0; j < len(account["roles"].([]interface{})); j++ {
+			db := account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string)
+			db = strings.ReplaceAll(db, "@", "_")
+			db = strings.ReplaceAll(db, ".", "_")
 			jsonStr += `{`
 			jsonStr += `"$ref":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$ref"].(string) + `",`
 			jsonStr += `"$id":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$id"].(string) + `",`
-			jsonStr += `"$db":"` + account["roles"].([]interface{})[j].(map[string]interface{})["$db"].(string) + `"`
+			jsonStr += `"$db":"` + db + `"`
 			jsonStr += `}`
 			if j < len(account["roles"].([]interface{}))-1 {
 				jsonStr += `,`
@@ -3225,7 +3384,7 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 		jsonStr += `]`
 		jsonStr += "}"
 
-		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+		err = p.ReplaceOne("local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, jsonStr, ``)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -3804,7 +3963,6 @@ func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressource.Dele
 	// Get list of all permission with a given path.
 	for i := 0; i < len(permissions); i++ {
 		permission := permissions[i]
-		log.Println("----> delete file permission ", permission)
 		if len(rqst.Owner) > 0 {
 			switch v := permission.GetOwner().(type) {
 			case *ressource.FilePermission_User:
@@ -4127,7 +4285,6 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		log.Println("---> fail to get local_ressource connection", err)
 		return err
 	}
 
@@ -4238,7 +4395,6 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 	checksum := Utility.CreateDataChecksum(bundle.Binairies)
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		log.Println("---> fail to get local_ressource connection", err)
 		return err
 	}
 
@@ -4289,7 +4445,7 @@ func (self *Globule) Listen() {
 													delete(self.Services, service["Id"].(string))
 													err := self.installService(descriptor)
 													if err != nil {
-														log.Println("---> fail to install service ", err)
+														log.Println("fail to install service ", err)
 													}
 												}
 											}
@@ -4355,7 +4511,6 @@ func (self *Globule) Listen() {
 			eventHub := self.discorveriesEventHub[id]
 			for channelId, uuids := range subscriber {
 				for i := 0; i < len(uuids); i++ {
-					log.Println("---> disconnect ", id, channelId, uuids[i])
 					eventHub.UnSubscribe(channelId, uuids[i])
 				}
 			}
@@ -4392,7 +4547,6 @@ func (self *Globule) Listen() {
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			log.Println("---> start admin service!")
 			go func() {
 				// no web-rpc server.
 				if err := admin_server.Serve(lis); err != nil {
@@ -4426,9 +4580,7 @@ func (self *Globule) Listen() {
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			log.Println("---> start ressource service!")
 			go func() {
-
 				// no web-rpc server.
 				if err := ressource_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -4459,7 +4611,6 @@ func (self *Globule) Listen() {
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			log.Println("---> start services discovery service!")
 			go func() {
 
 				// no web-rpc server.
@@ -4492,9 +4643,7 @@ func (self *Globule) Listen() {
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			log.Println("---> start services repository service!")
 			go func() {
-
 				// no web-rpc server.
 				if err := services_repository_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -4525,9 +4674,7 @@ func (self *Globule) Listen() {
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			log.Println("---> start certificate authority signing service!")
 			go func() {
-
 				// no web-rpc server.
 				if err := certificate_authority_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)

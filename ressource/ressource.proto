@@ -8,15 +8,17 @@ option go_package="ressource";
 
 /** Account **/
 message Account {
-	string name=1;
-	string email =2;
-	string password =3;
+	string id=1;
+	string name=2;
+	string email =3;
+	string password =4;
 }
 
 /** A role is simply a list of actions that an account can call **/
 message Role {
-	string name=1;
-	repeated string  actions=2; // must be a registered action from grpc.
+	string id=1;
+	string name=2;
+	repeated string  actions=3; // must be a registered action from grpc.
 }
 
 message RegisterAccountRqst{
@@ -30,7 +32,7 @@ message RegisterAccountRsp {
 }
 
 message DeleteAccountRqst{
-	string name = 1;
+	string id = 1;
 }
 
 message DeleteAccountRsp {

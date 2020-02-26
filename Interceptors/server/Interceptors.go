@@ -68,7 +68,6 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
-			log.Println(`--> Fail to create  the connection "local_ressource"`)
 			return nil, err
 		}
 	}
@@ -401,7 +400,6 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	// Validate the user access.
 	if len(applicationID) > 0 {
 		// TODO validate application action here.
-		log.Println("---------> validate application action permission! ", applicationID)
 	} else if len(clientID) > 0 {
 		err = validateUserAccess(clientID, info.FullMethod)
 		if err != nil {

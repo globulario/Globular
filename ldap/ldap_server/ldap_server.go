@@ -149,13 +149,27 @@ func (self *server) Authenticate(ctx context.Context, rqst *ldappb.AuthenticateR
 	login := rqst.Login
 	pwd := rqst.Pwd
 
-	// I will made use of bind to authenticate the user.
-	_, err := self.connect(id, login, pwd)
-
-	if err != nil {
+	if len(id) > 0 {
+		// I will made use of bind to authenticate the user.
+		_, err := self.connect(id, login, pwd)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		for id, _ := range self.Connections {
+			_, err := self.connect(id, login, pwd)
+			if err == nil {
+				return &ldappb.AuthenticateRsp{
+					Result: true,
+				}, nil
+			}
+		}
+		// fail to authenticate.
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Authentication fail for user "+rqst.Login)))
 	}
 
 	return &ldappb.AuthenticateRsp{
@@ -417,8 +431,8 @@ func (self *server) search(id string, base_dn string, filter string, attributes 
 		var row []interface{}
 		for j := 0; j < len(attributes); j++ {
 			attributeName := attributes[j]
-			attributeValue := entry.GetAttributeValue(attributeName)
-			row = append(row, attributeValue)
+			attributeValues := entry.GetAttributeValues(attributeName)
+			row = append(row, attributeValues)
 		}
 		results = append(results, row)
 	}

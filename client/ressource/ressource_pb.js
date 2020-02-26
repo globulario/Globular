@@ -1055,9 +1055,10 @@ proto.ressource.Account.prototype.toObject = function(opt_includeInstance) {
  */
 proto.ressource.Account.toObject = function(includeInstance, msg) {
   var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    email: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    password: jspb.Message.getFieldWithDefault(msg, 3, "")
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    email: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    password: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -1096,13 +1097,17 @@ proto.ressource.Account.deserializeBinaryFromReader = function(msg, reader) {
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
+      msg.setId(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
-      msg.setEmail(value);
+      msg.setName(value);
       break;
     case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setEmail(value);
+      break;
+    case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setPassword(value);
       break;
@@ -1135,24 +1140,31 @@ proto.ressource.Account.prototype.serializeBinary = function() {
  */
 proto.ressource.Account.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getName();
+  f = message.getId();
   if (f.length > 0) {
     writer.writeString(
       1,
       f
     );
   }
-  f = message.getEmail();
+  f = message.getName();
   if (f.length > 0) {
     writer.writeString(
       2,
       f
     );
   }
-  f = message.getPassword();
+  f = message.getEmail();
   if (f.length > 0) {
     writer.writeString(
       3,
+      f
+    );
+  }
+  f = message.getPassword();
+  if (f.length > 0) {
+    writer.writeString(
+      4,
       f
     );
   }
@@ -1160,47 +1172,62 @@ proto.ressource.Account.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string name = 1;
+ * optional string id = 1;
  * @return {string}
  */
-proto.ressource.Account.prototype.getName = function() {
+proto.ressource.Account.prototype.getId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.Account.prototype.setName = function(value) {
+proto.ressource.Account.prototype.setId = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
 /**
- * optional string email = 2;
+ * optional string name = 2;
  * @return {string}
  */
-proto.ressource.Account.prototype.getEmail = function() {
+proto.ressource.Account.prototype.getName = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.Account.prototype.setEmail = function(value) {
+proto.ressource.Account.prototype.setName = function(value) {
   jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
 /**
- * optional string password = 3;
+ * optional string email = 3;
  * @return {string}
  */
-proto.ressource.Account.prototype.getPassword = function() {
+proto.ressource.Account.prototype.getEmail = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.Account.prototype.setPassword = function(value) {
+proto.ressource.Account.prototype.setEmail = function(value) {
   jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional string password = 4;
+ * @return {string}
+ */
+proto.ressource.Account.prototype.getPassword = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/** @param {string} value */
+proto.ressource.Account.prototype.setPassword = function(value) {
+  jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -1210,7 +1237,7 @@ proto.ressource.Account.prototype.setPassword = function(value) {
  * @private {!Array<number>}
  * @const
  */
-proto.ressource.Role.repeatedFields_ = [2];
+proto.ressource.Role.repeatedFields_ = [3];
 
 
 
@@ -1243,8 +1270,9 @@ proto.ressource.Role.prototype.toObject = function(opt_includeInstance) {
  */
 proto.ressource.Role.toObject = function(includeInstance, msg) {
   var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    actionsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
+    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    name: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    actionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -1283,9 +1311,13 @@ proto.ressource.Role.deserializeBinaryFromReader = function(msg, reader) {
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
+      msg.setId(value);
       break;
     case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 3:
       var value = /** @type {string} */ (reader.readString());
       msg.addActions(value);
       break;
@@ -1318,17 +1350,24 @@ proto.ressource.Role.prototype.serializeBinary = function() {
  */
 proto.ressource.Role.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getName();
+  f = message.getId();
   if (f.length > 0) {
     writer.writeString(
       1,
       f
     );
   }
+  f = message.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
   f = message.getActionsList();
   if (f.length > 0) {
     writer.writeRepeatedString(
-      2,
+      3,
       f
     );
   }
@@ -1336,32 +1375,47 @@ proto.ressource.Role.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string name = 1;
+ * optional string id = 1;
  * @return {string}
  */
-proto.ressource.Role.prototype.getName = function() {
+proto.ressource.Role.prototype.getId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.Role.prototype.setName = function(value) {
+proto.ressource.Role.prototype.setId = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
 /**
- * repeated string actions = 2;
+ * optional string name = 2;
+ * @return {string}
+ */
+proto.ressource.Role.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/** @param {string} value */
+proto.ressource.Role.prototype.setName = function(value) {
+  jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * repeated string actions = 3;
  * @return {!Array<string>}
  */
 proto.ressource.Role.prototype.getActionsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
 };
 
 
 /** @param {!Array<string>} value */
 proto.ressource.Role.prototype.setActionsList = function(value) {
-  jspb.Message.setField(this, 2, value || []);
+  jspb.Message.setField(this, 3, value || []);
 };
 
 
@@ -1370,7 +1424,7 @@ proto.ressource.Role.prototype.setActionsList = function(value) {
  * @param {number=} opt_index
  */
 proto.ressource.Role.prototype.addActions = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 2, value, opt_index);
+  jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 
 
@@ -1742,7 +1796,7 @@ proto.ressource.DeleteAccountRqst.prototype.toObject = function(opt_includeInsta
  */
 proto.ressource.DeleteAccountRqst.toObject = function(includeInstance, msg) {
   var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, "")
+    id: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -1781,7 +1835,7 @@ proto.ressource.DeleteAccountRqst.deserializeBinaryFromReader = function(msg, re
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
+      msg.setId(value);
       break;
     default:
       reader.skipField();
@@ -1812,7 +1866,7 @@ proto.ressource.DeleteAccountRqst.prototype.serializeBinary = function() {
  */
 proto.ressource.DeleteAccountRqst.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getName();
+  f = message.getId();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -1823,16 +1877,16 @@ proto.ressource.DeleteAccountRqst.serializeBinaryToWriter = function(message, wr
 
 
 /**
- * optional string name = 1;
+ * optional string id = 1;
  * @return {string}
  */
-proto.ressource.DeleteAccountRqst.prototype.getName = function() {
+proto.ressource.DeleteAccountRqst.prototype.getId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /** @param {string} value */
-proto.ressource.DeleteAccountRqst.prototype.setName = function(value) {
+proto.ressource.DeleteAccountRqst.prototype.setId = function(value) {
   jspb.Message.setProto3StringField(this, 1, value);
 };
 
