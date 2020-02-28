@@ -68,3 +68,6 @@ protoc plc_link/plc_linkpb/plc_link.proto --grpc-web_out=import_style=commonjs+d
 protoc catalog/catalogpb/catalog.proto --go_out=plugins=grpc:.
 protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
 protoc catalog/catalogpb/catalog.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+
+# Now the CSharp Clients.
+protoc --grpc_out=persistence/persistence_client/csharp --csharp_out=persistence/persistence_client/csharp --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
