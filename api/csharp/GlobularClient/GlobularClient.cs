@@ -61,7 +61,7 @@ namespace Globular
         public void Close()
         {
             // close the connection channel.
-            this.channel.ShutdownAsync();
+            this.channel.ShutdownAsync().Wait();
         }
 
         // At firt the port contain the http(s) address of the globular server.
@@ -86,7 +86,10 @@ namespace Globular
 
         ////////////////// TLS ///////////////////
 
-        //if the client is secure.
+        /// <summary>
+        /// Test if the server is secure with TLS.
+        /// </summary>
+        /// <returns>True if it secure.</returns>
         public bool HasTLS()
         {
             return this.hasTls;
@@ -149,7 +152,7 @@ namespace Globular
 
             // Here I will parse the JSON object and initialyse values from it...
             var config = JsonSerializer.Deserialize<Config>(rsp.Content.ReadAsStringAsync().Result);
-            this.port = 10035;//config.Port;
+            this.port = config.Port;
             this.hasTls = config.TLS;
             this.domain = config.Domain;
             this.caFile = config.CertAuthorityTrust;
@@ -167,7 +170,11 @@ namespace Globular
             else
             {
                 // Secure connection.
-                // TODO create a secure connection here.
+                var cacert = File.ReadAllText(this.caFile);
+                var clientcert = File.ReadAllText(this.certFile);
+                var clientkey = File.ReadAllText(this.keyFile);
+                var ssl = new SslCredentials(cacert, new KeyCertificatePair(clientcert, clientkey));
+                this.channel = new Channel(this.domain, this.port, ssl);
             }
         }
 
@@ -179,7 +186,8 @@ namespace Globular
             // Set the token in the metadata.
             var metadata = new Metadata();
 
-            if(File.Exists(path)){
+            if (File.Exists(path))
+            {
                 token = File.ReadAllText(path);
                 metadata.Add("token", token);
             }

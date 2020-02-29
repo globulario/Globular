@@ -1,6 +1,5 @@
 using Xunit;
-using Globular;
-using Persistence;
+using System;
 
 namespace Globular {
     public class PersistenceClient_Test{
@@ -24,6 +23,19 @@ namespace Globular {
             
             var pong = this.client.Ping("mongo_db_test_connection");
             Assert.Equal("pong", pong);
+        }
+
+        // Test find all...
+        [Fact]
+        public void TestFind(){
+            string jsonStr = this.client.Find("mongo_db_test_connection", "local_ressource", "Accounts", "{}", "");
+            Assert.True(jsonStr.Length > 0);
+        }
+
+        [Fact]
+        public void TestFindOne(){
+            string jsonStr = this.client.FindOne("mongo_db_test_connection", "local_ressource", "Accounts", "{\"_id\":\"dave\"}", "");
+            Assert.True(jsonStr.Length > 0);
         }
 
 

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <PackageId>GlobularPersistenceClient</PackageId>
     <Title>Globular Persistence Client</Title>
     <Language>CSharp</Language>
     <Description>.Net gRPC client for globular Persistence service</Description>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <projectUrl>https://www.globular.io</projectUrl>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Dave Courtois</Authors>
     <Company>Globular</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

@@ -231,30 +231,28 @@ func (self *Persistence_Client) Find(connectionId string, database string, colle
 		return "", err
 	}
 
-	values := make([]interface{}, 0)
+	valuesStr := "["
 	for {
 		results, err := stream.Recv()
-		if err == io.EOF {
-			// end of stream...
-			break
-		}
 		if err != nil {
-			return "", nil
+			if err == io.EOF {
+				// end of stream...
+				break
+			} else {
+				return "", err
+			}
+		} else {
+			if len(valuesStr) > 1 {
+				valuesStr += ","
+			}
+			valuesStr += results.JsonStr[1 : len(results.JsonStr)-1]
 		}
 
-		values_ := make([]interface{}, 0) // sub array...
-		err = json.Unmarshal([]byte(results.JsonStr), &values_)
-		if err != nil {
-			return "", nil
-		}
-		values = append(values, values_...)
 	}
 
-	valuesStr, err := json.Marshal(values)
-	if err != nil {
-		return "", nil
-	}
-	return string(valuesStr), nil
+	valuesStr += "]"
+
+	return valuesStr, nil
 }
 
 /**
@@ -276,29 +274,27 @@ func (self *Persistence_Client) Aggregate(connectionId, database string, collect
 		return "", err
 	}
 
-	values := make([]interface{}, 0)
+	valuesStr := "["
 	for {
 		results, err := stream.Recv()
-		if err == io.EOF {
-			// end of stream...
-			break
-		}
 		if err != nil {
-			return "", nil
+			if err == io.EOF {
+				// end of stream...
+				break
+			} else {
+				return "", err
+			}
+		} else {
+			if len(valuesStr) > 1 {
+				valuesStr += ","
+			}
+			valuesStr += results.JsonStr[1 : len(results.JsonStr)-1]
 		}
 
-		values_ := make([]interface{}, 0) // sub array...
-		err = json.Unmarshal([]byte(results.JsonStr), &values_)
-		if err != nil {
-			return "", nil
-		}
-		values = append(values, values_...)
 	}
 
-	valuesStr, err := json.Marshal(values)
-	if err != nil {
-		return "", nil
-	}
+	valuesStr += "]"
+
 	return string(valuesStr), nil
 }
 
@@ -363,24 +359,28 @@ func (self *Persistence_Client) InsertMany(connectionId string, database string,
 	}
 
 	// Persist 500 rows at time to save marshaling unmarshaling cycle time.
-	for i := 0; i < len(data); i++ {
-		data_ := make([]interface{}, 0)
-		for j := 0; j < 500 && i < len(data_); j++ {
-			data_ = append(data_, data[i])
-			i++
-		}
+	chunkSize := 500
+
+	for i := 0; i < len(data); i += chunkSize {
 
 		var jsonStr []byte
-		jsonStr, err = json.Marshal(data_)
-		if err != nil {
-			return "", err
+		if i+chunkSize < len(data) {
+			jsonStr, err = json.Marshal(data[i : i+chunkSize])
+			if err != nil {
+				return "", err
+			}
+		} else {
+			jsonStr, err = json.Marshal(data[i:])
+			if err != nil {
+				return "", err
+			}
 		}
 
 		rqst := &persistencepb.InsertManyRqst{
 			Id:         connectionId,
 			Database:   database,
 			Collection: collection,
-			JsonStr:    string(jsonStr),
+			JsonStr:    "[" + string(jsonStr) + "]",
 		}
 
 		err = stream.Send(rqst)
