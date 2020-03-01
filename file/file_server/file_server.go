@@ -294,11 +294,15 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileService_ReadDirServer) error {
 	path := rqst.GetPath()
 
-	// The root will specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		// Set the path separator...
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	log.Println("--> read dir: ", path)
@@ -336,10 +340,15 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest) (*filepb.CreateDirResponse, error) {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	err := Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + rqst.GetName())
@@ -359,10 +368,15 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 func (self *server) CreateAchive(ctx context.Context, rqst *filepb.CreateArchiveRequest) (*filepb.CreateArchiveResponse, error) {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	if !Utility.Exists(path) {
@@ -396,10 +410,18 @@ func (self *server) CreateAchive(ctx context.Context, rqst *filepb.CreateArchive
 
 // Rename a file or a directory.
 func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*filepb.RenameResponse, error) {
+
 	path := rqst.GetPath()
 
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	err := os.Rename(path+string(os.PathSeparator)+rqst.OldName, path+string(os.PathSeparator)+rqst.NewName)
@@ -418,10 +440,15 @@ func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*fi
 func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest) (*filepb.DeleteDirResponse, error) {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	if !Utility.Exists(path) {
@@ -451,10 +478,15 @@ func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest
 func (self *server) GetFileInfo(ctx context.Context, rqst *filepb.GetFileInfoRequest) (*filepb.GetFileInfoResponse, error) {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	info, err := getFileInfo(path)
@@ -503,10 +535,15 @@ func (self *server) GetFileInfo(ctx context.Context, rqst *filepb.GetFileInfoReq
 func (self *server) ReadFile(rqst *filepb.ReadFileRequest, stream filepb.FileService_ReadFileServer) error {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	file, err := os.Open(path)
@@ -586,10 +623,15 @@ func (self *server) SaveFile(stream filepb.FileService_SaveFileServer) error {
 func (self *server) DeleteFile(ctx context.Context, rqst *filepb.DeleteFileRequest) (*filepb.DeleteFileResponse, error) {
 	path := rqst.GetPath()
 
-	// The roo will be the Root specefied by the server.
-	if strings.HasPrefix(path, "/") {
-		path = self.Root + path
-		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
+	// set the correct os path separator.
+	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
+
+	if strings.HasPrefix(path, string(os.PathSeparator)) {
+		if len(path) > 1 {
+			path = self.Root + path
+		} else {
+			path = self.Root
+		}
 	}
 
 	err := os.Remove(path)

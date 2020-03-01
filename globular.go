@@ -985,6 +985,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
+
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -1004,6 +1005,31 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		path = globule.webRoot + path
 		// create the dir if not already exist.
 		Utility.CreateDirIfNotExist(path)
+	}
+
+	// If application is defined.
+	application := r.Header.Get("application")
+	token := r.Header.Get("token")
+	hasPermission := false
+
+	if len(application) != 0 {
+		err := Interceptors_.ValidateApplicationFileAccess(application, "/file.FileService/FileUploadHandler", path, "write")
+		if err != nil && len(token) == 0 {
+			log.Println("Fail to upload the file with error ", err.Error())
+			return
+		}
+		hasPermission = err == nil
+	}
+
+	if len(token) != 0 && !hasPermission {
+		// Test if the requester has the permission to do the upload...
+		// Here I will named the methode /file.FileService/FileUploadHandler
+		// I will be threaded like a file service methode.
+		err := Interceptors_.ValidateUserFileAccess(token, "/file.FileService/FileUploadHandler", path, "write")
+		if err != nil {
+			log.Println("Fail to upload the file with error ", err.Error())
+			return
+		}
 	}
 
 	for i, _ := range files { // loop through the files one by one
@@ -1054,6 +1080,32 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// this is the ca certificate use to sign client certificate.
 	if upath == "/ca.crt" {
 		name = globule.creds + upath
+	}
+
+	// Now I will test if a token is given in the header and manage it file access.
+	application := r.Header.Get("application")
+	token := r.Header.Get("token")
+	hasPermission := false
+
+	if len(application) != 0 {
+		err := Interceptors_.ValidateApplicationFileAccess(application, "/file.FileService/ServeFileHandler", name, "read")
+		if err != nil && len(token) == 0 {
+			log.Println("Fail to download the file with error ", err.Error())
+			return
+		}
+		hasPermission = err == nil
+	}
+
+	if len(token) != 0 && !hasPermission {
+		// Test if the requester has the permission to do the upload...
+		// Here I will named the methode /file.FileService/FileUploadHandler
+		// I will be threaded like a file service methode.
+		err := Interceptors_.ValidateUserFileAccess(token, "/file.FileService/ServeFileHandler", name, "read")
+		if err != nil {
+			log.Println("----> 1108")
+			log.Println("Fail to dowload the file with error ", err.Error())
+			return
+		}
 	}
 
 	//check if file exists
@@ -2045,7 +2097,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	if config["Name"] == "persistence_server" {
 
 		// I will wrote the info inside a stucture.
-		infos := map[string]interface{}{"address": self.Domain, "name": "persistence_server", "pwd": self.RootPassword}
+		infos := map[string]interface{}{"address": self.Domain, "name": "persistence_server", "pwd": self.RootPassword, "rootPath": self.webRoot}
 		infosStr, _ := Utility.ToJson(infos)
 
 		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)

@@ -16,6 +16,8 @@ import (
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/davecourtois/Globular/ressource"
+
+	"github.com/davecourtois/Utility"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -30,7 +32,8 @@ const (
 )
 
 var (
-	client *persistence_client.Persistence_Client
+	client   *persistence_client.Persistence_Client
+	rootPath string
 )
 
 /**
@@ -58,6 +61,9 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 		// information in the file.
 		root := infos["pwd"].(string)
 
+		// Get the root path from the tmp file.
+		rootPath = strings.ReplaceAll(infos["rootPath"].(string), "\\", "/")
+
 		// close the
 		if client != nil {
 			client.Close()
@@ -65,7 +71,6 @@ func getPersistenceClient() (*persistence_client.Persistence_Client, error) {
 
 		// Use the client sa connection.
 		client = persistence_client.NewPersistence_Client(infos["address"].(string), infos["name"].(string))
-
 		err = client.CreateConnection("local_ressource", "local_ressource", "localhost", 27017, 0, "sa", root, 5000, "", false)
 		if err != nil {
 			return nil, err
@@ -135,6 +140,7 @@ func canRunAction(roleName string, method string) error {
 	if err != nil {
 		return err
 	}
+
 	role := make(map[string]interface{})
 	err = json.Unmarshal([]byte(values), &role)
 	if err != nil {
@@ -153,65 +159,180 @@ func canRunAction(roleName string, method string) error {
 }
 
 /**
- * Return the file permission necessary for a given method.
+ * Return the file permission (unix number) necessary for a given method.
  */
-func getFilePermissionForMethod(method string, req interface{}) (string, int32) {
+func getFilePermissionForMethod(method string, req interface{}) (string, string) {
 	var path string
-	var permission int32
+	var permission string
+	log.Println("---> method ", method)
 	if method == "/file.FileService/ReadDir" {
-		rqst := req.(filepb.ReadDirRequest)
-		path = rqst.GetPath()
-		permission = 4
+		rqst := req.(*filepb.ReadDirRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "read"
 	} else if method == "/file.FileService/CreateDir" {
-		rqst := req.(filepb.CreateDirRequest)
-		path = rqst.GetPath()
-		permission = 2
+		rqst := req.(*filepb.CreateDirRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
 	} else if method == "/file.FileService/DeleteDir" {
-		rqst := req.(filepb.DeleteDirRequest)
-		path = rqst.GetPath()
-		permission = 2
+		rqst := req.(*filepb.DeleteDirRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
 	} else if method == "/file.FileService/Rename" {
-		rqst := req.(filepb.RenameRequest)
-		path = rqst.GetPath() + "/" + rqst.GetOldName()
-		permission = 2
+		rqst := req.(*filepb.RenameRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath() + "/" + rqst.GetOldName()
+		} else {
+			path = rqst.GetOldName()
+		}
+
+		permission = "write"
 	} else if method == "/file.FileService/GetFileInfo" {
-		rqst := req.(filepb.ReadFileRequest)
-		path = rqst.GetPath()
-		permission = 4
+		rqst := req.(*filepb.ReadFileRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "read"
 	} else if method == "/file.FileService/ReadFile" {
-		rqst := req.(filepb.SaveFileRequest)
-		path = rqst.GetPath()
-		permission = 4
+		rqst := req.(*filepb.SaveFileRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "read"
 	} else if method == "/file.FileService/SaveFile" {
-		rqst := req.(filepb.SaveFileRequest)
-		path = rqst.GetPath()
-		permission = 2
+		rqst := req.(*filepb.SaveFileRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
 	} else if method == "/file.FileService/DeleteFile" {
-		rqst := req.(filepb.DeleteFileRequest)
-		path = rqst.GetPath()
-		permission = 2
+		rqst := req.(*filepb.DeleteFileRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+
+		permission = "write"
 	} else if method == "/file.FileService/GetThumbnails" {
-		rqst := req.(filepb.GetThumbnailsRequest)
-		path = rqst.GetPath()
-		permission = 4
+		rqst := req.(*filepb.GetThumbnailsRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "read"
 	} else if method == "/file.FileService/WriteExcelFile" {
-		rqst := req.(filepb.WriteExcelFileRequest)
-		path = rqst.GetPath()
-		permission = 2
+		rqst := req.(*filepb.WriteExcelFileRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
+	} else if method == "/file.FileService/CreateAchive" {
+		rqst := req.(*filepb.CreateArchiveRequest)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "read"
 	}
 
+	// make sure the path does not contain // anywhere...
+	if len(path) == 1 {
+		path = rootPath
+	} else if strings.HasPrefix(path, "/") {
+		path = rootPath + path
+	} else {
+		path = rootPath + "/" + path
+	}
+
+	path = strings.ReplaceAll(path, "\\", "/")
 	return path, permission
+
+}
+
+func hasPermission(name string, path string, permission string) (bool, int) {
+	// Set the path with / instead of \\ in case of windows...
+	path = strings.ReplaceAll(path, "\\", "/")
+	log.Println("--> validate " + name + " has " + permission + " permission on file " + path)
+
+	count, err := client.Count("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, ``)
+	if err != nil {
+		return false, 0
+	}
+
+	permissionsStr, err := client.Find("local_ressource", "local_ressource", "Permissions", `{"owner":"`+name+`", "path":"`+path+`"}`, ``)
+	if err == nil {
+		permissions := make([]map[string]interface{}, 0)
+		json.Unmarshal([]byte(permissionsStr), &permissions)
+		if len(permissions) == 0 {
+			return false, count
+		}
+		for i := 0; i < len(permissions); i++ {
+			permission_ := int32(Utility.ToInt(permissions[i]["permission"]))
+			if permission == "read" {
+				if permission_ > 3 {
+					return true, count
+				}
+			} else if permission == "write" {
+				if permission_ == 2 || permission_ == 3 || permission_ == 6 || permission_ == 7 {
+					return true, count
+				}
+			} else if permission == "execute" {
+				if permission_ == 1 || permission_ == 3 || permission_ == 7 {
+					return true, count
+				}
+			}
+		}
+
+		return false, count
+	}
+
+	return false, count
+}
+
+func ValidateUserFileAccess(token string, method string, path string, permission string) error {
+	// first of all I will validate the token.
+	clientId, expiredAt, err := ValidateToken(token)
+	if err != nil {
+		return err
+	}
+
+	if expiredAt < time.Now().Unix() {
+		return errors.New("The token is expired!")
+	}
+
+	return validateUserFileAccess(clientId, method, path, permission)
 }
 
 /**
- * Validate if a user or a role has write to do operation on a file or a directorty.
+ * Validate application file permission.
  */
-func validateFileAccess(userName string, method string, req interface{}) error {
+func ValidateApplicationFileAccess(applicationName string, method string, path string, permission string) error {
 
-	if !strings.HasPrefix(method, "/file.FileService") {
+	hasApplicationPermission, count := hasPermission(applicationName, path, permission)
+	if hasApplicationPermission {
 		return nil
 	}
 
+	// If theres permission definied and we are here it's means the user dosent
+	// have write to execute the action on the ressource.
+	if count > 0 {
+		return errors.New("Permission Denied for " + applicationName)
+	}
+
+	return nil
+}
+
+/**
+ * Validate if a user, a role or an application has write to do operation on a file or a directorty.
+ */
+func validateUserFileAccess(userName string, method string, path string, permission string) error {
+	path = strings.ReplaceAll(path, "\\", "/")
+	if !strings.HasPrefix(method, "/file.FileService") {
+		return nil
+	}
+	log.Println("--> validate file access for ", userName, " with method ", method, " on file ", path, " and acess ", permission)
 	if len(userName) == 0 {
 		return errors.New("No user  name was given to validate method access " + method)
 	}
@@ -231,10 +352,6 @@ func validateFileAccess(userName string, method string, req interface{}) error {
 		return err
 	}
 
-	path, permission := getFilePermissionForMethod(method, req)
-	log.Println(path, permission)
-	// Find file permissions.
-
 	// Find the user role.
 	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
@@ -247,11 +364,30 @@ func validateFileAccess(userName string, method string, req interface{}) error {
 		return err
 	}
 
+	count := 0
+
+	hasUserPermission, hasUserPermissionCount := hasPermission(userName, path, permission)
+	if hasUserPermission {
+		return nil
+	}
+
+	count += hasUserPermissionCount
 	roles := account["roles"].([]interface{})
 	for i := 0; i < len(roles); i++ {
 		role := roles[i].(map[string]interface{})
-		log.Println("----> 246 ", role)
+		hasRolePermission, hasRolePermissionCount := hasPermission(role["$id"].(string), path, permission)
+		count += hasRolePermissionCount
+		if hasRolePermission {
+			return nil
+		}
 	}
+
+	// If theres permission definied and we are here it's means the user dosent
+	// have write to execute the action on the ressource.
+	if count > 0 {
+		return errors.New("Permission Denied for " + userName)
+	}
+
 	return nil
 }
 
@@ -309,7 +445,7 @@ func validateUserAccess(userName string, method string) error {
 	}
 
 	err = errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
-	log.Println(err)
+
 	return err
 }
 
@@ -355,8 +491,6 @@ func saveInfo(application string, userId string, method string, err_ error) erro
 		return err
 	}
 
-	log.Println(application, userId, method, err_)
-
 	return nil
 }
 
@@ -397,17 +531,22 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		return nil, err
 	}
 
-	// Validate the user access.
 	if len(applicationID) > 0 {
 		// TODO validate application action here.
-	} else if len(clientID) > 0 {
+		// log.Println("---> validate application permission: ", applicationID)
+	}
+
+	// Validate the user access.
+	if len(clientID) > 0 {
 		err = validateUserAccess(clientID, info.FullMethod)
 		if err != nil {
 			return nil, err
 		}
 
 		// Validate file access
-		err = validateFileAccess(clientID, info.FullMethod, req)
+		path, permission := getFilePermissionForMethod(info.FullMethod, req)
+
+		err = validateUserFileAccess(clientID, info.FullMethod, path, permission)
 		if err != nil {
 			return nil, err
 		}
@@ -417,13 +556,137 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	ctx = context.WithValue(ctx, clientIDKey, clientID)
 	result, err := handler(ctx, req)
 
+	method := info.FullMethod
+
 	if err != nil {
-		logError(ctx, info.FullMethod, err)
+		logError(ctx, method, err)
 		return nil, err
 	}
 
 	// Log the action as needed for info.
-	logAction(ctx, info.FullMethod, result)
+	logAction(ctx, method, result)
+
+	// Here I will set permission depending of actions...
+	client, err := getPersistenceClient()
+	if err != nil {
+		return nil, err
+	}
+
+	var path string // must be set call after calling getPersistClient
+
+	if method == "/file.FileService/CreateDir" {
+
+		// A new directory will take the parent permissions by default...
+		rqst := req.(*filepb.CreateDirRequest)
+		path += rqst.GetPath()
+		if len(path) > 1 {
+			if strings.HasPrefix(path, "/") {
+				path = rootPath + path
+			} else {
+				path = rootPath + "/" + path
+			}
+		} else {
+			path = rootPath
+		}
+
+		permissionsStr, err := client.Find("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, "")
+		if err != nil {
+			return nil, err
+		}
+
+		// Create permission object.
+		permissions := make([]interface{}, 0)
+		err = json.Unmarshal([]byte(permissionsStr), &permissions)
+		if err != nil {
+			return nil, err
+		}
+
+		// Now I will create the new permission of the created directory.
+		for i := 0; i < len(permissions); i++ {
+			permission := permissions[i].(map[string]interface{})
+			permission_ := make(map[string]interface{}, 0)
+			permission_["owner"] = permission["owner"]
+			permission_["path"] = path + "/" + rqst.GetName()
+			permission_["permission"] = permission["permission"]
+			permissionStr, _ := Utility.ToJson(permission_)
+			client.InsertOne("local_ressource", "local_ressource", "Permissions", permissionStr, "")
+		}
+
+	} else if method == "/file.FileService/Rename" {
+		rqst := req.(*filepb.RenameRequest)
+
+		path := rqst.GetPath()
+		path = strings.ReplaceAll(path, "\\", "/")
+		oldPath := rqst.OldName
+		newPath := rqst.NewName
+
+		if strings.HasPrefix(path, string(os.PathSeparator)) {
+			if len(path) > 1 {
+				oldPath = path + "/" + rqst.OldName
+				newPath = path + "/" + rqst.NewName
+			} else {
+				oldPath = rqst.OldName
+				newPath = rqst.NewName
+			}
+		}
+
+		err := client.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+rootPath+"/"+oldPath+`"}`, `{"$set":{"path":"`+rootPath+"/"+newPath+`"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Replace all files of subdirectories.
+		permissionsStr, err := client.Find("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}}`, "")
+		if err == nil {
+			permissions := make([]interface{}, 0)
+			json.Unmarshal([]byte(permissionsStr), &permissions)
+			for i := 0; i < len(permissions); i++ { // stringnify and save it...
+				permission := permissions[i].(map[string]interface{})
+				err := client.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(permission["path"].(string), oldPath, newPath)+`"}}`, "")
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
+
+	} else if method == "/file.FileService/DeleteFile" {
+		rqst := req.(*filepb.DeleteFileRequest)
+		path := rqst.GetPath()
+		path = strings.ReplaceAll(path, "\\", "/")
+		if len(path) > 1 {
+			if strings.HasPrefix(path, "/") {
+				path = rootPath + path
+			} else {
+				path = rootPath + "/" + path
+			}
+		} else {
+			path = rootPath
+		}
+
+		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+strings.ReplaceAll(path, "\\", "/")+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+	} else if method == "/file.FileService/DeleteDir" {
+		rqst := req.(*filepb.DeleteDirRequest)
+		path += rqst.GetPath()
+
+		path = strings.ReplaceAll(path, "\\", "/")
+		path = strings.ReplaceAll(path, "/", "\\/") // replace . by \. and / by \/
+		path = strings.ReplaceAll(path, ".", "\\.") // TODO fix the nasty bug  with regex.
+
+		// Delete all subdir...
+		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+rootPath+path+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+	}
 
 	return result, nil
 }
