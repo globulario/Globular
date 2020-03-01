@@ -299,7 +299,11 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -345,7 +349,11 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -373,7 +381,11 @@ func (self *server) CreateAchive(ctx context.Context, rqst *filepb.CreateArchive
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -418,7 +430,11 @@ func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*fi
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -445,7 +461,11 @@ func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -483,7 +503,11 @@ func (self *server) GetFileInfo(ctx context.Context, rqst *filepb.GetFileInfoReq
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
@@ -540,7 +564,12 @@ func (self *server) ReadFile(rqst *filepb.ReadFileRequest, stream filepb.FileSer
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
+
 		} else {
 			path = self.Root
 		}
@@ -628,7 +657,11 @@ func (self *server) DeleteFile(ctx context.Context, rqst *filepb.DeleteFileReque
 
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
-			path = self.Root + path
+			if strings.HasPrefix(path, string(os.PathSeparator)) {
+				path = self.Root + path
+			} else {
+				path = self.Root + string(os.PathSeparator) + path
+			}
 		} else {
 			path = self.Root
 		}
