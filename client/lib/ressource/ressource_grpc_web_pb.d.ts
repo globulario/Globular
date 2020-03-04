@@ -15,6 +15,10 @@ import {
   DeleteAccountRsp,
   DeletePermissionsRqst,
   DeletePermissionsRsp,
+  DeleteRessourceOwnerRqst,
+  DeleteRessourceOwnerRsp,
+  DeleteRessourceOwnersRqst,
+  DeleteRessourceOwnersRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
   GetAllActionsRqst,
@@ -25,6 +29,8 @@ import {
   GetAllFilesInfoRsp,
   GetPermissionsRqst,
   GetPermissionsRsp,
+  GetRessourceOwnersRqst,
+  GetRessourceOwnersRsp,
   RefreshTokenRqst,
   RefreshTokenRsp,
   RegisterAccountRqst,
@@ -39,6 +45,8 @@ import {
   RemoveRoleActionRsp,
   SetPermissionRqst,
   SetPermissionRsp,
+  SetRessourceOwnerRqst,
+  SetRessourceOwnerRsp,
   SynchronizeLdapRqst,
   SynchronizeLdapRsp} from './ressource_pb';
 
@@ -166,6 +174,34 @@ export class RessourceServiceClient {
                response: DeletePermissionsRsp) => void
   ): grpcWeb.ClientReadableStream<DeletePermissionsRsp>;
 
+  setRessourceOwner(
+    request: SetRessourceOwnerRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetRessourceOwnerRsp) => void
+  ): grpcWeb.ClientReadableStream<SetRessourceOwnerRsp>;
+
+  getRessourceOwners(
+    request: GetRessourceOwnersRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetRessourceOwnersRsp) => void
+  ): grpcWeb.ClientReadableStream<GetRessourceOwnersRsp>;
+
+  deleteRessourceOwner(
+    request: DeleteRessourceOwnerRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteRessourceOwnerRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteRessourceOwnerRsp>;
+
+  deleteRessourceOwners(
+    request: DeleteRessourceOwnersRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteRessourceOwnersRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteRessourceOwnersRsp>;
+
   getAllFilesInfo(
     request: GetAllFilesInfoRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -278,6 +314,26 @@ export class RessourceServicePromiseClient {
     request: DeletePermissionsRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<DeletePermissionsRsp>;
+
+  setRessourceOwner(
+    request: SetRessourceOwnerRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetRessourceOwnerRsp>;
+
+  getRessourceOwners(
+    request: GetRessourceOwnersRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetRessourceOwnersRsp>;
+
+  deleteRessourceOwner(
+    request: DeleteRessourceOwnerRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteRessourceOwnerRsp>;
+
+  deleteRessourceOwners(
+    request: DeleteRessourceOwnersRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteRessourceOwnersRsp>;
 
   getAllFilesInfo(
     request: GetAllFilesInfoRqst,

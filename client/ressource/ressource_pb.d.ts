@@ -600,7 +600,7 @@ export namespace RemoveApplicationRsp {
   }
 }
 
-export class FilePermission extends jspb.Message {
+export class RessourcePermission extends jspb.Message {
   getNumber(): number;
   setNumber(value: number): void;
 
@@ -619,23 +619,28 @@ export class FilePermission extends jspb.Message {
   setApplication(value: string): void;
   hasApplication(): boolean;
 
-  getOwnerCase(): FilePermission.OwnerCase;
+  getService(): string;
+  setService(value: string): void;
+  hasService(): boolean;
+
+  getOwnerCase(): RessourcePermission.OwnerCase;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): FilePermission.AsObject;
-  static toObject(includeInstance: boolean, msg: FilePermission): FilePermission.AsObject;
-  static serializeBinaryToWriter(message: FilePermission, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): FilePermission;
-  static deserializeBinaryFromReader(message: FilePermission, reader: jspb.BinaryReader): FilePermission;
+  toObject(includeInstance?: boolean): RessourcePermission.AsObject;
+  static toObject(includeInstance: boolean, msg: RessourcePermission): RessourcePermission.AsObject;
+  static serializeBinaryToWriter(message: RessourcePermission, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RessourcePermission;
+  static deserializeBinaryFromReader(message: RessourcePermission, reader: jspb.BinaryReader): RessourcePermission;
 }
 
-export namespace FilePermission {
+export namespace RessourcePermission {
   export type AsObject = {
     number: number,
     path: string,
     user: string,
     role: string,
     application: string,
+    service: string,
   }
 
   export enum OwnerCase { 
@@ -643,6 +648,7 @@ export namespace FilePermission {
     USER = 3,
     ROLE = 4,
     APPLICATION = 5,
+    SERVICE = 6,
   }
 }
 
@@ -683,8 +689,8 @@ export namespace GetPermissionsRsp {
 }
 
 export class SetPermissionRqst extends jspb.Message {
-  getPermission(): FilePermission | undefined;
-  setPermission(value?: FilePermission): void;
+  getPermission(): RessourcePermission | undefined;
+  setPermission(value?: RessourcePermission): void;
   hasPermission(): boolean;
   clearPermission(): void;
 
@@ -698,7 +704,7 @@ export class SetPermissionRqst extends jspb.Message {
 
 export namespace SetPermissionRqst {
   export type AsObject = {
-    permission?: FilePermission.AsObject,
+    permission?: RessourcePermission.AsObject,
   }
 }
 
@@ -951,6 +957,160 @@ export class SynchronizeLdapRsp extends jspb.Message {
 }
 
 export namespace SynchronizeLdapRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class SetRessourceOwnerRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  getOwner(): string;
+  setOwner(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRessourceOwnerRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRessourceOwnerRqst): SetRessourceOwnerRqst.AsObject;
+  static serializeBinaryToWriter(message: SetRessourceOwnerRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRessourceOwnerRqst;
+  static deserializeBinaryFromReader(message: SetRessourceOwnerRqst, reader: jspb.BinaryReader): SetRessourceOwnerRqst;
+}
+
+export namespace SetRessourceOwnerRqst {
+  export type AsObject = {
+    path: string,
+    owner: string,
+  }
+}
+
+export class SetRessourceOwnerRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetRessourceOwnerRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: SetRessourceOwnerRsp): SetRessourceOwnerRsp.AsObject;
+  static serializeBinaryToWriter(message: SetRessourceOwnerRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetRessourceOwnerRsp;
+  static deserializeBinaryFromReader(message: SetRessourceOwnerRsp, reader: jspb.BinaryReader): SetRessourceOwnerRsp;
+}
+
+export namespace SetRessourceOwnerRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class GetRessourceOwnersRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetRessourceOwnersRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetRessourceOwnersRqst): GetRessourceOwnersRqst.AsObject;
+  static serializeBinaryToWriter(message: GetRessourceOwnersRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetRessourceOwnersRqst;
+  static deserializeBinaryFromReader(message: GetRessourceOwnersRqst, reader: jspb.BinaryReader): GetRessourceOwnersRqst;
+}
+
+export namespace GetRessourceOwnersRqst {
+  export type AsObject = {
+    path: string,
+  }
+}
+
+export class GetRessourceOwnersRsp extends jspb.Message {
+  getOwnersList(): Array<string>;
+  setOwnersList(value: Array<string>): void;
+  clearOwnersList(): void;
+  addOwners(value: string, index?: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetRessourceOwnersRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetRessourceOwnersRsp): GetRessourceOwnersRsp.AsObject;
+  static serializeBinaryToWriter(message: GetRessourceOwnersRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetRessourceOwnersRsp;
+  static deserializeBinaryFromReader(message: GetRessourceOwnersRsp, reader: jspb.BinaryReader): GetRessourceOwnersRsp;
+}
+
+export namespace GetRessourceOwnersRsp {
+  export type AsObject = {
+    ownersList: Array<string>,
+  }
+}
+
+export class DeleteRessourceOwnerRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  getOwner(): string;
+  setOwner(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRessourceOwnerRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRessourceOwnerRqst): DeleteRessourceOwnerRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteRessourceOwnerRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRessourceOwnerRqst;
+  static deserializeBinaryFromReader(message: DeleteRessourceOwnerRqst, reader: jspb.BinaryReader): DeleteRessourceOwnerRqst;
+}
+
+export namespace DeleteRessourceOwnerRqst {
+  export type AsObject = {
+    path: string,
+    owner: string,
+  }
+}
+
+export class DeleteRessourceOwnerRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRessourceOwnerRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRessourceOwnerRsp): DeleteRessourceOwnerRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteRessourceOwnerRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRessourceOwnerRsp;
+  static deserializeBinaryFromReader(message: DeleteRessourceOwnerRsp, reader: jspb.BinaryReader): DeleteRessourceOwnerRsp;
+}
+
+export namespace DeleteRessourceOwnerRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteRessourceOwnersRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRessourceOwnersRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRessourceOwnersRqst): DeleteRessourceOwnersRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteRessourceOwnersRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRessourceOwnersRqst;
+  static deserializeBinaryFromReader(message: DeleteRessourceOwnersRqst, reader: jspb.BinaryReader): DeleteRessourceOwnersRqst;
+}
+
+export namespace DeleteRessourceOwnersRqst {
+  export type AsObject = {
+    path: string,
+  }
+}
+
+export class DeleteRessourceOwnersRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRessourceOwnersRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRessourceOwnersRsp): DeleteRessourceOwnersRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteRessourceOwnersRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRessourceOwnersRsp;
+  static deserializeBinaryFromReader(message: DeleteRessourceOwnersRsp, reader: jspb.BinaryReader): DeleteRessourceOwnersRsp;
+}
+
+export namespace DeleteRessourceOwnersRsp {
   export type AsObject = {
     result: boolean,
   }

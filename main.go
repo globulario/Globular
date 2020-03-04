@@ -189,7 +189,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// Authenticate the user in order to get the token
 	ressource_client := ressource.NewRessource_Client(address, "ressource")
-	_, err := ressource_client.Authenticate(user, pwd)
+	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Panicln(err)
 		return
@@ -198,7 +198,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
 	admin_client := admin.NewAdmin_Client(address, "admin")
-	err = admin_client.DeployApplication(name, path)
+	err = admin_client.DeployApplication(name, path, token)
 	if err != nil {
 		log.Println(err)
 		return
@@ -221,7 +221,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	// Authenticate the user in order to get the token
 	ressource_client := ressource.NewRessource_Client(address, "ressource")
-	_, err := ressource_client.Authenticate(user, pwd)
+	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Panicln(err)
 		return
@@ -232,7 +232,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	admin_client := admin.NewAdmin_Client(address, "admin")
 
 	// first of all I will create and upload the package on the discovery...
-	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version)
+	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token)
 	if err != nil {
 		log.Panicln(err)
 		return
@@ -242,7 +242,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 		return
 	}
 
-	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords)
+	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token)
 	if err != nil {
 		log.Println(err)
 		return

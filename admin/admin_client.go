@@ -3,6 +3,7 @@ package admin
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +269,7 @@ func (self *Admin_Client) createServicePackage(publisherId string, serviceId str
 /**
  * Create and Upload the service archive on the server.
  */
-func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string) (string, error) {
+func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string, token string) (string, error) {
 	// Here I will try to read the service configuation from the path.
 	configs, _ := Utility.FindFileByName(path, "config.json")
 	if len(configs) == 0 {
@@ -317,6 +319,9 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 		/** TODO Deploy services on other platforme here... **/
 	}
 
+	md := metadata.New(map[string]string{"token": token})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// First of all I will create the archive for the service.
 	// If a path is given I will take it entire content. If not
 	// the proto, the config and the executable only will be taken.
@@ -337,7 +342,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 
 	// Now I will create the request to upload the package on the server.
 	// Open the stream...
-	stream, err := self.c.UploadServicePackage(api.GetClientContext(self))
+	stream, err := self.c.UploadServicePackage(ctx)
 	if err != nil {
 		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
 	}
@@ -376,7 +381,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 /**
  * Publish a service from a runing globular server.
  */
-func (self *Admin_Client) PublishService(path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string) error {
+func (self *Admin_Client) PublishService(path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string, token string) error {
 
 	rqst := new(PublishServiceRequest)
 	rqst.Path = path
@@ -389,7 +394,11 @@ func (self *Admin_Client) PublishService(path string, serviceId string, publishe
 	rqst.ServiceId = serviceId
 	rqst.Platform = Platform(platform)
 
-	_, err := self.c.PublishService(api.GetClientContext(self), rqst)
+	// Set the token into the context and send the request.
+	md := metadata.New(map[string]string{"token": token})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	_, err := self.c.PublishService(ctx, rqst)
 
 	return err
 }
@@ -427,7 +436,7 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
 /**
  * Deploy the content of an application with a given name to the server.
  */
-func (self *Admin_Client) DeployApplication(name string, path string) error {
+func (self *Admin_Client) DeployApplication(name string, path string, token string) error {
 
 	rqst := new(DeployApplicationRequest)
 	rqst.Name = name
@@ -444,8 +453,12 @@ func (self *Admin_Client) DeployApplication(name string, path string) error {
 	// remove the dir and keep the archive in memory
 	os.RemoveAll(Utility.GenerateUUID(name))
 
+	// Set the token into the context and send the request.
+	md := metadata.New(map[string]string{"token": string(token), "application": name})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// Open the stream...
-	stream, err := self.c.DeployApplication(api.GetClientContext(self))
+	stream, err := self.c.DeployApplication(ctx)
 	if err != nil {
 		log.Panicln(err)
 		return err

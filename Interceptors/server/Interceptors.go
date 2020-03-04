@@ -8,15 +8,16 @@ import (
 
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"time"
 
 	"github.com/davecourtois/Globular/Interceptors/Authenticate"
+	//"github.com/davecourtois/Globular/admin"
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/davecourtois/Globular/ressource"
-
 	"github.com/davecourtois/Utility"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/net/context"
@@ -127,6 +128,7 @@ func authenticateClient(ctx context.Context) (string, string, int64, error) {
 
 // Test if a role can use action.
 func canRunAction(roleName string, method string) error {
+
 	Id := "local_ressource"
 	Database := "local_ressource"
 	Collection := "Roles"
@@ -164,7 +166,7 @@ func canRunAction(roleName string, method string) error {
 func getFilePermissionForMethod(method string, req interface{}) (string, string) {
 	var path string
 	var permission string
-	log.Println("---> method ", method)
+
 	if method == "/file.FileService/ReadDir" {
 		rqst := req.(*filepb.ReadDirRequest)
 		if len(rqst.GetPath()) > 1 {
@@ -235,6 +237,30 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 			path = rqst.GetPath()
 		}
 		permission = "read"
+	} else if method == "/ressource.RessourceService/SetPermission" {
+		rqst := req.(*ressource.SetPermissionRqst)
+		if len(rqst.Permission.GetPath()) > 1 {
+			path = rqst.Permission.GetPath()
+		}
+		permission = "write"
+	} else if method == "/ressource.RessourceService/DeletePermissions" {
+		rqst := req.(*ressource.DeletePermissionsRqst)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
+	} else if method == "/ressource.RessourceService/SetRessourceOwner" {
+		rqst := req.(*ressource.SetRessourceOwnerRqst)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
+	} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
+		rqst := req.(*ressource.DeleteRessourceOwnerRqst)
+		if len(rqst.GetPath()) > 1 {
+			path = rqst.GetPath()
+		}
+		permission = "write"
 	}
 
 	// make sure the path does not contain // anywhere...
@@ -251,10 +277,52 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 
 }
 
+func isOwner(name string, path string) bool {
+	// get the client...
+	client, _ := getPersistenceClient()
+
+	// Now I will get the user roles and validate if the user can execute the
+	// method.
+	Id := "local_ressource"
+	Database := "local_ressource"
+	Collection := "Accounts"
+	Query := `{"name":"` + name + `"}`
+
+	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
+	if err != nil {
+		return false
+	}
+
+	account := make(map[string]interface{})
+	err = json.Unmarshal([]byte(values), &account)
+	if err != nil {
+		return false
+	}
+
+	path = strings.ReplaceAll(path, "\\", "/")
+	// If the user is the owner of the ressource it has the permission
+	log.Println("---> ", `{"path":"`+path+`","owner":"`+name+`"}`)
+	count, err := client.Count("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+account["_id"].(string)+`"}`, ``)
+	if err == nil {
+		if count > 0 {
+			log.Println("--> ", name, " is owner of ", path)
+			return true
+		}
+	} else {
+		log.Println(err)
+	}
+	return false
+}
+
 func hasPermission(name string, path string, permission string) (bool, int) {
 	// Set the path with / instead of \\ in case of windows...
 	path = strings.ReplaceAll(path, "\\", "/")
 	log.Println("--> validate " + name + " has " + permission + " permission on file " + path)
+
+	// If the user is the owner of the ressource it has all permission
+	if isOwner(name, path) {
+		return true, 0
+	}
 
 	count, err := client.Count("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, ``)
 	if err != nil {
@@ -523,40 +591,119 @@ func logAction(ctx context.Context, method string, result interface{}) {
 	}
 }
 
+/*
+type wrappedStream struct {
+	grpc.ServerStream
+}
+
+func (w *wrappedStream) RecvMsg(m interface{}) error {
+
+	switch v := m.(type) {
+	case *admin.DeployApplicationRequest:
+		log.Println("----> 601 name ", v.GetName(), " data ", len(v.GetData()))
+	}
+	return w.ServerStream.RecvMsg(m)
+}
+
+func (w *wrappedStream) SendMsg(m interface{}) error {
+	return nil
+}
+
+func newWrappedStream(s grpc.ServerStream) grpc.ServerStream {
+	return &wrappedStream{s}
+}
+*/
+
+// Stream interceptor.
+func StreamAuthInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	// Call 'handler' to invoke the stream handler before this function returns
+	method := info.FullMethod
+	applicationID, clientID, _, err := authenticateClient(stream.Context())
+	log.Println("---> validate method", method, applicationID, clientID)
+
+	if err != nil {
+		return err
+	}
+
+	// Here I will test if the user can run that function or not...
+	err = validateUserAccess(clientID, method)
+	if err != nil {
+		return err
+	}
+
+	err = handler(srv, stream)
+	if err != nil {
+		return err
+	}
+
+	if method == "/admin.AdminService/DeployApplication" {
+		log.Println("------------> deploy application: ", applicationID)
+		// Now I here I will validate that the ClientID has write access
+		// or is the owner of the application.
+		isOwner_ := isOwner(clientID, applicationID)
+		if isOwner_ {
+			return nil
+		}
+
+		// Now I will test if the user has application write permission.
+
+		if err == io.EOF {
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // unaryInterceptor calls authenticateClient with current context
 func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	applicationID, clientID, _, err := authenticateClient(ctx)
 	if err != nil {
+		log.Println("---> ", err)
 		return nil, err
 	}
+
+	method := info.FullMethod
+
+	// Validate the user access.
+	log.Println("---> validate method", method, " for ", clientID)
 
 	if len(applicationID) > 0 {
 		// TODO validate application action here.
 		// log.Println("---> validate application permission: ", applicationID)
 	}
 
-	// Validate the user access.
 	if len(clientID) > 0 {
-		err = validateUserAccess(clientID, info.FullMethod)
-		if err != nil {
-			return nil, err
+		path, permission := getFilePermissionForMethod(method, req)
+		// Test if the user is owner...
+		isOwner_ := false
+		if strings.HasPrefix(method, "/file.FileService/") || method == "/ressource.RessourceService/SetPermission" ||
+			method == "/ressource.RessourceService/DeletePermissions" || method == "/ressource.RessourceService/SetRessourceOwner" ||
+			method == "/ressource.RessourceService/DeleteRessourceOwner" {
+			isOwner_ = isOwner(clientID, path)
+			log.Println("---> is owner?", clientID, path, isOwner_)
 		}
 
-		// Validate file access
-		path, permission := getFilePermissionForMethod(info.FullMethod, req)
-
-		err = validateUserFileAccess(clientID, info.FullMethod, path, permission)
-		if err != nil {
-			return nil, err
+		if !isOwner_ {
+			// Validate the user access
+			err = validateUserAccess(clientID, method)
+			if err != nil {
+				return nil, err
+			}
+			// Validate file access
+			err = validateUserFileAccess(clientID, method, path, permission)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	// Execute the action.
 	ctx = context.WithValue(ctx, clientIDKey, clientID)
 	result, err := handler(ctx, req)
-
-	method := info.FullMethod
 
 	if err != nil {
 		logError(ctx, method, err)
@@ -603,6 +750,7 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 
 		// Now I will create the new permission of the created directory.
 		for i := 0; i < len(permissions); i++ {
+			// Copye the permission.
 			permission := permissions[i].(map[string]interface{})
 			permission_ := make(map[string]interface{}, 0)
 			permission_["owner"] = permission["owner"]
@@ -610,6 +758,39 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 			permission_["permission"] = permission["permission"]
 			permissionStr, _ := Utility.ToJson(permission_)
 			client.InsertOne("local_ressource", "local_ressource", "Permissions", permissionStr, "")
+		}
+
+		ressourceOwnersStr, err := client.Find("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`"}`, "")
+		if err != nil {
+			return nil, err
+		}
+
+		// Create permission object.
+		ressourceOwners := make([]interface{}, 0)
+		err = json.Unmarshal([]byte(ressourceOwnersStr), &ressourceOwners)
+		if err != nil {
+			return nil, err
+		}
+
+		// Now I will create the new permission of the created directory.
+		for i := 0; i < len(ressourceOwners); i++ {
+			// Copye the permission.
+			ressourceOwner := ressourceOwners[i].(map[string]interface{})
+			ressourceOwner_ := make(map[string]interface{}, 0)
+			ressourceOwner_["owner"] = ressourceOwner["owner"]
+			ressourceOwner_["path"] = path + "/" + rqst.GetName()
+			ressourceOwnerStr, _ := Utility.ToJson(ressourceOwner_)
+			client.InsertOne("local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, "")
+		}
+
+		// The user who create a directory will be the owner of the
+		// directory.
+		if clientID != "sa" && clientID != "guest" {
+			ressourceOwner := make(map[string]interface{}, 0)
+			ressourceOwner["owner"] = clientID
+			ressourceOwner["path"] = path + "/" + rqst.GetName()
+			ressourceOwnerStr, _ := Utility.ToJson(ressourceOwner)
+			client.InsertOne("local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, `[{"upsert":true}]`)
 		}
 
 	} else if method == "/file.FileService/Rename" {
@@ -635,6 +816,11 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 			log.Println(err)
 		}
 
+		err = client.Update("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+rootPath+"/"+oldPath+`"}`, `{"$set":{"path":"`+rootPath+"/"+newPath+`"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
 		// Replace all files of subdirectories.
 		permissionsStr, err := client.Find("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}}`, "")
 		if err == nil {
@@ -643,6 +829,11 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 			for i := 0; i < len(permissions); i++ { // stringnify and save it...
 				permission := permissions[i].(map[string]interface{})
 				err := client.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(permission["path"].(string), oldPath, newPath)+`"}}`, "")
+				if err != nil {
+					log.Println(err)
+				}
+
+				err = client.Update("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(permission["path"].(string), oldPath, newPath)+`"}}`, "")
 				if err != nil {
 					log.Println(err)
 				}
@@ -668,6 +859,11 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 			log.Println(err)
 		}
 
+		err = client.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+strings.ReplaceAll(path, "\\", "/")+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
 	} else if method == "/file.FileService/DeleteDir" {
 		rqst := req.(*filepb.DeleteDirRequest)
 		path += rqst.GetPath()
@@ -676,13 +872,57 @@ func UnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		path = strings.ReplaceAll(path, "/", "\\/") // replace . by \. and / by \/
 		path = strings.ReplaceAll(path, ".", "\\.") // TODO fix the nasty bug  with regex.
 
-		// Delete all subdir...
+		// Delete Permissions
 		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
 		if err != nil {
 			log.Println(err)
 		}
 
 		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+rootPath+path+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Delete Owners
+		err = client.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = client.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+rootPath+path+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+	} else if method == "/ressource.RessourceService/RemoveApplicationAction" {
+
+		rqst := req.(*ressource.RemoveApplicationActionRqst)
+		applicationStr, _ := client.FindOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, "")
+		application := make(map[string]interface{})
+		json.Unmarshal([]byte(applicationStr), &application)
+		path := application["path"].(string)
+		path = strings.ReplaceAll(path, "\\", "/")
+		path = strings.ReplaceAll(path, "/", "\\/") // replace . by \. and / by \/
+		path = strings.ReplaceAll(path, ".", "\\.") // TODO fix the nasty bug  with regex.
+
+		// Delete file permissions
+		// Delete Permissions
+		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = client.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+rootPath+path+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Delete Owners
+		err = client.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = client.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+rootPath+path+`"}`, "")
 		if err != nil {
 			log.Println(err)
 		}

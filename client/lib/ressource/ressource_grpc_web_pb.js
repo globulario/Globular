@@ -1024,6 +1024,226 @@ proto.ressource.RessourceServicePromiseClient.prototype.deletePermissions =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.SetRessourceOwnerRqst,
+ *   !proto.ressource.SetRessourceOwnerRsp>}
+ */
+const methodInfo_RessourceService_SetRessourceOwner = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.SetRessourceOwnerRsp,
+  /** @param {!proto.ressource.SetRessourceOwnerRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SetRessourceOwnerRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.SetRessourceOwnerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.SetRessourceOwnerRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.SetRessourceOwnerRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.setRessourceOwner =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/SetRessourceOwner',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SetRessourceOwner,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.SetRessourceOwnerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.SetRessourceOwnerRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.setRessourceOwner =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/SetRessourceOwner',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_SetRessourceOwner);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetRessourceOwnersRqst,
+ *   !proto.ressource.GetRessourceOwnersRsp>}
+ */
+const methodInfo_RessourceService_GetRessourceOwners = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetRessourceOwnersRsp,
+  /** @param {!proto.ressource.GetRessourceOwnersRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetRessourceOwnersRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetRessourceOwnersRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetRessourceOwnersRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetRessourceOwnersRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getRessourceOwners =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetRessourceOwners',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetRessourceOwners,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetRessourceOwnersRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetRessourceOwnersRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getRessourceOwners =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetRessourceOwners',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetRessourceOwners);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteRessourceOwnerRqst,
+ *   !proto.ressource.DeleteRessourceOwnerRsp>}
+ */
+const methodInfo_RessourceService_DeleteRessourceOwner = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteRessourceOwnerRsp,
+  /** @param {!proto.ressource.DeleteRessourceOwnerRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRessourceOwnerRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteRessourceOwnerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteRessourceOwnerRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteRessourceOwnerRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteRessourceOwner =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRessourceOwner',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRessourceOwner,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteRessourceOwnerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteRessourceOwnerRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwner =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRessourceOwner',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRessourceOwner);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteRessourceOwnersRqst,
+ *   !proto.ressource.DeleteRessourceOwnersRsp>}
+ */
+const methodInfo_RessourceService_DeleteRessourceOwners = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteRessourceOwnersRsp,
+  /** @param {!proto.ressource.DeleteRessourceOwnersRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRessourceOwnersRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteRessourceOwnersRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteRessourceOwnersRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteRessourceOwnersRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteRessourceOwners =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRessourceOwners',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRessourceOwners,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteRessourceOwnersRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteRessourceOwnersRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwners =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRessourceOwners',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRessourceOwners);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.GetAllFilesInfoRqst,
  *   !proto.ressource.GetAllFilesInfoRsp>}
  */

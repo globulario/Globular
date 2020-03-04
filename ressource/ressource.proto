@@ -146,17 +146,18 @@ message RemoveApplicationRsp{
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// File permissions
+// Ressource permissions
 ////////////////////////////////////////////////////////////////////////////////
 
 // Define a permission to a file or a directory.
-message FilePermission {
+message RessourcePermission {
 	int32 number = 1;
 	string path = 2;
 	oneof owner {
 		string user = 3;
 		string role = 4;
 		string application = 5;
+		string service = 6;
 	}
 }
 
@@ -171,7 +172,7 @@ message GetPermissionsRsp{
 
 // set the permission for a given file.
 message SetPermissionRqst{
-	FilePermission permission = 1;
+	RessourcePermission permission = 1;
 }
 
 message SetPermissionRsp{
@@ -238,6 +239,45 @@ message SynchronizeLdapRsp{
 	bool result = 1;
 }
 
+// Set a ressource owner.
+message SetRessourceOwnerRqst{
+	string path = 1;
+	string owner = 2;
+}
+
+// Get the ressource owner
+message SetRessourceOwnerRsp{
+	bool result = 1;
+}
+
+// Get the ressource Owners
+message GetRessourceOwnersRqst{
+	string path = 1;
+}
+
+message GetRessourceOwnersRsp{
+	repeated string owners = 1;
+}
+
+// Delete a ressource Owner.
+message DeleteRessourceOwnerRqst{
+	string path = 1;
+	string owner = 2;
+}
+
+message DeleteRessourceOwnerRsp{
+	bool result = 1;
+}
+
+// Delete a ressource Owner.
+message DeleteRessourceOwnersRqst{
+	string path = 1;
+}
+
+message DeleteRessourceOwnersRsp{
+	bool result = 1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -295,6 +335,18 @@ service RessourceService {
 	
 	/** Delete a file permissions **/
 	rpc DeletePermissions(DeletePermissionsRqst) returns(DeletePermissionsRsp);
+	
+	/** Set Ressource owner **/
+	rpc SetRessourceOwner(SetRessourceOwnerRqst) returns(SetRessourceOwnerRsp);
+	
+	/** Get the ressource owners **/
+	rpc GetRessourceOwners(GetRessourceOwnersRqst) returns(GetRessourceOwnersRsp);
+	
+	/** Delete the ressource owner **/
+	rpc DeleteRessourceOwner(DeleteRessourceOwnerRqst) returns(DeleteRessourceOwnerRsp);
+	
+	/** Delete the ressource owners **/
+	rpc DeleteRessourceOwners(DeleteRessourceOwnersRqst) returns(DeleteRessourceOwnersRsp);
 	
 	/** Retrun a json string with all file info **/
 	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);

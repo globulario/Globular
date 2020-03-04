@@ -311,10 +311,10 @@ func (self *Ressource_Client) GetAllActions() ([]string, error) {
 /**
  * Set file permission for a given user.
  */
-func (self *Ressource_Client) SetFilePermissionByUser(userId string, path string, permission int32) error {
+func (self *Ressource_Client) SetRessourcePermissionByUser(userId string, path string, permission int32) error {
 	rqst := &SetPermissionRqst{
-		Permission: &FilePermission{
-			Owner: &FilePermission_User{
+		Permission: &RessourcePermission{
+			Owner: &RessourcePermission_User{
 				User: userId,
 			},
 			Path:   path,
@@ -329,10 +329,10 @@ func (self *Ressource_Client) SetFilePermissionByUser(userId string, path string
 /**
  * Set file permission for a given role.
  */
-func (self *Ressource_Client) SetFilePermissionByRole(roleId string, path string, permission int32) error {
+func (self *Ressource_Client) SetRessourcePermissionByRole(roleId string, path string, permission int32) error {
 	rqst := &SetPermissionRqst{
-		Permission: &FilePermission{
-			Owner: &FilePermission_Role{
+		Permission: &RessourcePermission{
+			Owner: &RessourcePermission_Role{
 				Role: roleId,
 			},
 			Path:   path,
@@ -344,7 +344,7 @@ func (self *Ressource_Client) SetFilePermissionByRole(roleId string, path string
 	return err
 }
 
-func (self *Ressource_Client) GetFilePermissions(path string) (string, error) {
+func (self *Ressource_Client) GetRessourcePermissions(path string) (string, error) {
 	rqst := &GetPermissionsRqst{
 		Path: path,
 	}
@@ -356,7 +356,7 @@ func (self *Ressource_Client) GetFilePermissions(path string) (string, error) {
 	return rsp.GetPermissions(), nil
 }
 
-func (self *Ressource_Client) DeleteFilePermissions(path string, owner string) error {
+func (self *Ressource_Client) DeleteRessourcePermissions(path string, owner string) error {
 	rqst := &DeletePermissionsRqst{
 		Path:  path,
 		Owner: owner,
