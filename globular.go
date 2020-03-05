@@ -1378,7 +1378,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	application := make(map[string]interface{})
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
-	application["path"] = path
+	application["path"] = "/" + name                 // The path must be the same as the application name.
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
 	if err != nil || count == 0 {

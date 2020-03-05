@@ -1,0 +1,17 @@
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\xunit.runner.visualstudio.dotnetcore.testadapter.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\xunit.runner.reporters.netcoreapp10.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\xunit.runner.utility.netcoreapp10.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.Tests.deps.json
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.Tests.runtimeconfig.json
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.Tests.runtimeconfig.dev.json
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.Tests.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.Tests.pdb
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\bin\Debug\netcoreapp2.1\GlobularServer.pdb
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.csprojAssemblyReference.cache
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.csproj.CoreCompileInputs.cache
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.AssemblyInfoInputs.cache
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.AssemblyInfo.cs
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.csproj.CopyComplete
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.dll
+E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer.Tests\obj\Debug\netcoreapp2.1\GlobularServer.Tests.pdb

@@ -400,9 +400,8 @@ func validateUserFileAccess(userName string, method string, path string, permiss
 	if !strings.HasPrefix(method, "/file.FileService") {
 		return nil
 	}
-	log.Println("--> validate file access for ", userName, " with method ", method, " on file ", path, " and acess ", permission)
 	if len(userName) == 0 {
-		return errors.New("No user  name was given to validate method access " + method)
+		return errors.New("No user name was given to validate method access " + method)
 	}
 
 	// if the user is the super admin no validation is required.
@@ -410,18 +409,13 @@ func validateUserFileAccess(userName string, method string, path string, permiss
 		return nil
 	}
 
-	Id := "local_ressource"
-	Database := "local_ressource"
-	Collection := "Accounts"
-	Query := `{"name":"` + userName + `"}`
-
 	client, err := getPersistenceClient()
 	if err != nil {
 		return err
 	}
 
 	// Find the user role.
-	values, err := client.FindOne(Id, Database, Collection, Query, `[{"Projection":{"roles":1}}]`)
+	values, err := client.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+userName+`"}`, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
 		return err
 	}
@@ -433,7 +427,6 @@ func validateUserFileAccess(userName string, method string, path string, permiss
 	}
 
 	count := 0
-
 	hasUserPermission, hasUserPermissionCount := hasPermission(userName, path, permission)
 	if hasUserPermission {
 		return nil
@@ -456,6 +449,12 @@ func validateUserFileAccess(userName string, method string, path string, permiss
 		return errors.New("Permission Denied for " + userName)
 	}
 
+	count, err = client.Count("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, ``)
+	if err != nil {
+		if count > 0 {
+			return errors.New("Permission Denied for " + userName)
+		}
+	}
 	return nil
 }
 
@@ -637,15 +636,28 @@ func StreamAuthInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc
 	}
 
 	if method == "/admin.AdminService/DeployApplication" {
-		log.Println("------------> deploy application: ", applicationID)
 		// Now I here I will validate that the ClientID has write access
 		// or is the owner of the application.
-		isOwner_ := isOwner(clientID, applicationID)
-		if isOwner_ {
+		// Test if the user is owner...
+		path := rootPath + "/" + applicationID
+		path = strings.ReplaceAll(path, "\\", "/")
+
+		isOwner_ := isOwner(clientID, path)
+		if !isOwner_ {
+			// Validate the user access
+			err = validateUserAccess(clientID, method)
+			if err != nil {
+				return err
+			}
+
+			// Validate file access
+			err = validateUserFileAccess(clientID, "/file.FileService/SaveFile", path, "write")
+			if err != nil {
+				return err
+			}
+		} else {
 			return nil
 		}
-
-		// Now I will test if the user has application write permission.
 
 		if err == io.EOF {
 			return nil
