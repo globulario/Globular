@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/dns/dnspb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"

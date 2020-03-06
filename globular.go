@@ -3580,7 +3580,7 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressourc
 }
 
 //* Delete an application from the server. *
-func (self *Globule) RemoveApplication(ctx context.Context, rqst *ressource.RemoveApplicationRqst) (*ressource.RemoveApplicationRsp, error) {
+func (self *Globule) DeleteApplication(ctx context.Context, rqst *ressource.DeleteApplicationRqst) (*ressource.DeleteApplicationRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceSaConnection()
@@ -3649,7 +3649,65 @@ func (self *Globule) RemoveApplication(ctx context.Context, rqst *ressource.Remo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.RemoveApplicationRsp{
+	return &ressource.DeleteApplicationRsp{
+		Result: true,
+	}, nil
+}
+
+func (self *Globule) deleteAccountPermissions(name string) error {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	err = p.Delete("local_ressource", "local_ressource", "Accounts", `{"name":"`+name+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Delete all permission for a given account *
+func (self *Globule) DeleteAccountPermissions(ctx context.Context, rqst *ressource.DeleteAccountPermissionsRqst) (*ressource.DeleteAccountPermissionsRsp, error) {
+
+	err := self.deleteAccountPermissions(rqst.Id)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.DeleteAccountPermissionsRsp{
+		Result: true,
+	}, nil
+}
+
+func (self *Globule) deleteRolePermissions(name string) error {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	err = p.Delete("local_ressource", "local_ressource", "Roles", `{"name":"`+name+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Delete all permission for a given role *
+func (self *Globule) DeleteRolePermissions(ctx context.Context, rqst *ressource.DeleteRolePermissionsRqst) (*ressource.DeleteRolePermissionsRsp, error) {
+
+	err := self.deleteRolePermissions(rqst.Id)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.DeleteRolePermissionsRsp{
 		Result: true,
 	}, nil
 }
@@ -3857,8 +3915,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	}
 
 	// Here some method are accessible by default.
-	if method == "/admin.AdminService/GetConfig" ||
-		method == "/ressource.RessourceService/GetAllActions" ||
+	if method == "/ressource.RessourceService/GetAllActions" ||
 		method == "/ressource.RessourceService/RegisterAccount" ||
 		method == "/ressource.RessourceService/Authenticate" ||
 		method == "/ressource.RessourceService/RefreshToken" ||
@@ -3869,19 +3926,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
 		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
-		method == "/event.EventService/Subscribe" ||
-		method == "/event.EventService/UnSubscribe" ||
-		method == "/event.EventService/OnEvent" ||
-		method == "/event.EventService/Quit" ||
-		method == "/event.EventService/Publish" ||
-		method == "/services.ServiceDiscovery/FindServices" ||
-		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
-		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
-		method == "/services.ServiceRepository/downloadBundle" ||
-		method == "/persistence.PersistenceService/Find" ||
-		method == "/persistence.PersistenceService/FindOne" ||
-		method == "/persistence.PersistenceService/Count" {
+		method == "/ressource.RessourceService/ValidateApplicationAccess" {
 		hasAccess = true
 	}
 
@@ -3891,6 +3936,29 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	// Execute the action.
 	result, err := handler(ctx, req)
+
+	if err == nil {
+		// Set permissions in case one of those methode is called.
+		if method == "/ressource.RessourceService/DeleteApplication" {
+			rqst := req.(*ressource.DeleteApplicationRqst)
+			err := self.deleteDirPermissions("/" + rqst.ApplicationId)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if method == "/ressource.RessourceService/DeleteRole" {
+			rqst := req.(*ressource.DeleteRoleRqst)
+			err := self.deleteRolePermissions("/" + rqst.RoleId)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if method == "/ressource.RessourceService/DeleteAccount" {
+			rqst := req.(*ressource.DeleteAccountRqst)
+			err := self.deleteAccountPermissions("/" + rqst.Id)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
 	return result, err
 
 }
@@ -4478,13 +4546,11 @@ func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.R
 	}, nil
 }
 
-//* Delete Permission for a dir (recursive) *
-func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressource.DeleteDirPermissionsRqst) (*ressource.DeleteDirPermissionsRsp, error) {
+func (self *Globule) deleteDirPermissions(path string) error {
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	path := rqst.GetPath()
 
 	path = strings.ReplaceAll(path, "\\", "/")
 	path = strings.ReplaceAll(path, "/", "\\/") // replace . by \. and / by \/
@@ -4511,6 +4577,19 @@ func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressource.D
 	if err != nil {
 		log.Println(err)
 	}
+
+	return nil
+}
+
+//* Delete Permission for a dir (recursive) *
+func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressource.DeleteDirPermissionsRqst) (*ressource.DeleteDirPermissionsRsp, error) {
+	err := self.deleteDirPermissions(rqst.GetPath())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	return &ressource.DeleteDirPermissionsRsp{
 		Result: true,
 	}, nil

@@ -1739,6 +1739,116 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteFilePermissions =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteAccountPermissionsRqst,
+ *   !proto.ressource.DeleteAccountPermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteAccountPermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteAccountPermissionsRsp,
+  /** @param {!proto.ressource.DeleteAccountPermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteAccountPermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteAccountPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteAccountPermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteAccountPermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteAccountPermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteAccountPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteAccountPermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteAccountPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteAccountPermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteAccountPermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteAccountPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteAccountPermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteRolePermissionsRqst,
+ *   !proto.ressource.DeleteRolePermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteRolePermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteRolePermissionsRsp,
+  /** @param {!proto.ressource.DeleteRolePermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRolePermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteRolePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteRolePermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteRolePermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteRolePermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRolePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRolePermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteRolePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteRolePermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteRolePermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRolePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRolePermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.GetAllApplicationsInfoRqst,
  *   !proto.ressource.GetAllApplicationsInfoRsp>}
  */
@@ -1794,55 +1904,55 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllApplicationsInfo =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ressource.RemoveApplicationRqst,
- *   !proto.ressource.RemoveApplicationRsp>}
+ *   !proto.ressource.DeleteApplicationRqst,
+ *   !proto.ressource.DeleteApplicationRsp>}
  */
-const methodInfo_RessourceService_RemoveApplication = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ressource.RemoveApplicationRsp,
-  /** @param {!proto.ressource.RemoveApplicationRqst} request */
+const methodInfo_RessourceService_DeleteApplication = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteApplicationRsp,
+  /** @param {!proto.ressource.DeleteApplicationRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ressource.RemoveApplicationRsp.deserializeBinary
+  proto.ressource.DeleteApplicationRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ressource.RemoveApplicationRqst} request The
+ * @param {!proto.ressource.DeleteApplicationRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ressource.RemoveApplicationRsp)}
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteApplicationRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ressource.RemoveApplicationRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteApplicationRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ressource.RessourceServiceClient.prototype.removeApplication =
+proto.ressource.RessourceServiceClient.prototype.deleteApplication =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/RemoveApplication',
+      '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplication,
+      methodInfo_RessourceService_DeleteApplication,
       callback);
 };
 
 
 /**
- * @param {!proto.ressource.RemoveApplicationRqst} request The
+ * @param {!proto.ressource.DeleteApplicationRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ressource.RemoveApplicationRsp>}
+ * @return {!Promise<!proto.ressource.DeleteApplicationRsp>}
  *     A native promise that resolves to the response
  */
-proto.ressource.RessourceServicePromiseClient.prototype.removeApplication =
+proto.ressource.RessourceServicePromiseClient.prototype.deleteApplication =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/RemoveApplication',
+      '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplication);
+      methodInfo_RessourceService_DeleteApplication);
 };
 
 

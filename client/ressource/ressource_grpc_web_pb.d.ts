@@ -13,8 +13,12 @@ import {
   CreateDirPermissionsRsp,
   CreateRoleRqst,
   CreateRoleRsp,
+  DeleteAccountPermissionsRqst,
+  DeleteAccountPermissionsRsp,
   DeleteAccountRqst,
   DeleteAccountRsp,
+  DeleteApplicationRqst,
+  DeleteApplicationRsp,
   DeleteDirPermissionsRqst,
   DeleteDirPermissionsRsp,
   DeleteFilePermissionsRqst,
@@ -25,6 +29,8 @@ import {
   DeleteRessourceOwnerRsp,
   DeleteRessourceOwnersRqst,
   DeleteRessourceOwnersRsp,
+  DeleteRolePermissionsRqst,
+  DeleteRolePermissionsRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
   GetAllActionsRqst,
@@ -45,8 +51,6 @@ import {
   RemoveAccountRoleRsp,
   RemoveApplicationActionRqst,
   RemoveApplicationActionRsp,
-  RemoveApplicationRqst,
-  RemoveApplicationRsp,
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
@@ -68,8 +72,8 @@ import {
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -281,6 +285,20 @@ export class RessourceServiceClient {
                response: DeleteFilePermissionsRsp) => void
   ): grpcWeb.ClientReadableStream<DeleteFilePermissionsRsp>;
 
+  deleteAccountPermissions(
+    request: DeleteAccountPermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteAccountPermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteAccountPermissionsRsp>;
+
+  deleteRolePermissions(
+    request: DeleteRolePermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteRolePermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteRolePermissionsRsp>;
+
   getAllApplicationsInfo(
     request: GetAllApplicationsInfoRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -288,19 +306,19 @@ export class RessourceServiceClient {
                response: GetAllApplicationsInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllApplicationsInfoRsp>;
 
-  removeApplication(
-    request: RemoveApplicationRqst,
+  deleteApplication(
+    request: DeleteApplicationRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RemoveApplicationRsp) => void
-  ): grpcWeb.ClientReadableStream<RemoveApplicationRsp>;
+               response: DeleteApplicationRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteApplicationRsp>;
 
 }
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -452,15 +470,25 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<DeleteFilePermissionsRsp>;
 
+  deleteAccountPermissions(
+    request: DeleteAccountPermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteAccountPermissionsRsp>;
+
+  deleteRolePermissions(
+    request: DeleteRolePermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteRolePermissionsRsp>;
+
   getAllApplicationsInfo(
     request: GetAllApplicationsInfoRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllApplicationsInfoRsp>;
 
-  removeApplication(
-    request: RemoveApplicationRqst,
+  deleteApplication(
+    request: DeleteApplicationRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<RemoveApplicationRsp>;
+  ): Promise<DeleteApplicationRsp>;
 
 }
 

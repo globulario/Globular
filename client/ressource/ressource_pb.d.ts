@@ -564,37 +564,37 @@ export namespace GetAllActionsRsp {
   }
 }
 
-export class RemoveApplicationRqst extends jspb.Message {
+export class DeleteApplicationRqst extends jspb.Message {
   getApplicationid(): string;
   setApplicationid(value: string): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RemoveApplicationRqst.AsObject;
-  static toObject(includeInstance: boolean, msg: RemoveApplicationRqst): RemoveApplicationRqst.AsObject;
-  static serializeBinaryToWriter(message: RemoveApplicationRqst, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RemoveApplicationRqst;
-  static deserializeBinaryFromReader(message: RemoveApplicationRqst, reader: jspb.BinaryReader): RemoveApplicationRqst;
+  toObject(includeInstance?: boolean): DeleteApplicationRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteApplicationRqst): DeleteApplicationRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteApplicationRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteApplicationRqst;
+  static deserializeBinaryFromReader(message: DeleteApplicationRqst, reader: jspb.BinaryReader): DeleteApplicationRqst;
 }
 
-export namespace RemoveApplicationRqst {
+export namespace DeleteApplicationRqst {
   export type AsObject = {
     applicationid: string,
   }
 }
 
-export class RemoveApplicationRsp extends jspb.Message {
+export class DeleteApplicationRsp extends jspb.Message {
   getResult(): boolean;
   setResult(value: boolean): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): RemoveApplicationRsp.AsObject;
-  static toObject(includeInstance: boolean, msg: RemoveApplicationRsp): RemoveApplicationRsp.AsObject;
-  static serializeBinaryToWriter(message: RemoveApplicationRsp, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): RemoveApplicationRsp;
-  static deserializeBinaryFromReader(message: RemoveApplicationRsp, reader: jspb.BinaryReader): RemoveApplicationRsp;
+  toObject(includeInstance?: boolean): DeleteApplicationRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteApplicationRsp): DeleteApplicationRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteApplicationRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteApplicationRsp;
+  static deserializeBinaryFromReader(message: DeleteApplicationRsp, reader: jspb.BinaryReader): DeleteApplicationRsp;
 }
 
-export namespace RemoveApplicationRsp {
+export namespace DeleteApplicationRsp {
   export type AsObject = {
     result: boolean,
   }
@@ -609,19 +609,15 @@ export class RessourcePermission extends jspb.Message {
 
   getUser(): string;
   setUser(value: string): void;
-  hasUser(): boolean;
 
   getRole(): string;
   setRole(value: string): void;
-  hasRole(): boolean;
 
   getApplication(): string;
   setApplication(value: string): void;
-  hasApplication(): boolean;
 
   getService(): string;
   setService(value: string): void;
-  hasService(): boolean;
 
   getOwnerCase(): RessourcePermission.OwnerCase;
 
@@ -1447,6 +1443,78 @@ export class DeleteFilePermissionsRsp extends jspb.Message {
 }
 
 export namespace DeleteFilePermissionsRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteAccountPermissionsRqst extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteAccountPermissionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteAccountPermissionsRqst): DeleteAccountPermissionsRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteAccountPermissionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteAccountPermissionsRqst;
+  static deserializeBinaryFromReader(message: DeleteAccountPermissionsRqst, reader: jspb.BinaryReader): DeleteAccountPermissionsRqst;
+}
+
+export namespace DeleteAccountPermissionsRqst {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class DeleteAccountPermissionsRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteAccountPermissionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteAccountPermissionsRsp): DeleteAccountPermissionsRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteAccountPermissionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteAccountPermissionsRsp;
+  static deserializeBinaryFromReader(message: DeleteAccountPermissionsRsp, reader: jspb.BinaryReader): DeleteAccountPermissionsRsp;
+}
+
+export namespace DeleteAccountPermissionsRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteRolePermissionsRqst extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRolePermissionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRolePermissionsRqst): DeleteRolePermissionsRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteRolePermissionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRolePermissionsRqst;
+  static deserializeBinaryFromReader(message: DeleteRolePermissionsRqst, reader: jspb.BinaryReader): DeleteRolePermissionsRqst;
+}
+
+export namespace DeleteRolePermissionsRqst {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class DeleteRolePermissionsRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteRolePermissionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteRolePermissionsRsp): DeleteRolePermissionsRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteRolePermissionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteRolePermissionsRsp;
+  static deserializeBinaryFromReader(message: DeleteRolePermissionsRsp, reader: jspb.BinaryReader): DeleteRolePermissionsRsp;
+}
+
+export namespace DeleteRolePermissionsRsp {
   export type AsObject = {
     result: boolean,
   }

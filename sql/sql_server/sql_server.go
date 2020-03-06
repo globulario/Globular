@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 

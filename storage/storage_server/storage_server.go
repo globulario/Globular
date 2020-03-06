@@ -17,7 +17,7 @@ import (
 	"strconv"
 
 	//	"time"
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Globular/storage/storagepb"
 	"github.com/davecourtois/Utility"

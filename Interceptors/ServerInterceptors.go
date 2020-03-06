@@ -158,7 +158,8 @@ func ValidateApplicationFileAccess(applicationName string, method string, path s
 	return nil
 }
 
-// unaryInterceptor calls authenticateClient with current context
+// That interceptor is use by all services except the ressource service who has
+// it own interceptor.
 func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	// The token and the application id.
@@ -194,18 +195,6 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 
 	// Here is the list of method accessible by default.
 	if method == "/admin.AdminService/GetConfig" ||
-		method == "/ressource.RessourceService/GetAllActions" ||
-		method == "/ressource.RessourceService/RegisterAccount" ||
-		method == "/ressource.RessourceService/Authenticate" ||
-		method == "/ressource.RessourceService/RefreshToken" ||
-		method == "/ressource.RessourceService/GetPermissions" ||
-		method == "/ressource.RessourceService/GetAllFilesInfo" ||
-		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
 		method == "/event.EventService/Subscribe" ||
 		method == "/event.EventService/UnSubscribe" ||
 		method == "/event.EventService/OnEvent" ||
@@ -278,12 +267,6 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 			if err != nil {
 				log.Println(err)
 			}
-		} else if method == "/ressource.RessourceService/RemoveApplicationAction" {
-			rqst := req.(*ressource.RemoveApplicationActionRqst)
-			err := getRessourceClient().DeleteDirPermissions("/" + rqst.ApplicationId)
-			if err != nil {
-				log.Println(err)
-			}
 		}
 	}
 
@@ -294,7 +277,46 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 // Stream interceptor.
 func ServerStreamAuthInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
-	err := handler(srv, stream)
+	// The token and the application id.
+	var token string
+	var application string
+
+	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
+		application = strings.Join(md["application"], "")
+		token = strings.Join(md["token"], "")
+	}
+
+	method := info.FullMethod
+	log.Println("---> method call: ", method, application, len(token))
+
+	hasAccess := false
+	var err error
+
+	// Test if the user has access to execute the method
+	if len(token) > 0 {
+		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
+		if err != nil {
+			return err
+		}
+	}
+
+	if method == "/persistence.PersistenceService/Find" {
+		hasAccess = true
+	}
+
+	if !hasAccess {
+		return errors.New("Permission denied to execute method " + method)
+	}
+
+	// Test if the application has access to execute the method.
+	if len(application) > 0 && !hasAccess {
+		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = handler(srv, stream)
 	if err != nil {
 		return err
 	}

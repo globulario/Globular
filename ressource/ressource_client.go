@@ -472,3 +472,19 @@ func (self *Ressource_Client) DeleteFilePermissions(path string) error {
 	_, err := self.c.DeleteFilePermissions(api.GetClientContext(self), rqst)
 	return err
 }
+
+func (self *Ressource_Client) DeleteRolePermissions(id string) error {
+	rqst := &DeleteRolePermissionsRqst{
+		Id: id,
+	}
+	_, err := self.c.DeleteRolePermissions(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
+	rqst := &DeleteAccountPermissionsRqst{
+		Id: id,
+	}
+	_, err := self.c.DeleteAccountPermissions(api.GetClientContext(self), rqst)
+	return err
+}

@@ -17,7 +17,7 @@ import (
 
 	"errors"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"

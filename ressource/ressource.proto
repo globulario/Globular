@@ -137,11 +137,11 @@ message GetAllActionsRsp{
 	repeated string actions = 1;
 }
 
-message RemoveApplicationRqst{
+message DeleteApplicationRqst{
 	string applicationId = 1;
 }
 
-message RemoveApplicationRsp{
+message DeleteApplicationRsp{
 	bool result = 1;
 }
 
@@ -355,6 +355,23 @@ message DeleteFilePermissionsRsp{
 	bool result=1;
 }
 
+
+message DeleteAccountPermissionsRqst{
+	string id = 1;
+}
+
+message DeleteAccountPermissionsRsp{
+	bool result=1;
+}
+
+message DeleteRolePermissionsRqst{
+	string id = 1;
+}
+
+message DeleteRolePermissionsRsp{
+	bool result=1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -451,10 +468,17 @@ service RessourceService {
 	
 	/** Delete a single file permission **/
 	rpc DeleteFilePermissions(DeleteFilePermissionsRqst) returns(DeleteFilePermissionsRsp);
+
+	/** Delete all permission for a given account **/
+	rpc DeleteAccountPermissions(DeleteAccountPermissionsRqst) returns(DeleteAccountPermissionsRsp);
+	
+	/** Delete all permission for a given role **/
+	rpc DeleteRolePermissions(DeleteRolePermissionsRqst) returns(DeleteRolePermissionsRsp);
 	
 	/** Return a json string with all applications informations **/
 	rpc GetAllApplicationsInfo(GetAllApplicationsInfoRqst) returns(GetAllApplicationsInfoRsp);
 	
 	/** Delete an application from the server. **/
-	rpc RemoveApplication(RemoveApplicationRqst) returns(RemoveApplicationRsp);
+	rpc DeleteApplication(DeleteApplicationRqst) returns(DeleteApplicationRsp);
+
 }

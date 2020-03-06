@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/monitoring/monitoring_store"
 	"github.com/davecourtois/Globular/monitoring/monitoringpb"
 
