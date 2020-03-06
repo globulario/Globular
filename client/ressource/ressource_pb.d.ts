@@ -1116,3 +1116,339 @@ export namespace DeleteRessourceOwnersRsp {
   }
 }
 
+export class ValidateApplicationAccessRqst extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateApplicationAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateApplicationAccessRqst): ValidateApplicationAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidateApplicationAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateApplicationAccessRqst;
+  static deserializeBinaryFromReader(message: ValidateApplicationAccessRqst, reader: jspb.BinaryReader): ValidateApplicationAccessRqst;
+}
+
+export namespace ValidateApplicationAccessRqst {
+  export type AsObject = {
+    name: string,
+    method: string,
+  }
+}
+
+export class ValidateApplicationAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateApplicationAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateApplicationAccessRsp): ValidateApplicationAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidateApplicationAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateApplicationAccessRsp;
+  static deserializeBinaryFromReader(message: ValidateApplicationAccessRsp, reader: jspb.BinaryReader): ValidateApplicationAccessRsp;
+}
+
+export namespace ValidateApplicationAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ValidateUserAccessRqst extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateUserAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateUserAccessRqst): ValidateUserAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidateUserAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateUserAccessRqst;
+  static deserializeBinaryFromReader(message: ValidateUserAccessRqst, reader: jspb.BinaryReader): ValidateUserAccessRqst;
+}
+
+export namespace ValidateUserAccessRqst {
+  export type AsObject = {
+    token: string,
+    method: string,
+  }
+}
+
+export class ValidateUserAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateUserAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateUserAccessRsp): ValidateUserAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidateUserAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateUserAccessRsp;
+  static deserializeBinaryFromReader(message: ValidateUserAccessRsp, reader: jspb.BinaryReader): ValidateUserAccessRsp;
+}
+
+export namespace ValidateUserAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ValidateUserFileAccessRqst extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  getPath(): string;
+  setPath(value: string): void;
+
+  getPermission(): string;
+  setPermission(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateUserFileAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateUserFileAccessRqst): ValidateUserFileAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidateUserFileAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateUserFileAccessRqst;
+  static deserializeBinaryFromReader(message: ValidateUserFileAccessRqst, reader: jspb.BinaryReader): ValidateUserFileAccessRqst;
+}
+
+export namespace ValidateUserFileAccessRqst {
+  export type AsObject = {
+    token: string,
+    method: string,
+    path: string,
+    permission: string,
+  }
+}
+
+export class ValidateUserFileAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateUserFileAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateUserFileAccessRsp): ValidateUserFileAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidateUserFileAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateUserFileAccessRsp;
+  static deserializeBinaryFromReader(message: ValidateUserFileAccessRsp, reader: jspb.BinaryReader): ValidateUserFileAccessRsp;
+}
+
+export namespace ValidateUserFileAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ValidateApplicationFileAccessRqst extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  getPath(): string;
+  setPath(value: string): void;
+
+  getPermission(): string;
+  setPermission(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateApplicationFileAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateApplicationFileAccessRqst): ValidateApplicationFileAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidateApplicationFileAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateApplicationFileAccessRqst;
+  static deserializeBinaryFromReader(message: ValidateApplicationFileAccessRqst, reader: jspb.BinaryReader): ValidateApplicationFileAccessRqst;
+}
+
+export namespace ValidateApplicationFileAccessRqst {
+  export type AsObject = {
+    name: string,
+    method: string,
+    path: string,
+    permission: string,
+  }
+}
+
+export class ValidateApplicationFileAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateApplicationFileAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateApplicationFileAccessRsp): ValidateApplicationFileAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidateApplicationFileAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateApplicationFileAccessRsp;
+  static deserializeBinaryFromReader(message: ValidateApplicationFileAccessRsp, reader: jspb.BinaryReader): ValidateApplicationFileAccessRsp;
+}
+
+export namespace ValidateApplicationFileAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class CreateDirPermissionsRqst extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  getPath(): string;
+  setPath(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateDirPermissionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateDirPermissionsRqst): CreateDirPermissionsRqst.AsObject;
+  static serializeBinaryToWriter(message: CreateDirPermissionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateDirPermissionsRqst;
+  static deserializeBinaryFromReader(message: CreateDirPermissionsRqst, reader: jspb.BinaryReader): CreateDirPermissionsRqst;
+}
+
+export namespace CreateDirPermissionsRqst {
+  export type AsObject = {
+    token: string,
+    path: string,
+    name: string,
+  }
+}
+
+export class CreateDirPermissionsRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CreateDirPermissionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: CreateDirPermissionsRsp): CreateDirPermissionsRsp.AsObject;
+  static serializeBinaryToWriter(message: CreateDirPermissionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CreateDirPermissionsRsp;
+  static deserializeBinaryFromReader(message: CreateDirPermissionsRsp, reader: jspb.BinaryReader): CreateDirPermissionsRsp;
+}
+
+export namespace CreateDirPermissionsRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RenameFilePermissionRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  getOldname(): string;
+  setOldname(value: string): void;
+
+  getNewname(): string;
+  setNewname(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RenameFilePermissionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RenameFilePermissionRqst): RenameFilePermissionRqst.AsObject;
+  static serializeBinaryToWriter(message: RenameFilePermissionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RenameFilePermissionRqst;
+  static deserializeBinaryFromReader(message: RenameFilePermissionRqst, reader: jspb.BinaryReader): RenameFilePermissionRqst;
+}
+
+export namespace RenameFilePermissionRqst {
+  export type AsObject = {
+    path: string,
+    oldname: string,
+    newname: string,
+  }
+}
+
+export class RenameFilePermissionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RenameFilePermissionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RenameFilePermissionRsp): RenameFilePermissionRsp.AsObject;
+  static serializeBinaryToWriter(message: RenameFilePermissionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RenameFilePermissionRsp;
+  static deserializeBinaryFromReader(message: RenameFilePermissionRsp, reader: jspb.BinaryReader): RenameFilePermissionRsp;
+}
+
+export namespace RenameFilePermissionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteDirPermissionsRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteDirPermissionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteDirPermissionsRqst): DeleteDirPermissionsRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteDirPermissionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteDirPermissionsRqst;
+  static deserializeBinaryFromReader(message: DeleteDirPermissionsRqst, reader: jspb.BinaryReader): DeleteDirPermissionsRqst;
+}
+
+export namespace DeleteDirPermissionsRqst {
+  export type AsObject = {
+    path: string,
+  }
+}
+
+export class DeleteDirPermissionsRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteDirPermissionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteDirPermissionsRsp): DeleteDirPermissionsRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteDirPermissionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteDirPermissionsRsp;
+  static deserializeBinaryFromReader(message: DeleteDirPermissionsRsp, reader: jspb.BinaryReader): DeleteDirPermissionsRsp;
+}
+
+export namespace DeleteDirPermissionsRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteFilePermissionsRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteFilePermissionsRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteFilePermissionsRqst): DeleteFilePermissionsRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteFilePermissionsRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteFilePermissionsRqst;
+  static deserializeBinaryFromReader(message: DeleteFilePermissionsRqst, reader: jspb.BinaryReader): DeleteFilePermissionsRqst;
+}
+
+export namespace DeleteFilePermissionsRqst {
+  export type AsObject = {
+    path: string,
+  }
+}
+
+export class DeleteFilePermissionsRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteFilePermissionsRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteFilePermissionsRsp): DeleteFilePermissionsRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteFilePermissionsRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteFilePermissionsRsp;
+  static deserializeBinaryFromReader(message: DeleteFilePermissionsRsp, reader: jspb.BinaryReader): DeleteFilePermissionsRsp;
+}
+
+export namespace DeleteFilePermissionsRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/persistence/persistence_store"
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"github.com/davecourtois/Utility"
@@ -873,15 +873,21 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.StreamAuthInterceptor), grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
-		})}
+		opts := []grpc.ServerOption{
+			grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor),
+			grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor),
+			grpc.Creds(creds), grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
+			})}
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer(grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
-		}))
+		grpcServer = grpc.NewServer(
+			grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor),
+			grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor),
+			grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
+			}))
 	}
 
 	persistencepb.RegisterPersistenceServiceServer(grpcServer, s_impl)

@@ -278,6 +278,83 @@ message DeleteRessourceOwnersRsp{
 	bool result = 1;
 }
 
+message ValidateApplicationAccessRqst{
+	string name=1;
+	string method=2;
+}
+
+message ValidateApplicationAccessRsp{
+	bool result=1;
+}
+
+
+message ValidateUserAccessRqst{
+	string token=1;
+	string method=2;
+}
+
+message ValidateUserAccessRsp{
+	bool result=1;
+}
+
+message ValidateUserFileAccessRqst{
+	string token=1;
+	string method=2;
+	string path=3;
+	string permission=4; // Read or Write.
+}
+
+message ValidateUserFileAccessRsp{
+	bool result=1;
+}
+
+message ValidateApplicationFileAccessRqst{
+	string name=1;
+	string method=2;
+	string path=3;
+	string permission=4; // Read or Write.
+}
+
+message ValidateApplicationFileAccessRsp{
+	bool result=1;
+}
+
+message CreateDirPermissionsRqst{
+	string token = 1;
+	string path = 2;
+	string name = 3;
+}
+
+message CreateDirPermissionsRsp{
+	bool result=1;
+}
+
+message RenameFilePermissionRqst{
+	string path = 1;
+	string oldName = 2;
+	string newName = 3;
+}
+
+message RenameFilePermissionRsp{
+	bool result=1;
+}
+
+message DeleteDirPermissionsRqst{
+	string path = 1;
+}
+
+message DeleteDirPermissionsRsp{
+	bool result=1;
+}
+
+message DeleteFilePermissionsRqst{
+	string path = 1;
+}
+
+message DeleteFilePermissionsRsp{
+	bool result=1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -350,6 +427,30 @@ service RessourceService {
 	
 	/** Retrun a json string with all file info **/
 	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);
+	
+	/** Validate if user can access a given file. **/
+	rpc ValidateUserFileAccess(ValidateUserFileAccessRqst) returns (ValidateUserFileAccessRsp);
+	
+	/** Validate if application can access a given file. **/
+	rpc ValidateApplicationFileAccess(ValidateApplicationFileAccessRqst) returns (ValidateApplicationFileAccessRsp);
+	
+	/** Validate if user can access a given method. **/
+	rpc ValidateUserAccess(ValidateUserAccessRqst) returns (ValidateUserAccessRsp);
+	
+	/** Validate if application can access a given method. **/
+	rpc ValidateApplicationAccess(ValidateApplicationAccessRqst) returns (ValidateApplicationAccessRsp);
+	
+	/** Create Permission for a dir (recursive) **/
+	rpc CreateDirPermissions(CreateDirPermissionsRqst) returns(CreateDirPermissionsRsp);
+	
+	/** Rename file/dir permission **/
+	rpc RenameFilePermission(RenameFilePermissionRqst) returns(RenameFilePermissionRsp);
+	
+	/** Delete Permission for a dir (recursive) **/
+	rpc DeleteDirPermissions(DeleteDirPermissionsRqst) returns(DeleteDirPermissionsRsp);
+	
+	/** Delete a single file permission **/
+	rpc DeleteFilePermissions(DeleteFilePermissionsRqst) returns(DeleteFilePermissionsRsp);
 	
 	/** Return a json string with all applications informations **/
 	rpc GetAllApplicationsInfo(GetAllApplicationsInfoRqst) returns(GetAllApplicationsInfoRsp);

@@ -8,7 +8,7 @@ import (
 
 var (
 	// Connect to the plc client.
-	client = NewRessource_Client("www.globular.io", "ressource")
+	client = NewRessource_Client("10.67.44.131", "ressource")
 )
 
 /*
@@ -22,7 +22,7 @@ func TestRegisterAccount(t *testing.T) {
 	}
 }
 */
-/*func TestAuthenticate(t *testing.T) {
+func TestAuthenticate(t *testing.T) {
 	log.Println("---> test authenticate account.")
 	//token, err := client.Authenticate("dave.courtois60@gmail.com", "1234")
 	token, err := client.Authenticate("sa", "adminadmin")
@@ -31,7 +31,7 @@ func TestRegisterAccount(t *testing.T) {
 	} else {
 		log.Println("---> ", token)
 	}
-}*/
+}
 
 /*
 func TestCreateRole(t *testing.T) {
@@ -143,7 +143,7 @@ func TestDeleteAccount(t *testing.T) {
 }*/
 
 /** Get the root file informations **/
-func TestGetAllFilesInfo(t *testing.T) {
+/*func TestGetAllFilesInfo(t *testing.T) {
 	log.Println("---> Get All File Info")
 	infos, err := client.GetAllFilesInfo()
 	if err != nil {
@@ -151,4 +151,4 @@ func TestGetAllFilesInfo(t *testing.T) {
 		return
 	}
 	log.Println(infos)
-}
+}*/

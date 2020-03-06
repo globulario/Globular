@@ -9,10 +9,16 @@ import {
   AddRoleActionRsp,
   AuthenticateRqst,
   AuthenticateRsp,
+  CreateDirPermissionsRqst,
+  CreateDirPermissionsRsp,
   CreateRoleRqst,
   CreateRoleRsp,
   DeleteAccountRqst,
   DeleteAccountRsp,
+  DeleteDirPermissionsRqst,
+  DeleteDirPermissionsRsp,
+  DeleteFilePermissionsRqst,
+  DeleteFilePermissionsRsp,
   DeletePermissionsRqst,
   DeletePermissionsRsp,
   DeleteRessourceOwnerRqst,
@@ -43,12 +49,22 @@ import {
   RemoveApplicationRsp,
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
+  RenameFilePermissionRqst,
+  RenameFilePermissionRsp,
   SetPermissionRqst,
   SetPermissionRsp,
   SetRessourceOwnerRqst,
   SetRessourceOwnerRsp,
   SynchronizeLdapRqst,
-  SynchronizeLdapRsp} from './ressource_pb';
+  SynchronizeLdapRsp,
+  ValidateApplicationAccessRqst,
+  ValidateApplicationAccessRsp,
+  ValidateApplicationFileAccessRqst,
+  ValidateApplicationFileAccessRsp,
+  ValidateUserAccessRqst,
+  ValidateUserAccessRsp,
+  ValidateUserFileAccessRqst,
+  ValidateUserFileAccessRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
@@ -209,6 +225,62 @@ export class RessourceServiceClient {
                response: GetAllFilesInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
 
+  validateUserFileAccess(
+    request: ValidateUserFileAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidateUserFileAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateUserFileAccessRsp>;
+
+  validateApplicationFileAccess(
+    request: ValidateApplicationFileAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidateApplicationFileAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateApplicationFileAccessRsp>;
+
+  validateUserAccess(
+    request: ValidateUserAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidateUserAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateUserAccessRsp>;
+
+  validateApplicationAccess(
+    request: ValidateApplicationAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidateApplicationAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateApplicationAccessRsp>;
+
+  createDirPermissions(
+    request: CreateDirPermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: CreateDirPermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<CreateDirPermissionsRsp>;
+
+  renameFilePermission(
+    request: RenameFilePermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RenameFilePermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<RenameFilePermissionRsp>;
+
+  deleteDirPermissions(
+    request: DeleteDirPermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteDirPermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteDirPermissionsRsp>;
+
+  deleteFilePermissions(
+    request: DeleteFilePermissionsRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteFilePermissionsRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteFilePermissionsRsp>;
+
   getAllApplicationsInfo(
     request: GetAllApplicationsInfoRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -339,6 +411,46 @@ export class RessourceServicePromiseClient {
     request: GetAllFilesInfoRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllFilesInfoRsp>;
+
+  validateUserFileAccess(
+    request: ValidateUserFileAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidateUserFileAccessRsp>;
+
+  validateApplicationFileAccess(
+    request: ValidateApplicationFileAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidateApplicationFileAccessRsp>;
+
+  validateUserAccess(
+    request: ValidateUserAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidateUserAccessRsp>;
+
+  validateApplicationAccess(
+    request: ValidateApplicationAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidateApplicationAccessRsp>;
+
+  createDirPermissions(
+    request: CreateDirPermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<CreateDirPermissionsRsp>;
+
+  renameFilePermission(
+    request: RenameFilePermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RenameFilePermissionRsp>;
+
+  deleteDirPermissions(
+    request: DeleteDirPermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteDirPermissionsRsp>;
+
+  deleteFilePermissions(
+    request: DeleteFilePermissionsRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteFilePermissionsRsp>;
 
   getAllApplicationsInfo(
     request: GetAllApplicationsInfoRqst,

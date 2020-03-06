@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/davecourtois/Globular/api"
@@ -166,6 +167,8 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 	// In case of other domain than localhost I will rip off the token file
 	// before each authentication.
 	path := os.TempDir() + string(os.PathSeparator) + self.GetDomain() + "_token"
+	log.Println("---> path ", path)
+	log.Println("---> is Local ", self.GetDomain(), Utility.IsLocal(self.GetDomain()))
 	if !Utility.IsLocal(self.GetDomain()) {
 		// remove the file if it already exist.
 		os.Remove(path)
@@ -376,5 +379,96 @@ func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
 	}
 
 	return rsp.GetResult(), nil
+}
 
+func (self *Ressource_Client) ValidateUserFileAccess(token string, path string, method string, permission string) (bool, error) {
+	rqst := &ValidateUserFileAccessRqst{}
+	rqst.Token = token
+	rqst.Path = path
+	rqst.Method = method
+	rqst.Permission = permission
+
+	rsp, err := self.c.ValidateUserFileAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
+func (self *Ressource_Client) ValidateApplicationFileAccess(application string, path string, method string, permission string) (bool, error) {
+	rqst := &ValidateApplicationFileAccessRqst{}
+	rqst.Name = application
+	rqst.Path = path
+	rqst.Method = method
+	rqst.Permission = permission
+
+	rsp, err := self.c.ValidateApplicationFileAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
+func (self *Ressource_Client) ValidateUserAccess(token string, method string) (bool, error) {
+	rqst := &ValidateUserAccessRqst{}
+	rqst.Token = token
+	rqst.Method = method
+
+	rsp, err := self.c.ValidateUserAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
+func (self *Ressource_Client) ValidateApplicationAccess(application string, method string) (bool, error) {
+	rqst := &ValidateApplicationAccessRqst{}
+	rqst.Name = application
+	rqst.Method = method
+	rsp, err := self.c.ValidateApplicationAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
+func (self *Ressource_Client) CreateDirPermissions(token string, path string, name string) error {
+	rqst := &CreateDirPermissionsRqst{
+		Token: token,
+		Path:  path,
+		Name:  name,
+	}
+	_, err := self.c.CreateDirPermissions(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) RenameFilePermission(path string, oldName string, newName string) error {
+	rqst := &RenameFilePermissionRqst{
+		Path:    path,
+		OldName: oldName,
+		NewName: newName,
+	}
+
+	_, err := self.c.RenameFilePermission(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) DeleteDirPermissions(path string) error {
+	rqst := &DeleteDirPermissionsRqst{
+		Path: path,
+	}
+	_, err := self.c.DeleteDirPermissions(api.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) DeleteFilePermissions(path string) error {
+	rqst := &DeleteFilePermissionsRqst{
+		Path: path,
+	}
+	_, err := self.c.DeleteFilePermissions(api.GetClientContext(self), rqst)
+	return err
 }

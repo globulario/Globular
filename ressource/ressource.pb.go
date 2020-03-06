@@ -2419,6 +2419,726 @@ func (m *DeleteRessourceOwnersRsp) GetResult() bool {
 	return false
 }
 
+type ValidateApplicationAccessRqst struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Method               string   `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateApplicationAccessRqst) Reset()         { *m = ValidateApplicationAccessRqst{} }
+func (m *ValidateApplicationAccessRqst) String() string { return proto.CompactTextString(m) }
+func (*ValidateApplicationAccessRqst) ProtoMessage()    {}
+func (*ValidateApplicationAccessRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{54}
+}
+
+func (m *ValidateApplicationAccessRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateApplicationAccessRqst.Unmarshal(m, b)
+}
+func (m *ValidateApplicationAccessRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateApplicationAccessRqst.Marshal(b, m, deterministic)
+}
+func (m *ValidateApplicationAccessRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateApplicationAccessRqst.Merge(m, src)
+}
+func (m *ValidateApplicationAccessRqst) XXX_Size() int {
+	return xxx_messageInfo_ValidateApplicationAccessRqst.Size(m)
+}
+func (m *ValidateApplicationAccessRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateApplicationAccessRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateApplicationAccessRqst proto.InternalMessageInfo
+
+func (m *ValidateApplicationAccessRqst) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *ValidateApplicationAccessRqst) GetMethod() string {
+	if m != nil {
+		return m.Method
+	}
+	return ""
+}
+
+type ValidateApplicationAccessRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateApplicationAccessRsp) Reset()         { *m = ValidateApplicationAccessRsp{} }
+func (m *ValidateApplicationAccessRsp) String() string { return proto.CompactTextString(m) }
+func (*ValidateApplicationAccessRsp) ProtoMessage()    {}
+func (*ValidateApplicationAccessRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{55}
+}
+
+func (m *ValidateApplicationAccessRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateApplicationAccessRsp.Unmarshal(m, b)
+}
+func (m *ValidateApplicationAccessRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateApplicationAccessRsp.Marshal(b, m, deterministic)
+}
+func (m *ValidateApplicationAccessRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateApplicationAccessRsp.Merge(m, src)
+}
+func (m *ValidateApplicationAccessRsp) XXX_Size() int {
+	return xxx_messageInfo_ValidateApplicationAccessRsp.Size(m)
+}
+func (m *ValidateApplicationAccessRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateApplicationAccessRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateApplicationAccessRsp proto.InternalMessageInfo
+
+func (m *ValidateApplicationAccessRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type ValidateUserAccessRqst struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Method               string   `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateUserAccessRqst) Reset()         { *m = ValidateUserAccessRqst{} }
+func (m *ValidateUserAccessRqst) String() string { return proto.CompactTextString(m) }
+func (*ValidateUserAccessRqst) ProtoMessage()    {}
+func (*ValidateUserAccessRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{56}
+}
+
+func (m *ValidateUserAccessRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateUserAccessRqst.Unmarshal(m, b)
+}
+func (m *ValidateUserAccessRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateUserAccessRqst.Marshal(b, m, deterministic)
+}
+func (m *ValidateUserAccessRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateUserAccessRqst.Merge(m, src)
+}
+func (m *ValidateUserAccessRqst) XXX_Size() int {
+	return xxx_messageInfo_ValidateUserAccessRqst.Size(m)
+}
+func (m *ValidateUserAccessRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateUserAccessRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateUserAccessRqst proto.InternalMessageInfo
+
+func (m *ValidateUserAccessRqst) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *ValidateUserAccessRqst) GetMethod() string {
+	if m != nil {
+		return m.Method
+	}
+	return ""
+}
+
+type ValidateUserAccessRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateUserAccessRsp) Reset()         { *m = ValidateUserAccessRsp{} }
+func (m *ValidateUserAccessRsp) String() string { return proto.CompactTextString(m) }
+func (*ValidateUserAccessRsp) ProtoMessage()    {}
+func (*ValidateUserAccessRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{57}
+}
+
+func (m *ValidateUserAccessRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateUserAccessRsp.Unmarshal(m, b)
+}
+func (m *ValidateUserAccessRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateUserAccessRsp.Marshal(b, m, deterministic)
+}
+func (m *ValidateUserAccessRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateUserAccessRsp.Merge(m, src)
+}
+func (m *ValidateUserAccessRsp) XXX_Size() int {
+	return xxx_messageInfo_ValidateUserAccessRsp.Size(m)
+}
+func (m *ValidateUserAccessRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateUserAccessRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateUserAccessRsp proto.InternalMessageInfo
+
+func (m *ValidateUserAccessRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type ValidateUserFileAccessRqst struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Method               string   `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Path                 string   `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Permission           string   `protobuf:"bytes,4,opt,name=permission,proto3" json:"permission,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateUserFileAccessRqst) Reset()         { *m = ValidateUserFileAccessRqst{} }
+func (m *ValidateUserFileAccessRqst) String() string { return proto.CompactTextString(m) }
+func (*ValidateUserFileAccessRqst) ProtoMessage()    {}
+func (*ValidateUserFileAccessRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{58}
+}
+
+func (m *ValidateUserFileAccessRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateUserFileAccessRqst.Unmarshal(m, b)
+}
+func (m *ValidateUserFileAccessRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateUserFileAccessRqst.Marshal(b, m, deterministic)
+}
+func (m *ValidateUserFileAccessRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateUserFileAccessRqst.Merge(m, src)
+}
+func (m *ValidateUserFileAccessRqst) XXX_Size() int {
+	return xxx_messageInfo_ValidateUserFileAccessRqst.Size(m)
+}
+func (m *ValidateUserFileAccessRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateUserFileAccessRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateUserFileAccessRqst proto.InternalMessageInfo
+
+func (m *ValidateUserFileAccessRqst) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *ValidateUserFileAccessRqst) GetMethod() string {
+	if m != nil {
+		return m.Method
+	}
+	return ""
+}
+
+func (m *ValidateUserFileAccessRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+func (m *ValidateUserFileAccessRqst) GetPermission() string {
+	if m != nil {
+		return m.Permission
+	}
+	return ""
+}
+
+type ValidateUserFileAccessRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateUserFileAccessRsp) Reset()         { *m = ValidateUserFileAccessRsp{} }
+func (m *ValidateUserFileAccessRsp) String() string { return proto.CompactTextString(m) }
+func (*ValidateUserFileAccessRsp) ProtoMessage()    {}
+func (*ValidateUserFileAccessRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{59}
+}
+
+func (m *ValidateUserFileAccessRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateUserFileAccessRsp.Unmarshal(m, b)
+}
+func (m *ValidateUserFileAccessRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateUserFileAccessRsp.Marshal(b, m, deterministic)
+}
+func (m *ValidateUserFileAccessRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateUserFileAccessRsp.Merge(m, src)
+}
+func (m *ValidateUserFileAccessRsp) XXX_Size() int {
+	return xxx_messageInfo_ValidateUserFileAccessRsp.Size(m)
+}
+func (m *ValidateUserFileAccessRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateUserFileAccessRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateUserFileAccessRsp proto.InternalMessageInfo
+
+func (m *ValidateUserFileAccessRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type ValidateApplicationFileAccessRqst struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Method               string   `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Path                 string   `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Permission           string   `protobuf:"bytes,4,opt,name=permission,proto3" json:"permission,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateApplicationFileAccessRqst) Reset()         { *m = ValidateApplicationFileAccessRqst{} }
+func (m *ValidateApplicationFileAccessRqst) String() string { return proto.CompactTextString(m) }
+func (*ValidateApplicationFileAccessRqst) ProtoMessage()    {}
+func (*ValidateApplicationFileAccessRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{60}
+}
+
+func (m *ValidateApplicationFileAccessRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateApplicationFileAccessRqst.Unmarshal(m, b)
+}
+func (m *ValidateApplicationFileAccessRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateApplicationFileAccessRqst.Marshal(b, m, deterministic)
+}
+func (m *ValidateApplicationFileAccessRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateApplicationFileAccessRqst.Merge(m, src)
+}
+func (m *ValidateApplicationFileAccessRqst) XXX_Size() int {
+	return xxx_messageInfo_ValidateApplicationFileAccessRqst.Size(m)
+}
+func (m *ValidateApplicationFileAccessRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateApplicationFileAccessRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateApplicationFileAccessRqst proto.InternalMessageInfo
+
+func (m *ValidateApplicationFileAccessRqst) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *ValidateApplicationFileAccessRqst) GetMethod() string {
+	if m != nil {
+		return m.Method
+	}
+	return ""
+}
+
+func (m *ValidateApplicationFileAccessRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+func (m *ValidateApplicationFileAccessRqst) GetPermission() string {
+	if m != nil {
+		return m.Permission
+	}
+	return ""
+}
+
+type ValidateApplicationFileAccessRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateApplicationFileAccessRsp) Reset()         { *m = ValidateApplicationFileAccessRsp{} }
+func (m *ValidateApplicationFileAccessRsp) String() string { return proto.CompactTextString(m) }
+func (*ValidateApplicationFileAccessRsp) ProtoMessage()    {}
+func (*ValidateApplicationFileAccessRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{61}
+}
+
+func (m *ValidateApplicationFileAccessRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateApplicationFileAccessRsp.Unmarshal(m, b)
+}
+func (m *ValidateApplicationFileAccessRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateApplicationFileAccessRsp.Marshal(b, m, deterministic)
+}
+func (m *ValidateApplicationFileAccessRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateApplicationFileAccessRsp.Merge(m, src)
+}
+func (m *ValidateApplicationFileAccessRsp) XXX_Size() int {
+	return xxx_messageInfo_ValidateApplicationFileAccessRsp.Size(m)
+}
+func (m *ValidateApplicationFileAccessRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateApplicationFileAccessRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateApplicationFileAccessRsp proto.InternalMessageInfo
+
+func (m *ValidateApplicationFileAccessRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type CreateDirPermissionsRqst struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Path                 string   `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateDirPermissionsRqst) Reset()         { *m = CreateDirPermissionsRqst{} }
+func (m *CreateDirPermissionsRqst) String() string { return proto.CompactTextString(m) }
+func (*CreateDirPermissionsRqst) ProtoMessage()    {}
+func (*CreateDirPermissionsRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{62}
+}
+
+func (m *CreateDirPermissionsRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateDirPermissionsRqst.Unmarshal(m, b)
+}
+func (m *CreateDirPermissionsRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateDirPermissionsRqst.Marshal(b, m, deterministic)
+}
+func (m *CreateDirPermissionsRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateDirPermissionsRqst.Merge(m, src)
+}
+func (m *CreateDirPermissionsRqst) XXX_Size() int {
+	return xxx_messageInfo_CreateDirPermissionsRqst.Size(m)
+}
+func (m *CreateDirPermissionsRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateDirPermissionsRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateDirPermissionsRqst proto.InternalMessageInfo
+
+func (m *CreateDirPermissionsRqst) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *CreateDirPermissionsRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+func (m *CreateDirPermissionsRqst) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type CreateDirPermissionsRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateDirPermissionsRsp) Reset()         { *m = CreateDirPermissionsRsp{} }
+func (m *CreateDirPermissionsRsp) String() string { return proto.CompactTextString(m) }
+func (*CreateDirPermissionsRsp) ProtoMessage()    {}
+func (*CreateDirPermissionsRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{63}
+}
+
+func (m *CreateDirPermissionsRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateDirPermissionsRsp.Unmarshal(m, b)
+}
+func (m *CreateDirPermissionsRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateDirPermissionsRsp.Marshal(b, m, deterministic)
+}
+func (m *CreateDirPermissionsRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateDirPermissionsRsp.Merge(m, src)
+}
+func (m *CreateDirPermissionsRsp) XXX_Size() int {
+	return xxx_messageInfo_CreateDirPermissionsRsp.Size(m)
+}
+func (m *CreateDirPermissionsRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateDirPermissionsRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateDirPermissionsRsp proto.InternalMessageInfo
+
+func (m *CreateDirPermissionsRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type RenameFilePermissionRqst struct {
+	Path                 string   `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	OldName              string   `protobuf:"bytes,2,opt,name=oldName,proto3" json:"oldName,omitempty"`
+	NewName              string   `protobuf:"bytes,3,opt,name=newName,proto3" json:"newName,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RenameFilePermissionRqst) Reset()         { *m = RenameFilePermissionRqst{} }
+func (m *RenameFilePermissionRqst) String() string { return proto.CompactTextString(m) }
+func (*RenameFilePermissionRqst) ProtoMessage()    {}
+func (*RenameFilePermissionRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{64}
+}
+
+func (m *RenameFilePermissionRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RenameFilePermissionRqst.Unmarshal(m, b)
+}
+func (m *RenameFilePermissionRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RenameFilePermissionRqst.Marshal(b, m, deterministic)
+}
+func (m *RenameFilePermissionRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RenameFilePermissionRqst.Merge(m, src)
+}
+func (m *RenameFilePermissionRqst) XXX_Size() int {
+	return xxx_messageInfo_RenameFilePermissionRqst.Size(m)
+}
+func (m *RenameFilePermissionRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_RenameFilePermissionRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RenameFilePermissionRqst proto.InternalMessageInfo
+
+func (m *RenameFilePermissionRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+func (m *RenameFilePermissionRqst) GetOldName() string {
+	if m != nil {
+		return m.OldName
+	}
+	return ""
+}
+
+func (m *RenameFilePermissionRqst) GetNewName() string {
+	if m != nil {
+		return m.NewName
+	}
+	return ""
+}
+
+type RenameFilePermissionRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RenameFilePermissionRsp) Reset()         { *m = RenameFilePermissionRsp{} }
+func (m *RenameFilePermissionRsp) String() string { return proto.CompactTextString(m) }
+func (*RenameFilePermissionRsp) ProtoMessage()    {}
+func (*RenameFilePermissionRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{65}
+}
+
+func (m *RenameFilePermissionRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RenameFilePermissionRsp.Unmarshal(m, b)
+}
+func (m *RenameFilePermissionRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RenameFilePermissionRsp.Marshal(b, m, deterministic)
+}
+func (m *RenameFilePermissionRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RenameFilePermissionRsp.Merge(m, src)
+}
+func (m *RenameFilePermissionRsp) XXX_Size() int {
+	return xxx_messageInfo_RenameFilePermissionRsp.Size(m)
+}
+func (m *RenameFilePermissionRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RenameFilePermissionRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RenameFilePermissionRsp proto.InternalMessageInfo
+
+func (m *RenameFilePermissionRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type DeleteDirPermissionsRqst struct {
+	Path                 string   `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteDirPermissionsRqst) Reset()         { *m = DeleteDirPermissionsRqst{} }
+func (m *DeleteDirPermissionsRqst) String() string { return proto.CompactTextString(m) }
+func (*DeleteDirPermissionsRqst) ProtoMessage()    {}
+func (*DeleteDirPermissionsRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{66}
+}
+
+func (m *DeleteDirPermissionsRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteDirPermissionsRqst.Unmarshal(m, b)
+}
+func (m *DeleteDirPermissionsRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteDirPermissionsRqst.Marshal(b, m, deterministic)
+}
+func (m *DeleteDirPermissionsRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteDirPermissionsRqst.Merge(m, src)
+}
+func (m *DeleteDirPermissionsRqst) XXX_Size() int {
+	return xxx_messageInfo_DeleteDirPermissionsRqst.Size(m)
+}
+func (m *DeleteDirPermissionsRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteDirPermissionsRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteDirPermissionsRqst proto.InternalMessageInfo
+
+func (m *DeleteDirPermissionsRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+type DeleteDirPermissionsRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteDirPermissionsRsp) Reset()         { *m = DeleteDirPermissionsRsp{} }
+func (m *DeleteDirPermissionsRsp) String() string { return proto.CompactTextString(m) }
+func (*DeleteDirPermissionsRsp) ProtoMessage()    {}
+func (*DeleteDirPermissionsRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{67}
+}
+
+func (m *DeleteDirPermissionsRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteDirPermissionsRsp.Unmarshal(m, b)
+}
+func (m *DeleteDirPermissionsRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteDirPermissionsRsp.Marshal(b, m, deterministic)
+}
+func (m *DeleteDirPermissionsRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteDirPermissionsRsp.Merge(m, src)
+}
+func (m *DeleteDirPermissionsRsp) XXX_Size() int {
+	return xxx_messageInfo_DeleteDirPermissionsRsp.Size(m)
+}
+func (m *DeleteDirPermissionsRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteDirPermissionsRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteDirPermissionsRsp proto.InternalMessageInfo
+
+func (m *DeleteDirPermissionsRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
+type DeleteFilePermissionsRqst struct {
+	Path                 string   `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteFilePermissionsRqst) Reset()         { *m = DeleteFilePermissionsRqst{} }
+func (m *DeleteFilePermissionsRqst) String() string { return proto.CompactTextString(m) }
+func (*DeleteFilePermissionsRqst) ProtoMessage()    {}
+func (*DeleteFilePermissionsRqst) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{68}
+}
+
+func (m *DeleteFilePermissionsRqst) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteFilePermissionsRqst.Unmarshal(m, b)
+}
+func (m *DeleteFilePermissionsRqst) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteFilePermissionsRqst.Marshal(b, m, deterministic)
+}
+func (m *DeleteFilePermissionsRqst) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteFilePermissionsRqst.Merge(m, src)
+}
+func (m *DeleteFilePermissionsRqst) XXX_Size() int {
+	return xxx_messageInfo_DeleteFilePermissionsRqst.Size(m)
+}
+func (m *DeleteFilePermissionsRqst) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteFilePermissionsRqst.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteFilePermissionsRqst proto.InternalMessageInfo
+
+func (m *DeleteFilePermissionsRqst) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+type DeleteFilePermissionsRsp struct {
+	Result               bool     `protobuf:"varint,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteFilePermissionsRsp) Reset()         { *m = DeleteFilePermissionsRsp{} }
+func (m *DeleteFilePermissionsRsp) String() string { return proto.CompactTextString(m) }
+func (*DeleteFilePermissionsRsp) ProtoMessage()    {}
+func (*DeleteFilePermissionsRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f22aaa66144afcde, []int{69}
+}
+
+func (m *DeleteFilePermissionsRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteFilePermissionsRsp.Unmarshal(m, b)
+}
+func (m *DeleteFilePermissionsRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteFilePermissionsRsp.Marshal(b, m, deterministic)
+}
+func (m *DeleteFilePermissionsRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteFilePermissionsRsp.Merge(m, src)
+}
+func (m *DeleteFilePermissionsRsp) XXX_Size() int {
+	return xxx_messageInfo_DeleteFilePermissionsRsp.Size(m)
+}
+func (m *DeleteFilePermissionsRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteFilePermissionsRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteFilePermissionsRsp proto.InternalMessageInfo
+
+func (m *DeleteFilePermissionsRsp) GetResult() bool {
+	if m != nil {
+		return m.Result
+	}
+	return false
+}
+
 func init() {
 	proto.RegisterType((*Account)(nil), "ressource.Account")
 	proto.RegisterType((*Role)(nil), "ressource.Role")
@@ -2474,98 +3194,135 @@ func init() {
 	proto.RegisterType((*DeleteRessourceOwnerRsp)(nil), "ressource.DeleteRessourceOwnerRsp")
 	proto.RegisterType((*DeleteRessourceOwnersRqst)(nil), "ressource.DeleteRessourceOwnersRqst")
 	proto.RegisterType((*DeleteRessourceOwnersRsp)(nil), "ressource.DeleteRessourceOwnersRsp")
+	proto.RegisterType((*ValidateApplicationAccessRqst)(nil), "ressource.ValidateApplicationAccessRqst")
+	proto.RegisterType((*ValidateApplicationAccessRsp)(nil), "ressource.ValidateApplicationAccessRsp")
+	proto.RegisterType((*ValidateUserAccessRqst)(nil), "ressource.ValidateUserAccessRqst")
+	proto.RegisterType((*ValidateUserAccessRsp)(nil), "ressource.ValidateUserAccessRsp")
+	proto.RegisterType((*ValidateUserFileAccessRqst)(nil), "ressource.ValidateUserFileAccessRqst")
+	proto.RegisterType((*ValidateUserFileAccessRsp)(nil), "ressource.ValidateUserFileAccessRsp")
+	proto.RegisterType((*ValidateApplicationFileAccessRqst)(nil), "ressource.ValidateApplicationFileAccessRqst")
+	proto.RegisterType((*ValidateApplicationFileAccessRsp)(nil), "ressource.ValidateApplicationFileAccessRsp")
+	proto.RegisterType((*CreateDirPermissionsRqst)(nil), "ressource.CreateDirPermissionsRqst")
+	proto.RegisterType((*CreateDirPermissionsRsp)(nil), "ressource.CreateDirPermissionsRsp")
+	proto.RegisterType((*RenameFilePermissionRqst)(nil), "ressource.RenameFilePermissionRqst")
+	proto.RegisterType((*RenameFilePermissionRsp)(nil), "ressource.RenameFilePermissionRsp")
+	proto.RegisterType((*DeleteDirPermissionsRqst)(nil), "ressource.DeleteDirPermissionsRqst")
+	proto.RegisterType((*DeleteDirPermissionsRsp)(nil), "ressource.DeleteDirPermissionsRsp")
+	proto.RegisterType((*DeleteFilePermissionsRqst)(nil), "ressource.DeleteFilePermissionsRqst")
+	proto.RegisterType((*DeleteFilePermissionsRsp)(nil), "ressource.DeleteFilePermissionsRsp")
 }
 
 func init() { proto.RegisterFile("ressource/ressource.proto", fileDescriptor_f22aaa66144afcde) }
 
 var fileDescriptor_f22aaa66144afcde = []byte{
-	// 1375 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0x6d, 0x53, 0xdb, 0xc6,
-	0x13, 0xff, 0x1b, 0x4c, 0x80, 0x35, 0x36, 0x70, 0x40, 0x10, 0x0a, 0x49, 0xfc, 0x17, 0xa4, 0xd0,
-	0x96, 0xc2, 0x84, 0x24, 0x2f, 0x9b, 0x19, 0x13, 0x26, 0x2e, 0xb4, 0x4c, 0x19, 0xb9, 0xcd, 0xf4,
-	0xe1, 0x05, 0x63, 0xec, 0x23, 0x68, 0x6a, 0x4b, 0x8a, 0x4e, 0x26, 0x93, 0x7e, 0x84, 0x7e, 0xa0,
-	0x7e, 0xb2, 0xf6, 0x7d, 0xe7, 0x4e, 0x77, 0xd2, 0xad, 0x1e, 0x0e, 0x3a, 0x49, 0xdf, 0xf9, 0xf6,
-	0x56, 0xbf, 0x7d, 0xb8, 0xdd, 0xbd, 0xdf, 0x19, 0x36, 0x22, 0xca, 0x58, 0x30, 0x89, 0x06, 0xf4,
-	0x20, 0xfd, 0xb5, 0x1f, 0x46, 0x41, 0x1c, 0x90, 0xf9, 0x54, 0xe0, 0x5c, 0xc0, 0x6c, 0x67, 0x30,
-	0x08, 0x26, 0x7e, 0x4c, 0x5a, 0x30, 0xe5, 0x0d, 0xad, 0x5a, 0xbb, 0xb6, 0x3b, 0xef, 0x4e, 0x79,
-	0x43, 0x42, 0xa0, 0xee, 0xf7, 0xc7, 0xd4, 0x9a, 0x12, 0x12, 0xf1, 0x9b, 0xac, 0xc2, 0x0c, 0x1d,
-	0xf7, 0xbd, 0x91, 0x35, 0x2d, 0x84, 0xc9, 0x82, 0xd8, 0x30, 0x17, 0xf6, 0x19, 0x7b, 0x1f, 0x44,
-	0x43, 0xab, 0x2e, 0x36, 0xd2, 0xb5, 0x73, 0x0c, 0x75, 0x37, 0x18, 0xd1, 0x3b, 0xa1, 0x5b, 0x30,
-	0xdb, 0x1f, 0xc4, 0x5e, 0xe0, 0x33, 0x6b, 0xba, 0x3d, 0xbd, 0x3b, 0xef, 0xaa, 0xa5, 0xf3, 0x47,
-	0x0d, 0x56, 0x5c, 0xfa, 0xd6, 0x63, 0x31, 0x8d, 0xa4, 0xbf, 0xee, 0x3b, 0x16, 0x93, 0x3d, 0xfe,
-	0x85, 0x58, 0x0a, 0xe8, 0xc6, 0x21, 0xd9, 0xcf, 0x82, 0x55, 0x8a, 0x4a, 0x05, 0xf9, 0x39, 0x85,
-	0xfd, 0x24, 0x9f, 0xc3, 0xd2, 0x20, 0xf0, 0xaf, 0xbc, 0x68, 0x7c, 0x91, 0xea, 0x24, 0x41, 0x2e,
-	0x4a, 0xf9, 0xb9, 0x0a, 0x69, 0x0f, 0x48, 0xde, 0x17, 0x16, 0x92, 0xfb, 0x70, 0x2f, 0xa2, 0x6c,
-	0x32, 0x8a, 0x65, 0x90, 0x72, 0xe5, 0x6c, 0xc1, 0xf2, 0x31, 0x1d, 0xd1, 0x98, 0xea, 0x7e, 0xe7,
-	0xb2, 0xe1, 0x7c, 0x01, 0x4b, 0x58, 0xc9, 0x00, 0x78, 0x04, 0x4b, 0x9d, 0x49, 0x7c, 0x4d, 0xfd,
-	0xd8, 0x1b, 0xf4, 0x63, 0x2a, 0xf0, 0x54, 0x36, 0x6b, 0x5a, 0x36, 0x0d, 0xd1, 0x3a, 0x3b, 0xb0,
-	0x88, 0x30, 0x58, 0xc8, 0x8f, 0x36, 0x0e, 0x7e, 0xa3, 0xbe, 0xc4, 0x48, 0x16, 0xce, 0x2e, 0x2c,
-	0xb9, 0xf4, 0x2a, 0xa2, 0xec, 0xfa, 0x07, 0xbe, 0x16, 0xc6, 0xca, 0x35, 0x77, 0x60, 0x11, 0x69,
-	0x56, 0x42, 0x9e, 0x02, 0xe9, 0x0c, 0x87, 0x2a, 0xd0, 0x60, 0x94, 0x44, 0xb0, 0x09, 0xf3, 0xf2,
-	0x98, 0x4e, 0x54, 0x62, 0x32, 0x81, 0xc8, 0x45, 0x30, 0xa2, 0x27, 0x2a, 0x12, 0xb9, 0x72, 0xbe,
-	0x84, 0xe5, 0x1c, 0x56, 0x21, 0x71, 0x73, 0x69, 0xe2, 0xce, 0x60, 0xcd, 0xa5, 0xe3, 0xe0, 0x86,
-	0x7e, 0x1a, 0xdb, 0xfb, 0xb0, 0x5a, 0x84, 0x33, 0x98, 0x7f, 0x01, 0xad, 0x57, 0x11, 0xe5, 0xd9,
-	0x56, 0x76, 0xb7, 0xa0, 0xce, 0xb1, 0x64, 0xe9, 0x2e, 0x6a, 0xa5, 0x2b, 0x54, 0xc4, 0xa6, 0xb3,
-	0x03, 0x4d, 0xed, 0x33, 0x03, 0xfe, 0x2e, 0xb4, 0x92, 0x1a, 0x4a, 0xf1, 0x33, 0xcf, 0x6b, 0xc8,
-	0xf3, 0x1d, 0x68, 0x6a, 0x9a, 0x06, 0xc8, 0x57, 0x22, 0xbd, 0x5c, 0xab, 0x23, 0x1a, 0xd1, 0x84,
-	0xca, 0xe5, 0x49, 0xbb, 0xaa, 0x3c, 0x25, 0x2b, 0x5e, 0xdb, 0x18, 0xc4, 0x60, 0xf0, 0xb5, 0xca,
-	0xe9, 0x47, 0xda, 0xfc, 0x8a, 0x8f, 0x8b, 0x1c, 0x8e, 0xc1, 0xec, 0x4f, 0x60, 0xf1, 0x32, 0x0a,
-	0xc3, 0x11, 0x6f, 0x07, 0x2f, 0xf0, 0x35, 0xd3, 0xdb, 0xd0, 0xec, 0x67, 0x1b, 0xa9, 0x07, 0x58,
-	0x58, 0xe9, 0xc8, 0x53, 0x58, 0x2f, 0x45, 0x36, 0x38, 0xf3, 0x2b, 0x3c, 0x90, 0x75, 0xf5, 0x1f,
-	0xf8, 0xf3, 0x1c, 0xec, 0x2a, 0x70, 0x83, 0x4b, 0x2b, 0xb0, 0xdc, 0xa5, 0x71, 0x67, 0x34, 0x4a,
-	0x54, 0x19, 0x77, 0xc4, 0xd9, 0x83, 0x25, 0x2c, 0x64, 0xa1, 0x3e, 0xc1, 0x6b, 0x78, 0x82, 0x7f,
-	0x9d, 0x36, 0x5f, 0x66, 0xf8, 0xee, 0xf1, 0x68, 0xcd, 0xa6, 0x7d, 0x6e, 0xf0, 0xf8, 0x4f, 0x71,
-	0x61, 0xc8, 0x76, 0x3a, 0xa7, 0xd1, 0xd8, 0x63, 0xcc, 0x0b, 0x7c, 0xae, 0xef, 0x4f, 0xc6, 0x97,
-	0x34, 0x12, 0xfa, 0x33, 0xae, 0x5c, 0xf1, 0x01, 0x1a, 0xf6, 0xe3, 0x6b, 0x75, 0x1d, 0xf1, 0xdf,
-	0x64, 0x15, 0xea, 0x13, 0x46, 0xa3, 0xe4, 0x1a, 0xf8, 0xe6, 0x7f, 0xae, 0x58, 0x71, 0xa9, 0x68,
-	0xda, 0xba, 0x92, 0xf2, 0x15, 0x71, 0xa0, 0xa1, 0x39, 0x6c, 0xcd, 0xc8, 0x4d, 0x5d, 0x48, 0x6c,
-	0x98, 0x65, 0x34, 0xba, 0xf1, 0x06, 0xd4, 0xba, 0x27, 0xf7, 0x95, 0xe0, 0x68, 0x16, 0x66, 0x82,
-	0xf7, 0x3e, 0x8d, 0x9c, 0x5d, 0x20, 0x5d, 0x1a, 0x67, 0x1e, 0x33, 0x35, 0xdf, 0x85, 0x7b, 0xb5,
-	0xcc, 0x3d, 0xe7, 0x85, 0x38, 0x14, 0x5d, 0x93, 0x85, 0xa4, 0x0d, 0x8d, 0x30, 0x93, 0x48, 0x7d,
-	0x5d, 0xe4, 0xf4, 0x60, 0xb9, 0xa7, 0x7f, 0x26, 0xf0, 0x5f, 0x02, 0x64, 0x3a, 0x72, 0x1e, 0x3d,
-	0xd2, 0xe7, 0x51, 0x31, 0x95, 0xae, 0xf6, 0x05, 0xef, 0x71, 0x0c, 0x6a, 0x38, 0x9a, 0x0e, 0xac,
-	0x25, 0xd3, 0xe7, 0x0e, 0x41, 0xf2, 0x2b, 0x44, 0xe4, 0x45, 0x1e, 0x8c, 0x4c, 0xd2, 0x3e, 0xac,
-	0x16, 0x21, 0x0c, 0x26, 0xd7, 0x60, 0x25, 0x29, 0xd5, 0xd7, 0xde, 0x88, 0xb2, 0x13, 0xff, 0x2a,
-	0x90, 0x15, 0x4c, 0xf2, 0x62, 0xc3, 0xbd, 0xbb, 0x09, 0xb6, 0xac, 0xf7, 0xec, 0x4c, 0x33, 0xac,
-	0x67, 0xb0, 0x51, 0xb1, 0x6b, 0x80, 0xbc, 0x80, 0xe6, 0x8f, 0x8c, 0x46, 0xbd, 0x0f, 0xfe, 0x80,
-	0xab, 0x32, 0x9e, 0x82, 0xcb, 0x3e, 0x4b, 0xef, 0x71, 0xfe, 0x9b, 0xa7, 0xe0, 0xdd, 0x84, 0x46,
-	0x1f, 0x54, 0x0a, 0xc4, 0x42, 0x32, 0x88, 0xe9, 0x94, 0x4f, 0xa5, 0xcc, 0xac, 0xae, 0x31, 0x33,
-	0xe7, 0x14, 0x5a, 0xdd, 0x28, 0x98, 0x84, 0x9f, 0xc0, 0x82, 0xf3, 0x57, 0x0d, 0x9a, 0xdf, 0x0d,
-	0xfb, 0x1a, 0x96, 0x03, 0x0b, 0x23, 0x2e, 0xa0, 0x91, 0x77, 0x93, 0xcd, 0x66, 0x24, 0xe3, 0x3a,
-	0x83, 0xc0, 0xf7, 0xe9, 0x40, 0x76, 0x77, 0x62, 0x02, 0xc9, 0xf8, 0xd4, 0x88, 0x12, 0xea, 0x20,
-	0xcc, 0xcd, 0xb8, 0x6a, 0x49, 0x5e, 0x42, 0x73, 0xa2, 0x27, 0x48, 0x44, 0xd7, 0x38, 0xb4, 0xb4,
-	0xd2, 0x44, 0x09, 0x74, 0xb1, 0x3a, 0xe9, 0x40, 0xeb, 0x2d, 0x8a, 0x5f, 0x74, 0x66, 0xe3, 0x70,
-	0x43, 0x03, 0xc0, 0x09, 0x72, 0x73, 0x1f, 0x38, 0xdf, 0xc2, 0x0a, 0x5f, 0x5c, 0x47, 0x81, 0xef,
-	0xfd, 0x4e, 0x79, 0x02, 0x44, 0xb1, 0x3e, 0x87, 0x39, 0x26, 0x75, 0x64, 0xbf, 0xe8, 0x4e, 0xa1,
-	0x3c, 0xb9, 0xa9, 0x26, 0xaf, 0xb8, 0x3c, 0x98, 0xb9, 0x53, 0x7a, 0x34, 0x4e, 0x7b, 0xef, 0x7b,
-	0x5e, 0xfb, 0xff, 0xbe, 0x53, 0x8a, 0x10, 0x06, 0x93, 0x7b, 0x70, 0xbf, 0x9b, 0xd7, 0xaf, 0x1e,
-	0x41, 0x07, 0xb0, 0x56, 0xa2, 0x9d, 0xc0, 0x0b, 0xfb, 0xea, 0x1a, 0x90, 0x2b, 0xe7, 0x18, 0x2c,
-	0xc9, 0x3c, 0x3e, 0x26, 0xa8, 0xa7, 0xb0, 0x5e, 0x8a, 0x62, 0x88, 0xeb, 0x00, 0x36, 0xca, 0x3e,
-	0xa9, 0x0e, 0xed, 0xb0, 0xdc, 0x53, 0xd3, 0x98, 0x39, 0xfc, 0x7b, 0x91, 0xb3, 0x65, 0xa9, 0xde,
-	0x4b, 0x26, 0x3b, 0x39, 0xe7, 0xbc, 0x18, 0xbd, 0x16, 0x08, 0x9e, 0xac, 0x85, 0x57, 0x8d, 0xfd,
-	0xd0, 0xb0, 0xcf, 0x42, 0x72, 0xaa, 0xe8, 0x9b, 0xc2, 0xdb, 0xd4, 0xf4, 0x0b, 0x6f, 0x0d, 0xfb,
-	0x41, 0xe5, 0x2e, 0x0b, 0x49, 0x17, 0x16, 0xf4, 0x87, 0x00, 0xd1, 0x95, 0xf3, 0xaf, 0x0c, 0xdb,
-	0xae, 0xda, 0x64, 0x21, 0x0f, 0x33, 0x57, 0xd9, 0x28, 0xcc, 0x92, 0x16, 0x42, 0x61, 0x96, 0x74,
-	0x45, 0x17, 0x16, 0xf4, 0x07, 0x05, 0x72, 0x2d, 0xff, 0x26, 0x41, 0xae, 0xe5, 0x9f, 0x21, 0x67,
-	0xd0, 0xc2, 0x8f, 0x04, 0xa2, 0x5b, 0x2e, 0xbe, 0x45, 0xec, 0xcd, 0xea, 0x6d, 0x16, 0x92, 0x37,
-	0xb0, 0x5c, 0xe0, 0xfd, 0xa4, 0x8d, 0xec, 0x97, 0x3c, 0x32, 0xec, 0xc7, 0x46, 0x0d, 0x16, 0x92,
-	0x0e, 0x40, 0x46, 0xf4, 0x89, 0x3e, 0xa1, 0xf0, 0xb3, 0xc1, 0xb6, 0xca, 0xb7, 0x12, 0x88, 0x8c,
-	0xd8, 0x23, 0x08, 0xfc, 0x32, 0x40, 0x10, 0xf8, 0x29, 0x70, 0x0a, 0x4d, 0xc4, 0xd6, 0x49, 0x2e,
-	0x19, 0x98, 0x98, 0xa3, 0xe2, 0x2a, 0xb0, 0xfc, 0x1e, 0x6f, 0x07, 0xcc, 0xc2, 0x49, 0x31, 0x0d,
-	0x39, 0xc4, 0x47, 0x26, 0x05, 0x16, 0x92, 0x0b, 0x58, 0x2d, 0x63, 0xd4, 0x64, 0x2b, 0x77, 0x68,
-	0x65, 0xe4, 0xd9, 0x76, 0x6e, 0x53, 0x62, 0x21, 0xb9, 0x86, 0xf5, 0x0a, 0x8a, 0x4c, 0x3e, 0x2b,
-	0x9e, 0x61, 0xa9, 0x99, 0x27, 0x77, 0xd0, 0x4b, 0x72, 0x8d, 0x18, 0x34, 0xca, 0x75, 0x81, 0x70,
-	0xa3, 0x5c, 0x17, 0x98, 0xf7, 0x19, 0xb4, 0x30, 0x1b, 0x44, 0x45, 0x5e, 0xa4, 0x94, 0xf6, 0x66,
-	0xf5, 0x76, 0xe2, 0x1a, 0x22, 0x74, 0xc8, 0xb5, 0x02, 0x7f, 0x44, 0xae, 0x15, 0x88, 0xe0, 0x1b,
-	0xf5, 0x0f, 0x88, 0xee, 0x5d, 0xbb, 0x50, 0x81, 0x79, 0x07, 0x1f, 0x1b, 0x35, 0x12, 0xdc, 0xc2,
-	0xdd, 0x86, 0x70, 0x4b, 0x2f, 0x4f, 0x84, 0x5b, 0x7a, 0x37, 0xfe, 0x2c, 0x68, 0x61, 0x6e, 0xee,
-	0x93, 0xff, 0xe3, 0x7c, 0x95, 0xdc, 0x23, 0x76, 0xdb, 0xac, 0x92, 0x14, 0x6f, 0xd9, 0xad, 0x82,
-	0x8a, 0xb7, 0xea, 0x82, 0x44, 0xc5, 0x5b, 0x75, 0xff, 0x5d, 0x2a, 0x72, 0x9d, 0x77, 0x7f, 0xfb,
-	0x96, 0x8f, 0x93, 0x08, 0xb6, 0x6e, 0xd5, 0x4a, 0x46, 0x7d, 0x8e, 0x36, 0xa3, 0x51, 0x5f, 0xc2,
-	0xb4, 0xed, 0x87, 0x86, 0x7d, 0x16, 0x12, 0x2a, 0x58, 0x47, 0x09, 0x79, 0x26, 0x4f, 0x8a, 0x35,
-	0x5f, 0xc2, 0xbe, 0xed, 0xed, 0xdb, 0xd5, 0xd0, 0xe4, 0xd6, 0x5e, 0x65, 0x6d, 0x53, 0xaf, 0x56,
-	0x4d, 0x6e, 0xf4, 0x08, 0x3d, 0x6a, 0xfc, 0x92, 0xfd, 0xa3, 0x7a, 0x79, 0x4f, 0xfc, 0xc7, 0xfa,
-	0xec, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xe0, 0xa5, 0xaa, 0xfd, 0x80, 0x15, 0x00, 0x00,
+	// 1697 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x59, 0xdb, 0x72, 0xd4, 0x46,
+	0x13, 0xfe, 0xd7, 0x47, 0xdc, 0x66, 0xd7, 0xf6, 0xf8, 0x80, 0x2c, 0x0c, 0x2c, 0x32, 0x7f, 0xec,
+	0x04, 0xc7, 0x2e, 0x0c, 0xe4, 0x22, 0x55, 0xa1, 0x6a, 0xc1, 0x85, 0x83, 0x09, 0x84, 0x92, 0x13,
+	0x2a, 0x87, 0x0b, 0xd7, 0x7a, 0x77, 0xc0, 0xaa, 0xec, 0x4a, 0x42, 0xa3, 0x85, 0x82, 0x8b, 0xdc,
+	0xe4, 0x2e, 0x8f, 0x92, 0x07, 0xc8, 0x93, 0xe5, 0x01, 0x52, 0x33, 0xd2, 0x48, 0xd3, 0xd2, 0xcc,
+	0x78, 0x39, 0xe4, 0x6e, 0x67, 0xa6, 0xa7, 0x4f, 0xea, 0xee, 0xf9, 0xba, 0x17, 0xd6, 0x13, 0xca,
+	0x58, 0x34, 0x4a, 0x7a, 0x74, 0xaf, 0xf8, 0xb5, 0x1b, 0x27, 0x51, 0x1a, 0x91, 0xb9, 0x62, 0xc3,
+	0x3b, 0x81, 0xd9, 0x4e, 0xaf, 0x17, 0x8d, 0xc2, 0x94, 0xb4, 0x60, 0x22, 0xe8, 0x3b, 0x8d, 0x76,
+	0x63, 0x7b, 0xce, 0x9f, 0x08, 0xfa, 0x84, 0xc0, 0x54, 0xd8, 0x1d, 0x52, 0x67, 0x42, 0xec, 0x88,
+	0xdf, 0x64, 0x05, 0xa6, 0xe9, 0xb0, 0x1b, 0x0c, 0x9c, 0x49, 0xb1, 0x99, 0x2d, 0x88, 0x0b, 0x17,
+	0xe2, 0x2e, 0x63, 0x6f, 0xa2, 0xa4, 0xef, 0x4c, 0x89, 0x83, 0x62, 0xed, 0x1d, 0xc0, 0x94, 0x1f,
+	0x0d, 0xe8, 0x58, 0xdc, 0x1d, 0x98, 0xed, 0xf6, 0xd2, 0x20, 0x0a, 0x99, 0x33, 0xd9, 0x9e, 0xdc,
+	0x9e, 0xf3, 0xe5, 0xd2, 0xfb, 0xb3, 0x01, 0xcb, 0x3e, 0x7d, 0x19, 0xb0, 0x94, 0x26, 0xb9, 0xbe,
+	0xfe, 0x2b, 0x96, 0x92, 0x1d, 0x7e, 0x43, 0x2c, 0x05, 0xeb, 0xf9, 0x7d, 0xb2, 0x5b, 0x1a, 0x2b,
+	0x09, 0x25, 0x09, 0xd2, 0x73, 0x02, 0xeb, 0x49, 0x3e, 0x87, 0xc5, 0x5e, 0x14, 0xbe, 0x08, 0x92,
+	0xe1, 0x49, 0x41, 0x93, 0x19, 0xb9, 0x90, 0xef, 0x3f, 0x93, 0x26, 0xed, 0x00, 0xa9, 0xea, 0xc2,
+	0x62, 0xb2, 0x06, 0x33, 0x09, 0x65, 0xa3, 0x41, 0x9a, 0x1b, 0x99, 0xaf, 0xbc, 0x4d, 0x58, 0x3a,
+	0xa0, 0x03, 0x9a, 0x52, 0x55, 0xef, 0x8a, 0x37, 0xbc, 0x2f, 0x60, 0x11, 0x13, 0x59, 0x18, 0xde,
+	0x87, 0xc5, 0xce, 0x28, 0x3d, 0xa3, 0x61, 0x1a, 0xf4, 0xba, 0x29, 0x15, 0xfc, 0xa4, 0x37, 0x1b,
+	0x8a, 0x37, 0x2d, 0xd6, 0x7a, 0x5b, 0xb0, 0x80, 0x78, 0xb0, 0x98, 0x7f, 0xda, 0x34, 0xfa, 0x8d,
+	0x86, 0x39, 0x8f, 0x6c, 0xe1, 0x6d, 0xc3, 0xa2, 0x4f, 0x5f, 0x24, 0x94, 0x9d, 0xfd, 0xc0, 0xd7,
+	0x42, 0x98, 0x9e, 0x72, 0x0b, 0x16, 0x10, 0xa5, 0x91, 0xe5, 0x11, 0x90, 0x4e, 0xbf, 0x2f, 0x0d,
+	0x8d, 0x06, 0x99, 0x05, 0x1b, 0x30, 0x97, 0x7f, 0xa6, 0x47, 0xd2, 0x31, 0xe5, 0x86, 0xf0, 0x45,
+	0x34, 0xa0, 0x8f, 0xa4, 0x25, 0xf9, 0xca, 0xbb, 0x09, 0x4b, 0x15, 0x5e, 0x35, 0xc7, 0x5d, 0x28,
+	0x1c, 0xf7, 0x04, 0x56, 0x7d, 0x3a, 0x8c, 0x5e, 0xd3, 0x4f, 0x23, 0x7b, 0x17, 0x56, 0xea, 0xec,
+	0x2c, 0xe2, 0xef, 0x42, 0xeb, 0x41, 0x42, 0xb9, 0xb7, 0xa5, 0xdc, 0x4d, 0x98, 0xe2, 0xbc, 0xf2,
+	0xd0, 0x5d, 0x50, 0x42, 0x57, 0x90, 0x88, 0x43, 0x6f, 0x0b, 0x9a, 0xca, 0x35, 0x0b, 0xff, 0x6d,
+	0x68, 0x65, 0x31, 0x54, 0xf0, 0x2f, 0x35, 0x6f, 0x20, 0xcd, 0xb7, 0xa0, 0xa9, 0x50, 0x5a, 0x58,
+	0x3e, 0x10, 0xee, 0xe5, 0x54, 0x1d, 0x91, 0x88, 0x36, 0xae, 0x7c, 0x3f, 0x4b, 0x57, 0xe9, 0xa7,
+	0x6c, 0xc5, 0x63, 0x1b, 0x33, 0xb1, 0x08, 0x7c, 0x28, 0x7d, 0xfa, 0x91, 0x32, 0xbf, 0xe4, 0xe5,
+	0xa2, 0xc2, 0xc7, 0x22, 0xf6, 0x27, 0x70, 0x78, 0x18, 0xc5, 0xf1, 0x80, 0xa7, 0x43, 0x10, 0x85,
+	0x8a, 0xe8, 0x1b, 0xd0, 0xec, 0x96, 0x07, 0x85, 0x06, 0x78, 0xd3, 0xa8, 0xc8, 0x2d, 0xb8, 0xa4,
+	0xe5, 0x6c, 0x51, 0xe6, 0x57, 0xb8, 0x9c, 0xc7, 0xd5, 0x7f, 0xa0, 0xcf, 0x1d, 0x70, 0x4d, 0xcc,
+	0x2d, 0x2a, 0x2d, 0xc3, 0xd2, 0x21, 0x4d, 0x3b, 0x83, 0x41, 0x46, 0xca, 0xb8, 0x22, 0xde, 0x0e,
+	0x2c, 0xe2, 0x4d, 0x16, 0xab, 0x15, 0xbc, 0x81, 0x2b, 0xf8, 0x37, 0x45, 0xf2, 0x95, 0x82, 0xc7,
+	0xb7, 0x47, 0x49, 0x36, 0xe5, 0xba, 0x45, 0xe3, 0xbf, 0xc5, 0x83, 0x91, 0xa7, 0xd3, 0x33, 0x9a,
+	0x0c, 0x03, 0xc6, 0x82, 0x28, 0xe4, 0xf4, 0xe1, 0x68, 0x78, 0x4a, 0x13, 0x41, 0x3f, 0xed, 0xe7,
+	0x2b, 0x5e, 0x40, 0xe3, 0x6e, 0x7a, 0x26, 0x9f, 0x23, 0xfe, 0x9b, 0xac, 0xc0, 0xd4, 0x88, 0xd1,
+	0x24, 0x7b, 0x06, 0xbe, 0xfd, 0x9f, 0x2f, 0x56, 0x7c, 0x57, 0x24, 0xed, 0x94, 0xdc, 0xe5, 0x2b,
+	0xe2, 0xc1, 0xbc, 0xa2, 0xb0, 0x33, 0x9d, 0x1f, 0xaa, 0x9b, 0xc4, 0x85, 0x59, 0x46, 0x93, 0xd7,
+	0x41, 0x8f, 0x3a, 0x33, 0xf9, 0xb9, 0xdc, 0xb8, 0x3f, 0x0b, 0xd3, 0xd1, 0x9b, 0x90, 0x26, 0xde,
+	0x36, 0x90, 0x43, 0x9a, 0x96, 0x1a, 0x33, 0x59, 0xdf, 0x85, 0x7a, 0x8d, 0x52, 0x3d, 0xef, 0xae,
+	0xf8, 0x28, 0x2a, 0x25, 0x8b, 0x49, 0x1b, 0xe6, 0xe3, 0x72, 0x27, 0xa7, 0x57, 0xb7, 0xbc, 0x63,
+	0x58, 0x3a, 0x56, 0xaf, 0x09, 0xfe, 0xf7, 0x00, 0x4a, 0x9a, 0xbc, 0x1e, 0x5d, 0x55, 0xeb, 0x51,
+	0xdd, 0x95, 0xbe, 0x72, 0x83, 0xe7, 0x38, 0x66, 0x6a, 0xf9, 0x34, 0x1d, 0x58, 0xcd, 0xaa, 0xcf,
+	0x18, 0x46, 0xf2, 0x27, 0x44, 0xf8, 0x25, 0xff, 0x30, 0xb9, 0x93, 0x76, 0x61, 0xa5, 0xce, 0xc2,
+	0x22, 0x72, 0x15, 0x96, 0xb3, 0x50, 0x7d, 0x18, 0x0c, 0x28, 0x7b, 0x14, 0xbe, 0x88, 0xf2, 0x08,
+	0x26, 0xd5, 0x6d, 0xcb, 0xbb, 0xbb, 0x01, 0x6e, 0x1e, 0xef, 0xe5, 0x37, 0x2d, 0x79, 0xdd, 0x86,
+	0x75, 0xc3, 0xa9, 0x85, 0xe5, 0x09, 0x34, 0x7f, 0x64, 0x34, 0x39, 0x7e, 0x1b, 0xf6, 0x38, 0x29,
+	0xe3, 0x2e, 0x38, 0xed, 0xb2, 0xe2, 0x1d, 0xe7, 0xbf, 0xb9, 0x0b, 0x5e, 0x8d, 0x68, 0xf2, 0x56,
+	0xba, 0x40, 0x2c, 0x72, 0x04, 0x31, 0x59, 0xe0, 0xa9, 0x02, 0x99, 0x4d, 0x29, 0xc8, 0xcc, 0x3b,
+	0x82, 0xd6, 0x61, 0x12, 0x8d, 0xe2, 0x4f, 0x20, 0xc1, 0xfb, 0xa7, 0x01, 0xcd, 0xef, 0xfa, 0x5d,
+	0x85, 0x97, 0x07, 0x17, 0x07, 0x7c, 0x83, 0x26, 0xc1, 0xeb, 0xb2, 0x36, 0xa3, 0x3d, 0x4e, 0xd3,
+	0x8b, 0xc2, 0x90, 0xf6, 0xf2, 0xec, 0xce, 0x44, 0xa0, 0x3d, 0x5e, 0x35, 0x92, 0x0c, 0x3a, 0x08,
+	0x71, 0xd3, 0xbe, 0x5c, 0x92, 0x7b, 0xd0, 0x1c, 0xa9, 0x0e, 0x12, 0xd6, 0xcd, 0xef, 0x3b, 0x4a,
+	0x68, 0x22, 0x07, 0xfa, 0x98, 0x9c, 0x74, 0xa0, 0xf5, 0x12, 0xd9, 0x2f, 0x32, 0x73, 0x7e, 0x7f,
+	0x5d, 0x61, 0x80, 0x1d, 0xe4, 0x57, 0x2e, 0x78, 0x8f, 0x61, 0x99, 0x2f, 0xce, 0x92, 0x28, 0x0c,
+	0xde, 0x51, 0xee, 0x00, 0x11, 0xac, 0x77, 0xe0, 0x02, 0xcb, 0x69, 0xf2, 0x7c, 0x51, 0x95, 0x42,
+	0x7e, 0xf2, 0x0b, 0x4a, 0x1e, 0x71, 0x55, 0x66, 0xf6, 0x4c, 0x39, 0xa6, 0x69, 0x91, 0x7b, 0xdf,
+	0xf3, 0xd8, 0x7f, 0xff, 0x4c, 0xa9, 0xb3, 0xb0, 0x88, 0xdc, 0x81, 0xb5, 0xc3, 0x2a, 0xbd, 0xb9,
+	0x04, 0xed, 0xc1, 0xaa, 0x86, 0x3a, 0x63, 0x2f, 0xe4, 0xcb, 0x67, 0x20, 0x5f, 0x79, 0x07, 0xe0,
+	0xe4, 0xc8, 0xe3, 0x63, 0x8c, 0xba, 0x05, 0x97, 0xb4, 0x5c, 0x2c, 0x76, 0xed, 0xc1, 0xba, 0xee,
+	0x8a, 0xd9, 0xb4, 0x7d, 0xbd, 0xa6, 0xd6, 0x32, 0xf3, 0x18, 0xae, 0x3c, 0xef, 0x0e, 0x82, 0x7e,
+	0x37, 0xc5, 0xcf, 0x6b, 0x8f, 0x32, 0x66, 0x84, 0xe9, 0x6b, 0x30, 0x33, 0xa4, 0xe9, 0x59, 0x54,
+	0xc0, 0xcb, 0x6c, 0xe5, 0x7d, 0x05, 0x1b, 0x66, 0x66, 0x56, 0x08, 0xb5, 0x26, 0xef, 0xf1, 0xd4,
+	0x50, 0xa4, 0x6b, 0xe1, 0xb8, 0x51, 0xfe, 0x1e, 0xac, 0x6a, 0xf8, 0x58, 0x04, 0xff, 0x0e, 0xae,
+	0x7a, 0x81, 0xd7, 0xd4, 0x0f, 0x15, 0x5e, 0x7c, 0x91, 0x49, 0x25, 0x16, 0xae, 0xa2, 0x37, 0x2a,
+	0x2b, 0x73, 0xea, 0x1b, 0x74, 0x1b, 0xd6, 0x0d, 0xf2, 0x2d, 0x4a, 0xff, 0xd1, 0x80, 0xeb, 0x1a,
+	0x37, 0x57, 0x94, 0x7f, 0x8f, 0xef, 0xf6, 0x41, 0xaa, 0x7f, 0x0d, 0x6d, 0xbb, 0x12, 0x76, 0xec,
+	0x9a, 0xf5, 0x07, 0x07, 0x41, 0x52, 0x7d, 0x51, 0xf5, 0x4e, 0xd7, 0x61, 0x1d, 0x69, 0xe1, 0x64,
+	0x69, 0x21, 0x4f, 0x33, 0x2d, 0x67, 0x8b, 0x32, 0xa7, 0xe0, 0xf8, 0x94, 0x5f, 0xe6, 0xba, 0x57,
+	0x30, 0x86, 0x2e, 0xbf, 0x1d, 0x98, 0x8d, 0x06, 0xfd, 0xa7, 0xe5, 0x20, 0x40, 0x2e, 0xf9, 0x49,
+	0x48, 0xdf, 0x3c, 0x2d, 0x75, 0x92, 0x4b, 0xae, 0x96, 0x56, 0x86, 0x45, 0xad, 0x5d, 0x99, 0xcc,
+	0x1a, 0x1f, 0xe9, 0x92, 0xbf, 0x28, 0x30, 0xe3, 0x5b, 0x5e, 0x14, 0x18, 0xac, 0xd5, 0x18, 0x05,
+	0xa6, 0x7a, 0xc1, 0x2c, 0x64, 0xff, 0xaf, 0x35, 0xde, 0x8e, 0xe7, 0xf5, 0xe8, 0x38, 0x83, 0x8e,
+	0xe4, 0x19, 0x6f, 0xbc, 0xd1, 0x38, 0x82, 0x60, 0xe8, 0x56, 0x1b, 0x9b, 0xb8, 0x57, 0x2c, 0xe7,
+	0x2c, 0x26, 0x47, 0xb2, 0x3f, 0x94, 0xfc, 0x36, 0x14, 0xfa, 0xda, 0x30, 0xc3, 0xbd, 0x6c, 0x3c,
+	0x65, 0x31, 0x39, 0x84, 0x8b, 0xea, 0xa4, 0x81, 0xa8, 0xc4, 0xd5, 0x31, 0x86, 0xeb, 0x9a, 0x0e,
+	0x59, 0xcc, 0xcd, 0xac, 0x3c, 0x9d, 0xc8, 0x4c, 0xcd, 0x1b, 0x8d, 0xcc, 0xd4, 0x3c, 0xbb, 0x87,
+	0x70, 0x51, 0x9d, 0x58, 0x20, 0xd5, 0xaa, 0x43, 0x0f, 0xa4, 0x5a, 0x75, 0xce, 0xf1, 0x04, 0x5a,
+	0x78, 0x0a, 0x41, 0x54, 0xc9, 0xf5, 0x61, 0x87, 0xbb, 0x61, 0x3e, 0x66, 0x31, 0x79, 0x0e, 0x4b,
+	0xb5, 0xc1, 0x02, 0x69, 0x23, 0xf9, 0x9a, 0x29, 0x86, 0x7b, 0xcd, 0x4a, 0xc1, 0x62, 0xd2, 0x01,
+	0x28, 0x27, 0x09, 0x44, 0x85, 0x40, 0x78, 0x2e, 0xe1, 0x3a, 0xfa, 0xa3, 0x8c, 0x45, 0x39, 0x39,
+	0x40, 0x2c, 0xf0, 0xe8, 0x01, 0xb1, 0xc0, 0xb3, 0x86, 0x23, 0x68, 0xa2, 0x71, 0x00, 0xa9, 0x38,
+	0x03, 0x77, 0xfe, 0x28, 0xb8, 0x6a, 0x63, 0x84, 0x63, 0x9e, 0x0e, 0xb8, 0xcd, 0x27, 0x75, 0x37,
+	0x54, 0x38, 0x5e, 0xb5, 0x11, 0xb0, 0x98, 0x9c, 0xc0, 0x8a, 0xae, 0x65, 0x27, 0x9b, 0x95, 0x8f,
+	0xa6, 0xeb, 0xce, 0x5d, 0xef, 0x3c, 0x22, 0x16, 0x93, 0x33, 0x5e, 0xc0, 0xb4, 0x3d, 0x38, 0xf9,
+	0xac, 0xfe, 0x0d, 0xb5, 0x62, 0xfe, 0x3f, 0x06, 0x5d, 0xe6, 0x6b, 0xd4, 0xa2, 0x23, 0x5f, 0xd7,
+	0x3a, 0x7a, 0xe4, 0xeb, 0x5a, 0x6b, 0xff, 0x04, 0x5a, 0xb8, 0xdd, 0x44, 0x41, 0x5e, 0xef, 0x59,
+	0xdd, 0x0d, 0xf3, 0x71, 0xa6, 0x1a, 0xea, 0x18, 0x91, 0x6a, 0xb5, 0x06, 0x15, 0xa9, 0x56, 0xeb,
+	0x34, 0x9f, 0xcb, 0x11, 0xab, 0xaa, 0x5d, 0xbb, 0x16, 0x81, 0x55, 0x05, 0xaf, 0x59, 0x29, 0x32,
+	0xbe, 0x35, 0xf0, 0x8c, 0xf8, 0x6a, 0xd1, 0x39, 0xe2, 0xab, 0x05, 0xdf, 0x3f, 0x8b, 0xbe, 0xb3,
+	0x02, 0x2c, 0xc9, 0x75, 0xec, 0x2f, 0x0d, 0x50, 0x75, 0xdb, 0x76, 0x92, 0x2c, 0x78, 0x75, 0xb0,
+	0x15, 0x05, 0xaf, 0x09, 0x81, 0xa3, 0xe0, 0x35, 0x01, 0xec, 0x53, 0xd9, 0xbd, 0x57, 0xd5, 0xbf,
+	0x71, 0xce, 0xe5, 0xcc, 0x82, 0xcd, 0x73, 0xa9, 0xb2, 0x52, 0x5f, 0xe9, 0xcb, 0x51, 0xa9, 0xd7,
+	0xb4, 0xf2, 0xee, 0x15, 0xcb, 0x39, 0x8b, 0x09, 0xc5, 0xa0, 0xb8, 0x44, 0x56, 0x44, 0xcd, 0x24,
+	0x33, 0x7c, 0x75, 0x6f, 0x9c, 0x4f, 0xc6, 0x62, 0xf2, 0x4e, 0xdb, 0x00, 0x28, 0xd2, 0x76, 0x34,
+	0x6c, 0x8c, 0xb0, 0xd3, 0xbd, 0x39, 0x36, 0x75, 0x16, 0x54, 0x75, 0xbc, 0x8e, 0x82, 0x4a, 0xdf,
+	0x16, 0xa0, 0xa0, 0xd2, 0x23, 0xfe, 0xb0, 0x44, 0xd6, 0xb5, 0x56, 0x84, 0x6c, 0xdb, 0x95, 0x54,
+	0x04, 0x6d, 0x8d, 0x45, 0x99, 0x05, 0xb1, 0x0e, 0x78, 0xa2, 0x20, 0x36, 0x61, 0x5e, 0x14, 0xc4,
+	0x26, 0xf8, 0x7a, 0x02, 0x2b, 0x3a, 0x08, 0x89, 0x04, 0x98, 0x70, 0x2c, 0x12, 0x60, 0x02, 0xa2,
+	0x45, 0x1a, 0x5a, 0x2c, 0x30, 0x21, 0x52, 0x4d, 0x1a, 0xd6, 0x2d, 0x28, 0xd2, 0xb0, 0x82, 0x1e,
+	0x35, 0x69, 0xa8, 0x01, 0xa4, 0x9a, 0x34, 0xd4, 0xa0, 0x50, 0x2a, 0x66, 0x01, 0x9a, 0x91, 0x16,
+	0x4a, 0x1a, 0xf3, 0x4c, 0x0c, 0x25, 0x8d, 0x79, 0x38, 0x56, 0xc2, 0x1d, 0x65, 0x56, 0xda, 0xb6,
+	0x3d, 0x70, 0x26, 0xb8, 0x83, 0x46, 0xc3, 0xf7, 0xe7, 0x7f, 0x29, 0xff, 0xe7, 0x3c, 0x9d, 0x11,
+	0xff, 0x7c, 0xde, 0xfe, 0x37, 0x00, 0x00, 0xff, 0xff, 0x32, 0x3c, 0x14, 0x04, 0x16, 0x1d, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2624,6 +3381,22 @@ type RessourceServiceClient interface {
 	DeleteRessourceOwners(ctx context.Context, in *DeleteRessourceOwnersRqst, opts ...grpc.CallOption) (*DeleteRessourceOwnersRsp, error)
 	//* Retrun a json string with all file info *
 	GetAllFilesInfo(ctx context.Context, in *GetAllFilesInfoRqst, opts ...grpc.CallOption) (*GetAllFilesInfoRsp, error)
+	//* Validate if user can access a given file. *
+	ValidateUserFileAccess(ctx context.Context, in *ValidateUserFileAccessRqst, opts ...grpc.CallOption) (*ValidateUserFileAccessRsp, error)
+	//* Validate if application can access a given file. *
+	ValidateApplicationFileAccess(ctx context.Context, in *ValidateApplicationFileAccessRqst, opts ...grpc.CallOption) (*ValidateApplicationFileAccessRsp, error)
+	//* Validate if user can access a given method. *
+	ValidateUserAccess(ctx context.Context, in *ValidateUserAccessRqst, opts ...grpc.CallOption) (*ValidateUserAccessRsp, error)
+	//* Validate if application can access a given method. *
+	ValidateApplicationAccess(ctx context.Context, in *ValidateApplicationAccessRqst, opts ...grpc.CallOption) (*ValidateApplicationAccessRsp, error)
+	//* Create Permission for a dir (recursive) *
+	CreateDirPermissions(ctx context.Context, in *CreateDirPermissionsRqst, opts ...grpc.CallOption) (*CreateDirPermissionsRsp, error)
+	//* Rename file/dir permission *
+	RenameFilePermission(ctx context.Context, in *RenameFilePermissionRqst, opts ...grpc.CallOption) (*RenameFilePermissionRsp, error)
+	//* Delete Permission for a dir (recursive) *
+	DeleteDirPermissions(ctx context.Context, in *DeleteDirPermissionsRqst, opts ...grpc.CallOption) (*DeleteDirPermissionsRsp, error)
+	//* Delete a single file permission *
+	DeleteFilePermissions(ctx context.Context, in *DeleteFilePermissionsRqst, opts ...grpc.CallOption) (*DeleteFilePermissionsRsp, error)
 	//* Return a json string with all applications informations *
 	GetAllApplicationsInfo(ctx context.Context, in *GetAllApplicationsInfoRqst, opts ...grpc.CallOption) (*GetAllApplicationsInfoRsp, error)
 	//* Delete an application from the server. *
@@ -2836,6 +3609,78 @@ func (c *ressourceServiceClient) GetAllFilesInfo(ctx context.Context, in *GetAll
 	return out, nil
 }
 
+func (c *ressourceServiceClient) ValidateUserFileAccess(ctx context.Context, in *ValidateUserFileAccessRqst, opts ...grpc.CallOption) (*ValidateUserFileAccessRsp, error) {
+	out := new(ValidateUserFileAccessRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/ValidateUserFileAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) ValidateApplicationFileAccess(ctx context.Context, in *ValidateApplicationFileAccessRqst, opts ...grpc.CallOption) (*ValidateApplicationFileAccessRsp, error) {
+	out := new(ValidateApplicationFileAccessRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/ValidateApplicationFileAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) ValidateUserAccess(ctx context.Context, in *ValidateUserAccessRqst, opts ...grpc.CallOption) (*ValidateUserAccessRsp, error) {
+	out := new(ValidateUserAccessRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/ValidateUserAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) ValidateApplicationAccess(ctx context.Context, in *ValidateApplicationAccessRqst, opts ...grpc.CallOption) (*ValidateApplicationAccessRsp, error) {
+	out := new(ValidateApplicationAccessRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/ValidateApplicationAccess", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) CreateDirPermissions(ctx context.Context, in *CreateDirPermissionsRqst, opts ...grpc.CallOption) (*CreateDirPermissionsRsp, error) {
+	out := new(CreateDirPermissionsRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/CreateDirPermissions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) RenameFilePermission(ctx context.Context, in *RenameFilePermissionRqst, opts ...grpc.CallOption) (*RenameFilePermissionRsp, error) {
+	out := new(RenameFilePermissionRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/RenameFilePermission", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) DeleteDirPermissions(ctx context.Context, in *DeleteDirPermissionsRqst, opts ...grpc.CallOption) (*DeleteDirPermissionsRsp, error) {
+	out := new(DeleteDirPermissionsRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/DeleteDirPermissions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ressourceServiceClient) DeleteFilePermissions(ctx context.Context, in *DeleteFilePermissionsRqst, opts ...grpc.CallOption) (*DeleteFilePermissionsRsp, error) {
+	out := new(DeleteFilePermissionsRsp)
+	err := c.cc.Invoke(ctx, "/ressource.RessourceService/DeleteFilePermissions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *ressourceServiceClient) GetAllApplicationsInfo(ctx context.Context, in *GetAllApplicationsInfoRqst, opts ...grpc.CallOption) (*GetAllApplicationsInfoRsp, error) {
 	out := new(GetAllApplicationsInfoRsp)
 	err := c.cc.Invoke(ctx, "/ressource.RessourceService/GetAllApplicationsInfo", in, out, opts...)
@@ -2900,6 +3745,22 @@ type RessourceServiceServer interface {
 	DeleteRessourceOwners(context.Context, *DeleteRessourceOwnersRqst) (*DeleteRessourceOwnersRsp, error)
 	//* Retrun a json string with all file info *
 	GetAllFilesInfo(context.Context, *GetAllFilesInfoRqst) (*GetAllFilesInfoRsp, error)
+	//* Validate if user can access a given file. *
+	ValidateUserFileAccess(context.Context, *ValidateUserFileAccessRqst) (*ValidateUserFileAccessRsp, error)
+	//* Validate if application can access a given file. *
+	ValidateApplicationFileAccess(context.Context, *ValidateApplicationFileAccessRqst) (*ValidateApplicationFileAccessRsp, error)
+	//* Validate if user can access a given method. *
+	ValidateUserAccess(context.Context, *ValidateUserAccessRqst) (*ValidateUserAccessRsp, error)
+	//* Validate if application can access a given method. *
+	ValidateApplicationAccess(context.Context, *ValidateApplicationAccessRqst) (*ValidateApplicationAccessRsp, error)
+	//* Create Permission for a dir (recursive) *
+	CreateDirPermissions(context.Context, *CreateDirPermissionsRqst) (*CreateDirPermissionsRsp, error)
+	//* Rename file/dir permission *
+	RenameFilePermission(context.Context, *RenameFilePermissionRqst) (*RenameFilePermissionRsp, error)
+	//* Delete Permission for a dir (recursive) *
+	DeleteDirPermissions(context.Context, *DeleteDirPermissionsRqst) (*DeleteDirPermissionsRsp, error)
+	//* Delete a single file permission *
+	DeleteFilePermissions(context.Context, *DeleteFilePermissionsRqst) (*DeleteFilePermissionsRsp, error)
 	//* Return a json string with all applications informations *
 	GetAllApplicationsInfo(context.Context, *GetAllApplicationsInfoRqst) (*GetAllApplicationsInfoRsp, error)
 	//* Delete an application from the server. *
@@ -2975,6 +3836,30 @@ func (*UnimplementedRessourceServiceServer) DeleteRessourceOwners(ctx context.Co
 }
 func (*UnimplementedRessourceServiceServer) GetAllFilesInfo(ctx context.Context, req *GetAllFilesInfoRqst) (*GetAllFilesInfoRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllFilesInfo not implemented")
+}
+func (*UnimplementedRessourceServiceServer) ValidateUserFileAccess(ctx context.Context, req *ValidateUserFileAccessRqst) (*ValidateUserFileAccessRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateUserFileAccess not implemented")
+}
+func (*UnimplementedRessourceServiceServer) ValidateApplicationFileAccess(ctx context.Context, req *ValidateApplicationFileAccessRqst) (*ValidateApplicationFileAccessRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateApplicationFileAccess not implemented")
+}
+func (*UnimplementedRessourceServiceServer) ValidateUserAccess(ctx context.Context, req *ValidateUserAccessRqst) (*ValidateUserAccessRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateUserAccess not implemented")
+}
+func (*UnimplementedRessourceServiceServer) ValidateApplicationAccess(ctx context.Context, req *ValidateApplicationAccessRqst) (*ValidateApplicationAccessRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateApplicationAccess not implemented")
+}
+func (*UnimplementedRessourceServiceServer) CreateDirPermissions(ctx context.Context, req *CreateDirPermissionsRqst) (*CreateDirPermissionsRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateDirPermissions not implemented")
+}
+func (*UnimplementedRessourceServiceServer) RenameFilePermission(ctx context.Context, req *RenameFilePermissionRqst) (*RenameFilePermissionRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RenameFilePermission not implemented")
+}
+func (*UnimplementedRessourceServiceServer) DeleteDirPermissions(ctx context.Context, req *DeleteDirPermissionsRqst) (*DeleteDirPermissionsRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteDirPermissions not implemented")
+}
+func (*UnimplementedRessourceServiceServer) DeleteFilePermissions(ctx context.Context, req *DeleteFilePermissionsRqst) (*DeleteFilePermissionsRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteFilePermissions not implemented")
 }
 func (*UnimplementedRessourceServiceServer) GetAllApplicationsInfo(ctx context.Context, req *GetAllApplicationsInfoRqst) (*GetAllApplicationsInfoRsp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllApplicationsInfo not implemented")
@@ -3383,6 +4268,150 @@ func _RessourceService_GetAllFilesInfo_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RessourceService_ValidateUserFileAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateUserFileAccessRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).ValidateUserFileAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/ValidateUserFileAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).ValidateUserFileAccess(ctx, req.(*ValidateUserFileAccessRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_ValidateApplicationFileAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateApplicationFileAccessRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).ValidateApplicationFileAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/ValidateApplicationFileAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).ValidateApplicationFileAccess(ctx, req.(*ValidateApplicationFileAccessRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_ValidateUserAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateUserAccessRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).ValidateUserAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/ValidateUserAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).ValidateUserAccess(ctx, req.(*ValidateUserAccessRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_ValidateApplicationAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateApplicationAccessRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).ValidateApplicationAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/ValidateApplicationAccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).ValidateApplicationAccess(ctx, req.(*ValidateApplicationAccessRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_CreateDirPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDirPermissionsRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).CreateDirPermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/CreateDirPermissions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).CreateDirPermissions(ctx, req.(*CreateDirPermissionsRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_RenameFilePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameFilePermissionRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).RenameFilePermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/RenameFilePermission",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).RenameFilePermission(ctx, req.(*RenameFilePermissionRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_DeleteDirPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteDirPermissionsRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).DeleteDirPermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/DeleteDirPermissions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).DeleteDirPermissions(ctx, req.(*DeleteDirPermissionsRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RessourceService_DeleteFilePermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFilePermissionsRqst)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RessourceServiceServer).DeleteFilePermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ressource.RessourceService/DeleteFilePermissions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RessourceServiceServer).DeleteFilePermissions(ctx, req.(*DeleteFilePermissionsRqst))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RessourceService_GetAllApplicationsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAllApplicationsInfoRqst)
 	if err := dec(in); err != nil {
@@ -3510,6 +4539,38 @@ var _RessourceService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllFilesInfo",
 			Handler:    _RessourceService_GetAllFilesInfo_Handler,
+		},
+		{
+			MethodName: "ValidateUserFileAccess",
+			Handler:    _RessourceService_ValidateUserFileAccess_Handler,
+		},
+		{
+			MethodName: "ValidateApplicationFileAccess",
+			Handler:    _RessourceService_ValidateApplicationFileAccess_Handler,
+		},
+		{
+			MethodName: "ValidateUserAccess",
+			Handler:    _RessourceService_ValidateUserAccess_Handler,
+		},
+		{
+			MethodName: "ValidateApplicationAccess",
+			Handler:    _RessourceService_ValidateApplicationAccess_Handler,
+		},
+		{
+			MethodName: "CreateDirPermissions",
+			Handler:    _RessourceService_CreateDirPermissions_Handler,
+		},
+		{
+			MethodName: "RenameFilePermission",
+			Handler:    _RessourceService_RenameFilePermission_Handler,
+		},
+		{
+			MethodName: "DeleteDirPermissions",
+			Handler:    _RessourceService_DeleteDirPermissions_Handler,
+		},
+		{
+			MethodName: "DeleteFilePermissions",
+			Handler:    _RessourceService_DeleteFilePermissions_Handler,
 		},
 		{
 			MethodName: "GetAllApplicationsInfo",

@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Globular/Interceptors/server"
+	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Utility"
 	"github.com/nfnt/resize"
@@ -763,11 +763,11 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.StreamAuthInterceptor)}
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor)}
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.UnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.StreamAuthInterceptor)}...)
+		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor)}...)
 	}
 
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)

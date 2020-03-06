@@ -142,7 +142,6 @@ func (self *Admin_Client) SetCaFile(caFile string) {
 // Get server configuration.
 func (self *Admin_Client) GetConfig() (string, error) {
 	rqst := new(GetConfigRequest)
-
 	rsp, err := self.c.GetConfig(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
