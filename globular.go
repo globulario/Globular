@@ -30,7 +30,7 @@ import (
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
-
+	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/metadata"
 
 	// Admin service
@@ -44,6 +44,8 @@ import (
 
 	// Interceptor for authentication, event, log...
 	"github.com/davecourtois/Globular/Interceptors"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	// Client services.
 	"context"
@@ -73,6 +75,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -189,6 +192,8 @@ func NewGlobule() *Globule {
 
 	// Configuration must be reachable before services initialysation
 	go func() {
+		// Promometheus metrics for internal services.
+		http.Handle("/metrics", promhttp.Handler())
 		http.ListenAndServe(":10000", nil)
 	}()
 
@@ -1482,6 +1487,11 @@ scrape_configs:
     static_configs:
     - targets: ['localhost:9090']
   
+  - job_name: 'globular_internal_services_metrics'
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['localhost:10000']
+    
   - job_name: 'node_exporter_metrics'
     scrape_interval: 5s
     static_configs:
@@ -2422,11 +2432,12 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 
 	} else {
 		grpcServer = grpc.NewServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(unaryInterceptor),
-			grpc.StreamInterceptor(streamInterceptor)}...)
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptor, grpc_prometheus.UnaryServerInterceptor)),
+			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptor))}...)
 	}
 
 	reflection.Register(grpcServer)
+	grpc_prometheus.Register(grpcServer)
 
 	// Here I will create the service configuration object.
 	s := make(map[string]interface{}, 0)
@@ -3855,6 +3866,188 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 	}, nil
 }
 
+//* Log error or information into the data base *
+func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	var marshaler jsonpb.Marshaler
+	data, err := marshaler.MarshalToString(rqst.Info)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Logs", string(data), "")
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.LogRsp{
+		Result: true,
+	}, nil
+}
+
+//* Log error or information into the data base *
+func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.RessourceService_GetLogServer) error {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// The list of all retreive info.
+
+	data, err := p.Find("local_ressource", "local_ressource", "Logs", `{"type":`+Utility.ToString(rqst.GetType())+`}`, "")
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	jsonDecoder := json.NewDecoder(strings.NewReader(data))
+
+	// read open bracket
+	_, err = jsonDecoder.Token()
+	if err != nil {
+		return err
+	}
+
+	infos := make([]*ressource.LogInfo, 0)
+	i := 0
+	max := 100 // maximum number of infos per response.
+	for jsonDecoder.More() {
+		info := ressource.LogInfo{}
+		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// append the info inside the stream.
+		infos = append(infos, &info)
+		if i%max == 0 {
+			// I will send the stream at each 100 logs...
+			rsp := &ressource.GetLogRsp{
+				Info: infos,
+			}
+			// Send the infos
+			err = stream.Send(rsp)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			infos = make([]*ressource.LogInfo, 0)
+		}
+	}
+
+	// Send the last infos...
+	if len(infos) > 0 {
+		rsp := &ressource.GetLogRsp{
+			Info: infos,
+		}
+		err = stream.Send(rsp)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return nil
+}
+
+//* Set a method into the log... *
+func (self *Globule) SetLog(ctx context.Context, rqst *ressource.SetLogRqst) (*ressource.SetLogRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.ReplaceOne("local_ressource", "local_ressource", "LogMethods", `{"name":"`+rqst.Method+`"}`, `{"name":"`+rqst.Method+`"}`, `[{"upsert":true}]`)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.SetLogRsp{
+		Result: true,
+	}, nil
+}
+
+//* Reset a method from the log... *
+func (self *Globule) ResetLog(ctx context.Context, rqst *ressource.ResetLogRqst) (*ressource.ResetLogRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.DeleteOne("local_ressource", "local_ressource", "LogMethods", `{"name":"`+rqst.Method+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.ResetLogRsp{
+		Result: true,
+	}, nil
+}
+
+//* Delete a log info with it date *
+func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.DeleteOne("local_ressource", "local_ressource", "Logs", `{"date":"`+Utility.ToString(rqst.Date)+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.DeleteLogRsp{
+		Result: true,
+	}, nil
+}
+
+//* Clear all INFO/ERROR at once *
+func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLogRqst) (*ressource.ClearAllLogRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.Delete("local_ressource", "local_ressource", "Logs", `{"type":"`+Utility.ToString(rqst.Type)+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.ClearAllLogRsp{
+		Result: true,
+	}, nil
+}
+
 /////////////////////// File permissions ressource management. /////////////////
 
 // unaryInterceptor calls authenticateClient with current context
@@ -3888,7 +4081,8 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
 		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" {
+		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
+		method == "/ressource.RessourceService/Log" {
 		hasAccess = true
 	}
 
@@ -5547,7 +5741,7 @@ func (self *Globule) Listen() {
 
 	// Start the admin service to give access to server functionality from
 	// client side.
-	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryAuthInterceptor, Interceptors.ServerStreamAuthInterceptor) // must be accessible to all clients...
+	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -5618,7 +5812,7 @@ func (self *Globule) Listen() {
 	}
 
 	// The service discovery.
-	services_discovery_server, err := self.startInternalService("ServicesDiscovery", self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryAuthInterceptor, Interceptors.ServerStreamAuthInterceptor)
+	services_discovery_server, err := self.startInternalService("ServicesDiscovery", self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
@@ -5653,7 +5847,11 @@ func (self *Globule) Listen() {
 	}
 
 	// The service repository
-	services_repository_server, err := self.startInternalService("ServicesRepository", self.ServicesRepositoryPort, self.ServicesRepositoryProxy, self.Protocol == "https", Interceptors.ServerUnaryAuthInterceptor, Interceptors.ServerStreamAuthInterceptor)
+	services_repository_server, err := self.startInternalService("ServicesRepository", self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
+		self.Protocol == "https",
+		Interceptors.ServerUnaryInterceptor,
+		Interceptors.ServerStreamInterceptor)
+
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesRepositoryPort))
@@ -5687,7 +5885,7 @@ func (self *Globule) Listen() {
 	}
 
 	// The Certificate Authority
-	certificate_authority_server, err := self.startInternalService("CertificateAuthority", self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryAuthInterceptor, Interceptors.ServerStreamAuthInterceptor)
+	certificate_authority_server, err := self.startInternalService("CertificateAuthority", self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))

@@ -655,11 +655,11 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor)}
+		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor)}
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer(grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor))
+		grpcServer = grpc.NewServer(grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor))
 	}
 
 	monitoringpb.RegisterMonitoringServiceServer(grpcServer, s_impl)

@@ -372,6 +372,69 @@ message DeleteRolePermissionsRsp{
 	bool result=1;
 }
 
+enum LogType{
+	INFO=0;
+	ERROR=1;
+}
+
+message LogInfo{
+	int64 date = 1;
+	LogType type = 2;
+	string application = 3;
+	string userId = 4;
+	string method = 5;
+	string message = 6;
+}
+
+message LogRqst{
+	LogInfo info = 1;
+}
+
+message LogRsp{
+	bool result=1;
+}
+
+message DeleteLogRqst{
+	int64 date = 1; // remove a log info with a given date
+}
+
+message DeleteLogRsp{
+	bool result=1;
+}
+
+message SetLogRqst{
+	string method = 1;
+}
+
+message SetLogRsp{
+	bool result=1;
+}
+
+
+message ResetLogRqst{
+	string method = 1;
+}
+
+message ResetLogRsp{
+	bool result=1;
+}
+
+message GetLogRqst{
+	LogType type = 1;
+}
+
+message GetLogRsp{
+	repeated LogInfo info = 1;
+}
+
+message ClearAllLogRqst{
+	LogType type = 1;
+}
+
+message ClearAllLogRsp{
+	bool result=1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -480,5 +543,22 @@ service RessourceService {
 	
 	/** Delete an application from the server. **/
 	rpc DeleteApplication(DeleteApplicationRqst) returns(DeleteApplicationRsp);
-
+	
+	/** Set a method into the log... **/
+	rpc Log(LogRqst) returns(LogRsp);
+	
+	/** Set a method into the log... **/
+	rpc SetLog(SetLogRqst) returns(SetLogRsp);
+	
+	/** Reset a method from the log... **/
+	rpc ResetLog(ResetLogRqst) returns(ResetLogRsp);
+	
+	/** Get erro/info from the log database **/
+	rpc GetLog(GetLogRqst) returns(stream GetLogRsp);
+	
+	/** Delete a log info with it date **/
+	rpc DeleteLog(DeleteLogRqst) returns(DeleteLogRsp);
+	
+	/** Clear all INFO/ERROR at once **/
+	rpc ClearAllLog(ClearAllLogRqst) returns(ClearAllLogRsp);
 }

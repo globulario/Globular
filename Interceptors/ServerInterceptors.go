@@ -160,7 +160,7 @@ func ValidateApplicationFileAccess(applicationName string, method string, path s
 
 // That interceptor is use by all services except the ressource service who has
 // it own interceptor.
-func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	// The token and the application id.
 	var token string
@@ -274,7 +274,7 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 }
 
 // Stream interceptor.
-func ServerStreamAuthInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
 	// The token and the application id.
 	var token string

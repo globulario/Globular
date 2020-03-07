@@ -874,8 +874,8 @@ func main() {
 
 		// Create the gRPC server with the credentials
 		opts := []grpc.ServerOption{
-			grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor),
-			grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor),
+			grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor),
+			grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor),
 			grpc.Creds(creds), grpc.KeepaliveParams(keepalive.ServerParameters{
 				MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
 			})}
@@ -883,8 +883,8 @@ func main() {
 
 	} else {
 		grpcServer = grpc.NewServer(
-			grpc.UnaryInterceptor(Interceptors.ServerUnaryAuthInterceptor),
-			grpc.StreamInterceptor(Interceptors.ServerStreamAuthInterceptor),
+			grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor),
+			grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor),
 			grpc.KeepaliveParams(keepalive.ServerParameters{
 				MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
 			}))
