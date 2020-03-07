@@ -609,15 +609,19 @@ export class RessourcePermission extends jspb.Message {
 
   getUser(): string;
   setUser(value: string): void;
+  hasUser(): boolean;
 
   getRole(): string;
   setRole(value: string): void;
+  hasRole(): boolean;
 
   getApplication(): string;
   setApplication(value: string): void;
+  hasApplication(): boolean;
 
   getService(): string;
   setService(value: string): void;
+  hasService(): boolean;
 
   getOwnerCase(): RessourcePermission.OwnerCase;
 
@@ -1520,3 +1524,265 @@ export namespace DeleteRolePermissionsRsp {
   }
 }
 
+export class LogInfo extends jspb.Message {
+  getDate(): number;
+  setDate(value: number): void;
+
+  getType(): LogType;
+  setType(value: LogType): void;
+
+  getApplication(): string;
+  setApplication(value: string): void;
+
+  getUserid(): string;
+  setUserid(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  getMessage(): string;
+  setMessage(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LogInfo.AsObject;
+  static toObject(includeInstance: boolean, msg: LogInfo): LogInfo.AsObject;
+  static serializeBinaryToWriter(message: LogInfo, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LogInfo;
+  static deserializeBinaryFromReader(message: LogInfo, reader: jspb.BinaryReader): LogInfo;
+}
+
+export namespace LogInfo {
+  export type AsObject = {
+    date: number,
+    type: LogType,
+    application: string,
+    userid: string,
+    method: string,
+    message: string,
+  }
+}
+
+export class LogRqst extends jspb.Message {
+  getInfo(): LogInfo | undefined;
+  setInfo(value?: LogInfo): void;
+  hasInfo(): boolean;
+  clearInfo(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: LogRqst): LogRqst.AsObject;
+  static serializeBinaryToWriter(message: LogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LogRqst;
+  static deserializeBinaryFromReader(message: LogRqst, reader: jspb.BinaryReader): LogRqst;
+}
+
+export namespace LogRqst {
+  export type AsObject = {
+    info?: LogInfo.AsObject,
+  }
+}
+
+export class LogRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: LogRsp): LogRsp.AsObject;
+  static serializeBinaryToWriter(message: LogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LogRsp;
+  static deserializeBinaryFromReader(message: LogRsp, reader: jspb.BinaryReader): LogRsp;
+}
+
+export namespace LogRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class DeleteLogRqst extends jspb.Message {
+  getDate(): number;
+  setDate(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteLogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteLogRqst): DeleteLogRqst.AsObject;
+  static serializeBinaryToWriter(message: DeleteLogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteLogRqst;
+  static deserializeBinaryFromReader(message: DeleteLogRqst, reader: jspb.BinaryReader): DeleteLogRqst;
+}
+
+export namespace DeleteLogRqst {
+  export type AsObject = {
+    date: number,
+  }
+}
+
+export class DeleteLogRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeleteLogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeleteLogRsp): DeleteLogRsp.AsObject;
+  static serializeBinaryToWriter(message: DeleteLogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeleteLogRsp;
+  static deserializeBinaryFromReader(message: DeleteLogRsp, reader: jspb.BinaryReader): DeleteLogRsp;
+}
+
+export namespace DeleteLogRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class SetLogRqst extends jspb.Message {
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetLogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: SetLogRqst): SetLogRqst.AsObject;
+  static serializeBinaryToWriter(message: SetLogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetLogRqst;
+  static deserializeBinaryFromReader(message: SetLogRqst, reader: jspb.BinaryReader): SetLogRqst;
+}
+
+export namespace SetLogRqst {
+  export type AsObject = {
+    method: string,
+  }
+}
+
+export class SetLogRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetLogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: SetLogRsp): SetLogRsp.AsObject;
+  static serializeBinaryToWriter(message: SetLogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetLogRsp;
+  static deserializeBinaryFromReader(message: SetLogRsp, reader: jspb.BinaryReader): SetLogRsp;
+}
+
+export namespace SetLogRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ResetLogRqst extends jspb.Message {
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ResetLogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ResetLogRqst): ResetLogRqst.AsObject;
+  static serializeBinaryToWriter(message: ResetLogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ResetLogRqst;
+  static deserializeBinaryFromReader(message: ResetLogRqst, reader: jspb.BinaryReader): ResetLogRqst;
+}
+
+export namespace ResetLogRqst {
+  export type AsObject = {
+    method: string,
+  }
+}
+
+export class ResetLogRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ResetLogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ResetLogRsp): ResetLogRsp.AsObject;
+  static serializeBinaryToWriter(message: ResetLogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ResetLogRsp;
+  static deserializeBinaryFromReader(message: ResetLogRsp, reader: jspb.BinaryReader): ResetLogRsp;
+}
+
+export namespace ResetLogRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class GetLogRqst extends jspb.Message {
+  getType(): LogType;
+  setType(value: LogType): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetLogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetLogRqst): GetLogRqst.AsObject;
+  static serializeBinaryToWriter(message: GetLogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetLogRqst;
+  static deserializeBinaryFromReader(message: GetLogRqst, reader: jspb.BinaryReader): GetLogRqst;
+}
+
+export namespace GetLogRqst {
+  export type AsObject = {
+    type: LogType,
+  }
+}
+
+export class GetLogRsp extends jspb.Message {
+  getInfoList(): Array<LogInfo>;
+  setInfoList(value: Array<LogInfo>): void;
+  clearInfoList(): void;
+  addInfo(value?: LogInfo, index?: number): LogInfo;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetLogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetLogRsp): GetLogRsp.AsObject;
+  static serializeBinaryToWriter(message: GetLogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetLogRsp;
+  static deserializeBinaryFromReader(message: GetLogRsp, reader: jspb.BinaryReader): GetLogRsp;
+}
+
+export namespace GetLogRsp {
+  export type AsObject = {
+    infoList: Array<LogInfo.AsObject>,
+  }
+}
+
+export class ClearAllLogRqst extends jspb.Message {
+  getType(): LogType;
+  setType(value: LogType): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ClearAllLogRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ClearAllLogRqst): ClearAllLogRqst.AsObject;
+  static serializeBinaryToWriter(message: ClearAllLogRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ClearAllLogRqst;
+  static deserializeBinaryFromReader(message: ClearAllLogRqst, reader: jspb.BinaryReader): ClearAllLogRqst;
+}
+
+export namespace ClearAllLogRqst {
+  export type AsObject = {
+    type: LogType,
+  }
+}
+
+export class ClearAllLogRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ClearAllLogRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ClearAllLogRsp): ClearAllLogRsp.AsObject;
+  static serializeBinaryToWriter(message: ClearAllLogRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ClearAllLogRsp;
+  static deserializeBinaryFromReader(message: ClearAllLogRsp, reader: jspb.BinaryReader): ClearAllLogRsp;
+}
+
+export namespace ClearAllLogRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export enum LogType { 
+  INFO = 0,
+  ERROR = 1,
+}

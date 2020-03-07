@@ -9,6 +9,8 @@ import {
   AddRoleActionRsp,
   AuthenticateRqst,
   AuthenticateRsp,
+  ClearAllLogRqst,
+  ClearAllLogRsp,
   CreateDirPermissionsRqst,
   CreateDirPermissionsRsp,
   CreateRoleRqst,
@@ -23,6 +25,8 @@ import {
   DeleteDirPermissionsRsp,
   DeleteFilePermissionsRqst,
   DeleteFilePermissionsRsp,
+  DeleteLogRqst,
+  DeleteLogRsp,
   DeletePermissionsRqst,
   DeletePermissionsRsp,
   DeleteRessourceOwnerRqst,
@@ -39,10 +43,14 @@ import {
   GetAllApplicationsInfoRsp,
   GetAllFilesInfoRqst,
   GetAllFilesInfoRsp,
+  GetLogRqst,
+  GetLogRsp,
   GetPermissionsRqst,
   GetPermissionsRsp,
   GetRessourceOwnersRqst,
   GetRessourceOwnersRsp,
+  LogRqst,
+  LogRsp,
   RefreshTokenRqst,
   RefreshTokenRsp,
   RegisterAccountRqst,
@@ -55,6 +63,10 @@ import {
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
   RenameFilePermissionRsp,
+  ResetLogRqst,
+  ResetLogRsp,
+  SetLogRqst,
+  SetLogRsp,
   SetPermissionRqst,
   SetPermissionRsp,
   SetRessourceOwnerRqst,
@@ -72,8 +84,8 @@ import {
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -313,12 +325,52 @@ export class RessourceServiceClient {
                response: DeleteApplicationRsp) => void
   ): grpcWeb.ClientReadableStream<DeleteApplicationRsp>;
 
+  log(
+    request: LogRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: LogRsp) => void
+  ): grpcWeb.ClientReadableStream<LogRsp>;
+
+  setLog(
+    request: SetLogRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetLogRsp) => void
+  ): grpcWeb.ClientReadableStream<SetLogRsp>;
+
+  resetLog(
+    request: ResetLogRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ResetLogRsp) => void
+  ): grpcWeb.ClientReadableStream<ResetLogRsp>;
+
+  getLog(
+    request: GetLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetLogRsp>;
+
+  deleteLog(
+    request: DeleteLogRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeleteLogRsp) => void
+  ): grpcWeb.ClientReadableStream<DeleteLogRsp>;
+
+  clearAllLog(
+    request: ClearAllLogRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ClearAllLogRsp) => void
+  ): grpcWeb.ClientReadableStream<ClearAllLogRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -489,6 +541,36 @@ export class RessourceServicePromiseClient {
     request: DeleteApplicationRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<DeleteApplicationRsp>;
+
+  log(
+    request: LogRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<LogRsp>;
+
+  setLog(
+    request: SetLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetLogRsp>;
+
+  resetLog(
+    request: ResetLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ResetLogRsp>;
+
+  getLog(
+    request: GetLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetLogRsp>;
+
+  deleteLog(
+    request: DeleteLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeleteLogRsp>;
+
+  clearAllLog(
+    request: ClearAllLogRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ClearAllLogRsp>;
 
 }
 
