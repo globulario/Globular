@@ -1299,6 +1299,556 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidateUserFileAccessRqst,
+ *   !proto.ressource.ValidateUserFileAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidateUserFileAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidateUserFileAccessRsp,
+  /** @param {!proto.ressource.ValidateUserFileAccessRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateUserFileAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidateUserFileAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidateUserFileAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidateUserFileAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validateUserFileAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateUserFileAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateUserFileAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidateUserFileAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidateUserFileAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validateUserFileAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateUserFileAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateUserFileAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidateApplicationFileAccessRqst,
+ *   !proto.ressource.ValidateApplicationFileAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidateApplicationFileAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidateApplicationFileAccessRsp,
+  /** @param {!proto.ressource.ValidateApplicationFileAccessRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateApplicationFileAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidateApplicationFileAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidateApplicationFileAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidateApplicationFileAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validateApplicationFileAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateApplicationFileAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateApplicationFileAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidateApplicationFileAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidateApplicationFileAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationFileAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateApplicationFileAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateApplicationFileAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidateUserAccessRqst,
+ *   !proto.ressource.ValidateUserAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidateUserAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidateUserAccessRsp,
+  /** @param {!proto.ressource.ValidateUserAccessRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateUserAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidateUserAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidateUserAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidateUserAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validateUserAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateUserAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateUserAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidateUserAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidateUserAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validateUserAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateUserAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateUserAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidateApplicationAccessRqst,
+ *   !proto.ressource.ValidateApplicationAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidateApplicationAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidateApplicationAccessRsp,
+  /** @param {!proto.ressource.ValidateApplicationAccessRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateApplicationAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidateApplicationAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidateApplicationAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidateApplicationAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validateApplicationAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateApplicationAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateApplicationAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidateApplicationAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidateApplicationAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateApplicationAccess',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_ValidateApplicationAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.CreateDirPermissionsRqst,
+ *   !proto.ressource.CreateDirPermissionsRsp>}
+ */
+const methodInfo_RessourceService_CreateDirPermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.CreateDirPermissionsRsp,
+  /** @param {!proto.ressource.CreateDirPermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.CreateDirPermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.CreateDirPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.CreateDirPermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.CreateDirPermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.createDirPermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/CreateDirPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_CreateDirPermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.CreateDirPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.CreateDirPermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.createDirPermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/CreateDirPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_CreateDirPermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RenameFilePermissionRqst,
+ *   !proto.ressource.RenameFilePermissionRsp>}
+ */
+const methodInfo_RessourceService_RenameFilePermission = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RenameFilePermissionRsp,
+  /** @param {!proto.ressource.RenameFilePermissionRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RenameFilePermissionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RenameFilePermissionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RenameFilePermissionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RenameFilePermissionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.renameFilePermission =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RenameFilePermission',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RenameFilePermission,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RenameFilePermissionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RenameFilePermissionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.renameFilePermission =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RenameFilePermission',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_RenameFilePermission);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteDirPermissionsRqst,
+ *   !proto.ressource.DeleteDirPermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteDirPermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteDirPermissionsRsp,
+  /** @param {!proto.ressource.DeleteDirPermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteDirPermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteDirPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteDirPermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteDirPermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteDirPermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteDirPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteDirPermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteDirPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteDirPermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteDirPermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteDirPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteDirPermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteFilePermissionsRqst,
+ *   !proto.ressource.DeleteFilePermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteFilePermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteFilePermissionsRsp,
+  /** @param {!proto.ressource.DeleteFilePermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteFilePermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteFilePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteFilePermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteFilePermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteFilePermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteFilePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteFilePermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteFilePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteFilePermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteFilePermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteFilePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteFilePermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteAccountPermissionsRqst,
+ *   !proto.ressource.DeleteAccountPermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteAccountPermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteAccountPermissionsRsp,
+  /** @param {!proto.ressource.DeleteAccountPermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteAccountPermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteAccountPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteAccountPermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteAccountPermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteAccountPermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteAccountPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteAccountPermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteAccountPermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteAccountPermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteAccountPermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteAccountPermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteAccountPermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeleteRolePermissionsRqst,
+ *   !proto.ressource.DeleteRolePermissionsRsp>}
+ */
+const methodInfo_RessourceService_DeleteRolePermissions = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteRolePermissionsRsp,
+  /** @param {!proto.ressource.DeleteRolePermissionsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRolePermissionsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeleteRolePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteRolePermissionsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteRolePermissionsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deleteRolePermissions =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRolePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRolePermissions,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeleteRolePermissionsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeleteRolePermissionsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deleteRolePermissions =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeleteRolePermissions',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_DeleteRolePermissions);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.GetAllApplicationsInfoRqst,
  *   !proto.ressource.GetAllApplicationsInfoRsp>}
  */
@@ -1354,55 +1904,55 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllApplicationsInfo =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ressource.RemoveApplicationRqst,
- *   !proto.ressource.RemoveApplicationRsp>}
+ *   !proto.ressource.DeleteApplicationRqst,
+ *   !proto.ressource.DeleteApplicationRsp>}
  */
-const methodInfo_RessourceService_RemoveApplication = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ressource.RemoveApplicationRsp,
-  /** @param {!proto.ressource.RemoveApplicationRqst} request */
+const methodInfo_RessourceService_DeleteApplication = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeleteApplicationRsp,
+  /** @param {!proto.ressource.DeleteApplicationRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ressource.RemoveApplicationRsp.deserializeBinary
+  proto.ressource.DeleteApplicationRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ressource.RemoveApplicationRqst} request The
+ * @param {!proto.ressource.DeleteApplicationRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ressource.RemoveApplicationRsp)}
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeleteApplicationRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ressource.RemoveApplicationRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeleteApplicationRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ressource.RessourceServiceClient.prototype.removeApplication =
+proto.ressource.RessourceServiceClient.prototype.deleteApplication =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/RemoveApplication',
+      '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplication,
+      methodInfo_RessourceService_DeleteApplication,
       callback);
 };
 
 
 /**
- * @param {!proto.ressource.RemoveApplicationRqst} request The
+ * @param {!proto.ressource.DeleteApplicationRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ressource.RemoveApplicationRsp>}
+ * @return {!Promise<!proto.ressource.DeleteApplicationRsp>}
  *     A native promise that resolves to the response
  */
-proto.ressource.RessourceServicePromiseClient.prototype.removeApplication =
+proto.ressource.RessourceServicePromiseClient.prototype.deleteApplication =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/RemoveApplication',
+      '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplication);
+      methodInfo_RessourceService_DeleteApplication);
 };
 
 

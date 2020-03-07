@@ -2112,20 +2112,6 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	delete(config, "Process")
 	delete(config, "ProxyProcess")
 
-	// In case of persistence_server information must be save in a temp
-	// file to be use by the interceptor for token validation.
-	if config["Name"] == "persistence_server" {
-
-		// I will wrote the info inside a stucture.
-		infos := map[string]interface{}{"address": self.Domain, "name": "persistence_server", "pwd": self.RootPassword, "rootPath": self.webRoot}
-		infosStr, _ := Utility.ToJson(infos)
-
-		err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_sa", []byte(infosStr), 0644)
-		if err != nil {
-			log.Panicln(err)
-		}
-	}
-
 	// so here I will get the previous information...
 	f, err := os.Open(self.path + string(os.PathSeparator) + config["configPath"].(string))
 
@@ -3889,9 +3875,27 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	hasAccess := false
 	var err error
 
+	// Here some method are accessible by default.
+	if method == "/ressource.RessourceService/GetAllActions" ||
+		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/Authenticate" ||
+		method == "/ressource.RessourceService/RefreshToken" ||
+		method == "/ressource.RessourceService/GetPermissions" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/GetAllFilesInfo" ||
+		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
+		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationAccess" {
+		hasAccess = true
+	}
+
 	// Test if the user has access to execute the method
-	if len(token) > 0 {
+	if len(token) > 0 && !hasAccess {
 		clientId, expiredAt, err := Interceptors.ValidateToken(token)
+
 		if err != nil {
 			return nil, err
 		}
@@ -3899,10 +3903,13 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		if expiredAt < time.Now().Unix() {
 			return nil, errors.New("The token is expired!")
 		}
-
-		err = self.validateUserAccess(clientId, method)
-		if err == nil {
+		if clientId == "sa" {
 			hasAccess = true
+		} else {
+			err = self.validateUserAccess(clientId, method)
+			if err == nil {
+				hasAccess = true
+			}
 		}
 	}
 
@@ -3914,30 +3921,17 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		}
 	}
 
-	// Here some method are accessible by default.
-	if method == "/ressource.RessourceService/GetAllActions" ||
-		method == "/ressource.RessourceService/RegisterAccount" ||
-		method == "/ressource.RessourceService/Authenticate" ||
-		method == "/ressource.RessourceService/RefreshToken" ||
-		method == "/ressource.RessourceService/GetPermissions" ||
-		method == "/ressource.RessourceService/GetAllFilesInfo" ||
-		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" {
-		hasAccess = true
-	}
-
 	if !hasAccess {
+		log.Println("---> access denied for ", method)
 		return nil, errors.New("Permission denied to execute method " + method)
 	}
 
+	log.Println("run ", method, application)
 	// Execute the action.
 	result, err := handler(ctx, req)
 
 	if err == nil {
+		log.Println("succed to run ", method)
 		// Set permissions in case one of those methode is called.
 		if method == "/ressource.RessourceService/DeleteApplication" {
 			rqst := req.(*ressource.DeleteApplicationRqst)

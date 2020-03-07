@@ -176,23 +176,6 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 
 	hasAccess := false
 	var err error
-
-	// Test if the user has access to execute the method
-	if len(token) > 0 {
-		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Test if the application has access to execute the method.
-	if len(application) > 0 && !hasAccess {
-		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// Here is the list of method accessible by default.
 	if method == "/admin.AdminService/GetConfig" ||
 		method == "/event.EventService/Subscribe" ||
@@ -208,6 +191,22 @@ func ServerUnaryAuthInterceptor(ctx context.Context, req interface{}, info *grpc
 		method == "/persistence.PersistenceService/FindOne" ||
 		method == "/persistence.PersistenceService/Count" {
 		hasAccess = true
+	}
+
+	// Test if the user has access to execute the method
+	if len(token) > 0 && !hasAccess {
+		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Test if the application has access to execute the method.
+	if len(application) > 0 && !hasAccess {
+		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !hasAccess {
@@ -291,17 +290,16 @@ func ServerStreamAuthInterceptor(srv interface{}, stream grpc.ServerStream, info
 
 	hasAccess := false
 	var err error
+	if method == "/persistence.PersistenceService/Find" {
+		hasAccess = true
+	}
 
 	// Test if the user has access to execute the method
-	if len(token) > 0 {
+	if len(token) > 0 && !hasAccess {
 		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
 		if err != nil {
 			return err
 		}
-	}
-
-	if method == "/persistence.PersistenceService/Find" {
-		hasAccess = true
 	}
 
 	if !hasAccess {
