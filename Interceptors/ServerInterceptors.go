@@ -187,6 +187,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
 		method == "/services.ServiceRepository/downloadBundle" ||
+		method == "/persistence.PersistenceService/CreateConnection" ||
 		method == "/persistence.PersistenceService/Find" ||
 		method == "/persistence.PersistenceService/FindOne" ||
 		method == "/persistence.PersistenceService/Count" {
@@ -239,6 +240,10 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	// Execute the action.
 	result, err := handler(ctx, req)
+
+	// Send log event...
+	clientId, _, _ := ValidateToken(token)
+	getRessourceClient().Log(application, method, clientId, err)
 
 	// Here depending of the request I will execute more actions.
 	if err == nil {
@@ -315,6 +320,11 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	err = handler(srv, stream)
+
+	// Send log event...
+	clientId, _, _ := ValidateToken(token)
+	getRessourceClient().Log(application, method, clientId, err)
+
 	if err != nil {
 		return err
 	}

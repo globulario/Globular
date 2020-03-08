@@ -2014,110 +2014,165 @@ proto.ressource.RessourceServicePromiseClient.prototype.log =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ressource.SetLogRqst,
- *   !proto.ressource.SetLogRsp>}
+ *   !proto.ressource.SetLogMethodRqst,
+ *   !proto.ressource.SetLogMethodRsp>}
  */
-const methodInfo_RessourceService_SetLog = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ressource.SetLogRsp,
-  /** @param {!proto.ressource.SetLogRqst} request */
+const methodInfo_RessourceService_SetLogMethod = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.SetLogMethodRsp,
+  /** @param {!proto.ressource.SetLogMethodRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ressource.SetLogRsp.deserializeBinary
+  proto.ressource.SetLogMethodRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ressource.SetLogRqst} request The
+ * @param {!proto.ressource.SetLogMethodRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ressource.SetLogRsp)}
+ * @param {function(?grpc.web.Error, ?proto.ressource.SetLogMethodRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ressource.SetLogRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.SetLogMethodRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ressource.RessourceServiceClient.prototype.setLog =
+proto.ressource.RessourceServiceClient.prototype.setLogMethod =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/SetLog',
+      '/ressource.RessourceService/SetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetLog,
+      methodInfo_RessourceService_SetLogMethod,
       callback);
 };
 
 
 /**
- * @param {!proto.ressource.SetLogRqst} request The
+ * @param {!proto.ressource.SetLogMethodRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ressource.SetLogRsp>}
+ * @return {!Promise<!proto.ressource.SetLogMethodRsp>}
  *     A native promise that resolves to the response
  */
-proto.ressource.RessourceServicePromiseClient.prototype.setLog =
+proto.ressource.RessourceServicePromiseClient.prototype.setLogMethod =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/SetLog',
+      '/ressource.RessourceService/SetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetLog);
+      methodInfo_RessourceService_SetLogMethod);
 };
 
 
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
- *   !proto.ressource.ResetLogRqst,
- *   !proto.ressource.ResetLogRsp>}
+ *   !proto.ressource.ResetLogMethodRqst,
+ *   !proto.ressource.ResetLogMethodRsp>}
  */
-const methodInfo_RessourceService_ResetLog = new grpc.web.AbstractClientBase.MethodInfo(
-  proto.ressource.ResetLogRsp,
-  /** @param {!proto.ressource.ResetLogRqst} request */
+const methodInfo_RessourceService_ResetLogMethod = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ResetLogMethodRsp,
+  /** @param {!proto.ressource.ResetLogMethodRqst} request */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ressource.ResetLogRsp.deserializeBinary
+  proto.ressource.ResetLogMethodRsp.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ressource.ResetLogRqst} request The
+ * @param {!proto.ressource.ResetLogMethodRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.ressource.ResetLogRsp)}
+ * @param {function(?grpc.web.Error, ?proto.ressource.ResetLogMethodRsp)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ressource.ResetLogRsp>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ResetLogMethodRsp>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ressource.RessourceServiceClient.prototype.resetLog =
+proto.ressource.RessourceServiceClient.prototype.resetLogMethod =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/ResetLog',
+      '/ressource.RessourceService/ResetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_ResetLog,
+      methodInfo_RessourceService_ResetLogMethod,
       callback);
 };
 
 
 /**
- * @param {!proto.ressource.ResetLogRqst} request The
+ * @param {!proto.ressource.ResetLogMethodRqst} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ressource.ResetLogRsp>}
+ * @return {!Promise<!proto.ressource.ResetLogMethodRsp>}
  *     A native promise that resolves to the response
  */
-proto.ressource.RessourceServicePromiseClient.prototype.resetLog =
+proto.ressource.RessourceServicePromiseClient.prototype.resetLogMethod =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/ResetLog',
+      '/ressource.RessourceService/ResetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_ResetLog);
+      methodInfo_RessourceService_ResetLogMethod);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetLogMethodsRqst,
+ *   !proto.ressource.GetLogMethodsRsp>}
+ */
+const methodInfo_RessourceService_GetLogMethods = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetLogMethodsRsp,
+  /** @param {!proto.ressource.GetLogMethodsRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetLogMethodsRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetLogMethodsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.GetLogMethodsRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetLogMethodsRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getLogMethods =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/GetLogMethods',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetLogMethods,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.GetLogMethodsRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.GetLogMethodsRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getLogMethods =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/GetLogMethods',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetLogMethods);
 };
 
 

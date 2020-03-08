@@ -3866,29 +3866,42 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 	}, nil
 }
 
-//* Log error or information into the data base *
-func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
+//////////////////////////// Loggin info ///////////////////////////////////////
+
+func (self *Globule) log(info *ressource.LogInfo) error {
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	var marshaler jsonpb.Marshaler
-	data, err := marshaler.MarshalToString(rqst.Info)
+	data, err := marshaler.MarshalToString(info)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 	_, err = p.InsertOne("local_ressource", "local_ressource", "Logs", string(data), "")
 
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Log error or information into the data base *
+func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
+
+	marshaler := new(jsonpb.Marshaler)
+	jsonStr, err := marshaler.MarshalToString(rqst.Info)
+	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	// Publish event...
+	hub, _ := self.getEventHub()
+	hub.Publish("log_"+rqst.Info.Method, []byte(jsonStr))
 
 	return &ressource.LogRsp{
 		Result: true,
@@ -3965,7 +3978,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 }
 
 //* Set a method into the log... *
-func (self *Globule) SetLog(ctx context.Context, rqst *ressource.SetLogRqst) (*ressource.SetLogRsp, error) {
+func (self *Globule) SetLogMethod(ctx context.Context, rqst *ressource.SetLogMethodRqst) (*ressource.SetLogMethodRsp, error) {
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return nil, status.Errorf(
@@ -3980,13 +3993,21 @@ func (self *Globule) SetLog(ctx context.Context, rqst *ressource.SetLogRqst) (*r
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.SetLogRsp{
+	// Set the event channnel.
+	hub, _ := self.getEventHub()
+	handler := func(evt *eventpb.Event) {
+		log.Println(evt)
+	}
+
+	hub.Subscribe("log_"+rqst.Method, Utility.GenerateUUID("log_"+rqst.Method), handler)
+
+	return &ressource.SetLogMethodRsp{
 		Result: true,
 	}, nil
 }
 
 //* Reset a method from the log... *
-func (self *Globule) ResetLog(ctx context.Context, rqst *ressource.ResetLogRqst) (*ressource.ResetLogRsp, error) {
+func (self *Globule) ResetLogMethod(ctx context.Context, rqst *ressource.ResetLogMethodRqst) (*ressource.ResetLogMethodRsp, error) {
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return nil, status.Errorf(
@@ -4001,9 +4022,45 @@ func (self *Globule) ResetLog(ctx context.Context, rqst *ressource.ResetLogRqst)
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ResetLogRsp{
+	// close the event channel.
+	hub, _ := self.getEventHub()
+	hub.UnSubscribe("log_"+rqst.Method, Utility.GenerateUUID("log_"+rqst.Method))
+
+	return &ressource.ResetLogMethodRsp{
 		Result: true,
 	}, nil
+}
+
+func (self *Globule) getLogMethods() ([]string, error) {
+
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := p.Find("local_ressource", "local_ressource", "LogMethods", `{}`, ``)
+	methods := make([]string, 0)
+	err = json.Unmarshal([]byte(data), &methods)
+	if err != nil {
+		return nil, err
+	}
+
+	return methods, nil
+}
+
+//* Get the list of methods to be logs *
+func (self *Globule) GetLogMethods(ctx context.Context, rsp *ressource.GetLogMethodsRqst) (*ressource.GetLogMethodsRsp, error) {
+	methods, err := self.getLogMethods()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.GetLogMethodsRsp{
+		Methods: methods,
+	}, err
+	return nil, nil
 }
 
 //* Delete a log info with it date *
@@ -4049,6 +4106,35 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 }
 
 /////////////////////// File permissions ressource management. /////////////////
+// Log err and info...
+func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
+
+	userId, _, _ := Interceptors.ValidateToken(token)
+	// Here I will use event to publish log information...
+	info := new(ressource.LogInfo)
+	info.Application = application
+	info.UserId = userId
+	info.Method = method
+	info.Date = time.Now().Unix()
+	if err_ != nil {
+		info.Message = err_.Error()
+		info.Type = ressource.LogType_ERROR
+	} else {
+		info.Type = ressource.LogType_INFO
+	}
+
+	marshaler := new(jsonpb.Marshaler)
+	jsonStr, err := marshaler.MarshalToString(info)
+	if err != nil {
+		return err
+	}
+
+	// Publish event...
+	hub, _ := self.getEventHub()
+	hub.Publish("log_"+method, []byte(jsonStr))
+
+	return nil
+}
 
 // unaryInterceptor calls authenticateClient with current context
 func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -4082,7 +4168,8 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
 		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
-		method == "/ressource.RessourceService/Log" {
+		method == "/ressource.RessourceService/Log" ||
+		method == "/ressource.RessourceService/GetLogMethods" {
 		hasAccess = true
 	}
 
@@ -4099,6 +4186,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		}
 		if clientId == "sa" {
 			hasAccess = true
+			log.Println("run ", method, application, clientId)
 		} else {
 			err = self.validateUserAccess(clientId, method)
 			if err == nil {
@@ -4120,9 +4208,9 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		return nil, errors.New("Permission denied to execute method " + method)
 	}
 
-	log.Println("run ", method, application)
 	// Execute the action.
 	result, err := handler(ctx, req)
+	self.logInfo(application, method, token, err)
 
 	if err == nil {
 		log.Println("succed to run ", method)
@@ -5757,6 +5845,7 @@ func (self *Globule) Listen() {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
+				log.Println("Admin service is up and running for domain ", self.Domain)
 				// no web-rpc server.
 				if err := admin_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -5788,12 +5877,26 @@ func (self *Globule) Listen() {
 		}
 
 		ressource.RegisterRessourceServiceServer(ressource_server, self)
-		log.Println("Ressource service is up and running for domain ", self.Domain)
+
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
+				log.Println("Ressource service is up and running for domain ", self.Domain)
+				methods, err := self.getLogMethods()
+				handler := func(evt *eventpb.Event) {
+					log.Println(evt)
+				}
+
+				if err == nil {
+					// Here I will connect the log event...
+					for i := 0; i < len(methods); i++ {
+						hub, _ := self.getEventHub()
+						hub.Subscribe("log_"+methods[i], Utility.GenerateUUID("log_"+methods[i]), handler)
+					}
+				}
+
 				// no web-rpc server.
-				if err := ressource_server.Serve(lis); err != nil {
+				if err = ressource_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 					if err != nil {
 						log.Fatalf("error opening file: %v", err)
@@ -5821,11 +5924,11 @@ func (self *Globule) Listen() {
 		}
 
 		services.RegisterServiceDiscoveryServer(services_discovery_server, self)
-		log.Println("Discovery service is up and running for domain ", self.Domain)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
+				log.Println("Discovery service is up and running for domain ", self.Domain)
 
 				// no web-rpc server.
 				if err := services_discovery_server.Serve(lis); err != nil {
@@ -5860,11 +5963,12 @@ func (self *Globule) Listen() {
 		}
 
 		services.RegisterServiceRepositoryServer(services_repository_server, self)
-		log.Println("Repository service is up and running for domain ", self.Domain)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
+				log.Println("Repository service is up and running for domain ", self.Domain)
+
 				// no web-rpc server.
 				if err := services_repository_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -5894,11 +5998,12 @@ func (self *Globule) Listen() {
 		}
 
 		ca.RegisterCertificateAuthorityServer(certificate_authority_server, self)
-		log.Println("Certificati Authority service is up and running for domain ", self.Domain)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
+				log.Println("Certificate Authority service is up and running for domain ", self.Domain)
+
 				// no web-rpc server.
 				if err := certificate_authority_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)

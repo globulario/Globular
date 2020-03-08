@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Utility"
@@ -487,4 +488,39 @@ func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
 	}
 	_, err := self.c.DeleteAccountPermissions(api.GetClientContext(self), rqst)
 	return err
+}
+
+/////////////////////// Log ////////////////////////
+
+// Append a new log information.
+func (self *Ressource_Client) Log(application string, userId string, method string, err_ error) error {
+
+	// Here I set a log information.
+	rqst := new(LogRqst)
+	info := new(LogInfo)
+	info.Application = application
+	info.UserId = userId
+	info.Method = method
+	info.Date = time.Now().Unix()
+	if err_ != nil {
+		info.Message = err_.Error()
+		info.Type = LogType_ERROR
+	} else {
+		info.Type = LogType_INFO
+	}
+	rqst.Info = info
+
+	_, err := self.c.Log(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+// Return all log method.
+func (self *Ressource_Client) GetLogMethods() ([]string, error) {
+	rsp, err := self.c.GetLogMethods(api.GetClientContext(self), &GetLogMethodsRqst{})
+	if err != nil {
+		return nil, err
+	}
+
+	return rsp.Methods, nil
 }

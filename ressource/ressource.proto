@@ -402,21 +402,28 @@ message DeleteLogRsp{
 	bool result=1;
 }
 
-message SetLogRqst{
+message SetLogMethodRqst{
 	string method = 1;
 }
 
-message SetLogRsp{
+message SetLogMethodRsp{
 	bool result=1;
 }
 
 
-message ResetLogRqst{
+message ResetLogMethodRqst{
 	string method = 1;
 }
 
-message ResetLogRsp{
+message ResetLogMethodRsp{
 	bool result=1;
+}
+
+message GetLogMethodsRqst{
+}
+
+message GetLogMethodsRsp{
+	repeated string methods = 1;
 }
 
 message GetLogRqst{
@@ -548,10 +555,13 @@ service RessourceService {
 	rpc Log(LogRqst) returns(LogRsp);
 	
 	/** Set a method into the log... **/
-	rpc SetLog(SetLogRqst) returns(SetLogRsp);
+	rpc SetLogMethod(SetLogMethodRqst) returns(SetLogMethodRsp);
 	
 	/** Reset a method from the log... **/
-	rpc ResetLog(ResetLogRqst) returns(ResetLogRsp);
+	rpc ResetLogMethod(ResetLogMethodRqst) returns(ResetLogMethodRsp);
+	
+	/** Get the list of methods to be logs **/
+	rpc GetLogMethods(GetLogMethodsRqst) returns(GetLogMethodsRsp);
 	
 	/** Get erro/info from the log database **/
 	rpc GetLog(GetLogRqst) returns(stream GetLogRsp);
