@@ -37,16 +37,6 @@ proto.ressource.RessourceServiceClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
 
 
@@ -73,17 +63,29 @@ proto.ressource.RessourceServicePromiseClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RegisterAccountRqst,
+ *   !proto.ressource.RegisterAccountRsp>}
+ */
+const methodDescriptor_RessourceService_RegisterAccount = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RegisterAccount',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RegisterAccountRqst,
+  proto.ressource.RegisterAccountRsp,
+  /**
+   * @param {!proto.ressource.RegisterAccountRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RegisterAccountRsp.deserializeBinary
+);
 
 
 /**
@@ -94,7 +96,10 @@ proto.ressource.RessourceServicePromiseClient =
  */
 const methodInfo_RessourceService_RegisterAccount = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RegisterAccountRsp,
-  /** @param {!proto.ressource.RegisterAccountRqst} request */
+  /**
+   * @param {!proto.ressource.RegisterAccountRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -118,7 +123,7 @@ proto.ressource.RessourceServiceClient.prototype.registerAccount =
       '/ressource.RessourceService/RegisterAccount',
       request,
       metadata || {},
-      methodInfo_RessourceService_RegisterAccount,
+      methodDescriptor_RessourceService_RegisterAccount,
       callback);
 };
 
@@ -137,8 +142,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.registerAccount =
       '/ressource.RessourceService/RegisterAccount',
       request,
       metadata || {},
-      methodInfo_RessourceService_RegisterAccount);
+      methodDescriptor_RessourceService_RegisterAccount);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteAccountRqst,
+ *   !proto.ressource.DeleteAccountRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteAccount = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteAccount',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteAccountRqst,
+  proto.ressource.DeleteAccountRsp,
+  /**
+   * @param {!proto.ressource.DeleteAccountRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteAccountRsp.deserializeBinary
+);
 
 
 /**
@@ -149,7 +176,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.registerAccount =
  */
 const methodInfo_RessourceService_DeleteAccount = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteAccountRsp,
-  /** @param {!proto.ressource.DeleteAccountRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteAccountRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -173,7 +203,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteAccount =
       '/ressource.RessourceService/DeleteAccount',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteAccount,
+      methodDescriptor_RessourceService_DeleteAccount,
       callback);
 };
 
@@ -192,8 +222,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteAccount =
       '/ressource.RessourceService/DeleteAccount',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteAccount);
+      methodDescriptor_RessourceService_DeleteAccount);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AuthenticateRqst,
+ *   !proto.ressource.AuthenticateRsp>}
+ */
+const methodDescriptor_RessourceService_Authenticate = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/Authenticate',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AuthenticateRqst,
+  proto.ressource.AuthenticateRsp,
+  /**
+   * @param {!proto.ressource.AuthenticateRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AuthenticateRsp.deserializeBinary
+);
 
 
 /**
@@ -204,7 +256,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteAccount =
  */
 const methodInfo_RessourceService_Authenticate = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.AuthenticateRsp,
-  /** @param {!proto.ressource.AuthenticateRqst} request */
+  /**
+   * @param {!proto.ressource.AuthenticateRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -228,7 +283,7 @@ proto.ressource.RessourceServiceClient.prototype.authenticate =
       '/ressource.RessourceService/Authenticate',
       request,
       metadata || {},
-      methodInfo_RessourceService_Authenticate,
+      methodDescriptor_RessourceService_Authenticate,
       callback);
 };
 
@@ -247,8 +302,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.authenticate =
       '/ressource.RessourceService/Authenticate',
       request,
       metadata || {},
-      methodInfo_RessourceService_Authenticate);
+      methodDescriptor_RessourceService_Authenticate);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.SynchronizeLdapRqst,
+ *   !proto.ressource.SynchronizeLdapRsp>}
+ */
+const methodDescriptor_RessourceService_SynchronizeLdap = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/SynchronizeLdap',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.SynchronizeLdapRqst,
+  proto.ressource.SynchronizeLdapRsp,
+  /**
+   * @param {!proto.ressource.SynchronizeLdapRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SynchronizeLdapRsp.deserializeBinary
+);
 
 
 /**
@@ -259,7 +336,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.authenticate =
  */
 const methodInfo_RessourceService_SynchronizeLdap = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.SynchronizeLdapRsp,
-  /** @param {!proto.ressource.SynchronizeLdapRqst} request */
+  /**
+   * @param {!proto.ressource.SynchronizeLdapRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -283,7 +363,7 @@ proto.ressource.RessourceServiceClient.prototype.synchronizeLdap =
       '/ressource.RessourceService/SynchronizeLdap',
       request,
       metadata || {},
-      methodInfo_RessourceService_SynchronizeLdap,
+      methodDescriptor_RessourceService_SynchronizeLdap,
       callback);
 };
 
@@ -302,8 +382,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.synchronizeLdap =
       '/ressource.RessourceService/SynchronizeLdap',
       request,
       metadata || {},
-      methodInfo_RessourceService_SynchronizeLdap);
+      methodDescriptor_RessourceService_SynchronizeLdap);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RefreshTokenRqst,
+ *   !proto.ressource.RefreshTokenRsp>}
+ */
+const methodDescriptor_RessourceService_RefreshToken = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RefreshToken',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RefreshTokenRqst,
+  proto.ressource.RefreshTokenRsp,
+  /**
+   * @param {!proto.ressource.RefreshTokenRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RefreshTokenRsp.deserializeBinary
+);
 
 
 /**
@@ -314,7 +416,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.synchronizeLdap =
  */
 const methodInfo_RessourceService_RefreshToken = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RefreshTokenRsp,
-  /** @param {!proto.ressource.RefreshTokenRqst} request */
+  /**
+   * @param {!proto.ressource.RefreshTokenRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -338,7 +443,7 @@ proto.ressource.RessourceServiceClient.prototype.refreshToken =
       '/ressource.RessourceService/RefreshToken',
       request,
       metadata || {},
-      methodInfo_RessourceService_RefreshToken,
+      methodDescriptor_RessourceService_RefreshToken,
       callback);
 };
 
@@ -357,8 +462,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.refreshToken =
       '/ressource.RessourceService/RefreshToken',
       request,
       metadata || {},
-      methodInfo_RessourceService_RefreshToken);
+      methodDescriptor_RessourceService_RefreshToken);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AddAccountRoleRqst,
+ *   !proto.ressource.AddAccountRoleRsp>}
+ */
+const methodDescriptor_RessourceService_AddAccountRole = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/AddAccountRole',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AddAccountRoleRqst,
+  proto.ressource.AddAccountRoleRsp,
+  /**
+   * @param {!proto.ressource.AddAccountRoleRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddAccountRoleRsp.deserializeBinary
+);
 
 
 /**
@@ -369,7 +496,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.refreshToken =
  */
 const methodInfo_RessourceService_AddAccountRole = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.AddAccountRoleRsp,
-  /** @param {!proto.ressource.AddAccountRoleRqst} request */
+  /**
+   * @param {!proto.ressource.AddAccountRoleRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -393,7 +523,7 @@ proto.ressource.RessourceServiceClient.prototype.addAccountRole =
       '/ressource.RessourceService/AddAccountRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddAccountRole,
+      methodDescriptor_RessourceService_AddAccountRole,
       callback);
 };
 
@@ -412,8 +542,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.addAccountRole =
       '/ressource.RessourceService/AddAccountRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddAccountRole);
+      methodDescriptor_RessourceService_AddAccountRole);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RemoveAccountRoleRqst,
+ *   !proto.ressource.RemoveAccountRoleRsp>}
+ */
+const methodDescriptor_RessourceService_RemoveAccountRole = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RemoveAccountRole',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RemoveAccountRoleRqst,
+  proto.ressource.RemoveAccountRoleRsp,
+  /**
+   * @param {!proto.ressource.RemoveAccountRoleRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemoveAccountRoleRsp.deserializeBinary
+);
 
 
 /**
@@ -424,7 +576,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.addAccountRole =
  */
 const methodInfo_RessourceService_RemoveAccountRole = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RemoveAccountRoleRsp,
-  /** @param {!proto.ressource.RemoveAccountRoleRqst} request */
+  /**
+   * @param {!proto.ressource.RemoveAccountRoleRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -448,7 +603,7 @@ proto.ressource.RessourceServiceClient.prototype.removeAccountRole =
       '/ressource.RessourceService/RemoveAccountRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveAccountRole,
+      methodDescriptor_RessourceService_RemoveAccountRole,
       callback);
 };
 
@@ -467,8 +622,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeAccountRole =
       '/ressource.RessourceService/RemoveAccountRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveAccountRole);
+      methodDescriptor_RessourceService_RemoveAccountRole);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.CreateRoleRqst,
+ *   !proto.ressource.CreateRoleRsp>}
+ */
+const methodDescriptor_RessourceService_CreateRole = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/CreateRole',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.CreateRoleRqst,
+  proto.ressource.CreateRoleRsp,
+  /**
+   * @param {!proto.ressource.CreateRoleRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.CreateRoleRsp.deserializeBinary
+);
 
 
 /**
@@ -479,7 +656,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeAccountRole =
  */
 const methodInfo_RessourceService_CreateRole = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.CreateRoleRsp,
-  /** @param {!proto.ressource.CreateRoleRqst} request */
+  /**
+   * @param {!proto.ressource.CreateRoleRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -503,7 +683,7 @@ proto.ressource.RessourceServiceClient.prototype.createRole =
       '/ressource.RessourceService/CreateRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_CreateRole,
+      methodDescriptor_RessourceService_CreateRole,
       callback);
 };
 
@@ -522,8 +702,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.createRole =
       '/ressource.RessourceService/CreateRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_CreateRole);
+      methodDescriptor_RessourceService_CreateRole);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteRoleRqst,
+ *   !proto.ressource.DeleteRoleRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteRole = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteRole',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteRoleRqst,
+  proto.ressource.DeleteRoleRsp,
+  /**
+   * @param {!proto.ressource.DeleteRoleRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRoleRsp.deserializeBinary
+);
 
 
 /**
@@ -534,7 +736,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.createRole =
  */
 const methodInfo_RessourceService_DeleteRole = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteRoleRsp,
-  /** @param {!proto.ressource.DeleteRoleRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteRoleRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -558,7 +763,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteRole =
       '/ressource.RessourceService/DeleteRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRole,
+      methodDescriptor_RessourceService_DeleteRole,
       callback);
 };
 
@@ -577,8 +782,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRole =
       '/ressource.RessourceService/DeleteRole',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRole);
+      methodDescriptor_RessourceService_DeleteRole);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AddRoleActionRqst,
+ *   !proto.ressource.AddRoleActionRsp>}
+ */
+const methodDescriptor_RessourceService_AddRoleAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/AddRoleAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AddRoleActionRqst,
+  proto.ressource.AddRoleActionRsp,
+  /**
+   * @param {!proto.ressource.AddRoleActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddRoleActionRsp.deserializeBinary
+);
 
 
 /**
@@ -589,7 +816,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRole =
  */
 const methodInfo_RessourceService_AddRoleAction = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.AddRoleActionRsp,
-  /** @param {!proto.ressource.AddRoleActionRqst} request */
+  /**
+   * @param {!proto.ressource.AddRoleActionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -613,7 +843,7 @@ proto.ressource.RessourceServiceClient.prototype.addRoleAction =
       '/ressource.RessourceService/AddRoleAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddRoleAction,
+      methodDescriptor_RessourceService_AddRoleAction,
       callback);
 };
 
@@ -632,8 +862,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.addRoleAction =
       '/ressource.RessourceService/AddRoleAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddRoleAction);
+      methodDescriptor_RessourceService_AddRoleAction);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RemoveRoleActionRqst,
+ *   !proto.ressource.RemoveRoleActionRsp>}
+ */
+const methodDescriptor_RessourceService_RemoveRoleAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RemoveRoleAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RemoveRoleActionRqst,
+  proto.ressource.RemoveRoleActionRsp,
+  /**
+   * @param {!proto.ressource.RemoveRoleActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemoveRoleActionRsp.deserializeBinary
+);
 
 
 /**
@@ -644,7 +896,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.addRoleAction =
  */
 const methodInfo_RessourceService_RemoveRoleAction = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RemoveRoleActionRsp,
-  /** @param {!proto.ressource.RemoveRoleActionRqst} request */
+  /**
+   * @param {!proto.ressource.RemoveRoleActionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -668,7 +923,7 @@ proto.ressource.RessourceServiceClient.prototype.removeRoleAction =
       '/ressource.RessourceService/RemoveRoleAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveRoleAction,
+      methodDescriptor_RessourceService_RemoveRoleAction,
       callback);
 };
 
@@ -687,8 +942,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeRoleAction =
       '/ressource.RessourceService/RemoveRoleAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveRoleAction);
+      methodDescriptor_RessourceService_RemoveRoleAction);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AddApplicationActionRqst,
+ *   !proto.ressource.AddApplicationActionRsp>}
+ */
+const methodDescriptor_RessourceService_AddApplicationAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/AddApplicationAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AddApplicationActionRqst,
+  proto.ressource.AddApplicationActionRsp,
+  /**
+   * @param {!proto.ressource.AddApplicationActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddApplicationActionRsp.deserializeBinary
+);
 
 
 /**
@@ -699,7 +976,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeRoleAction =
  */
 const methodInfo_RessourceService_AddApplicationAction = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.AddApplicationActionRsp,
-  /** @param {!proto.ressource.AddApplicationActionRqst} request */
+  /**
+   * @param {!proto.ressource.AddApplicationActionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -723,7 +1003,7 @@ proto.ressource.RessourceServiceClient.prototype.addApplicationAction =
       '/ressource.RessourceService/AddApplicationAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddApplicationAction,
+      methodDescriptor_RessourceService_AddApplicationAction,
       callback);
 };
 
@@ -742,8 +1022,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.addApplicationAction =
       '/ressource.RessourceService/AddApplicationAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_AddApplicationAction);
+      methodDescriptor_RessourceService_AddApplicationAction);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RemoveApplicationActionRqst,
+ *   !proto.ressource.RemoveApplicationActionRsp>}
+ */
+const methodDescriptor_RessourceService_RemoveApplicationAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RemoveApplicationAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RemoveApplicationActionRqst,
+  proto.ressource.RemoveApplicationActionRsp,
+  /**
+   * @param {!proto.ressource.RemoveApplicationActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemoveApplicationActionRsp.deserializeBinary
+);
 
 
 /**
@@ -754,7 +1056,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.addApplicationAction =
  */
 const methodInfo_RessourceService_RemoveApplicationAction = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RemoveApplicationActionRsp,
-  /** @param {!proto.ressource.RemoveApplicationActionRqst} request */
+  /**
+   * @param {!proto.ressource.RemoveApplicationActionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -778,7 +1083,7 @@ proto.ressource.RessourceServiceClient.prototype.removeApplicationAction =
       '/ressource.RessourceService/RemoveApplicationAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplicationAction,
+      methodDescriptor_RessourceService_RemoveApplicationAction,
       callback);
 };
 
@@ -797,8 +1102,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeApplicationAction 
       '/ressource.RessourceService/RemoveApplicationAction',
       request,
       metadata || {},
-      methodInfo_RessourceService_RemoveApplicationAction);
+      methodDescriptor_RessourceService_RemoveApplicationAction);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetAllActionsRqst,
+ *   !proto.ressource.GetAllActionsRsp>}
+ */
+const methodDescriptor_RessourceService_GetAllActions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetAllActions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetAllActionsRqst,
+  proto.ressource.GetAllActionsRsp,
+  /**
+   * @param {!proto.ressource.GetAllActionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllActionsRsp.deserializeBinary
+);
 
 
 /**
@@ -809,7 +1136,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.removeApplicationAction 
  */
 const methodInfo_RessourceService_GetAllActions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetAllActionsRsp,
-  /** @param {!proto.ressource.GetAllActionsRqst} request */
+  /**
+   * @param {!proto.ressource.GetAllActionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -833,7 +1163,7 @@ proto.ressource.RessourceServiceClient.prototype.getAllActions =
       '/ressource.RessourceService/GetAllActions',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllActions,
+      methodDescriptor_RessourceService_GetAllActions,
       callback);
 };
 
@@ -852,8 +1182,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllActions =
       '/ressource.RessourceService/GetAllActions',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllActions);
+      methodDescriptor_RessourceService_GetAllActions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetPermissionsRqst,
+ *   !proto.ressource.GetPermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_GetPermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetPermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetPermissionsRqst,
+  proto.ressource.GetPermissionsRsp,
+  /**
+   * @param {!proto.ressource.GetPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetPermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -864,7 +1216,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllActions =
  */
 const methodInfo_RessourceService_GetPermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetPermissionsRsp,
-  /** @param {!proto.ressource.GetPermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.GetPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -888,7 +1243,7 @@ proto.ressource.RessourceServiceClient.prototype.getPermissions =
       '/ressource.RessourceService/GetPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetPermissions,
+      methodDescriptor_RessourceService_GetPermissions,
       callback);
 };
 
@@ -907,8 +1262,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getPermissions =
       '/ressource.RessourceService/GetPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetPermissions);
+      methodDescriptor_RessourceService_GetPermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.SetPermissionRqst,
+ *   !proto.ressource.SetPermissionRsp>}
+ */
+const methodDescriptor_RessourceService_SetPermission = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/SetPermission',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.SetPermissionRqst,
+  proto.ressource.SetPermissionRsp,
+  /**
+   * @param {!proto.ressource.SetPermissionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SetPermissionRsp.deserializeBinary
+);
 
 
 /**
@@ -919,7 +1296,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getPermissions =
  */
 const methodInfo_RessourceService_SetPermission = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.SetPermissionRsp,
-  /** @param {!proto.ressource.SetPermissionRqst} request */
+  /**
+   * @param {!proto.ressource.SetPermissionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -943,7 +1323,7 @@ proto.ressource.RessourceServiceClient.prototype.setPermission =
       '/ressource.RessourceService/SetPermission',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetPermission,
+      methodDescriptor_RessourceService_SetPermission,
       callback);
 };
 
@@ -962,8 +1342,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.setPermission =
       '/ressource.RessourceService/SetPermission',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetPermission);
+      methodDescriptor_RessourceService_SetPermission);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeletePermissionsRqst,
+ *   !proto.ressource.DeletePermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_DeletePermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeletePermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeletePermissionsRqst,
+  proto.ressource.DeletePermissionsRsp,
+  /**
+   * @param {!proto.ressource.DeletePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeletePermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -974,7 +1376,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.setPermission =
  */
 const methodInfo_RessourceService_DeletePermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeletePermissionsRsp,
-  /** @param {!proto.ressource.DeletePermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.DeletePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -998,7 +1403,7 @@ proto.ressource.RessourceServiceClient.prototype.deletePermissions =
       '/ressource.RessourceService/DeletePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeletePermissions,
+      methodDescriptor_RessourceService_DeletePermissions,
       callback);
 };
 
@@ -1017,8 +1422,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deletePermissions =
       '/ressource.RessourceService/DeletePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeletePermissions);
+      methodDescriptor_RessourceService_DeletePermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.SetRessourceOwnerRqst,
+ *   !proto.ressource.SetRessourceOwnerRsp>}
+ */
+const methodDescriptor_RessourceService_SetRessourceOwner = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/SetRessourceOwner',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.SetRessourceOwnerRqst,
+  proto.ressource.SetRessourceOwnerRsp,
+  /**
+   * @param {!proto.ressource.SetRessourceOwnerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SetRessourceOwnerRsp.deserializeBinary
+);
 
 
 /**
@@ -1029,7 +1456,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deletePermissions =
  */
 const methodInfo_RessourceService_SetRessourceOwner = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.SetRessourceOwnerRsp,
-  /** @param {!proto.ressource.SetRessourceOwnerRqst} request */
+  /**
+   * @param {!proto.ressource.SetRessourceOwnerRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1053,7 +1483,7 @@ proto.ressource.RessourceServiceClient.prototype.setRessourceOwner =
       '/ressource.RessourceService/SetRessourceOwner',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetRessourceOwner,
+      methodDescriptor_RessourceService_SetRessourceOwner,
       callback);
 };
 
@@ -1072,8 +1502,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.setRessourceOwner =
       '/ressource.RessourceService/SetRessourceOwner',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetRessourceOwner);
+      methodDescriptor_RessourceService_SetRessourceOwner);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetRessourceOwnersRqst,
+ *   !proto.ressource.GetRessourceOwnersRsp>}
+ */
+const methodDescriptor_RessourceService_GetRessourceOwners = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetRessourceOwners',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetRessourceOwnersRqst,
+  proto.ressource.GetRessourceOwnersRsp,
+  /**
+   * @param {!proto.ressource.GetRessourceOwnersRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetRessourceOwnersRsp.deserializeBinary
+);
 
 
 /**
@@ -1084,7 +1536,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.setRessourceOwner =
  */
 const methodInfo_RessourceService_GetRessourceOwners = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetRessourceOwnersRsp,
-  /** @param {!proto.ressource.GetRessourceOwnersRqst} request */
+  /**
+   * @param {!proto.ressource.GetRessourceOwnersRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1108,7 +1563,7 @@ proto.ressource.RessourceServiceClient.prototype.getRessourceOwners =
       '/ressource.RessourceService/GetRessourceOwners',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetRessourceOwners,
+      methodDescriptor_RessourceService_GetRessourceOwners,
       callback);
 };
 
@@ -1127,8 +1582,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getRessourceOwners =
       '/ressource.RessourceService/GetRessourceOwners',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetRessourceOwners);
+      methodDescriptor_RessourceService_GetRessourceOwners);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteRessourceOwnerRqst,
+ *   !proto.ressource.DeleteRessourceOwnerRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteRessourceOwner = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteRessourceOwner',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteRessourceOwnerRqst,
+  proto.ressource.DeleteRessourceOwnerRsp,
+  /**
+   * @param {!proto.ressource.DeleteRessourceOwnerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRessourceOwnerRsp.deserializeBinary
+);
 
 
 /**
@@ -1139,7 +1616,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getRessourceOwners =
  */
 const methodInfo_RessourceService_DeleteRessourceOwner = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteRessourceOwnerRsp,
-  /** @param {!proto.ressource.DeleteRessourceOwnerRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteRessourceOwnerRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1163,7 +1643,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteRessourceOwner =
       '/ressource.RessourceService/DeleteRessourceOwner',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRessourceOwner,
+      methodDescriptor_RessourceService_DeleteRessourceOwner,
       callback);
 };
 
@@ -1182,8 +1662,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwner =
       '/ressource.RessourceService/DeleteRessourceOwner',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRessourceOwner);
+      methodDescriptor_RessourceService_DeleteRessourceOwner);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteRessourceOwnersRqst,
+ *   !proto.ressource.DeleteRessourceOwnersRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteRessourceOwners = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteRessourceOwners',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteRessourceOwnersRqst,
+  proto.ressource.DeleteRessourceOwnersRsp,
+  /**
+   * @param {!proto.ressource.DeleteRessourceOwnersRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRessourceOwnersRsp.deserializeBinary
+);
 
 
 /**
@@ -1194,7 +1696,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwner =
  */
 const methodInfo_RessourceService_DeleteRessourceOwners = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteRessourceOwnersRsp,
-  /** @param {!proto.ressource.DeleteRessourceOwnersRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteRessourceOwnersRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1218,7 +1723,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteRessourceOwners =
       '/ressource.RessourceService/DeleteRessourceOwners',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRessourceOwners,
+      methodDescriptor_RessourceService_DeleteRessourceOwners,
       callback);
 };
 
@@ -1237,8 +1742,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwners =
       '/ressource.RessourceService/DeleteRessourceOwners',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRessourceOwners);
+      methodDescriptor_RessourceService_DeleteRessourceOwners);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetAllFilesInfoRqst,
+ *   !proto.ressource.GetAllFilesInfoRsp>}
+ */
+const methodDescriptor_RessourceService_GetAllFilesInfo = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetAllFilesInfo',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetAllFilesInfoRqst,
+  proto.ressource.GetAllFilesInfoRsp,
+  /**
+   * @param {!proto.ressource.GetAllFilesInfoRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllFilesInfoRsp.deserializeBinary
+);
 
 
 /**
@@ -1249,7 +1776,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRessourceOwners =
  */
 const methodInfo_RessourceService_GetAllFilesInfo = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetAllFilesInfoRsp,
-  /** @param {!proto.ressource.GetAllFilesInfoRqst} request */
+  /**
+   * @param {!proto.ressource.GetAllFilesInfoRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1273,7 +1803,7 @@ proto.ressource.RessourceServiceClient.prototype.getAllFilesInfo =
       '/ressource.RessourceService/GetAllFilesInfo',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllFilesInfo,
+      methodDescriptor_RessourceService_GetAllFilesInfo,
       callback);
 };
 
@@ -1292,8 +1822,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
       '/ressource.RessourceService/GetAllFilesInfo',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllFilesInfo);
+      methodDescriptor_RessourceService_GetAllFilesInfo);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidateUserFileAccessRqst,
+ *   !proto.ressource.ValidateUserFileAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidateUserFileAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidateUserFileAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidateUserFileAccessRqst,
+  proto.ressource.ValidateUserFileAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidateUserFileAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateUserFileAccessRsp.deserializeBinary
+);
 
 
 /**
@@ -1304,7 +1856,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
  */
 const methodInfo_RessourceService_ValidateUserFileAccess = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ValidateUserFileAccessRsp,
-  /** @param {!proto.ressource.ValidateUserFileAccessRqst} request */
+  /**
+   * @param {!proto.ressource.ValidateUserFileAccessRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1328,7 +1883,7 @@ proto.ressource.RessourceServiceClient.prototype.validateUserFileAccess =
       '/ressource.RessourceService/ValidateUserFileAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateUserFileAccess,
+      methodDescriptor_RessourceService_ValidateUserFileAccess,
       callback);
 };
 
@@ -1347,8 +1902,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateUserFileAccess =
       '/ressource.RessourceService/ValidateUserFileAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateUserFileAccess);
+      methodDescriptor_RessourceService_ValidateUserFileAccess);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidateApplicationFileAccessRqst,
+ *   !proto.ressource.ValidateApplicationFileAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidateApplicationFileAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidateApplicationFileAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidateApplicationFileAccessRqst,
+  proto.ressource.ValidateApplicationFileAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidateApplicationFileAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateApplicationFileAccessRsp.deserializeBinary
+);
 
 
 /**
@@ -1359,7 +1936,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateUserFileAccess =
  */
 const methodInfo_RessourceService_ValidateApplicationFileAccess = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ValidateApplicationFileAccessRsp,
-  /** @param {!proto.ressource.ValidateApplicationFileAccessRqst} request */
+  /**
+   * @param {!proto.ressource.ValidateApplicationFileAccessRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1383,7 +1963,7 @@ proto.ressource.RessourceServiceClient.prototype.validateApplicationFileAccess =
       '/ressource.RessourceService/ValidateApplicationFileAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateApplicationFileAccess,
+      methodDescriptor_RessourceService_ValidateApplicationFileAccess,
       callback);
 };
 
@@ -1402,8 +1982,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationFileA
       '/ressource.RessourceService/ValidateApplicationFileAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateApplicationFileAccess);
+      methodDescriptor_RessourceService_ValidateApplicationFileAccess);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidateUserAccessRqst,
+ *   !proto.ressource.ValidateUserAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidateUserAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidateUserAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidateUserAccessRqst,
+  proto.ressource.ValidateUserAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidateUserAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateUserAccessRsp.deserializeBinary
+);
 
 
 /**
@@ -1414,7 +2016,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationFileA
  */
 const methodInfo_RessourceService_ValidateUserAccess = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ValidateUserAccessRsp,
-  /** @param {!proto.ressource.ValidateUserAccessRqst} request */
+  /**
+   * @param {!proto.ressource.ValidateUserAccessRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1438,7 +2043,7 @@ proto.ressource.RessourceServiceClient.prototype.validateUserAccess =
       '/ressource.RessourceService/ValidateUserAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateUserAccess,
+      methodDescriptor_RessourceService_ValidateUserAccess,
       callback);
 };
 
@@ -1457,8 +2062,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateUserAccess =
       '/ressource.RessourceService/ValidateUserAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateUserAccess);
+      methodDescriptor_RessourceService_ValidateUserAccess);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidateApplicationAccessRqst,
+ *   !proto.ressource.ValidateApplicationAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidateApplicationAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidateApplicationAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidateApplicationAccessRqst,
+  proto.ressource.ValidateApplicationAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidateApplicationAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateApplicationAccessRsp.deserializeBinary
+);
 
 
 /**
@@ -1469,7 +2096,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateUserAccess =
  */
 const methodInfo_RessourceService_ValidateApplicationAccess = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ValidateApplicationAccessRsp,
-  /** @param {!proto.ressource.ValidateApplicationAccessRqst} request */
+  /**
+   * @param {!proto.ressource.ValidateApplicationAccessRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1493,7 +2123,7 @@ proto.ressource.RessourceServiceClient.prototype.validateApplicationAccess =
       '/ressource.RessourceService/ValidateApplicationAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateApplicationAccess,
+      methodDescriptor_RessourceService_ValidateApplicationAccess,
       callback);
 };
 
@@ -1512,8 +2142,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationAcces
       '/ressource.RessourceService/ValidateApplicationAccess',
       request,
       metadata || {},
-      methodInfo_RessourceService_ValidateApplicationAccess);
+      methodDescriptor_RessourceService_ValidateApplicationAccess);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.CreateDirPermissionsRqst,
+ *   !proto.ressource.CreateDirPermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_CreateDirPermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/CreateDirPermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.CreateDirPermissionsRqst,
+  proto.ressource.CreateDirPermissionsRsp,
+  /**
+   * @param {!proto.ressource.CreateDirPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.CreateDirPermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -1524,7 +2176,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationAcces
  */
 const methodInfo_RessourceService_CreateDirPermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.CreateDirPermissionsRsp,
-  /** @param {!proto.ressource.CreateDirPermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.CreateDirPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1548,7 +2203,7 @@ proto.ressource.RessourceServiceClient.prototype.createDirPermissions =
       '/ressource.RessourceService/CreateDirPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_CreateDirPermissions,
+      methodDescriptor_RessourceService_CreateDirPermissions,
       callback);
 };
 
@@ -1567,8 +2222,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.createDirPermissions =
       '/ressource.RessourceService/CreateDirPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_CreateDirPermissions);
+      methodDescriptor_RessourceService_CreateDirPermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RenameFilePermissionRqst,
+ *   !proto.ressource.RenameFilePermissionRsp>}
+ */
+const methodDescriptor_RessourceService_RenameFilePermission = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RenameFilePermission',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RenameFilePermissionRqst,
+  proto.ressource.RenameFilePermissionRsp,
+  /**
+   * @param {!proto.ressource.RenameFilePermissionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RenameFilePermissionRsp.deserializeBinary
+);
 
 
 /**
@@ -1579,7 +2256,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.createDirPermissions =
  */
 const methodInfo_RessourceService_RenameFilePermission = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RenameFilePermissionRsp,
-  /** @param {!proto.ressource.RenameFilePermissionRqst} request */
+  /**
+   * @param {!proto.ressource.RenameFilePermissionRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1603,7 +2283,7 @@ proto.ressource.RessourceServiceClient.prototype.renameFilePermission =
       '/ressource.RessourceService/RenameFilePermission',
       request,
       metadata || {},
-      methodInfo_RessourceService_RenameFilePermission,
+      methodDescriptor_RessourceService_RenameFilePermission,
       callback);
 };
 
@@ -1622,8 +2302,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.renameFilePermission =
       '/ressource.RessourceService/RenameFilePermission',
       request,
       metadata || {},
-      methodInfo_RessourceService_RenameFilePermission);
+      methodDescriptor_RessourceService_RenameFilePermission);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteDirPermissionsRqst,
+ *   !proto.ressource.DeleteDirPermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteDirPermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteDirPermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteDirPermissionsRqst,
+  proto.ressource.DeleteDirPermissionsRsp,
+  /**
+   * @param {!proto.ressource.DeleteDirPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteDirPermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -1634,7 +2336,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.renameFilePermission =
  */
 const methodInfo_RessourceService_DeleteDirPermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteDirPermissionsRsp,
-  /** @param {!proto.ressource.DeleteDirPermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteDirPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1658,7 +2363,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteDirPermissions =
       '/ressource.RessourceService/DeleteDirPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteDirPermissions,
+      methodDescriptor_RessourceService_DeleteDirPermissions,
       callback);
 };
 
@@ -1677,8 +2382,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteDirPermissions =
       '/ressource.RessourceService/DeleteDirPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteDirPermissions);
+      methodDescriptor_RessourceService_DeleteDirPermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteFilePermissionsRqst,
+ *   !proto.ressource.DeleteFilePermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteFilePermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteFilePermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteFilePermissionsRqst,
+  proto.ressource.DeleteFilePermissionsRsp,
+  /**
+   * @param {!proto.ressource.DeleteFilePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteFilePermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -1689,7 +2416,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteDirPermissions =
  */
 const methodInfo_RessourceService_DeleteFilePermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteFilePermissionsRsp,
-  /** @param {!proto.ressource.DeleteFilePermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteFilePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1713,7 +2443,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteFilePermissions =
       '/ressource.RessourceService/DeleteFilePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteFilePermissions,
+      methodDescriptor_RessourceService_DeleteFilePermissions,
       callback);
 };
 
@@ -1732,8 +2462,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteFilePermissions =
       '/ressource.RessourceService/DeleteFilePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteFilePermissions);
+      methodDescriptor_RessourceService_DeleteFilePermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteAccountPermissionsRqst,
+ *   !proto.ressource.DeleteAccountPermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteAccountPermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteAccountPermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteAccountPermissionsRqst,
+  proto.ressource.DeleteAccountPermissionsRsp,
+  /**
+   * @param {!proto.ressource.DeleteAccountPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteAccountPermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -1744,7 +2496,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteFilePermissions =
  */
 const methodInfo_RessourceService_DeleteAccountPermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteAccountPermissionsRsp,
-  /** @param {!proto.ressource.DeleteAccountPermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteAccountPermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1768,7 +2523,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteAccountPermissions =
       '/ressource.RessourceService/DeleteAccountPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteAccountPermissions,
+      methodDescriptor_RessourceService_DeleteAccountPermissions,
       callback);
 };
 
@@ -1787,8 +2542,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteAccountPermissions
       '/ressource.RessourceService/DeleteAccountPermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteAccountPermissions);
+      methodDescriptor_RessourceService_DeleteAccountPermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteRolePermissionsRqst,
+ *   !proto.ressource.DeleteRolePermissionsRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteRolePermissions = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteRolePermissions',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteRolePermissionsRqst,
+  proto.ressource.DeleteRolePermissionsRsp,
+  /**
+   * @param {!proto.ressource.DeleteRolePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteRolePermissionsRsp.deserializeBinary
+);
 
 
 /**
@@ -1799,7 +2576,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteAccountPermissions
  */
 const methodInfo_RessourceService_DeleteRolePermissions = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteRolePermissionsRsp,
-  /** @param {!proto.ressource.DeleteRolePermissionsRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteRolePermissionsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1823,7 +2603,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteRolePermissions =
       '/ressource.RessourceService/DeleteRolePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRolePermissions,
+      methodDescriptor_RessourceService_DeleteRolePermissions,
       callback);
 };
 
@@ -1842,8 +2622,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRolePermissions =
       '/ressource.RessourceService/DeleteRolePermissions',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteRolePermissions);
+      methodDescriptor_RessourceService_DeleteRolePermissions);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetAllApplicationsInfoRqst,
+ *   !proto.ressource.GetAllApplicationsInfoRsp>}
+ */
+const methodDescriptor_RessourceService_GetAllApplicationsInfo = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetAllApplicationsInfo',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetAllApplicationsInfoRqst,
+  proto.ressource.GetAllApplicationsInfoRsp,
+  /**
+   * @param {!proto.ressource.GetAllApplicationsInfoRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetAllApplicationsInfoRsp.deserializeBinary
+);
 
 
 /**
@@ -1854,7 +2656,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteRolePermissions =
  */
 const methodInfo_RessourceService_GetAllApplicationsInfo = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetAllApplicationsInfoRsp,
-  /** @param {!proto.ressource.GetAllApplicationsInfoRqst} request */
+  /**
+   * @param {!proto.ressource.GetAllApplicationsInfoRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1878,7 +2683,7 @@ proto.ressource.RessourceServiceClient.prototype.getAllApplicationsInfo =
       '/ressource.RessourceService/GetAllApplicationsInfo',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllApplicationsInfo,
+      methodDescriptor_RessourceService_GetAllApplicationsInfo,
       callback);
 };
 
@@ -1897,8 +2702,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllApplicationsInfo =
       '/ressource.RessourceService/GetAllApplicationsInfo',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetAllApplicationsInfo);
+      methodDescriptor_RessourceService_GetAllApplicationsInfo);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteApplicationRqst,
+ *   !proto.ressource.DeleteApplicationRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteApplication = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteApplication',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteApplicationRqst,
+  proto.ressource.DeleteApplicationRsp,
+  /**
+   * @param {!proto.ressource.DeleteApplicationRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteApplicationRsp.deserializeBinary
+);
 
 
 /**
@@ -1909,7 +2736,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllApplicationsInfo =
  */
 const methodInfo_RessourceService_DeleteApplication = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteApplicationRsp,
-  /** @param {!proto.ressource.DeleteApplicationRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteApplicationRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1933,7 +2763,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteApplication =
       '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteApplication,
+      methodDescriptor_RessourceService_DeleteApplication,
       callback);
 };
 
@@ -1952,8 +2782,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteApplication =
       '/ressource.RessourceService/DeleteApplication',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteApplication);
+      methodDescriptor_RessourceService_DeleteApplication);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.LogRqst,
+ *   !proto.ressource.LogRsp>}
+ */
+const methodDescriptor_RessourceService_Log = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/Log',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.LogRqst,
+  proto.ressource.LogRsp,
+  /**
+   * @param {!proto.ressource.LogRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.LogRsp.deserializeBinary
+);
 
 
 /**
@@ -1964,7 +2816,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteApplication =
  */
 const methodInfo_RessourceService_Log = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.LogRsp,
-  /** @param {!proto.ressource.LogRqst} request */
+  /**
+   * @param {!proto.ressource.LogRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -1988,7 +2843,7 @@ proto.ressource.RessourceServiceClient.prototype.log =
       '/ressource.RessourceService/Log',
       request,
       metadata || {},
-      methodInfo_RessourceService_Log,
+      methodDescriptor_RessourceService_Log,
       callback);
 };
 
@@ -2007,8 +2862,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.log =
       '/ressource.RessourceService/Log',
       request,
       metadata || {},
-      methodInfo_RessourceService_Log);
+      methodDescriptor_RessourceService_Log);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.SetLogMethodRqst,
+ *   !proto.ressource.SetLogMethodRsp>}
+ */
+const methodDescriptor_RessourceService_SetLogMethod = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/SetLogMethod',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.SetLogMethodRqst,
+  proto.ressource.SetLogMethodRsp,
+  /**
+   * @param {!proto.ressource.SetLogMethodRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.SetLogMethodRsp.deserializeBinary
+);
 
 
 /**
@@ -2019,7 +2896,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.log =
  */
 const methodInfo_RessourceService_SetLogMethod = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.SetLogMethodRsp,
-  /** @param {!proto.ressource.SetLogMethodRqst} request */
+  /**
+   * @param {!proto.ressource.SetLogMethodRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2043,7 +2923,7 @@ proto.ressource.RessourceServiceClient.prototype.setLogMethod =
       '/ressource.RessourceService/SetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetLogMethod,
+      methodDescriptor_RessourceService_SetLogMethod,
       callback);
 };
 
@@ -2062,8 +2942,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.setLogMethod =
       '/ressource.RessourceService/SetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_SetLogMethod);
+      methodDescriptor_RessourceService_SetLogMethod);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ResetLogMethodRqst,
+ *   !proto.ressource.ResetLogMethodRsp>}
+ */
+const methodDescriptor_RessourceService_ResetLogMethod = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ResetLogMethod',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ResetLogMethodRqst,
+  proto.ressource.ResetLogMethodRsp,
+  /**
+   * @param {!proto.ressource.ResetLogMethodRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ResetLogMethodRsp.deserializeBinary
+);
 
 
 /**
@@ -2074,7 +2976,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.setLogMethod =
  */
 const methodInfo_RessourceService_ResetLogMethod = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ResetLogMethodRsp,
-  /** @param {!proto.ressource.ResetLogMethodRqst} request */
+  /**
+   * @param {!proto.ressource.ResetLogMethodRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2098,7 +3003,7 @@ proto.ressource.RessourceServiceClient.prototype.resetLogMethod =
       '/ressource.RessourceService/ResetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_ResetLogMethod,
+      methodDescriptor_RessourceService_ResetLogMethod,
       callback);
 };
 
@@ -2117,8 +3022,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.resetLogMethod =
       '/ressource.RessourceService/ResetLogMethod',
       request,
       metadata || {},
-      methodInfo_RessourceService_ResetLogMethod);
+      methodDescriptor_RessourceService_ResetLogMethod);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetLogMethodsRqst,
+ *   !proto.ressource.GetLogMethodsRsp>}
+ */
+const methodDescriptor_RessourceService_GetLogMethods = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetLogMethods',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.GetLogMethodsRqst,
+  proto.ressource.GetLogMethodsRsp,
+  /**
+   * @param {!proto.ressource.GetLogMethodsRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetLogMethodsRsp.deserializeBinary
+);
 
 
 /**
@@ -2129,7 +3056,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.resetLogMethod =
  */
 const methodInfo_RessourceService_GetLogMethods = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetLogMethodsRsp,
-  /** @param {!proto.ressource.GetLogMethodsRqst} request */
+  /**
+   * @param {!proto.ressource.GetLogMethodsRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2153,7 +3083,7 @@ proto.ressource.RessourceServiceClient.prototype.getLogMethods =
       '/ressource.RessourceService/GetLogMethods',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetLogMethods,
+      methodDescriptor_RessourceService_GetLogMethods,
       callback);
 };
 
@@ -2172,8 +3102,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getLogMethods =
       '/ressource.RessourceService/GetLogMethods',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetLogMethods);
+      methodDescriptor_RessourceService_GetLogMethods);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetLogRqst,
+ *   !proto.ressource.GetLogRsp>}
+ */
+const methodDescriptor_RessourceService_GetLog = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetLog',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.ressource.GetLogRqst,
+  proto.ressource.GetLogRsp,
+  /**
+   * @param {!proto.ressource.GetLogRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetLogRsp.deserializeBinary
+);
 
 
 /**
@@ -2184,7 +3136,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getLogMethods =
  */
 const methodInfo_RessourceService_GetLog = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.GetLogRsp,
-  /** @param {!proto.ressource.GetLogRqst} request */
+  /**
+   * @param {!proto.ressource.GetLogRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2205,7 +3160,7 @@ proto.ressource.RessourceServiceClient.prototype.getLog =
       '/ressource.RessourceService/GetLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetLog);
+      methodDescriptor_RessourceService_GetLog);
 };
 
 
@@ -2222,8 +3177,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.getLog =
       '/ressource.RessourceService/GetLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_GetLog);
+      methodDescriptor_RessourceService_GetLog);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeleteLogRqst,
+ *   !proto.ressource.DeleteLogRsp>}
+ */
+const methodDescriptor_RessourceService_DeleteLog = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeleteLog',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeleteLogRqst,
+  proto.ressource.DeleteLogRsp,
+  /**
+   * @param {!proto.ressource.DeleteLogRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeleteLogRsp.deserializeBinary
+);
 
 
 /**
@@ -2234,7 +3211,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.getLog =
  */
 const methodInfo_RessourceService_DeleteLog = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.DeleteLogRsp,
-  /** @param {!proto.ressource.DeleteLogRqst} request */
+  /**
+   * @param {!proto.ressource.DeleteLogRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2258,7 +3238,7 @@ proto.ressource.RessourceServiceClient.prototype.deleteLog =
       '/ressource.RessourceService/DeleteLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteLog,
+      methodDescriptor_RessourceService_DeleteLog,
       callback);
 };
 
@@ -2277,8 +3257,30 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteLog =
       '/ressource.RessourceService/DeleteLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_DeleteLog);
+      methodDescriptor_RessourceService_DeleteLog);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ClearAllLogRqst,
+ *   !proto.ressource.ClearAllLogRsp>}
+ */
+const methodDescriptor_RessourceService_ClearAllLog = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ClearAllLog',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ClearAllLogRqst,
+  proto.ressource.ClearAllLogRsp,
+  /**
+   * @param {!proto.ressource.ClearAllLogRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ClearAllLogRsp.deserializeBinary
+);
 
 
 /**
@@ -2289,7 +3291,10 @@ proto.ressource.RessourceServicePromiseClient.prototype.deleteLog =
  */
 const methodInfo_RessourceService_ClearAllLog = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.ClearAllLogRsp,
-  /** @param {!proto.ressource.ClearAllLogRqst} request */
+  /**
+   * @param {!proto.ressource.ClearAllLogRqst} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -2313,7 +3318,7 @@ proto.ressource.RessourceServiceClient.prototype.clearAllLog =
       '/ressource.RessourceService/ClearAllLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_ClearAllLog,
+      methodDescriptor_RessourceService_ClearAllLog,
       callback);
 };
 
@@ -2332,7 +3337,7 @@ proto.ressource.RessourceServicePromiseClient.prototype.clearAllLog =
       '/ressource.RessourceService/ClearAllLog',
       request,
       metadata || {},
-      methodInfo_RessourceService_ClearAllLog);
+      methodDescriptor_RessourceService_ClearAllLog);
 };
 
 

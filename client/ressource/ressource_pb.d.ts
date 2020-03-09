@@ -609,19 +609,15 @@ export class RessourcePermission extends jspb.Message {
 
   getUser(): string;
   setUser(value: string): void;
-  hasUser(): boolean;
 
   getRole(): string;
   setRole(value: string): void;
-  hasRole(): boolean;
 
   getApplication(): string;
   setApplication(value: string): void;
-  hasApplication(): boolean;
 
   getService(): string;
   setService(value: string): void;
-  hasService(): boolean;
 
   getOwnerCase(): RessourcePermission.OwnerCase;
 
@@ -1743,8 +1739,8 @@ export namespace GetLogMethodsRsp {
 }
 
 export class GetLogRqst extends jspb.Message {
-  getType(): LogType;
-  setType(value: LogType): void;
+  getQuery(): string;
+  setQuery(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetLogRqst.AsObject;
@@ -1756,7 +1752,7 @@ export class GetLogRqst extends jspb.Message {
 
 export namespace GetLogRqst {
   export type AsObject = {
-    type: LogType,
+    query: string,
   }
 }
 

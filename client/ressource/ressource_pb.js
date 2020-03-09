@@ -14729,7 +14729,7 @@ proto.ressource.GetLogRqst.prototype.toObject = function(opt_includeInstance) {
  */
 proto.ressource.GetLogRqst.toObject = function(includeInstance, msg) {
   var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0)
+    query: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -14767,8 +14767,8 @@ proto.ressource.GetLogRqst.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {!proto.ressource.LogType} */ (reader.readEnum());
-      msg.setType(value);
+      var value = /** @type {string} */ (reader.readString());
+      msg.setQuery(value);
       break;
     default:
       reader.skipField();
@@ -14799,9 +14799,9 @@ proto.ressource.GetLogRqst.prototype.serializeBinary = function() {
  */
 proto.ressource.GetLogRqst.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getType();
-  if (f !== 0.0) {
-    writer.writeEnum(
+  f = message.getQuery();
+  if (f.length > 0) {
+    writer.writeString(
       1,
       f
     );
@@ -14810,20 +14810,20 @@ proto.ressource.GetLogRqst.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional LogType type = 1;
- * @return {!proto.ressource.LogType}
+ * optional string query = 1;
+ * @return {string}
  */
-proto.ressource.GetLogRqst.prototype.getType = function() {
-  return /** @type {!proto.ressource.LogType} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ressource.GetLogRqst.prototype.getQuery = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {!proto.ressource.LogType} value
+ * @param {string} value
  * @return {!proto.ressource.GetLogRqst} returns this
  */
-proto.ressource.GetLogRqst.prototype.setType = function(value) {
-  return jspb.Message.setProto3EnumField(this, 1, value);
+proto.ressource.GetLogRqst.prototype.setQuery = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 

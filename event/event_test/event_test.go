@@ -8,24 +8,20 @@ import (
 	"time"
 
 	"github.com/davecourtois/Globular/event/event_client"
+	"github.com/davecourtois/Globular/event/eventpb"
+	"github.com/davecourtois/Utility"
 )
 
 func subscribeTo(client *event_client.Event_Client, subject string) string {
-	data_chan := make(chan []byte)
-	uuid, err := client.Subscribe(subject, data_chan)
-
-	if err != nil {
-		log.Println(err)
+	fct := func(evt *eventpb.Event) {
+		log.Println("---> event received: ", string(evt.Data))
 	}
 
-	go func() {
-		for {
-			select {
-			case msg := <-data_chan:
-				log.Println(string(msg))
-			}
-		}
-	}()
+	uuid := Utility.RandomUUID()
+	err := client.Subscribe(subject, uuid, fct)
+	if err != nil {
+		log.Println("---> err", err)
+	}
 	return uuid
 }
 
@@ -38,7 +34,7 @@ func TestEventService(t *testing.T) {
 
 	// The topic.
 	subject := "my topic"
-	size := 1000 // test with 500 client...
+	size := 50 // test with 500 client...
 	clients := make([]*event_client.Event_Client, size)
 	uuids := make([]string, size)
 	for i := 0; i < size; i++ {
@@ -47,8 +43,9 @@ func TestEventService(t *testing.T) {
 		log.Println("client ", i)
 		clients[i] = c
 	}
+
 	for i := 0; i < 50; i++ {
-		clients[0].Publish(subject, []byte("--->"+strconv.Itoa(i)+" this is a message!"))
+		clients[0].Publish(subject, []byte("--->"+strconv.Itoa(i)+" this is a message! "+Utility.ToString(i)))
 	}
 
 	// Here I will simply suspend this thread to give time to publish message

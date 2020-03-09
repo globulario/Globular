@@ -1910,13 +1910,6 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// So here I will send an plublish event...
-	event, err := self.getEventHub()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	err = os.Remove(rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
@@ -1928,7 +1921,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	data, _ := json.Marshal(serviceDescriptor)
 
 	// Here I will send an event that the service has a new version...
-	event.Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", data)
+	self.getEventHub().Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", data)
 
 	return &admin.PublishServiceResponse{
 		Result: true,
@@ -2826,7 +2819,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested ressource.
 func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
-
+	//log.Panicln("----------------------------> authenticate")
 	// Get the persistence connection
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -3900,8 +3893,7 @@ func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressour
 	}
 
 	// Publish event...
-	hub, _ := self.getEventHub()
-	hub.Publish("log_"+rqst.Info.Method, []byte(jsonStr))
+	self.getEventHub().Publish(rqst.Info.Method, []byte(jsonStr))
 
 	return &ressource.LogRsp{
 		Result: true,
@@ -3918,8 +3910,12 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 	}
 
 	// The list of all retreive info.
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
 
-	data, err := p.Find("local_ressource", "local_ressource", "Logs", `{"type":`+Utility.ToString(rqst.GetType())+`}`, "")
+	data, err := p.Find("local_ressource", "local_ressource", "Logs", query, "")
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -3994,12 +3990,18 @@ func (self *Globule) SetLogMethod(ctx context.Context, rqst *ressource.SetLogMet
 	}
 
 	// Set the event channnel.
-	hub, _ := self.getEventHub()
+	eventHub := event_client.NewEvent_Client("localhost", "event_server")
 	handler := func(evt *eventpb.Event) {
-		log.Println(evt)
+		log.Println("4003 ------------> ", evt)
+		info := new(ressource.LogInfo)
+		err := jsonpb.UnmarshalString(string(evt.Data), info)
+		if err == nil {
+			self.log(info)
+		}
+
 	}
 
-	hub.Subscribe("log_"+rqst.Method, Utility.GenerateUUID("log_"+rqst.Method), handler)
+	eventHub.Subscribe(rqst.Method, Utility.GenerateUUID(rqst.Method), handler)
 
 	return &ressource.SetLogMethodRsp{
 		Result: true,
@@ -4023,8 +4025,7 @@ func (self *Globule) ResetLogMethod(ctx context.Context, rqst *ressource.ResetLo
 	}
 
 	// close the event channel.
-	hub, _ := self.getEventHub()
-	hub.UnSubscribe("log_"+rqst.Method, Utility.GenerateUUID("log_"+rqst.Method))
+	self.getEventHub().UnSubscribe(rqst.Method, Utility.GenerateUUID(rqst.Method))
 
 	return &ressource.ResetLogMethodRsp{
 		Result: true,
@@ -4039,8 +4040,13 @@ func (self *Globule) getLogMethods() ([]string, error) {
 	}
 
 	data, err := p.Find("local_ressource", "local_ressource", "LogMethods", `{}`, ``)
-	methods := make([]string, 0)
-	err = json.Unmarshal([]byte(data), &methods)
+	values := make([]interface{}, 0)
+	err = json.Unmarshal([]byte(data), &values)
+	methods := make([]string, len(values))
+	for i := 0; i < len(values); i++ {
+		methods[i] = values[i].(map[string]interface{})["name"].(string)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -4110,6 +4116,7 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
 
 	userId, _, _ := Interceptors.ValidateToken(token)
+
 	// Here I will use event to publish log information...
 	info := new(ressource.LogInfo)
 	info.Application = application
@@ -4130,14 +4137,15 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	}
 
 	// Publish event...
-	hub, _ := self.getEventHub()
-	hub.Publish("log_"+method, []byte(jsonStr))
+	self.getEventHub().Publish(method, []byte(jsonStr))
 
 	return nil
 }
 
 // unaryInterceptor calls authenticateClient with current context
 func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	method := info.FullMethod
+	log.Println("---> method call: ", method)
 
 	// The token and the application id.
 	var token string
@@ -4148,9 +4156,6 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		token = strings.Join(md["token"], "")
 	}
 
-	method := info.FullMethod
-
-	log.Println("---> method call: ", method, application, len(token))
 	hasAccess := false
 	var err error
 
@@ -4210,6 +4215,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	// Execute the action.
 	result, err := handler(ctx, req)
+
 	self.logInfo(application, method, token, err)
 
 	if err == nil {
@@ -5367,15 +5373,17 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 
 //////////////////////////////// Services management  //////////////////////////
 
+var eventClient *event_client.Event_Client
+
 /**
  * Get access to the event services.
  */
-func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
-	if self.clients["event_service"] == nil {
-		return nil, errors.New("No event service was found on the server.")
+func (self *Globule) getEventHub() *event_client.Event_Client {
+	if eventClient == nil {
+		// eventClient := self.clients["event_service"].(*event_client.Event_Client)
+		eventClient = event_client.NewEvent_Client("localhost", "event_server")
 	}
-
-	return self.clients["event_service"].(*event_client.Event_Client), nil
+	return eventClient
 }
 
 // Discovery
@@ -5882,16 +5890,24 @@ func (self *Globule) Listen() {
 		go func() {
 			go func() {
 				log.Println("Ressource service is up and running for domain ", self.Domain)
-				methods, err := self.getLogMethods()
 				handler := func(evt *eventpb.Event) {
-					log.Println(evt)
+					log.Println("------------------------------> 5902 ", evt)
+					info := new(ressource.LogInfo)
+					err := jsonpb.UnmarshalString(string(evt.Data), info)
+					if err == nil {
+						err := self.log(info)
+						if err != nil {
+							log.Println("---------> ", err)
+						}
+					} else {
+						log.Println("---------> ", err)
+					}
 				}
-
+				methods, err := self.getLogMethods()
 				if err == nil {
 					// Here I will connect the log event...
 					for i := 0; i < len(methods); i++ {
-						hub, _ := self.getEventHub()
-						hub.Subscribe("log_"+methods[i], Utility.GenerateUUID("log_"+methods[i]), handler)
+						self.getEventHub().Subscribe(methods[i], Utility.GenerateUUID(methods[i]), handler)
 					}
 				}
 
@@ -5903,6 +5919,7 @@ func (self *Globule) Listen() {
 					}
 					defer f.Close()
 				}
+
 				log.Println("Adim grpc service is closed")
 			}()
 			// Wait for signal to stop.

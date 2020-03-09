@@ -1,10 +1,9 @@
 package event_client
 
 import (
+	"io"
 	"log"
 	"strconv"
-
-	"io"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
@@ -61,7 +60,10 @@ func NewEvent_Client(address string, name string) *Event_Client {
 
 	// Here I will also open the event stream to receive event from server.
 	go func() {
-		client.run()
+		err := client.run()
+		if err != nil {
+			log.Println("-----> 65 ", err)
+		}
 	}()
 
 	return client
@@ -72,13 +74,16 @@ func NewEvent_Client(address string, name string) *Event_Client {
  * and the client. Local handler are kept in a map with a unique uuid, so many
  * handler can exist for a single event.
  */
-func (self *Event_Client) run() {
+func (self *Event_Client) run() error {
 
 	// Create the channel.
 	data_channel := make(chan *eventpb.Event, 0)
 
 	// start listenting to events from the server...
-	self.onEvent(self.uuid, data_channel)
+	err := self.onEvent(self.uuid, data_channel)
+	if err != nil {
+		return err
+	}
 
 	// the map that will contain the event handler.
 	handlers := make(map[string]map[string]func(*eventpb.Event))
@@ -108,6 +113,8 @@ func (self *Event_Client) run() {
 						delete(handler, action["uuid"].(string))
 					}
 				}
+			} else if action["action"].(string) == "stop" {
+				return nil
 			}
 		}
 	}
@@ -131,6 +138,11 @@ func (self *Event_Client) GetName() string {
 // must be close when no more needed.
 func (self *Event_Client) Close() {
 	self.cc.Close()
+	action := make(map[string]interface{})
+	action["action"] = "stop"
+
+	// set the action.
+	self.actions <- action
 }
 
 // Set grpc_service port.
@@ -210,12 +222,14 @@ func (self *Event_Client) Publish(name string, data interface{}) error {
 }
 
 func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event) error {
+
 	rqst := &eventpb.OnEventRequest{
 		Uuid: uuid,
 	}
 
 	stream, err := self.c.OnEvent(api.GetClientContext(self), rqst)
 	if err != nil {
+		log.Println("----> fail to connect to event server ", err)
 		return err
 	}
 
@@ -246,6 +260,7 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 // Subscribe to an event it return it subscriber uuid. The uuid must be use
 // to unsubscribe from the channel. data_channel is use to get event data.
 func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *eventpb.Event)) error {
+	log.Println("Subscribe to event ", name)
 	rqst := &eventpb.SubscribeRequest{
 		Name: name,
 		Uuid: self.uuid,
@@ -263,7 +278,9 @@ func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *even
 	action["fct"] = fct
 
 	// set the action.
+	log.Println("--------> 281")
 	self.actions <- action
+	log.Println("--------> 283")
 	return nil
 }
 

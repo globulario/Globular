@@ -427,7 +427,7 @@ message GetLogMethodsRsp{
 }
 
 message GetLogRqst{
-	LogType type = 1;
+	string query = 1;
 }
 
 message GetLogRsp{
