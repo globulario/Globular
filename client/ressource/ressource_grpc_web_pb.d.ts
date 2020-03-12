@@ -43,8 +43,6 @@ import {
   GetAllApplicationsInfoRsp,
   GetAllFilesInfoRqst,
   GetAllFilesInfoRsp,
-  GetLogMethodsRqst,
-  GetLogMethodsRsp,
   GetLogRqst,
   GetLogRsp,
   GetPermissionsRqst,
@@ -65,10 +63,6 @@ import {
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
   RenameFilePermissionRsp,
-  ResetLogMethodRqst,
-  ResetLogMethodRsp,
-  SetLogMethodRqst,
-  SetLogMethodRsp,
   SetPermissionRqst,
   SetPermissionRsp,
   SetRessourceOwnerRqst,
@@ -86,8 +80,8 @@ import {
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -334,27 +328,6 @@ export class RessourceServiceClient {
                response: LogRsp) => void
   ): grpcWeb.ClientReadableStream<LogRsp>;
 
-  setLogMethod(
-    request: SetLogMethodRqst,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.Error,
-               response: SetLogMethodRsp) => void
-  ): grpcWeb.ClientReadableStream<SetLogMethodRsp>;
-
-  resetLogMethod(
-    request: ResetLogMethodRqst,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.Error,
-               response: ResetLogMethodRsp) => void
-  ): grpcWeb.ClientReadableStream<ResetLogMethodRsp>;
-
-  getLogMethods(
-    request: GetLogMethodsRqst,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.Error,
-               response: GetLogMethodsRsp) => void
-  ): grpcWeb.ClientReadableStream<GetLogMethodsRsp>;
-
   getLog(
     request: GetLogRqst,
     metadata?: grpcWeb.Metadata
@@ -378,8 +351,8 @@ export class RessourceServiceClient {
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -555,21 +528,6 @@ export class RessourceServicePromiseClient {
     request: LogRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<LogRsp>;
-
-  setLogMethod(
-    request: SetLogMethodRqst,
-    metadata?: grpcWeb.Metadata
-  ): Promise<SetLogMethodRsp>;
-
-  resetLogMethod(
-    request: ResetLogMethodRqst,
-    metadata?: grpcWeb.Metadata
-  ): Promise<ResetLogMethodRsp>;
-
-  getLogMethods(
-    request: GetLogMethodsRqst,
-    metadata?: grpcWeb.Metadata
-  ): Promise<GetLogMethodsRsp>;
 
   getLog(
     request: GetLogRqst,

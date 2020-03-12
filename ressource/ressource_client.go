@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
 
@@ -168,8 +167,6 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 	// In case of other domain than localhost I will rip off the token file
 	// before each authentication.
 	path := os.TempDir() + string(os.PathSeparator) + self.GetDomain() + "_token"
-	log.Println("---> path ", path)
-	log.Println("---> is Local ", self.GetDomain(), Utility.IsLocal(self.GetDomain()))
 	if !Utility.IsLocal(self.GetDomain()) {
 		// remove the file if it already exist.
 		os.Remove(path)
@@ -513,14 +510,4 @@ func (self *Ressource_Client) Log(application string, userId string, method stri
 	_, err := self.c.Log(api.GetClientContext(self), rqst)
 
 	return err
-}
-
-// Return all log method.
-func (self *Ressource_Client) GetLogMethods() ([]string, error) {
-	rsp, err := self.c.GetLogMethods(api.GetClientContext(self), &GetLogMethodsRqst{})
-	if err != nil {
-		return nil, err
-	}
-
-	return rsp.Methods, nil
 }

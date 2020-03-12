@@ -554,21 +554,12 @@ service RessourceService {
 	/** Set a method into the log... **/
 	rpc Log(LogRqst) returns(LogRsp);
 	
-	/** Set a method into the log... **/
-	rpc SetLogMethod(SetLogMethodRqst) returns(SetLogMethodRsp);
-	
-	/** Reset a method from the log... **/
-	rpc ResetLogMethod(ResetLogMethodRqst) returns(ResetLogMethodRsp);
-	
-	/** Get the list of methods to be logs **/
-	rpc GetLogMethods(GetLogMethodsRqst) returns(GetLogMethodsRsp);
-	
-	/** Get erro/info from the log database **/
+	/** Get the list of logs **/
 	rpc GetLog(GetLogRqst) returns(stream GetLogRsp);
-	
-	/** Delete a log info with it date **/
+
+	/** Delete a single log entry **/
 	rpc DeleteLog(DeleteLogRqst) returns(DeleteLogRsp);
 	
-	/** Clear all INFO/ERROR at once **/
+	/** Delete all log **/
 	rpc ClearAllLog(ClearAllLogRqst) returns(ClearAllLogRsp);
 }

@@ -172,9 +172,8 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	}
 
 	method := info.FullMethod
-	log.Println("---> method call: ", method, application, len(token))
-
 	hasAccess := false
+
 	var err error
 	// Here is the list of method accessible by default.
 	if method == "/admin.AdminService/GetConfig" ||
@@ -243,7 +242,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	// Send log event...
 	clientId, _, _ := ValidateToken(token)
-	getRessourceClient().Log(application, method, clientId, err)
+	getRessourceClient().Log(application, clientId, method, err)
 
 	// Here depending of the request I will execute more actions.
 	if err == nil {
@@ -291,8 +290,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	method := info.FullMethod
-	log.Println("---> method call: ", method, application, len(token))
-
 	hasAccess := false
 	var err error
 	if method == "/persistence.PersistenceService/Find" {
@@ -321,9 +318,12 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	err = handler(srv, stream)
 
+	// TODO find when the stream is closing and log only one time.
+	//if err == io.EOF {
 	// Send log event...
 	clientId, _, _ := ValidateToken(token)
-	getRessourceClient().Log(application, method, clientId, err)
+	getRessourceClient().Log(application, clientId, method, err)
+	//}
 
 	if err != nil {
 		return err

@@ -62,7 +62,7 @@ func NewEvent_Client(address string, name string) *Event_Client {
 	go func() {
 		err := client.run()
 		if err != nil {
-			log.Println("-----> 65 ", err)
+			log.Println("Fail to create event client: ", err)
 		}
 	}()
 
@@ -205,7 +205,7 @@ func (self *Event_Client) SetCaFile(caFile string) {
 ///////////////////// API ///////////////////////
 // Publish and event over the network
 func (self *Event_Client) Publish(name string, data interface{}) error {
-	log.Println("publish event ", name)
+	//log.Println("publish event ", name)
 	rqst := &eventpb.PublishRequest{
 		Evt: &eventpb.Event{
 			Name: name,
@@ -260,7 +260,7 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 // Subscribe to an event it return it subscriber uuid. The uuid must be use
 // to unsubscribe from the channel. data_channel is use to get event data.
 func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *eventpb.Event)) error {
-	log.Println("Subscribe to event ", name)
+	//log.Println("Subscribe to event ", name)
 	rqst := &eventpb.SubscribeRequest{
 		Name: name,
 		Uuid: self.uuid,
@@ -278,15 +278,13 @@ func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *even
 	action["fct"] = fct
 
 	// set the action.
-	log.Println("--------> 281")
 	self.actions <- action
-	log.Println("--------> 283")
 	return nil
 }
 
 // Exit event channel.
 func (self *Event_Client) UnSubscribe(name string, uuid string) error {
-	log.Println("UnSubscribe event ", name)
+	//log.Println("UnSubscribe event ", name)
 
 	// Unsubscribe from the event channel.
 	rqst := &eventpb.UnSubscribeRequest{

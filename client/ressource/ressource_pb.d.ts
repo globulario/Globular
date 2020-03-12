@@ -609,15 +609,19 @@ export class RessourcePermission extends jspb.Message {
 
   getUser(): string;
   setUser(value: string): void;
+  hasUser(): boolean;
 
   getRole(): string;
   setRole(value: string): void;
+  hasRole(): boolean;
 
   getApplication(): string;
   setApplication(value: string): void;
+  hasApplication(): boolean;
 
   getService(): string;
   setService(value: string): void;
+  hasService(): boolean;
 
   getOwnerCase(): RessourcePermission.OwnerCase;
 

@@ -297,7 +297,7 @@ func (self *MongoStore) Aggregate(ctx context.Context, connectionId string, data
 
 	collection_ := self.clients[connectionId].Database(database).Collection(collection)
 
-	p := make(map[string]interface{})
+	p := make([]interface{}, 0)
 	err := json.Unmarshal([]byte(pipeline), &p)
 	if err != nil {
 		return nil, err

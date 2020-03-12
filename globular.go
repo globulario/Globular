@@ -31,6 +31,7 @@ import (
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/metadata"
 
 	// Admin service
@@ -45,7 +46,6 @@ import (
 	// Interceptor for authentication, event, log...
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	// Client services.
 	"context"
@@ -136,6 +136,11 @@ type Globule struct {
 	// The list of method supported by this server.
 	methods []string
 
+	// The prometheus logging informations.
+	methodsCounterLog *prometheus.CounterVec
+
+	// prometheus.CounterVec
+
 	// Directories.
 	path    string // The path of the exec...
 	webRoot string // The root of the http file server.
@@ -192,7 +197,7 @@ func NewGlobule() *Globule {
 
 	// Configuration must be reachable before services initialysation
 	go func() {
-		// Promometheus metrics for internal services.
+		// Promometheus metrics for services.
 		http.Handle("/metrics", promhttp.Handler())
 		http.ListenAndServe(":10000", nil)
 	}()
@@ -206,6 +211,18 @@ func NewGlobule() *Globule {
 	if err == nil {
 		json.Unmarshal(file, &g)
 	}
+
+	// Prometheus logging informations.
+	g.methodsCounterLog = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "globular_methods_counter",
+		Help: "Globular services methods usage.",
+	},
+		[]string{
+			"type",
+			"method"},
+	)
+	// Set the function into prometheus.
+	prometheus.MustRegister(g.methodsCounterLog)
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -2425,12 +2442,11 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 
 	} else {
 		grpcServer = grpc.NewServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptor, grpc_prometheus.UnaryServerInterceptor)),
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptor)),
 			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptor))}...)
 	}
 
 	reflection.Register(grpcServer)
-	grpc_prometheus.Register(grpcServer)
 
 	// Here I will create the service configuration object.
 	s := make(map[string]interface{}, 0)
@@ -2645,9 +2661,12 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 
 		if len(accountsInfo[i][1].([]interface{})) > 0 {
 			email := strings.ToLower(accountsInfo[i][1].([]interface{})[0].(string))
+
 			if len(email) > 0 {
+
 				id := Utility.GenerateUUID(strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)))
 				if len(id) > 0 {
+					log.Println("---> register account: ", accountsInfo[i])
 
 					roles := make([]interface{}, 0)
 					roles = append(roles, "guest")
@@ -2678,6 +2697,8 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 
 					}
 				}
+			} else {
+				log.Println("account " + strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)) + " has no email configured! ")
 			}
 		}
 	}
@@ -2819,7 +2840,6 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested ressource.
 func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
-	//log.Panicln("----------------------------> authenticate")
 	// Get the persistence connection
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -3719,17 +3739,21 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 
 	// here I if the ressource is a directory I will set the permission on
 	// subdirectory and files...
-	files, err := ioutil.ReadDir(path)
-	if !Utility.Exists(path) {
-		return errors.New("File with " + path + " dosen't exist!")
+	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
+	if err != nil {
+		return err
 	}
-	if err == nil {
-		for i := 0; i < len(files); i++ {
-			file := files[i]
-			self.setRessourceOwner(owner, path+"/"+file.Name())
+
+	if fileInfo.IsDir() {
+		files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
+		if err == nil {
+			for i := 0; i < len(files); i++ {
+				file := files[i]
+				self.setRessourceOwner(owner, path+"/"+file.Name())
+			}
+		} else {
+			return err
 		}
-	} else {
-		log.Println(err)
 	}
 
 	// Here I will set the ressource owner.
@@ -3754,8 +3778,7 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 //* Set Ressource owner *
 func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressource.SetRessourceOwnerRqst) (*ressource.SetRessourceOwnerRsp, error) {
 	// That service made user of persistence service.
-	path := self.webRoot + rqst.GetPath()
-	path = strings.ReplaceAll(path, "\\", "/")
+	path := rqst.GetPath()
 
 	err := self.setRessourceOwner(rqst.GetOwner(), path)
 	if err != nil {
@@ -3769,6 +3792,23 @@ func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressource.SetR
 	}, nil
 }
 
+func (self *Globule) GetAbsolutePath(path string) string {
+
+	path = strings.ReplaceAll(path, "\\", "/")
+	if len(path) > 1 {
+		if strings.HasPrefix(path, "/") {
+			path = strings.ReplaceAll(self.webRoot, "\\", "/") + path
+		} else {
+			path = strings.ReplaceAll(self.webRoot, "\\", "/") + "/" + path
+		}
+	} else {
+		path = strings.ReplaceAll(self.webRoot, "\\", "/")
+	}
+
+	return path
+
+}
+
 //* Get the ressource owner *
 func (self *Globule) GetRessourceOwners(ctx context.Context, rqst *ressource.GetRessourceOwnersRqst) (*ressource.GetRessourceOwnersRsp, error) {
 	// That service made user of persistence service.
@@ -3779,9 +3819,10 @@ func (self *Globule) GetRessourceOwners(ctx context.Context, rqst *ressource.Get
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	path := self.webRoot + rqst.GetPath()
-	path = strings.ReplaceAll(path, "\\", "/")
+	// Get the absolute path
+	path := rqst.GetPath()
 
+	log.Println("------------> get ressource owners: ", path)
 	// find the ressource with it id
 	ressourceOwnersStr, err := p.Find("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`"}`, "")
 	if err != nil {
@@ -3818,8 +3859,7 @@ func (self *Globule) DeleteRessourceOwner(ctx context.Context, rqst *ressource.D
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	path := self.webRoot + rqst.GetPath()
-	path = strings.ReplaceAll(path, "\\", "/")
+	path := rqst.GetPath()
 
 	// Delete the ressource owner for a given path.
 	err = p.DeleteOne("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+rqst.GetOwner()+`"}`, "")
@@ -3843,8 +3883,9 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	path := self.webRoot + rqst.GetPath()
-	path = strings.ReplaceAll(path, "\\", "/")
+	path := rqst.GetPath()
+
+	log.Println("---------> delete ressource owners: ", path)
 
 	// delete the ressource owners with it path
 	err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`"}`, "")
@@ -3860,20 +3901,167 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
+// Log err and info...
+func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
 
-func (self *Globule) log(info *ressource.LogInfo) error {
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return err
+	// get the user id
+	userId, _, _ := Interceptors.ValidateToken(token)
+
+	// Remove cyclic calls
+	if method == "/ressource.RessourceService/Log" {
+		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itself!")
 	}
 
-	var marshaler jsonpb.Marshaler
-	data, err := marshaler.MarshalToString(info)
-	if err != nil {
-		return err
+	// Here I will use event to publish log information...
+	info := new(ressource.LogInfo)
+	info.Application = application
+	info.UserId = userId
+	info.Method = method
+	info.Date = time.Now().Unix()
+	if err_ != nil {
+		info.Message = err_.Error()
+		info.Type = ressource.LogType_ERROR
+	} else {
+		info.Type = ressource.LogType_INFO
 	}
-	_, err = p.InsertOne("local_ressource", "local_ressource", "Logs", string(data), "")
 
+	self.log(info)
+
+	return nil
+}
+
+// unaryInterceptor calls authenticateClient with current context
+func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	method := info.FullMethod
+
+	// The token and the application id.
+	var token string
+	var application string
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		application = strings.Join(md["application"], "")
+		token = strings.Join(md["token"], "")
+	}
+
+	hasAccess := false
+	var err error
+
+	// Here some method are accessible by default.
+	if method == "/ressource.RessourceService/GetAllActions" ||
+		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/Authenticate" ||
+		method == "/ressource.RessourceService/RefreshToken" ||
+		method == "/ressource.RessourceService/GetPermissions" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/GetAllFilesInfo" ||
+		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
+		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
+		method == "/ressource.RessourceService/Log" ||
+		method == "/ressource.RessourceService/GetLogMethods" {
+		hasAccess = true
+	}
+
+	// Test if the user has access to execute the method
+	if len(token) > 0 && !hasAccess {
+		clientId, expiredAt, err := Interceptors.ValidateToken(token)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if expiredAt < time.Now().Unix() {
+			return nil, errors.New("The token is expired!")
+		}
+		if clientId == "sa" {
+			hasAccess = true
+			// log.Println("run ", method, application, clientId)
+		} else {
+			// special case that need ownership of the ressource or be sa
+			if method == "/ressource.RessourceService/SetPermission" || method == "/ressource.RessourceService/DeletePermissions" ||
+				method == "/ressource.RessourceService/SetRessourceOwner" || method == "/ressource.RessourceService/DeleteRessourceOwner" {
+				var path string
+				if method == "/ressource.RessourceService/SetPermission" {
+					rqst := req.(*ressource.SetPermissionRqst)
+					// Here I will validate that the user is the owner.
+					path = rqst.Permission.GetPath()
+				} else if method == "/ressource.RessourceService/DeletePermissions" {
+					rqst := req.(*ressource.DeletePermissionsRqst)
+					// Here I will validate that the user is the owner.
+					path = rqst.Path
+				} else if method == "/ressource.RessourceService/SetRessourceOwner" {
+					rqst := req.(*ressource.SetRessourceOwnerRqst)
+					// Here I will validate that the user is the owner.
+					path = rqst.Path
+				} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
+					rqst := req.(*ressource.DeleteRessourceOwnerRqst)
+					// Here I will validate that the user is the owner.
+					path = rqst.Path
+				}
+
+				// If the use is the ressource owner he can run the method
+				if self.isOwner(clientId, path) {
+					hasAccess = true
+				}
+
+			} else {
+				err = self.validateUserAccess(clientId, method)
+				if err == nil {
+					hasAccess = true
+				}
+			}
+		}
+	}
+
+	// Test if the application has access to execute the method.
+	if len(application) > 0 && !hasAccess {
+		err = self.validateApplicationAccess(application, method)
+		if err == nil {
+			hasAccess = true
+		}
+	}
+
+	if !hasAccess {
+		return nil, errors.New("Permission denied to execute method " + method)
+	}
+
+	// Execute the action.
+	result, err := handler(ctx, req)
+	self.logInfo(application, method, token, err)
+
+	if err == nil {
+		// Set permissions in case one of those methode is called.
+		if method == "/ressource.RessourceService/DeleteApplication" {
+			rqst := req.(*ressource.DeleteApplicationRqst)
+			err := self.deleteDirPermissions("/" + rqst.ApplicationId)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if method == "/ressource.RessourceService/DeleteRole" {
+			rqst := req.(*ressource.DeleteRoleRqst)
+			err := self.deleteRolePermissions("/" + rqst.RoleId)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if method == "/ressource.RessourceService/DeleteAccount" {
+			rqst := req.(*ressource.DeleteAccountRqst)
+			err := self.deleteAccountPermissions("/" + rqst.Id)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+	return result, err
+
+}
+
+// Stream interceptor.
+func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+
+	err := handler(srv, stream)
 	if err != nil {
 		return err
 	}
@@ -3881,19 +4069,63 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 	return nil
 }
 
-//* Log error or information into the data base *
-func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
+func (self *Globule) log(info *ressource.LogInfo) error {
 
-	marshaler := new(jsonpb.Marshaler)
-	jsonStr, err := marshaler.MarshalToString(rqst.Info)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	// Here I will use prometheus to export the metrics
+	logType := "INFO"
+	if info.GetType() == ressource.LogType_ERROR {
+		logType = "ERROR"
 	}
 
+	// Here I will log only if the user is not 'sa'
+	if info.UserId != "sa" && len(info.Application) > 0 && len(info.UserId) > 0 {
+		// I will save the error in the LOGS table.
+		p, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return err
+		}
+
+		data, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+info.GetUserId()+`"}`, `[{"Projection":{"_id":1}}]`)
+		if err != nil {
+			return err
+		}
+
+		values := make(map[string]interface{}, 0)
+		err = json.Unmarshal([]byte(data), &values)
+		if err != nil {
+			return err
+		}
+
+		info.UserId = values["_id"].(string)
+
+		marshaler := new(jsonpb.Marshaler)
+		jsonStr, err := marshaler.MarshalToString(info)
+		if err != nil {
+			return err
+		}
+		_, err = p.InsertOne("local_ressource", "local_ressource", "Logs", jsonStr, "")
+		if err != nil {
+			return err
+		}
+	}
+
+	marshaler := new(jsonpb.Marshaler)
+	jsonStr, err := marshaler.MarshalToString(info)
+	if err != nil {
+		return err
+	}
+
+	// Incrementing the prometheus counter.
+	self.methodsCounterLog.WithLabelValues(logType, info.Method).Inc()
+	self.getEventHub().Publish(info.Method, []byte(jsonStr))
+
+	return nil
+}
+
+//* Log error or information into the data base *
+func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
 	// Publish event...
-	self.getEventHub().Publish(rqst.Info.Method, []byte(jsonStr))
+	self.log(rqst.Info)
 
 	return &ressource.LogRsp{
 		Result: true,
@@ -3973,102 +4205,6 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 	return nil
 }
 
-//* Set a method into the log... *
-func (self *Globule) SetLogMethod(ctx context.Context, rqst *ressource.SetLogMethodRqst) (*ressource.SetLogMethodRsp, error) {
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	err = p.ReplaceOne("local_ressource", "local_ressource", "LogMethods", `{"name":"`+rqst.Method+`"}`, `{"name":"`+rqst.Method+`"}`, `[{"upsert":true}]`)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Set the event channnel.
-	eventHub := event_client.NewEvent_Client("localhost", "event_server")
-	handler := func(evt *eventpb.Event) {
-		log.Println("4003 ------------> ", evt)
-		info := new(ressource.LogInfo)
-		err := jsonpb.UnmarshalString(string(evt.Data), info)
-		if err == nil {
-			self.log(info)
-		}
-
-	}
-
-	eventHub.Subscribe(rqst.Method, Utility.GenerateUUID(rqst.Method), handler)
-
-	return &ressource.SetLogMethodRsp{
-		Result: true,
-	}, nil
-}
-
-//* Reset a method from the log... *
-func (self *Globule) ResetLogMethod(ctx context.Context, rqst *ressource.ResetLogMethodRqst) (*ressource.ResetLogMethodRsp, error) {
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	err = p.DeleteOne("local_ressource", "local_ressource", "LogMethods", `{"name":"`+rqst.Method+`"}`, ``)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// close the event channel.
-	self.getEventHub().UnSubscribe(rqst.Method, Utility.GenerateUUID(rqst.Method))
-
-	return &ressource.ResetLogMethodRsp{
-		Result: true,
-	}, nil
-}
-
-func (self *Globule) getLogMethods() ([]string, error) {
-
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := p.Find("local_ressource", "local_ressource", "LogMethods", `{}`, ``)
-	values := make([]interface{}, 0)
-	err = json.Unmarshal([]byte(data), &values)
-	methods := make([]string, len(values))
-	for i := 0; i < len(values); i++ {
-		methods[i] = values[i].(map[string]interface{})["name"].(string)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return methods, nil
-}
-
-//* Get the list of methods to be logs *
-func (self *Globule) GetLogMethods(ctx context.Context, rsp *ressource.GetLogMethodsRqst) (*ressource.GetLogMethodsRsp, error) {
-	methods, err := self.getLogMethods()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	return &ressource.GetLogMethodsRsp{
-		Methods: methods,
-	}, err
-	return nil, nil
-}
-
 //* Delete a log info with it date *
 func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
 	p, err := self.getPersistenceSaConnection()
@@ -4112,149 +4248,6 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 }
 
 /////////////////////// File permissions ressource management. /////////////////
-// Log err and info...
-func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
-
-	userId, _, _ := Interceptors.ValidateToken(token)
-
-	// Here I will use event to publish log information...
-	info := new(ressource.LogInfo)
-	info.Application = application
-	info.UserId = userId
-	info.Method = method
-	info.Date = time.Now().Unix()
-	if err_ != nil {
-		info.Message = err_.Error()
-		info.Type = ressource.LogType_ERROR
-	} else {
-		info.Type = ressource.LogType_INFO
-	}
-
-	marshaler := new(jsonpb.Marshaler)
-	jsonStr, err := marshaler.MarshalToString(info)
-	if err != nil {
-		return err
-	}
-
-	// Publish event...
-	self.getEventHub().Publish(method, []byte(jsonStr))
-
-	return nil
-}
-
-// unaryInterceptor calls authenticateClient with current context
-func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	method := info.FullMethod
-	log.Println("---> method call: ", method)
-
-	// The token and the application id.
-	var token string
-	var application string
-
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		application = strings.Join(md["application"], "")
-		token = strings.Join(md["token"], "")
-	}
-
-	hasAccess := false
-	var err error
-
-	// Here some method are accessible by default.
-	if method == "/ressource.RessourceService/GetAllActions" ||
-		method == "/ressource.RessourceService/RegisterAccount" ||
-		method == "/ressource.RessourceService/Authenticate" ||
-		method == "/ressource.RessourceService/RefreshToken" ||
-		method == "/ressource.RessourceService/GetPermissions" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/GetAllFilesInfo" ||
-		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
-		method == "/ressource.RessourceService/Log" ||
-		method == "/ressource.RessourceService/GetLogMethods" {
-		hasAccess = true
-	}
-
-	// Test if the user has access to execute the method
-	if len(token) > 0 && !hasAccess {
-		clientId, expiredAt, err := Interceptors.ValidateToken(token)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if expiredAt < time.Now().Unix() {
-			return nil, errors.New("The token is expired!")
-		}
-		if clientId == "sa" {
-			hasAccess = true
-			log.Println("run ", method, application, clientId)
-		} else {
-			err = self.validateUserAccess(clientId, method)
-			if err == nil {
-				hasAccess = true
-			}
-		}
-	}
-
-	// Test if the application has access to execute the method.
-	if len(application) > 0 && !hasAccess {
-		err = self.validateApplicationAccess(application, method)
-		if err == nil {
-			hasAccess = true
-		}
-	}
-
-	if !hasAccess {
-		log.Println("---> access denied for ", method)
-		return nil, errors.New("Permission denied to execute method " + method)
-	}
-
-	// Execute the action.
-	result, err := handler(ctx, req)
-
-	self.logInfo(application, method, token, err)
-
-	if err == nil {
-		log.Println("succed to run ", method)
-		// Set permissions in case one of those methode is called.
-		if method == "/ressource.RessourceService/DeleteApplication" {
-			rqst := req.(*ressource.DeleteApplicationRqst)
-			err := self.deleteDirPermissions("/" + rqst.ApplicationId)
-			if err != nil {
-				log.Println(err)
-			}
-		} else if method == "/ressource.RessourceService/DeleteRole" {
-			rqst := req.(*ressource.DeleteRoleRqst)
-			err := self.deleteRolePermissions("/" + rqst.RoleId)
-			if err != nil {
-				log.Println(err)
-			}
-		} else if method == "/ressource.RessourceService/DeleteAccount" {
-			rqst := req.(*ressource.DeleteAccountRqst)
-			err := self.deleteAccountPermissions("/" + rqst.Id)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
-	return result, err
-
-}
-
-// Stream interceptor.
-func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-
-	err := handler(srv, stream)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func (self *Globule) savePermission(owner string, path string, permission int32) error {
 
@@ -4297,7 +4290,7 @@ func (self *Globule) setDirPermission(owner string, path string, permission int3
 		return err
 	}
 
-	files, err := ioutil.ReadDir(path)
+	files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
 	if err != nil {
 		return err
 	}
@@ -4336,18 +4329,19 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 	}
 
 	// The first thing I will do is test if the file exist.
-	path := self.webRoot + rqst.Permission.Path
+	path := rqst.GetPermission().GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
-	if !Utility.Exists(path) {
+
+	if !Utility.Exists(self.GetAbsolutePath(path)) {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No file found with path "+path)))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No file found with path "+self.GetAbsolutePath(path))))
 
 	}
 
 	// Now if the permission exist I will read the file info.
-	fileInfo, err := os.Stat(path)
-	if !Utility.Exists(path) {
+	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
+	if !Utility.Exists(self.GetAbsolutePath(path)) {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -4451,8 +4445,8 @@ func (self *Globule) setPermissionOwner(owner string, permission *ressource.Ress
  *
  */
 func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermission, error) {
-	if !Utility.Exists(path) {
-		return nil, errors.New("No directory found with path " + path)
+	if !Utility.Exists(self.GetAbsolutePath(path)) {
+		return nil, errors.New("No directory found with path " + self.GetAbsolutePath(path))
 	}
 
 	// That service made user of persistence service.
@@ -4488,7 +4482,7 @@ func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermi
 	}
 
 	// No the recursion.
-	files, err := ioutil.ReadDir(path)
+	files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
 	if err != nil {
 		return nil, err
 	}
@@ -4516,8 +4510,8 @@ func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermi
 }
 
 func (self *Globule) getRessourcePermissions(path string) ([]*ressource.RessourcePermission, error) {
-	if !Utility.Exists(path) {
-		return nil, errors.New("No file found with path " + path)
+	if !Utility.Exists(self.GetAbsolutePath(path)) {
+		return nil, errors.New("No file found with path " + self.GetAbsolutePath(path))
 	}
 	// That service made user of persistence service.
 	p, err := self.getPersistenceSaConnection()
@@ -4555,9 +4549,9 @@ func (self *Globule) getRessourcePermissions(path string) ([]*ressource.Ressourc
 }
 
 func (self *Globule) getPermissions(path string) ([]*ressource.RessourcePermission, error) {
-	fileInfo, err := os.Stat(path)
+	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
 	if err != nil {
-		return nil, errors.New("No file found with path " + path)
+		return nil, errors.New("No file found with path " + self.GetAbsolutePath(path))
 	}
 	switch mode := fileInfo.Mode(); {
 	case mode.IsDir():
@@ -4585,9 +4579,7 @@ func (self *Globule) getPermissions(path string) ([]*ressource.RessourcePermissi
 //* Get All permissions for a given file/dir *
 func (self *Globule) GetPermissions(ctx context.Context, rqst *ressource.GetPermissionsRqst) (*ressource.GetPermissionsRsp, error) {
 
-	path := self.webRoot + rqst.Path
-	path = strings.ReplaceAll(path, "\\", "/")
-
+	path := rqst.GetPath()
 	permissions, err := self.getPermissions(path)
 	if err != nil {
 		return nil, status.Errorf(
@@ -4599,7 +4591,7 @@ func (self *Globule) GetPermissions(ctx context.Context, rqst *ressource.GetPerm
 	for i := 0; i < len(permissions); i++ {
 		permissions_[i] = make(map[string]interface{}, 0)
 		// Set the values.
-		permissions_[i]["path"] = permissions[i].GetPath()[strings.Index(permissions[i].GetPath(), "/webroot"):]
+		permissions_[i]["path"] = permissions[i].GetPath()
 		permissions_[i]["number"] = permissions[i].GetNumber()
 		permissions_[i]["user"] = permissions[i].GetUser()
 		permissions_[i]["role"] = permissions[i].GetRole()
@@ -4626,10 +4618,10 @@ func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressource.Dele
 	if err != nil {
 		return nil, err
 	}
-	path := self.webRoot + rqst.Path
-	path = strings.ReplaceAll(path, "\\", "/")
 
-	// First of all I will retreive the permissions for the give path...
+	path := rqst.GetPath()
+
+	// First of all I will retreive the permissions for the given path...
 	permissions, err := self.getPermissions(path)
 	if err != nil {
 		return nil, status.Errorf(
@@ -4700,16 +4692,6 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 
 	// A new directory will take the parent permissions by default...
 	path := rqst.GetPath()
-	if len(path) > 1 {
-		if strings.HasPrefix(path, "/") {
-			path = self.webRoot + path
-		} else {
-			path = self.webRoot + "/" + path
-		}
-	} else {
-		path = self.webRoot
-	}
-	path = strings.ReplaceAll(path, "\\", "/")
 
 	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, "")
 	if err != nil {
@@ -4775,53 +4757,72 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 
 //* Rename file/dir permission *
 func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.RenameFilePermissionRqst) (*ressource.RenameFilePermissionRsp, error) {
+
 	path := rqst.GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
+
 	oldPath := rqst.OldName
 	newPath := rqst.NewName
 
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	if strings.HasPrefix(path, string(os.PathSeparator)) {
+	if strings.HasPrefix(path, "/") {
 		if len(path) > 1 {
 			oldPath = path + "/" + rqst.OldName
 			newPath = path + "/" + rqst.NewName
+
 		} else {
-			oldPath = rqst.OldName
-			newPath = rqst.NewName
+			oldPath = "/" + rqst.OldName
+			newPath = "/" + rqst.NewName
 		}
 	}
 
-	err = p.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+oldPath+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+newPath+`"}}`, "")
-	if err != nil {
-		log.Println(err)
-	}
+	log.Println("----> rename ", oldPath, " to ", newPath)
 
-	err = p.Update("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+oldPath+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+newPath+`"}}`, "")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// Replace all files of subdirectories.
-	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}}`, "")
+	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
+	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{}`, "")
 	if err == nil {
 		permissions := make([]interface{}, 0)
 		json.Unmarshal([]byte(permissionsStr), &permissions)
 		for i := 0; i < len(permissions); i++ { // stringnify and save it...
 			permission := permissions[i].(map[string]interface{})
-			err := p.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(permission["path"].(string), oldPath, newPath)+`"}}`, "")
-			if err != nil {
-				log.Println(err)
-			}
-
-			err = p.Update("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+strings.ReplaceAll(permission["path"].(string), oldPath, newPath)+`"}}`, "")
-			if err != nil {
-				log.Println(err)
+			if strings.HasPrefix(permission["path"].(string), oldPath) {
+				path := newPath + permission["path"].(string)[len(oldPath):]
+				err := p.Update("local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+path+`"}}`, "")
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
+	}
+
+	// Replace file owner path... regex not work... "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}
+	permissionsStr, err = p.Find("local_ressource", "local_ressource", "RessourceOwners", `{}`, "")
+	if err == nil {
+		permissions := make([]interface{}, 0)
+		json.Unmarshal([]byte(permissionsStr), &permissions)
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), oldPath) {
+				path := newPath + permission["path"].(string)[len(oldPath):]
+				log.Println("rename file permission owner", permission["path"].(string), " with ", newPath)
+				err = p.Update("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+path+`"}}`, "")
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	}
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	return &ressource.RenameFilePermissionRsp{
 		Result: true,
@@ -4835,29 +4836,37 @@ func (self *Globule) deleteDirPermissions(path string) error {
 	}
 
 	path = strings.ReplaceAll(path, "\\", "/")
-	path = strings.ReplaceAll(path, "/", "\\/") // replace . by \. and / by \/
-	path = strings.ReplaceAll(path, ".", "\\.") // TODO fix the nasty bug  with regex.
 
-	// Delete Permissions
-	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
-	if err != nil {
-		log.Println(err)
+	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
+	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{}`, "")
+	if err == nil {
+		permissions := make([]interface{}, 0)
+		json.Unmarshal([]byte(permissionsStr), &permissions)
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), path) {
+				err := p.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, "")
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
 	}
 
-	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+path+`"}`, "")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// Delete Owners
-	err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":{"$regex":"/.*`+path+`.*/"}}`, "")
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+strings.ReplaceAll(self.webRoot, "\\", "/")+path+`"}`, "")
-	if err != nil {
-		log.Println(err)
+	// Replace file owner path... regex not work... "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}
+	permissionsStr, err = p.Find("local_ressource", "local_ressource", "RessourceOwners", `{}`, "")
+	if err == nil {
+		permissions := make([]interface{}, 0)
+		json.Unmarshal([]byte(permissionsStr), &permissions)
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), path) {
+				err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, "")
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -4883,19 +4892,8 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.
 	if err != nil {
 		return nil, err
 	}
-	path := rqst.GetPath()
-	path = strings.ReplaceAll(path, "\\", "/")
-	if len(path) > 1 {
-		if strings.HasPrefix(path, "/") {
-			path = self.webRoot + path
-		} else {
-			path = self.webRoot + "/" + path
-		}
-	} else {
-		path = self.webRoot
-	}
 
-	path = strings.ReplaceAll(path, "\\", "/")
+	path := rqst.GetPath()
 
 	err = p.Delete("local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, "")
 	if err != nil {
@@ -4928,7 +4926,7 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 
 	// Now I will get the user roles and validate if the user can execute the
 	// method.
-	values, err := p.FindOne("local_ressource", "local_ressource", "Applications", `{"name":"`+name+`"}`, ``)
+	values, err := p.FindOne("local_ressource", "local_ressource", "Applications", `{"path":"/`+name+`"}`, ``)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -4941,8 +4939,12 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 		return err
 	}
 
-	actions := application["actions"].([]interface{})
 	err = errors.New("permission denied! application " + name + " cannot execute methode '" + method + "'")
+	if application["actions"] == nil {
+		return err
+	}
+
+	actions := application["actions"].([]interface{})
 	if actions == nil {
 		return err
 	}
@@ -4960,7 +4962,7 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
  * Validate user access by role
  */
 func (self *Globule) validateUserAccess(userName string, method string) error {
-	log.Println("---> validate user access ", userName, " for method ", method)
+	//log.Println("---> validate user access ", userName, " for method ", method)
 	if len(userName) == 0 {
 		return errors.New("No user  name was given to validate method access " + method)
 	}
@@ -5058,6 +5060,7 @@ func (self *Globule) authenticateClient(ctx context.Context) (string, string, in
 }
 
 func (self *Globule) isOwner(name string, path string) bool {
+	//log.Println("=----------> is owner ", name, path)
 	// get the client...
 	client, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -5068,6 +5071,7 @@ func (self *Globule) isOwner(name string, path string) bool {
 	// method.
 	values, err := client.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+name+`"}`, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
+		log.Println("=----------> ", err)
 		return false
 	}
 
@@ -5076,8 +5080,6 @@ func (self *Globule) isOwner(name string, path string) bool {
 	if err != nil {
 		return false
 	}
-
-	path = strings.ReplaceAll(path, "\\", "/")
 
 	// If the user is the owner of the ressource it has the permission
 	count, err := client.Count("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+account["_id"].(string)+`"}`, ``)
@@ -5097,9 +5099,6 @@ func (self *Globule) hasPermission(name string, path string, permission string) 
 	if err != nil {
 		return false, 0
 	}
-
-	// Set the path with / instead of \\ in case of windows...
-	path = strings.ReplaceAll(path, "\\", "/")
 
 	// If the user is the owner of the ressource it has all permission
 	if self.isOwner(name, path) {
@@ -5145,7 +5144,7 @@ func (self *Globule) hasPermission(name string, path string, permission string) 
  * Validate if a user, a role or an application has write to do operation on a file or a directorty.
  */
 func (self *Globule) validateUserFileAccess(userName string, method string, path string, permission string) error {
-	path = strings.ReplaceAll(path, "\\", "/")
+
 	if !strings.HasPrefix(method, "/file.FileService") {
 		return nil
 	}
@@ -5210,6 +5209,7 @@ func (self *Globule) validateUserFileAccess(userName string, method string, path
 //* Validate if user can access a given file. *
 func (self *Globule) ValidateUserFileAccess(ctx context.Context, rqst *ressource.ValidateUserFileAccessRqst) (*ressource.ValidateUserFileAccessRsp, error) {
 
+	path := rqst.GetPath()
 	// first of all I will validate the token.
 	clientId, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
@@ -5224,7 +5224,7 @@ func (self *Globule) ValidateUserFileAccess(ctx context.Context, rqst *ressource
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token is expired!")))
 	}
 
-	err = self.validateUserFileAccess(clientId, rqst.Method, self.webRoot+"/"+rqst.Path, rqst.Permission)
+	err = self.validateUserFileAccess(clientId, rqst.Method, path, rqst.Permission)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -5239,7 +5239,9 @@ func (self *Globule) ValidateUserFileAccess(ctx context.Context, rqst *ressource
 //* Validate if application can access a given file. *
 func (self *Globule) ValidateApplicationFileAccess(ctx context.Context, rqst *ressource.ValidateApplicationFileAccessRqst) (*ressource.ValidateApplicationFileAccessRsp, error) {
 
-	hasApplicationPermission, count := self.hasPermission(rqst.Name, self.webRoot+"/"+rqst.Path, rqst.Permission)
+	path := rqst.GetPath()
+
+	hasApplicationPermission, count := self.hasPermission(rqst.Name, path, rqst.Permission)
 	if hasApplicationPermission {
 		return &ressource.ValidateApplicationFileAccessRsp{
 			Result: true,
@@ -5890,27 +5892,6 @@ func (self *Globule) Listen() {
 		go func() {
 			go func() {
 				log.Println("Ressource service is up and running for domain ", self.Domain)
-				handler := func(evt *eventpb.Event) {
-					log.Println("------------------------------> 5902 ", evt)
-					info := new(ressource.LogInfo)
-					err := jsonpb.UnmarshalString(string(evt.Data), info)
-					if err == nil {
-						err := self.log(info)
-						if err != nil {
-							log.Println("---------> ", err)
-						}
-					} else {
-						log.Println("---------> ", err)
-					}
-				}
-				methods, err := self.getLogMethods()
-				if err == nil {
-					// Here I will connect the log event...
-					for i := 0; i < len(methods); i++ {
-						self.getEventHub().Subscribe(methods[i], Utility.GenerateUUID(methods[i]), handler)
-					}
-				}
-
 				// no web-rpc server.
 				if err = ressource_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -5920,12 +5901,14 @@ func (self *Globule) Listen() {
 					defer f.Close()
 				}
 
-				log.Println("Adim grpc service is closed")
+				log.Println("ressource grpc service is closed")
 			}()
+
 			// Wait for signal to stop.
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+
 		}()
 	} else {
 		log.Panicln(err)

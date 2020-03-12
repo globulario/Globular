@@ -20,17 +20,42 @@ var (
 )
 
 // First test create a fresh new connection...
-/*func TestCreateConnection(t *testing.T) {
-	fmt.Println("Connection creation test.")
+/*
+func TestCreateConnection(t *testing.T) {
+	//fmt.Println("Connection creation test.")
 	user := "sa"
 	pwd := "adminadmin"
 	err := client.CreateConnection("mongo_db_test_connection", "TestMongoDB", "localhost", 27017, 0, user, pwd, 500, "", true)
 	if err != nil {
 		log.Println("fail to create connection! ", err)
 	}
-}*/
 
-/*func TestPingConnection(t *testing.T) {
+}
+*/
+func TestAggregate(t *testing.T) {
+	//fmt.Println("Aggregate")
+	/*user := "sa"
+	pwd := "adminadmin"
+	err := client.CreateConnection("mongo_db_test_connection", "local_ressource", "localhost", 27017, 0, user, pwd, 500, "", true)
+	if err != nil {
+		log.Println("fail to create connection! ", err)
+	}
+
+	Id := "mongo_db_test_connection"
+	Database := "local_ressource"
+	Collection := "Employees"
+
+	results, err := client.Aggregate(Id, Database, Collection, `[{"$count":"toto"}]`, "")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("---> ", results)
+	*/
+}
+
+/*
+func TestPingConnection(t *testing.T) {
 	log.Println("Test ping connection")
 
 	err := client.Ping("mongo_db_test_connection")
@@ -38,7 +63,8 @@ var (
 		log.Fatalln(err)
 	}
 	log.Println("Ping mongo_db_test_connection successed!")
-}*/
+}
+
 
 // First test create a fresh new connection...
 /*func TestPersistMany(t *testing.T) {
@@ -86,7 +112,7 @@ func TestCreateConnection(t *testing.T) {
 	}
 }*/
 
-func TestPersistOne(t *testing.T) {
+/*func TestPersistOne(t *testing.T) {
 
 	Id := "chitchat_db"
 	Database := "chitchat_db"
@@ -99,7 +125,7 @@ func TestPersistOne(t *testing.T) {
 	}
 
 	log.Println("one entity persist with id ", id)
-}
+}*/
 
 /** Test find one **/
 /*func TestUpdate(t *testing.T) {

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <PackageId>GlobularRessourceClient</PackageId>
+    <Title>Globular Ressource Client</Title>
+    <Language>CSharp</Language>
+    <Description>.Net gRPC client for globular Ressource service</Description>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <projectUrl>https://www.globular.io</projectUrl>
+    <Version>1.0.0</Version>
+    <Authors>Dave Courtois</Authors>
+    <Company>Globular</Company>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.11.4" />
+    <PackageReference Include="Grpc" Version="2.27.0" />
+    <PackageReference Include="Grpc.Core" Version="2.27.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\api\csharp\GlobularClient\GlobularClient.csproj" />
+  </ItemGroup>
+</Project>

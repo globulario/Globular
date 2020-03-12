@@ -110,7 +110,7 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 /**
  * Initialyse the client security and set it port to
  */
-func InitClient(client Client, address string, name string) {
+func InitClient(client Client, address string, name string) error {
 	// Set the domain and the name from the incomming...
 	client.SetDomain(address)
 	client.SetName(name)
@@ -118,8 +118,7 @@ func InitClient(client Client, address string, name string) {
 	// Here I will initialyse the client
 	config, err := getClientConfig(address, name)
 	if err != nil {
-		log.Print("---> ", err)
-		return
+		return err
 	}
 
 	// Set client attributes.
@@ -130,6 +129,7 @@ func InitClient(client Client, address string, name string) {
 	client.SetCertFile(config["CertFile"].(string))
 	client.SetCaFile(config["CertAuthorityTrust"].(string))
 	client.SetTLS(config["TLS"].(bool))
+	return nil
 }
 
 /**
