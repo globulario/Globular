@@ -59,6 +59,8 @@ import {
   RemoveAccountRoleRsp,
   RemoveApplicationActionRqst,
   RemoveApplicationActionRsp,
+  RemoveRessourceRqst,
+  RemoveRessourceRsp,
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
@@ -67,16 +69,20 @@ import {
   SetPermissionRsp,
   SetRessourceOwnerRqst,
   SetRessourceOwnerRsp,
+  SetRessourceRqst,
+  SetRessourceRsp,
+  SetRessourcesRqst,
+  SetRessourcesRsp,
   SynchronizeLdapRqst,
   SynchronizeLdapRsp,
   ValidateApplicationAccessRqst,
   ValidateApplicationAccessRsp,
-  ValidateApplicationFileAccessRqst,
-  ValidateApplicationFileAccessRsp,
+  ValidateApplicationRessourceAccessRqst,
+  ValidateApplicationRessourceAccessRsp,
   ValidateUserAccessRqst,
   ValidateUserAccessRsp,
-  ValidateUserFileAccessRqst,
-  ValidateUserFileAccessRsp} from './ressource_pb';
+  ValidateUserRessourceAccessRqst,
+  ValidateUserRessourceAccessRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
@@ -237,19 +243,19 @@ export class RessourceServiceClient {
                response: GetAllFilesInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
 
-  validateUserFileAccess(
-    request: ValidateUserFileAccessRqst,
+  validateUserRessourceAccess(
+    request: ValidateUserRessourceAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ValidateUserFileAccessRsp) => void
-  ): grpcWeb.ClientReadableStream<ValidateUserFileAccessRsp>;
+               response: ValidateUserRessourceAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateUserRessourceAccessRsp>;
 
-  validateApplicationFileAccess(
-    request: ValidateApplicationFileAccessRqst,
+  validateApplicationRessourceAccess(
+    request: ValidateApplicationRessourceAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ValidateApplicationFileAccessRsp) => void
-  ): grpcWeb.ClientReadableStream<ValidateApplicationFileAccessRsp>;
+               response: ValidateApplicationRessourceAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateApplicationRessourceAccessRsp>;
 
   validateUserAccess(
     request: ValidateUserAccessRqst,
@@ -346,6 +352,20 @@ export class RessourceServiceClient {
     callback: (err: grpcWeb.Error,
                response: ClearAllLogRsp) => void
   ): grpcWeb.ClientReadableStream<ClearAllLogRsp>;
+
+  setRessource(
+    request: SetRessourceRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetRessourceRsp) => void
+  ): grpcWeb.ClientReadableStream<SetRessourceRsp>;
+
+  removeRessource(
+    request: RemoveRessourceRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveRessourceRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveRessourceRsp>;
 
 }
 
@@ -464,15 +484,15 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllFilesInfoRsp>;
 
-  validateUserFileAccess(
-    request: ValidateUserFileAccessRqst,
+  validateUserRessourceAccess(
+    request: ValidateUserRessourceAccessRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ValidateUserFileAccessRsp>;
+  ): Promise<ValidateUserRessourceAccessRsp>;
 
-  validateApplicationFileAccess(
-    request: ValidateApplicationFileAccessRqst,
+  validateApplicationRessourceAccess(
+    request: ValidateApplicationRessourceAccessRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ValidateApplicationFileAccessRsp>;
+  ): Promise<ValidateApplicationRessourceAccessRsp>;
 
   validateUserAccess(
     request: ValidateUserAccessRqst,
@@ -543,6 +563,16 @@ export class RessourceServicePromiseClient {
     request: ClearAllLogRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<ClearAllLogRsp>;
+
+  setRessource(
+    request: SetRessourceRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetRessourceRsp>;
+
+  removeRessource(
+    request: RemoveRessourceRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveRessourceRsp>;
 
 }
 

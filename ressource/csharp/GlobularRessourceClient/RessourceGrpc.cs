@@ -65,10 +65,10 @@ namespace Ressource {
     static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnersRsp> __Marshaller_ressource_DeleteRessourceOwnersRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRessourceOwnersRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRqst> __Marshaller_ressource_GetAllFilesInfoRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllFilesInfoRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRsp> __Marshaller_ressource_GetAllFilesInfoRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllFilesInfoRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserFileAccessRqst> __Marshaller_ressource_ValidateUserFileAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserFileAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserFileAccessRsp> __Marshaller_ressource_ValidateUserFileAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserFileAccessRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationFileAccessRqst> __Marshaller_ressource_ValidateApplicationFileAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationFileAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationFileAccessRsp> __Marshaller_ressource_ValidateApplicationFileAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationFileAccessRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRqst> __Marshaller_ressource_ValidateUserRessourceAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserRessourceAccessRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRsp> __Marshaller_ressource_ValidateUserRessourceAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserRessourceAccessRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRqst> __Marshaller_ressource_ValidateApplicationRessourceAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationRessourceAccessRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRsp> __Marshaller_ressource_ValidateApplicationRessourceAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationRessourceAccessRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRqst> __Marshaller_ressource_ValidateUserAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserAccessRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRsp> __Marshaller_ressource_ValidateUserAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserAccessRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRqst> __Marshaller_ressource_ValidateApplicationAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationAccessRqst.Parser.ParseFrom);
@@ -97,6 +97,12 @@ namespace Ressource {
     static readonly grpc::Marshaller<global::Ressource.DeleteLogRsp> __Marshaller_ressource_DeleteLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteLogRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRqst> __Marshaller_ressource_ClearAllLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRsp> __Marshaller_ressource_ClearAllLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetRessourcesRqst> __Marshaller_ressource_SetRessourcesRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourcesRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetRessourcesRsp> __Marshaller_ressource_SetRessourcesRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourcesRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceRqst> __Marshaller_ressource_SetRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceRsp> __Marshaller_ressource_SetRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRqst> __Marshaller_ressource_RemoveRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRsp> __Marshaller_ressource_RemoveRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRsp.Parser.ParseFrom);
 
     static readonly grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp> __Method_RegisterAccount = new grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp>(
         grpc::MethodType.Unary,
@@ -252,19 +258,19 @@ namespace Ressource {
         __Marshaller_ressource_GetAllFilesInfoRqst,
         __Marshaller_ressource_GetAllFilesInfoRsp);
 
-    static readonly grpc::Method<global::Ressource.ValidateUserFileAccessRqst, global::Ressource.ValidateUserFileAccessRsp> __Method_ValidateUserFileAccess = new grpc::Method<global::Ressource.ValidateUserFileAccessRqst, global::Ressource.ValidateUserFileAccessRsp>(
+    static readonly grpc::Method<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp> __Method_ValidateUserRessourceAccess = new grpc::Method<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "ValidateUserFileAccess",
-        __Marshaller_ressource_ValidateUserFileAccessRqst,
-        __Marshaller_ressource_ValidateUserFileAccessRsp);
+        "ValidateUserRessourceAccess",
+        __Marshaller_ressource_ValidateUserRessourceAccessRqst,
+        __Marshaller_ressource_ValidateUserRessourceAccessRsp);
 
-    static readonly grpc::Method<global::Ressource.ValidateApplicationFileAccessRqst, global::Ressource.ValidateApplicationFileAccessRsp> __Method_ValidateApplicationFileAccess = new grpc::Method<global::Ressource.ValidateApplicationFileAccessRqst, global::Ressource.ValidateApplicationFileAccessRsp>(
+    static readonly grpc::Method<global::Ressource.ValidateApplicationRessourceAccessRqst, global::Ressource.ValidateApplicationRessourceAccessRsp> __Method_ValidateApplicationRessourceAccess = new grpc::Method<global::Ressource.ValidateApplicationRessourceAccessRqst, global::Ressource.ValidateApplicationRessourceAccessRsp>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "ValidateApplicationFileAccess",
-        __Marshaller_ressource_ValidateApplicationFileAccessRqst,
-        __Marshaller_ressource_ValidateApplicationFileAccessRsp);
+        "ValidateApplicationRessourceAccess",
+        __Marshaller_ressource_ValidateApplicationRessourceAccessRqst,
+        __Marshaller_ressource_ValidateApplicationRessourceAccessRsp);
 
     static readonly grpc::Method<global::Ressource.ValidateUserAccessRqst, global::Ressource.ValidateUserAccessRsp> __Method_ValidateUserAccess = new grpc::Method<global::Ressource.ValidateUserAccessRqst, global::Ressource.ValidateUserAccessRsp>(
         grpc::MethodType.Unary,
@@ -363,6 +369,27 @@ namespace Ressource {
         "ClearAllLog",
         __Marshaller_ressource_ClearAllLogRqst,
         __Marshaller_ressource_ClearAllLogRsp);
+
+    static readonly grpc::Method<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> __Method_setRessources = new grpc::Method<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp>(
+        grpc::MethodType.ClientStreaming,
+        __ServiceName,
+        "setRessources",
+        __Marshaller_ressource_SetRessourcesRqst,
+        __Marshaller_ressource_SetRessourcesRsp);
+
+    static readonly grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp> __Method_setRessource = new grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "setRessource",
+        __Marshaller_ressource_SetRessourceRqst,
+        __Marshaller_ressource_SetRessourceRsp);
+
+    static readonly grpc::Method<global::Ressource.RemoveRessourceRqst, global::Ressource.RemoveRessourceRsp> __Method_removeRessource = new grpc::Method<global::Ressource.RemoveRessourceRqst, global::Ressource.RemoveRessourceRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "removeRessource",
+        __Marshaller_ressource_RemoveRessourceRqst,
+        __Marshaller_ressource_RemoveRessourceRsp);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -622,7 +649,7 @@ namespace Ressource {
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateUserFileAccessRsp> ValidateUserFileAccess(global::Ressource.ValidateUserFileAccessRqst request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateUserRessourceAccessRsp> ValidateUserRessourceAccess(global::Ressource.ValidateUserRessourceAccessRqst request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -633,7 +660,7 @@ namespace Ressource {
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateApplicationFileAccessRsp> ValidateApplicationFileAccess(global::Ressource.ValidateApplicationFileAccessRqst request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateApplicationRessourceAccessRsp> ValidateApplicationRessourceAccess(global::Ressource.ValidateApplicationRessourceAccessRqst request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -789,6 +816,39 @@ namespace Ressource {
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       public virtual global::System.Threading.Tasks.Task<global::Ressource.ClearAllLogRsp> ClearAllLog(global::Ressource.ClearAllLogRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Set the list of ressources from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="requestStream">Used for reading requests from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.SetRessourcesRsp> setRessources(grpc::IAsyncStreamReader<global::Ressource.SetRessourcesRqst> requestStream, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Set a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.SetRessourceRsp> setRessource(global::Ressource.SetRessourceRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Remove a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.RemoveRessourceRsp> removeRessource(global::Ressource.RemoveRessourceRqst request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -1794,9 +1854,9 @@ namespace Ressource {
       /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.ValidateUserFileAccessRsp ValidateUserFileAccess(global::Ressource.ValidateUserFileAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::Ressource.ValidateUserRessourceAccessRsp ValidateUserRessourceAccess(global::Ressource.ValidateUserRessourceAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return ValidateUserFileAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ValidateUserRessourceAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
       ///* Validate if user can access a given file. *
@@ -1804,9 +1864,9 @@ namespace Ressource {
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.ValidateUserFileAccessRsp ValidateUserFileAccess(global::Ressource.ValidateUserFileAccessRqst request, grpc::CallOptions options)
+      public virtual global::Ressource.ValidateUserRessourceAccessRsp ValidateUserRessourceAccess(global::Ressource.ValidateUserRessourceAccessRqst request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_ValidateUserFileAccess, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_ValidateUserRessourceAccess, null, options, request);
       }
       /// <summary>
       ///* Validate if user can access a given file. *
@@ -1816,9 +1876,9 @@ namespace Ressource {
       /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateUserFileAccessRsp> ValidateUserFileAccessAsync(global::Ressource.ValidateUserFileAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateUserRessourceAccessRsp> ValidateUserRessourceAccessAsync(global::Ressource.ValidateUserRessourceAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return ValidateUserFileAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ValidateUserRessourceAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
       ///* Validate if user can access a given file. *
@@ -1826,9 +1886,9 @@ namespace Ressource {
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateUserFileAccessRsp> ValidateUserFileAccessAsync(global::Ressource.ValidateUserFileAccessRqst request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateUserRessourceAccessRsp> ValidateUserRessourceAccessAsync(global::Ressource.ValidateUserRessourceAccessRqst request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_ValidateUserFileAccess, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_ValidateUserRessourceAccess, null, options, request);
       }
       /// <summary>
       ///* Validate if application can access a given file. *
@@ -1838,9 +1898,9 @@ namespace Ressource {
       /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.ValidateApplicationFileAccessRsp ValidateApplicationFileAccess(global::Ressource.ValidateApplicationFileAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::Ressource.ValidateApplicationRessourceAccessRsp ValidateApplicationRessourceAccess(global::Ressource.ValidateApplicationRessourceAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return ValidateApplicationFileAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ValidateApplicationRessourceAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
       ///* Validate if application can access a given file. *
@@ -1848,9 +1908,9 @@ namespace Ressource {
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.ValidateApplicationFileAccessRsp ValidateApplicationFileAccess(global::Ressource.ValidateApplicationFileAccessRqst request, grpc::CallOptions options)
+      public virtual global::Ressource.ValidateApplicationRessourceAccessRsp ValidateApplicationRessourceAccess(global::Ressource.ValidateApplicationRessourceAccessRqst request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_ValidateApplicationFileAccess, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_ValidateApplicationRessourceAccess, null, options, request);
       }
       /// <summary>
       ///* Validate if application can access a given file. *
@@ -1860,9 +1920,9 @@ namespace Ressource {
       /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateApplicationFileAccessRsp> ValidateApplicationFileAccessAsync(global::Ressource.ValidateApplicationFileAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateApplicationRessourceAccessRsp> ValidateApplicationRessourceAccessAsync(global::Ressource.ValidateApplicationRessourceAccessRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return ValidateApplicationFileAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ValidateApplicationRessourceAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
       ///* Validate if application can access a given file. *
@@ -1870,9 +1930,9 @@ namespace Ressource {
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateApplicationFileAccessRsp> ValidateApplicationFileAccessAsync(global::Ressource.ValidateApplicationFileAccessRqst request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateApplicationRessourceAccessRsp> ValidateApplicationRessourceAccessAsync(global::Ressource.ValidateApplicationRessourceAccessRqst request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_ValidateApplicationFileAccess, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_ValidateApplicationRessourceAccess, null, options, request);
       }
       /// <summary>
       ///* Validate if user can access a given method. *
@@ -2468,6 +2528,114 @@ namespace Ressource {
       {
         return CallInvoker.AsyncUnaryCall(__Method_ClearAllLog, null, options, request);
       }
+      /// <summary>
+      ///* Set the list of ressources from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncClientStreamingCall<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> setRessources(grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return setRessources(new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Set the list of ressources from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncClientStreamingCall<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> setRessources(grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncClientStreamingCall(__Method_setRessources, null, options);
+      }
+      /// <summary>
+      ///* Set a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.SetRessourceRsp setRessource(global::Ressource.SetRessourceRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return setRessource(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Set a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.SetRessourceRsp setRessource(global::Ressource.SetRessourceRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_setRessource, null, options, request);
+      }
+      /// <summary>
+      ///* Set a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.SetRessourceRsp> setRessourceAsync(global::Ressource.SetRessourceRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return setRessourceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Set a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.SetRessourceRsp> setRessourceAsync(global::Ressource.SetRessourceRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_setRessource, null, options, request);
+      }
+      /// <summary>
+      ///* Remove a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.RemoveRessourceRsp removeRessource(global::Ressource.RemoveRessourceRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return removeRessource(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Remove a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.RemoveRessourceRsp removeRessource(global::Ressource.RemoveRessourceRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_removeRessource, null, options, request);
+      }
+      /// <summary>
+      ///* Remove a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.RemoveRessourceRsp> removeRessourceAsync(global::Ressource.RemoveRessourceRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return removeRessourceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Remove a ressource from a client (custom service) to globular 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.RemoveRessourceRsp> removeRessourceAsync(global::Ressource.RemoveRessourceRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_removeRessource, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       protected override RessourceServiceClient NewInstance(ClientBaseConfiguration configuration)
       {
@@ -2502,8 +2670,8 @@ namespace Ressource {
           .AddMethod(__Method_DeleteRessourceOwner, serviceImpl.DeleteRessourceOwner)
           .AddMethod(__Method_DeleteRessourceOwners, serviceImpl.DeleteRessourceOwners)
           .AddMethod(__Method_GetAllFilesInfo, serviceImpl.GetAllFilesInfo)
-          .AddMethod(__Method_ValidateUserFileAccess, serviceImpl.ValidateUserFileAccess)
-          .AddMethod(__Method_ValidateApplicationFileAccess, serviceImpl.ValidateApplicationFileAccess)
+          .AddMethod(__Method_ValidateUserRessourceAccess, serviceImpl.ValidateUserRessourceAccess)
+          .AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl.ValidateApplicationRessourceAccess)
           .AddMethod(__Method_ValidateUserAccess, serviceImpl.ValidateUserAccess)
           .AddMethod(__Method_ValidateApplicationAccess, serviceImpl.ValidateApplicationAccess)
           .AddMethod(__Method_CreateDirPermissions, serviceImpl.CreateDirPermissions)
@@ -2517,7 +2685,10 @@ namespace Ressource {
           .AddMethod(__Method_Log, serviceImpl.Log)
           .AddMethod(__Method_GetLog, serviceImpl.GetLog)
           .AddMethod(__Method_DeleteLog, serviceImpl.DeleteLog)
-          .AddMethod(__Method_ClearAllLog, serviceImpl.ClearAllLog).Build();
+          .AddMethod(__Method_ClearAllLog, serviceImpl.ClearAllLog)
+          .AddMethod(__Method_setRessources, serviceImpl.setRessources)
+          .AddMethod(__Method_setRessource, serviceImpl.setRessource)
+          .AddMethod(__Method_removeRessource, serviceImpl.removeRessource).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the  service binding logic.
@@ -2548,8 +2719,8 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_DeleteRessourceOwner, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteRessourceOwnerRqst, global::Ressource.DeleteRessourceOwnerRsp>(serviceImpl.DeleteRessourceOwner));
       serviceBinder.AddMethod(__Method_DeleteRessourceOwners, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteRessourceOwnersRqst, global::Ressource.DeleteRessourceOwnersRsp>(serviceImpl.DeleteRessourceOwners));
       serviceBinder.AddMethod(__Method_GetAllFilesInfo, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.GetAllFilesInfoRqst, global::Ressource.GetAllFilesInfoRsp>(serviceImpl.GetAllFilesInfo));
-      serviceBinder.AddMethod(__Method_ValidateUserFileAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserFileAccessRqst, global::Ressource.ValidateUserFileAccessRsp>(serviceImpl.ValidateUserFileAccess));
-      serviceBinder.AddMethod(__Method_ValidateApplicationFileAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationFileAccessRqst, global::Ressource.ValidateApplicationFileAccessRsp>(serviceImpl.ValidateApplicationFileAccess));
+      serviceBinder.AddMethod(__Method_ValidateUserRessourceAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp>(serviceImpl.ValidateUserRessourceAccess));
+      serviceBinder.AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationRessourceAccessRqst, global::Ressource.ValidateApplicationRessourceAccessRsp>(serviceImpl.ValidateApplicationRessourceAccess));
       serviceBinder.AddMethod(__Method_ValidateUserAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserAccessRqst, global::Ressource.ValidateUserAccessRsp>(serviceImpl.ValidateUserAccess));
       serviceBinder.AddMethod(__Method_ValidateApplicationAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationAccessRqst, global::Ressource.ValidateApplicationAccessRsp>(serviceImpl.ValidateApplicationAccess));
       serviceBinder.AddMethod(__Method_CreateDirPermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.CreateDirPermissionsRqst, global::Ressource.CreateDirPermissionsRsp>(serviceImpl.CreateDirPermissions));
@@ -2564,6 +2735,9 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_GetLog, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ressource.GetLogRqst, global::Ressource.GetLogRsp>(serviceImpl.GetLog));
       serviceBinder.AddMethod(__Method_DeleteLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteLogRqst, global::Ressource.DeleteLogRsp>(serviceImpl.DeleteLog));
       serviceBinder.AddMethod(__Method_ClearAllLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ClearAllLogRqst, global::Ressource.ClearAllLogRsp>(serviceImpl.ClearAllLog));
+      serviceBinder.AddMethod(__Method_setRessources, serviceImpl == null ? null : new grpc::ClientStreamingServerMethod<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp>(serviceImpl.setRessources));
+      serviceBinder.AddMethod(__Method_setRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(serviceImpl.setRessource));
+      serviceBinder.AddMethod(__Method_removeRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.RemoveRessourceRqst, global::Ressource.RemoveRessourceRsp>(serviceImpl.removeRessource));
     }
 
   }

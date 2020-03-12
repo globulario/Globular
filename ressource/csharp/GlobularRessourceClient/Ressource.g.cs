@@ -89,115 +89,127 @@ namespace Ressource {
             "DAoEbmFtZRgBIAEoCRIOCgZtZXRob2QYAiABKAkiLgocVmFsaWRhdGVBcHBs",
             "aWNhdGlvbkFjY2Vzc1JzcBIOCgZyZXN1bHQYASABKAgiNwoWVmFsaWRhdGVV",
             "c2VyQWNjZXNzUnFzdBINCgV0b2tlbhgBIAEoCRIOCgZtZXRob2QYAiABKAki",
-            "JwoVVmFsaWRhdGVVc2VyQWNjZXNzUnNwEg4KBnJlc3VsdBgBIAEoCCJdChpW",
-            "YWxpZGF0ZVVzZXJGaWxlQWNjZXNzUnFzdBINCgV0b2tlbhgBIAEoCRIOCgZt",
-            "ZXRob2QYAiABKAkSDAoEcGF0aBgDIAEoCRISCgpwZXJtaXNzaW9uGAQgASgJ",
-            "IisKGVZhbGlkYXRlVXNlckZpbGVBY2Nlc3NSc3ASDgoGcmVzdWx0GAEgASgI",
-            "ImMKIVZhbGlkYXRlQXBwbGljYXRpb25GaWxlQWNjZXNzUnFzdBIMCgRuYW1l",
-            "GAEgASgJEg4KBm1ldGhvZBgCIAEoCRIMCgRwYXRoGAMgASgJEhIKCnBlcm1p",
-            "c3Npb24YBCABKAkiMgogVmFsaWRhdGVBcHBsaWNhdGlvbkZpbGVBY2Nlc3NS",
-            "c3ASDgoGcmVzdWx0GAEgASgIIkUKGENyZWF0ZURpclBlcm1pc3Npb25zUnFz",
-            "dBINCgV0b2tlbhgBIAEoCRIMCgRwYXRoGAIgASgJEgwKBG5hbWUYAyABKAki",
-            "KQoXQ3JlYXRlRGlyUGVybWlzc2lvbnNSc3ASDgoGcmVzdWx0GAEgASgIIkoK",
-            "GFJlbmFtZUZpbGVQZXJtaXNzaW9uUnFzdBIMCgRwYXRoGAEgASgJEg8KB29s",
-            "ZE5hbWUYAiABKAkSDwoHbmV3TmFtZRgDIAEoCSIpChdSZW5hbWVGaWxlUGVy",
-            "bWlzc2lvblJzcBIOCgZyZXN1bHQYASABKAgiKAoYRGVsZXRlRGlyUGVybWlz",
-            "c2lvbnNScXN0EgwKBHBhdGgYASABKAkiKQoXRGVsZXRlRGlyUGVybWlzc2lv",
-            "bnNSc3ASDgoGcmVzdWx0GAEgASgIIikKGURlbGV0ZUZpbGVQZXJtaXNzaW9u",
-            "c1Jxc3QSDAoEcGF0aBgBIAEoCSIqChhEZWxldGVGaWxlUGVybWlzc2lvbnNS",
-            "c3ASDgoGcmVzdWx0GAEgASgIIioKHERlbGV0ZUFjY291bnRQZXJtaXNzaW9u",
-            "c1Jxc3QSCgoCaWQYASABKAkiLQobRGVsZXRlQWNjb3VudFBlcm1pc3Npb25z",
-            "UnNwEg4KBnJlc3VsdBgBIAEoCCInChlEZWxldGVSb2xlUGVybWlzc2lvbnNS",
-            "cXN0EgoKAmlkGAEgASgJIioKGERlbGV0ZVJvbGVQZXJtaXNzaW9uc1JzcBIO",
-            "CgZyZXN1bHQYASABKAgifwoHTG9nSW5mbxIMCgRkYXRlGAEgASgDEiAKBHR5",
-            "cGUYAiABKA4yEi5yZXNzb3VyY2UuTG9nVHlwZRITCgthcHBsaWNhdGlvbhgD",
-            "IAEoCRIOCgZ1c2VySWQYBCABKAkSDgoGbWV0aG9kGAUgASgJEg8KB21lc3Nh",
-            "Z2UYBiABKAkiKwoHTG9nUnFzdBIgCgRpbmZvGAEgASgLMhIucmVzc291cmNl",
-            "LkxvZ0luZm8iGAoGTG9nUnNwEg4KBnJlc3VsdBgBIAEoCCIdCg1EZWxldGVM",
-            "b2dScXN0EgwKBGRhdGUYASABKAMiHgoMRGVsZXRlTG9nUnNwEg4KBnJlc3Vs",
-            "dBgBIAEoCCIiChBTZXRMb2dNZXRob2RScXN0Eg4KBm1ldGhvZBgBIAEoCSIh",
-            "Cg9TZXRMb2dNZXRob2RSc3ASDgoGcmVzdWx0GAEgASgIIiQKElJlc2V0TG9n",
-            "TWV0aG9kUnFzdBIOCgZtZXRob2QYASABKAkiIwoRUmVzZXRMb2dNZXRob2RS",
-            "c3ASDgoGcmVzdWx0GAEgASgIIhMKEUdldExvZ01ldGhvZHNScXN0IiMKEEdl",
-            "dExvZ01ldGhvZHNSc3ASDwoHbWV0aG9kcxgBIAMoCSIbCgpHZXRMb2dScXN0",
-            "Eg0KBXF1ZXJ5GAEgASgJIi0KCUdldExvZ1JzcBIgCgRpbmZvGAEgAygLMhIu",
-            "cmVzc291cmNlLkxvZ0luZm8iMwoPQ2xlYXJBbGxMb2dScXN0EiAKBHR5cGUY",
-            "ASABKA4yEi5yZXNzb3VyY2UuTG9nVHlwZSIgCg5DbGVhckFsbExvZ1JzcBIO",
-            "CgZyZXN1bHQYASABKAgqHgoHTG9nVHlwZRIICgRJTkZPEAASCQoFRVJST1IQ",
-            "ATLoGQoQUmVzc291cmNlU2VydmljZRJQCg9SZWdpc3RlckFjY291bnQSHi5y",
-            "ZXNzb3VyY2UuUmVnaXN0ZXJBY2NvdW50UnFzdBodLnJlc3NvdXJjZS5SZWdp",
-            "c3RlckFjY291bnRSc3ASSgoNRGVsZXRlQWNjb3VudBIcLnJlc3NvdXJjZS5E",
-            "ZWxldGVBY2NvdW50UnFzdBobLnJlc3NvdXJjZS5EZWxldGVBY2NvdW50UnNw",
-            "EkcKDEF1dGhlbnRpY2F0ZRIbLnJlc3NvdXJjZS5BdXRoZW50aWNhdGVScXN0",
-            "GhoucmVzc291cmNlLkF1dGhlbnRpY2F0ZVJzcBJQCg9TeW5jaHJvbml6ZUxk",
-            "YXASHi5yZXNzb3VyY2UuU3luY2hyb25pemVMZGFwUnFzdBodLnJlc3NvdXJj",
-            "ZS5TeW5jaHJvbml6ZUxkYXBSc3ASRwoMUmVmcmVzaFRva2VuEhsucmVzc291",
-            "cmNlLlJlZnJlc2hUb2tlblJxc3QaGi5yZXNzb3VyY2UuUmVmcmVzaFRva2Vu",
-            "UnNwEk0KDkFkZEFjY291bnRSb2xlEh0ucmVzc291cmNlLkFkZEFjY291bnRS",
-            "b2xlUnFzdBocLnJlc3NvdXJjZS5BZGRBY2NvdW50Um9sZVJzcBJWChFSZW1v",
-            "dmVBY2NvdW50Um9sZRIgLnJlc3NvdXJjZS5SZW1vdmVBY2NvdW50Um9sZVJx",
-            "c3QaHy5yZXNzb3VyY2UuUmVtb3ZlQWNjb3VudFJvbGVSc3ASQQoKQ3JlYXRl",
-            "Um9sZRIZLnJlc3NvdXJjZS5DcmVhdGVSb2xlUnFzdBoYLnJlc3NvdXJjZS5D",
-            "cmVhdGVSb2xlUnNwEkEKCkRlbGV0ZVJvbGUSGS5yZXNzb3VyY2UuRGVsZXRl",
-            "Um9sZVJxc3QaGC5yZXNzb3VyY2UuRGVsZXRlUm9sZVJzcBJKCg1BZGRSb2xl",
-            "QWN0aW9uEhwucmVzc291cmNlLkFkZFJvbGVBY3Rpb25ScXN0GhsucmVzc291",
-            "cmNlLkFkZFJvbGVBY3Rpb25Sc3ASUwoQUmVtb3ZlUm9sZUFjdGlvbhIfLnJl",
-            "c3NvdXJjZS5SZW1vdmVSb2xlQWN0aW9uUnFzdBoeLnJlc3NvdXJjZS5SZW1v",
-            "dmVSb2xlQWN0aW9uUnNwEl8KFEFkZEFwcGxpY2F0aW9uQWN0aW9uEiMucmVz",
-            "c291cmNlLkFkZEFwcGxpY2F0aW9uQWN0aW9uUnFzdBoiLnJlc3NvdXJjZS5B",
-            "ZGRBcHBsaWNhdGlvbkFjdGlvblJzcBJoChdSZW1vdmVBcHBsaWNhdGlvbkFj",
-            "dGlvbhImLnJlc3NvdXJjZS5SZW1vdmVBcHBsaWNhdGlvbkFjdGlvblJxc3Qa",
-            "JS5yZXNzb3VyY2UuUmVtb3ZlQXBwbGljYXRpb25BY3Rpb25Sc3ASSgoNR2V0",
-            "QWxsQWN0aW9ucxIcLnJlc3NvdXJjZS5HZXRBbGxBY3Rpb25zUnFzdBobLnJl",
-            "c3NvdXJjZS5HZXRBbGxBY3Rpb25zUnNwEk0KDkdldFBlcm1pc3Npb25zEh0u",
-            "cmVzc291cmNlLkdldFBlcm1pc3Npb25zUnFzdBocLnJlc3NvdXJjZS5HZXRQ",
-            "ZXJtaXNzaW9uc1JzcBJKCg1TZXRQZXJtaXNzaW9uEhwucmVzc291cmNlLlNl",
-            "dFBlcm1pc3Npb25ScXN0GhsucmVzc291cmNlLlNldFBlcm1pc3Npb25Sc3AS",
-            "VgoRRGVsZXRlUGVybWlzc2lvbnMSIC5yZXNzb3VyY2UuRGVsZXRlUGVybWlz",
-            "c2lvbnNScXN0Gh8ucmVzc291cmNlLkRlbGV0ZVBlcm1pc3Npb25zUnNwElYK",
-            "EVNldFJlc3NvdXJjZU93bmVyEiAucmVzc291cmNlLlNldFJlc3NvdXJjZU93",
-            "bmVyUnFzdBofLnJlc3NvdXJjZS5TZXRSZXNzb3VyY2VPd25lclJzcBJZChJH",
-            "ZXRSZXNzb3VyY2VPd25lcnMSIS5yZXNzb3VyY2UuR2V0UmVzc291cmNlT3du",
-            "ZXJzUnFzdBogLnJlc3NvdXJjZS5HZXRSZXNzb3VyY2VPd25lcnNSc3ASXwoU",
-            "RGVsZXRlUmVzc291cmNlT3duZXISIy5yZXNzb3VyY2UuRGVsZXRlUmVzc291",
-            "cmNlT3duZXJScXN0GiIucmVzc291cmNlLkRlbGV0ZVJlc3NvdXJjZU93bmVy",
-            "UnNwEmIKFURlbGV0ZVJlc3NvdXJjZU93bmVycxIkLnJlc3NvdXJjZS5EZWxl",
-            "dGVSZXNzb3VyY2VPd25lcnNScXN0GiMucmVzc291cmNlLkRlbGV0ZVJlc3Nv",
-            "dXJjZU93bmVyc1JzcBJQCg9HZXRBbGxGaWxlc0luZm8SHi5yZXNzb3VyY2Uu",
-            "R2V0QWxsRmlsZXNJbmZvUnFzdBodLnJlc3NvdXJjZS5HZXRBbGxGaWxlc0lu",
-            "Zm9Sc3ASZQoWVmFsaWRhdGVVc2VyRmlsZUFjY2VzcxIlLnJlc3NvdXJjZS5W",
-            "YWxpZGF0ZVVzZXJGaWxlQWNjZXNzUnFzdBokLnJlc3NvdXJjZS5WYWxpZGF0",
-            "ZVVzZXJGaWxlQWNjZXNzUnNwEnoKHVZhbGlkYXRlQXBwbGljYXRpb25GaWxl",
-            "QWNjZXNzEiwucmVzc291cmNlLlZhbGlkYXRlQXBwbGljYXRpb25GaWxlQWNj",
-            "ZXNzUnFzdBorLnJlc3NvdXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uRmlsZUFj",
-            "Y2Vzc1JzcBJZChJWYWxpZGF0ZVVzZXJBY2Nlc3MSIS5yZXNzb3VyY2UuVmFs",
-            "aWRhdGVVc2VyQWNjZXNzUnFzdBogLnJlc3NvdXJjZS5WYWxpZGF0ZVVzZXJB",
-            "Y2Nlc3NSc3ASbgoZVmFsaWRhdGVBcHBsaWNhdGlvbkFjY2VzcxIoLnJlc3Nv",
-            "dXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnFzdBonLnJlc3NvdXJj",
-            "ZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnNwEl8KFENyZWF0ZURpclBl",
-            "cm1pc3Npb25zEiMucmVzc291cmNlLkNyZWF0ZURpclBlcm1pc3Npb25zUnFz",
-            "dBoiLnJlc3NvdXJjZS5DcmVhdGVEaXJQZXJtaXNzaW9uc1JzcBJfChRSZW5h",
-            "bWVGaWxlUGVybWlzc2lvbhIjLnJlc3NvdXJjZS5SZW5hbWVGaWxlUGVybWlz",
-            "c2lvblJxc3QaIi5yZXNzb3VyY2UuUmVuYW1lRmlsZVBlcm1pc3Npb25Sc3AS",
-            "XwoURGVsZXRlRGlyUGVybWlzc2lvbnMSIy5yZXNzb3VyY2UuRGVsZXRlRGly",
-            "UGVybWlzc2lvbnNScXN0GiIucmVzc291cmNlLkRlbGV0ZURpclBlcm1pc3Np",
-            "b25zUnNwEmIKFURlbGV0ZUZpbGVQZXJtaXNzaW9ucxIkLnJlc3NvdXJjZS5E",
-            "ZWxldGVGaWxlUGVybWlzc2lvbnNScXN0GiMucmVzc291cmNlLkRlbGV0ZUZp",
-            "bGVQZXJtaXNzaW9uc1JzcBJrChhEZWxldGVBY2NvdW50UGVybWlzc2lvbnMS",
-            "Jy5yZXNzb3VyY2UuRGVsZXRlQWNjb3VudFBlcm1pc3Npb25zUnFzdBomLnJl",
-            "c3NvdXJjZS5EZWxldGVBY2NvdW50UGVybWlzc2lvbnNSc3ASYgoVRGVsZXRl",
-            "Um9sZVBlcm1pc3Npb25zEiQucmVzc291cmNlLkRlbGV0ZVJvbGVQZXJtaXNz",
-            "aW9uc1Jxc3QaIy5yZXNzb3VyY2UuRGVsZXRlUm9sZVBlcm1pc3Npb25zUnNw",
-            "EmUKFkdldEFsbEFwcGxpY2F0aW9uc0luZm8SJS5yZXNzb3VyY2UuR2V0QWxs",
-            "QXBwbGljYXRpb25zSW5mb1Jxc3QaJC5yZXNzb3VyY2UuR2V0QWxsQXBwbGlj",
-            "YXRpb25zSW5mb1JzcBJWChFEZWxldGVBcHBsaWNhdGlvbhIgLnJlc3NvdXJj",
-            "ZS5EZWxldGVBcHBsaWNhdGlvblJxc3QaHy5yZXNzb3VyY2UuRGVsZXRlQXBw",
-            "bGljYXRpb25Sc3ASLAoDTG9nEhIucmVzc291cmNlLkxvZ1Jxc3QaES5yZXNz",
-            "b3VyY2UuTG9nUnNwEjcKBkdldExvZxIVLnJlc3NvdXJjZS5HZXRMb2dScXN0",
-            "GhQucmVzc291cmNlLkdldExvZ1JzcDABEj4KCURlbGV0ZUxvZxIYLnJlc3Nv",
-            "dXJjZS5EZWxldGVMb2dScXN0GhcucmVzc291cmNlLkRlbGV0ZUxvZ1JzcBJE",
-            "CgtDbGVhckFsbExvZxIaLnJlc3NvdXJjZS5DbGVhckFsbExvZ1Jxc3QaGS5y",
-            "ZXNzb3VyY2UuQ2xlYXJBbGxMb2dSc3BCC1oJcmVzc291cmNlYgZwcm90bzM="));
+            "JwoVVmFsaWRhdGVVc2VyQWNjZXNzUnNwEg4KBnJlc3VsdBgBIAEoCCJiCh9W",
+            "YWxpZGF0ZVVzZXJSZXNzb3VyY2VBY2Nlc3NScXN0Eg0KBXRva2VuGAEgASgJ",
+            "Eg4KBm1ldGhvZBgCIAEoCRIMCgRwYXRoGAMgASgJEhIKCnBlcm1pc3Npb24Y",
+            "BCABKAkiMAoeVmFsaWRhdGVVc2VyUmVzc291cmNlQWNjZXNzUnNwEg4KBnJl",
+            "c3VsdBgBIAEoCCJoCiZWYWxpZGF0ZUFwcGxpY2F0aW9uUmVzc291cmNlQWNj",
+            "ZXNzUnFzdBIMCgRuYW1lGAEgASgJEg4KBm1ldGhvZBgCIAEoCRIMCgRwYXRo",
+            "GAMgASgJEhIKCnBlcm1pc3Npb24YBCABKAkiNwolVmFsaWRhdGVBcHBsaWNh",
+            "dGlvblJlc3NvdXJjZUFjY2Vzc1JzcBIOCgZyZXN1bHQYASABKAgiRQoYQ3Jl",
+            "YXRlRGlyUGVybWlzc2lvbnNScXN0Eg0KBXRva2VuGAEgASgJEgwKBHBhdGgY",
+            "AiABKAkSDAoEbmFtZRgDIAEoCSIpChdDcmVhdGVEaXJQZXJtaXNzaW9uc1Jz",
+            "cBIOCgZyZXN1bHQYASABKAgiSgoYUmVuYW1lRmlsZVBlcm1pc3Npb25ScXN0",
+            "EgwKBHBhdGgYASABKAkSDwoHb2xkTmFtZRgCIAEoCRIPCgduZXdOYW1lGAMg",
+            "ASgJIikKF1JlbmFtZUZpbGVQZXJtaXNzaW9uUnNwEg4KBnJlc3VsdBgBIAEo",
+            "CCIoChhEZWxldGVEaXJQZXJtaXNzaW9uc1Jxc3QSDAoEcGF0aBgBIAEoCSIp",
+            "ChdEZWxldGVEaXJQZXJtaXNzaW9uc1JzcBIOCgZyZXN1bHQYASABKAgiKQoZ",
+            "RGVsZXRlRmlsZVBlcm1pc3Npb25zUnFzdBIMCgRwYXRoGAEgASgJIioKGERl",
+            "bGV0ZUZpbGVQZXJtaXNzaW9uc1JzcBIOCgZyZXN1bHQYASABKAgiKgocRGVs",
+            "ZXRlQWNjb3VudFBlcm1pc3Npb25zUnFzdBIKCgJpZBgBIAEoCSItChtEZWxl",
+            "dGVBY2NvdW50UGVybWlzc2lvbnNSc3ASDgoGcmVzdWx0GAEgASgIIicKGURl",
+            "bGV0ZVJvbGVQZXJtaXNzaW9uc1Jxc3QSCgoCaWQYASABKAkiKgoYRGVsZXRl",
+            "Um9sZVBlcm1pc3Npb25zUnNwEg4KBnJlc3VsdBgBIAEoCCJ/CgdMb2dJbmZv",
+            "EgwKBGRhdGUYASABKAMSIAoEdHlwZRgCIAEoDjISLnJlc3NvdXJjZS5Mb2dU",
+            "eXBlEhMKC2FwcGxpY2F0aW9uGAMgASgJEg4KBnVzZXJJZBgEIAEoCRIOCgZt",
+            "ZXRob2QYBSABKAkSDwoHbWVzc2FnZRgGIAEoCSIrCgdMb2dScXN0EiAKBGlu",
+            "Zm8YASABKAsyEi5yZXNzb3VyY2UuTG9nSW5mbyIYCgZMb2dSc3ASDgoGcmVz",
+            "dWx0GAEgASgIIh0KDURlbGV0ZUxvZ1Jxc3QSDAoEZGF0ZRgBIAEoAyIeCgxE",
+            "ZWxldGVMb2dSc3ASDgoGcmVzdWx0GAEgASgIIiIKEFNldExvZ01ldGhvZFJx",
+            "c3QSDgoGbWV0aG9kGAEgASgJIiEKD1NldExvZ01ldGhvZFJzcBIOCgZyZXN1",
+            "bHQYASABKAgiJAoSUmVzZXRMb2dNZXRob2RScXN0Eg4KBm1ldGhvZBgBIAEo",
+            "CSIjChFSZXNldExvZ01ldGhvZFJzcBIOCgZyZXN1bHQYASABKAgiEwoRR2V0",
+            "TG9nTWV0aG9kc1Jxc3QiIwoQR2V0TG9nTWV0aG9kc1JzcBIPCgdtZXRob2Rz",
+            "GAEgAygJIhsKCkdldExvZ1Jxc3QSDQoFcXVlcnkYASABKAkiLQoJR2V0TG9n",
+            "UnNwEiAKBGluZm8YASADKAsyEi5yZXNzb3VyY2UuTG9nSW5mbyIzCg9DbGVh",
+            "ckFsbExvZ1Jxc3QSIAoEdHlwZRgBIAEoDjISLnJlc3NvdXJjZS5Mb2dUeXBl",
+            "IiAKDkNsZWFyQWxsTG9nUnNwEg4KBnJlc3VsdBgBIAEoCCInChFTZXRSZXNz",
+            "b3VyY2VzUnFzdBISCgpyZXNzb3VyY2VzGAEgAygJIiIKEFNldFJlc3NvdXJj",
+            "ZXNSc3ASDgoGcmVzdWx0GAEgASgIIiUKEFNldFJlc3NvdXJjZVJxc3QSEQoJ",
+            "cmVzc291cmNlGAEgASgJIiEKD1NldFJlc3NvdXJjZVJzcBIOCgZyZXN1bHQY",
+            "ASABKAgiKAoTUmVtb3ZlUmVzc291cmNlUnFzdBIRCglyZXNzb3VyY2UYASAB",
+            "KAkiJAoSUmVtb3ZlUmVzc291cmNlUnNwEg4KBnJlc3VsdBgBIAEoCCoeCgdM",
+            "b2dUeXBlEggKBElORk8QABIJCgVFUlJPUhABMvAbChBSZXNzb3VyY2VTZXJ2",
+            "aWNlElAKD1JlZ2lzdGVyQWNjb3VudBIeLnJlc3NvdXJjZS5SZWdpc3RlckFj",
+            "Y291bnRScXN0Gh0ucmVzc291cmNlLlJlZ2lzdGVyQWNjb3VudFJzcBJKCg1E",
+            "ZWxldGVBY2NvdW50EhwucmVzc291cmNlLkRlbGV0ZUFjY291bnRScXN0Ghsu",
+            "cmVzc291cmNlLkRlbGV0ZUFjY291bnRSc3ASRwoMQXV0aGVudGljYXRlEhsu",
+            "cmVzc291cmNlLkF1dGhlbnRpY2F0ZVJxc3QaGi5yZXNzb3VyY2UuQXV0aGVu",
+            "dGljYXRlUnNwElAKD1N5bmNocm9uaXplTGRhcBIeLnJlc3NvdXJjZS5TeW5j",
+            "aHJvbml6ZUxkYXBScXN0Gh0ucmVzc291cmNlLlN5bmNocm9uaXplTGRhcFJz",
+            "cBJHCgxSZWZyZXNoVG9rZW4SGy5yZXNzb3VyY2UuUmVmcmVzaFRva2VuUnFz",
+            "dBoaLnJlc3NvdXJjZS5SZWZyZXNoVG9rZW5Sc3ASTQoOQWRkQWNjb3VudFJv",
+            "bGUSHS5yZXNzb3VyY2UuQWRkQWNjb3VudFJvbGVScXN0GhwucmVzc291cmNl",
+            "LkFkZEFjY291bnRSb2xlUnNwElYKEVJlbW92ZUFjY291bnRSb2xlEiAucmVz",
+            "c291cmNlLlJlbW92ZUFjY291bnRSb2xlUnFzdBofLnJlc3NvdXJjZS5SZW1v",
+            "dmVBY2NvdW50Um9sZVJzcBJBCgpDcmVhdGVSb2xlEhkucmVzc291cmNlLkNy",
+            "ZWF0ZVJvbGVScXN0GhgucmVzc291cmNlLkNyZWF0ZVJvbGVSc3ASQQoKRGVs",
+            "ZXRlUm9sZRIZLnJlc3NvdXJjZS5EZWxldGVSb2xlUnFzdBoYLnJlc3NvdXJj",
+            "ZS5EZWxldGVSb2xlUnNwEkoKDUFkZFJvbGVBY3Rpb24SHC5yZXNzb3VyY2Uu",
+            "QWRkUm9sZUFjdGlvblJxc3QaGy5yZXNzb3VyY2UuQWRkUm9sZUFjdGlvblJz",
+            "cBJTChBSZW1vdmVSb2xlQWN0aW9uEh8ucmVzc291cmNlLlJlbW92ZVJvbGVB",
+            "Y3Rpb25ScXN0Gh4ucmVzc291cmNlLlJlbW92ZVJvbGVBY3Rpb25Sc3ASXwoU",
+            "QWRkQXBwbGljYXRpb25BY3Rpb24SIy5yZXNzb3VyY2UuQWRkQXBwbGljYXRp",
+            "b25BY3Rpb25ScXN0GiIucmVzc291cmNlLkFkZEFwcGxpY2F0aW9uQWN0aW9u",
+            "UnNwEmgKF1JlbW92ZUFwcGxpY2F0aW9uQWN0aW9uEiYucmVzc291cmNlLlJl",
+            "bW92ZUFwcGxpY2F0aW9uQWN0aW9uUnFzdBolLnJlc3NvdXJjZS5SZW1vdmVB",
+            "cHBsaWNhdGlvbkFjdGlvblJzcBJKCg1HZXRBbGxBY3Rpb25zEhwucmVzc291",
+            "cmNlLkdldEFsbEFjdGlvbnNScXN0GhsucmVzc291cmNlLkdldEFsbEFjdGlv",
+            "bnNSc3ASTQoOR2V0UGVybWlzc2lvbnMSHS5yZXNzb3VyY2UuR2V0UGVybWlz",
+            "c2lvbnNScXN0GhwucmVzc291cmNlLkdldFBlcm1pc3Npb25zUnNwEkoKDVNl",
+            "dFBlcm1pc3Npb24SHC5yZXNzb3VyY2UuU2V0UGVybWlzc2lvblJxc3QaGy5y",
+            "ZXNzb3VyY2UuU2V0UGVybWlzc2lvblJzcBJWChFEZWxldGVQZXJtaXNzaW9u",
+            "cxIgLnJlc3NvdXJjZS5EZWxldGVQZXJtaXNzaW9uc1Jxc3QaHy5yZXNzb3Vy",
+            "Y2UuRGVsZXRlUGVybWlzc2lvbnNSc3ASVgoRU2V0UmVzc291cmNlT3duZXIS",
+            "IC5yZXNzb3VyY2UuU2V0UmVzc291cmNlT3duZXJScXN0Gh8ucmVzc291cmNl",
+            "LlNldFJlc3NvdXJjZU93bmVyUnNwElkKEkdldFJlc3NvdXJjZU93bmVycxIh",
+            "LnJlc3NvdXJjZS5HZXRSZXNzb3VyY2VPd25lcnNScXN0GiAucmVzc291cmNl",
+            "LkdldFJlc3NvdXJjZU93bmVyc1JzcBJfChREZWxldGVSZXNzb3VyY2VPd25l",
+            "chIjLnJlc3NvdXJjZS5EZWxldGVSZXNzb3VyY2VPd25lclJxc3QaIi5yZXNz",
+            "b3VyY2UuRGVsZXRlUmVzc291cmNlT3duZXJSc3ASYgoVRGVsZXRlUmVzc291",
+            "cmNlT3duZXJzEiQucmVzc291cmNlLkRlbGV0ZVJlc3NvdXJjZU93bmVyc1Jx",
+            "c3QaIy5yZXNzb3VyY2UuRGVsZXRlUmVzc291cmNlT3duZXJzUnNwElAKD0dl",
+            "dEFsbEZpbGVzSW5mbxIeLnJlc3NvdXJjZS5HZXRBbGxGaWxlc0luZm9ScXN0",
+            "Gh0ucmVzc291cmNlLkdldEFsbEZpbGVzSW5mb1JzcBJ0ChtWYWxpZGF0ZVVz",
+            "ZXJSZXNzb3VyY2VBY2Nlc3MSKi5yZXNzb3VyY2UuVmFsaWRhdGVVc2VyUmVz",
+            "c291cmNlQWNjZXNzUnFzdBopLnJlc3NvdXJjZS5WYWxpZGF0ZVVzZXJSZXNz",
+            "b3VyY2VBY2Nlc3NSc3ASiQEKIlZhbGlkYXRlQXBwbGljYXRpb25SZXNzb3Vy",
+            "Y2VBY2Nlc3MSMS5yZXNzb3VyY2UuVmFsaWRhdGVBcHBsaWNhdGlvblJlc3Nv",
+            "dXJjZUFjY2Vzc1Jxc3QaMC5yZXNzb3VyY2UuVmFsaWRhdGVBcHBsaWNhdGlv",
+            "blJlc3NvdXJjZUFjY2Vzc1JzcBJZChJWYWxpZGF0ZVVzZXJBY2Nlc3MSIS5y",
+            "ZXNzb3VyY2UuVmFsaWRhdGVVc2VyQWNjZXNzUnFzdBogLnJlc3NvdXJjZS5W",
+            "YWxpZGF0ZVVzZXJBY2Nlc3NSc3ASbgoZVmFsaWRhdGVBcHBsaWNhdGlvbkFj",
+            "Y2VzcxIoLnJlc3NvdXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnFz",
+            "dBonLnJlc3NvdXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnNwEl8K",
+            "FENyZWF0ZURpclBlcm1pc3Npb25zEiMucmVzc291cmNlLkNyZWF0ZURpclBl",
+            "cm1pc3Npb25zUnFzdBoiLnJlc3NvdXJjZS5DcmVhdGVEaXJQZXJtaXNzaW9u",
+            "c1JzcBJfChRSZW5hbWVGaWxlUGVybWlzc2lvbhIjLnJlc3NvdXJjZS5SZW5h",
+            "bWVGaWxlUGVybWlzc2lvblJxc3QaIi5yZXNzb3VyY2UuUmVuYW1lRmlsZVBl",
+            "cm1pc3Npb25Sc3ASXwoURGVsZXRlRGlyUGVybWlzc2lvbnMSIy5yZXNzb3Vy",
+            "Y2UuRGVsZXRlRGlyUGVybWlzc2lvbnNScXN0GiIucmVzc291cmNlLkRlbGV0",
+            "ZURpclBlcm1pc3Npb25zUnNwEmIKFURlbGV0ZUZpbGVQZXJtaXNzaW9ucxIk",
+            "LnJlc3NvdXJjZS5EZWxldGVGaWxlUGVybWlzc2lvbnNScXN0GiMucmVzc291",
+            "cmNlLkRlbGV0ZUZpbGVQZXJtaXNzaW9uc1JzcBJrChhEZWxldGVBY2NvdW50",
+            "UGVybWlzc2lvbnMSJy5yZXNzb3VyY2UuRGVsZXRlQWNjb3VudFBlcm1pc3Np",
+            "b25zUnFzdBomLnJlc3NvdXJjZS5EZWxldGVBY2NvdW50UGVybWlzc2lvbnNS",
+            "c3ASYgoVRGVsZXRlUm9sZVBlcm1pc3Npb25zEiQucmVzc291cmNlLkRlbGV0",
+            "ZVJvbGVQZXJtaXNzaW9uc1Jxc3QaIy5yZXNzb3VyY2UuRGVsZXRlUm9sZVBl",
+            "cm1pc3Npb25zUnNwEmUKFkdldEFsbEFwcGxpY2F0aW9uc0luZm8SJS5yZXNz",
+            "b3VyY2UuR2V0QWxsQXBwbGljYXRpb25zSW5mb1Jxc3QaJC5yZXNzb3VyY2Uu",
+            "R2V0QWxsQXBwbGljYXRpb25zSW5mb1JzcBJWChFEZWxldGVBcHBsaWNhdGlv",
+            "bhIgLnJlc3NvdXJjZS5EZWxldGVBcHBsaWNhdGlvblJxc3QaHy5yZXNzb3Vy",
+            "Y2UuRGVsZXRlQXBwbGljYXRpb25Sc3ASLAoDTG9nEhIucmVzc291cmNlLkxv",
+            "Z1Jxc3QaES5yZXNzb3VyY2UuTG9nUnNwEjcKBkdldExvZxIVLnJlc3NvdXJj",
+            "ZS5HZXRMb2dScXN0GhQucmVzc291cmNlLkdldExvZ1JzcDABEj4KCURlbGV0",
+            "ZUxvZxIYLnJlc3NvdXJjZS5EZWxldGVMb2dScXN0GhcucmVzc291cmNlLkRl",
+            "bGV0ZUxvZ1JzcBJECgtDbGVhckFsbExvZxIaLnJlc3NvdXJjZS5DbGVhckFs",
+            "bExvZ1Jxc3QaGS5yZXNzb3VyY2UuQ2xlYXJBbGxMb2dSc3ASTAoNc2V0UmVz",
+            "c291cmNlcxIcLnJlc3NvdXJjZS5TZXRSZXNzb3VyY2VzUnFzdBobLnJlc3Nv",
+            "dXJjZS5TZXRSZXNzb3VyY2VzUnNwKAESRwoMc2V0UmVzc291cmNlEhsucmVz",
+            "c291cmNlLlNldFJlc3NvdXJjZVJxc3QaGi5yZXNzb3VyY2UuU2V0UmVzc291",
+            "cmNlUnNwElAKD3JlbW92ZVJlc3NvdXJjZRIeLnJlc3NvdXJjZS5SZW1vdmVS",
+            "ZXNzb3VyY2VScXN0Gh0ucmVzc291cmNlLlJlbW92ZVJlc3NvdXJjZVJzcEIL",
+            "WglyZXNzb3VyY2ViBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Ressource.LogType), }, new pbr::GeneratedClrTypeInfo[] {
@@ -259,10 +271,10 @@ namespace Ressource {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateApplicationAccessRsp), global::Ressource.ValidateApplicationAccessRsp.Parser, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserAccessRqst), global::Ressource.ValidateUserAccessRqst.Parser, new[]{ "Token", "Method" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserAccessRsp), global::Ressource.ValidateUserAccessRsp.Parser, new[]{ "Result" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserFileAccessRqst), global::Ressource.ValidateUserFileAccessRqst.Parser, new[]{ "Token", "Method", "Path", "Permission" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserFileAccessRsp), global::Ressource.ValidateUserFileAccessRsp.Parser, new[]{ "Result" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateApplicationFileAccessRqst), global::Ressource.ValidateApplicationFileAccessRqst.Parser, new[]{ "Name", "Method", "Path", "Permission" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateApplicationFileAccessRsp), global::Ressource.ValidateApplicationFileAccessRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserRessourceAccessRqst), global::Ressource.ValidateUserRessourceAccessRqst.Parser, new[]{ "Token", "Method", "Path", "Permission" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateUserRessourceAccessRsp), global::Ressource.ValidateUserRessourceAccessRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateApplicationRessourceAccessRqst), global::Ressource.ValidateApplicationRessourceAccessRqst.Parser, new[]{ "Name", "Method", "Path", "Permission" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ValidateApplicationRessourceAccessRsp), global::Ressource.ValidateApplicationRessourceAccessRsp.Parser, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.CreateDirPermissionsRqst), global::Ressource.CreateDirPermissionsRqst.Parser, new[]{ "Token", "Path", "Name" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.CreateDirPermissionsRsp), global::Ressource.CreateDirPermissionsRsp.Parser, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RenameFilePermissionRqst), global::Ressource.RenameFilePermissionRqst.Parser, new[]{ "Path", "OldName", "NewName" }, null, null, null),
@@ -289,7 +301,13 @@ namespace Ressource {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.GetLogRqst), global::Ressource.GetLogRqst.Parser, new[]{ "Query" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.GetLogRsp), global::Ressource.GetLogRsp.Parser, new[]{ "Info" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ClearAllLogRqst), global::Ressource.ClearAllLogRqst.Parser, new[]{ "Type" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ClearAllLogRsp), global::Ressource.ClearAllLogRsp.Parser, new[]{ "Result" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ClearAllLogRsp), global::Ressource.ClearAllLogRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourcesRqst), global::Ressource.SetRessourcesRqst.Parser, new[]{ "Ressources" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourcesRsp), global::Ressource.SetRessourcesRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourceRqst), global::Ressource.SetRessourceRqst.Parser, new[]{ "Ressource" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourceRsp), global::Ressource.SetRessourceRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveRessourceRqst), global::Ressource.RemoveRessourceRqst.Parser, new[]{ "Ressource" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveRessourceRsp), global::Ressource.RemoveRessourceRsp.Parser, new[]{ "Result" }, null, null, null)
           }));
     }
     #endregion
@@ -8742,11 +8760,11 @@ namespace Ressource {
 
   }
 
-  public sealed partial class ValidateUserFileAccessRqst : pb::IMessage<ValidateUserFileAccessRqst> {
-    private static readonly pb::MessageParser<ValidateUserFileAccessRqst> _parser = new pb::MessageParser<ValidateUserFileAccessRqst>(() => new ValidateUserFileAccessRqst());
+  public sealed partial class ValidateUserRessourceAccessRqst : pb::IMessage<ValidateUserRessourceAccessRqst> {
+    private static readonly pb::MessageParser<ValidateUserRessourceAccessRqst> _parser = new pb::MessageParser<ValidateUserRessourceAccessRqst>(() => new ValidateUserRessourceAccessRqst());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<ValidateUserFileAccessRqst> Parser { get { return _parser; } }
+    public static pb::MessageParser<ValidateUserRessourceAccessRqst> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -8759,14 +8777,14 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRqst() {
+    public ValidateUserRessourceAccessRqst() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRqst(ValidateUserFileAccessRqst other) : this() {
+    public ValidateUserRessourceAccessRqst(ValidateUserRessourceAccessRqst other) : this() {
       token_ = other.token_;
       method_ = other.method_;
       path_ = other.path_;
@@ -8775,8 +8793,8 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRqst Clone() {
-      return new ValidateUserFileAccessRqst(this);
+    public ValidateUserRessourceAccessRqst Clone() {
+      return new ValidateUserRessourceAccessRqst(this);
     }
 
     /// <summary>Field number for the "token" field.</summary>
@@ -8828,11 +8846,11 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as ValidateUserFileAccessRqst);
+      return Equals(other as ValidateUserRessourceAccessRqst);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(ValidateUserFileAccessRqst other) {
+    public bool Equals(ValidateUserRessourceAccessRqst other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -8909,7 +8927,7 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(ValidateUserFileAccessRqst other) {
+    public void MergeFrom(ValidateUserRessourceAccessRqst other) {
       if (other == null) {
         return;
       }
@@ -8958,11 +8976,11 @@ namespace Ressource {
 
   }
 
-  public sealed partial class ValidateUserFileAccessRsp : pb::IMessage<ValidateUserFileAccessRsp> {
-    private static readonly pb::MessageParser<ValidateUserFileAccessRsp> _parser = new pb::MessageParser<ValidateUserFileAccessRsp>(() => new ValidateUserFileAccessRsp());
+  public sealed partial class ValidateUserRessourceAccessRsp : pb::IMessage<ValidateUserRessourceAccessRsp> {
+    private static readonly pb::MessageParser<ValidateUserRessourceAccessRsp> _parser = new pb::MessageParser<ValidateUserRessourceAccessRsp>(() => new ValidateUserRessourceAccessRsp());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<ValidateUserFileAccessRsp> Parser { get { return _parser; } }
+    public static pb::MessageParser<ValidateUserRessourceAccessRsp> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -8975,21 +8993,21 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRsp() {
+    public ValidateUserRessourceAccessRsp() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRsp(ValidateUserFileAccessRsp other) : this() {
+    public ValidateUserRessourceAccessRsp(ValidateUserRessourceAccessRsp other) : this() {
       result_ = other.result_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateUserFileAccessRsp Clone() {
-      return new ValidateUserFileAccessRsp(this);
+    public ValidateUserRessourceAccessRsp Clone() {
+      return new ValidateUserRessourceAccessRsp(this);
     }
 
     /// <summary>Field number for the "result" field.</summary>
@@ -9005,11 +9023,11 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as ValidateUserFileAccessRsp);
+      return Equals(other as ValidateUserRessourceAccessRsp);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(ValidateUserFileAccessRsp other) {
+    public bool Equals(ValidateUserRessourceAccessRsp other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -9059,7 +9077,7 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(ValidateUserFileAccessRsp other) {
+    public void MergeFrom(ValidateUserRessourceAccessRsp other) {
       if (other == null) {
         return;
       }
@@ -9087,11 +9105,11 @@ namespace Ressource {
 
   }
 
-  public sealed partial class ValidateApplicationFileAccessRqst : pb::IMessage<ValidateApplicationFileAccessRqst> {
-    private static readonly pb::MessageParser<ValidateApplicationFileAccessRqst> _parser = new pb::MessageParser<ValidateApplicationFileAccessRqst>(() => new ValidateApplicationFileAccessRqst());
+  public sealed partial class ValidateApplicationRessourceAccessRqst : pb::IMessage<ValidateApplicationRessourceAccessRqst> {
+    private static readonly pb::MessageParser<ValidateApplicationRessourceAccessRqst> _parser = new pb::MessageParser<ValidateApplicationRessourceAccessRqst>(() => new ValidateApplicationRessourceAccessRqst());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<ValidateApplicationFileAccessRqst> Parser { get { return _parser; } }
+    public static pb::MessageParser<ValidateApplicationRessourceAccessRqst> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -9104,14 +9122,14 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRqst() {
+    public ValidateApplicationRessourceAccessRqst() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRqst(ValidateApplicationFileAccessRqst other) : this() {
+    public ValidateApplicationRessourceAccessRqst(ValidateApplicationRessourceAccessRqst other) : this() {
       name_ = other.name_;
       method_ = other.method_;
       path_ = other.path_;
@@ -9120,8 +9138,8 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRqst Clone() {
-      return new ValidateApplicationFileAccessRqst(this);
+    public ValidateApplicationRessourceAccessRqst Clone() {
+      return new ValidateApplicationRessourceAccessRqst(this);
     }
 
     /// <summary>Field number for the "name" field.</summary>
@@ -9173,11 +9191,11 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as ValidateApplicationFileAccessRqst);
+      return Equals(other as ValidateApplicationRessourceAccessRqst);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(ValidateApplicationFileAccessRqst other) {
+    public bool Equals(ValidateApplicationRessourceAccessRqst other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -9254,7 +9272,7 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(ValidateApplicationFileAccessRqst other) {
+    public void MergeFrom(ValidateApplicationRessourceAccessRqst other) {
       if (other == null) {
         return;
       }
@@ -9303,11 +9321,11 @@ namespace Ressource {
 
   }
 
-  public sealed partial class ValidateApplicationFileAccessRsp : pb::IMessage<ValidateApplicationFileAccessRsp> {
-    private static readonly pb::MessageParser<ValidateApplicationFileAccessRsp> _parser = new pb::MessageParser<ValidateApplicationFileAccessRsp>(() => new ValidateApplicationFileAccessRsp());
+  public sealed partial class ValidateApplicationRessourceAccessRsp : pb::IMessage<ValidateApplicationRessourceAccessRsp> {
+    private static readonly pb::MessageParser<ValidateApplicationRessourceAccessRsp> _parser = new pb::MessageParser<ValidateApplicationRessourceAccessRsp>(() => new ValidateApplicationRessourceAccessRsp());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<ValidateApplicationFileAccessRsp> Parser { get { return _parser; } }
+    public static pb::MessageParser<ValidateApplicationRessourceAccessRsp> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -9320,21 +9338,21 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRsp() {
+    public ValidateApplicationRessourceAccessRsp() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRsp(ValidateApplicationFileAccessRsp other) : this() {
+    public ValidateApplicationRessourceAccessRsp(ValidateApplicationRessourceAccessRsp other) : this() {
       result_ = other.result_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public ValidateApplicationFileAccessRsp Clone() {
-      return new ValidateApplicationFileAccessRsp(this);
+    public ValidateApplicationRessourceAccessRsp Clone() {
+      return new ValidateApplicationRessourceAccessRsp(this);
     }
 
     /// <summary>Field number for the "result" field.</summary>
@@ -9350,11 +9368,11 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as ValidateApplicationFileAccessRsp);
+      return Equals(other as ValidateApplicationRessourceAccessRsp);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(ValidateApplicationFileAccessRsp other) {
+    public bool Equals(ValidateApplicationRessourceAccessRsp other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -9404,7 +9422,7 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(ValidateApplicationFileAccessRsp other) {
+    public void MergeFrom(ValidateApplicationRessourceAccessRsp other) {
       if (other == null) {
         return;
       }
@@ -13105,6 +13123,772 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void MergeFrom(ClearAllLogRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Result != false) {
+        Result = other.Result;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Result = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SetRessourcesRqst : pb::IMessage<SetRessourcesRqst> {
+    private static readonly pb::MessageParser<SetRessourcesRqst> _parser = new pb::MessageParser<SetRessourcesRqst>(() => new SetRessourcesRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetRessourcesRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[89]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRqst(SetRessourcesRqst other) : this() {
+      ressources_ = other.ressources_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRqst Clone() {
+      return new SetRessourcesRqst(this);
+    }
+
+    /// <summary>Field number for the "ressources" field.</summary>
+    public const int RessourcesFieldNumber = 1;
+    private static readonly pb::FieldCodec<string> _repeated_ressources_codec
+        = pb::FieldCodec.ForString(10);
+    private readonly pbc::RepeatedField<string> ressources_ = new pbc::RepeatedField<string>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<string> Ressources {
+      get { return ressources_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetRessourcesRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetRessourcesRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!ressources_.Equals(other.ressources_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= ressources_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      ressources_.WriteTo(output, _repeated_ressources_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      size += ressources_.CalculateSize(_repeated_ressources_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetRessourcesRqst other) {
+      if (other == null) {
+        return;
+      }
+      ressources_.Add(other.ressources_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            ressources_.AddEntriesFrom(input, _repeated_ressources_codec);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SetRessourcesRsp : pb::IMessage<SetRessourcesRsp> {
+    private static readonly pb::MessageParser<SetRessourcesRsp> _parser = new pb::MessageParser<SetRessourcesRsp>(() => new SetRessourcesRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetRessourcesRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[90]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRsp(SetRessourcesRsp other) : this() {
+      result_ = other.result_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourcesRsp Clone() {
+      return new SetRessourcesRsp(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private bool result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetRessourcesRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetRessourcesRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Result != other.Result) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Result != false) hash ^= Result.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Result != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Result);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Result != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetRessourcesRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Result != false) {
+        Result = other.Result;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Result = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SetRessourceRqst : pb::IMessage<SetRessourceRqst> {
+    private static readonly pb::MessageParser<SetRessourceRqst> _parser = new pb::MessageParser<SetRessourceRqst>(() => new SetRessourceRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetRessourceRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[91]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRqst(SetRessourceRqst other) : this() {
+      ressource_ = other.ressource_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRqst Clone() {
+      return new SetRessourceRqst(this);
+    }
+
+    /// <summary>Field number for the "ressource" field.</summary>
+    public const int RessourceFieldNumber = 1;
+    private string ressource_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Ressource {
+      get { return ressource_; }
+      set {
+        ressource_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetRessourceRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetRessourceRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Ressource != other.Ressource) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Ressource.Length != 0) hash ^= Ressource.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Ressource.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Ressource);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Ressource.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Ressource);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetRessourceRqst other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Ressource.Length != 0) {
+        Ressource = other.Ressource;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Ressource = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SetRessourceRsp : pb::IMessage<SetRessourceRsp> {
+    private static readonly pb::MessageParser<SetRessourceRsp> _parser = new pb::MessageParser<SetRessourceRsp>(() => new SetRessourceRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetRessourceRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[92]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRsp(SetRessourceRsp other) : this() {
+      result_ = other.result_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetRessourceRsp Clone() {
+      return new SetRessourceRsp(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private bool result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetRessourceRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetRessourceRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Result != other.Result) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Result != false) hash ^= Result.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Result != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Result);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Result != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetRessourceRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Result != false) {
+        Result = other.Result;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Result = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class RemoveRessourceRqst : pb::IMessage<RemoveRessourceRqst> {
+    private static readonly pb::MessageParser<RemoveRessourceRqst> _parser = new pb::MessageParser<RemoveRessourceRqst>(() => new RemoveRessourceRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<RemoveRessourceRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[93]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRqst(RemoveRessourceRqst other) : this() {
+      ressource_ = other.ressource_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRqst Clone() {
+      return new RemoveRessourceRqst(this);
+    }
+
+    /// <summary>Field number for the "ressource" field.</summary>
+    public const int RessourceFieldNumber = 1;
+    private string ressource_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Ressource {
+      get { return ressource_; }
+      set {
+        ressource_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as RemoveRessourceRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(RemoveRessourceRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Ressource != other.Ressource) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Ressource.Length != 0) hash ^= Ressource.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Ressource.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Ressource);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Ressource.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Ressource);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(RemoveRessourceRqst other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Ressource.Length != 0) {
+        Ressource = other.Ressource;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Ressource = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class RemoveRessourceRsp : pb::IMessage<RemoveRessourceRsp> {
+    private static readonly pb::MessageParser<RemoveRessourceRsp> _parser = new pb::MessageParser<RemoveRessourceRsp>(() => new RemoveRessourceRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<RemoveRessourceRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[94]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRsp(RemoveRessourceRsp other) : this() {
+      result_ = other.result_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveRessourceRsp Clone() {
+      return new RemoveRessourceRsp(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private bool result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as RemoveRessourceRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(RemoveRessourceRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Result != other.Result) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Result != false) hash ^= Result.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Result != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Result);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Result != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(RemoveRessourceRsp other) {
       if (other == null) {
         return;
       }

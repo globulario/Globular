@@ -379,14 +379,14 @@ func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) ValidateUserFileAccess(token string, path string, method string, permission string) (bool, error) {
-	rqst := &ValidateUserFileAccessRqst{}
+func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path string, method string, permission string) (bool, error) {
+	rqst := &ValidateUserRessourceAccessRqst{}
 	rqst.Token = token
 	rqst.Path = path
 	rqst.Method = method
 	rqst.Permission = permission
 
-	rsp, err := self.c.ValidateUserFileAccess(api.GetClientContext(self), rqst)
+	rsp, err := self.c.ValidateUserRessourceAccess(api.GetClientContext(self), rqst)
 	if err != nil {
 		return false, err
 	}
@@ -394,14 +394,14 @@ func (self *Ressource_Client) ValidateUserFileAccess(token string, path string, 
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) ValidateApplicationFileAccess(application string, path string, method string, permission string) (bool, error) {
-	rqst := &ValidateApplicationFileAccessRqst{}
+func (self *Ressource_Client) ValidateApplicationRessourceAccess(application string, path string, method string, permission string) (bool, error) {
+	rqst := &ValidateApplicationRessourceAccessRqst{}
 	rqst.Name = application
 	rqst.Path = path
 	rqst.Method = method
 	rqst.Permission = permission
 
-	rsp, err := self.c.ValidateApplicationFileAccess(api.GetClientContext(self), rqst)
+	rsp, err := self.c.ValidateApplicationRessourceAccess(api.GetClientContext(self), rqst)
 	if err != nil {
 		return false, err
 	}

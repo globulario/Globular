@@ -297,25 +297,25 @@ message ValidateUserAccessRsp{
 	bool result=1;
 }
 
-message ValidateUserFileAccessRqst{
+message ValidateUserRessourceAccessRqst{
 	string token=1;
 	string method=2;
 	string path=3;
 	string permission=4; // Read or Write.
 }
 
-message ValidateUserFileAccessRsp{
+message ValidateUserRessourceAccessRsp{
 	bool result=1;
 }
 
-message ValidateApplicationFileAccessRqst{
+message ValidateApplicationRessourceAccessRqst{
 	string name=1;
 	string method=2;
 	string path=3;
 	string permission=4; // Read or Write.
 }
 
-message ValidateApplicationFileAccessRsp{
+message ValidateApplicationRessourceAccessRsp{
 	bool result=1;
 }
 
@@ -442,6 +442,30 @@ message ClearAllLogRsp{
 	bool result=1;
 }
 
+message SetRessourcesRqst{
+	repeated string ressources = 1;
+}
+
+message SetRessourcesRsp{
+	bool result=1;
+}
+
+message SetRessourceRqst{
+	string ressource = 1;
+}
+
+message SetRessourceRsp{
+	bool result=1;
+}
+
+message RemoveRessourceRqst{
+	string ressource = 1;
+}
+
+message RemoveRessourceRsp{
+	bool result=1;
+}
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -516,10 +540,10 @@ service RessourceService {
 	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);
 	
 	/** Validate if user can access a given file. **/
-	rpc ValidateUserFileAccess(ValidateUserFileAccessRqst) returns (ValidateUserFileAccessRsp);
+	rpc ValidateUserRessourceAccess(ValidateUserRessourceAccessRqst) returns (ValidateUserRessourceAccessRsp);
 	
 	/** Validate if application can access a given file. **/
-	rpc ValidateApplicationFileAccess(ValidateApplicationFileAccessRqst) returns (ValidateApplicationFileAccessRsp);
+	rpc ValidateApplicationRessourceAccess(ValidateApplicationRessourceAccessRqst) returns (ValidateApplicationRessourceAccessRsp);
 	
 	/** Validate if user can access a given method. **/
 	rpc ValidateUserAccess(ValidateUserAccessRqst) returns (ValidateUserAccessRsp);
@@ -562,4 +586,13 @@ service RessourceService {
 	
 	/** Delete all log **/
 	rpc ClearAllLog(ClearAllLogRqst) returns(ClearAllLogRsp);
+	
+	/** Set the list of ressources from a client (custom service) to globular */
+	rpc setRessources(stream SetRessourcesRqst) returns(SetRessourcesRsp);
+	
+	/** Set a ressource from a client (custom service) to globular */
+	rpc setRessource(SetRessourceRqst) returns(SetRessourceRsp);
+	
+	/** Remove a ressource from a client (custom service) to globular */
+	rpc removeRessource(RemoveRessourceRqst) returns(RemoveRessourceRsp);
 }

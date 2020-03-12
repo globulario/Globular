@@ -25,7 +25,7 @@ func getRessourceClient() *ressource.Ressource_Client {
 }
 
 /**
- * Return the file permission (unix number) necessary for a given method.
+ * Return the file permission necessary for a given method.
  */
 func getFilePermissionForMethod(method string, req interface{}) (string, string) {
 	var path string
@@ -48,7 +48,7 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = "delete"
 	} else if method == "/file.FileService/Rename" {
 		rqst := req.(*filepb.RenameRequest)
 		if len(rqst.GetPath()) > 1 {
@@ -80,7 +80,7 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = "delete"
 	} else if method == "/file.FileService/GetThumbnails" {
 		rqst := req.(*filepb.GetThumbnailsRequest)
 		if len(rqst.GetPath()) > 1 {
@@ -110,7 +110,7 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = "delete"
 	} else if method == "/ressource.RessourceService/SetRessourceOwner" {
 		rqst := req.(*ressource.SetRessourceOwnerRqst)
 		if len(rqst.GetPath()) > 1 {
@@ -122,7 +122,7 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = "delete"
 	}
 
 	path = strings.ReplaceAll(path, "\\", "/")
@@ -133,8 +133,8 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 /**
  * Validate user file permission.
  */
-func ValidateUserFileAccess(token string, method string, path string, permission string) error {
-	hasAccess, err := getRessourceClient().ValidateUserFileAccess(token, path, method, permission)
+func ValidateUserRessourceAccess(token string, method string, path string, permission string) error {
+	hasAccess, err := getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -147,8 +147,8 @@ func ValidateUserFileAccess(token string, method string, path string, permission
 /**
  * Validate application file permission.
  */
-func ValidateApplicationFileAccess(applicationName string, method string, path string, permission string) error {
-	hasAccess, err := getRessourceClient().ValidateApplicationFileAccess(applicationName, path, method, permission)
+func ValidateApplicationRessourceAccess(applicationName string, method string, path string, permission string) error {
+	hasAccess, err := getRessourceClient().ValidateApplicationRessourceAccess(applicationName, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -219,13 +219,13 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		path, permission := getFilePermissionForMethod(method, req)
 
 		// I will test if the user has file permission.
-		hasFilePermission, err = getRessourceClient().ValidateUserFileAccess(token, path, method, permission)
+		hasFilePermission, err = getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
 		if err != nil {
 			return nil, err
 		}
 
 		if !hasFilePermission {
-			hasFilePermission, err = getRessourceClient().ValidateApplicationFileAccess(application, path, method, permission)
+			hasFilePermission, err = getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission)
 			if err != nil {
 				return nil, err
 			}
@@ -235,6 +235,8 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		if !hasFilePermission {
 			return nil, errors.New("Permission denied for file " + path)
 		}
+	} else {
+		log.Println("-----------> get Ressource Permission! ---> method | RessourcePermission (read|write|delete)")
 	}
 
 	// Execute the action.

@@ -938,9 +938,9 @@ func (self *Globule) registerMethods() error {
 			"/ressource.RessourceService/GetAllFilesInfo",
 			"/ressource.RessourceService/GetAllApplicationsInfo",
 			"/ressource.RessourceService/GetRessourceOwners",
-			"/ressource.RessourceService/ValidateUserFileAccess",
-			"/ressource.RessourceService/ValidateApplicationFileAccess",
-			"/ressource.RessourceService/ValidateUserFileAccess",
+			"/ressource.RessourceService/ValidateUserRessourceAccess",
+			"/ressource.RessourceService/ValidateApplicationRessourceAccess",
+			"/ressource.RessourceService/ValidateUserRessourceAccess",
 			"/ressource.RessourceService/ValidateApplicationAccess",
 			"/event.EventService/Subscribe",
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
@@ -1055,7 +1055,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationFileAccess(application, "/file.FileService/FileUploadHandler", path, "write")
+		err := Interceptors.ValidateApplicationRessourceAccess(application, "/file.FileService/FileUploadHandler", path, "write")
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to upload the file with error ", err.Error())
 			return
@@ -1067,7 +1067,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserFileAccess(token, "/file.FileService/FileUploadHandler", path, "write")
+		err := Interceptors.ValidateUserRessourceAccess(token, "/file.FileService/FileUploadHandler", path, "write")
 		if err != nil {
 			log.Println("Fail to upload the file with error ", err.Error())
 			return
@@ -1130,7 +1130,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationFileAccess(application, "/file.FileService/ServeFileHandler", name, "read")
+		err := Interceptors.ValidateApplicationRessourceAccess(application, "/file.FileService/ServeFileHandler", name, "read")
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to download the file with error ", err.Error())
 			return
@@ -1142,7 +1142,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserFileAccess(token, "/file.FileService/ServeFileHandler", name, "read")
+		err := Interceptors.ValidateUserRessourceAccess(token, "/file.FileService/ServeFileHandler", name, "read")
 		if err != nil {
 			log.Println("----> 1108")
 			log.Println("Fail to dowload the file with error ", err.Error())
@@ -3956,12 +3956,12 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/GetAllFilesInfo" ||
 		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
 		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationFileAccess" ||
-		method == "/ressource.RessourceService/ValidateUserFileAccess" ||
+		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationRessourceAccess" ||
+		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
 		method == "/ressource.RessourceService/Log" ||
-		method == "/ressource.RessourceService/GetLogMethods" {
+		method == "/ressource.RessourceService/GetLog" {
 		hasAccess = true
 	}
 
@@ -4147,7 +4147,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 		query = "{}"
 	}
 
-	data, err := p.Find("local_ressource", "local_ressource", "Logs", query, "")
+	data, err := p.Find("local_ressource", "local_ressource", "Logs", query, `[{"Projection":{"_id":0}}]`)
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -4247,15 +4247,29 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 	}, nil
 }
 
-/////////////////////// File permissions ressource management. /////////////////
+///////////////////////  ressource management. /////////////////
+
+//* Set the list of ressources from a client (custom service) to globular
+func (self *Globule) SetRessources(stream ressource.RessourceService_SetRessourcesServer) error {
+	log.Println("------> 4254 SetRessources")
+	return nil
+}
+
+//* Set a ressource from a client (custom service) to globular
+func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessourceRqst) (*ressource.SetRessourceRsp, error) {
+	log.Println("------> 4254 SetRessource")
+	return nil, nil
+}
+
+//* Remove a ressource from a client (custom service) to globular
+func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.RemoveRessourceRqst) (*ressource.RemoveRessourceRsp, error) {
+	log.Println("------> 4266 SetRessource")
+	return nil, nil
+}
 
 func (self *Globule) savePermission(owner string, path string, permission int32) error {
 
 	// dir cannot be executable....
-	if permission == 1 || permission == 3 || permission == 5 || permission == 7 {
-		return errors.New("Directory cannot be executable!")
-	}
-
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return err
@@ -4280,10 +4294,6 @@ func (self *Globule) savePermission(owner string, path string, permission int32)
 // Set directory permission
 func (self *Globule) setDirPermission(owner string, path string, permission int32) error {
 	log.Println("Set dir permission ", path)
-	// dir cannot be executable....
-	if permission == 1 || permission == 3 || permission == 5 || permission == 7 {
-		return errors.New("Directory cannot be executable!")
-	}
 
 	err := self.savePermission(owner, path, permission)
 	if err != nil {
@@ -4341,6 +4351,7 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 
 	// Now if the permission exist I will read the file info.
 	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
+
 	if !Utility.Exists(self.GetAbsolutePath(path)) {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4782,8 +4793,6 @@ func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.R
 		}
 	}
 
-	log.Println("----> rename ", oldPath, " to ", newPath)
-
 	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
 	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{}`, "")
 	if err == nil {
@@ -5060,7 +5069,7 @@ func (self *Globule) authenticateClient(ctx context.Context) (string, string, in
 }
 
 func (self *Globule) isOwner(name string, path string) bool {
-	//log.Println("=----------> is owner ", name, path)
+
 	// get the client...
 	client, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -5071,7 +5080,6 @@ func (self *Globule) isOwner(name string, path string) bool {
 	// method.
 	values, err := client.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+name+`"}`, `[{"Projection":{"roles":1}}]`)
 	if err != nil {
-		log.Println("=----------> ", err)
 		return false
 	}
 
@@ -5085,7 +5093,6 @@ func (self *Globule) isOwner(name string, path string) bool {
 	count, err := client.Count("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+account["_id"].(string)+`"}`, ``)
 	if err == nil {
 		if count > 0 {
-			log.Println("--> ", name, " is owner of ", path)
 			return true
 		}
 	} else {
@@ -5143,7 +5150,7 @@ func (self *Globule) hasPermission(name string, path string, permission string) 
 /**
  * Validate if a user, a role or an application has write to do operation on a file or a directorty.
  */
-func (self *Globule) validateUserFileAccess(userName string, method string, path string, permission string) error {
+func (self *Globule) validateUserRessourceAccess(userName string, method string, path string, permission string) error {
 
 	if !strings.HasPrefix(method, "/file.FileService") {
 		return nil
@@ -5207,7 +5214,7 @@ func (self *Globule) validateUserFileAccess(userName string, method string, path
 }
 
 //* Validate if user can access a given file. *
-func (self *Globule) ValidateUserFileAccess(ctx context.Context, rqst *ressource.ValidateUserFileAccessRqst) (*ressource.ValidateUserFileAccessRsp, error) {
+func (self *Globule) ValidateUserRessourceAccess(ctx context.Context, rqst *ressource.ValidateUserRessourceAccessRqst) (*ressource.ValidateUserRessourceAccessRsp, error) {
 
 	path := rqst.GetPath()
 	// first of all I will validate the token.
@@ -5224,26 +5231,26 @@ func (self *Globule) ValidateUserFileAccess(ctx context.Context, rqst *ressource
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token is expired!")))
 	}
 
-	err = self.validateUserFileAccess(clientId, rqst.Method, path, rqst.Permission)
+	err = self.validateUserRessourceAccess(clientId, rqst.Method, path, rqst.Permission)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ValidateUserFileAccessRsp{
+	return &ressource.ValidateUserRessourceAccessRsp{
 		Result: true,
 	}, nil
 }
 
 //* Validate if application can access a given file. *
-func (self *Globule) ValidateApplicationFileAccess(ctx context.Context, rqst *ressource.ValidateApplicationFileAccessRqst) (*ressource.ValidateApplicationFileAccessRsp, error) {
+func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqst *ressource.ValidateApplicationRessourceAccessRqst) (*ressource.ValidateApplicationRessourceAccessRsp, error) {
 
 	path := rqst.GetPath()
 
 	hasApplicationPermission, count := self.hasPermission(rqst.Name, path, rqst.Permission)
 	if hasApplicationPermission {
-		return &ressource.ValidateApplicationFileAccessRsp{
+		return &ressource.ValidateApplicationRessourceAccessRsp{
 			Result: true,
 		}, nil
 	}
@@ -5257,7 +5264,7 @@ func (self *Globule) ValidateApplicationFileAccess(ctx context.Context, rqst *re
 
 	}
 
-	return &ressource.ValidateApplicationFileAccessRsp{
+	return &ressource.ValidateApplicationRessourceAccessRsp{
 		Result: true,
 	}, nil
 }

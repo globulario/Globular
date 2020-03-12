@@ -24,29 +24,60 @@ namespace Globular
         public bool KeepUpToDate { get; set; }
         public bool KeepAlive { get; set; }
 
+        private RessourceClient ressourceClient;
+
         /// <summary>
         /// The default constructor.
         /// </summary>
-        public GlobularService()
+        public GlobularService(string address="localhost")
         {
             // set default values.
             this.Domain = "localhost";
             this.Protocol = "grpc";
             this.Version = "0.0.1";
             this.PublisherId = "localhost";
+
+            // there must be a globular server runing in order to validate ressources.
+            ressourceClient = new RessourceClient(address, "Ressource");
         }
 
-        public string getPath()
+        private string getPath()
         {
             var rootDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().CodeBase);
             return rootDir;
         }
 
-        public virtual void init()
+        /// <summary>
+        /// Initialyse from json object from a file.
+        /// </summary>
+        public void init()
         {
-
-
+            Console.Write("init service from: ", getPath() + System.IO.Path.PathSeparator + "config.json");
         }
+
+        /// <summary>
+        /// Serialyse the object into json and save it in config.json file.
+        /// </summary>
+        public void save(){
+            Console.Write("save service to: ", getPath() + System.IO.Path.PathSeparator + "config.json");
+        }
+
+        /// <summary>
+        /// Set a ressource on the globular ressource manager.
+        /// </summary>
+        /// <param name="path"></param>
+        public void setRessource(string path){
+            this.ressourceClient.SetRessource(path);
+        }
+
+        /// <summary>
+        /// Set a batch of ressource on the globular ressource manager.
+        /// </summary>
+        /// <param name="paths"></param>
+        public void setRessources(string[] paths){
+            this.ressourceClient.SetRessouces(paths);
+        }
+
     }
 
 
