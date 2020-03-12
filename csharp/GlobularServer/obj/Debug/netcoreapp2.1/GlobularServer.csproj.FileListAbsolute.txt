@@ -1,5 +1,4 @@
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.csprojAssemblyReference.cache
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.csproj.CoreCompileInputs.cache
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.AssemblyInfoInputs.cache
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.AssemblyInfo.cs
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\bin\Debug\netcoreapp2.1\GlobularServer.deps.json

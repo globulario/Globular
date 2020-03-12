@@ -1030,7 +1030,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\mm006819\\.nuget\\packages\\": {},
+    "C:\\Users\\davec\\.nuget\\packages\\": {},
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
@@ -1039,14 +1039,14 @@
       "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
       "projectName": "GlobularRessourceClient",
       "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
-      "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
       "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -1094,10 +1094,16 @@
           }
         },
         "imports": [
-          "net461"
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48"
         ],
         "assetTargetFallback": true,
-        "warn": true
+        "warn": true,
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
       }
     }
   }

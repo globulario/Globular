@@ -4,7 +4,6 @@ E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\De
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\Debug\netcoreapp2.1\GlobularEchoServer.dll
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\Debug\netcoreapp2.1\GlobularEchoServer.pdb
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.csprojAssemblyReference.cache
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.csproj.CoreCompileInputs.cache
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.AssemblyInfoInputs.cache
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.AssemblyInfo.cs
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.dll
