@@ -84,7 +84,6 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 		Timeout: 5 * time.Second,
 	}
 
-	log.Println("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
 	if err != nil {
 		log.Println("fail to get client configuration. ", err)

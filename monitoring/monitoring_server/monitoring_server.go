@@ -136,6 +136,10 @@ func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.Cre
 	c.Port = rqst.Connection.Port
 	c.Type = rqst.Connection.Store
 
+	if self.Connections == nil {
+		self.Connections = make(map[string]connection, 0)
+	}
+
 	// set or update the connection and save it in json file.
 	self.Connections[c.Id] = c
 

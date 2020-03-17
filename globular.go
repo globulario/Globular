@@ -45,7 +45,6 @@ import (
 
 	// Interceptor for authentication, event, log...
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
 
 	// Client services.
 	"context"
@@ -476,7 +475,6 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 	hasTls := Utility.ToBool(srv.(map[string]interface{})["TLS"])
 	if hasTls == true {
-		log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
 		/* Services gRpc backend. */
@@ -497,7 +495,6 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.certs+string(os.PathSeparator)+self.Certificate)
 
 	} else {
-		log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
 		// Now I will save the file with those new information in it.
 		proxyArgs = append(proxyArgs, "--run_http_server=true")
 		proxyArgs = append(proxyArgs, "--run_tls_server=false")
@@ -513,6 +510,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
+
 	err := proxyProcess.Start()
 
 	if err != nil {
@@ -538,6 +536,7 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 	}
 
 	s["Process"].(*exec.Cmd).Wait()
+
 	time.Sleep(time.Second * 5)
 	_, _, err := self.startService(s)
 	if err != nil {
@@ -571,6 +570,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	}
 
 	servicePath := self.path + s["servicePath"].(string)
+	servicePath = strings.ReplaceAll(strings.ReplaceAll(servicePath, "\\", "/"), "/", string(os.PathSeparator))
 	if s["Protocol"].(string) == "grpc" {
 
 		// Stop the previous client if there one.
@@ -579,11 +579,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {
+			log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
 			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
 			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
 		} else {
+			log.Println("start service: ", srv.(map[string]interface{})["Name"])
 			// not secure services.
 			s["CertAuthorityTrust"] = ""
 			s["CertFile"] = ""
@@ -608,16 +610,37 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 		}
 
+		var outb, errb bytes.Buffer
+		s["Process"].(*exec.Cmd).Stdout = &outb
+		s["Process"].(*exec.Cmd).Stderr = &errb
+
+		// Here I will set the command dir.
+		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 		err = s["Process"].(*exec.Cmd).Start()
 
 		s["State"] = "running"
 		go func() {
 			self.keepServiceAlive(s)
+
+			err := s["Process"].(*exec.Cmd).Wait() // wait for the program to resturn
+			if err != nil {
+				// Here I will create an object with the values of the dump.
+				dump := make(map[string]interface{})
+				dump["out"] = outb.String()
+				dump["err"] = errb.String()
+				dumpStr, _ := Utility.ToJson(dump)
+
+				// I will log the program error into the admin logger.
+				self.logServiceError(s["Name"].(string), dumpStr)
+			}
+			// Print the
+			fmt.Println("service", s["Name"].(string), "out:", outb.String(), "err:", errb.String())
+
 		}()
 
 		if err != nil {
 			s["State"] = "fail"
-			//log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
 
@@ -663,7 +686,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 	if s["Process"].(*exec.Cmd).Process == nil {
 		s["State"] = "fail"
-		return -1, -1, errors.New("Fail to start process " + s["Name"].(string))
+		err := errors.New("Fail to start process " + s["Name"].(string))
+		log.Println(err)
+		return -1, -1, err
 	}
 
 	// Return the pid of the service.
@@ -754,8 +779,6 @@ func (self *Globule) initServices() {
 
 							s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
 							s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
-							s["schemaPath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+"schema.json", self.path, "", -1), "\\", "/", -1)
-
 							self.Services[s["Name"].(string)] = s
 
 						}
@@ -791,6 +814,7 @@ func (self *Globule) initServices() {
 			// here I will parse the service defintion file to extract the
 			// service difinition.
 			reader, _ := os.Open(path)
+			//log.Println("--> proto file: ", name)
 			defer reader.Close()
 
 			parser := proto.NewParser(reader)
@@ -838,6 +862,7 @@ func (self *Globule) initServices() {
 				case *proto.RPC:
 					methodName = v.Name
 					path := "/" + packageName + "." + serviceName + "/" + methodName
+					//log.Println("---> method: ", path)
 					// So here I will register the method into the backend.
 					self.methods = append(self.methods, path)
 				}
@@ -862,7 +887,7 @@ func (self *Globule) initServices() {
 		// Set the server
 		_, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
 		if err != nil {
-			log.Println("fail to register ip with dns", err)
+			log.Println("fail to register ip "+Utility.MyIP()+" with dns", err)
 		}
 	}
 
@@ -1270,6 +1295,7 @@ func (self *Globule) initClients() {
  * Return globular configuration.
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
+
 	config, err := Utility.ToMap(self)
 	if err != nil {
 		return nil, status.Errorf(
@@ -2012,7 +2038,6 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
 			config["protoPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
 			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
-			config["schemaPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"schema.json", string(os.PathSeparator), "/")
 
 			// Here I will append the execute permission to the service file.
 
@@ -2442,8 +2467,8 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 
 	} else {
 		grpcServer = grpc.NewServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptor)),
-			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptor))}...)
+			grpc.UnaryInterceptor(unaryInterceptor),
+			grpc.StreamInterceptor(streamInterceptor)}...)
 	}
 
 	reflection.Register(grpcServer)
@@ -3901,11 +3926,23 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
+func (self *Globule) logServiceError(service string, dump string) error {
+
+	// Here I will use event to publish log information...
+	info := new(ressource.LogInfo)
+	info.Application = service
+	info.UserId = ""
+	info.Method = ""
+	info.Date = time.Now().Unix()
+	info.Message = dump
+	info.Type = ressource.LogType_ERROR
+	self.log(info)
+
+	return nil
+}
+
 // Log err and info...
 func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
-
-	// get the user id
-	userId, _, _ := Interceptors.ValidateToken(token)
 
 	// Remove cyclic calls
 	if method == "/ressource.RessourceService/Log" {
@@ -3915,7 +3952,7 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	// Here I will use event to publish log information...
 	info := new(ressource.LogInfo)
 	info.Application = application
-	info.UserId = userId
+	info.UserId = token
 	info.Method = method
 	info.Date = time.Now().Unix()
 	if err_ != nil {
@@ -4025,7 +4062,9 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	}
 
 	if !hasAccess {
-		return nil, errors.New("Permission denied to execute method " + method)
+		err := errors.New("Permission denied to execute method " + method)
+		self.logInfo(application, method, token, err)
+		return nil, err
 	}
 
 	// Execute the action.
@@ -4071,6 +4110,14 @@ func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.Ser
 
 func (self *Globule) log(info *ressource.LogInfo) error {
 
+	// The userId can be a single string or a JWT token.
+	if len(info.UserId) > 0 {
+		userId, _, err := Interceptors.ValidateToken(info.UserId)
+		if err == nil {
+			info.UserId = userId
+		}
+	}
+
 	// Here I will use prometheus to export the metrics
 	logType := "INFO"
 	if info.GetType() == ressource.LogType_ERROR {
@@ -4079,6 +4126,8 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// Here I will log only if the user is not 'sa'
 	if info.UserId != "sa" && len(info.Application) > 0 && len(info.UserId) > 0 {
+		log.Println("---> ", info)
+
 		// I will save the error in the LOGS table.
 		p, err := self.getPersistenceSaConnection()
 		if err != nil {
@@ -4117,8 +4166,11 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// Incrementing the prometheus counter.
 	self.methodsCounterLog.WithLabelValues(logType, info.Method).Inc()
-	self.getEventHub().Publish(info.Method, []byte(jsonStr))
-
+	if len(info.UserId) > 0 {
+		if info.UserId != "sa" {
+			self.getEventHub().Publish(info.Method, []byte(jsonStr))
+		}
+	}
 	return nil
 }
 
@@ -4164,7 +4216,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 
 	infos := make([]*ressource.LogInfo, 0)
 	i := 0
-	max := 100 // maximum number of infos per response.
+	max := 100
 	for jsonDecoder.More() {
 		info := ressource.LogInfo{}
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
@@ -4173,7 +4225,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 		}
 		// append the info inside the stream.
 		infos = append(infos, &info)
-		if i%max == 0 {
+		if i == max-1 {
 			// I will send the stream at each 100 logs...
 			rsp := &ressource.GetLogRsp{
 				Info: infos,
@@ -4186,7 +4238,9 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
 			infos = make([]*ressource.LogInfo, 0)
+			i = 0
 		}
+		i++
 	}
 
 	// Send the last infos...
@@ -4235,7 +4289,7 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = p.Delete("local_ressource", "local_ressource", "Logs", `{"type":"`+Utility.ToString(rqst.Type)+`"}`, ``)
+	err = p.Delete("local_ressource", "local_ressource", "Logs", `{}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4923,7 +4977,7 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.
  * Validate application access by role
  */
 func (self *Globule) validateApplicationAccess(name string, method string) error {
-
+	log.Println("-------> validate Application "+name+" for method ", method)
 	if len(name) == 0 {
 		return errors.New("No application was given to validate method access " + method)
 	}
@@ -4971,7 +5025,7 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
  * Validate user access by role
  */
 func (self *Globule) validateUserAccess(userName string, method string) error {
-	//log.Println("---> validate user access ", userName, " for method ", method)
+	log.Println("---> validate user access ", userName, " for method ", method)
 	if len(userName) == 0 {
 		return errors.New("No user  name was given to validate method access " + method)
 	}
@@ -6096,6 +6150,7 @@ func (self *Globule) Listen() {
 // That function will be access via http so event server or client will be able
 // to get particular service configuration.
 func getClientConfig(address string, name string) (map[string]interface{}, error) {
+
 	config := make(map[string]interface{})
 	config["Name"] = name
 	config["Domain"] = address
@@ -6156,6 +6211,8 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 	if Utility.IsLocal(address) {
 		return globule.getConfig(), nil
 	}
+
+	log.Println("---> get remote config: ", address)
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response

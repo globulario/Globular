@@ -1,6 +1,7 @@
 package Interceptors
 
 import "context"
+
 import "log"
 import "google.golang.org/grpc"
 import "github.com/davecourtois/Globular/ressource"
@@ -192,11 +193,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method == "/persistence.PersistenceService/Count" {
 		hasAccess = true
 	}
-
+	clientId, _, _ := ValidateToken(token)
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
 		if err != nil {
+			getRessourceClient().Log(application, clientId, method, err)
 			return nil, err
 		}
 	}
@@ -205,12 +207,16 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if len(application) > 0 && !hasAccess {
 		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
 		if err != nil {
+			getRessourceClient().Log(application, clientId, method, err)
 			return nil, err
 		}
 	}
 
 	if !hasAccess {
-		return nil, errors.New("Permission denied to execute method " + method)
+
+		err := errors.New("Permission denied to execute method " + method)
+		getRessourceClient().Log(application, clientId, method, err)
+		return nil, err
 	}
 
 	// Now I will test file permission.
@@ -235,15 +241,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		if !hasFilePermission {
 			return nil, errors.New("Permission denied for file " + path)
 		}
-	} else {
-		log.Println("-----------> get Ressource Permission! ---> method | RessourcePermission (read|write|delete)")
 	}
 
 	// Execute the action.
 	result, err := handler(ctx, req)
 
 	// Send log event...
-	clientId, _, _ := ValidateToken(token)
 	getRessourceClient().Log(application, clientId, method, err)
 
 	// Here depending of the request I will execute more actions.

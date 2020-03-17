@@ -10,14 +10,14 @@
         "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj",
         "projectName": "GlobularClient",
         "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj",
-        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
         "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -61,16 +61,15 @@
             }
           },
           "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48"
+            "net461"
           ],
           "assetTargetFallback": true,
-          "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+          "warn": true
+        }
+      },
+      "runtimes": {
+        "win10-x64": {
+          "#import": []
         }
       }
     },
@@ -80,14 +79,14 @@
         "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularEchoServer\\GlobularEchoServer.csproj",
         "projectName": "GlobularEchoServer",
         "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularEchoServer\\GlobularEchoServer.csproj",
-        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
         "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularEchoServer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -134,23 +133,21 @@
               "version": "[2.27.0, )"
             },
             "Microsoft.NETCore.App": {
-              "suppressParent": "All",
               "target": "Package",
-              "version": "[2.1.0, )",
+              "version": "[2.1.13, )",
               "autoReferenced": true
             }
           },
           "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48"
+            "net461"
           ],
           "assetTargetFallback": true,
-          "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+          "warn": true
+        }
+      },
+      "runtimes": {
+        "win10-x64": {
+          "#import": []
         }
       }
     },
@@ -160,14 +157,14 @@
         "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer\\GlobularServer.csproj",
         "projectName": "GlobularServer",
         "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer\\GlobularServer.csproj",
-        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
         "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -207,16 +204,15 @@
             }
           },
           "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48"
+            "net461"
           ],
           "assetTargetFallback": true,
-          "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+          "warn": true
+        }
+      },
+      "runtimes": {
+        "win10-x64": {
+          "#import": []
         }
       }
     },
@@ -226,14 +222,14 @@
         "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
         "projectName": "GlobularRessourceClient",
         "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
-        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
         "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -281,16 +277,15 @@
             }
           },
           "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48"
+            "net461"
           ],
           "assetTargetFallback": true,
-          "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+          "warn": true
+        }
+      },
+      "runtimes": {
+        "win10-x64": {
+          "#import": []
         }
       }
     }

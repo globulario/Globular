@@ -1,36 +1,53 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System.Security.Principal;
+using System.Text.RegularExpressions;
+using System;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
+using System.Threading;
+using System.Threading.Tasks;
+
 
 namespace Echo
 {
-    class Program
+    public class Prorgam
     {
-        static void Main(string[] args)
+        private static readonly AutoResetEvent _closing = new AutoResetEvent(false);
+        private static Server server;
+
+        public static void Main(string[] args)
         {
-            try
-            {    
+            Task.Factory.StartNew(() =>
+            {
                 // Create a new echo server instance.
                 var echoServer = new EchoServiceImpl();
-                echoServer.init();
-                
-                Server server = new Server
+                // init values from the configuration file.
+                echoServer = echoServer.init();
+
+                server = new Server
                 {
-                    Services = { EchoService.BindService(echoServer) },
+                    Services = { EchoService.BindService(echoServer).Intercept(echoServer.interceptor) },
                     Ports = { new ServerPort("localhost", echoServer.Port, ServerCredentials.Insecure) }
                 };
 
+                Console.WriteLine("Echo server listening on port " + echoServer.Port);
+
+                // GRPC server.
                 server.Start();
 
-                Console.WriteLine("Echo server listening on port " + echoServer.Port);
-                Console.WriteLine("Press any key to stop the server...");
-                Console.ReadKey();
+                while (true)
+                {
+                    Thread.Sleep(1000);
+                }
+            });
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(OnExit);
+            _closing.WaitOne();
+        }
 
-                server.ShutdownAsync().Wait(); // Close the server.
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine($"Exception encountered: {ex}");
-            }
+        protected static void OnExit(object sender, ConsoleCancelEventArgs args)
+        {
+            server.ShutdownAsync().Wait();
+            _closing.Set();
         }
     }
 }

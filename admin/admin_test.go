@@ -9,8 +9,7 @@ import (
 
 var (
 	// Connect to the admin client.
-	config = map[string]interface{}{"name": "admin", "address": "localhost"}
-	client = NewAdmin_Client(config)
+	client = NewAdmin_Client("localhost", "Admin")
 )
 
 // Test various function here.
@@ -23,7 +22,7 @@ var (
 
 	log.Println("config: ", config)
 }
-
+*/
 func TestGetFullConfig(t *testing.T) {
 	log.Println("---> test get config.")
 
@@ -32,7 +31,7 @@ func TestGetFullConfig(t *testing.T) {
 		log.Println("---> ", err)
 	}
 	log.Println("config: ", config)
-}*/
+}
 
 /*
 func TestStopService(t *testing.T) {

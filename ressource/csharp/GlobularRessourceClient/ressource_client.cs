@@ -131,18 +131,22 @@ namespace Globular
         /// That method id use to log information/error
         /// </summary>
         /// <param name="application">The name of the application (given in the context)</param>
-        /// <param name="userId">Ths user id (logged end user)</param>
+        /// <param name="token">Ths user token (logged end user)</param>
         /// <param name="method">The method called</param>
         /// <param name="message">The message info</param>
         /// <param name="type">Information or Error</param>
-        public void Log(string application, string userId, string method, string message, Ressource.LogType type)
+        public void Log(string application, string token, string method, string message, int type = 0)
         {
             var rqst = new Ressource.LogRqst();
             var info = new Ressource.LogInfo();
             info.Application = application;
-            info.UserId = userId;
+            info.UserId = token; // can be a token or the user id...
             info.Method = method;
-            info.Type = type;
+            if(type == 0){
+                 info.Type = Ressource.LogType.Info;
+            }else{
+                info.Type = Ressource.LogType.Error;
+            }
             info.Message = message;
             rqst.Info = info;
 

@@ -152,6 +152,7 @@ func (self *Admin_Client) GetConfig() (string, error) {
 
 // Get the server configuration with all detail must be secured.
 func (self *Admin_Client) GetFullConfig() (string, error) {
+
 	rqst := new(GetConfigRequest)
 
 	rsp, err := self.c.GetFullConfig(api.GetClientContext(self), rqst)

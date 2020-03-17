@@ -326,49 +326,48 @@ func install(g *Globule, path string) {
 
 				if err == nil {
 					// set the name.
-					if config["PublisherId"] != nil && config["Version"] != nil {
-						var serviceDir = path + string(os.PathSeparator) + "globular_services"
-						if len(config["PublisherId"].(string)) == 0 {
-							serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
-						} else {
-							serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
-						}
-						Utility.CreateDirIfNotExist(serviceDir)
+					if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["servicePath"] != nil {
 
 						execPath := dir + s["servicePath"].(string)
-						destPath := serviceDir + string(os.PathSeparator) + name
-						if string(os.PathSeparator) == "\\" {
-							execPath += ".exe" // in case of windows
-							destPath += ".exe"
-						}
-
-						err := Utility.Copy(execPath, destPath)
-						if err != nil {
-
-							log.Panicln(execPath, destPath, err)
-						}
-
-						// Set execute permission
-						err = os.Chmod(destPath, 0755)
-						if err != nil {
-							fmt.Println(err)
-						}
-
-						// Copy the service config file.
-						if Utility.Exists(configPath) {
-							Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
-						}
-
-						// Copy the proto file.
 						protoPath := dir + s["protoPath"].(string)
-						if Utility.Exists(protoPath) {
-							Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
-						}
 
-						// Copy the schema file.
-						schemaPath := dir + s["schemaPath"].(string)
-						if Utility.Exists(schemaPath) {
-							Utility.Copy(schemaPath, serviceDir+string(os.PathSeparator)+schemaPath[strings.LastIndex(schemaPath, "/"):])
+						if Utility.Exists(execPath) && Utility.Exists(protoPath) {
+
+							var serviceDir = path + string(os.PathSeparator) + "globular_services"
+							if len(config["PublisherId"].(string)) == 0 {
+								serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+							} else {
+								serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+							}
+
+							Utility.CreateDirIfNotExist(serviceDir)
+							destPath := serviceDir + string(os.PathSeparator) + name
+							if string(os.PathSeparator) == "\\" {
+								execPath += ".exe" // in case of windows
+								destPath += ".exe"
+							}
+
+							err := Utility.Copy(execPath, destPath)
+							if err != nil {
+
+								log.Panicln(execPath, destPath, err)
+							}
+
+							// Set execute permission
+							err = os.Chmod(destPath, 0755)
+							if err != nil {
+								fmt.Println(err)
+							}
+
+							// Copy the service config file.
+							if Utility.Exists(configPath) {
+								Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
+							}
+
+							// Copy the proto file.
+							if Utility.Exists(protoPath) {
+								Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
+							}
 						}
 					}
 				} else {
