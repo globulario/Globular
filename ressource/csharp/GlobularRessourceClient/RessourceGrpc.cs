@@ -97,12 +97,16 @@ namespace Ressource {
     static readonly grpc::Marshaller<global::Ressource.DeleteLogRsp> __Marshaller_ressource_DeleteLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteLogRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRqst> __Marshaller_ressource_ClearAllLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRsp> __Marshaller_ressource_ClearAllLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourcesRqst> __Marshaller_ressource_SetRessourcesRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourcesRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourcesRsp> __Marshaller_ressource_SetRessourcesRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourcesRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.SetRessourceRqst> __Marshaller_ressource_SetRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.SetRessourceRsp> __Marshaller_ressource_SetRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRqst> __Marshaller_ressource_RemoveRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRsp> __Marshaller_ressource_RemoveRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRqst> __Marshaller_ressource_SetActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetActionPermissionRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRsp> __Marshaller_ressource_SetActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetActionPermissionRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRqst> __Marshaller_ressource_RemoveActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveActionPermissionRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRsp> __Marshaller_ressource_RemoveActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveActionPermissionRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRqst> __Marshaller_ressource_GetActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetActionPermissionRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRsp> __Marshaller_ressource_GetActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetActionPermissionRsp.Parser.ParseFrom);
 
     static readonly grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp> __Method_RegisterAccount = new grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp>(
         grpc::MethodType.Unary,
@@ -370,13 +374,6 @@ namespace Ressource {
         __Marshaller_ressource_ClearAllLogRqst,
         __Marshaller_ressource_ClearAllLogRsp);
 
-    static readonly grpc::Method<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> __Method_setRessources = new grpc::Method<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp>(
-        grpc::MethodType.ClientStreaming,
-        __ServiceName,
-        "setRessources",
-        __Marshaller_ressource_SetRessourcesRqst,
-        __Marshaller_ressource_SetRessourcesRsp);
-
     static readonly grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp> __Method_setRessource = new grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(
         grpc::MethodType.Unary,
         __ServiceName,
@@ -390,6 +387,27 @@ namespace Ressource {
         "removeRessource",
         __Marshaller_ressource_RemoveRessourceRqst,
         __Marshaller_ressource_RemoveRessourceRsp);
+
+    static readonly grpc::Method<global::Ressource.SetActionPermissionRqst, global::Ressource.SetActionPermissionRsp> __Method_SetActionPermission = new grpc::Method<global::Ressource.SetActionPermissionRqst, global::Ressource.SetActionPermissionRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SetActionPermission",
+        __Marshaller_ressource_SetActionPermissionRqst,
+        __Marshaller_ressource_SetActionPermissionRsp);
+
+    static readonly grpc::Method<global::Ressource.RemoveActionPermissionRqst, global::Ressource.RemoveActionPermissionRsp> __Method_RemoveActionPermission = new grpc::Method<global::Ressource.RemoveActionPermissionRqst, global::Ressource.RemoveActionPermissionRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "RemoveActionPermission",
+        __Marshaller_ressource_RemoveActionPermissionRqst,
+        __Marshaller_ressource_RemoveActionPermissionRsp);
+
+    static readonly grpc::Method<global::Ressource.GetActionPermissionRqst, global::Ressource.GetActionPermissionRsp> __Method_GetActionPermission = new grpc::Method<global::Ressource.GetActionPermissionRqst, global::Ressource.GetActionPermissionRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetActionPermission",
+        __Marshaller_ressource_GetActionPermissionRqst,
+        __Marshaller_ressource_GetActionPermissionRsp);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -821,17 +839,6 @@ namespace Ressource {
       }
 
       /// <summary>
-      ///* Set the list of ressources from a client (custom service) to globular 
-      /// </summary>
-      /// <param name="requestStream">Used for reading requests from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.SetRessourcesRsp> setRessources(grpc::IAsyncStreamReader<global::Ressource.SetRessourcesRqst> requestStream, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      /// <summary>
       ///* Set a ressource from a client (custom service) to globular 
       /// </summary>
       /// <param name="request">The request received from the client.</param>
@@ -849,6 +856,39 @@ namespace Ressource {
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       public virtual global::System.Threading.Tasks.Task<global::Ressource.RemoveRessourceRsp> removeRessource(global::Ressource.RemoveRessourceRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Set ressource action permission *
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.SetActionPermissionRsp> SetActionPermission(global::Ressource.SetActionPermissionRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Remove ressource action permission *
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.RemoveActionPermissionRsp> RemoveActionPermission(global::Ressource.RemoveActionPermissionRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Get ressource action permission *
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.GetActionPermissionRsp> GetActionPermission(global::Ressource.GetActionPermissionRqst request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -2529,26 +2569,6 @@ namespace Ressource {
         return CallInvoker.AsyncUnaryCall(__Method_ClearAllLog, null, options, request);
       }
       /// <summary>
-      ///* Set the list of ressources from a client (custom service) to globular 
-      /// </summary>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncClientStreamingCall<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> setRessources(grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return setRessources(new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Set the list of ressources from a client (custom service) to globular 
-      /// </summary>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncClientStreamingCall<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp> setRessources(grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncClientStreamingCall(__Method_setRessources, null, options);
-      }
-      /// <summary>
       ///* Set a ressource from a client (custom service) to globular 
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
@@ -2636,6 +2656,138 @@ namespace Ressource {
       {
         return CallInvoker.AsyncUnaryCall(__Method_removeRessource, null, options, request);
       }
+      /// <summary>
+      ///* Set ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.SetActionPermissionRsp SetActionPermission(global::Ressource.SetActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetActionPermission(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Set ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.SetActionPermissionRsp SetActionPermission(global::Ressource.SetActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SetActionPermission, null, options, request);
+      }
+      /// <summary>
+      ///* Set ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.SetActionPermissionRsp> SetActionPermissionAsync(global::Ressource.SetActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetActionPermissionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Set ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.SetActionPermissionRsp> SetActionPermissionAsync(global::Ressource.SetActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SetActionPermission, null, options, request);
+      }
+      /// <summary>
+      ///* Remove ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.RemoveActionPermissionRsp RemoveActionPermission(global::Ressource.RemoveActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RemoveActionPermission(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Remove ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.RemoveActionPermissionRsp RemoveActionPermission(global::Ressource.RemoveActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_RemoveActionPermission, null, options, request);
+      }
+      /// <summary>
+      ///* Remove ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.RemoveActionPermissionRsp> RemoveActionPermissionAsync(global::Ressource.RemoveActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RemoveActionPermissionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Remove ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.RemoveActionPermissionRsp> RemoveActionPermissionAsync(global::Ressource.RemoveActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_RemoveActionPermission, null, options, request);
+      }
+      /// <summary>
+      ///* Get ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.GetActionPermissionRsp GetActionPermission(global::Ressource.GetActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetActionPermission(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Get ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.GetActionPermissionRsp GetActionPermission(global::Ressource.GetActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetActionPermission, null, options, request);
+      }
+      /// <summary>
+      ///* Get ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.GetActionPermissionRsp> GetActionPermissionAsync(global::Ressource.GetActionPermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetActionPermissionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Get ressource action permission *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.GetActionPermissionRsp> GetActionPermissionAsync(global::Ressource.GetActionPermissionRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetActionPermission, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       protected override RessourceServiceClient NewInstance(ClientBaseConfiguration configuration)
       {
@@ -2686,9 +2838,11 @@ namespace Ressource {
           .AddMethod(__Method_GetLog, serviceImpl.GetLog)
           .AddMethod(__Method_DeleteLog, serviceImpl.DeleteLog)
           .AddMethod(__Method_ClearAllLog, serviceImpl.ClearAllLog)
-          .AddMethod(__Method_setRessources, serviceImpl.setRessources)
           .AddMethod(__Method_setRessource, serviceImpl.setRessource)
-          .AddMethod(__Method_removeRessource, serviceImpl.removeRessource).Build();
+          .AddMethod(__Method_removeRessource, serviceImpl.removeRessource)
+          .AddMethod(__Method_SetActionPermission, serviceImpl.SetActionPermission)
+          .AddMethod(__Method_RemoveActionPermission, serviceImpl.RemoveActionPermission)
+          .AddMethod(__Method_GetActionPermission, serviceImpl.GetActionPermission).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the  service binding logic.
@@ -2735,9 +2889,11 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_GetLog, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ressource.GetLogRqst, global::Ressource.GetLogRsp>(serviceImpl.GetLog));
       serviceBinder.AddMethod(__Method_DeleteLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteLogRqst, global::Ressource.DeleteLogRsp>(serviceImpl.DeleteLog));
       serviceBinder.AddMethod(__Method_ClearAllLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ClearAllLogRqst, global::Ressource.ClearAllLogRsp>(serviceImpl.ClearAllLog));
-      serviceBinder.AddMethod(__Method_setRessources, serviceImpl == null ? null : new grpc::ClientStreamingServerMethod<global::Ressource.SetRessourcesRqst, global::Ressource.SetRessourcesRsp>(serviceImpl.setRessources));
       serviceBinder.AddMethod(__Method_setRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(serviceImpl.setRessource));
       serviceBinder.AddMethod(__Method_removeRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.RemoveRessourceRqst, global::Ressource.RemoveRessourceRsp>(serviceImpl.removeRessource));
+      serviceBinder.AddMethod(__Method_SetActionPermission, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.SetActionPermissionRqst, global::Ressource.SetActionPermissionRsp>(serviceImpl.SetActionPermission));
+      serviceBinder.AddMethod(__Method_RemoveActionPermission, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.RemoveActionPermissionRqst, global::Ressource.RemoveActionPermissionRsp>(serviceImpl.RemoveActionPermission));
+      serviceBinder.AddMethod(__Method_GetActionPermission, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.GetActionPermissionRqst, global::Ressource.GetActionPermissionRsp>(serviceImpl.GetActionPermission));
     }
 
   }

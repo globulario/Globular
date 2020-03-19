@@ -640,7 +640,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		if err != nil {
 			s["State"] = "fail"
-			log.Panicln("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
 			return -1, -1, err
 		}
 
@@ -3932,6 +3932,7 @@ func (self *Globule) logServiceError(service string, dump string) error {
 	info := new(ressource.LogInfo)
 	info.Application = service
 	info.UserId = ""
+	info.UserName = ""
 	info.Method = ""
 	info.Date = time.Now().Unix()
 	info.Message = dump
@@ -4111,10 +4112,10 @@ func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.Ser
 func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
-	if len(info.UserId) > 0 {
-		userId, _, err := Interceptors.ValidateToken(info.UserId)
+	if len(info.UserName) > 0 {
+		name, _, err := Interceptors.ValidateToken(info.UserName)
 		if err == nil {
-			info.UserId = userId
+			info.UserName = name
 		}
 	}
 
@@ -4125,7 +4126,7 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 	}
 
 	// Here I will log only if the user is not 'sa'
-	if info.UserId != "sa" && len(info.Application) > 0 && len(info.UserId) > 0 {
+	if info.UserName != "sa" && len(info.Application) > 0 && len(info.UserName) > 0 {
 		log.Println("---> ", info)
 
 		// I will save the error in the LOGS table.
@@ -4134,7 +4135,7 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 			return err
 		}
 
-		data, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+info.GetUserId()+`"}`, `[{"Projection":{"_id":1}}]`)
+		data, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+info.GetUserName()+`"}`, `[{"Projection":{"_id":1}}]`)
 		if err != nil {
 			return err
 		}
@@ -4145,6 +4146,7 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 			return err
 		}
 
+		// set the user id
 		info.UserId = values["_id"].(string)
 
 		marshaler := new(jsonpb.Marshaler)
@@ -4303,12 +4305,6 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 
 ///////////////////////  ressource management. /////////////////
 
-//* Set the list of ressources from a client (custom service) to globular
-func (self *Globule) SetRessources(stream ressource.RessourceService_SetRessourcesServer) error {
-	log.Println("------> 4254 SetRessources")
-	return nil
-}
-
 //* Set a ressource from a client (custom service) to globular
 func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessourceRqst) (*ressource.SetRessourceRsp, error) {
 	log.Println("------> 4254 SetRessource")
@@ -4319,6 +4315,86 @@ func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessou
 func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.RemoveRessourceRqst) (*ressource.RemoveRessourceRsp, error) {
 	log.Println("------> 4266 SetRessource")
 	return nil, nil
+}
+
+//* Set a ressource from a client (custom service) to globular
+func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressource.SetActionPermissionRqst) (*ressource.SetActionPermissionRsp, error) {
+
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	actionPermission := make(map[string]interface{}, 0)
+	actionPermission["action"] = rqst.Action
+	actionPermission["permission"] = rqst.Permission
+	actionPermission["_id"] = Utility.GenerateUUID(rqst.Action)
+
+	actionPermissionStr, _ := Utility.ToJson(actionPermission)
+	err = p.ReplaceOne("local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, actionPermissionStr, `[{"upsert":true}]`)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.SetActionPermissionRsp{
+		Result: true,
+	}, nil
+}
+
+//* Remove a ressource from a client (custom service) to globular
+func (self *Globule) RemoveActionPermission(ctx context.Context, rqst *ressource.RemoveActionPermissionRqst) (*ressource.RemoveActionPermissionRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Try to delete the account...
+	err = p.DeleteOne("local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.RemoveActionPermissionRsp{
+		Result: true,
+	}, nil
+}
+
+//* Remove a ressource from a client (custom service) to globular
+func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressource.GetActionPermissionRqst) (*ressource.GetActionPermissionRsp, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Try to delete the account...
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	actionPermission := make(map[string]interface{})
+	err = json.Unmarshal([]byte(jsonStr), &actionPermission)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.GetActionPermissionRsp{
+		Permission: actionPermission["permission"].(int32),
+	}, nil
 }
 
 func (self *Globule) savePermission(owner string, path string, permission int32) error {
@@ -4812,7 +4888,7 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 		ressourceOwner["owner"] = clientId
 		ressourceOwner["path"] = path + "/" + rqst.GetName()
 		ressourceOwnerStr, _ := Utility.ToJson(ressourceOwner)
-		p.InsertOne("local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, `[{"upsert":true}]`)
+		p.ReplaceOne("local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, ressourceOwnerStr, `[{"upsert":true}]`)
 	}
 
 	return &ressource.CreateDirPermissionsRsp{

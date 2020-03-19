@@ -382,8 +382,9 @@ message LogInfo{
 	LogType type = 2;
 	string application = 3;
 	string userId = 4;
-	string method = 5;
-	string message = 6;
+	string userName = 5;
+	string method = 6;
+	string message = 7;
 }
 
 message LogRqst{
@@ -442,27 +443,51 @@ message ClearAllLogRsp{
 	bool result=1;
 }
 
-message SetRessourcesRqst{
-	repeated string ressources = 1;
-}
+////////////////// Ressource //////////////////
 
-message SetRessourcesRsp{
-	bool result=1;
+message Ressource {
+	string path = 1;
 }
 
 message SetRessourceRqst{
-	string ressource = 1;
+	Ressource ressource = 1;
 }
 
 message SetRessourceRsp{
 	bool result=1;
 }
 
+message SetActionPermissionRqst{
+	string action = 1;
+	int32 permission = 2;
+}
+
+message SetActionPermissionRsp{
+	bool result=1;
+}
+
+message GetActionPermissionRqst{
+	string action = 1;
+
+}
+
+message GetActionPermissionRsp{
+	int32 permission = 1;
+}
+
 message RemoveRessourceRqst{
-	string ressource = 1;
+	Ressource ressource = 1;
 }
 
 message RemoveRessourceRsp{
+	bool result=1;
+}
+
+message RemoveActionPermissionRqst{
+	string action = 1;
+}
+
+message RemoveActionPermissionRsp{
 	bool result=1;
 }
 
@@ -587,12 +612,19 @@ service RessourceService {
 	/** Delete all log **/
 	rpc ClearAllLog(ClearAllLogRqst) returns(ClearAllLogRsp);
 	
-	/** Set the list of ressources from a client (custom service) to globular */
-	rpc setRessources(stream SetRessourcesRqst) returns(SetRessourcesRsp);
-	
 	/** Set a ressource from a client (custom service) to globular */
 	rpc setRessource(SetRessourceRqst) returns(SetRessourceRsp);
 	
 	/** Remove a ressource from a client (custom service) to globular */
 	rpc removeRessource(RemoveRessourceRqst) returns(RemoveRessourceRsp);
+	
+	/** Set ressource action permission **/
+	rpc SetActionPermission(SetActionPermissionRqst) returns(SetActionPermissionRsp);
+	
+	/** Remove ressource action permission **/
+	rpc RemoveActionPermission(RemoveActionPermissionRqst) returns(RemoveActionPermissionRsp);
+	
+	/** Get ressource action permission **/
+	rpc GetActionPermission(GetActionPermissionRqst) returns(GetActionPermissionRsp);
+	
 }

@@ -109,107 +109,118 @@ namespace Ressource {
             "ZXRlQWNjb3VudFBlcm1pc3Npb25zUnFzdBIKCgJpZBgBIAEoCSItChtEZWxl",
             "dGVBY2NvdW50UGVybWlzc2lvbnNSc3ASDgoGcmVzdWx0GAEgASgIIicKGURl",
             "bGV0ZVJvbGVQZXJtaXNzaW9uc1Jxc3QSCgoCaWQYASABKAkiKgoYRGVsZXRl",
-            "Um9sZVBlcm1pc3Npb25zUnNwEg4KBnJlc3VsdBgBIAEoCCJ/CgdMb2dJbmZv",
-            "EgwKBGRhdGUYASABKAMSIAoEdHlwZRgCIAEoDjISLnJlc3NvdXJjZS5Mb2dU",
-            "eXBlEhMKC2FwcGxpY2F0aW9uGAMgASgJEg4KBnVzZXJJZBgEIAEoCRIOCgZt",
-            "ZXRob2QYBSABKAkSDwoHbWVzc2FnZRgGIAEoCSIrCgdMb2dScXN0EiAKBGlu",
-            "Zm8YASABKAsyEi5yZXNzb3VyY2UuTG9nSW5mbyIYCgZMb2dSc3ASDgoGcmVz",
-            "dWx0GAEgASgIIh0KDURlbGV0ZUxvZ1Jxc3QSDAoEZGF0ZRgBIAEoAyIeCgxE",
-            "ZWxldGVMb2dSc3ASDgoGcmVzdWx0GAEgASgIIiIKEFNldExvZ01ldGhvZFJx",
-            "c3QSDgoGbWV0aG9kGAEgASgJIiEKD1NldExvZ01ldGhvZFJzcBIOCgZyZXN1",
-            "bHQYASABKAgiJAoSUmVzZXRMb2dNZXRob2RScXN0Eg4KBm1ldGhvZBgBIAEo",
-            "CSIjChFSZXNldExvZ01ldGhvZFJzcBIOCgZyZXN1bHQYASABKAgiEwoRR2V0",
-            "TG9nTWV0aG9kc1Jxc3QiIwoQR2V0TG9nTWV0aG9kc1JzcBIPCgdtZXRob2Rz",
-            "GAEgAygJIhsKCkdldExvZ1Jxc3QSDQoFcXVlcnkYASABKAkiLQoJR2V0TG9n",
-            "UnNwEiAKBGluZm8YASADKAsyEi5yZXNzb3VyY2UuTG9nSW5mbyIzCg9DbGVh",
-            "ckFsbExvZ1Jxc3QSIAoEdHlwZRgBIAEoDjISLnJlc3NvdXJjZS5Mb2dUeXBl",
-            "IiAKDkNsZWFyQWxsTG9nUnNwEg4KBnJlc3VsdBgBIAEoCCInChFTZXRSZXNz",
-            "b3VyY2VzUnFzdBISCgpyZXNzb3VyY2VzGAEgAygJIiIKEFNldFJlc3NvdXJj",
-            "ZXNSc3ASDgoGcmVzdWx0GAEgASgIIiUKEFNldFJlc3NvdXJjZVJxc3QSEQoJ",
-            "cmVzc291cmNlGAEgASgJIiEKD1NldFJlc3NvdXJjZVJzcBIOCgZyZXN1bHQY",
-            "ASABKAgiKAoTUmVtb3ZlUmVzc291cmNlUnFzdBIRCglyZXNzb3VyY2UYASAB",
-            "KAkiJAoSUmVtb3ZlUmVzc291cmNlUnNwEg4KBnJlc3VsdBgBIAEoCCoeCgdM",
-            "b2dUeXBlEggKBElORk8QABIJCgVFUlJPUhABMvAbChBSZXNzb3VyY2VTZXJ2",
-            "aWNlElAKD1JlZ2lzdGVyQWNjb3VudBIeLnJlc3NvdXJjZS5SZWdpc3RlckFj",
-            "Y291bnRScXN0Gh0ucmVzc291cmNlLlJlZ2lzdGVyQWNjb3VudFJzcBJKCg1E",
-            "ZWxldGVBY2NvdW50EhwucmVzc291cmNlLkRlbGV0ZUFjY291bnRScXN0Ghsu",
-            "cmVzc291cmNlLkRlbGV0ZUFjY291bnRSc3ASRwoMQXV0aGVudGljYXRlEhsu",
-            "cmVzc291cmNlLkF1dGhlbnRpY2F0ZVJxc3QaGi5yZXNzb3VyY2UuQXV0aGVu",
-            "dGljYXRlUnNwElAKD1N5bmNocm9uaXplTGRhcBIeLnJlc3NvdXJjZS5TeW5j",
-            "aHJvbml6ZUxkYXBScXN0Gh0ucmVzc291cmNlLlN5bmNocm9uaXplTGRhcFJz",
-            "cBJHCgxSZWZyZXNoVG9rZW4SGy5yZXNzb3VyY2UuUmVmcmVzaFRva2VuUnFz",
-            "dBoaLnJlc3NvdXJjZS5SZWZyZXNoVG9rZW5Sc3ASTQoOQWRkQWNjb3VudFJv",
-            "bGUSHS5yZXNzb3VyY2UuQWRkQWNjb3VudFJvbGVScXN0GhwucmVzc291cmNl",
-            "LkFkZEFjY291bnRSb2xlUnNwElYKEVJlbW92ZUFjY291bnRSb2xlEiAucmVz",
-            "c291cmNlLlJlbW92ZUFjY291bnRSb2xlUnFzdBofLnJlc3NvdXJjZS5SZW1v",
-            "dmVBY2NvdW50Um9sZVJzcBJBCgpDcmVhdGVSb2xlEhkucmVzc291cmNlLkNy",
-            "ZWF0ZVJvbGVScXN0GhgucmVzc291cmNlLkNyZWF0ZVJvbGVSc3ASQQoKRGVs",
-            "ZXRlUm9sZRIZLnJlc3NvdXJjZS5EZWxldGVSb2xlUnFzdBoYLnJlc3NvdXJj",
-            "ZS5EZWxldGVSb2xlUnNwEkoKDUFkZFJvbGVBY3Rpb24SHC5yZXNzb3VyY2Uu",
-            "QWRkUm9sZUFjdGlvblJxc3QaGy5yZXNzb3VyY2UuQWRkUm9sZUFjdGlvblJz",
-            "cBJTChBSZW1vdmVSb2xlQWN0aW9uEh8ucmVzc291cmNlLlJlbW92ZVJvbGVB",
-            "Y3Rpb25ScXN0Gh4ucmVzc291cmNlLlJlbW92ZVJvbGVBY3Rpb25Sc3ASXwoU",
-            "QWRkQXBwbGljYXRpb25BY3Rpb24SIy5yZXNzb3VyY2UuQWRkQXBwbGljYXRp",
-            "b25BY3Rpb25ScXN0GiIucmVzc291cmNlLkFkZEFwcGxpY2F0aW9uQWN0aW9u",
-            "UnNwEmgKF1JlbW92ZUFwcGxpY2F0aW9uQWN0aW9uEiYucmVzc291cmNlLlJl",
-            "bW92ZUFwcGxpY2F0aW9uQWN0aW9uUnFzdBolLnJlc3NvdXJjZS5SZW1vdmVB",
-            "cHBsaWNhdGlvbkFjdGlvblJzcBJKCg1HZXRBbGxBY3Rpb25zEhwucmVzc291",
-            "cmNlLkdldEFsbEFjdGlvbnNScXN0GhsucmVzc291cmNlLkdldEFsbEFjdGlv",
-            "bnNSc3ASTQoOR2V0UGVybWlzc2lvbnMSHS5yZXNzb3VyY2UuR2V0UGVybWlz",
-            "c2lvbnNScXN0GhwucmVzc291cmNlLkdldFBlcm1pc3Npb25zUnNwEkoKDVNl",
-            "dFBlcm1pc3Npb24SHC5yZXNzb3VyY2UuU2V0UGVybWlzc2lvblJxc3QaGy5y",
-            "ZXNzb3VyY2UuU2V0UGVybWlzc2lvblJzcBJWChFEZWxldGVQZXJtaXNzaW9u",
-            "cxIgLnJlc3NvdXJjZS5EZWxldGVQZXJtaXNzaW9uc1Jxc3QaHy5yZXNzb3Vy",
-            "Y2UuRGVsZXRlUGVybWlzc2lvbnNSc3ASVgoRU2V0UmVzc291cmNlT3duZXIS",
-            "IC5yZXNzb3VyY2UuU2V0UmVzc291cmNlT3duZXJScXN0Gh8ucmVzc291cmNl",
-            "LlNldFJlc3NvdXJjZU93bmVyUnNwElkKEkdldFJlc3NvdXJjZU93bmVycxIh",
-            "LnJlc3NvdXJjZS5HZXRSZXNzb3VyY2VPd25lcnNScXN0GiAucmVzc291cmNl",
-            "LkdldFJlc3NvdXJjZU93bmVyc1JzcBJfChREZWxldGVSZXNzb3VyY2VPd25l",
-            "chIjLnJlc3NvdXJjZS5EZWxldGVSZXNzb3VyY2VPd25lclJxc3QaIi5yZXNz",
-            "b3VyY2UuRGVsZXRlUmVzc291cmNlT3duZXJSc3ASYgoVRGVsZXRlUmVzc291",
-            "cmNlT3duZXJzEiQucmVzc291cmNlLkRlbGV0ZVJlc3NvdXJjZU93bmVyc1Jx",
-            "c3QaIy5yZXNzb3VyY2UuRGVsZXRlUmVzc291cmNlT3duZXJzUnNwElAKD0dl",
-            "dEFsbEZpbGVzSW5mbxIeLnJlc3NvdXJjZS5HZXRBbGxGaWxlc0luZm9ScXN0",
-            "Gh0ucmVzc291cmNlLkdldEFsbEZpbGVzSW5mb1JzcBJ0ChtWYWxpZGF0ZVVz",
-            "ZXJSZXNzb3VyY2VBY2Nlc3MSKi5yZXNzb3VyY2UuVmFsaWRhdGVVc2VyUmVz",
-            "c291cmNlQWNjZXNzUnFzdBopLnJlc3NvdXJjZS5WYWxpZGF0ZVVzZXJSZXNz",
-            "b3VyY2VBY2Nlc3NSc3ASiQEKIlZhbGlkYXRlQXBwbGljYXRpb25SZXNzb3Vy",
-            "Y2VBY2Nlc3MSMS5yZXNzb3VyY2UuVmFsaWRhdGVBcHBsaWNhdGlvblJlc3Nv",
-            "dXJjZUFjY2Vzc1Jxc3QaMC5yZXNzb3VyY2UuVmFsaWRhdGVBcHBsaWNhdGlv",
-            "blJlc3NvdXJjZUFjY2Vzc1JzcBJZChJWYWxpZGF0ZVVzZXJBY2Nlc3MSIS5y",
-            "ZXNzb3VyY2UuVmFsaWRhdGVVc2VyQWNjZXNzUnFzdBogLnJlc3NvdXJjZS5W",
-            "YWxpZGF0ZVVzZXJBY2Nlc3NSc3ASbgoZVmFsaWRhdGVBcHBsaWNhdGlvbkFj",
-            "Y2VzcxIoLnJlc3NvdXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnFz",
-            "dBonLnJlc3NvdXJjZS5WYWxpZGF0ZUFwcGxpY2F0aW9uQWNjZXNzUnNwEl8K",
-            "FENyZWF0ZURpclBlcm1pc3Npb25zEiMucmVzc291cmNlLkNyZWF0ZURpclBl",
-            "cm1pc3Npb25zUnFzdBoiLnJlc3NvdXJjZS5DcmVhdGVEaXJQZXJtaXNzaW9u",
-            "c1JzcBJfChRSZW5hbWVGaWxlUGVybWlzc2lvbhIjLnJlc3NvdXJjZS5SZW5h",
-            "bWVGaWxlUGVybWlzc2lvblJxc3QaIi5yZXNzb3VyY2UuUmVuYW1lRmlsZVBl",
-            "cm1pc3Npb25Sc3ASXwoURGVsZXRlRGlyUGVybWlzc2lvbnMSIy5yZXNzb3Vy",
-            "Y2UuRGVsZXRlRGlyUGVybWlzc2lvbnNScXN0GiIucmVzc291cmNlLkRlbGV0",
-            "ZURpclBlcm1pc3Npb25zUnNwEmIKFURlbGV0ZUZpbGVQZXJtaXNzaW9ucxIk",
-            "LnJlc3NvdXJjZS5EZWxldGVGaWxlUGVybWlzc2lvbnNScXN0GiMucmVzc291",
-            "cmNlLkRlbGV0ZUZpbGVQZXJtaXNzaW9uc1JzcBJrChhEZWxldGVBY2NvdW50",
-            "UGVybWlzc2lvbnMSJy5yZXNzb3VyY2UuRGVsZXRlQWNjb3VudFBlcm1pc3Np",
-            "b25zUnFzdBomLnJlc3NvdXJjZS5EZWxldGVBY2NvdW50UGVybWlzc2lvbnNS",
-            "c3ASYgoVRGVsZXRlUm9sZVBlcm1pc3Npb25zEiQucmVzc291cmNlLkRlbGV0",
-            "ZVJvbGVQZXJtaXNzaW9uc1Jxc3QaIy5yZXNzb3VyY2UuRGVsZXRlUm9sZVBl",
-            "cm1pc3Npb25zUnNwEmUKFkdldEFsbEFwcGxpY2F0aW9uc0luZm8SJS5yZXNz",
-            "b3VyY2UuR2V0QWxsQXBwbGljYXRpb25zSW5mb1Jxc3QaJC5yZXNzb3VyY2Uu",
-            "R2V0QWxsQXBwbGljYXRpb25zSW5mb1JzcBJWChFEZWxldGVBcHBsaWNhdGlv",
-            "bhIgLnJlc3NvdXJjZS5EZWxldGVBcHBsaWNhdGlvblJxc3QaHy5yZXNzb3Vy",
-            "Y2UuRGVsZXRlQXBwbGljYXRpb25Sc3ASLAoDTG9nEhIucmVzc291cmNlLkxv",
-            "Z1Jxc3QaES5yZXNzb3VyY2UuTG9nUnNwEjcKBkdldExvZxIVLnJlc3NvdXJj",
-            "ZS5HZXRMb2dScXN0GhQucmVzc291cmNlLkdldExvZ1JzcDABEj4KCURlbGV0",
-            "ZUxvZxIYLnJlc3NvdXJjZS5EZWxldGVMb2dScXN0GhcucmVzc291cmNlLkRl",
-            "bGV0ZUxvZ1JzcBJECgtDbGVhckFsbExvZxIaLnJlc3NvdXJjZS5DbGVhckFs",
-            "bExvZ1Jxc3QaGS5yZXNzb3VyY2UuQ2xlYXJBbGxMb2dSc3ASTAoNc2V0UmVz",
-            "c291cmNlcxIcLnJlc3NvdXJjZS5TZXRSZXNzb3VyY2VzUnFzdBobLnJlc3Nv",
-            "dXJjZS5TZXRSZXNzb3VyY2VzUnNwKAESRwoMc2V0UmVzc291cmNlEhsucmVz",
-            "c291cmNlLlNldFJlc3NvdXJjZVJxc3QaGi5yZXNzb3VyY2UuU2V0UmVzc291",
-            "cmNlUnNwElAKD3JlbW92ZVJlc3NvdXJjZRIeLnJlc3NvdXJjZS5SZW1vdmVS",
-            "ZXNzb3VyY2VScXN0Gh0ucmVzc291cmNlLlJlbW92ZVJlc3NvdXJjZVJzcEIL",
-            "WglyZXNzb3VyY2ViBnByb3RvMw=="));
+            "Um9sZVBlcm1pc3Npb25zUnNwEg4KBnJlc3VsdBgBIAEoCCKRAQoHTG9nSW5m",
+            "bxIMCgRkYXRlGAEgASgDEiAKBHR5cGUYAiABKA4yEi5yZXNzb3VyY2UuTG9n",
+            "VHlwZRITCgthcHBsaWNhdGlvbhgDIAEoCRIOCgZ1c2VySWQYBCABKAkSEAoI",
+            "dXNlck5hbWUYBSABKAkSDgoGbWV0aG9kGAYgASgJEg8KB21lc3NhZ2UYByAB",
+            "KAkiKwoHTG9nUnFzdBIgCgRpbmZvGAEgASgLMhIucmVzc291cmNlLkxvZ0lu",
+            "Zm8iGAoGTG9nUnNwEg4KBnJlc3VsdBgBIAEoCCIdCg1EZWxldGVMb2dScXN0",
+            "EgwKBGRhdGUYASABKAMiHgoMRGVsZXRlTG9nUnNwEg4KBnJlc3VsdBgBIAEo",
+            "CCIiChBTZXRMb2dNZXRob2RScXN0Eg4KBm1ldGhvZBgBIAEoCSIhCg9TZXRM",
+            "b2dNZXRob2RSc3ASDgoGcmVzdWx0GAEgASgIIiQKElJlc2V0TG9nTWV0aG9k",
+            "UnFzdBIOCgZtZXRob2QYASABKAkiIwoRUmVzZXRMb2dNZXRob2RSc3ASDgoG",
+            "cmVzdWx0GAEgASgIIhMKEUdldExvZ01ldGhvZHNScXN0IiMKEEdldExvZ01l",
+            "dGhvZHNSc3ASDwoHbWV0aG9kcxgBIAMoCSIbCgpHZXRMb2dScXN0Eg0KBXF1",
+            "ZXJ5GAEgASgJIi0KCUdldExvZ1JzcBIgCgRpbmZvGAEgAygLMhIucmVzc291",
+            "cmNlLkxvZ0luZm8iMwoPQ2xlYXJBbGxMb2dScXN0EiAKBHR5cGUYASABKA4y",
+            "Ei5yZXNzb3VyY2UuTG9nVHlwZSIgCg5DbGVhckFsbExvZ1JzcBIOCgZyZXN1",
+            "bHQYASABKAgiGQoJUmVzc291cmNlEgwKBHBhdGgYASABKAkiOwoQU2V0UmVz",
+            "c291cmNlUnFzdBInCglyZXNzb3VyY2UYASABKAsyFC5yZXNzb3VyY2UuUmVz",
+            "c291cmNlIiEKD1NldFJlc3NvdXJjZVJzcBIOCgZyZXN1bHQYASABKAgiPQoX",
+            "U2V0QWN0aW9uUGVybWlzc2lvblJxc3QSDgoGYWN0aW9uGAEgASgJEhIKCnBl",
+            "cm1pc3Npb24YAiABKAUiKAoWU2V0QWN0aW9uUGVybWlzc2lvblJzcBIOCgZy",
+            "ZXN1bHQYASABKAgiKQoXR2V0QWN0aW9uUGVybWlzc2lvblJxc3QSDgoGYWN0",
+            "aW9uGAEgASgJIiwKFkdldEFjdGlvblBlcm1pc3Npb25Sc3ASEgoKcGVybWlz",
+            "c2lvbhgBIAEoBSI+ChNSZW1vdmVSZXNzb3VyY2VScXN0EicKCXJlc3NvdXJj",
+            "ZRgBIAEoCzIULnJlc3NvdXJjZS5SZXNzb3VyY2UiJAoSUmVtb3ZlUmVzc291",
+            "cmNlUnNwEg4KBnJlc3VsdBgBIAEoCCIsChpSZW1vdmVBY3Rpb25QZXJtaXNz",
+            "aW9uUnFzdBIOCgZhY3Rpb24YASABKAkiKwoZUmVtb3ZlQWN0aW9uUGVybWlz",
+            "c2lvblJzcBIOCgZyZXN1bHQYASABKAgqHgoHTG9nVHlwZRIICgRJTkZPEAAS",
+            "CQoFRVJST1IQATLFHQoQUmVzc291cmNlU2VydmljZRJQCg9SZWdpc3RlckFj",
+            "Y291bnQSHi5yZXNzb3VyY2UuUmVnaXN0ZXJBY2NvdW50UnFzdBodLnJlc3Nv",
+            "dXJjZS5SZWdpc3RlckFjY291bnRSc3ASSgoNRGVsZXRlQWNjb3VudBIcLnJl",
+            "c3NvdXJjZS5EZWxldGVBY2NvdW50UnFzdBobLnJlc3NvdXJjZS5EZWxldGVB",
+            "Y2NvdW50UnNwEkcKDEF1dGhlbnRpY2F0ZRIbLnJlc3NvdXJjZS5BdXRoZW50",
+            "aWNhdGVScXN0GhoucmVzc291cmNlLkF1dGhlbnRpY2F0ZVJzcBJQCg9TeW5j",
+            "aHJvbml6ZUxkYXASHi5yZXNzb3VyY2UuU3luY2hyb25pemVMZGFwUnFzdBod",
+            "LnJlc3NvdXJjZS5TeW5jaHJvbml6ZUxkYXBSc3ASRwoMUmVmcmVzaFRva2Vu",
+            "EhsucmVzc291cmNlLlJlZnJlc2hUb2tlblJxc3QaGi5yZXNzb3VyY2UuUmVm",
+            "cmVzaFRva2VuUnNwEk0KDkFkZEFjY291bnRSb2xlEh0ucmVzc291cmNlLkFk",
+            "ZEFjY291bnRSb2xlUnFzdBocLnJlc3NvdXJjZS5BZGRBY2NvdW50Um9sZVJz",
+            "cBJWChFSZW1vdmVBY2NvdW50Um9sZRIgLnJlc3NvdXJjZS5SZW1vdmVBY2Nv",
+            "dW50Um9sZVJxc3QaHy5yZXNzb3VyY2UuUmVtb3ZlQWNjb3VudFJvbGVSc3AS",
+            "QQoKQ3JlYXRlUm9sZRIZLnJlc3NvdXJjZS5DcmVhdGVSb2xlUnFzdBoYLnJl",
+            "c3NvdXJjZS5DcmVhdGVSb2xlUnNwEkEKCkRlbGV0ZVJvbGUSGS5yZXNzb3Vy",
+            "Y2UuRGVsZXRlUm9sZVJxc3QaGC5yZXNzb3VyY2UuRGVsZXRlUm9sZVJzcBJK",
+            "Cg1BZGRSb2xlQWN0aW9uEhwucmVzc291cmNlLkFkZFJvbGVBY3Rpb25ScXN0",
+            "GhsucmVzc291cmNlLkFkZFJvbGVBY3Rpb25Sc3ASUwoQUmVtb3ZlUm9sZUFj",
+            "dGlvbhIfLnJlc3NvdXJjZS5SZW1vdmVSb2xlQWN0aW9uUnFzdBoeLnJlc3Nv",
+            "dXJjZS5SZW1vdmVSb2xlQWN0aW9uUnNwEl8KFEFkZEFwcGxpY2F0aW9uQWN0",
+            "aW9uEiMucmVzc291cmNlLkFkZEFwcGxpY2F0aW9uQWN0aW9uUnFzdBoiLnJl",
+            "c3NvdXJjZS5BZGRBcHBsaWNhdGlvbkFjdGlvblJzcBJoChdSZW1vdmVBcHBs",
+            "aWNhdGlvbkFjdGlvbhImLnJlc3NvdXJjZS5SZW1vdmVBcHBsaWNhdGlvbkFj",
+            "dGlvblJxc3QaJS5yZXNzb3VyY2UuUmVtb3ZlQXBwbGljYXRpb25BY3Rpb25S",
+            "c3ASSgoNR2V0QWxsQWN0aW9ucxIcLnJlc3NvdXJjZS5HZXRBbGxBY3Rpb25z",
+            "UnFzdBobLnJlc3NvdXJjZS5HZXRBbGxBY3Rpb25zUnNwEk0KDkdldFBlcm1p",
+            "c3Npb25zEh0ucmVzc291cmNlLkdldFBlcm1pc3Npb25zUnFzdBocLnJlc3Nv",
+            "dXJjZS5HZXRQZXJtaXNzaW9uc1JzcBJKCg1TZXRQZXJtaXNzaW9uEhwucmVz",
+            "c291cmNlLlNldFBlcm1pc3Npb25ScXN0GhsucmVzc291cmNlLlNldFBlcm1p",
+            "c3Npb25Sc3ASVgoRRGVsZXRlUGVybWlzc2lvbnMSIC5yZXNzb3VyY2UuRGVs",
+            "ZXRlUGVybWlzc2lvbnNScXN0Gh8ucmVzc291cmNlLkRlbGV0ZVBlcm1pc3Np",
+            "b25zUnNwElYKEVNldFJlc3NvdXJjZU93bmVyEiAucmVzc291cmNlLlNldFJl",
+            "c3NvdXJjZU93bmVyUnFzdBofLnJlc3NvdXJjZS5TZXRSZXNzb3VyY2VPd25l",
+            "clJzcBJZChJHZXRSZXNzb3VyY2VPd25lcnMSIS5yZXNzb3VyY2UuR2V0UmVz",
+            "c291cmNlT3duZXJzUnFzdBogLnJlc3NvdXJjZS5HZXRSZXNzb3VyY2VPd25l",
+            "cnNSc3ASXwoURGVsZXRlUmVzc291cmNlT3duZXISIy5yZXNzb3VyY2UuRGVs",
+            "ZXRlUmVzc291cmNlT3duZXJScXN0GiIucmVzc291cmNlLkRlbGV0ZVJlc3Nv",
+            "dXJjZU93bmVyUnNwEmIKFURlbGV0ZVJlc3NvdXJjZU93bmVycxIkLnJlc3Nv",
+            "dXJjZS5EZWxldGVSZXNzb3VyY2VPd25lcnNScXN0GiMucmVzc291cmNlLkRl",
+            "bGV0ZVJlc3NvdXJjZU93bmVyc1JzcBJQCg9HZXRBbGxGaWxlc0luZm8SHi5y",
+            "ZXNzb3VyY2UuR2V0QWxsRmlsZXNJbmZvUnFzdBodLnJlc3NvdXJjZS5HZXRB",
+            "bGxGaWxlc0luZm9Sc3ASdAobVmFsaWRhdGVVc2VyUmVzc291cmNlQWNjZXNz",
+            "EioucmVzc291cmNlLlZhbGlkYXRlVXNlclJlc3NvdXJjZUFjY2Vzc1Jxc3Qa",
+            "KS5yZXNzb3VyY2UuVmFsaWRhdGVVc2VyUmVzc291cmNlQWNjZXNzUnNwEokB",
+            "CiJWYWxpZGF0ZUFwcGxpY2F0aW9uUmVzc291cmNlQWNjZXNzEjEucmVzc291",
+            "cmNlLlZhbGlkYXRlQXBwbGljYXRpb25SZXNzb3VyY2VBY2Nlc3NScXN0GjAu",
+            "cmVzc291cmNlLlZhbGlkYXRlQXBwbGljYXRpb25SZXNzb3VyY2VBY2Nlc3NS",
+            "c3ASWQoSVmFsaWRhdGVVc2VyQWNjZXNzEiEucmVzc291cmNlLlZhbGlkYXRl",
+            "VXNlckFjY2Vzc1Jxc3QaIC5yZXNzb3VyY2UuVmFsaWRhdGVVc2VyQWNjZXNz",
+            "UnNwEm4KGVZhbGlkYXRlQXBwbGljYXRpb25BY2Nlc3MSKC5yZXNzb3VyY2Uu",
+            "VmFsaWRhdGVBcHBsaWNhdGlvbkFjY2Vzc1Jxc3QaJy5yZXNzb3VyY2UuVmFs",
+            "aWRhdGVBcHBsaWNhdGlvbkFjY2Vzc1JzcBJfChRDcmVhdGVEaXJQZXJtaXNz",
+            "aW9ucxIjLnJlc3NvdXJjZS5DcmVhdGVEaXJQZXJtaXNzaW9uc1Jxc3QaIi5y",
+            "ZXNzb3VyY2UuQ3JlYXRlRGlyUGVybWlzc2lvbnNSc3ASXwoUUmVuYW1lRmls",
+            "ZVBlcm1pc3Npb24SIy5yZXNzb3VyY2UuUmVuYW1lRmlsZVBlcm1pc3Npb25S",
+            "cXN0GiIucmVzc291cmNlLlJlbmFtZUZpbGVQZXJtaXNzaW9uUnNwEl8KFERl",
+            "bGV0ZURpclBlcm1pc3Npb25zEiMucmVzc291cmNlLkRlbGV0ZURpclBlcm1p",
+            "c3Npb25zUnFzdBoiLnJlc3NvdXJjZS5EZWxldGVEaXJQZXJtaXNzaW9uc1Jz",
+            "cBJiChVEZWxldGVGaWxlUGVybWlzc2lvbnMSJC5yZXNzb3VyY2UuRGVsZXRl",
+            "RmlsZVBlcm1pc3Npb25zUnFzdBojLnJlc3NvdXJjZS5EZWxldGVGaWxlUGVy",
+            "bWlzc2lvbnNSc3ASawoYRGVsZXRlQWNjb3VudFBlcm1pc3Npb25zEicucmVz",
+            "c291cmNlLkRlbGV0ZUFjY291bnRQZXJtaXNzaW9uc1Jxc3QaJi5yZXNzb3Vy",
+            "Y2UuRGVsZXRlQWNjb3VudFBlcm1pc3Npb25zUnNwEmIKFURlbGV0ZVJvbGVQ",
+            "ZXJtaXNzaW9ucxIkLnJlc3NvdXJjZS5EZWxldGVSb2xlUGVybWlzc2lvbnNS",
+            "cXN0GiMucmVzc291cmNlLkRlbGV0ZVJvbGVQZXJtaXNzaW9uc1JzcBJlChZH",
+            "ZXRBbGxBcHBsaWNhdGlvbnNJbmZvEiUucmVzc291cmNlLkdldEFsbEFwcGxp",
+            "Y2F0aW9uc0luZm9ScXN0GiQucmVzc291cmNlLkdldEFsbEFwcGxpY2F0aW9u",
+            "c0luZm9Sc3ASVgoRRGVsZXRlQXBwbGljYXRpb24SIC5yZXNzb3VyY2UuRGVs",
+            "ZXRlQXBwbGljYXRpb25ScXN0Gh8ucmVzc291cmNlLkRlbGV0ZUFwcGxpY2F0",
+            "aW9uUnNwEiwKA0xvZxISLnJlc3NvdXJjZS5Mb2dScXN0GhEucmVzc291cmNl",
+            "LkxvZ1JzcBI3CgZHZXRMb2cSFS5yZXNzb3VyY2UuR2V0TG9nUnFzdBoULnJl",
+            "c3NvdXJjZS5HZXRMb2dSc3AwARI+CglEZWxldGVMb2cSGC5yZXNzb3VyY2Uu",
+            "RGVsZXRlTG9nUnFzdBoXLnJlc3NvdXJjZS5EZWxldGVMb2dSc3ASRAoLQ2xl",
+            "YXJBbGxMb2cSGi5yZXNzb3VyY2UuQ2xlYXJBbGxMb2dScXN0GhkucmVzc291",
+            "cmNlLkNsZWFyQWxsTG9nUnNwEkcKDHNldFJlc3NvdXJjZRIbLnJlc3NvdXJj",
+            "ZS5TZXRSZXNzb3VyY2VScXN0GhoucmVzc291cmNlLlNldFJlc3NvdXJjZVJz",
+            "cBJQCg9yZW1vdmVSZXNzb3VyY2USHi5yZXNzb3VyY2UuUmVtb3ZlUmVzc291",
+            "cmNlUnFzdBodLnJlc3NvdXJjZS5SZW1vdmVSZXNzb3VyY2VSc3ASXAoTU2V0",
+            "QWN0aW9uUGVybWlzc2lvbhIiLnJlc3NvdXJjZS5TZXRBY3Rpb25QZXJtaXNz",
+            "aW9uUnFzdBohLnJlc3NvdXJjZS5TZXRBY3Rpb25QZXJtaXNzaW9uUnNwEmUK",
+            "FlJlbW92ZUFjdGlvblBlcm1pc3Npb24SJS5yZXNzb3VyY2UuUmVtb3ZlQWN0",
+            "aW9uUGVybWlzc2lvblJxc3QaJC5yZXNzb3VyY2UuUmVtb3ZlQWN0aW9uUGVy",
+            "bWlzc2lvblJzcBJcChNHZXRBY3Rpb25QZXJtaXNzaW9uEiIucmVzc291cmNl",
+            "LkdldEFjdGlvblBlcm1pc3Npb25ScXN0GiEucmVzc291cmNlLkdldEFjdGlv",
+            "blBlcm1pc3Npb25Sc3BCC1oJcmVzc291cmNlYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Ressource.LogType), }, new pbr::GeneratedClrTypeInfo[] {
@@ -287,7 +298,7 @@ namespace Ressource {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.DeleteAccountPermissionsRsp), global::Ressource.DeleteAccountPermissionsRsp.Parser, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.DeleteRolePermissionsRqst), global::Ressource.DeleteRolePermissionsRqst.Parser, new[]{ "Id" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.DeleteRolePermissionsRsp), global::Ressource.DeleteRolePermissionsRsp.Parser, new[]{ "Result" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.LogInfo), global::Ressource.LogInfo.Parser, new[]{ "Date", "Type", "Application", "UserId", "Method", "Message" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.LogInfo), global::Ressource.LogInfo.Parser, new[]{ "Date", "Type", "Application", "UserId", "UserName", "Method", "Message" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.LogRqst), global::Ressource.LogRqst.Parser, new[]{ "Info" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.LogRsp), global::Ressource.LogRsp.Parser, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.DeleteLogRqst), global::Ressource.DeleteLogRqst.Parser, new[]{ "Date" }, null, null, null),
@@ -302,12 +313,17 @@ namespace Ressource {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.GetLogRsp), global::Ressource.GetLogRsp.Parser, new[]{ "Info" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ClearAllLogRqst), global::Ressource.ClearAllLogRqst.Parser, new[]{ "Type" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.ClearAllLogRsp), global::Ressource.ClearAllLogRsp.Parser, new[]{ "Result" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourcesRqst), global::Ressource.SetRessourcesRqst.Parser, new[]{ "Ressources" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourcesRsp), global::Ressource.SetRessourcesRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.Ressource), global::Ressource.Ressource.Parser, new[]{ "Path" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourceRqst), global::Ressource.SetRessourceRqst.Parser, new[]{ "Ressource" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetRessourceRsp), global::Ressource.SetRessourceRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetActionPermissionRqst), global::Ressource.SetActionPermissionRqst.Parser, new[]{ "Action", "Permission" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.SetActionPermissionRsp), global::Ressource.SetActionPermissionRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.GetActionPermissionRqst), global::Ressource.GetActionPermissionRqst.Parser, new[]{ "Action" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.GetActionPermissionRsp), global::Ressource.GetActionPermissionRsp.Parser, new[]{ "Permission" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveRessourceRqst), global::Ressource.RemoveRessourceRqst.Parser, new[]{ "Ressource" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveRessourceRsp), global::Ressource.RemoveRessourceRsp.Parser, new[]{ "Result" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveRessourceRsp), global::Ressource.RemoveRessourceRsp.Parser, new[]{ "Result" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveActionPermissionRqst), global::Ressource.RemoveActionPermissionRqst.Parser, new[]{ "Action" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ressource.RemoveActionPermissionRsp), global::Ressource.RemoveActionPermissionRsp.Parser, new[]{ "Result" }, null, null, null)
           }));
     }
     #endregion
@@ -11139,6 +11155,7 @@ namespace Ressource {
       type_ = other.type_;
       application_ = other.application_;
       userId_ = other.userId_;
+      userName_ = other.userName_;
       method_ = other.method_;
       message_ = other.message_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -11193,8 +11210,19 @@ namespace Ressource {
       }
     }
 
+    /// <summary>Field number for the "userName" field.</summary>
+    public const int UserNameFieldNumber = 5;
+    private string userName_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string UserName {
+      get { return userName_; }
+      set {
+        userName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     /// <summary>Field number for the "method" field.</summary>
-    public const int MethodFieldNumber = 5;
+    public const int MethodFieldNumber = 6;
     private string method_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public string Method {
@@ -11205,7 +11233,7 @@ namespace Ressource {
     }
 
     /// <summary>Field number for the "message" field.</summary>
-    public const int MessageFieldNumber = 6;
+    public const int MessageFieldNumber = 7;
     private string message_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public string Message {
@@ -11232,6 +11260,7 @@ namespace Ressource {
       if (Type != other.Type) return false;
       if (Application != other.Application) return false;
       if (UserId != other.UserId) return false;
+      if (UserName != other.UserName) return false;
       if (Method != other.Method) return false;
       if (Message != other.Message) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -11244,6 +11273,7 @@ namespace Ressource {
       if (Type != 0) hash ^= Type.GetHashCode();
       if (Application.Length != 0) hash ^= Application.GetHashCode();
       if (UserId.Length != 0) hash ^= UserId.GetHashCode();
+      if (UserName.Length != 0) hash ^= UserName.GetHashCode();
       if (Method.Length != 0) hash ^= Method.GetHashCode();
       if (Message.Length != 0) hash ^= Message.GetHashCode();
       if (_unknownFields != null) {
@@ -11275,12 +11305,16 @@ namespace Ressource {
         output.WriteRawTag(34);
         output.WriteString(UserId);
       }
-      if (Method.Length != 0) {
+      if (UserName.Length != 0) {
         output.WriteRawTag(42);
+        output.WriteString(UserName);
+      }
+      if (Method.Length != 0) {
+        output.WriteRawTag(50);
         output.WriteString(Method);
       }
       if (Message.Length != 0) {
-        output.WriteRawTag(50);
+        output.WriteRawTag(58);
         output.WriteString(Message);
       }
       if (_unknownFields != null) {
@@ -11302,6 +11336,9 @@ namespace Ressource {
       }
       if (UserId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserId);
+      }
+      if (UserName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(UserName);
       }
       if (Method.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Method);
@@ -11331,6 +11368,9 @@ namespace Ressource {
       }
       if (other.UserId.Length != 0) {
         UserId = other.UserId;
+      }
+      if (other.UserName.Length != 0) {
+        UserName = other.UserName;
       }
       if (other.Method.Length != 0) {
         Method = other.Method;
@@ -11366,10 +11406,14 @@ namespace Ressource {
             break;
           }
           case 42: {
-            Method = input.ReadString();
+            UserName = input.ReadString();
             break;
           }
           case 50: {
+            Method = input.ReadString();
+            break;
+          }
+          case 58: {
             Message = input.ReadString();
             break;
           }
@@ -13150,11 +13194,11 @@ namespace Ressource {
 
   }
 
-  public sealed partial class SetRessourcesRqst : pb::IMessage<SetRessourcesRqst> {
-    private static readonly pb::MessageParser<SetRessourcesRqst> _parser = new pb::MessageParser<SetRessourcesRqst>(() => new SetRessourcesRqst());
+  public sealed partial class Ressource : pb::IMessage<Ressource> {
+    private static readonly pb::MessageParser<Ressource> _parser = new pb::MessageParser<Ressource>(() => new Ressource());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<SetRessourcesRqst> Parser { get { return _parser; } }
+    public static pb::MessageParser<Ressource> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -13167,54 +13211,55 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRqst() {
+    public Ressource() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRqst(SetRessourcesRqst other) : this() {
-      ressources_ = other.ressources_.Clone();
+    public Ressource(Ressource other) : this() {
+      path_ = other.path_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRqst Clone() {
-      return new SetRessourcesRqst(this);
+    public Ressource Clone() {
+      return new Ressource(this);
     }
 
-    /// <summary>Field number for the "ressources" field.</summary>
-    public const int RessourcesFieldNumber = 1;
-    private static readonly pb::FieldCodec<string> _repeated_ressources_codec
-        = pb::FieldCodec.ForString(10);
-    private readonly pbc::RepeatedField<string> ressources_ = new pbc::RepeatedField<string>();
+    /// <summary>Field number for the "path" field.</summary>
+    public const int PathFieldNumber = 1;
+    private string path_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<string> Ressources {
-      get { return ressources_; }
+    public string Path {
+      get { return path_; }
+      set {
+        path_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as SetRessourcesRqst);
+      return Equals(other as Ressource);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(SetRessourcesRqst other) {
+    public bool Equals(Ressource other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if(!ressources_.Equals(other.ressources_)) return false;
+      if (Path != other.Path) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      hash ^= ressources_.GetHashCode();
+      if (Path.Length != 0) hash ^= Path.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -13228,7 +13273,10 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      ressources_.WriteTo(output, _repeated_ressources_codec);
+      if (Path.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Path);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -13237,7 +13285,9 @@ namespace Ressource {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      size += ressources_.CalculateSize(_repeated_ressources_codec);
+      if (Path.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Path);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -13245,11 +13295,13 @@ namespace Ressource {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(SetRessourcesRqst other) {
+    public void MergeFrom(Ressource other) {
       if (other == null) {
         return;
       }
-      ressources_.Add(other.ressources_);
+      if (other.Path.Length != 0) {
+        Path = other.Path;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -13262,136 +13314,7 @@ namespace Ressource {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            ressources_.AddEntriesFrom(input, _repeated_ressources_codec);
-            break;
-          }
-        }
-      }
-    }
-
-  }
-
-  public sealed partial class SetRessourcesRsp : pb::IMessage<SetRessourcesRsp> {
-    private static readonly pb::MessageParser<SetRessourcesRsp> _parser = new pb::MessageParser<SetRessourcesRsp>(() => new SetRessourcesRsp());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<SetRessourcesRsp> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[90]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRsp() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRsp(SetRessourcesRsp other) : this() {
-      result_ = other.result_;
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public SetRessourcesRsp Clone() {
-      return new SetRessourcesRsp(this);
-    }
-
-    /// <summary>Field number for the "result" field.</summary>
-    public const int ResultFieldNumber = 1;
-    private bool result_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Result {
-      get { return result_; }
-      set {
-        result_ = value;
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override bool Equals(object other) {
-      return Equals(other as SetRessourcesRsp);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(SetRessourcesRsp other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Result != other.Result) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Result != false) hash ^= Result.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void WriteTo(pb::CodedOutputStream output) {
-      if (Result != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Result);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public int CalculateSize() {
-      int size = 0;
-      if (Result != false) {
-        size += 1 + 1;
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(SetRessourcesRsp other) {
-      if (other == null) {
-        return;
-      }
-      if (other.Result != false) {
-        Result = other.Result;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(pb::CodedInputStream input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 8: {
-            Result = input.ReadBool();
+            Path = input.ReadString();
             break;
           }
         }
@@ -13408,7 +13331,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[91]; }
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[90]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -13425,7 +13348,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public SetRessourceRqst(SetRessourceRqst other) : this() {
-      ressource_ = other.ressource_;
+      ressource_ = other.ressource_ != null ? other.ressource_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -13436,12 +13359,12 @@ namespace Ressource {
 
     /// <summary>Field number for the "ressource" field.</summary>
     public const int RessourceFieldNumber = 1;
-    private string ressource_ = "";
+    private global::Ressource.Ressource ressource_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Ressource {
+    public global::Ressource.Ressource Ressource {
       get { return ressource_; }
       set {
-        ressource_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        ressource_ = value;
       }
     }
 
@@ -13458,14 +13381,14 @@ namespace Ressource {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Ressource != other.Ressource) return false;
+      if (!object.Equals(Ressource, other.Ressource)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Ressource.Length != 0) hash ^= Ressource.GetHashCode();
+      if (ressource_ != null) hash ^= Ressource.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -13479,9 +13402,9 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Ressource.Length != 0) {
+      if (ressource_ != null) {
         output.WriteRawTag(10);
-        output.WriteString(Ressource);
+        output.WriteMessage(Ressource);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -13491,8 +13414,8 @@ namespace Ressource {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Ressource.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Ressource);
+      if (ressource_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Ressource);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -13505,8 +13428,11 @@ namespace Ressource {
       if (other == null) {
         return;
       }
-      if (other.Ressource.Length != 0) {
-        Ressource = other.Ressource;
+      if (other.ressource_ != null) {
+        if (ressource_ == null) {
+          Ressource = new global::Ressource.Ressource();
+        }
+        Ressource.MergeFrom(other.Ressource);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -13520,7 +13446,10 @@ namespace Ressource {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Ressource = input.ReadString();
+            if (ressource_ == null) {
+              Ressource = new global::Ressource.Ressource();
+            }
+            input.ReadMessage(Ressource);
             break;
           }
         }
@@ -13537,7 +13466,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[92]; }
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[91]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -13658,6 +13587,550 @@ namespace Ressource {
 
   }
 
+  public sealed partial class SetActionPermissionRqst : pb::IMessage<SetActionPermissionRqst> {
+    private static readonly pb::MessageParser<SetActionPermissionRqst> _parser = new pb::MessageParser<SetActionPermissionRqst>(() => new SetActionPermissionRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetActionPermissionRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[92]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRqst(SetActionPermissionRqst other) : this() {
+      action_ = other.action_;
+      permission_ = other.permission_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRqst Clone() {
+      return new SetActionPermissionRqst(this);
+    }
+
+    /// <summary>Field number for the "action" field.</summary>
+    public const int ActionFieldNumber = 1;
+    private string action_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Action {
+      get { return action_; }
+      set {
+        action_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "permission" field.</summary>
+    public const int PermissionFieldNumber = 2;
+    private int permission_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Permission {
+      get { return permission_; }
+      set {
+        permission_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetActionPermissionRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetActionPermissionRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Action != other.Action) return false;
+      if (Permission != other.Permission) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Action.Length != 0) hash ^= Action.GetHashCode();
+      if (Permission != 0) hash ^= Permission.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Action.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Action);
+      }
+      if (Permission != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Permission);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Action.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Action);
+      }
+      if (Permission != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Permission);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetActionPermissionRqst other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Action.Length != 0) {
+        Action = other.Action;
+      }
+      if (other.Permission != 0) {
+        Permission = other.Permission;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Action = input.ReadString();
+            break;
+          }
+          case 16: {
+            Permission = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SetActionPermissionRsp : pb::IMessage<SetActionPermissionRsp> {
+    private static readonly pb::MessageParser<SetActionPermissionRsp> _parser = new pb::MessageParser<SetActionPermissionRsp>(() => new SetActionPermissionRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SetActionPermissionRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[93]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRsp(SetActionPermissionRsp other) : this() {
+      result_ = other.result_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SetActionPermissionRsp Clone() {
+      return new SetActionPermissionRsp(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private bool result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SetActionPermissionRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SetActionPermissionRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Result != other.Result) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Result != false) hash ^= Result.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Result != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Result);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Result != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SetActionPermissionRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Result != false) {
+        Result = other.Result;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Result = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class GetActionPermissionRqst : pb::IMessage<GetActionPermissionRqst> {
+    private static readonly pb::MessageParser<GetActionPermissionRqst> _parser = new pb::MessageParser<GetActionPermissionRqst>(() => new GetActionPermissionRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<GetActionPermissionRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[94]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRqst(GetActionPermissionRqst other) : this() {
+      action_ = other.action_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRqst Clone() {
+      return new GetActionPermissionRqst(this);
+    }
+
+    /// <summary>Field number for the "action" field.</summary>
+    public const int ActionFieldNumber = 1;
+    private string action_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Action {
+      get { return action_; }
+      set {
+        action_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as GetActionPermissionRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(GetActionPermissionRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Action != other.Action) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Action.Length != 0) hash ^= Action.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Action.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Action);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Action.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Action);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(GetActionPermissionRqst other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Action.Length != 0) {
+        Action = other.Action;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Action = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class GetActionPermissionRsp : pb::IMessage<GetActionPermissionRsp> {
+    private static readonly pb::MessageParser<GetActionPermissionRsp> _parser = new pb::MessageParser<GetActionPermissionRsp>(() => new GetActionPermissionRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<GetActionPermissionRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[95]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRsp(GetActionPermissionRsp other) : this() {
+      permission_ = other.permission_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public GetActionPermissionRsp Clone() {
+      return new GetActionPermissionRsp(this);
+    }
+
+    /// <summary>Field number for the "permission" field.</summary>
+    public const int PermissionFieldNumber = 1;
+    private int permission_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Permission {
+      get { return permission_; }
+      set {
+        permission_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as GetActionPermissionRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(GetActionPermissionRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Permission != other.Permission) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Permission != 0) hash ^= Permission.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Permission != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(Permission);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Permission != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Permission);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(GetActionPermissionRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Permission != 0) {
+        Permission = other.Permission;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Permission = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
   public sealed partial class RemoveRessourceRqst : pb::IMessage<RemoveRessourceRqst> {
     private static readonly pb::MessageParser<RemoveRessourceRqst> _parser = new pb::MessageParser<RemoveRessourceRqst>(() => new RemoveRessourceRqst());
     private pb::UnknownFieldSet _unknownFields;
@@ -13666,7 +14139,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[93]; }
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[96]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -13683,7 +14156,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public RemoveRessourceRqst(RemoveRessourceRqst other) : this() {
-      ressource_ = other.ressource_;
+      ressource_ = other.ressource_ != null ? other.ressource_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -13694,12 +14167,12 @@ namespace Ressource {
 
     /// <summary>Field number for the "ressource" field.</summary>
     public const int RessourceFieldNumber = 1;
-    private string ressource_ = "";
+    private global::Ressource.Ressource ressource_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Ressource {
+    public global::Ressource.Ressource Ressource {
       get { return ressource_; }
       set {
-        ressource_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        ressource_ = value;
       }
     }
 
@@ -13716,14 +14189,14 @@ namespace Ressource {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Ressource != other.Ressource) return false;
+      if (!object.Equals(Ressource, other.Ressource)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Ressource.Length != 0) hash ^= Ressource.GetHashCode();
+      if (ressource_ != null) hash ^= Ressource.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -13737,9 +14210,9 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Ressource.Length != 0) {
+      if (ressource_ != null) {
         output.WriteRawTag(10);
-        output.WriteString(Ressource);
+        output.WriteMessage(Ressource);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -13749,8 +14222,8 @@ namespace Ressource {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Ressource.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Ressource);
+      if (ressource_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Ressource);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -13763,8 +14236,11 @@ namespace Ressource {
       if (other == null) {
         return;
       }
-      if (other.Ressource.Length != 0) {
-        Ressource = other.Ressource;
+      if (other.ressource_ != null) {
+        if (ressource_ == null) {
+          Ressource = new global::Ressource.Ressource();
+        }
+        Ressource.MergeFrom(other.Ressource);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -13778,7 +14254,10 @@ namespace Ressource {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Ressource = input.ReadString();
+            if (ressource_ == null) {
+              Ressource = new global::Ressource.Ressource();
+            }
+            input.ReadMessage(Ressource);
             break;
           }
         }
@@ -13795,7 +14274,7 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[94]; }
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[97]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -13889,6 +14368,264 @@ namespace Ressource {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void MergeFrom(RemoveRessourceRsp other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Result != false) {
+        Result = other.Result;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Result = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class RemoveActionPermissionRqst : pb::IMessage<RemoveActionPermissionRqst> {
+    private static readonly pb::MessageParser<RemoveActionPermissionRqst> _parser = new pb::MessageParser<RemoveActionPermissionRqst>(() => new RemoveActionPermissionRqst());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<RemoveActionPermissionRqst> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[98]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRqst() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRqst(RemoveActionPermissionRqst other) : this() {
+      action_ = other.action_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRqst Clone() {
+      return new RemoveActionPermissionRqst(this);
+    }
+
+    /// <summary>Field number for the "action" field.</summary>
+    public const int ActionFieldNumber = 1;
+    private string action_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Action {
+      get { return action_; }
+      set {
+        action_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as RemoveActionPermissionRqst);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(RemoveActionPermissionRqst other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Action != other.Action) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Action.Length != 0) hash ^= Action.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Action.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Action);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Action.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Action);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(RemoveActionPermissionRqst other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Action.Length != 0) {
+        Action = other.Action;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Action = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class RemoveActionPermissionRsp : pb::IMessage<RemoveActionPermissionRsp> {
+    private static readonly pb::MessageParser<RemoveActionPermissionRsp> _parser = new pb::MessageParser<RemoveActionPermissionRsp>(() => new RemoveActionPermissionRsp());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<RemoveActionPermissionRsp> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ressource.RessourceReflection.Descriptor.MessageTypes[99]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRsp() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRsp(RemoveActionPermissionRsp other) : this() {
+      result_ = other.result_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public RemoveActionPermissionRsp Clone() {
+      return new RemoveActionPermissionRsp(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private bool result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as RemoveActionPermissionRsp);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(RemoveActionPermissionRsp other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Result != other.Result) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Result != false) hash ^= Result.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Result != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Result);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Result != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(RemoveActionPermissionRsp other) {
       if (other == null) {
         return;
       }

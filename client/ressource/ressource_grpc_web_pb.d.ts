@@ -37,6 +37,8 @@ import {
   DeleteRolePermissionsRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
+  GetActionPermissionRqst,
+  GetActionPermissionRsp,
   GetAllActionsRqst,
   GetAllActionsRsp,
   GetAllApplicationsInfoRqst,
@@ -57,6 +59,8 @@ import {
   RegisterAccountRsp,
   RemoveAccountRoleRqst,
   RemoveAccountRoleRsp,
+  RemoveActionPermissionRqst,
+  RemoveActionPermissionRsp,
   RemoveApplicationActionRqst,
   RemoveApplicationActionRsp,
   RemoveRessourceRqst,
@@ -65,14 +69,14 @@ import {
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
   RenameFilePermissionRsp,
+  SetActionPermissionRqst,
+  SetActionPermissionRsp,
   SetPermissionRqst,
   SetPermissionRsp,
   SetRessourceOwnerRqst,
   SetRessourceOwnerRsp,
   SetRessourceRqst,
   SetRessourceRsp,
-  SetRessourcesRqst,
-  SetRessourcesRsp,
   SynchronizeLdapRqst,
   SynchronizeLdapRsp,
   ValidateApplicationAccessRqst,
@@ -367,6 +371,27 @@ export class RessourceServiceClient {
                response: RemoveRessourceRsp) => void
   ): grpcWeb.ClientReadableStream<RemoveRessourceRsp>;
 
+  setActionPermission(
+    request: SetActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<SetActionPermissionRsp>;
+
+  removeActionPermission(
+    request: RemoveActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveActionPermissionRsp>;
+
+  getActionPermission(
+    request: GetActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<GetActionPermissionRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
@@ -573,6 +598,21 @@ export class RessourceServicePromiseClient {
     request: RemoveRessourceRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<RemoveRessourceRsp>;
+
+  setActionPermission(
+    request: SetActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetActionPermissionRsp>;
+
+  removeActionPermission(
+    request: RemoveActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveActionPermissionRsp>;
+
+  getActionPermission(
+    request: GetActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetActionPermissionRsp>;
 
 }
 

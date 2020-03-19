@@ -490,13 +490,13 @@ func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
 /////////////////////// Log ////////////////////////
 
 // Append a new log information.
-func (self *Ressource_Client) Log(application string, userId string, method string, err_ error) error {
+func (self *Ressource_Client) Log(application string, user string, method string, err_ error) error {
 
 	// Here I set a log information.
 	rqst := new(LogRqst)
 	info := new(LogInfo)
 	info.Application = application
-	info.UserId = userId
+	info.UserName = user
 	info.Method = method
 	info.Date = time.Now().Unix()
 	if err_ != nil {

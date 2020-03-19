@@ -37,6 +37,8 @@ import {
   DeleteRolePermissionsRsp,
   DeleteRoleRqst,
   DeleteRoleRsp,
+  GetActionPermissionRqst,
+  GetActionPermissionRsp,
   GetAllActionsRqst,
   GetAllActionsRsp,
   GetAllApplicationsInfoRqst,
@@ -57,31 +59,39 @@ import {
   RegisterAccountRsp,
   RemoveAccountRoleRqst,
   RemoveAccountRoleRsp,
+  RemoveActionPermissionRqst,
+  RemoveActionPermissionRsp,
   RemoveApplicationActionRqst,
   RemoveApplicationActionRsp,
+  RemoveRessourceRqst,
+  RemoveRessourceRsp,
   RemoveRoleActionRqst,
   RemoveRoleActionRsp,
   RenameFilePermissionRqst,
   RenameFilePermissionRsp,
+  SetActionPermissionRqst,
+  SetActionPermissionRsp,
   SetPermissionRqst,
   SetPermissionRsp,
   SetRessourceOwnerRqst,
   SetRessourceOwnerRsp,
+  SetRessourceRqst,
+  SetRessourceRsp,
   SynchronizeLdapRqst,
   SynchronizeLdapRsp,
   ValidateApplicationAccessRqst,
   ValidateApplicationAccessRsp,
-  ValidateApplicationFileAccessRqst,
-  ValidateApplicationFileAccessRsp,
+  ValidateApplicationRessourceAccessRqst,
+  ValidateApplicationRessourceAccessRsp,
   ValidateUserAccessRqst,
   ValidateUserAccessRsp,
-  ValidateUserFileAccessRqst,
-  ValidateUserFileAccessRsp} from './ressource_pb';
+  ValidateUserRessourceAccessRqst,
+  ValidateUserRessourceAccessRsp} from './ressource_pb';
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -237,19 +247,19 @@ export class RessourceServiceClient {
                response: GetAllFilesInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
 
-  validateUserFileAccess(
-    request: ValidateUserFileAccessRqst,
+  validateUserRessourceAccess(
+    request: ValidateUserRessourceAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ValidateUserFileAccessRsp) => void
-  ): grpcWeb.ClientReadableStream<ValidateUserFileAccessRsp>;
+               response: ValidateUserRessourceAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateUserRessourceAccessRsp>;
 
-  validateApplicationFileAccess(
-    request: ValidateApplicationFileAccessRqst,
+  validateApplicationRessourceAccess(
+    request: ValidateApplicationRessourceAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ValidateApplicationFileAccessRsp) => void
-  ): grpcWeb.ClientReadableStream<ValidateApplicationFileAccessRsp>;
+               response: ValidateApplicationRessourceAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateApplicationRessourceAccessRsp>;
 
   validateUserAccess(
     request: ValidateUserAccessRqst,
@@ -347,12 +357,47 @@ export class RessourceServiceClient {
                response: ClearAllLogRsp) => void
   ): grpcWeb.ClientReadableStream<ClearAllLogRsp>;
 
+  setRessource(
+    request: SetRessourceRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetRessourceRsp) => void
+  ): grpcWeb.ClientReadableStream<SetRessourceRsp>;
+
+  removeRessource(
+    request: RemoveRessourceRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveRessourceRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveRessourceRsp>;
+
+  setActionPermission(
+    request: SetActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<SetActionPermissionRsp>;
+
+  removeActionPermission(
+    request: RemoveActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemoveActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<RemoveActionPermissionRsp>;
+
+  getActionPermission(
+    request: GetActionPermissionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: GetActionPermissionRsp) => void
+  ): grpcWeb.ClientReadableStream<GetActionPermissionRsp>;
+
 }
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               credentials: null | { [index: string]: string; },
+               options: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -464,15 +509,15 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllFilesInfoRsp>;
 
-  validateUserFileAccess(
-    request: ValidateUserFileAccessRqst,
+  validateUserRessourceAccess(
+    request: ValidateUserRessourceAccessRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ValidateUserFileAccessRsp>;
+  ): Promise<ValidateUserRessourceAccessRsp>;
 
-  validateApplicationFileAccess(
-    request: ValidateApplicationFileAccessRqst,
+  validateApplicationRessourceAccess(
+    request: ValidateApplicationRessourceAccessRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ValidateApplicationFileAccessRsp>;
+  ): Promise<ValidateApplicationRessourceAccessRsp>;
 
   validateUserAccess(
     request: ValidateUserAccessRqst,
@@ -543,6 +588,31 @@ export class RessourceServicePromiseClient {
     request: ClearAllLogRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<ClearAllLogRsp>;
+
+  setRessource(
+    request: SetRessourceRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetRessourceRsp>;
+
+  removeRessource(
+    request: RemoveRessourceRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveRessourceRsp>;
+
+  setActionPermission(
+    request: SetActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetActionPermissionRsp>;
+
+  removeActionPermission(
+    request: RemoveActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemoveActionPermissionRsp>;
+
+  getActionPermission(
+    request: GetActionPermissionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<GetActionPermissionRsp>;
 
 }
 

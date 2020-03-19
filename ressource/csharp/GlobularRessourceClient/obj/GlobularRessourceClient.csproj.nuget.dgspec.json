@@ -66,11 +66,6 @@
           "assetTargetFallback": true,
           "warn": true
         }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
-        }
       }
     },
     "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj": {
@@ -138,11 +133,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     }

@@ -89,32 +89,10 @@ namespace Globular
         /// <param name="path">The path of the ressource in form /toto/titi/tata</param>
         public void SetRessource(string path){
             Ressource.SetRessourceRqst rqst = new Ressource.SetRessourceRqst();
-            rqst.Ressource = path;
+            Ressource.Ressource ressource = new Ressource.Ressource();
+            ressource.Path = path;
+            rqst.Ressource = ressource;
             this.client.setRessource(rqst);
-        }
-
-        public void SetRessouces(string[] paths){
- 
-            // append paths to the field.
-            var call = this.client.setRessources();
-
-            // call.RequestStream.
-            Ressource.SetRessourcesRqst rqst = new Ressource.SetRessourcesRqst();;
-            for(var i=0; i < paths.Length; i++){
-                rqst.Ressources.Add(paths[i]);
-                if(i % 1000 == 0 && i > 0){
-                    call.RequestStream.WriteAsync(rqst);
-                    // set a new request...
-                    rqst = new Ressource.SetRessourcesRqst();
-                }
-            }
-
-            if(rqst.Ressources.Count > 0){
-                call.RequestStream.WriteAsync(rqst);
-            }
-
-            // Close the stream.
-            call.RequestStream.CompleteAsync();
         }
 
         /// <summary>
@@ -123,8 +101,23 @@ namespace Globular
         /// <param name="path"></param>
         public void RemoveRessouce(string path){
             Ressource.RemoveRessourceRqst rqst = new Ressource.RemoveRessourceRqst();
-            rqst.Ressource = path;
+            Ressource.Ressource ressource = new Ressource.Ressource();
+            ressource.Path = path;
+            rqst.Ressource = ressource;
             this.client.removeRessource(rqst);
+        }
+
+        /// <summary>
+        /// Get the ressource Action permission for a given ressource.
+        /// </summary>
+        /// <param name="path">The ressource path</param>
+        /// <param name="action">The gRPC action</param>
+        /// <returns></returns>
+        public Int32 getActionPermission(string action) {
+            Ressource.GetActionPermissionRqst rqst = new Ressource.GetActionPermissionRqst();
+            rqst.Action = action;
+            var rsp = this.client.GetActionPermission(rqst);
+            return rsp.Permission;
         }
 
         /// <summary>
