@@ -194,26 +194,18 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		hasAccess = true
 	}
 	clientId, _, _ := ValidateToken(token)
-	// Test if the user has access to execute the method
-	if len(token) > 0 && !hasAccess {
-		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
-		if err != nil {
-			getRessourceClient().Log(application, clientId, method, err)
-			return nil, err
-		}
-	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
-		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
-		if err != nil {
-			getRessourceClient().Log(application, clientId, method, err)
-			return nil, err
-		}
+		hasAccess, _ = getRessourceClient().ValidateApplicationAccess(application, method)
+	}
+
+	// Test if the user has access to execute the method
+	if len(token) > 0 && !hasAccess {
+		hasAccess, _ = getRessourceClient().ValidateUserAccess(token, method)
 	}
 
 	if !hasAccess {
-
 		err := errors.New("Permission denied to execute method " + method)
 		getRessourceClient().Log(application, clientId, method, err)
 		return nil, err

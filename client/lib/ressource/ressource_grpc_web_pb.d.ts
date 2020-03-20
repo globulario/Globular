@@ -51,6 +51,8 @@ import {
   GetPermissionsRsp,
   GetRessourceOwnersRqst,
   GetRessourceOwnersRsp,
+  GetRessourcesRqst,
+  GetRessourcesRsp,
   LogRqst,
   LogRsp,
   RefreshTokenRqst,
@@ -357,6 +359,11 @@ export class RessourceServiceClient {
                response: ClearAllLogRsp) => void
   ): grpcWeb.ClientReadableStream<ClearAllLogRsp>;
 
+  getRessources(
+    request: GetRessourcesRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetRessourcesRsp>;
+
   setRessource(
     request: SetRessourceRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -588,6 +595,11 @@ export class RessourceServicePromiseClient {
     request: ClearAllLogRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<ClearAllLogRsp>;
+
+  getRessources(
+    request: GetRessourcesRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetRessourcesRsp>;
 
   setRessource(
     request: SetRessourceRqst,

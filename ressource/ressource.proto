@@ -445,8 +445,10 @@ message ClearAllLogRsp{
 
 ////////////////// Ressource //////////////////
 
+/** A ressource can be anything with a path an a name **/
 message Ressource {
 	string path = 1;
+	string name = 2;
 }
 
 message SetRessourceRqst{
@@ -481,6 +483,15 @@ message RemoveRessourceRqst{
 
 message RemoveRessourceRsp{
 	bool result=1;
+}
+
+message	GetRessourcesRqst{
+	string path = 1;
+	string name = 2;
+}
+
+message	GetRessourcesRsp{
+	repeated Ressource ressources = 1;
 }
 
 message RemoveActionPermissionRqst{
@@ -611,12 +622,15 @@ service RessourceService {
 	
 	/** Delete all log **/
 	rpc ClearAllLog(ClearAllLogRqst) returns(ClearAllLogRsp);
+
+	/** Get all ressources */
+	rpc GetRessources(GetRessourcesRqst) returns(stream GetRessourcesRsp);
 	
 	/** Set a ressource from a client (custom service) to globular */
-	rpc setRessource(SetRessourceRqst) returns(SetRessourceRsp);
+	rpc SetRessource(SetRessourceRqst) returns(SetRessourceRsp);
 	
 	/** Remove a ressource from a client (custom service) to globular */
-	rpc removeRessource(RemoveRessourceRqst) returns(RemoveRessourceRsp);
+	rpc RemoveRessource(RemoveRessourceRqst) returns(RemoveRessourceRsp);
 	
 	/** Set ressource action permission **/
 	rpc SetActionPermission(SetActionPermissionRqst) returns(SetActionPermissionRsp);

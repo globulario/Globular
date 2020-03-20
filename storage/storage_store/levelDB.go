@@ -5,8 +5,10 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type LevelDB_store struct {
@@ -76,11 +78,33 @@ func (self *LevelDB_store) SetItem(key string, val []byte) error {
 
 // Get item with a given key.
 func (self *LevelDB_store) GetItem(key string) ([]byte, error) {
+	// Here I will make a little trick to give more flexibility to the tool...
+	if strings.HasSuffix(key, "*") {
+		// I will made use of iterator to ket the values
+		values := make([]interface{}, 0)
+		iter := self.db.NewIterator(util.BytesPrefix([]byte(key[:len(key)-1])), nil)
+		for ok := iter.Last(); ok; ok = iter.Prev() {
+			values = append(values, string(iter.Value()))
+		}
+		iter.Release()
+		return json.Marshal(&values) // I will return the stringnify value
+
+	}
+
 	return self.db.Get([]byte(key), nil)
 }
 
-// Remove an item
+// Remove an item or a range of items whit same path
 func (self *LevelDB_store) RemoveItem(key string) error {
+	if strings.HasSuffix(key, "*") {
+		// I will made use of iterator to ket the values
+		iter := self.db.NewIterator(util.BytesPrefix([]byte(key[:len(key)-1])), nil)
+		for ok := iter.Last(); ok; ok = iter.Prev() {
+			self.db.Delete([]byte(iter.Key()), nil)
+		}
+		iter.Release()
+
+	}
 	return self.db.Delete([]byte(key), nil)
 }
 

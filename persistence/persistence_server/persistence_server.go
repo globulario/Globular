@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -112,13 +111,11 @@ func (self *server) init() {
 
 			// Now I will try to connect...
 			err := s.Connect(c.Id, c.Host, c.Port, c.User, c.password, c.Name, c.Timeout, c.Options)
-
 			// keep the store for futur call...
 			if err == nil {
-				log.Println("---> create connection ", c.Id)
 				self.stores[c.Id] = s
 			} else {
-				log.Panicln(err.Error())
+				log.Println(err.Error())
 			}
 		}
 	}
@@ -145,7 +142,6 @@ func (self *server) save() error {
 // exist it will be replace by the new one.
 func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.CreateConnectionRqst) (*persistencepb.CreateConnectionRsp, error) {
 	// sqlpb
-	fmt.Println("Try to create a new connection")
 	var c connection
 	var err error
 

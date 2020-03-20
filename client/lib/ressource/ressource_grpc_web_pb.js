@@ -2174,6 +2174,56 @@ proto.ressource.RessourceServicePromiseClient.prototype.clearAllLog =
 /**
  * @const
  * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetRessourcesRqst,
+ *   !proto.ressource.GetRessourcesRsp>}
+ */
+const methodInfo_RessourceService_GetRessources = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetRessourcesRsp,
+  /** @param {!proto.ressource.GetRessourcesRqst} request */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetRessourcesRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetRessourcesRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetRessourcesRsp>}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getRessources =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/ressource.RessourceService/GetRessources',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetRessources);
+};
+
+
+/**
+ * @param {!proto.ressource.GetRessourcesRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetRessourcesRsp>}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getRessources =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/ressource.RessourceService/GetRessources',
+      request,
+      metadata || {},
+      methodInfo_RessourceService_GetRessources);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
  *   !proto.ressource.SetRessourceRqst,
  *   !proto.ressource.SetRessourceRsp>}
  */

@@ -97,6 +97,8 @@ namespace Ressource {
     static readonly grpc::Marshaller<global::Ressource.DeleteLogRsp> __Marshaller_ressource_DeleteLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteLogRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRqst> __Marshaller_ressource_ClearAllLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.ClearAllLogRsp> __Marshaller_ressource_ClearAllLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRsp.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRqst> __Marshaller_ressource_GetRessourcesRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourcesRqst.Parser.ParseFrom);
+    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRsp> __Marshaller_ressource_GetRessourcesRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourcesRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.SetRessourceRqst> __Marshaller_ressource_SetRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRqst.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.SetRessourceRsp> __Marshaller_ressource_SetRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRsp.Parser.ParseFrom);
     static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRqst> __Marshaller_ressource_RemoveRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRqst.Parser.ParseFrom);
@@ -373,6 +375,13 @@ namespace Ressource {
         "ClearAllLog",
         __Marshaller_ressource_ClearAllLogRqst,
         __Marshaller_ressource_ClearAllLogRsp);
+
+    static readonly grpc::Method<global::Ressource.GetRessourcesRqst, global::Ressource.GetRessourcesRsp> __Method_GetRessources = new grpc::Method<global::Ressource.GetRessourcesRqst, global::Ressource.GetRessourcesRsp>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "GetRessources",
+        __Marshaller_ressource_GetRessourcesRqst,
+        __Marshaller_ressource_GetRessourcesRsp);
 
     static readonly grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp> __Method_setRessource = new grpc::Method<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(
         grpc::MethodType.Unary,
@@ -834,6 +843,18 @@ namespace Ressource {
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       public virtual global::System.Threading.Tasks.Task<global::Ressource.ClearAllLogRsp> ClearAllLog(global::Ressource.ClearAllLogRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Get all ressources 
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="responseStream">Used for sending responses back to the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>A task indicating completion of the handler.</returns>
+      public virtual global::System.Threading.Tasks.Task GetRessources(global::Ressource.GetRessourcesRqst request, grpc::IServerStreamWriter<global::Ressource.GetRessourcesRsp> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -2569,6 +2590,28 @@ namespace Ressource {
         return CallInvoker.AsyncUnaryCall(__Method_ClearAllLog, null, options, request);
       }
       /// <summary>
+      ///* Get all ressources 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncServerStreamingCall<global::Ressource.GetRessourcesRsp> GetRessources(global::Ressource.GetRessourcesRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetRessources(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Get all ressources 
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncServerStreamingCall<global::Ressource.GetRessourcesRsp> GetRessources(global::Ressource.GetRessourcesRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_GetRessources, null, options, request);
+      }
+      /// <summary>
       ///* Set a ressource from a client (custom service) to globular 
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
@@ -2838,6 +2881,7 @@ namespace Ressource {
           .AddMethod(__Method_GetLog, serviceImpl.GetLog)
           .AddMethod(__Method_DeleteLog, serviceImpl.DeleteLog)
           .AddMethod(__Method_ClearAllLog, serviceImpl.ClearAllLog)
+          .AddMethod(__Method_GetRessources, serviceImpl.GetRessources)
           .AddMethod(__Method_setRessource, serviceImpl.setRessource)
           .AddMethod(__Method_removeRessource, serviceImpl.removeRessource)
           .AddMethod(__Method_SetActionPermission, serviceImpl.SetActionPermission)
@@ -2889,6 +2933,7 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_GetLog, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ressource.GetLogRqst, global::Ressource.GetLogRsp>(serviceImpl.GetLog));
       serviceBinder.AddMethod(__Method_DeleteLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteLogRqst, global::Ressource.DeleteLogRsp>(serviceImpl.DeleteLog));
       serviceBinder.AddMethod(__Method_ClearAllLog, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ClearAllLogRqst, global::Ressource.ClearAllLogRsp>(serviceImpl.ClearAllLog));
+      serviceBinder.AddMethod(__Method_GetRessources, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ressource.GetRessourcesRqst, global::Ressource.GetRessourcesRsp>(serviceImpl.GetRessources));
       serviceBinder.AddMethod(__Method_setRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.SetRessourceRqst, global::Ressource.SetRessourceRsp>(serviceImpl.setRessource));
       serviceBinder.AddMethod(__Method_removeRessource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.RemoveRessourceRqst, global::Ressource.RemoveRessourceRsp>(serviceImpl.removeRessource));
       serviceBinder.AddMethod(__Method_SetActionPermission, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.SetActionPermissionRqst, global::Ressource.SetActionPermissionRsp>(serviceImpl.SetActionPermission));

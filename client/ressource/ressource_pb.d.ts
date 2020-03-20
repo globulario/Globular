@@ -1824,6 +1824,9 @@ export class Ressource extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
 
+  getName(): string;
+  setName(value: string): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Ressource.AsObject;
   static toObject(includeInstance: boolean, msg: Ressource): Ressource.AsObject;
@@ -1835,6 +1838,7 @@ export class Ressource extends jspb.Message {
 export namespace Ressource {
   export type AsObject = {
     path: string,
+    name: string,
   }
 }
 
@@ -1987,6 +1991,48 @@ export class RemoveRessourceRsp extends jspb.Message {
 export namespace RemoveRessourceRsp {
   export type AsObject = {
     result: boolean,
+  }
+}
+
+export class GetRessourcesRqst extends jspb.Message {
+  getPath(): string;
+  setPath(value: string): void;
+
+  getName(): string;
+  setName(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetRessourcesRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetRessourcesRqst): GetRessourcesRqst.AsObject;
+  static serializeBinaryToWriter(message: GetRessourcesRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetRessourcesRqst;
+  static deserializeBinaryFromReader(message: GetRessourcesRqst, reader: jspb.BinaryReader): GetRessourcesRqst;
+}
+
+export namespace GetRessourcesRqst {
+  export type AsObject = {
+    path: string,
+    name: string,
+  }
+}
+
+export class GetRessourcesRsp extends jspb.Message {
+  getRessourcesList(): Array<Ressource>;
+  setRessourcesList(value: Array<Ressource>): void;
+  clearRessourcesList(): void;
+  addRessources(value?: Ressource, index?: number): Ressource;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetRessourcesRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetRessourcesRsp): GetRessourcesRsp.AsObject;
+  static serializeBinaryToWriter(message: GetRessourcesRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetRessourcesRsp;
+  static deserializeBinaryFromReader(message: GetRessourcesRsp, reader: jspb.BinaryReader): GetRessourcesRsp;
+}
+
+export namespace GetRessourcesRsp {
+  export type AsObject = {
+    ressourcesList: Array<Ressource.AsObject>,
   }
 }
 
