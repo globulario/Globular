@@ -1206,8 +1206,8 @@ export class ValidateUserRessourceAccessRqst extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
 
-  getPermission(): string;
-  setPermission(value: string): void;
+  getPermission(): number;
+  setPermission(value: number): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ValidateUserRessourceAccessRqst.AsObject;
@@ -1222,7 +1222,7 @@ export namespace ValidateUserRessourceAccessRqst {
     token: string,
     method: string,
     path: string,
-    permission: string,
+    permission: number,
   }
 }
 
@@ -1254,8 +1254,8 @@ export class ValidateApplicationRessourceAccessRqst extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
 
-  getPermission(): string;
-  setPermission(value: string): void;
+  getPermission(): number;
+  setPermission(value: number): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ValidateApplicationRessourceAccessRqst.AsObject;
@@ -1270,7 +1270,7 @@ export namespace ValidateApplicationRessourceAccessRqst {
     name: string,
     method: string,
     path: string,
-    permission: string,
+    permission: number,
   }
 }
 
@@ -1827,6 +1827,12 @@ export class Ressource extends jspb.Message {
   getName(): string;
   setName(value: string): void;
 
+  getModified(): number;
+  setModified(value: number): void;
+
+  getSize(): number;
+  setSize(value: number): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Ressource.AsObject;
   static toObject(includeInstance: boolean, msg: Ressource): Ressource.AsObject;
@@ -1839,6 +1845,8 @@ export namespace Ressource {
   export type AsObject = {
     path: string,
     name: string,
+    modified: number,
+    size: number,
   }
 }
 

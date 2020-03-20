@@ -10758,7 +10758,7 @@ proto.ressource.ValidateUserRessourceAccessRqst.toObject = function(includeInsta
     token: jspb.Message.getFieldWithDefault(msg, 1, ""),
     method: jspb.Message.getFieldWithDefault(msg, 2, ""),
     path: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    permission: jspb.Message.getFieldWithDefault(msg, 4, "")
+    permission: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -10808,7 +10808,7 @@ proto.ressource.ValidateUserRessourceAccessRqst.deserializeBinaryFromReader = fu
       msg.setPath(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {number} */ (reader.readInt32());
       msg.setPermission(value);
       break;
     default:
@@ -10862,8 +10862,8 @@ proto.ressource.ValidateUserRessourceAccessRqst.serializeBinaryToWriter = functi
     );
   }
   f = message.getPermission();
-  if (f.length > 0) {
-    writer.writeString(
+  if (f !== 0) {
+    writer.writeInt32(
       4,
       f
     );
@@ -10917,17 +10917,17 @@ proto.ressource.ValidateUserRessourceAccessRqst.prototype.setPath = function(val
 
 
 /**
- * optional string permission = 4;
- * @return {string}
+ * optional int32 permission = 4;
+ * @return {number}
  */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.getPermission = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
 };
 
 
-/** @param {string} value */
+/** @param {number} value */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.setPermission = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -11093,7 +11093,7 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.toObject = function(inclu
     name: jspb.Message.getFieldWithDefault(msg, 1, ""),
     method: jspb.Message.getFieldWithDefault(msg, 2, ""),
     path: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    permission: jspb.Message.getFieldWithDefault(msg, 4, "")
+    permission: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -11143,7 +11143,7 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.deserializeBinaryFromRead
       msg.setPath(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {number} */ (reader.readInt32());
       msg.setPermission(value);
       break;
     default:
@@ -11197,8 +11197,8 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.serializeBinaryToWriter =
     );
   }
   f = message.getPermission();
-  if (f.length > 0) {
-    writer.writeString(
+  if (f !== 0) {
+    writer.writeInt32(
       4,
       f
     );
@@ -11252,17 +11252,17 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setPath = funct
 
 
 /**
- * optional string permission = 4;
- * @return {string}
+ * optional int32 permission = 4;
+ * @return {number}
  */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.getPermission = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
 };
 
 
-/** @param {string} value */
+/** @param {number} value */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setPermission = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -15172,7 +15172,9 @@ proto.ressource.Ressource.prototype.toObject = function(opt_includeInstance) {
 proto.ressource.Ressource.toObject = function(includeInstance, msg) {
   var f, obj = {
     path: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    name: jspb.Message.getFieldWithDefault(msg, 2, "")
+    name: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    modified: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    size: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -15217,6 +15219,14 @@ proto.ressource.Ressource.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {string} */ (reader.readString());
       msg.setName(value);
       break;
+    case 3:
+      var value = /** @type {number} */ (reader.readInt64());
+      msg.setModified(value);
+      break;
+    case 4:
+      var value = /** @type {number} */ (reader.readInt64());
+      msg.setSize(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -15260,6 +15270,20 @@ proto.ressource.Ressource.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getModified();
+  if (f !== 0) {
+    writer.writeInt64(
+      3,
+      f
+    );
+  }
+  f = message.getSize();
+  if (f !== 0) {
+    writer.writeInt64(
+      4,
+      f
+    );
+  }
 };
 
 
@@ -15290,6 +15314,36 @@ proto.ressource.Ressource.prototype.getName = function() {
 /** @param {string} value */
 proto.ressource.Ressource.prototype.setName = function(value) {
   jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * optional int64 modified = 3;
+ * @return {number}
+ */
+proto.ressource.Ressource.prototype.getModified = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
+};
+
+
+/** @param {number} value */
+proto.ressource.Ressource.prototype.setModified = function(value) {
+  jspb.Message.setProto3IntField(this, 3, value);
+};
+
+
+/**
+ * optional int64 size = 4;
+ * @return {number}
+ */
+proto.ressource.Ressource.prototype.getSize = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
+};
+
+
+/** @param {number} value */
+proto.ressource.Ressource.prototype.setSize = function(value) {
+  jspb.Message.setProto3IntField(this, 4, value);
 };
 
 

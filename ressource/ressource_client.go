@@ -379,7 +379,7 @@ func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path string, method string, permission string) (bool, error) {
+func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path string, method string, permission int32) (bool, error) {
 	rqst := &ValidateUserRessourceAccessRqst{}
 	rqst.Token = token
 	rqst.Path = path
@@ -394,7 +394,7 @@ func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path str
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) ValidateApplicationRessourceAccess(application string, path string, method string, permission string) (bool, error) {
+func (self *Ressource_Client) ValidateApplicationRessourceAccess(application string, path string, method string, permission int32) (bool, error) {
 	rqst := &ValidateApplicationRessourceAccessRqst{}
 	rqst.Name = application
 	rqst.Path = path
@@ -485,6 +485,19 @@ func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
 	}
 	_, err := self.c.DeleteAccountPermissions(api.GetClientContext(self), rqst)
 	return err
+}
+
+func (self *Ressource_Client) GetActionPermission(action string) (int32, error) {
+	rqst := &GetActionPermissionRqst{
+		Action: action,
+	}
+
+	rsp, err := self.c.GetActionPermission(api.GetClientContext(self), rqst)
+	if err != nil {
+		return -1, err
+	}
+
+	return rsp.Permission, nil
 }
 
 /////////////////////// Log ////////////////////////

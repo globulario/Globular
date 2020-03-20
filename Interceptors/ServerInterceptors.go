@@ -2,6 +2,7 @@ package Interceptors
 
 import "context"
 
+import "fmt"
 import "log"
 import "google.golang.org/grpc"
 import "github.com/davecourtois/Globular/ressource"
@@ -9,6 +10,9 @@ import "google.golang.org/grpc/metadata"
 import "strings"
 import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
+
+import "github.com/davecourtois/Utility"
+import "reflect"
 
 var (
 	ressource_client *ressource.Ressource_Client
@@ -28,28 +32,28 @@ func getRessourceClient() *ressource.Ressource_Client {
 /**
  * Return the file permission necessary for a given method.
  */
-func getFilePermissionForMethod(method string, req interface{}) (string, string) {
+func getFilePermissionForMethod(method string, req interface{}) (string, int32) {
 	var path string
-	var permission string
+	var permission int32
 
 	if method == "/file.FileService/ReadDir" {
 		rqst := req.(*filepb.ReadDirRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "read"
+		permission = 4
 	} else if method == "/file.FileService/CreateDir" {
 		rqst := req.(*filepb.CreateDirRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/file.FileService/DeleteDir" {
 		rqst := req.(*filepb.DeleteDirRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "delete"
+		permission = 1
 	} else if method == "/file.FileService/Rename" {
 		rqst := req.(*filepb.RenameRequest)
 		if len(rqst.GetPath()) > 1 {
@@ -57,73 +61,73 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 		} else {
 			path = rqst.GetOldName()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/file.FileService/GetFileInfo" {
 		rqst := req.(*filepb.ReadFileRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "read"
+		permission = 4
 	} else if method == "/file.FileService/ReadFile" {
 		rqst := req.(*filepb.SaveFileRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "read"
+		permission = 4
 	} else if method == "/file.FileService/SaveFile" {
 		rqst := req.(*filepb.SaveFileRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/file.FileService/DeleteFile" {
 		rqst := req.(*filepb.DeleteFileRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "delete"
+		permission = 1
 	} else if method == "/file.FileService/GetThumbnails" {
 		rqst := req.(*filepb.GetThumbnailsRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "read"
+		permission = 4
 	} else if method == "/file.FileService/WriteExcelFile" {
 		rqst := req.(*filepb.WriteExcelFileRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/file.FileService/CreateAchive" {
 		rqst := req.(*filepb.CreateArchiveRequest)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "read"
+		permission = 4
 	} else if method == "/ressource.RessourceService/SetPermission" {
 		rqst := req.(*ressource.SetPermissionRqst)
 		if len(rqst.Permission.GetPath()) > 1 {
 			path = rqst.Permission.GetPath()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/ressource.RessourceService/DeletePermissions" {
 		rqst := req.(*ressource.DeletePermissionsRqst)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "delete"
+		permission = 1
 	} else if method == "/ressource.RessourceService/SetRessourceOwner" {
 		rqst := req.(*ressource.SetRessourceOwnerRqst)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "write"
+		permission = 2
 	} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
 		rqst := req.(*ressource.DeleteRessourceOwnerRqst)
 		if len(rqst.GetPath()) > 1 {
 			path = rqst.GetPath()
 		}
-		permission = "delete"
+		permission = 1
 	}
 
 	path = strings.ReplaceAll(path, "\\", "/")
@@ -134,7 +138,7 @@ func getFilePermissionForMethod(method string, req interface{}) (string, string)
 /**
  * Validate user file permission.
  */
-func ValidateUserRessourceAccess(token string, method string, path string, permission string) error {
+func ValidateUserRessourceAccess(token string, method string, path string, permission int32) error {
 	hasAccess, err := getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
 	if err != nil {
 		return err
@@ -148,7 +152,7 @@ func ValidateUserRessourceAccess(token string, method string, path string, permi
 /**
  * Validate application file permission.
  */
-func ValidateApplicationRessourceAccess(applicationName string, method string, path string, permission string) error {
+func ValidateApplicationRessourceAccess(applicationName string, method string, path string, permission int32) error {
 	hasAccess, err := getRessourceClient().ValidateApplicationRessourceAccess(applicationName, path, method, permission)
 	if err != nil {
 		return err
@@ -232,6 +236,41 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		// If permission is denied...
 		if !hasFilePermission {
 			return nil, errors.New("Permission denied for file " + path)
+		}
+	} else if method != "/persistence.PersistenceService/CreateConnection" &&
+		method != "/persistence.PersistenceService/FindOne" &&
+		method != "/persistence.PersistenceService/Count" {
+		// Here I will retreive the permission from the database if there is some...
+		// the path will be found in the parameter of the method.
+		permission, err := getRessourceClient().GetActionPermission(method)
+		if err == nil && permission != -1 {
+			// A permission was found.
+			fmt.Println("-------------> action ", method, " has permission ", permission)
+			// Now  I will try to get the parameter that contain the ressource path.
+			parameters, _ := Utility.ToMap(req) // get parameters as map.
+
+			for _, v := range parameters {
+				hasRessourcePermission := false
+				// So here I will try to validate each parameter that begin with a '/'
+				if reflect.TypeOf(v).Kind() == reflect.String {
+					path := v.(string)
+					if strings.HasPrefix(path, "/") {
+
+						// I will test if the user has file permission.
+						hasRessourcePermission, err = getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
+						if err != nil {
+							return nil, err
+						}
+
+						if !hasRessourcePermission {
+							hasRessourcePermission, err = getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission)
+							if err != nil {
+								return nil, err
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 

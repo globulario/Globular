@@ -108,44 +108,43 @@ func (self *server) save() error {
 // Create a new KV connection and store it for futur use. If the connection already
 // exist it will be replace by the new one.
 func (self *server) CreateConnection(ctx context.Context, rsqt *storagepb.CreateConnectionRqst) (*storagepb.CreateConnectionRsp, error) {
-	if _, ok := self.Connections[rsqt.Connection.Id]; !ok {
-		fmt.Println("Try to create a new connection")
-		var c connection
-		var err error
-
-		// Set the connection info from the request.
-		c.Id = rsqt.Connection.Id
-		c.Name = rsqt.Connection.Name
-
-		// set or update the connection and save it in json file.
-		self.Connections[c.Id] = c
-
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-		// In that case I will save it in file.
-		err = self.save()
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-		// test if the connection is reacheable.
-		//_, err = self.ping(ctx, c.Id)
-
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-		// Print the success message here.
-		log.Println("Connection " + c.Id + " was created with success!")
+	if _, ok := self.Connections[rsqt.Connection.Id]; ok {
+		self.stores[rsqt.Connection.Id].Close() // close the previous connection.
 	}
+
+	fmt.Println("Try to create a new connection with id: ", rsqt.Connection.Id)
+	var c connection
+	var err error
+
+	// Set the connection info from the request.
+	c.Id = rsqt.Connection.Id
+	c.Name = rsqt.Connection.Name
+
+	// set or update the connection and save it in json file.
+	self.Connections[c.Id] = c
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// In that case I will save it in file.
+	err = self.save()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Print the success message here.
+	fmt.Println("Connection " + c.Id + " was created with success!")
 
 	return &storagepb.CreateConnectionRsp{
 		Result: true,

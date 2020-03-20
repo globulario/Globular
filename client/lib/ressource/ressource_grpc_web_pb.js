@@ -2227,7 +2227,7 @@ proto.ressource.RessourceServicePromiseClient.prototype.getRessources =
  *   !proto.ressource.SetRessourceRqst,
  *   !proto.ressource.SetRessourceRsp>}
  */
-const methodInfo_RessourceService_setRessource = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_RessourceService_SetRessource = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.SetRessourceRsp,
   /** @param {!proto.ressource.SetRessourceRqst} request */
   function(request) {
@@ -2250,10 +2250,10 @@ const methodInfo_RessourceService_setRessource = new grpc.web.AbstractClientBase
 proto.ressource.RessourceServiceClient.prototype.setRessource =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/setRessource',
+      '/ressource.RessourceService/SetRessource',
       request,
       metadata || {},
-      methodInfo_RessourceService_setRessource,
+      methodInfo_RessourceService_SetRessource,
       callback);
 };
 
@@ -2269,10 +2269,10 @@ proto.ressource.RessourceServiceClient.prototype.setRessource =
 proto.ressource.RessourceServicePromiseClient.prototype.setRessource =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/setRessource',
+      '/ressource.RessourceService/SetRessource',
       request,
       metadata || {},
-      methodInfo_RessourceService_setRessource);
+      methodInfo_RessourceService_SetRessource);
 };
 
 
@@ -2282,7 +2282,7 @@ proto.ressource.RessourceServicePromiseClient.prototype.setRessource =
  *   !proto.ressource.RemoveRessourceRqst,
  *   !proto.ressource.RemoveRessourceRsp>}
  */
-const methodInfo_RessourceService_removeRessource = new grpc.web.AbstractClientBase.MethodInfo(
+const methodInfo_RessourceService_RemoveRessource = new grpc.web.AbstractClientBase.MethodInfo(
   proto.ressource.RemoveRessourceRsp,
   /** @param {!proto.ressource.RemoveRessourceRqst} request */
   function(request) {
@@ -2305,10 +2305,10 @@ const methodInfo_RessourceService_removeRessource = new grpc.web.AbstractClientB
 proto.ressource.RessourceServiceClient.prototype.removeRessource =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ressource.RessourceService/removeRessource',
+      '/ressource.RessourceService/RemoveRessource',
       request,
       metadata || {},
-      methodInfo_RessourceService_removeRessource,
+      methodInfo_RessourceService_RemoveRessource,
       callback);
 };
 
@@ -2324,10 +2324,10 @@ proto.ressource.RessourceServiceClient.prototype.removeRessource =
 proto.ressource.RessourceServicePromiseClient.prototype.removeRessource =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ressource.RessourceService/removeRessource',
+      '/ressource.RessourceService/RemoveRessource',
       request,
       metadata || {},
-      methodInfo_RessourceService_removeRessource);
+      methodInfo_RessourceService_RemoveRessource);
 };
 
 
