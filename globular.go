@@ -3769,19 +3769,49 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 	// here I if the ressource is a directory I will set the permission on
 	// subdirectory and files...
 	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
-	if err != nil {
-		return err
+	if err == nil {
+		if fileInfo.IsDir() {
+			files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
+			if err == nil {
+				for i := 0; i < len(files); i++ {
+					file := files[i]
+					self.setRessourceOwner(owner, path+"/"+file.Name())
+				}
+			} else {
+				return err
+			}
+		}
 	}
 
-	if fileInfo.IsDir() {
-		files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
-		if err == nil {
-			for i := 0; i < len(files); i++ {
-				file := files[i]
-				self.setRessourceOwner(owner, path+"/"+file.Name())
+	// Here I will set ressources whit that path, be sure to have different
+	// path than application and webroot path if you dont want permission follow each other.
+	ressources, err := self.getRessources(path)
+	if err == nil {
+		for i := 0; i < len(ressources); i++ {
+			if ressources[i].GetPath() != path {
+				path_ := ressources[i].GetPath()[len(path)+1:]
+				paths := strings.Split(path_, "/")
+				path_ = path
+				// set sub-path...
+				for j := 0; j < len(paths); j++ {
+					path_ += "/" + paths[j]
+					ressourceOwner := make(map[string]interface{})
+					ressourceOwner["owner"] = owner
+					ressourceOwner["path"] = path_
+
+					// Here if the
+					jsonStr, err := Utility.ToJson(&ressourceOwner)
+					if err != nil {
+						return err
+					}
+
+					err = p.ReplaceOne("local_ressource", "local_ressource", "RessourceOwners", jsonStr, jsonStr, `[{"upsert":true}]`)
+					if err != nil {
+						return err
+					}
+				}
 			}
-		} else {
-			return err
+			self.setRessourceOwner(owner, ressources[i].GetPath()+"/"+ressources[i].GetName())
 		}
 	}
 
@@ -4343,6 +4373,41 @@ func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessou
 	}, nil
 }
 
+func (self *Globule) getRessources(path string) ([]*ressource.Ressource, error) {
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := p.Find("local_ressource", "local_ressource", "Ressources", `{}`, `[{"Projection":{"_id":0}}]`)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonDecoder := json.NewDecoder(strings.NewReader(data))
+
+	// read open bracket
+	_, err = jsonDecoder.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	ressources := make([]*ressource.Ressource, 0)
+
+	for jsonDecoder.More() {
+		res := new(ressource.Ressource)
+		err := jsonpb.UnmarshalNext(jsonDecoder, res)
+		if err != nil {
+			return nil, err
+		}
+		// append the info inside the stream.
+		if strings.HasPrefix(res.GetPath(), path) {
+			ressources = append(ressources, res)
+		}
+	}
+	return ressources, nil
+}
+
 //* Get all ressources
 func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream ressource.RessourceService_GetRessourcesServer) error {
 	p, err := self.getPersistenceSaConnection()
@@ -4638,22 +4703,8 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 	path := rqst.GetPermission().GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
 
-	if !Utility.Exists(self.GetAbsolutePath(path)) {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No file found with path "+self.GetAbsolutePath(path))))
-
-	}
-
 	// Now if the permission exist I will read the file info.
-	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
-
-	if !Utility.Exists(self.GetAbsolutePath(path)) {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-
-	}
+	fileInfo, _ := os.Stat(self.GetAbsolutePath(path))
 
 	// Now I will test if the user or the role exist.
 	owner := make(map[string]interface{})
@@ -4688,18 +4739,58 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 		json.Unmarshal([]byte(jsonStr), &owner)
 	}
 
-	switch mode := fileInfo.Mode(); {
-	case mode.IsDir():
-		// do directory stuff
-		err := self.setDirPermission(owner["_id"].(string), path, rqst.Permission.Number)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	if fileInfo != nil {
+
+		switch mode := fileInfo.Mode(); {
+		case mode.IsDir():
+			// do directory stuff
+			err := self.setDirPermission(owner["_id"].(string), path, rqst.Permission.Number)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		case mode.IsRegular():
+			// do file stuff
+			err := self.setRessourcePermission(owner["_id"].(string), path, rqst.Permission.Number)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
 		}
-	case mode.IsRegular():
-		// do file stuff
-		err := self.setRessourcePermission(owner["_id"].(string), path, rqst.Permission.Number)
+	}
+
+	ressources, err := self.getRessources(path)
+	if err == nil {
+		for i := 0; i < len(ressources); i++ {
+			if ressources[i].GetPath() != path {
+				path_ := ressources[i].GetPath()[len(path)+1:]
+				paths := strings.Split(path_, "/")
+				path_ = path
+				// set sub-path...
+				for j := 0; j < len(paths); j++ {
+					path_ += "/" + paths[j]
+					err := self.setRessourcePermission(owner["_id"].(string), path_, rqst.Permission.Number)
+					if err != nil {
+						return nil, status.Errorf(
+							codes.Internal,
+							Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+					}
+				}
+			}
+
+			// create ressource permission
+			err := self.setRessourcePermission(owner["_id"].(string), ressources[i].GetPath()+"/"+ressources[i].GetName(), rqst.Permission.Number)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+		}
+		// save ressource path.
+		err = self.setRessourcePermission(owner["_id"].(string), path, rqst.Permission.Number)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -4817,9 +4908,7 @@ func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermi
 }
 
 func (self *Globule) getRessourcePermissions(path string) ([]*ressource.RessourcePermission, error) {
-	if !Utility.Exists(self.GetAbsolutePath(path)) {
-		return nil, errors.New("No ressources found with path " + self.GetAbsolutePath(path))
-	}
+
 	// That service made user of persistence service.
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -4856,21 +4945,30 @@ func (self *Globule) getRessourcePermissions(path string) ([]*ressource.Ressourc
 }
 
 func (self *Globule) getPermissions(path string) ([]*ressource.RessourcePermission, error) {
+
 	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
-	if err != nil {
-		return nil, errors.New("No ressources found with path " + self.GetAbsolutePath(path))
-	}
-	switch mode := fileInfo.Mode(); {
-	case mode.IsDir():
-		// do directory stuff
-		permissions, err := self.getDirPermissions(path)
-		if err != nil {
-			return nil, err
+	if err == nil {
+
+		switch mode := fileInfo.Mode(); {
+		case mode.IsDir():
+			// do directory stuff
+			permissions, err := self.getDirPermissions(path)
+			if err != nil {
+				return nil, err
+			}
+
+			return permissions, nil
+
+		case mode.IsRegular():
+			// do file stuff
+			permissions, err := self.getRessourcePermissions(path)
+			if err != nil {
+				return nil, err
+			}
+
+			return permissions, nil
 		}
-
-		return permissions, nil
-
-	case mode.IsRegular():
+	} else {
 		// do file stuff
 		permissions, err := self.getRessourcePermissions(path)
 		if err != nil {
@@ -5422,27 +5520,44 @@ func (self *Globule) hasPermission(name string, path string, permission int32) (
 		return false, 0
 	}
 
-	permissionsStr, err := p.Find("local_ressource", "local_ressource", "Permissions", `{"owner":"`+name+`", "path":"`+path+`"}`, ``)
+	permissionsStr, err := p.FindOne("local_ressource", "local_ressource", "Permissions", `{"owner":"`+name+`", "path":"`+path+`"}`, ``)
 	if err == nil {
-		permissions := make([]map[string]interface{}, 0)
+		permissions := make(map[string]interface{}, 0)
 		json.Unmarshal([]byte(permissionsStr), &permissions)
 		if len(permissions) == 0 {
 			return false, count
 		}
-		for i := 0; i < len(permissions); i++ {
 
-			if permission > 3 {
+		p := int32(permissions["permission"].(float64))
+
+		// Here the owner have all permissions.
+		if p == 7 {
+			return true, count
+		}
+
+		if permission == p {
+			return true, count
+		}
+
+		// Delete permission
+		if permission == 1 {
+			if p == 1 || p == 3 || p == 5 {
 				return true, count
 			}
+		}
 
-			if permission == 2 || permission == 3 || permission == 6 || permission == 7 {
+		// Write permission
+		if permission == 2 {
+			if p == 2 || p == 3 || p == 6 {
 				return true, count
 			}
+		}
 
-			if permission == 1 || permission == 3 || permission == 7 {
+		// Read permission
+		if permission == 4 {
+			if p == 4 || p == 5 || p == 6 {
 				return true, count
 			}
-
 		}
 
 		return false, count
@@ -5455,7 +5570,7 @@ func (self *Globule) hasPermission(name string, path string, permission int32) (
  * Validate if a user, a role or an application has write to do operation on a file or a directorty.
  */
 func (self *Globule) validateUserRessourceAccess(userName string, method string, path string, permission int32) error {
-
+	log.Println("---> validate user access ", userName, method, path, permission)
 	if len(userName) == 0 {
 		return errors.New("No user name was given to validate method access " + method)
 	}
@@ -5485,6 +5600,7 @@ func (self *Globule) validateUserRessourceAccess(userName string, method string,
 	count := 0
 	hasUserPermission, hasUserPermissionCount := self.hasPermission(userName, path, permission)
 	if hasUserPermission {
+		log.Println("---> user has permission ", userName, permission)
 		return nil
 	}
 
@@ -5495,6 +5611,7 @@ func (self *Globule) validateUserRessourceAccess(userName string, method string,
 		hasRolePermission, hasRolePermissionCount := self.hasPermission(role["$id"].(string), path, permission)
 		count += hasRolePermissionCount
 		if hasRolePermission {
+			log.Println("---> role has permission ", role["$id"].(string), permission)
 			return nil
 		}
 	}

@@ -2,7 +2,7 @@ package Interceptors
 
 import "context"
 
-import "fmt"
+//import "fmt"
 import "log"
 import "google.golang.org/grpc"
 import "github.com/davecourtois/Globular/ressource"
@@ -244,8 +244,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		// the path will be found in the parameter of the method.
 		permission, err := getRessourceClient().GetActionPermission(method)
 		if err == nil && permission != -1 {
-			// A permission was found.
-			fmt.Println("-------------> action ", method, " has permission ", permission)
+
 			// Now  I will try to get the parameter that contain the ressource path.
 			parameters, _ := Utility.ToMap(req) // get parameters as map.
 
