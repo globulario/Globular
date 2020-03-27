@@ -23,7 +23,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
+
+	//"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	gomail "gopkg.in/gomail.v1"
@@ -348,7 +349,7 @@ func (self *server) SendEmailWithAttachements(stream smtppb.SmtpService_SendEmai
 func main() {
 
 	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, "smtp_service: ", log.LstdFlags))
+	//grpclog.SetLogger(log.New(os.Stdout, "smtp_service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

@@ -20,7 +20,7 @@ func TestCreatePersistenceConnection(t *testing.T) {
 	log.Println("test create connection.")
 	err := client.CreateConnection("catalogue_2_db", "catalogue_2_db", "localhost", float64(27017), float64(0), "sa", "adminadmin", float64(0), "")
 	if err != nil {
-		log.Println("----> fail to create connection ", err)
+		log.Println("fail to create connection ", err)
 	}
 }
 

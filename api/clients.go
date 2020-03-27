@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -81,10 +82,10 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 	var resp *http.Response
 
 	client := http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 15 * time.Second,
 	}
 
-	resp, err = client.Get("http://localhost:10000/client_config?address=" + address + "&name=" + name)
+	resp, err = client.Get("http://" + address + ":10000/client_config?address=" + address + "&name=" + name)
 	if err != nil {
 		log.Println("fail to get client configuration. ", err)
 		return nil, err
@@ -198,21 +199,18 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directorys
 	domain := client.GetDomain()
+	ip := Utility.MyLocalIP()
 
 	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
 	token, err := ioutil.ReadFile(path)
 
 	if err == nil {
-		log.Println("206 -------> domain: ", domain, " for client ", client.GetName())
-		md := metadata.New(map[string]string{"token": string(token), "domain": domain})
+		md := metadata.New(map[string]string{"token": string(token), "domain": domain, "ip": ip})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
 	} else {
-		log.Println("2011 -------> domain: ", domain, " for client ", client.GetName())
-		md := metadata.New(map[string]string{"token": "", "domain": domain})
+		md := metadata.New(map[string]string{"token": "", "domain": domain, "ip": ip})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
 	}
-
-	return context.Background()
 }

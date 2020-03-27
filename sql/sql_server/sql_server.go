@@ -31,7 +31,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
+
+	//"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
@@ -576,7 +577,7 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 func main() {
 
 	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, "sql_service: ", log.LstdFlags))
+	//grpclog.SetLogger(log.New(os.Stdout, "sql_service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

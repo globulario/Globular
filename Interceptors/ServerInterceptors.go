@@ -16,7 +16,7 @@ import "strings"
 import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
 
-import "github.com/davecourtois/Utility"
+//import "github.com/davecourtois/Utility"
 
 var (
 	ressource_client *ressource.Ressource_Client
@@ -147,8 +147,8 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	key := Utility.GenerateUUID(token + method + path + Utility.ToString(permission))
-	log.Println("---> key", key)
+	//key := Utility.GenerateUUID(token + method + path + Utility.ToString(permission))
+	//log.Println("---> key", key)
 
 	// get access from remote source.
 	hasAccess, err := getRessourceClient(domain).ValidateUserRessourceAccess(token, path, method, permission)
@@ -168,8 +168,8 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	key := Utility.GenerateUUID(applicationName + method + path + Utility.ToString(permission))
-	log.Println("---> key", key)
+	// key := Utility.GenerateUUID(applicationName + method + path + Utility.ToString(permission))
+	// log.Println("---> key", key)
 
 	hasAccess, err := getRessourceClient(domain).ValidateApplicationRessourceAccess(applicationName, path, method, permission)
 	if err != nil {
@@ -182,16 +182,16 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 }
 
 func ValidateUserAccess(domain string, token string, method string) (bool, error) {
-	key := Utility.GenerateUUID(token + method)
-	log.Println("---> key", key)
+	// key := Utility.GenerateUUID(token + method)
+	// log.Println("---> key", key)
 
 	hasAccess, err := getRessourceClient(domain).ValidateUserAccess(token, method)
 	return hasAccess, err
 }
 
 func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
-	key := Utility.GenerateUUID(application + method)
-	log.Println("---> key", key)
+	// key := Utility.GenerateUUID(application + method)
+	// log.Println("---> key", key)
 
 	hasAccess, err := getRessourceClient(domain).ValidateApplicationAccess(application, method)
 	return hasAccess, err
@@ -205,45 +205,34 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var token string
 	var application string
 	var path string
-	var domain string
+	var domain string // the domain of the ressource manager (where globular run)
+	//var ip string     // the ip address of the caller.
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		log.Println("-----> metadata found!")
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
+		//ip = strings.Join(md["ip"], "")
 	}
-	log.Println("-----------> application:", application)
-	log.Println("-----------> token:", token)
-	log.Println("-----------> path:", path)
-	log.Println("-----------> domain:", domain)
 
 	method := info.FullMethod
-	hasAccess := false
 
-	var err error
-	// Here is the list of method accessible by default.
-	if method == "/admin.AdminService/GetConfig" ||
-		method == "/event.EventService/Subscribe" ||
-		method == "/event.EventService/UnSubscribe" ||
-		method == "/event.EventService/OnEvent" ||
-		method == "/event.EventService/Quit" ||
-		method == "/event.EventService/Publish" ||
-		method == "/dns.DnsService/SetA" ||
-		method == "/ca.CertificateAuthority/GetCaCertificate" ||
-		method == "/ca.CertificateAuthority/SignCertificate" ||
-		method == "/services.ServiceDiscovery/FindServices" ||
-		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
-		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
-		method == "/services.ServiceRepository/downloadBundle" ||
-		method == "/persistence.PersistenceService/CreateConnection" ||
-		method == "/persistence.PersistenceService/Find" ||
-		method == "/persistence.PersistenceService/FindOne" ||
-		method == "/persistence.PersistenceService/Count" {
+	// If the call come from a local client it has hasAccess
+	hasAccess := false // ip == Utility.MyLocalIP()
+
+	// needed to get access to the system.
+	if method == "/admin.AdminService/GetConfig" {
 		hasAccess = true
 	}
-	clientId, _, _ := ValidateToken(token)
+
+	var err error
+	clientId, _, err := ValidateToken(token)
+	if err == nil {
+		if clientId == "sa" {
+			hasAccess = true
+		}
+	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
@@ -258,6 +247,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method)
 		getRessourceClient(domain).Log(application, clientId, method, err)
+		log.Println(err)
 		return nil, err
 	}
 
@@ -270,11 +260,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		if err != nil {
 			err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 			if err != nil {
+				log.Println(err)
 				return nil, err
 			}
 		}
 
-	} else if method != "/persistence.PersistenceService/CreateConnection" &&
+	} else if method != "/persistence.PersistenceService/CreateConnection" && // Those method will make the server run in infinite loop
 		method != "/persistence.PersistenceService/FindOne" &&
 		method != "/persistence.PersistenceService/Count" {
 		// Here I will retreive the permission from the database if there is some...
@@ -290,6 +281,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 					if err != nil {
+						log.Println(err)
 						return nil, err
 					}
 				}
@@ -310,24 +302,28 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			err := getRessourceClient(domain).CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
 			if err != nil {
 				log.Println(err)
+				return nil, err
 			}
 		} else if method == "/file.FileService/Rename" {
 			rqst := req.(*filepb.RenameRequest)
 			err := getRessourceClient(domain).RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
 			if err != nil {
 				log.Println(err)
+				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteFile" {
 			rqst := req.(*filepb.DeleteFileRequest)
 			err := getRessourceClient(domain).DeleteFilePermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
+				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteDir" {
 			rqst := req.(*filepb.DeleteDirRequest)
 			err := getRessourceClient(domain).DeleteDirPermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
+				return nil, err
 			}
 		}
 	}
@@ -343,24 +339,17 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var token string
 	var application string
 	var domain string
-	var path string
+	//var path string
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
-		log.Println("-----> metadata found!")
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
-		path = strings.Join(md["path"], "")
+		//path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
 	}
 
 	method := info.FullMethod
 	hasAccess := false
-
-	log.Println("-----------> method:", method)
-	log.Println("------------------> application:", application)
-	log.Println("------------------> token:", token)
-	log.Println("------------------> path:", path)
-	log.Println("------------------> domain:", domain)
 
 	var err error
 	if method == "/persistence.PersistenceService/Find" {
@@ -371,6 +360,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	if len(token) > 0 && !hasAccess {
 		hasAccess, err = ValidateUserAccess(domain, token, method)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 	}
@@ -383,6 +373,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	if len(application) > 0 && !hasAccess {
 		hasAccess, err = ValidateApplicationAccess(domain, application, method)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 	}
@@ -397,6 +388,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	//}
 
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 

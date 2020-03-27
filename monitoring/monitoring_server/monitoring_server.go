@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -25,7 +24,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
+
+	//"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -72,6 +72,7 @@ type server struct {
 	Version            string
 	PublisherId        string
 	KeepUpToDate       bool
+	KeepAlive          bool
 
 	// That map contain the list of active connections.
 	Connections map[string]connection
@@ -127,7 +128,6 @@ func (self *server) save() error {
 
 // Create a connection.
 func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.CreateConnectionRqst) (*monitoringpb.CreateConnectionRsp, error) {
-	fmt.Println("Try to create a new connection")
 	var c connection
 
 	// Set the connection info from the request.
@@ -593,7 +593,7 @@ func (self *server) TargetsMetadata(ctx context.Context, rqst *monitoringpb.Targ
 func main() {
 
 	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, "monitoring_service: ", log.LstdFlags))
+	//grpclog.SetLogger(log.New(os.Stdout, "monitoring_service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

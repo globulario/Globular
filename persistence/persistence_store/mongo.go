@@ -187,7 +187,6 @@ func (self *MongoStore) InsertOne(ctx context.Context, connectionId string, data
 	}
 
 	// Get the collection object.
-	log.Println("----> ", connectionId, self.clients[connectionId])
 	collection_ := self.clients[connectionId].Database(database).Collection(collection)
 
 	result, err := collection_.InsertOne(ctx, entity, opts...)

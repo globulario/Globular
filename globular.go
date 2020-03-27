@@ -407,9 +407,6 @@ func (self *Globule) createApplicationConnection() error {
 func getClientConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address") // parameter address
 	name := r.URL.Query().Get("name")       // parameter name
-
-	log.Println("------> getClientConfigHanldler: addresse ", address, "name", name)
-
 	config, err := getClientConfig(address, name)
 	if err != nil {
 		http.Error(w, "Client configuration "+name+" not found!", http.StatusBadRequest)
@@ -782,18 +779,14 @@ func (self *Globule) initServices() {
 					err := json.Unmarshal(config, &s)
 					if err == nil {
 						if s["Protocol"] != nil {
-							if s["Name"] != nil {
-								// If a configuration file exist It will be use to start services,
-								// otherwise the service configuration file will be use.
-								path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-								s["Id"] = s["Name"].(string)
+							// If a configuration file exist It will be use to start services,
+							// otherwise the service configuration file will be use.
+							path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+							s["Id"] = s["Name"].(string)
 
-								s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
-								s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
-								self.Services[s["Name"].(string)] = s
-							} else {
-								log.Println("--------------------------> Configuration does not have name ", path, s)
-							}
+							s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
+							s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+							self.Services[s["Name"].(string)] = s
 						}
 					} else {
 						log.Println("fail to unmarshal configuration ", err)
@@ -896,13 +889,7 @@ func (self *Globule) initServices() {
 	}
 
 	// if a dns service exist I will set the name of that globule on the server.
-	if self.clients["dns_service"] != nil {
-		// Set the server
-		_, err := self.clients["dns_service"].(*dns_client.DNS_Client).SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
-		if err != nil {
-			log.Println("fail to register ip "+Utility.MyIP()+" with dns", err)
-		}
-	}
+	self.registerIpToDns()
 
 	// set the ip into the DNS servers.
 	ticker := time.NewTicker(5 * time.Second)
@@ -1269,8 +1256,6 @@ func (self *Globule) initClient(id string, name string) {
 	name = strings.Split(name, "_")[0]
 
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
-
-	log.Println("-------------> call function: ", fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
 	results, err := Utility.CallFunction(fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
 	if err == nil {
 		if self.clients[name+"_service"] != nil {
@@ -1682,6 +1667,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 	self.saveConfig()
 
 	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+
 	return &admin.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
@@ -6595,16 +6581,13 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
  * Get the remote client configuration.
  */
 func getRemoteConfig(address string) (map[string]interface{}, error) {
+	if len(address) == 0 {
+		return nil, errors.New("No address was given!")
+	}
 
 	if Utility.IsLocal(address) {
 		return globule.getConfig(), nil
 	}
-
-	if len(address) == 0 {
-		log.Println("-------> no address was give!")
-	}
-
-	log.Println("---> get remote config: ", address)
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response
