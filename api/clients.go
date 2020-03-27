@@ -97,7 +97,6 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 
 	var config map[string]interface{}
 	err = json.Unmarshal(data, &config)
-
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +121,7 @@ func InitClient(client Client, address string, name string) error {
 
 	// Set client attributes.
 	client.SetPort(int(config["Port"].(float64)))
+	client.SetDomain(config["Domain"].(string))
 
 	// Set security values.
 	client.SetKeyFile(config["KeyFile"].(string))
@@ -142,9 +142,7 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 		address := client.GetAddress()
 		if client.HasTLS() {
 
-			log.Println("Secure client ", client.GetDomain(), client.GetName())
 			// Setup the login/pass simple test...
-
 			if len(client.GetKeyFile()) == 0 {
 				log.Println("no key file is available for client ")
 			}
@@ -200,12 +198,21 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directorys
 	domain := client.GetDomain()
+
 	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
 	token, err := ioutil.ReadFile(path)
+
 	if err == nil {
-		md := metadata.New(map[string]string{"token": string(token)})
+		log.Println("206 -------> domain: ", domain, " for client ", client.GetName())
+		md := metadata.New(map[string]string{"token": string(token), "domain": domain})
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		return ctx
+	} else {
+		log.Println("2011 -------> domain: ", domain, " for client ", client.GetName())
+		md := metadata.New(map[string]string{"token": "", "domain": domain})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
 	}
+
 	return context.Background()
 }

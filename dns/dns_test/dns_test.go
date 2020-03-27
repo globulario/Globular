@@ -28,9 +28,7 @@ func TestSetA(t *testing.T) {
 	// Set ip address
 	domain, err := client.SetA("globular4", Utility.MyIP(), 1000)
 	if err == nil {
-		log.Println("--> your domain is ", domain)
-	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 }
 

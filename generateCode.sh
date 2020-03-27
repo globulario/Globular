@@ -70,7 +70,8 @@ protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
 protoc catalog/catalogpb/catalog.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 
 # Now the CSharp Clients.
-protoc --grpc_out=persistence/persistence_client/csharp --csharp_out=persistence/persistence_client/csharp --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
+protoc --grpc_out=event/event_client/csharp/GlobularEventClient --csharp_out=event/event_client/csharp/GlobularEventClient --csharp_opt=file_extension=.g.cs event/eventpb/event.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
+protoc --grpc_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
 protoc --grpc_out=ressource/csharp/GlobularRessourceClient --csharp_out=ressource/csharp/GlobularRessourceClient --csharp_opt=file_extension=.g.cs ressource/ressource.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
 
 # CSharp echo server (test) use the ts client.

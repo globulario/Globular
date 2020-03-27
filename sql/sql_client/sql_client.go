@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/sql/sqlpb"
@@ -129,6 +128,37 @@ func (self *SQL_Client) SetCaFile(caFile string) {
 }
 
 ////////////////////////// API ////////////////////////////
+func (self *SQL_Client) CreateConnection(connectionId string, name string, driver string, user string, password string, host string, port int32, charset string) error {
+	// Create a new connection
+	rqst := &sqlpb.CreateConnectionRqst{
+		Connection: &sqlpb.Connection{
+			Id:       connectionId,
+			Name:     name,
+			User:     user,
+			Password: password,
+			Port:     port,
+			Host:     host,
+			Driver:   driver,
+			Charset:  charset,
+		},
+	}
+
+	_, err := self.c.CreateConnection(api.GetClientContext(self), rqst)
+
+	return err
+}
+
+func (self *SQL_Client) DeleteConnection(connectionId string) error {
+
+	rqst := &sqlpb.DeleteConnectionRqst{
+		Id: connectionId,
+	}
+
+	_, err := self.c.DeleteConnection(api.GetClientContext(self), rqst)
+
+	return err
+}
+
 // Test if a connection is found
 func (self *SQL_Client) Ping(connectionId interface{}) (string, error) {
 
@@ -146,17 +176,14 @@ func (self *SQL_Client) Ping(connectionId interface{}) (string, error) {
 }
 
 // That function return the json string with all element in it.
-func (self *SQL_Client) QueryContext(connectionId interface{}, query interface{}, parameters interface{}) (string, error) {
-
-	parameters_ := strings.Split(parameters.(string), ",")
-	parametersStr, _ := Utility.ToJson(parameters_)
+func (self *SQL_Client) QueryContext(connectionId string, query string, parameters string) (string, error) {
 
 	// The query and all it parameters.
 	rqst := &sqlpb.QueryContextRqst{
 		Query: &sqlpb.Query{
-			ConnectionId: Utility.ToString(connectionId),
-			Query:        Utility.ToString(query),
-			Parameters:   parametersStr,
+			ConnectionId: connectionId,
+			Query:        query,
+			Parameters:   parameters,
 		},
 	}
 
@@ -200,16 +227,17 @@ func (self *SQL_Client) QueryContext(connectionId interface{}, query interface{}
 	return string(resultStr), nil
 }
 
-func (self *SQL_Client) ExecContext(connectionId interface{}, query interface{}, parameters interface{}, tx interface{}) (string, error) {
+func (self *SQL_Client) ExecContext(connectionId interface{}, query interface{}, parameters string, tx interface{}) (string, error) {
 
-	parameters_ := strings.Split(parameters.(string), ",")
-	parametersStr, _ := Utility.ToJson(parameters_)
+	if tx == nil {
+		tx = false
+	}
 
 	rqst := &sqlpb.ExecContextRqst{
 		Query: &sqlpb.Query{
 			ConnectionId: Utility.ToString(connectionId),
 			Query:        Utility.ToString(query),
-			Parameters:   parametersStr,
+			Parameters:   parameters,
 		},
 		Tx: Utility.ToBool(tx),
 	}

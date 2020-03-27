@@ -110,7 +110,7 @@ func (self *server) init() {
 	}
 
 	if len(self.StorageDataPath) == 0 {
-		log.Panicln("The value StorageDataPath in the configuration must be given. You can use /tmp (on linux) if you don't want to keep values indefilnely on the storage server.")
+		log.Println("The value StorageDataPath in the configuration must be given. You can use /tmp (on linux) if you don't want to keep values indefilnely on the storage server.")
 	}
 
 	// Here I will initialyse the storage service.
@@ -121,7 +121,7 @@ func (self *server) init() {
 		self.storageClient = storage_client.NewStorage_Client(self.StorageService, "storage_server")
 
 	} else {
-		log.Panicln("No storage service is configure!")
+		log.Println("No storage service is configure!")
 	}
 
 }

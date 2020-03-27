@@ -43,6 +43,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -116,6 +117,8 @@ func (c *connection) getConnectionString() string {
 		connectionString += "port=" + strconv.Itoa(int(c.Port)) + ";"
 		connectionString += "charset=" + c.Charset + ";"
 
+	} else if c.Driver == "sqlite3" {
+		connectionString += c.Host + string(os.PathSeparator) + c.Name // The directory...
 	}
 	log.Println("connection string: ", connectionString)
 	return connectionString

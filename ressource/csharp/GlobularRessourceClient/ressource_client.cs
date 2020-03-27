@@ -55,12 +55,13 @@ namespace Globular
         /// <param name="token">The user token</param>
         /// <param name="method">The method </param>
         /// <returns></returns>
-        public bool ValidateApplicationRessourceAccess(string token, string path, string method)
+        public bool ValidateUserRessourceAccess(string token, string path, string method, int permission)
         {
             Ressource.ValidateUserRessourceAccessRqst rqst = new Ressource.ValidateUserRessourceAccessRqst();
             rqst.Token = token;
             rqst.Method = method;
-            rqst.Path = path;
+            rqst.Path = path; // the path of the ressource... 
+            rqst.Permission = permission;
 
             var rsp = this.client.ValidateUserRessourceAccess(rqst, this.GetClientContext());
             return rsp.Result;
@@ -69,15 +70,17 @@ namespace Globular
         /// <summary>
         /// Validate if an application have access a given method.
         /// </summary>
-        /// <param name="token"></param>
+        /// <param name="name"></param>
         /// <param name="method"></param>
+        /// <param name="permission"></param>
         /// <returns></returns>
-        public bool ValidateUserRessourceAccess(string name, string path, string method)
+        public bool ValidateApplicationRessourceAccess (string name, string path, string method, int permission)
         {
             Ressource.ValidateApplicationRessourceAccessRqst rqst = new Ressource.ValidateApplicationRessourceAccessRqst();
             rqst.Name = name;
             rqst.Method = method;
             rqst.Path = path;
+            rqst.Permission = permission;
 
             var rsp = this.client.ValidateApplicationRessourceAccess(rqst, this.GetClientContext());
             return rsp.Result;
@@ -87,24 +90,28 @@ namespace Globular
         /// Set a ressource path.
         /// </summary>
         /// <param name="path">The path of the ressource in form /toto/titi/tata</param>
-        public void SetRessource(string path){
+        public void SetRessource(string path, string name, int modified, int size){
             Ressource.SetRessourceRqst rqst = new Ressource.SetRessourceRqst();
             Ressource.Ressource ressource = new Ressource.Ressource();
             ressource.Path = path;
+            ressource.Name = name;
+            ressource.Modified = modified;
+            ressource.Size = size;
             rqst.Ressource = ressource;
-            this.client.setRessource(rqst);
+            this.client.SetRessource(rqst);
         }
 
         /// <summary>
         /// Remove a ressource from globular. It also remove asscociated permissions.
         /// </summary>
         /// <param name="path"></param>
-        public void RemoveRessouce(string path){
+        public void RemoveRessouce(string path, string name){
             Ressource.RemoveRessourceRqst rqst = new Ressource.RemoveRessourceRqst();
             Ressource.Ressource ressource = new Ressource.Ressource();
             ressource.Path = path;
+            ressource.Name = name;
             rqst.Ressource = ressource;
-            this.client.removeRessource(rqst);
+            this.client.RemoveRessource(rqst);
         }
 
         /// <summary>
@@ -113,7 +120,7 @@ namespace Globular
         /// <param name="path">The ressource path</param>
         /// <param name="action">The gRPC action</param>
         /// <returns></returns>
-        public Int32 getActionPermission(string action) {
+        public Int32 GetActionPermission(string action) {
             Ressource.GetActionPermissionRqst rqst = new Ressource.GetActionPermissionRqst();
             rqst.Action = action;
             var rsp = this.client.GetActionPermission(rqst);

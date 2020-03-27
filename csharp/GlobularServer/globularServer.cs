@@ -5,6 +5,10 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using System.Threading.Tasks;
 
+// TODO for the validation, use a map to store valid method/token/ressource/access
+// the validation will be renew only if the token expire. And when a token expire
+// the value in the map will be discard. That way it will put less charge on the server
+// side.
 namespace Globular
 {
 
@@ -60,10 +64,7 @@ namespace Globular
 
         private string getPath()
         {
-            string path = Directory.GetCurrentDirectory();
-            Console.Write("----> path: " + path);
-            
-            return path;
+            return Directory.GetCurrentDirectory();
         }
 
         /// <summary>
@@ -97,21 +98,21 @@ namespace Globular
         /// <summary>
         /// Set a ressource on the globular ressource manager.
         /// </summary>
-        /// <param name="path"></param>
-        public void setRessource(string path)
+        /// <param name="path">The path must begin by /. Like a unix file path</param>
+        /// <param name="name">The name of the ressource must be unique in it contex (path + '/' + name)</param>
+        /// <param name="modified">The last time the ressource was access</param>
+        /// <param name="size">The size of the ressource (optional)</param>
+        public void setRessource(string path, string name, int modified, int size)
         {
-            this.getRessourceClient().SetRessource(path);
+            this.getRessourceClient().SetRessource(path, name, modified, size);
         }
 
         /// <summary>
-        /// Set a batch of ressource on the globular ressource manager.
+        /// Validate if a given user has write to use a given method
         /// </summary>
-        /// <param name="paths"></param>
-        public void setRessources(string[] paths)
-        {
-            this.getRessourceClient().SetRessouces(paths);
-        }
-
+        /// <param name="token">Bearer Token</param>
+        /// <param name="method"></param>
+        /// <returns></returns>
         public bool validateUserAccess(string token, string method)
         {
             return this.getRessourceClient().ValidateApplicationAccess(token, method);
@@ -122,7 +123,23 @@ namespace Globular
             return this.getRessourceClient().ValidateApplicationAccess(application, method);
         }
 
-        public void logInfo(string application, string token, string method, string message, int logType){
+        public bool validateUserRessourceAccess(string token, string path, string method, int permission)
+        {
+            return this.getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission);
+        }
+
+        public bool validateApplicationRessourceAccess(string application, string path, string method, int permission)
+        {
+            return this.getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission);
+        }
+
+        public int getActionPermission(string action)
+        {
+            return this.getRessourceClient().GetActionPermission(action);
+        }
+
+        public void logInfo(string application, string token, string method, string message, int logType)
+        {
             this.getRessourceClient().Log(application, token, method, message, logType);
         }
     }
@@ -145,7 +162,7 @@ namespace Globular
             string token = "";
             string method = context.Method;
             bool hasAccess = false;
-
+            // Console.Write("----> validate method: " + method);
             // Get the metadata from the header.
             for (var i = 0; i < metadatas.Count; i++)
             {
@@ -153,31 +170,57 @@ namespace Globular
                 if (metadata.Key == "application")
                 {
                     application = metadata.Value;
-                    if(!hasAccess){
+                    if (!hasAccess)
+                    {
                         hasAccess = this.service.validateApplicationAccess(application, method);
                     }
                 }
                 else if (metadata.Key == "token")
                 {
                     token = metadata.Value;
-                    if(!hasAccess){
+                    if (!hasAccess)
+                    {
                         hasAccess = this.service.validateUserAccess(token, method);
                     }
                 }
             }
 
             // Here I will validate the user for action.
-            if(!hasAccess){
-                // I will log the error in the log.
-                this.service.logInfo(application, token, method, "Permission denied ", 1);
+            if (!hasAccess)
+            {
                 // here I the user and the application has no access to the method 
                 // I will throw an exception.
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Permission denied"), metadatas);
             }
 
+            // Now if the action has ressource access permission defines...
+            var permission = this.service.getActionPermission(method);
+            if (permission != -1)
+            {
+                // In that case a permission was set for the action so I will try to validate method parameters...
+
+                // Now I will try to validate ressource if there is none...
+                foreach (var prop in request.GetType().GetProperties())
+                {
+                    if (prop.PropertyType == typeof(string))
+                    {
+                        string path = (string)prop.GetValue(request, null);
+                        if (path.StartsWith("/"))
+                        {
+                            var hasRessourcePermission = this.service.validateUserRessourceAccess(token, path, method, permission);
+                            if(!hasRessourcePermission){
+                                this.service.validateApplicationRessourceAccess(application, path, method, permission);
+                            }
+                            if(!hasRessourcePermission){
+                                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Permission denied"), metadatas);
+                            }
+                        }
+                    }
+                }
+            }
+
             // this.service.
             var response = await base.UnaryServerHandler(request, context, continuation);
-
             return response;
         }
     }

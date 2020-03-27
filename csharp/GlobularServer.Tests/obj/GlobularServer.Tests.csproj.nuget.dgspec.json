@@ -66,11 +66,6 @@
           "assetTargetFallback": true,
           "warn": true
         }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
-        }
       }
     },
     "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer.Tests\\GlobularServer.Tests.csproj": {
@@ -139,11 +134,6 @@
           "assetTargetFallback": true,
           "warn": true
         }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
-        }
       }
     },
     "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer\\GlobularServer.csproj": {
@@ -203,11 +193,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     },
@@ -276,11 +261,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     }

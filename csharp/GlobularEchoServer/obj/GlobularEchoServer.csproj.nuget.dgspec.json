@@ -66,11 +66,6 @@
           "assetTargetFallback": true,
           "warn": true
         }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
-        }
       }
     },
     "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularEchoServer\\GlobularEchoServer.csproj": {
@@ -134,7 +129,7 @@
             },
             "Microsoft.NETCore.App": {
               "target": "Package",
-              "version": "[2.1.13, )",
+              "version": "[2.1.0, )",
               "autoReferenced": true
             }
           },
@@ -143,11 +138,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     },
@@ -208,11 +198,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     },
@@ -281,11 +266,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true
-        }
-      },
-      "runtimes": {
-        "win10-x64": {
-          "#import": []
         }
       }
     }

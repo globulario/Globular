@@ -185,22 +185,24 @@ func main() {
  */
 func deploy(g *Globule, name string, path string, address string, user string, pwd string) {
 
-	log.Println("deploy application...", name)
+	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
 	ressource_client := ressource.NewRessource_Client(address, "ressource")
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
-		log.Panicln(err)
+		log.Println("----------> fail to authenticate user ", err)
 		return
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client := admin.NewAdmin_Client(address, "admin")
-	err = admin_client.DeployApplication(name, path, token)
+	admin_client := admin.NewAdmin_Client(address, "admin") // create the ressource server.
+	err = admin_client.DeployApplication(name, path, token, address)
+
 	if err != nil {
-		log.Println(err)
+
+		log.Println("Fail to deploy applicaiton with error:", err)
 		return
 	}
 
@@ -232,7 +234,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	admin_client := admin.NewAdmin_Client(address, "admin")
 
 	// first of all I will create and upload the package on the discovery...
-	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token)
+	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
 	if err != nil {
 		log.Panicln(err)
 		return
@@ -242,7 +244,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 		return
 	}
 
-	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token)
+	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
 		log.Println(err)
 		return
@@ -256,9 +258,74 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
  * The server must have run at least once before that command is call. Each service must
  * have been run at least one to appear in the installation.
  */
+/**
+
+ADD /usr/local/lib/libplctag.so /usr/local/lib
+ADD /usr/local/lib/libgrpc++.so /usr/local/lib
+ADD /usr/local/lib/libgrpc++.so.1 /usr/local/lib
+ADD /usr/local/lib/libgrpc++.so.1.20.0 /usr/local/lib
+ADD /usr/local/lib/libprotobuf.so /usr/local/lib
+ADD /usr/local/lib/libprotobuf.so.20 /usr/local/lib
+ADD /usr/local/lib/libprotobuf.so.20.0.1 /usr/local/lib
+ADD /usr/local/lib/libgrpc.so /usr/local/lib
+ADD /usr/local/lib/libgrpc.so.7 /usr/local/lib
+ADD /usr/local/lib/libgrpc.so.7.0.0 /usr/local/lib
+ADD /usr/local/lib/libgpr.so /usr/local/lib
+ADD /usr/local/lib/libgpr.so.7 /usr/local/lib
+ADD /usr/local/lib/libgpr.so.7.0.0 /usr/local/lib
+*/
 func install(g *Globule, path string) {
 	// That function is use to install globular at a given repository.
 	fmt.Println("install globular in directory: ", path)
+
+	// I will generate the docker files.
+	dockerfile := `#-- Docker install. --
+FROM ubuntu
+RUN apt-get update && apt-get install -y gnupg2 \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
+RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg && apt-key add 41EFC99D.gpg
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  curl \
+  mongodb
+
+# -- Install prometheus
+RUN wget https://github.com/prometheus/prometheus/releases/download/v2.17.0/prometheus-2.17.0.linux-amd64.tar.gz
+RUN tar -xf prometheus-2.17.0.linux-amd64.tar.gz
+RUN cp prometheus-2.17.0.linux-amd64/prometheus /usr/local/bin/
+RUN cp prometheus-2.17.0.linux-amd64/promtool /usr/local/bin/
+RUN cp -r prometheus-2.17.0.linux-amd64/consoles /etc/prometheus/
+RUN cp -r prometheus-2.17.0.linux-amd64/console_libraries /etc/prometheus/
+RUN rm -rf prometheus-2.17.0.linux-amd64*
+
+# -- Install alert manager
+RUN wget https://github.com/prometheus/alertmanager/releases/download/v0.20.0/alertmanager-0.20.0.linux-amd64.tar.gz
+RUN tar -xf alertmanager-0.20.0.linux-amd64.tar.gz
+RUN cp alertmanager-0.20.0.linux-amd64/alertmanager /usr/local/bin
+RUN rm -rf alertmanager-0.20.0.linux-amd64*
+
+# -- Install node exporter
+RUN wget https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-amd64.tar.gz
+RUN tar -xf node_exporter-0.18.1.linux-amd64.tar.gz
+RUN cp node_exporter-0.18.1.linux-amd64/node_exporter /usr/local/bin
+RUN rm -rf node_exporter-0.18.1.linux-amd64*
+
+# -- Install unix odbc drivers.
+RUN curl http://www.unixodbc.org/unixODBC-2.3.7.tar.gz --output unixODBC-2.3.7.tar.gz
+RUN tar -xvf unixODBC-2.3.7.tar.gz
+RUN rm unixODBC-2.3.7.tar.gz
+
+# -- Load all newly install libs.
+RUN ldconfig
+
+WORKDIR unixODBC-2.3.7
+RUN ./configure && make all install clean && ldconfig && mkdir /globular && cd /globular
+ADD Globular /globular
+COPY bin /globular/bin
+COPY proto /globular/proto
+COPY services /globular/services
+`
 
 	Utility.CreateDirIfNotExist(path)
 
@@ -333,7 +400,7 @@ func install(g *Globule, path string) {
 
 						if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 
-							var serviceDir = path + string(os.PathSeparator) + "globular_services"
+							var serviceDir = path + string(os.PathSeparator) + "services"
 							if len(config["PublisherId"].(string)) == 0 {
 								serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
 							} else {
@@ -378,4 +445,14 @@ func install(g *Globule, path string) {
 			}
 		}
 	}
+
+	dockerfile += "CMD /globular/Globular\n"
+	// save docker.
+	err = ioutil.WriteFile(path+string(os.PathSeparator)+"Dockerfile", []byte(dockerfile), 0644)
+	if err != nil {
+		log.Println(err)
+	}
+
+	//
+
 }

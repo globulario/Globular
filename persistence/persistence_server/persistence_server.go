@@ -209,7 +209,7 @@ func (self *server) CreateConnection(ctx context.Context, rqst *persistencepb.Cr
 	}
 
 	// Print the success message here.
-	log.Println("Connection " + c.Id + " was created with success!")
+	//log.Println("Connection " + c.Id + " was created with success!")
 	return &persistencepb.CreateConnectionRsp{
 		Result: true,
 	}, nil

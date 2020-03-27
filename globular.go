@@ -322,14 +322,14 @@ func (self *Globule) Serve() {
 	self.jwtKey = []byte(Utility.RandomUUID())
 	err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// The token that identify the server with other services
 	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
 	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// Here I will start the refresh token loop to refresh the server token.
@@ -342,7 +342,7 @@ func (self *Globule) Serve() {
 				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
 				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
 				if err != nil {
-					log.Panicln(err)
+					log.Println(err)
 				}
 			}
 		}
@@ -407,6 +407,9 @@ func (self *Globule) createApplicationConnection() error {
 func getClientConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address") // parameter address
 	name := r.URL.Query().Get("name")       // parameter name
+
+	log.Println("------> getClientConfigHanldler: addresse ", address, "name", name)
+
 	config, err := getClientConfig(address, name)
 	if err != nil {
 		http.Error(w, "Client configuration "+name+" not found!", http.StatusBadRequest)
@@ -529,6 +532,9 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
  * That function will
  */
 func (self *Globule) keepServiceAlive(s map[string]interface{}) {
+	if s["KeepAlive"] == nil {
+		return
+	}
 	// In case the service must not be kept alive.
 	keepAlive := Utility.ToBool(s["KeepAlive"])
 	if !keepAlive {
@@ -776,15 +782,18 @@ func (self *Globule) initServices() {
 					err := json.Unmarshal(config, &s)
 					if err == nil {
 						if s["Protocol"] != nil {
-							// If a configuration file exist It will be use to start services,
-							// otherwise the service configuration file will be use.
-							path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-							s["Id"] = s["Name"].(string)
+							if s["Name"] != nil {
+								// If a configuration file exist It will be use to start services,
+								// otherwise the service configuration file will be use.
+								path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
+								s["Id"] = s["Name"].(string)
 
-							s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
-							s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
-							self.Services[s["Name"].(string)] = s
-
+								s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
+								s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+								self.Services[s["Name"].(string)] = s
+							} else {
+								log.Println("--------------------------> Configuration does not have name ", path, s)
+							}
 						}
 					} else {
 						log.Println("fail to unmarshal configuration ", err)
@@ -1081,10 +1090,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// If application is defined.
 	application := r.Header.Get("application")
 	token := r.Header.Get("token")
+	domain := r.Header.Get("domain")
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationRessourceAccess(application, "/file.FileService/FileUploadHandler", path, 2)
+		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to upload the file with error ", err.Error())
 			return
@@ -1096,7 +1106,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserRessourceAccess(token, "/file.FileService/FileUploadHandler", path, 2)
+		err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/FileUploadHandler", path, 2)
 		if err != nil {
 			log.Println("Fail to upload the file with error ", err.Error())
 			return
@@ -1156,10 +1166,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
 	token := r.Header.Get("token")
+	domain := r.Header.Get("domain")
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationRessourceAccess(application, "/file.FileService/ServeFileHandler", name, 4)
+		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to download the file with error ", err.Error())
 			return
@@ -1171,7 +1182,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserRessourceAccess(token, "/file.FileService/ServeFileHandler", name, 4)
+		err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil {
 			log.Println("----> 1108")
 			log.Println("Fail to dowload the file with error ", err.Error())
@@ -1258,6 +1269,8 @@ func (self *Globule) initClient(id string, name string) {
 	name = strings.Split(name, "_")[0]
 
 	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
+
+	log.Println("-------------> call function: ", fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
 	results, err := Utility.CallFunction(fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
 	if err == nil {
 		if self.clients[name+"_service"] != nil {
@@ -1265,7 +1278,7 @@ func (self *Globule) initClient(id string, name string) {
 		}
 		self.clients[name+"_service"] = results[0].Interface().(api.Client)
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 }
 
@@ -1582,8 +1595,15 @@ inhibit_rules:
 		}
 	}
 
+	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
+	err := prometheus.Start()
+	if err != nil {
+		log.Println("fail to start monitoring with prometheus", err)
+		return err
+	}
+
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
-	err := alertmanager.Start()
+	err = alertmanager.Start()
 	if err != nil {
 		log.Println("fail to start prometheus node exporter", err)
 		// do not return here in that case simply continue without node exporter metrics.
@@ -1594,13 +1614,6 @@ inhibit_rules:
 	if err != nil {
 		log.Println("fail to start prometheus node exporter", err)
 		// do not return here in that case simply continue without node exporter metrics.
-	}
-
-	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
-	err = prometheus.Start()
-	if err != nil {
-		log.Println("fail to start monitoring with prometheus", err)
-		return err
 	}
 
 	// Here I will create a new connection.
@@ -2186,7 +2199,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	// here I will write the file
 	err = ioutil.WriteFile(self.path+string(os.PathSeparator)+config["configPath"].(string), []byte(jsonStr), 0644)
 	if err != nil {
-		log.Panicln("fail to save config file: ", err)
+		log.Println("fail to save config file: ", err)
 	}
 
 	// set back internal infos...
@@ -2480,6 +2493,7 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 	// Here I will create the service configuration object.
 	s := make(map[string]interface{}, 0)
 	s["Domain"] = self.Domain
+	s["Name"] = id
 	s["Port"] = port
 	s["Proxy"] = proxy
 	s["TLS"] = hasTls
@@ -2575,7 +2589,7 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Now I will start mongod with auth available.
-	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--dbpath", dataPath)
+	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--bind_ip", "0.0.0.0", "--dbpath", dataPath)
 	err := mongod.Start()
 	if err != nil {
 		return err
@@ -4495,17 +4509,8 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	data, err := p.Find("local_ressource", "local_ressource", "Ressources", "{}", `[{"Projection":{"_id":0}}]`)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	jsonDecoder := json.NewDecoder(strings.NewReader(data))
-
-	// read open bracket
-	_, err = jsonDecoder.Token()
+	// get all ressource with that path.
+	ressources, err := self.getRessources(rqst.Ressource.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4514,33 +4519,44 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 
 	toDelete := make([]*ressource.Ressource, 0)
 	// Remove ressource that match...
-	for jsonDecoder.More() {
-		res := new(ressource.Ressource)
-		err := jsonpb.UnmarshalNext(jsonDecoder, res)
-		if err == nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
+	for i := 0; i < len(ressources); i++ {
+		res := ressources[i]
 		// In case the ressource is a sub-ressource I will remove it...
-		if strings.HasPrefix(res.Path, rqst.Ressource.Path+rqst.Ressource.Name) {
+		if len(rqst.Ressource.Name) > 0 {
+			if rqst.Ressource.Name == res.GetName() {
+				toDelete = append(toDelete, res) // mark to be delete.
+			}
+		} else {
 			toDelete = append(toDelete, res) // mark to be delete
 		}
+
 	}
 
 	// Now I will delete the ressource.
 	for i := 0; i < len(toDelete); i++ {
 		id := Utility.GenerateUUID(toDelete[i].Path + toDelete[i].Name)
 		err := p.DeleteOne("local_ressource", "local_ressource", "Ressources", `{"_id":"`+id+`"}`, "")
-		if err == nil {
+		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
-		// Delete the permissions
-		self.deletePermissions(toDelete[i].Path+toDelete[i].Name, "")
+		// Delete the permissions ascosiated permission
+		self.deletePermissions(toDelete[i].Path+"/"+toDelete[i].Name, "")
+		err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+toDelete[i].Path+"/"+toDelete[i].Name+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	// In that case the
+	if len(rqst.Ressource.Name) == 0 {
+		self.deletePermissions(rqst.Ressource.Path, "")
+		err = p.Delete("local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+rqst.Ressource.Path+`"}`, "")
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	return &ressource.RemoveRessourceRsp{
@@ -5809,7 +5825,8 @@ var eventClient *event_client.Event_Client
 func (self *Globule) getEventHub() *event_client.Event_Client {
 	if eventClient == nil {
 		// eventClient := self.clients["event_service"].(*event_client.Event_Client)
-		eventClient = event_client.NewEvent_Client("localhost", "event_server")
+		config := self.getConfig()
+		eventClient = event_client.NewEvent_Client(config["Domain"].(string), "event_server")
 	}
 	return eventClient
 }
@@ -6265,7 +6282,7 @@ func (self *Globule) Listen() {
 
 	// Start the admin service to give access to server functionality from
 	// client side.
-	admin_server, err := self.startInternalService("Admin", self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	admin_server, err := self.startInternalService("admin", self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -6300,10 +6317,10 @@ func (self *Globule) Listen() {
 			Utility.KillProcessByName("prometheus")
 		}()
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
-	ressource_server, err := self.startInternalService("Ressource", self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
+	ressource_server, err := self.startInternalService("ressource", self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 
 		// Create the channel to listen on admin port.
@@ -6337,11 +6354,11 @@ func (self *Globule) Listen() {
 
 		}()
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// The service discovery.
-	services_discovery_server, err := self.startInternalService("ServicesDiscovery", self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	services_discovery_server, err := self.startInternalService("services_discovery", self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
@@ -6372,11 +6389,11 @@ func (self *Globule) Listen() {
 			<-ch
 		}()
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// The service repository
-	services_repository_server, err := self.startInternalService("ServicesRepository", self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
+	services_repository_server, err := self.startInternalService("services_repository", self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -6411,11 +6428,11 @@ func (self *Globule) Listen() {
 			<-ch
 		}()
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// The Certificate Authority
-	certificate_authority_server, err := self.startInternalService("CertificateAuthority", self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	certificate_authority_server, err := self.startInternalService("certificate_authority", self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
@@ -6446,7 +6463,7 @@ func (self *Globule) Listen() {
 			<-ch
 		}()
 	} else {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// Start listen for http request.
@@ -6491,13 +6508,13 @@ func (self *Globule) Listen() {
 			self.initServices() // must restart the services with new certificates.
 			err := self.ObtainCertificateForCsr()
 			if err != nil {
-				log.Panicln(err)
+				log.Println(err)
 			}
 		}
 		// get the value from the configuration files.
 		err := server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
 		if err != nil {
-			log.Panicln(err)
+			log.Println(err)
 		}
 	} else {
 
@@ -6506,7 +6523,7 @@ func (self *Globule) Listen() {
 	}
 
 	if err != nil {
-		panic("ListenAndServe: " + err.Error())
+		log.Println("ListenAndServe: " + err.Error())
 	}
 }
 
@@ -6519,6 +6536,12 @@ func getClientConfig(address string, name string) (map[string]interface{}, error
 	config := make(map[string]interface{})
 	config["Name"] = name
 	config["Domain"] = address
+
+	if len(address) == 0 {
+		err := errors.New("no address was given for service name " + name)
+		log.Println(err)
+		return nil, err
+	}
 
 	// First I will retreive the server configuration.
 	serverConfig, err := getRemoteConfig(address)
@@ -6575,6 +6598,10 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 
 	if Utility.IsLocal(address) {
 		return globule.getConfig(), nil
+	}
+
+	if len(address) == 0 {
+		log.Println("-------> no address was give!")
 	}
 
 	log.Println("---> get remote config: ", address)
@@ -7125,7 +7152,7 @@ func (self *Globule) GetPrivateKey() crypto.PrivateKey {
 	keyBlock, _ := pem.Decode(keyPem)
 	privateKey, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 	}
 	return privateKey
 }

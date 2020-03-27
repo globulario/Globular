@@ -229,7 +229,7 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 
 	stream, err := self.c.OnEvent(api.GetClientContext(self), rqst)
 	if err != nil {
-		log.Println("----> fail to connect to event server ", err)
+		log.Println("---> fail to connect to event server ", err)
 		return err
 	}
 

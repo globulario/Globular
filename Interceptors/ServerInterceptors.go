@@ -1,5 +1,10 @@
 package Interceptors
 
+// TODO for the validation, use a map to store valid method/token/ressource/access
+// the validation will be renew only if the token expire. And when a token expire
+// the value in the map will be discard. That way it will put less charge on the server
+// side.
+
 import "context"
 
 //import "fmt"
@@ -12,7 +17,6 @@ import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
 
 import "github.com/davecourtois/Utility"
-import "reflect"
 
 var (
 	ressource_client *ressource.Ressource_Client
@@ -21,9 +25,10 @@ var (
 /**
  * Get a the local ressource client.
  */
-func getRessourceClient() *ressource.Ressource_Client {
+func getRessourceClient(domain string) *ressource.Ressource_Client {
+
 	if ressource_client == nil {
-		ressource_client = ressource.NewRessource_Client("localhost", "Ressource")
+		ressource_client = ressource.NewRessource_Client(domain, "ressource")
 	}
 
 	return ressource_client
@@ -138,8 +143,15 @@ func getFilePermissionForMethod(method string, req interface{}) (string, int32) 
 /**
  * Validate user file permission.
  */
-func ValidateUserRessourceAccess(token string, method string, path string, permission int32) error {
-	hasAccess, err := getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
+func ValidateUserRessourceAccess(domain string, token string, method string, path string, permission int32) error {
+
+	// keep the values in the map for the lifetime of the token and validate it
+	// from local map.
+	key := Utility.GenerateUUID(token + method + path + Utility.ToString(permission))
+	log.Println("---> key", key)
+
+	// get access from remote source.
+	hasAccess, err := getRessourceClient(domain).ValidateUserRessourceAccess(token, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -152,8 +164,14 @@ func ValidateUserRessourceAccess(token string, method string, path string, permi
 /**
  * Validate application file permission.
  */
-func ValidateApplicationRessourceAccess(applicationName string, method string, path string, permission int32) error {
-	hasAccess, err := getRessourceClient().ValidateApplicationRessourceAccess(applicationName, path, method, permission)
+func ValidateApplicationRessourceAccess(domain string, applicationName string, method string, path string, permission int32) error {
+
+	// keep the values in the map for the lifetime of the token and validate it
+	// from local map.
+	key := Utility.GenerateUUID(applicationName + method + path + Utility.ToString(permission))
+	log.Println("---> key", key)
+
+	hasAccess, err := getRessourceClient(domain).ValidateApplicationRessourceAccess(applicationName, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -163,6 +181,22 @@ func ValidateApplicationRessourceAccess(applicationName string, method string, p
 	return nil
 }
 
+func ValidateUserAccess(domain string, token string, method string) (bool, error) {
+	key := Utility.GenerateUUID(token + method)
+	log.Println("---> key", key)
+
+	hasAccess, err := getRessourceClient(domain).ValidateUserAccess(token, method)
+	return hasAccess, err
+}
+
+func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
+	key := Utility.GenerateUUID(application + method)
+	log.Println("---> key", key)
+
+	hasAccess, err := getRessourceClient(domain).ValidateApplicationAccess(application, method)
+	return hasAccess, err
+}
+
 // That interceptor is use by all services except the ressource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -170,11 +204,20 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	// The token and the application id.
 	var token string
 	var application string
+	var path string
+	var domain string
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		log.Println("-----> metadata found!")
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
+		path = strings.Join(md["path"], "")
+		domain = strings.Join(md["domain"], "")
 	}
+	log.Println("-----------> application:", application)
+	log.Println("-----------> token:", token)
+	log.Println("-----------> path:", path)
+	log.Println("-----------> domain:", domain)
 
 	method := info.FullMethod
 	hasAccess := false
@@ -187,6 +230,9 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method == "/event.EventService/OnEvent" ||
 		method == "/event.EventService/Quit" ||
 		method == "/event.EventService/Publish" ||
+		method == "/dns.DnsService/SetA" ||
+		method == "/ca.CertificateAuthority/GetCaCertificate" ||
+		method == "/ca.CertificateAuthority/SignCertificate" ||
 		method == "/services.ServiceDiscovery/FindServices" ||
 		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
@@ -201,72 +247,50 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
-		hasAccess, _ = getRessourceClient().ValidateApplicationAccess(application, method)
+		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
-		hasAccess, _ = getRessourceClient().ValidateUserAccess(token, method)
+		hasAccess, _ = ValidateUserAccess(domain, token, method)
 	}
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method)
-		getRessourceClient().Log(application, clientId, method, err)
+		getRessourceClient(domain).Log(application, clientId, method, err)
 		return nil, err
 	}
 
 	// Now I will test file permission.
 	if strings.HasPrefix(method, "/file.FileService/") {
-		hasFilePermission := false
 		path, permission := getFilePermissionForMethod(method, req)
 
 		// I will test if the user has file permission.
-		hasFilePermission, err = getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
+		err = ValidateUserRessourceAccess(domain, token, path, method, permission)
 		if err != nil {
-			return nil, err
-		}
-
-		if !hasFilePermission {
-			hasFilePermission, err = getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission)
+			err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		// If permission is denied...
-		if !hasFilePermission {
-			return nil, errors.New("Permission denied for file " + path)
-		}
 	} else if method != "/persistence.PersistenceService/CreateConnection" &&
 		method != "/persistence.PersistenceService/FindOne" &&
 		method != "/persistence.PersistenceService/Count" {
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
-		permission, err := getRessourceClient().GetActionPermission(method)
+		permission, err := getRessourceClient(domain).GetActionPermission(method)
 		if err == nil && permission != -1 {
+			// So here I will try to validate each parameter that begin with a '/'
+			if strings.HasPrefix(path, "/") {
 
-			// Now  I will try to get the parameter that contain the ressource path.
-			parameters, _ := Utility.ToMap(req) // get parameters as map.
+				// I will test if the user has file permission.
+				err = ValidateUserRessourceAccess(domain, token, path, method, permission)
+				if err != nil {
 
-			for _, v := range parameters {
-				hasRessourcePermission := false
-				// So here I will try to validate each parameter that begin with a '/'
-				if reflect.TypeOf(v).Kind() == reflect.String {
-					path := v.(string)
-					if strings.HasPrefix(path, "/") {
-
-						// I will test if the user has file permission.
-						hasRessourcePermission, err = getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission)
-						if err != nil {
-							return nil, err
-						}
-
-						if !hasRessourcePermission {
-							hasRessourcePermission, err = getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission)
-							if err != nil {
-								return nil, err
-							}
-						}
+					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
+					if err != nil {
+						return nil, err
 					}
 				}
 			}
@@ -277,31 +301,31 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	result, err := handler(ctx, req)
 
 	// Send log event...
-	getRessourceClient().Log(application, clientId, method, err)
+	getRessourceClient(domain).Log(application, clientId, method, err)
 
 	// Here depending of the request I will execute more actions.
 	if err == nil {
 		if method == "/file.FileService/CreateDir" {
 			rqst := req.(*filepb.CreateDirRequest)
-			err := getRessourceClient().CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
+			err := getRessourceClient(domain).CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
 			if err != nil {
 				log.Println(err)
 			}
 		} else if method == "/file.FileService/Rename" {
 			rqst := req.(*filepb.RenameRequest)
-			err := getRessourceClient().RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
+			err := getRessourceClient(domain).RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
 			if err != nil {
 				log.Println(err)
 			}
 		} else if method == "/file.FileService/DeleteFile" {
 			rqst := req.(*filepb.DeleteFileRequest)
-			err := getRessourceClient().DeleteFilePermissions(rqst.GetPath())
+			err := getRessourceClient(domain).DeleteFilePermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
 			}
 		} else if method == "/file.FileService/DeleteDir" {
 			rqst := req.(*filepb.DeleteDirRequest)
-			err := getRessourceClient().DeleteDirPermissions(rqst.GetPath())
+			err := getRessourceClient(domain).DeleteDirPermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
 			}
@@ -318,14 +342,26 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// The token and the application id.
 	var token string
 	var application string
+	var domain string
+	var path string
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
+		log.Println("-----> metadata found!")
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
+		path = strings.Join(md["path"], "")
+		domain = strings.Join(md["domain"], "")
 	}
 
 	method := info.FullMethod
 	hasAccess := false
+
+	log.Println("-----------> method:", method)
+	log.Println("------------------> application:", application)
+	log.Println("------------------> token:", token)
+	log.Println("------------------> path:", path)
+	log.Println("------------------> domain:", domain)
+
 	var err error
 	if method == "/persistence.PersistenceService/Find" {
 		hasAccess = true
@@ -333,7 +369,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
-		hasAccess, err = getRessourceClient().ValidateUserAccess(token, method)
+		hasAccess, err = ValidateUserAccess(domain, token, method)
 		if err != nil {
 			return err
 		}
@@ -345,7 +381,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
-		hasAccess, err = getRessourceClient().ValidateApplicationAccess(application, method)
+		hasAccess, err = ValidateApplicationAccess(domain, application, method)
 		if err != nil {
 			return err
 		}
@@ -357,7 +393,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	//if err == io.EOF {
 	// Send log event...
 	clientId, _, _ := ValidateToken(token)
-	getRessourceClient().Log(application, clientId, method, err)
+	getRessourceClient(domain).Log(application, clientId, method, err)
 	//}
 
 	if err != nil {
