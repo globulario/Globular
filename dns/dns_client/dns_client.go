@@ -139,13 +139,13 @@ func (self *DNS_Client) GetA(domain string) (string, error) {
 	return rsp.A, nil
 }
 
-func (self *DNS_Client) SetA(name string, ipv4 string, ttl uint32) (string, error) {
+func (self *DNS_Client) SetA(domain string, ipv4 string, ttl uint32) (string, error) {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetARequest{
-		Name: name,
-		A:    ipv4,
-		Ttl:  ttl,
+		Domain: domain,
+		A:      ipv4,
+		Ttl:    ttl,
 	}
 
 	rsp, err := self.c.SetA(api.GetClientContext(self), rqst)
@@ -155,11 +155,11 @@ func (self *DNS_Client) SetA(name string, ipv4 string, ttl uint32) (string, erro
 	return rsp.Message, nil
 }
 
-func (self *DNS_Client) RemoveA(name string) error {
+func (self *DNS_Client) RemoveA(domain string) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.RemoveARequest{
-		Name: name,
+		Domain: domain,
 	}
 
 	_, err := self.c.RemoveA(api.GetClientContext(self), rqst)
@@ -183,13 +183,13 @@ func (self *DNS_Client) GetAAAA(domain string) (string, error) {
 	return rsp.Aaaa, nil
 }
 
-func (self *DNS_Client) SetAAAA(name string, ipv6 string, ttl uint32) (string, error) {
+func (self *DNS_Client) SetAAAA(domain string, ipv6 string, ttl uint32) (string, error) {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.SetAAAARequest{
-		Name: name,
-		Aaaa: ipv6,
-		Ttl:  ttl,
+		Domain: domain,
+		Aaaa:   ipv6,
+		Ttl:    ttl,
 	}
 
 	rsp, err := self.c.SetAAAA(api.GetClientContext(self), rqst)
@@ -199,11 +199,11 @@ func (self *DNS_Client) SetAAAA(name string, ipv6 string, ttl uint32) (string, e
 	return rsp.Message, nil
 }
 
-func (self *DNS_Client) RemoveAAAA(name string) error {
+func (self *DNS_Client) RemoveAAAA(domain string) error {
 
 	// I will execute a simple ldap search here...
 	rqst := &dnspb.RemoveAAAARequest{
-		Name: name,
+		Domain: domain,
 	}
 
 	_, err := self.c.RemoveAAAA(api.GetClientContext(self), rqst)

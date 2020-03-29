@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
 	"encoding/pem"
@@ -74,6 +75,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
+	"github.com/davecourtois/Globular/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
@@ -304,6 +306,63 @@ func (self *Globule) initDirectories() {
 }
 
 /**
+ * Return the service configuration
+ */
+func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	//add prefix and clean
+	config := globule.getConfig()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(config)
+}
+
+/**
+ * Return the ca certificate public key.
+ */
+func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/text")
+	w.WriteHeader(http.StatusCreated)
+
+	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "ca.crt")
+	if err != nil {
+		http.Error(w, "Client ca cert not found!", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, string(crt))
+}
+
+/**
+ * Sign ca certificate request and return a certificate.
+ */
+func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/text")
+	w.WriteHeader(http.StatusCreated)
+
+	// sign the certificate.
+	csr_str := r.URL.Query().Get("csr") // the csr in base64
+	csr, err := base64.StdEncoding.DecodeString(csr_str)
+
+	if err != nil {
+		http.Error(w, "Fail to decode csr base64 string", http.StatusBadRequest)
+		return
+	}
+
+	// Now I will sign the certificate.
+	crt, err := globule.signCertificate(string(csr))
+
+	if err != nil {
+		http.Error(w, "fail to sign certificate!", http.StatusBadRequest)
+		return
+	}
+
+	// Return the result as text string.
+	fmt.Fprint(w, crt)
+}
+
+/**
  * Start serving the content.
  */
 func (self *Globule) Serve() {
@@ -312,8 +371,9 @@ func (self *Globule) Serve() {
 	self.initDirectories()
 
 	// The configuration handler.
-	http.HandleFunc("/client_config", getClientConfigHanldler)
 	http.HandleFunc("/config", getConfigHanldler)
+	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
 
 	// Here I will kill proxies if there are running.
 	Utility.KillProcessByName("grpcwebproxy")
@@ -363,6 +423,13 @@ func (self *Globule) Serve() {
 		}
 	}
 
+	// Here I will set an environement varibale and I named GLOBULAR_ROOT
+	// that will give the root of globular.
+	log.Println("Set GLOBULAR_ROOT with value' " + self.path + "'")
+
+	// I will save the variable in a tmp file to be sure I can get it outside
+	ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"GLOBULAR_ROOT", []byte(self.path), 0644)
+
 	// set the services.
 	self.initServices()
 
@@ -402,33 +469,6 @@ func (self *Globule) createApplicationConnection() error {
 }
 
 /**
- * Return the server configuration
- */
-func getClientConfigHanldler(w http.ResponseWriter, r *http.Request) {
-	address := r.URL.Query().Get("address") // parameter address
-	name := r.URL.Query().Get("name")       // parameter name
-	config, err := getClientConfig(address, name)
-	if err != nil {
-		http.Error(w, "Client configuration "+name+" not found!", http.StatusBadRequest)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(config)
-}
-
-/**
- * Return the service configuration
- */
-func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
-	//add prefix and clean
-	config := globule.getConfig()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(config)
-}
-
-/**
  * Set the ip for a given sub-domain compose of Name + DNS domain.
  */
 func (self *Globule) registerIpToDns() {
@@ -438,7 +478,14 @@ func (self *Globule) registerIpToDns() {
 				log.Println("register domain to dns:", self.DNS[i])
 				client := dns_client.NewDns_Client(self.DNS[i], "dns_server")
 
-				_, err := client.SetA(strings.ToLower(self.Name), Utility.MyIP(), 60)
+				domain := self.Domain
+
+				if len(self.Name) == 0 {
+					domain = "www." + domain
+				} else {
+					domain = self.Name + "." + domain
+				}
+				_, err := client.SetA(domain, Utility.MyIP(), 60)
 
 				if err != nil {
 					log.Println(err)
@@ -552,6 +599,7 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
  */
 func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
+
 	// test if the service is distant or not.
 	if !Utility.IsLocal(s["Domain"].(string)) {
 		return -1, -1, errors.New("Can not start a distant service localy!")
@@ -620,6 +668,11 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Here I will set the command dir.
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 		err = s["Process"].(*exec.Cmd).Start()
+		if err != nil {
+			s["State"] = "fail"
+			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			return -1, -1, err
+		}
 
 		s["State"] = "running"
 		go func() {
@@ -634,6 +687,11 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				line, err = reader.ReadString('\n')
 			}
 
+			// if the process is not define.
+			if s["Process"] == nil {
+				log.Println("No process found for service", s["Name"].(string))
+			}
+
 			err = s["Process"].(*exec.Cmd).Wait() // wait for the program to resturn
 			if err != nil {
 
@@ -644,12 +702,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			fmt.Println("service", s["Name"].(string), "err:", errb.String())
 
 		}()
-
-		if err != nil {
-			s["State"] = "fail"
-			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-			return -1, -1, err
-		}
 
 		// Save configuration stuff.
 		self.Services[s["Id"].(string)] = s
@@ -754,8 +806,11 @@ func (self *Globule) initServices() {
 
 	log.Println("Initialyse services")
 
+	log.Println("local ip ", Utility.MyLocalIP())
+	log.Println("external ip ", Utility.MyIP())
+
 	// If the protocol is https I will generate the TLS certificate.
-	self.GenerateServicesCertificates("1111", self.CertExpirationDelay)
+	security.GenerateServicesCertificates("1111", self.CertExpirationDelay, self.Domain, self.creds)
 
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
@@ -782,11 +837,15 @@ func (self *Globule) initServices() {
 							// If a configuration file exist It will be use to start services,
 							// otherwise the service configuration file will be use.
 							path_ := path[:strings.LastIndex(path, string(os.PathSeparator))]
-							s["Id"] = s["Name"].(string)
+							if s["Name"] == nil {
+								log.Println("---> no 'Name' attribute found in service configuration in file config ", path)
+							} else {
+								s["Id"] = s["Name"].(string)
 
-							s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
-							s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
-							self.Services[s["Name"].(string)] = s
+								s["servicePath"] = strings.Replace(strings.Replace(path_+string(os.PathSeparator)+s["Name"].(string), self.path, "", -1), "\\", "/", -1)
+								s["configPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+								self.Services[s["Name"].(string)] = s
+							}
 						}
 					} else {
 						log.Println("fail to unmarshal configuration ", err)
@@ -2426,11 +2485,16 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	s := make(map[string]interface{}, 0)
 	var grpcServer *grpc.Server
 	if hasTls {
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 		certFile := self.creds + string(os.PathSeparator) + "server.crt"
 		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+
+		s["CertFile"] = certFile
+		s["KeyFile"] = keyFile
+		s["CertAuthorityTrust"] = certAuthorityTrust
 
 		// Load the certificates from disk
 		certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -2469,6 +2533,10 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
+		s["CertFile"] = ""
+		s["KeyFile"] = ""
+		s["CertAuthorityTrust"] = ""
+
 		grpcServer = grpc.NewServer([]grpc.ServerOption{
 			grpc.UnaryInterceptor(unaryInterceptor),
 			grpc.StreamInterceptor(streamInterceptor)}...)
@@ -2477,13 +2545,16 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 	reflection.Register(grpcServer)
 
 	// Here I will create the service configuration object.
-	s := make(map[string]interface{}, 0)
 	s["Domain"] = self.Domain
 	s["Name"] = id
 	s["Port"] = port
 	s["Proxy"] = proxy
 	s["TLS"] = hasTls
+
 	self.Services[id] = s
+
+	// save the config.
+	self.saveConfig()
 
 	// start the proxy
 	err := self.startProxy(id, port, proxy)
@@ -6487,7 +6558,7 @@ func (self *Globule) Listen() {
 			// I need to remove the gRPC certificate and recreate it.
 			Utility.RemoveDirContents(self.creds)
 
-			self.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay)
+			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.Domain, self.certs)
 
 			time.Sleep(15 * time.Second)
 
@@ -6515,194 +6586,17 @@ func (self *Globule) Listen() {
 
 /////////////////////////// Security stuff //////////////////////////////////
 
-// That function will be access via http so event server or client will be able
-// to get particular service configuration.
-func getClientConfig(address string, name string) (map[string]interface{}, error) {
-
-	config := make(map[string]interface{})
-	config["Name"] = name
-	config["Domain"] = address
-
-	if len(address) == 0 {
-		err := errors.New("no address was given for service name " + name)
-		log.Println(err)
-		return nil, err
-	}
-
-	// First I will retreive the server configuration.
-	serverConfig, err := getRemoteConfig(address)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	config["TLS"] = serverConfig["Protocol"].(string) == "https"
-
-	if name == "services_discovery" {
-		config["Port"] = Utility.ToInt(serverConfig["ServicesDiscoveryPort"])
-	} else if name == "services_repository" {
-		config["Port"] = Utility.ToInt(serverConfig["ServicesRepositoryPort"])
-	} else if name == "admin" {
-		config["Port"] = Utility.ToInt(serverConfig["AdminPort"])
-	} else if name == "certificate_authority" {
-		config["Port"] = Utility.ToInt(serverConfig["CertificateAuthorityPort"])
-		config["TLS"] = false
-	} else if name == "ressource" {
-		config["Port"] = Utility.ToInt(serverConfig["RessourcePort"])
-	} else if serverConfig["Services"].(map[string]interface{})[name] != nil {
-		// get the service with the id egal to the given name.
-		config["Port"] = Utility.ToInt(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["Port"])
-		config["TLS"] = Utility.ToBool(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["TLS"])
-	} else {
-		return nil, errors.New("No service found whit name " + name + " exist on the server.")
-	}
-
-	// get / init credential values.
-	if config["TLS"] == false {
-		// set the credential function here
-		config["KeyFile"] = ""
-		config["CertFile"] = ""
-		config["CertAuthorityTrust"] = ""
-	} else {
-		keyPath, certPath, caPath, err := getCredentialConfig(address)
-		if err != nil {
-			return nil, err
-		}
-		// set the credential function here
-		config["KeyFile"] = keyPath
-		config["CertFile"] = certPath
-		config["CertAuthorityTrust"] = caPath
-	}
-
-	return config, nil
-}
-
-/**
- * Get the remote client configuration.
- */
-func getRemoteConfig(address string) (map[string]interface{}, error) {
-	if len(address) == 0 {
-		return nil, errors.New("No address was given!")
-	}
-
-	if Utility.IsLocal(address) {
-		return globule.getConfig(), nil
-	}
-
-	// Here I will get the configuration information from http...
-	var resp *http.Response
-	var err error
-	resp, err = http.Get("http://" + address + ":10000/config")
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	var config map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
-	if Utility.IsLocal(address) {
-		keyPath = globule.creds + string(os.PathSeparator) + "client.pem"
-		certPath = globule.creds + string(os.PathSeparator) + "client.crt"
-		caPath = globule.creds + string(os.PathSeparator) + "ca.crt"
-		return
-	}
-
-	creds := globule.creds + string(os.PathSeparator) + address
-	Utility.CreateDirIfNotExist(creds)
-
-	// I will connect to the certificate authority of the server where the application must
-	// be deployed. Certificate autority run wihtout tls.
-	ca_client := ca.NewCa_Client(address, "certificate_authority")
-
-	// Get the ca.crt certificate.
-	ca_crt, err := ca_client.GetCaCertificate()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Write the ca.crt file on the disk
-	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"ca.crt", []byte(ca_crt), 0400)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Now I will generate the certificate for the client...
-	// Step 1: Generate client private key.
-	err = globule.GenerateClientPrivateKey(creds, globule.CertPassword)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 2: Generate the client signing request.
-	err = globule.GenerateClientCertificateSigningRequest(creds, globule.CertPassword, address)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 3: Generate client signed certificate.
-	client_csr, err := ioutil.ReadFile(creds + string(os.PathSeparator) + "client.csr")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Sign the certificate from the server ca...
-	client_crt, err := ca_client.SignCertificate(string(client_csr))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Write bact the client certificate in file on the disk
-	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"client.crt", []byte(client_crt), 0400)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Now ask the ca to sign the certificate.
-
-	// Step 4: Convert to pem format.
-	err = globule.KeyToPem("client", creds, globule.CertPassword)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// set the credential paths.
-	keyPath = creds + string(os.PathSeparator) + "client.pem"
-	certPath = creds + string(os.PathSeparator) + "client.crt"
-	caPath = creds + string(os.PathSeparator) + "ca.crt"
-
-	return
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // Certificate Authority Service
 /////////////////////////////////////////////////////////////////////////////
 
-// Signed certificate request (CSR)
-func (self *Globule) SignCertificate(ctx context.Context, rqst *ca.SignCertificateRequest) (*ca.SignCertificateResponse, error) {
+func (self *Globule) signCertificate(client_csr string) (string, error) {
 
 	// first of all I will save the incomming file into a temporary file...
 	client_csr_path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
-	err := ioutil.WriteFile(client_csr_path, []byte(rqst.Csr), 0644)
+	err := ioutil.WriteFile(client_csr_path, []byte(client_csr), 0644)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return "", err
 
 	}
 
@@ -6730,21 +6624,39 @@ func (self *Globule) SignCertificate(ctx context.Context, rqst *ca.SignCertifica
 	err = exec.Command(cmd, args...).Run()
 	if err != nil {
 
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-
+		return "", err
 	}
 
 	// I will read back the crt file.
 	client_crt, err := ioutil.ReadFile(client_crt_path)
 
 	// remove the tow temporary files.
-	os.Remove(client_crt_path)
-	os.Remove(client_csr_path)
+	defer os.Remove(client_crt_path)
+	defer os.Remove(client_csr_path)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(client_crt), nil
+
+}
+
+// Signed certificate request (CSR)
+func (self *Globule) SignCertificate(ctx context.Context, rqst *ca.SignCertificateRequest) (*ca.SignCertificateResponse, error) {
+
+	client_crt, err := self.signCertificate(rqst.Csr)
+
+	if err != nil {
+
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+
+	}
 
 	return &ca.SignCertificateResponse{
-		Crt: string(client_crt),
+		Crt: client_crt,
 	}, nil
 }
 
@@ -6761,345 +6673,6 @@ func (self *Globule) GetCaCertificate(ctx context.Context, rqst *ca.GetCaCertifi
 	return &ca.GetCaCertificateResponse{
 		Ca: string(ca_crt),
 	}, nil
-}
-
-//////////////////////////////// Certificate Authority ///////////////////////
-// Generate the Certificate Authority private key file (this shouldn't be shared in real life)
-func (self *Globule) GenerateAuthorityPrivateKey(path string, pwd string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "ca.key") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "genrsa")
-	args = append(args, "-passout")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-des3")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"ca.key")
-	args = append(args, "4096")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the Authority private key")
-	}
-	return nil
-}
-
-// Certificate Authority trust certificate (this should be shared whit users)
-func (self *Globule) GenerateAuthorityTrustCertificate(path string, pwd string, expiration_delay int, domain string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "ca.crt") {
-		return nil
-	}
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "req")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-new")
-	args = append(args, "-x509")
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-	args = append(args, "-key")
-	args = append(args, path+string(os.PathSeparator)+"ca.key")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"ca.crt")
-	args = append(args, "-subj")
-	args = append(args, "/CN="+domain)
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate the trust certificate")
-	}
-
-	return nil
-}
-
-/////////////////////// Server Keys //////////////////////////////////////////
-
-// Server private key, password protected (this shoudn't be shared)
-func (self *Globule) GenerateSeverPrivateKey(path string, pwd string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "server.key") {
-		return nil
-	}
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "genrsa")
-	args = append(args, "-passout")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-des3")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"server.key")
-	args = append(args, "4096")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate server private key")
-	}
-	return nil
-}
-
-// Generate client private key and certificate.
-func (self *Globule) GenerateClientPrivateKey(path string, pwd string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "client.key") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "genrsa")
-	args = append(args, "-passout")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-des3")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"client.pass.key")
-	args = append(args, "4096")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate client private key " + err.Error())
-	}
-
-	args = make([]string, 0)
-	args = append(args, "rsa")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+"client.pass.key")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"client.key")
-
-	err = exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate client private key " + err.Error())
-	}
-
-	// Remove the file.
-	os.Remove(path + string(os.PathSeparator) + "client.pass.key")
-	return nil
-}
-
-func (self *Globule) GenerateClientCertificateSigningRequest(path string, pwd string, domain string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + "client.csr") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "req")
-	args = append(args, "-new")
-	args = append(args, "-key")
-	args = append(args, path+string(os.PathSeparator)+"client.key")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"client.csr")
-	args = append(args, "-subj")
-	args = append(args, "/CN="+domain)
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		log.Println(args)
-		return errors.New("Fail to generate client certificate signing request.")
-	}
-
-	return nil
-}
-
-func (self *Globule) GenerateSignedClientCertificate(path string, pwd string, expiration_delay int) error {
-
-	if Utility.Exists(path + string(os.PathSeparator) + "client.crt") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "x509")
-	args = append(args, "-req")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+"client.csr")
-	args = append(args, "-CA")
-	args = append(args, path+string(os.PathSeparator)+"ca.crt")
-	args = append(args, "-CAkey")
-	args = append(args, path+string(os.PathSeparator)+"ca.key")
-	args = append(args, "-set_serial")
-	args = append(args, "01")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"client.crt")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		log.Println("fail to get the signed server certificate")
-	}
-
-	return nil
-}
-
-// Server certificate signing request (this should be shared with the CA owner)
-func (self *Globule) GenerateServerCertificateSigningRequest(path string, pwd string, domain string) error {
-
-	if Utility.Exists(path + string(os.PathSeparator) + "sever.crs") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "req")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-new")
-	args = append(args, "-key")
-	args = append(args, path+string(os.PathSeparator)+"server.key")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"server.csr")
-	args = append(args, "-subj")
-	args = append(args, "/CN="+domain)
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate server certificate signing request.")
-	}
-	return nil
-}
-
-// Server certificate signed by the CA (this would be sent back to the client by the CA owner)
-func (self *Globule) GenerateSignedServerCertificate(path string, pwd string, expiration_delay int) error {
-
-	if Utility.Exists(path + string(os.PathSeparator) + "sever.crt") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "x509")
-	args = append(args, "-req")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-days")
-	args = append(args, strconv.Itoa(expiration_delay))
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+"server.csr")
-	args = append(args, "-CA")
-	args = append(args, path+string(os.PathSeparator)+"ca.crt")
-	args = append(args, "-CAkey")
-	args = append(args, path+string(os.PathSeparator)+"ca.key")
-	args = append(args, "-set_serial")
-	args = append(args, "01")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+"server.crt")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		log.Println("fail to get the signed server certificate")
-	}
-
-	return nil
-}
-
-// Conversion of server.key into a format gRpc likes (this shouldn't be shared)
-func (self *Globule) KeyToPem(name string, path string, pwd string) error {
-	if Utility.Exists(path + string(os.PathSeparator) + name + ".pem") {
-		return nil
-	}
-
-	cmd := "openssl"
-	args := make([]string, 0)
-	args = append(args, "pkcs8")
-	args = append(args, "-topk8")
-	args = append(args, "-nocrypt")
-	args = append(args, "-passin")
-	args = append(args, "pass:"+pwd)
-	args = append(args, "-in")
-	args = append(args, path+string(os.PathSeparator)+name+".key")
-	args = append(args, "-out")
-	args = append(args, path+string(os.PathSeparator)+name+".pem")
-
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return errors.New("Fail to generate server.pem key from server.key")
-	}
-
-	return nil
-}
-
-/**
- * That function is use to generate services certificates.
- * Private ca.key, server.key, server.pem, server.crt
- * Share ca.crt (needed by the client), server.csr (needed by the CA)
- */
-func (self *Globule) GenerateServicesCertificates(pwd string, expiration_delay int) {
-	var domain = self.Domain
-
-	// Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)
-	err := self.GenerateAuthorityPrivateKey(self.creds, pwd)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	err = self.GenerateAuthorityTrustCertificate(self.creds, pwd, expiration_delay, domain)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Setp 2: Generate the server Private Key (server.key)
-	err = self.GenerateSeverPrivateKey(self.creds, pwd)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Setp 3: Get a certificate signing request from the CA (server.csr)
-	err = self.GenerateServerCertificateSigningRequest(self.creds, pwd, domain)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 4: Sign the certificate with the CA we create(it's called self signing) - server.crt
-	err = self.GenerateSignedServerCertificate(self.creds, pwd, expiration_delay)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 5: Convert the server Certificate to .pem format (server.pem) - usable by gRpc
-	err = self.KeyToPem("server", self.creds, pwd)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 6: Generate client private key.
-	err = self.GenerateClientPrivateKey(self.creds, pwd)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 7: Generate the client signing request.
-	err = self.GenerateClientCertificateSigningRequest(self.creds, pwd, domain)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 8: Generate client signed certificate.
-	err = self.GenerateSignedClientCertificate(self.creds, pwd, expiration_delay)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Step 9: Convert to pem format.
-	err = self.KeyToPem("client", self.creds, pwd)
-	if err != nil {
-		log.Println(err)
-		return
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

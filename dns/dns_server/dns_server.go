@@ -76,9 +76,9 @@ type server struct {
 
 	// Contain the configuration of the storage service use to store
 	// the actual values.
-	DnsPort         int    // the dns port
-	DnsRoot         string // must be the domain managed by the server.
-	StorageService  string // The domain of the loacal storage.
+	DnsPort         int      // the dns port
+	Domains         []string // The list of domains managed by this dns.
+	StorageService  string   // The domain of the loacal storage.
 	StorageDataPath string
 
 	// The dns records... https://en.wikipedia.org/wiki/List_of_DNS_record_types
@@ -99,7 +99,7 @@ func (self *server) init() {
 
 	// default value.
 	self.DnsPort = 5353 // 53 is the default dns port.
-	self.DnsRoot = "example.com"
+	self.Domains = make([]string, 0)
 	self.StorageService = "localhost"
 	self.StorageDataPath = os.TempDir()
 
@@ -172,13 +172,24 @@ func (self *server) save() error {
 	return nil
 }
 
+func (self *server) isManaged(domain string) bool {
+	for i := 0; i < len(self.Domains); i++ {
+		if strings.HasSuffix(domain, self.Domains[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 // Set a dns entry.
 func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.SetAResponse, error) {
-	fmt.Println("Try set dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
-	if len(rqst.Name) == 0 {
-		domain = self.DnsRoot
+	fmt.Println("Try set dns entry ", rqst.Domain)
+	if !self.isManaged(rqst.Domain) {
+		return nil, errors.New("The domain " + rqst.Domain + " is not manage by this dns.")
 	}
+
+	domain := strings.ToLower(rqst.Domain)
+
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -200,8 +211,12 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 }
 
 func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*dnspb.RemoveAResponse, error) {
-	fmt.Println("Try remove dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
+	fmt.Println("Try remove dns entry ", rqst.Domain)
+	if !self.isManaged(rqst.Domain) {
+		return nil, errors.New("The domain " + rqst.Domain + " is not manage by this dns.")
+	}
+
+	domain := strings.ToLower(rqst.Domain)
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -256,11 +271,13 @@ func (self *server) GetA(ctx context.Context, rqst *dnspb.GetARequest) (*dnspb.G
 
 // Set a dns entry.
 func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*dnspb.SetAAAAResponse, error) {
-	fmt.Println("Try set dns entry ", rqst.Name+"."+self.DnsRoot)
-	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
-	if len(rqst.Name) == 0 {
-		domain = strings.ToLower(self.DnsRoot)
+	fmt.Println("Try set dns entry ", rqst.Domain)
+	if !self.isManaged(rqst.Domain) {
+		return nil, errors.New("The domain " + rqst.Domain + " is not manage by this dns.")
 	}
+
+	domain := strings.ToLower(rqst.Domain)
+
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -279,8 +296,12 @@ func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*d
 }
 
 func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAARequest) (*dnspb.RemoveAAAAResponse, error) {
-	domain := strings.ToLower(rqst.Name + "." + self.DnsRoot)
+	domain := strings.ToLower(rqst.Domain)
 	fmt.Println("Try remove dns entry ", domain)
+	if !self.isManaged(rqst.Domain) {
+		return nil, errors.New("The domain " + rqst.Domain + " is not manage by this dns.")
+	}
+
 	err := self.openConnection()
 	if err != nil {
 		return nil, err
@@ -1184,7 +1205,7 @@ func ServeDns(port int) {
 	srv := &dns.Server{Addr: ":" + strconv.Itoa(port), Net: "udp"}
 	srv.Handler = &handler{}
 	if err := srv.ListenAndServe(); err != nil {
-		log.Println("Failed to set udp listener %s\n", err.Error())
+		log.Println("Failed to set udp listener", err.Error())
 	}
 }
 
@@ -1396,7 +1417,7 @@ func main() {
 
 	// start lisen on the network for dns queries...
 	go func() {
-		log.Println("--> start lisen for dns queries at port", s_impl.DnsPort)
+		log.Println("--> start listen for dns queries at port", s_impl.DnsPort)
 		ServeDns(s_impl.DnsPort)
 	}()
 

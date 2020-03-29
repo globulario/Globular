@@ -16,7 +16,7 @@ var (
 	// client = dns_client.NewDns_Client("localhost", 10033, false, key, crt, ca, token)
 
 	// Try to connect to a nameserver.
-	client = dns_client.NewDns_Client("ns2.globular.app", "dns_server")
+	client = dns_client.NewDns_Client("ns1.globular.app", "dns_server")
 	//client = dns_client.NewDns_Client("www.omniscient.app", "35.183.163.145:10033", false, key, crt, ca, token)
 	//client = dns_client.NewDns_Client("www.omniscient.app", "44.225.184.139:10033", false, key, crt, ca, token)
 
@@ -30,6 +30,7 @@ func TestSetA(t *testing.T) {
 	if err == nil {
 		log.Println(err)
 	}
+	log.Println("----> domain registed " + domain)
 }
 
 func TestResolve(t *testing.T) {

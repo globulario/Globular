@@ -7,7 +7,7 @@ package dns;
 option go_package="dnspb";
 
 message SetARequest {
-  string name = 1;
+  string domain = 1;
   string a = 2;
   uint32 ttl =3;
 }
@@ -17,7 +17,7 @@ message SetAResponse {
 }
 
 message RemoveARequest {
-  string name = 1;
+  string domain = 1;
 }
 
 message RemoveAResponse {
@@ -34,9 +34,9 @@ message GetAResponse {
 }
 
 message SetAAAARequest {
-  string name = 1;
+  string domain = 1;
   string aaaa = 2;
-  uint32 ttl =3;
+  uint32 ttl = 3;
 }
 
 message SetAAAAResponse {
@@ -44,7 +44,7 @@ message SetAAAAResponse {
 }
 
 message RemoveAAAARequest {
-  string name = 1;
+  string domain = 1;
 }
 
 message RemoveAAAAResponse {

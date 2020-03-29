@@ -189,6 +189,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// Authenticate the user in order to get the token
 	ressource_client := ressource.NewRessource_Client(address, "ressource")
+
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)

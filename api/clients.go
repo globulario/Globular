@@ -4,14 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
-	"strings"
-	"time"
 
+	"github.com/davecourtois/Globular/security"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -71,42 +68,6 @@ type Client interface {
 }
 
 /**
- * A simple function to get the client configuration from http.
- */
-func getClientConfig(address string, name string) (map[string]interface{}, error) {
-
-	address = strings.Split(address, ":")[0]
-	var err error
-
-	// Here I will get the configuration information from http...
-	var resp *http.Response
-
-	client := http.Client{
-		Timeout: 15 * time.Second,
-	}
-
-	resp, err = client.Get("http://" + address + ":10000/client_config?address=" + address + "&name=" + name)
-	if err != nil {
-		log.Println("fail to get client configuration. ", err)
-		return nil, err
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var config map[string]interface{}
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	return config, nil
-}
-
-/**
  * Initialyse the client security and set it port to
  */
 func InitClient(client Client, address string, name string) error {
@@ -115,7 +76,7 @@ func InitClient(client Client, address string, name string) error {
 	client.SetName(name)
 
 	// Here I will initialyse the client
-	config, err := getClientConfig(address, name)
+	config, err := security.GetClientConfig(address, name)
 	if err != nil {
 		return err
 	}

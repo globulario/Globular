@@ -7,7 +7,7 @@ package Interceptors
 
 import "context"
 
-//import "fmt"
+import "fmt"
 import "log"
 import "google.golang.org/grpc"
 import "github.com/davecourtois/Globular/ressource"
@@ -184,7 +184,8 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 func ValidateUserAccess(domain string, token string, method string) (bool, error) {
 	// key := Utility.GenerateUUID(token + method)
 	// log.Println("---> key", key)
-
+	clientId, _, _ := ValidateToken(token)
+	fmt.Println("--------> validate user access: ", domain, clientId, method)
 	hasAccess, err := getRessourceClient(domain).ValidateUserAccess(token, method)
 	return hasAccess, err
 }
@@ -206,14 +207,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var application string
 	var path string
 	var domain string // the domain of the ressource manager (where globular run)
-	//var ip string     // the ip address of the caller.
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
-		//ip = strings.Join(md["ip"], "")
 	}
 
 	method := info.FullMethod
