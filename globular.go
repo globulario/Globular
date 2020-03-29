@@ -6525,6 +6525,7 @@ func (self *Globule) Listen() error {
 		if err != nil {
 			log.Println(err)
 		}
+
 	} else {
 
 		// local - non secure connection.

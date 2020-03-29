@@ -118,7 +118,11 @@ func (self *server) init() {
 	// store it informations.
 	if self.StorageService != "" {
 		// Create the connection with the server.
-		self.storageClient = storage_client.NewStorage_Client(self.StorageService, "storage_server")
+		var err error
+		self.storageClient, err = storage_client.NewStorage_Client(self.StorageService, "storage_server")
+		if err != nil {
+			log.Println("---> fail to connect to storage service! ", err)
+		}
 
 	} else {
 		log.Println("No storage service is configure!")

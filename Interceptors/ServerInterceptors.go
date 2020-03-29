@@ -30,6 +30,7 @@ func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
 	if ressource_client == nil {
 		ressource_client, err = ressource.NewRessource_Client(domain, "ressource")
 		if err != nil {
+			//log.Panicln("----> ", err)
 			return nil, err
 		}
 	}
