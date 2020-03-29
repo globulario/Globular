@@ -29,7 +29,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/prometheus/client_golang/prometheus"
@@ -51,19 +50,11 @@ import (
 	"context"
 	"crypto"
 
-	"github.com/davecourtois/Globular/catalog/catalog_client"
 	"github.com/davecourtois/Globular/dns/dns_client"
-	"github.com/davecourtois/Globular/echo/echo_client"
 	"github.com/davecourtois/Globular/event/event_client"
-	"github.com/davecourtois/Globular/file/file_client"
 	"github.com/davecourtois/Globular/ldap/ldap_client"
 	"github.com/davecourtois/Globular/monitoring/monitoring_client"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
-	"github.com/davecourtois/Globular/plc/plc_client"
-	"github.com/davecourtois/Globular/smtp/smtp_client"
-	"github.com/davecourtois/Globular/spc/spc_client"
-	"github.com/davecourtois/Globular/sql/sql_client"
-	"github.com/davecourtois/Globular/storage/storage_client"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
 	"github.com/go-acme/lego/v3/certcrypto"
@@ -150,12 +141,14 @@ type Globule struct {
 	certs   string // https certificates
 	config  string // configuration directory
 
-	// The map of client...
-	clients map[string]api.Client
-
 	// Create the JWT key used to create the signature
 	jwtKey       []byte
 	RootPassword string
+
+	// client reference...
+	persistence_client_ *persistence_client.Persistence_Client
+	ldap_client_        *ldap_client.LDAP_Client
+	event_client_       *event_client.Event_Client
 }
 
 /**
@@ -247,9 +240,6 @@ func (self *Globule) initDirectories() {
 
 	// Set external map services.
 	self.ExternalApplications = make(map[string]ExternalApplication, 0)
-
-	// Set the map of client.
-	self.clients = make(map[string]api.Client, 0)
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	self.path = dir // keep the installation path.
@@ -407,8 +397,6 @@ func (self *Globule) Serve() {
 			}
 		}
 	}()
-
-	self.initClients()
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -624,10 +612,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	servicePath = strings.ReplaceAll(strings.ReplaceAll(servicePath, "\\", "/"), "/", string(os.PathSeparator))
 	if s["Protocol"].(string) == "grpc" {
 
-		// Stop the previous client if there one.
-		if self.clients[s["Name"].(string)+"_service"] != nil {
-			self.clients[s["Name"].(string)+"_service"].Close()
-		}
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {
 			log.Println("start secure service: ", srv.(map[string]interface{})["Name"])
@@ -714,9 +698,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		// get back the service info with the proxy process in it
 		s = self.Services[s["Id"].(string)].(map[string]interface{})
-
-		// Init it configuration.
-		self.initClient(s["Name"].(string), s["Name"].(string))
 
 		// save it to the config.
 		self.saveConfig()
@@ -1304,55 +1285,6 @@ func (self *Globule) saveConfig() {
 }
 
 /**
- * Init client side connection to service.
- */
-func (self *Globule) initClient(id string, name string) {
-	if self.Services[id] == nil {
-		return
-	}
-
-	serviceName := name
-	name = strings.Split(name, "_")[0]
-
-	fct := "New" + strings.ToUpper(name[0:1]) + name[1:] + "_Client"
-	results, err := Utility.CallFunction(fct, self.Services[id].(map[string]interface{})["Domain"].(string), serviceName)
-	if err == nil {
-		if self.clients[name+"_service"] != nil {
-			self.clients[name+"_service"].Close()
-		}
-		self.clients[name+"_service"] = results[0].Interface().(api.Client)
-	} else {
-		log.Println(err)
-	}
-}
-
-/**
- * Init the service client.
- * Keep the service constructor for further call. This is not fully generic,
- * maybe reflection will be use in futur implementation.
- */
-func (self *Globule) initClients() {
-
-	// Register service constructor function here.
-	// The name of the contructor must follow the same pattern
-	Utility.RegisterFunction("NewPersistence_Client", persistence_client.NewPersistence_Client)
-	Utility.RegisterFunction("NewEcho_Client", echo_client.NewEcho_Client)
-	Utility.RegisterFunction("NewSql_Client", sql_client.NewSql_Client)
-	Utility.RegisterFunction("NewFile_Client", file_client.NewFile_Client)
-	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
-	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
-	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
-	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
-	Utility.RegisterFunction("NewCatalog_Client", catalog_client.NewCatalog_Client)
-	Utility.RegisterFunction("NewMonitoring_Client", monitoring_client.NewMonitoring_Client)
-	Utility.RegisterFunction("NewDns_Client", dns_client.NewDns_Client)
-
-	// Those services are written in c++
-	Utility.RegisterFunction("NewSpc_Client", spc_client.NewSpc_Client)
-	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
-}
-
-/**
  * Return globular configuration.
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
@@ -1549,14 +1481,8 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
  * Start the monitoring service with prometheus.
  */
 func (self *Globule) startMonitoring() error {
-	Utility.KillProcessByName("prometheus")
-	var m *monitoring_client.Monitoring_Client
-	if self.clients["monitoring_service"] == nil {
-		return errors.New("No monitoring service are available to store monitoring information.")
-	}
-
 	// Cast-it to the persistence client.
-	m = self.clients["monitoring_service"].(*monitoring_client.Monitoring_Client)
+	m := monitoring_client.NewMonitoring_Client(self.Domain, "monitoring_server")
 
 	// Here I will start promethus.
 	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
@@ -1674,21 +1600,20 @@ inhibit_rules:
  */
 func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
 	// That service made user of persistence service.
-	var p *persistence_client.Persistence_Client
-	if self.clients["persistence_service"] == nil {
-		return nil, errors.New("No persistence service are available to store ressource information.")
+	if self.persistence_client_ != nil {
+		return self.persistence_client_, nil
 	}
 
 	// Cast-it to the persistence client.
-	p = self.clients["persistence_service"].(*persistence_client.Persistence_Client)
+	self.persistence_client_ = persistence_client.NewPersistence_Client(self.Domain, "persistence_server")
 
 	// Connect to the database here.
-	err := p.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
+	err := self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
 
-	return p, nil
+	return self.persistence_client_, nil
 }
 
 //Set the root password
@@ -2659,6 +2584,13 @@ func (self *Globule) registerSa() error {
 	return self.registerMethods()
 }
 
+func (self *Globule) getLdapClient() *ldap_client.LDAP_Client {
+	if self.ldap_client_ == nil {
+		self.ldap_client_ = ldap_client.NewLdap_Client(self.Domain, "ldap_server")
+	}
+	return self.ldap_client_
+}
+
 /** Append new LDAP synchronization informations. **/
 func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.SynchronizeLdapRqst) (*ressource.SynchronizeLdapRsp, error) {
 
@@ -2666,18 +2598,6 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync infos was given!")))
-	}
-
-	serviceId := rqst.SyncInfo.LdapSeriveId
-	if strings.HasSuffix(serviceId, "_server") {
-		serviceId = strings.Replace(serviceId, "_server", "_service", -1)
-	}
-
-	ldap_ := self.clients[serviceId]
-	if ldap_ == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP service found with id "+serviceId)))
 	}
 
 	if rqst.SyncInfo.UserSyncInfos == nil {
@@ -2722,10 +2642,9 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	}
 
 	// Cast the the correct type.
-	ldap := ldap_.(*ldap_client.LDAP_Client)
 
 	// Searh for roles.
-	rolesInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
+	rolesInfo, err := self.getLdapClient().Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2740,7 +2659,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	}
 
 	// Synchronize account and user info...
-	accountsInfo, err := ldap.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
+	accountsInfo, err := self.getLdapClient().Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -2984,8 +2903,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 
 	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
 		// Here I will try to made use of ldap if there is a service configure.ldap
-		if self.clients["ldap_service"] != nil {
-			err := self.clients["ldap_service"].(*ldap_client.LDAP_Client).Authenticate("", objects[0]["name"].(string), rqst.Password)
+		if self.getLdapClient() != nil {
+			err := self.getLdapClient().Authenticate("", objects[0]["name"].(string), rqst.Password)
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -5874,18 +5793,14 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 
 //////////////////////////////// Services management  //////////////////////////
 
-var eventClient *event_client.Event_Client
-
 /**
  * Get access to the event services.
  */
 func (self *Globule) getEventHub() *event_client.Event_Client {
-	if eventClient == nil {
-		// eventClient := self.clients["event_service"].(*event_client.Event_Client)
-		config := self.getConfig()
-		eventClient = event_client.NewEvent_Client(config["Domain"].(string), "event_server")
+	if self.event_client_ == nil {
+		self.event_client_ = event_client.NewEvent_Client(self.Domain, "event_server")
 	}
-	return eventClient
+	return self.event_client_
 }
 
 // Discovery
@@ -6326,10 +6241,6 @@ func (self *Globule) Listen() {
 		// stop external service.
 		for externalServiceId, _ := range self.ExternalApplications {
 			self.stopExternalApplication(externalServiceId)
-		}
-
-		for _, value := range self.clients {
-			value.Close()
 		}
 
 		// exit cleanly

@@ -18,9 +18,9 @@ import (
 // to get particular service configuration.
 func GetClientConfig(address string, name string) (map[string]interface{}, error) {
 
-	config := make(map[string]interface{})
-	config["Name"] = name
-	config["Domain"] = address
+	var serverConfig map[string]interface{}
+	var config map[string]interface{}
+	var err error
 
 	if len(address) == 0 {
 		err := errors.New("no address was given for service name " + name)
@@ -31,42 +31,26 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 	// In case of local service I will get the service value directly from
 	// the configuration file.
 	if Utility.IsLocal(address) {
-		config, err := getLocalConfig()
+		serverConfig, err = getLocalConfig()
 		if err != nil {
 			return nil, err
 		}
-		if config["Services"].(map[string]interface{})[name] != nil {
-			return config["Services"].(map[string]interface{})[name].(map[string]interface{}), nil
+	} else {
+		// First I will retreive the server configuration.
+		serverConfig, err = getRemoteConfig(address)
+		if err != nil {
+			return nil, err
 		}
-		return nil, errors.New("no service found on the local server with name " + name)
 	}
 
-	// First I will retreive the server configuration.
-	serverConfig, err := getRemoteConfig(address)
-	if err != nil {
-		return nil, err
-	}
-
-	config["TLS"] = serverConfig["Protocol"].(string) == "https"
-
-	if name == "services_discovery" {
-		config["Port"] = Utility.ToInt(serverConfig["ServicesDiscoveryPort"])
-	} else if name == "services_repository" {
-		config["Port"] = Utility.ToInt(serverConfig["ServicesRepositoryPort"])
-	} else if name == "admin" {
-		config["Port"] = Utility.ToInt(serverConfig["AdminPort"])
-	} else if name == "certificate_authority" {
-		config["Port"] = Utility.ToInt(serverConfig["CertificateAuthorityPort"])
-		config["TLS"] = false
-	} else if name == "ressource" {
-		config["Port"] = Utility.ToInt(serverConfig["RessourcePort"])
-	} else if serverConfig["Services"].(map[string]interface{})[name] != nil {
-		// get the service with the id egal to the given name.
-		config["Port"] = Utility.ToInt(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["Port"])
-		config["TLS"] = Utility.ToBool(serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})["TLS"])
+	if serverConfig["Services"].(map[string]interface{})[name] != nil {
+		config = serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})
 	} else {
 		return nil, errors.New("No service found whit name " + name + " exist on the server.")
 	}
+
+	// Set the config tls...
+	config["TLS"] = serverConfig["Protocol"].(string) == "https"
 
 	// get / init credential values.
 	if config["TLS"] == false {
@@ -95,7 +79,6 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 func getLocalConfig() (map[string]interface{}, error) {
 	config := make(map[string]interface{}, 0)
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
-
 	data, err := ioutil.ReadFile(string(root) + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
 
 	if err != nil {
@@ -114,13 +97,6 @@ func getLocalConfig() (map[string]interface{}, error) {
  * Get the remote client configuration.
  */
 func getRemoteConfig(address string) (map[string]interface{}, error) {
-	if len(address) == 0 {
-		return nil, errors.New("No address was given!")
-	}
-
-	if Utility.IsLocal(address) {
-		return getLocalConfig() // In that case I will use the local configuration
-	}
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response
@@ -169,7 +145,7 @@ func getCaCertificate(address string) (string, error) {
 	return "", errors.New("fail to retreive ca certificate with error " + Utility.ToString(resp.StatusCode))
 }
 
-func signCertificate(address string, csr string) (string, error) {
+func signCaCertificate(address string, csr string) (string, error) {
 
 	if len(address) == 0 {
 		return "", errors.New("No address was given!")
@@ -201,8 +177,8 @@ func signCertificate(address string, csr string) (string, error) {
  * Return the credential configuration.
  */
 func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
-
-	path := os.Getenv("GLOBULAR_ROOT") + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
+	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	path := string(root) + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
 	pwd := "1111"
 
 	// Here I will get the local configuration...
@@ -265,7 +241,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	}
 
 	// Sign the certificate from the server ca...
-	client_crt, err := signCertificate(address, string(client_csr))
+	client_crt, err := signCaCertificate(address, string(client_csr))
 	if err != nil {
 		log.Println(err)
 		return
@@ -295,7 +271,8 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	return
 }
 
-//////////////////////////////// Certificate Authority ///////////////////////
+//////////////////////////////// Certificate Authority /////////////////////////
+
 // Generate the Certificate Authority private key file (this shouldn't be shared in real life)
 func GenerateAuthorityPrivateKey(path string, pwd string) error {
 	if Utility.Exists(path + string(os.PathSeparator) + "ca.key") {
