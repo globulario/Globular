@@ -48,9 +48,12 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(address string, name string) *Event_Client {
+func NewEvent_Client(address string, name string) (*Event_Client, error) {
 	client := new(Event_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	client.uuid = Utility.RandomUUID()
@@ -66,7 +69,7 @@ func NewEvent_Client(address string, name string) *Event_Client {
 		}
 	}()
 
-	return client
+	return client, nil
 }
 
 /**

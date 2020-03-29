@@ -39,13 +39,16 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(address string, name string) *Storage_Client {
+func NewStorage_Client(address string, name string) (*Storage_Client, error) {
 	client := new(Storage_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = storagepb.NewStorageServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

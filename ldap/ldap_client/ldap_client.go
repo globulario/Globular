@@ -46,13 +46,16 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(address string, name string) *LDAP_Client {
+func NewLdap_Client(address string, name string) (*LDAP_Client, error) {
 	client := new(LDAP_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

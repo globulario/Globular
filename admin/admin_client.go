@@ -51,13 +51,16 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(address string, name string) *Admin_Client {
+func NewAdmin_Client(address string, name string) (*Admin_Client, error) {
 	client := new(Admin_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = NewAdminServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the address
@@ -319,7 +322,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 		/** TODO Deploy services on other platforme here... **/
 	}
 
-	md := metadata.New(map[string]string{"token": token, "domain":domain})
+	md := metadata.New(map[string]string{"token": token, "domain": domain})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// First of all I will create the archive for the service.
@@ -395,7 +398,7 @@ func (self *Admin_Client) PublishService(path string, serviceId string, publishe
 	rqst.Platform = Platform(platform)
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": token, "domain":domain})
+	md := metadata.New(map[string]string{"token": token, "domain": domain})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	_, err := self.c.PublishService(ctx, rqst)
@@ -454,7 +457,7 @@ func (self *Admin_Client) DeployApplication(name string, path string, token stri
 	os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain":domain})
+	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain": domain})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// Open the stream...

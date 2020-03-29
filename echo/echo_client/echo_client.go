@@ -41,13 +41,16 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(address string, name string) *Echo_Client {
+func NewEcho_Client(address string, name string) (*Echo_Client, error) {
 	client := new(Echo_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = echopb.NewEchoServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

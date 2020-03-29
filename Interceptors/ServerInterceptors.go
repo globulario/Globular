@@ -25,13 +25,16 @@ var (
 /**
  * Get a the local ressource client.
  */
-func getRessourceClient(domain string) *ressource.Ressource_Client {
-
+func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
+	var err error
 	if ressource_client == nil {
-		ressource_client = ressource.NewRessource_Client(domain, "ressource")
+		ressource_client, err = ressource.NewRessource_Client(domain, "ressource")
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return ressource_client
+	return ressource_client, nil
 }
 
 /**
@@ -149,9 +152,13 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 	// from local map.
 	//key := Utility.GenerateUUID(token + method + path + Utility.ToString(permission))
 	//log.Println("---> key", key)
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return err
+	}
 
 	// get access from remote source.
-	hasAccess, err := getRessourceClient(domain).ValidateUserRessourceAccess(token, path, method, permission)
+	hasAccess, err := ressource_client.ValidateUserRessourceAccess(token, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -170,8 +177,13 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 	// from local map.
 	// key := Utility.GenerateUUID(applicationName + method + path + Utility.ToString(permission))
 	// log.Println("---> key", key)
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return err
+	}
 
-	hasAccess, err := getRessourceClient(domain).ValidateApplicationRessourceAccess(applicationName, path, method, permission)
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidateApplicationRessourceAccess(applicationName, path, method, permission)
 	if err != nil {
 		return err
 	}
@@ -186,7 +198,13 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 	// log.Println("---> key", key)
 	clientId, _, _ := ValidateToken(token)
 	fmt.Println("--------> validate user access: ", domain, clientId, method)
-	hasAccess, err := getRessourceClient(domain).ValidateUserAccess(token, method)
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return false, err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidateUserAccess(token, method)
 	return hasAccess, err
 }
 
@@ -194,7 +212,13 @@ func ValidateApplicationAccess(domain string, application string, method string)
 	// key := Utility.GenerateUUID(application + method)
 	// log.Println("---> key", key)
 
-	hasAccess, err := getRessourceClient(domain).ValidateApplicationAccess(application, method)
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return false, err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidateApplicationAccess(application, method)
 	return hasAccess, err
 }
 
@@ -215,6 +239,11 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		domain = strings.Join(md["domain"], "")
 	}
 
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return nil, err
+	}
+
 	method := info.FullMethod
 
 	// If the call come from a local client it has hasAccess
@@ -225,7 +254,6 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		hasAccess = true
 	}
 
-	var err error
 	clientId, _, err := ValidateToken(token)
 	if err == nil {
 		if clientId == "sa" {
@@ -245,7 +273,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method)
-		getRessourceClient(domain).Log(application, clientId, method, err)
+		ressource_client, err := getRessourceClient(domain)
+		if err != nil {
+			return nil, err
+		}
+
+		ressource_client.Log(application, clientId, method, err)
 		log.Println(err)
 		return nil, err
 	}
@@ -269,7 +302,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method != "/persistence.PersistenceService/Count" {
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
-		permission, err := getRessourceClient(domain).GetActionPermission(method)
+		permission, err := ressource_client.GetActionPermission(method)
 		if err == nil && permission != -1 {
 			// So here I will try to validate each parameter that begin with a '/'
 			if strings.HasPrefix(path, "/") {
@@ -292,34 +325,34 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	result, err := handler(ctx, req)
 
 	// Send log event...
-	getRessourceClient(domain).Log(application, clientId, method, err)
+	ressource_client.Log(application, clientId, method, err)
 
 	// Here depending of the request I will execute more actions.
 	if err == nil {
 		if method == "/file.FileService/CreateDir" {
 			rqst := req.(*filepb.CreateDirRequest)
-			err := getRessourceClient(domain).CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
+			err := ressource_client.CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
 			if err != nil {
 				log.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/Rename" {
 			rqst := req.(*filepb.RenameRequest)
-			err := getRessourceClient(domain).RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
+			err := ressource_client.RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
 			if err != nil {
 				log.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteFile" {
 			rqst := req.(*filepb.DeleteFileRequest)
-			err := getRessourceClient(domain).DeleteFilePermissions(rqst.GetPath())
+			err := ressource_client.DeleteFilePermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteDir" {
 			rqst := req.(*filepb.DeleteDirRequest)
-			err := getRessourceClient(domain).DeleteDirPermissions(rqst.GetPath())
+			err := ressource_client.DeleteDirPermissions(rqst.GetPath())
 			if err != nil {
 				log.Println(err)
 				return nil, err
@@ -347,10 +380,14 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		domain = strings.Join(md["domain"], "")
 	}
 
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return err
+	}
+
 	method := info.FullMethod
 	hasAccess := false
 
-	var err error
 	if method == "/persistence.PersistenceService/Find" {
 		hasAccess = true
 	}
@@ -383,7 +420,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	//if err == io.EOF {
 	// Send log event...
 	clientId, _, _ := ValidateToken(token)
-	getRessourceClient(domain).Log(application, clientId, method, err)
+	ressource_client.Log(application, clientId, method, err)
 	//}
 
 	if err != nil {

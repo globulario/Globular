@@ -42,13 +42,16 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(address string, name string) *Persistence_Client {
+func NewPersistence_Client(address string, name string) (*Persistence_Client, error) {
 	client := new(Persistence_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

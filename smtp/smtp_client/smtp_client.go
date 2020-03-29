@@ -44,13 +44,16 @@ type SMTP_Client struct {
 }
 
 // Create a connection to the service.
-func NewSmtp_Client(address string, name string) *SMTP_Client {
+func NewSmtp_Client(address string, name string) (*SMTP_Client, error) {
 	client := new(SMTP_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = smtppb.NewSmtpServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

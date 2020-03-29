@@ -43,13 +43,16 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(address string, name string) *Ressource_Client {
+func NewRessource_Client(address string, name string) (*Ressource_Client, error) {
 	client := new(Ressource_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = NewRessourceServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the ipv4 address

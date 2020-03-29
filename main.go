@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -183,31 +184,38 @@ func main() {
 /**
  * That function can be use to deploy an application on the server...
  */
-func deploy(g *Globule, name string, path string, address string, user string, pwd string) {
+func deploy(g *Globule, name string, path string, address string, user string, pwd string) error {
 
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client := ressource.NewRessource_Client(address, "ressource")
+	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
+	if err != nil {
+		return err
+	}
 
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
-		return
+		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client := admin.NewAdmin_Client(address, "admin") // create the ressource server.
-	err = admin_client.DeployApplication(name, path, token, address)
+	admin_client, err := admin.NewAdmin_Client(address, "admin") // create the ressource server.
+	if err != nil {
+		return err
+	}
 
+	err = admin_client.DeployApplication(name, path, token, address)
 	if err != nil {
 
 		log.Println("Fail to deploy applicaiton with error:", err)
-		return
+		return err
 	}
 
 	log.Println("Application", name, "was deployed successfully!")
+	return nil
 }
 
 /**
@@ -219,39 +227,43 @@ func deploy(g *Globule, name string, path string, address string, user string, p
  * care to include all dependencies, dll... to be sure your services will run
  * as expected.
  */
-func publish(g *Globule, path string, serviceId string, publisherId string, discoveryId string, repositoryId string, description string, version string, platform int32, keywords []string, address string, user string, pwd string) {
+func publish(g *Globule, path string, serviceId string, publisherId string, discoveryId string, repositoryId string, description string, version string, platform int32, keywords []string, address string, user string, pwd string) error {
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client := ressource.NewRessource_Client(address, "ressource")
+	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
+	if err != nil {
+		return err
+	}
+
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
-		log.Panicln(err)
-		return
+		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client := admin.NewAdmin_Client(address, "admin")
+	admin_client, err := admin.NewAdmin_Client(address, "admin")
+	if err != nil {
+		return err
+	}
 
 	// first of all I will create and upload the package on the discovery...
 	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
 	if err != nil {
-		log.Panicln(err)
-		return
+		return err
 	}
 	if platform < 0 {
-		log.Println("Plaform must be a number from 1 to 4")
-		return
+		return errors.New("Plaform must be a number from 1 to 4")
 	}
 
 	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	log.Println("Service", serviceId, "was pulbish successfully!")
+	return nil
 }
 
 /**

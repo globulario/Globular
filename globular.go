@@ -459,12 +459,15 @@ func (self *Globule) createApplicationConnection() error {
 /**
  * Set the ip for a given sub-domain compose of Name + DNS domain.
  */
-func (self *Globule) registerIpToDns() {
+func (self *Globule) registerIpToDns() error {
 	if self.DNS != nil {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
 				log.Println("register domain to dns:", self.DNS[i])
-				client := dns_client.NewDns_Client(self.DNS[i], "dns_server")
+				client, err := dns_client.NewDns_Client(self.DNS[i], "dns_server")
+				if err != nil {
+					return err
+				}
 
 				domain := self.Domain
 
@@ -473,10 +476,10 @@ func (self *Globule) registerIpToDns() {
 				} else {
 					domain = self.Name + "." + domain
 				}
-				_, err := client.SetA(domain, Utility.MyIP(), 60)
+				_, err = client.SetA(domain, Utility.MyIP(), 60)
 
 				if err != nil {
-					log.Println(err)
+					return err
 				}
 
 				// TODO also register the ipv6 here...
@@ -484,6 +487,8 @@ func (self *Globule) registerIpToDns() {
 			}
 		}
 	}
+
+	return nil
 }
 
 /**
@@ -1482,8 +1487,10 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
  */
 func (self *Globule) startMonitoring() error {
 	// Cast-it to the persistence client.
-	m := monitoring_client.NewMonitoring_Client(self.Domain, "monitoring_server")
-
+	m, err := monitoring_client.NewMonitoring_Client(self.Domain, "monitoring_server")
+	if err != nil {
+		return err
+	}
 	// Here I will start promethus.
 	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
 	Utility.CreateDirIfNotExist(dataPath)
@@ -1566,7 +1573,7 @@ inhibit_rules:
 	}
 
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
-	err := prometheus.Start()
+	err = prometheus.Start()
 	if err != nil {
 		log.Println("fail to start monitoring with prometheus", err)
 		return err
@@ -1604,11 +1611,16 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return self.persistence_client_, nil
 	}
 
+	var err error
+
 	// Cast-it to the persistence client.
-	self.persistence_client_ = persistence_client.NewPersistence_Client(self.Domain, "persistence_server")
+	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.Domain, "persistence_server")
+	if err != nil {
+		return nil, err
+	}
 
 	// Connect to the database here.
-	err := self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -1900,16 +1912,16 @@ func (self *Globule) UploadServicePackage(stream admin.AdminService_UploadServic
 func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServiceRequest) (*admin.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
-	if services_discovery == nil {
+	services_discovery, err := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
 	// Connect to the repository services.
-	services_repository := services.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
-	if services_repository == nil {
+	services_repository, err := services.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
+	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.RepositoryId)))
@@ -1924,7 +1936,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 		Keywords:    rqst.Keywords,
 	}
 
-	err := services_discovery.PublishServiceDescriptor(serviceDescriptor)
+	err = services_discovery.PublishServiceDescriptor(serviceDescriptor)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1951,7 +1963,13 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	data, _ := json.Marshal(serviceDescriptor)
 
 	// Here I will send an event that the service has a new version...
-	self.getEventHub().Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", data)
+	eventHub, err := self.getEventHub()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	eventHub.Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", data)
 
 	return &admin.PublishServiceResponse{
 		Result: true,
@@ -1984,9 +2002,11 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 		/** TODO Deploy services on other platforme here... **/
 	}
 
-	var services_repository *services.ServicesRepository_Client
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		services_repository = services.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
+		services_repository, err := services.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
+		if err != nil {
+			return err
+		}
 		bundle, err := services_repository.DownloadBundle(descriptor, platform)
 		if err == nil {
 			id := descriptor.PublisherId + "%" + descriptor.Id + "%" + descriptor.Version
@@ -2050,7 +2070,8 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 
 	// Connect to the dicovery services
 	var services_discovery *services.ServicesDiscovery_Client
-	services_discovery = services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	var err error
+	services_discovery, err = services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -2584,11 +2605,12 @@ func (self *Globule) registerSa() error {
 	return self.registerMethods()
 }
 
-func (self *Globule) getLdapClient() *ldap_client.LDAP_Client {
+func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
+	var err error
 	if self.ldap_client_ == nil {
-		self.ldap_client_ = ldap_client.NewLdap_Client(self.Domain, "ldap_server")
+		self.ldap_client_, err = ldap_client.NewLdap_Client(self.Domain, "ldap_server")
 	}
-	return self.ldap_client_
+	return self.ldap_client_, err
 }
 
 /** Append new LDAP synchronization informations. **/
@@ -2644,7 +2666,11 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	// Cast the the correct type.
 
 	// Searh for roles.
-	rolesInfo, err := self.getLdapClient().Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
+	ldap_, err := self.getLdapClient()
+	if err != nil {
+		return nil, err
+	}
+	rolesInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2659,7 +2685,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	}
 
 	// Synchronize account and user info...
-	accountsInfo, err := self.getLdapClient().Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
+	accountsInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -2901,29 +2927,33 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("fail to retreive "+rqst.Name+" informations.")))
 	}
 
+	ldap_, err := self.getLdapClient()
+	if err != nil {
+		return nil, err
+	}
+
 	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
 		// Here I will try to made use of ldap if there is a service configure.ldap
-		if self.getLdapClient() != nil {
-			err := self.getLdapClient().Authenticate("", objects[0]["name"].(string), rqst.Password)
-			if err != nil {
-				return nil, status.Errorf(
-					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-			}
 
-			// Set the password whit
-			err = self.setPassword(objects[0]["_id"].(string), objects[0]["password"].(string), rqst.Password)
-			if err != nil {
-				return nil, status.Errorf(
-					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-			}
-		} else {
-			err := errors.New("wrong password for account " + objects[0]["name"].(string))
+		err := ldap_.Authenticate("", objects[0]["name"].(string), rqst.Password)
+		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
+
+		// Set the password whit
+		err = self.setPassword(objects[0]["_id"].(string), objects[0]["password"].(string), rqst.Password)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		err := errors.New("wrong password for account " + objects[0]["name"].(string))
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Generate a token to identify the user.
@@ -4193,7 +4223,11 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 	self.methodsCounterLog.WithLabelValues(logType, info.Method).Inc()
 	if len(info.UserId) > 0 {
 		if info.UserId != "sa" {
-			self.getEventHub().Publish(info.Method, []byte(jsonStr))
+			eventHub, err := self.getEventHub()
+			if err != nil {
+				return err
+			}
+			eventHub.Publish(info.Method, []byte(jsonStr))
 		}
 	}
 	return nil
@@ -5796,11 +5830,12 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 /**
  * Get access to the event services.
  */
-func (self *Globule) getEventHub() *event_client.Event_Client {
+func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
+	var err error
 	if self.event_client_ == nil {
-		self.event_client_ = event_client.NewEvent_Client(self.Domain, "event_server")
+		self.event_client_, err = event_client.NewEvent_Client(self.Domain, "event_server")
 	}
-	return self.event_client_
+	return self.event_client_, err
 }
 
 // Discovery
@@ -6100,7 +6135,10 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService := services.NewServicesDiscovery_Client(discoveryId, "services_discovery")
+			discoveryService, err := services.NewServicesDiscovery_Client(discoveryId, "services_discovery")
+			if err != nil {
+				return err
+			}
 			discoveryService.PublishServiceDescriptor(bundle.Descriptor_)
 		}
 	}
@@ -6128,7 +6166,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 /**
  * Listen for new connection.
  */
-func (self *Globule) Listen() {
+func (self *Globule) Listen() error {
 
 	// append itself to service discoveries...
 	if !Utility.Contains(self.Discoveries, self.Domain) {
@@ -6139,7 +6177,10 @@ func (self *Globule) Listen() {
 
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
-		eventHub := event_client.NewEvent_Client(self.Discoveries[i], "event_server")
+		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event_server")
+		if err != nil {
+			return err
+		}
 		subscribers[self.Discoveries[i]] = make(map[string][]string)
 		for _, s := range self.Services {
 			if s.(map[string]interface{})["PublisherId"] != nil {
@@ -6493,6 +6534,7 @@ func (self *Globule) Listen() {
 	if err != nil {
 		log.Println("ListenAndServe: " + err.Error())
 	}
+	return nil
 }
 
 /////////////////////////// Security stuff //////////////////////////////////

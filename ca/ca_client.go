@@ -38,14 +38,17 @@ type Ca_Client struct {
 }
 
 // Create a connection to the service.
-func NewCa_Client(address string, name string) *Ca_Client {
+func NewCa_Client(address string, name string) (*Ca_Client, error) {
 	client := new(Ca_Client)
 
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = NewCertificateAuthorityClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the address

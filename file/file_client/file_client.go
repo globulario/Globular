@@ -44,13 +44,16 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(address string, name string) *File_Client {
+func NewFile_Client(address string, name string) (*File_Client, error) {
 	client := new(File_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = filepb.NewFileServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain

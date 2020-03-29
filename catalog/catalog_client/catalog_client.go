@@ -41,13 +41,16 @@ type Catalog_Client struct {
 }
 
 // Create a connection to the service.
-func NewCatalog_Client(address string, name string) *Catalog_Client {
+func NewCatalog_Client(address string, name string) (*Catalog_Client, error) {
 	client := new(Catalog_Client)
-	api.InitClient(client, address, name)
+	err := api.InitClient(client, address, name)
+	if err != nil {
+		return nil, err
+	}
 	client.cc = api.GetClientConnection(client)
 	client.c = catalogpb.NewCatalogServiceClient(client.cc)
 
-	return client
+	return client, nil
 }
 
 // Return the domain
