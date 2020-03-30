@@ -1,11 +1,11 @@
 
 # create volume to keep data persistent between container.
-sudo volume create data:/globular/data
-sudo volume create config:/globular/config
-sudo volume create webroot:/globular/webroot
+sudo docker volume create data
+sudo docker volume create config
+sudo docker volume create webroot
 
 # Run the image in the container.
-sudo docker run -p 10000-10100:10000-10100 -p 8080:8080 -p 9090:9090 -p 27017:27017 -v config:/globular/config -v data:/globular/data -v webroot:/globular/webroot globular_linux_64_img
+sudo docker run -p 10000-10100:10000-10100 -p 80:80 -p 9090:9090 -p 53:53 -p 443:443 -p 27017:27017 -v config:/globular/config -v data:/globular/data -v webroot:/globular/webroot davecourtois/globular
 
 # Run a shell and iteract with the linux container.
 sudo docker exec -it containaner_name_here bash

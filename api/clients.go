@@ -161,6 +161,7 @@ func GetClientContext(client Client) context.Context {
 	// Token's are kept in temporary directorys
 	domain := client.GetDomain()
 	ip := Utility.MyLocalIP()
+	//log.Println("------------> ", domain)
 
 	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
 	token, err := ioutil.ReadFile(path)

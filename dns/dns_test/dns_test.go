@@ -10,34 +10,32 @@ import (
 )
 
 var (
-
-	// The token is print in the sever console. It can be taken from the local temp file if the client service run on the same machine.
-	// It will be regenerate each time the server is started and valid until the token expire.
-	// client = dns_client.NewDns_Client("localhost", 10033, false, key, crt, ca, token)
-
 	// Try to connect to a nameserver.
-	client = dns_client.NewDns_Client("ns1.globular.app", "dns_server")
-	//client = dns_client.NewDns_Client("www.omniscient.app", "35.183.163.145:10033", false, key, crt, ca, token)
-	//client = dns_client.NewDns_Client("www.omniscient.app", "44.225.184.139:10033", false, key, crt, ca, token)
-
-	token = ""
+	client *dns_client.DNS_Client
 )
 
 // Test various function here.
 func TestSetA(t *testing.T) {
+	var err error
+	client, err = dns_client.NewDns_Client("ns2.globular.app", "dns_server")
+	if err != nil {
+		log.Println("fail to get domain ", err)
+		return
+	}
+
 	// Set ip address
-	domain, err := client.SetA("globular4", Utility.MyIP(), 1000)
+	domain, err := client.SetA("globular.io", Utility.MyIP(), 1000)
 	if err == nil {
 		log.Println(err)
 	}
-	log.Println("----> domain registed " + domain)
+	log.Println("----> domain registered "+domain, Utility.MyIP())
 }
 
 func TestResolve(t *testing.T) {
 
 	// Connect to the plc client.
 	log.Println("---> test resolve A")
-	ipv4, err := client.GetA("globular4.omniscient.app")
+	ipv4, err := client.GetA("globular.io")
 	if err == nil {
 		log.Println("--> your ip is ", ipv4)
 	} else {

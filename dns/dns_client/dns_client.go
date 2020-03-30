@@ -42,9 +42,12 @@ type DNS_Client struct {
 func NewDns_Client(address string, name string) (*DNS_Client, error) {
 	client := new(DNS_Client)
 	err := api.InitClient(client, address, name)
+
 	if err != nil {
+
 		return nil, err
 	}
+
 	client.cc = api.GetClientConnection(client)
 	client.c = dnspb.NewDnsServiceClient(client.cc)
 	return client, nil
@@ -139,6 +142,7 @@ func (self *DNS_Client) GetA(domain string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return rsp.A, nil
 }
 

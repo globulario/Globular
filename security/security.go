@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/davecourtois/Utility"
 )
@@ -127,14 +128,15 @@ func getCaCertificate(address string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":10000/get_ca_certificate")
+	resp, err = http.Get("https://" + address + "/get_ca_certificate")
+
 	if err != nil {
 		return "", err
 	}
 
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusCreated {
 
-	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatal(err)
@@ -155,14 +157,14 @@ func signCaCertificate(address string, csr string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":10000/sign_ca_certificate?csr=" + csr_str)
+	resp, err = http.Get("https://" + address + "/sign_ca_certificate?csr=" + csr_str)
 	if err != nil {
 		return "", err
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusCreated {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatal(err)
@@ -170,24 +172,27 @@ func signCaCertificate(address string, csr string) (string, error) {
 		return string(bodyBytes), nil
 	}
 
-	return "", errors.New("fail to retreive ca certificate with error " + Utility.ToString(resp.StatusCode))
+	return "", errors.New("fail to sign ca certificate with error " + Utility.ToString(resp.StatusCode))
 }
 
 /**
  * Return the credential configuration.
  */
 func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
+
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 	path := string(root) + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
 	pwd := "1111"
 
 	// Here I will get the local configuration...
-	config, err := getLocalConfig()
+	var config map[string]interface{}
+	config, err = getLocalConfig()
 	if err == nil {
 		pwd = config["CertPassword"].(string)
 	} else {
 		// use the temp dir to store the certificate in that case.
 		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
+		err = nil
 	}
 
 	if Utility.IsLocal(address) {
@@ -197,8 +202,35 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 		return
 	}
 
+	// must have write access of file.
+	_, err = ioutil.ReadFile(path + string(os.PathSeparator) + address + string(os.PathSeparator) + "client.pem")
+	if err != nil {
+		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
+		err = nil
+	}
+
 	// Create a new directory to put the credential.
 	creds := path + string(os.PathSeparator) + address
+
+	// Return the existing paths...
+	if Utility.Exists(creds) &&
+		Utility.Exists(creds+string(os.PathSeparator)+"client.pem") &&
+		Utility.Exists(creds+string(os.PathSeparator)+"client.crt") &&
+		Utility.Exists(creds+string(os.PathSeparator)+"ca.crt") {
+		info, _ := os.Stat(creds)
+
+		// test if the certificate are older than 5 mount.
+		if info.ModTime().Add(24*30*5*time.Hour).Unix() < time.Now().Unix() {
+			os.RemoveAll(creds)
+		} else {
+
+			keyPath = creds + string(os.PathSeparator) + "client.pem"
+			certPath = creds + string(os.PathSeparator) + "client.crt"
+			caPath = creds + string(os.PathSeparator) + "ca.crt"
+			return
+		}
+	}
+
 	Utility.CreateDirIfNotExist(creds)
 
 	// I will connect to the certificate authority of the server where the application must
@@ -208,14 +240,14 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	ca_crt, err := getCaCertificate(address)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Write the ca.crt file on the disk
-	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"ca.crt", []byte(ca_crt), 0400)
+	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"ca.crt", []byte(ca_crt), 0664)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Now I will generate the certificate for the client...
@@ -223,35 +255,35 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	err = GenerateClientPrivateKey(creds, pwd)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Step 2: Generate the client signing request.
 	err = GenerateClientCertificateSigningRequest(creds, pwd, address)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Step 3: Generate client signed certificate.
 	client_csr, err := ioutil.ReadFile(creds + string(os.PathSeparator) + "client.csr")
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Sign the certificate from the server ca...
 	client_crt, err := signCaCertificate(address, string(client_csr))
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Write bact the client certificate in file on the disk
-	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"client.crt", []byte(client_crt), 0400)
+	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"client.crt", []byte(client_crt), 0664)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// Now ask the ca to sign the certificate.
@@ -260,7 +292,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	err = KeyToPem("client", creds, pwd)
 	if err != nil {
 		log.Println(err)
-		return
+		return "", "", "", err
 	}
 
 	// set the credential paths.

@@ -112,7 +112,7 @@ type Globule struct {
 	LdapSyncInfos              map[string]interface{} // Contain LdapSyncInfos...
 	ExternalApplications       map[string]ExternalApplication
 	Domain                     string   // The domain (subdomain) name of your application
-	DNS                        []string // Contain a list of domain name server where that computer use as sub-domain
+	DNS                        []string // Domain name server use to located the server.
 	SessionTimeout             time.Duration
 	CertExpirationDelay        int
 	CertPassword               string
@@ -145,10 +145,17 @@ type Globule struct {
 	jwtKey       []byte
 	RootPassword string
 
+	// A remote database can be use here to store globular ressource information.
+	PersistenceHost     string
+	PersistenceUser     string
+	PersistencePassword string
+	PersistencePort     int
+
 	// client reference...
 	persistence_client_ *persistence_client.Persistence_Client
-	ldap_client_        *ldap_client.LDAP_Client
-	event_client_       *event_client.Event_Client
+
+	ldap_client_  *ldap_client.LDAP_Client
+	event_client_ *event_client.Event_Client
 }
 
 /**
@@ -180,6 +187,12 @@ func NewGlobule() *Globule {
 	g.ServicesRepositoryProxy = 10008
 	g.CertificateAuthorityPort = 10009
 	g.CertificateAuthorityProxy = 10010
+
+	// Set default persitence information
+	g.PersistenceHost = g.Domain // Local persistence service.
+	g.PersistencePort = 27017
+	g.PersistenceUser = "sa"               // can be other user
+	g.PersistencePassword = g.RootPassword // the user password on the backend.
 
 	// set default values.
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
@@ -362,8 +375,6 @@ func (self *Globule) Serve() {
 
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
-	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
-	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
 
 	// Here I will kill proxies if there are running.
 	Utility.KillProcessByName("grpcwebproxy")
@@ -445,9 +456,14 @@ func (self *Globule) createApplicationConnection() error {
 		return err
 	}
 
+	host := self.PersistenceHost
+	if host == self.Domain {
+		host = "0.0.0.0" // set it local.
+	}
+
 	for i := 0; i < len(applications); i++ {
 		// Open the user database connection.
-		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "localhost", 27017, 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
+		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", host, float64(self.PersistencePort), 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -466,19 +482,15 @@ func (self *Globule) registerIpToDns() error {
 				log.Println("register domain to dns:", self.DNS[i])
 				client, err := dns_client.NewDns_Client(self.DNS[i], "dns_server")
 				if err != nil {
+					log.Println("fail to connecto to dns server ", err)
 					return err
 				}
 
 				domain := self.Domain
-
-				if len(self.Name) == 0 {
-					domain = "www." + domain
-				} else {
-					domain = self.Name + "." + domain
-				}
 				_, err = client.SetA(domain, Utility.MyIP(), 60)
 
 				if err != nil {
+					log.Println("fail to bind address ", Utility.MyIP(), "with domain", domain, err)
 					return err
 				}
 
@@ -593,8 +605,9 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	var err error
 
-	// test if the service is distant or not.
-	if !Utility.IsLocal(s["Domain"].(string)) {
+	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+
+	if !Utility.IsLocal(s["Domain"].(string)) && string(root) != self.path {
 		return -1, -1, errors.New("Can not start a distant service localy!")
 	}
 
@@ -846,7 +859,6 @@ func (self *Globule) initServices() {
 
 	// Rescan the proto file and update the role after.
 	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return nil
@@ -1466,7 +1478,11 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 			return err
 		}
 
-		err = p.CreateConnection(name+"_db", name+"_db", "localhost", 27017, 0, name, application["password"].(string), 5000, "", false)
+		host := self.PersistenceHost
+		if host == self.Domain {
+			host = "0.0.0.0" // set it local.
+		}
+		err = p.CreateConnection(name+"_db", name+"_db", host, float64(self.PersistencePort), 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -1614,13 +1630,20 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	var err error
 
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.Domain, "persistence_server")
+	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.PersistenceHost, "persistence_server")
 	if err != nil {
+		log.Println("fail to connect to persistence server ", err)
 		return nil, err
 	}
 
+	// Set the local connection.
+	host := self.PersistenceHost
+	if host == self.Domain {
+		host = "0.0.0.0" // set it local.
+	}
+
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", host, float64(self.PersistencePort), 0, self.PersistenceUser, self.PersistencePassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -2146,8 +2169,8 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *admin.Uninstall
 
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
-
-	if !Utility.IsLocal(config["Domain"].(string)) {
+	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	if !Utility.IsLocal(config["Domain"].(string)) && string(root) != self.path {
 		return false
 	}
 
@@ -2236,6 +2259,13 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 		self.ServicesRepositoryProxy = Utility.ToInt(config["ServicesRepositoryProxy"].(float64))
 		self.CertificateAuthorityPort = Utility.ToInt(config["CertificateAuthorityPort"].(float64))
 		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
+
+		// Persistence client service.
+		self.PersistenceHost = config["PersistenceHost"].(string)
+		self.PersistencePassword = config["PersistencePassword"].(string)
+		self.PersistenceUser = config["PersistenceUser"].(string)
+		self.PersistencePort = Utility.ToInt(config["PersistencePort"].(float64))
+
 		self.Protocol = config["Protocol"].(string)
 		self.Domain = config["Domain"].(string)
 		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
@@ -2552,6 +2582,11 @@ func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
+	// If the persistence server is remote.
+	if self.PersistenceHost != self.Domain {
+		return errors.New("Persistence service must be local to register sa")
+	}
+
 	// Here I will create super admin if it not already exist.
 	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
 
@@ -2609,6 +2644,9 @@ func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 	var err error
 	if self.ldap_client_ == nil {
 		self.ldap_client_, err = ldap_client.NewLdap_Client(self.Domain, "ldap_server")
+	}
+	if err != nil {
+		log.Println("fail to connect to ldap server ", err)
 	}
 	return self.ldap_client_, err
 }
@@ -2819,7 +2857,12 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 		return err
 	}
 
-	err = p.CreateConnection(name+"_db", name+"_db", "localhost", 27017, 0, name, password, 5000, "", false)
+	host := self.PersistenceHost
+	if host == self.Domain {
+		host = "0.0.0.0" // set it local.
+	}
+
+	err = p.CreateConnection(name+"_db", name+"_db", host, float64(self.PersistencePort), 0, name, password, 5000, "", false)
 	if err != nil {
 		return errors.New("No persistence service are available to store ressource information.")
 	}
@@ -2934,7 +2977,6 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 
 	if objects[0]["password"].(string) != Utility.GenerateUUID(rqst.Password) {
 		// Here I will try to made use of ldap if there is a service configure.ldap
-
 		err := ldap_.Authenticate("", objects[0]["name"].(string), rqst.Password)
 		if err != nil {
 			return nil, status.Errorf(
@@ -2949,11 +2991,6 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-	} else {
-		err := errors.New("wrong password for account " + objects[0]["name"].(string))
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Generate a token to identify the user.
@@ -2967,8 +3004,13 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	name_ := objects[0]["name"].(string)
 	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")
 
+	host := self.PersistenceHost
+	if host == self.Domain {
+		host = "0.0.0.0" // set it local.
+	}
+
 	// Open the user database connection.
-	err = p.CreateConnection(name_+"_db", name_+"_db", "localhost", 27017, 0, name_, rqst.Password, 5000, "", false)
+	err = p.CreateConnection(name_+"_db", name_+"_db", host, float64(self.PersistencePort), 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -6167,7 +6209,6 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
  * Listen for new connection.
  */
 func (self *Globule) Listen() error {
-
 	// append itself to service discoveries...
 	if !Utility.Contains(self.Discoveries, self.Domain) {
 		self.Discoveries = append(self.Discoveries, self.Domain)
@@ -6178,37 +6219,36 @@ func (self *Globule) Listen() error {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event_server")
-		if err != nil {
-			return err
-		}
-		subscribers[self.Discoveries[i]] = make(map[string][]string)
-		for _, s := range self.Services {
-			if s.(map[string]interface{})["PublisherId"] != nil {
-				id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
-				if subscribers[self.Discoveries[i]][id] == nil {
-					subscribers[self.Discoveries[i]][id] = make([]string, 0)
-				}
-				// each channel has it event...
-				uuid := Utility.RandomUUID()
-				fct := func(evt *eventpb.Event) {
-					descriptor := new(services.ServiceDescriptor)
-					json.Unmarshal(evt.GetData(), descriptor)
-					// here I will update the service if it's version is lower
-					for _, s := range self.Services {
-						service := s.(map[string]interface{})
-						if service["PublisherId"] != nil {
-							if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
-								if service["KeepUpToDate"] != nil {
-									if service["KeepUpToDate"].(bool) {
-										// Test if update is needed...
-										if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
-											if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
-												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-													self.stopService(service["Id"].(string))
-													delete(self.Services, service["Id"].(string))
-													err := self.installService(descriptor)
-													if err != nil {
-														log.Println("fail to install service ", err)
+		if err == nil {
+			subscribers[self.Discoveries[i]] = make(map[string][]string)
+			for _, s := range self.Services {
+				if s.(map[string]interface{})["PublisherId"] != nil {
+					id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
+					if subscribers[self.Discoveries[i]][id] == nil {
+						subscribers[self.Discoveries[i]][id] = make([]string, 0)
+					}
+					// each channel has it event...
+					uuid := Utility.RandomUUID()
+					fct := func(evt *eventpb.Event) {
+						descriptor := new(services.ServiceDescriptor)
+						json.Unmarshal(evt.GetData(), descriptor)
+						// here I will update the service if it's version is lower
+						for _, s := range self.Services {
+							service := s.(map[string]interface{})
+							if service["PublisherId"] != nil {
+								if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
+									if service["KeepUpToDate"] != nil {
+										if service["KeepUpToDate"].(bool) {
+											// Test if update is needed...
+											if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
+												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
+													if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) > Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
+														self.stopService(service["Id"].(string))
+														delete(self.Services, service["Id"].(string))
+														err := self.installService(descriptor)
+														if err != nil {
+															log.Println("fail to install service ", err)
+														}
 													}
 												}
 											}
@@ -6218,11 +6258,11 @@ func (self *Globule) Listen() error {
 							}
 						}
 					}
-				}
 
-				// So here I will subscribe to service update event.
-				eventHub.Subscribe(id, uuid, fct)
-				subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+					// So here I will subscribe to service update event.
+					eventHub.Subscribe(id, uuid, fct)
+					subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+				}
 			}
 		}
 		// keep on memorie...
@@ -6481,6 +6521,12 @@ func (self *Globule) Listen() error {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
+	// Handle the get ca certificate function
+	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+
+	// Handle the signing certificate function.
+	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
+
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	// handle the Interrupt
 	// set the register sa user.
@@ -6520,6 +6566,8 @@ func (self *Globule) Listen() error {
 				log.Println(err)
 			}
 		}
+
+		log.Println("start https server")
 		// get the value from the configuration files.
 		err := server.ListenAndServeTLS(self.certs+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
 		if err != nil {
@@ -6527,7 +6575,7 @@ func (self *Globule) Listen() error {
 		}
 
 	} else {
-
+		log.Println("start http server")
 		// local - non secure connection.
 		http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}

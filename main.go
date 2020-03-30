@@ -191,6 +191,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	// Authenticate the user in order to get the token
 	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
 	if err != nil {
+		log.Println("fail to access ressource service at "+address+" with error ", err)
 		return err
 	}
 
@@ -233,6 +234,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	// Authenticate the user in order to get the token
 	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
 	if err != nil {
+		log.Panicln(err)
 		return err
 	}
 
@@ -397,56 +399,58 @@ COPY services /globular/services
 			name := s["Name"].(string)
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
-			configPath := dir + s["configPath"].(string)
-			if Utility.Exists(configPath) {
-				log.Println("install service ", name)
-				bytes, err := ioutil.ReadFile(configPath)
-				config := make(map[string]interface{}, 0)
-				json.Unmarshal(bytes, &config)
+			if s["configPath"] != nil {
+				configPath := dir + s["configPath"].(string)
+				if Utility.Exists(configPath) {
+					log.Println("install service ", name)
+					bytes, err := ioutil.ReadFile(configPath)
+					config := make(map[string]interface{}, 0)
+					json.Unmarshal(bytes, &config)
 
-				if err == nil {
-					// set the name.
-					if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["servicePath"] != nil {
+					if err == nil {
+						// set the name.
+						if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["servicePath"] != nil {
 
-						execPath := dir + s["servicePath"].(string)
-						protoPath := dir + s["protoPath"].(string)
+							execPath := dir + s["servicePath"].(string)
+							protoPath := dir + s["protoPath"].(string)
 
-						if Utility.Exists(execPath) && Utility.Exists(protoPath) {
+							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 
-							var serviceDir = path + string(os.PathSeparator) + "services"
-							if len(config["PublisherId"].(string)) == 0 {
-								serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
-							} else {
-								serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
-							}
+								var serviceDir = path + string(os.PathSeparator) + "services"
+								if len(config["PublisherId"].(string)) == 0 {
+									serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+								} else {
+									serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+								}
 
-							Utility.CreateDirIfNotExist(serviceDir)
-							destPath := serviceDir + string(os.PathSeparator) + name
-							if string(os.PathSeparator) == "\\" {
-								execPath += ".exe" // in case of windows
-								destPath += ".exe"
-							}
+								Utility.CreateDirIfNotExist(serviceDir)
+								destPath := serviceDir + string(os.PathSeparator) + name
+								if string(os.PathSeparator) == "\\" {
+									execPath += ".exe" // in case of windows
+									destPath += ".exe"
+								}
 
-							err := Utility.Copy(execPath, destPath)
-							if err != nil {
+								err := Utility.Copy(execPath, destPath)
+								if err != nil {
 
-								log.Panicln(execPath, destPath, err)
-							}
+									log.Panicln(execPath, destPath, err)
+								}
 
-							// Set execute permission
-							err = os.Chmod(destPath, 0755)
-							if err != nil {
-								fmt.Println(err)
-							}
+								// Set execute permission
+								err = os.Chmod(destPath, 0755)
+								if err != nil {
+									fmt.Println(err)
+								}
 
-							// Copy the service config file.
-							if Utility.Exists(configPath) {
-								Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
-							}
+								// Copy the service config file.
+								if Utility.Exists(configPath) {
+									Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
+								}
 
-							// Copy the proto file.
-							if Utility.Exists(protoPath) {
-								Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
+								// Copy the proto file.
+								if Utility.Exists(protoPath) {
+									Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
+								}
 							}
 						}
 					}

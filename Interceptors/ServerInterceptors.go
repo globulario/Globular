@@ -16,8 +16,6 @@ import "strings"
 import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
 
-//import "github.com/davecourtois/Utility"
-
 var (
 	ressource_client *ressource.Ressource_Client
 )
@@ -248,10 +246,10 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	method := info.FullMethod
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := false // ip == Utility.MyLocalIP()
+	hasAccess := false
 
 	// needed to get access to the system.
-	if method == "/admin.AdminService/GetConfig" {
+	if method == "/admin.AdminService/GetConfig" || method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" {
 		hasAccess = true
 	}
 
@@ -260,7 +258,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		if clientId == "sa" {
 			hasAccess = true
 		}
+	} else if len(clientId) > 0 {
+		// Here the error is not nil and the token is not a valid
+		return nil, err
 	}
+
+	fmt.Println("validate access for", clientId, method, domain, application)
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
@@ -273,14 +276,9 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	}
 
 	if !hasAccess {
-		err := errors.New("Permission denied to execute method " + method)
-		ressource_client, err := getRessourceClient(domain)
-		if err != nil {
-			return nil, err
-		}
-
+		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
+		fmt.Println(err)
 		ressource_client.Log(application, clientId, method, err)
-		log.Println(err)
 		return nil, err
 	}
 
