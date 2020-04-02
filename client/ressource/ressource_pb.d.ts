@@ -609,19 +609,15 @@ export class RessourcePermission extends jspb.Message {
 
   getUser(): string;
   setUser(value: string): void;
-  hasUser(): boolean;
 
   getRole(): string;
   setRole(value: string): void;
-  hasRole(): boolean;
 
   getApplication(): string;
   setApplication(value: string): void;
-  hasApplication(): boolean;
 
   getService(): string;
   setService(value: string): void;
-  hasService(): boolean;
 
   getOwnerCase(): RessourcePermission.OwnerCase;
 
@@ -1605,8 +1601,10 @@ export namespace LogRsp {
 }
 
 export class DeleteLogRqst extends jspb.Message {
-  getDate(): number;
-  setDate(value: number): void;
+  getLog(): LogInfo | undefined;
+  setLog(value?: LogInfo): void;
+  hasLog(): boolean;
+  clearLog(): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): DeleteLogRqst.AsObject;
@@ -1618,7 +1616,7 @@ export class DeleteLogRqst extends jspb.Message {
 
 export namespace DeleteLogRqst {
   export type AsObject = {
-    date: number,
+    log?: LogInfo.AsObject,
   }
 }
 

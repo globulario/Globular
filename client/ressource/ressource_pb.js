@@ -1,3 +1,4 @@
+// source: ressource/ressource.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -92,6 +93,7 @@ goog.exportSymbol('proto.ressource.ResetLogMethodRqst', null, global);
 goog.exportSymbol('proto.ressource.ResetLogMethodRsp', null, global);
 goog.exportSymbol('proto.ressource.Ressource', null, global);
 goog.exportSymbol('proto.ressource.RessourcePermission', null, global);
+goog.exportSymbol('proto.ressource.RessourcePermission.OwnerCase', null, global);
 goog.exportSymbol('proto.ressource.Role', null, global);
 goog.exportSymbol('proto.ressource.SetActionPermissionRqst', null, global);
 goog.exportSymbol('proto.ressource.SetActionPermissionRsp', null, global);
@@ -2413,9 +2415,12 @@ proto.ressource.Account.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Account} returns this
+ */
 proto.ressource.Account.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2428,9 +2433,12 @@ proto.ressource.Account.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Account} returns this
+ */
 proto.ressource.Account.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2443,9 +2451,12 @@ proto.ressource.Account.prototype.getEmail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Account} returns this
+ */
 proto.ressource.Account.prototype.setEmail = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -2458,9 +2469,12 @@ proto.ressource.Account.prototype.getPassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Account} returns this
+ */
 proto.ressource.Account.prototype.setPassword = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -2616,9 +2630,12 @@ proto.ressource.Role.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Role} returns this
+ */
 proto.ressource.Role.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2631,9 +2648,12 @@ proto.ressource.Role.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Role} returns this
+ */
 proto.ressource.Role.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2646,26 +2666,31 @@ proto.ressource.Role.prototype.getActionsList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ressource.Role} returns this
+ */
 proto.ressource.Role.prototype.setActionsList = function(value) {
-  jspb.Message.setField(this, 3, value || []);
+  return jspb.Message.setField(this, 3, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.ressource.Role} returns this
  */
 proto.ressource.Role.prototype.addActions = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.Role} returns this
  */
 proto.ressource.Role.prototype.clearActionsList = function() {
-  this.setActionsList([]);
+  return this.setActionsList([]);
 };
 
 
@@ -2817,17 +2842,21 @@ proto.ressource.RegisterAccountRqst.prototype.getAccount = function() {
 };
 
 
-/** @param {?proto.ressource.Account|undefined} value */
+/**
+ * @param {?proto.ressource.Account|undefined} value
+ * @return {!proto.ressource.RegisterAccountRqst} returns this
+*/
 proto.ressource.RegisterAccountRqst.prototype.setAccount = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.RegisterAccountRqst} returns this
  */
 proto.ressource.RegisterAccountRqst.prototype.clearAccount = function() {
-  this.setAccount(undefined);
+  return this.setAccount(undefined);
 };
 
 
@@ -2849,9 +2878,12 @@ proto.ressource.RegisterAccountRqst.prototype.getPassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RegisterAccountRqst} returns this
+ */
 proto.ressource.RegisterAccountRqst.prototype.setPassword = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2864,9 +2896,12 @@ proto.ressource.RegisterAccountRqst.prototype.getConfirmPassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RegisterAccountRqst} returns this
+ */
 proto.ressource.RegisterAccountRqst.prototype.setConfirmPassword = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -2991,9 +3026,12 @@ proto.ressource.RegisterAccountRsp.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RegisterAccountRsp} returns this
+ */
 proto.ressource.RegisterAccountRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3118,9 +3156,12 @@ proto.ressource.DeleteAccountRqst.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteAccountRqst} returns this
+ */
 proto.ressource.DeleteAccountRqst.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3245,9 +3286,12 @@ proto.ressource.DeleteAccountRsp.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteAccountRsp} returns this
+ */
 proto.ressource.DeleteAccountRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3384,9 +3428,12 @@ proto.ressource.AuthenticateRqst.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AuthenticateRqst} returns this
+ */
 proto.ressource.AuthenticateRqst.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3399,9 +3446,12 @@ proto.ressource.AuthenticateRqst.prototype.getPassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AuthenticateRqst} returns this
+ */
 proto.ressource.AuthenticateRqst.prototype.setPassword = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -3526,9 +3576,12 @@ proto.ressource.AuthenticateRsp.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AuthenticateRsp} returns this
+ */
 proto.ressource.AuthenticateRsp.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3653,9 +3706,12 @@ proto.ressource.RefreshTokenRqst.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RefreshTokenRqst} returns this
+ */
 proto.ressource.RefreshTokenRqst.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3780,9 +3836,12 @@ proto.ressource.RefreshTokenRsp.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RefreshTokenRsp} returns this
+ */
 proto.ressource.RefreshTokenRsp.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3919,9 +3978,12 @@ proto.ressource.AddAccountRoleRqst.prototype.getAccountid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddAccountRoleRqst} returns this
+ */
 proto.ressource.AddAccountRoleRqst.prototype.setAccountid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3934,9 +3996,12 @@ proto.ressource.AddAccountRoleRqst.prototype.getRoleid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddAccountRoleRqst} returns this
+ */
 proto.ressource.AddAccountRoleRqst.prototype.setRoleid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -4061,9 +4126,12 @@ proto.ressource.AddAccountRoleRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.AddAccountRoleRsp} returns this
+ */
 proto.ressource.AddAccountRoleRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4200,9 +4268,12 @@ proto.ressource.RemoveAccountRoleRqst.prototype.getAccountid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveAccountRoleRqst} returns this
+ */
 proto.ressource.RemoveAccountRoleRqst.prototype.setAccountid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -4215,9 +4286,12 @@ proto.ressource.RemoveAccountRoleRqst.prototype.getRoleid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveAccountRoleRqst} returns this
+ */
 proto.ressource.RemoveAccountRoleRqst.prototype.setRoleid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -4342,9 +4416,12 @@ proto.ressource.RemoveAccountRoleRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemoveAccountRoleRsp} returns this
+ */
 proto.ressource.RemoveAccountRoleRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4472,17 +4549,21 @@ proto.ressource.CreateRoleRqst.prototype.getRole = function() {
 };
 
 
-/** @param {?proto.ressource.Role|undefined} value */
+/**
+ * @param {?proto.ressource.Role|undefined} value
+ * @return {!proto.ressource.CreateRoleRqst} returns this
+*/
 proto.ressource.CreateRoleRqst.prototype.setRole = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.CreateRoleRqst} returns this
  */
 proto.ressource.CreateRoleRqst.prototype.clearRole = function() {
-  this.setRole(undefined);
+  return this.setRole(undefined);
 };
 
 
@@ -4616,9 +4697,12 @@ proto.ressource.CreateRoleRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.CreateRoleRsp} returns this
+ */
 proto.ressource.CreateRoleRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4743,9 +4827,12 @@ proto.ressource.DeleteRoleRqst.prototype.getRoleid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteRoleRqst} returns this
+ */
 proto.ressource.DeleteRoleRqst.prototype.setRoleid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -4870,9 +4957,12 @@ proto.ressource.DeleteRoleRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteRoleRsp} returns this
+ */
 proto.ressource.DeleteRoleRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -5009,9 +5099,12 @@ proto.ressource.AddRoleActionRqst.prototype.getRoleid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddRoleActionRqst} returns this
+ */
 proto.ressource.AddRoleActionRqst.prototype.setRoleid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -5024,9 +5117,12 @@ proto.ressource.AddRoleActionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddRoleActionRqst} returns this
+ */
 proto.ressource.AddRoleActionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -5151,9 +5247,12 @@ proto.ressource.AddRoleActionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.AddRoleActionRsp} returns this
+ */
 proto.ressource.AddRoleActionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -5290,9 +5389,12 @@ proto.ressource.RemoveRoleActionRqst.prototype.getRoleid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveRoleActionRqst} returns this
+ */
 proto.ressource.RemoveRoleActionRqst.prototype.setRoleid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -5305,9 +5407,12 @@ proto.ressource.RemoveRoleActionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveRoleActionRqst} returns this
+ */
 proto.ressource.RemoveRoleActionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -5432,9 +5537,12 @@ proto.ressource.RemoveRoleActionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemoveRoleActionRsp} returns this
+ */
 proto.ressource.RemoveRoleActionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -5571,9 +5679,12 @@ proto.ressource.AddApplicationActionRqst.prototype.getApplicationid = function()
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddApplicationActionRqst} returns this
+ */
 proto.ressource.AddApplicationActionRqst.prototype.setApplicationid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -5586,9 +5697,12 @@ proto.ressource.AddApplicationActionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddApplicationActionRqst} returns this
+ */
 proto.ressource.AddApplicationActionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -5713,9 +5827,12 @@ proto.ressource.AddApplicationActionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.AddApplicationActionRsp} returns this
+ */
 proto.ressource.AddApplicationActionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -5852,9 +5969,12 @@ proto.ressource.RemoveApplicationActionRqst.prototype.getApplicationid = functio
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveApplicationActionRqst} returns this
+ */
 proto.ressource.RemoveApplicationActionRqst.prototype.setApplicationid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -5867,9 +5987,12 @@ proto.ressource.RemoveApplicationActionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveApplicationActionRqst} returns this
+ */
 proto.ressource.RemoveApplicationActionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -5994,9 +6117,12 @@ proto.ressource.RemoveApplicationActionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemoveApplicationActionRsp} returns this
+ */
 proto.ressource.RemoveApplicationActionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -6229,26 +6355,31 @@ proto.ressource.GetAllActionsRsp.prototype.getActionsList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ressource.GetAllActionsRsp} returns this
+ */
 proto.ressource.GetAllActionsRsp.prototype.setActionsList = function(value) {
-  jspb.Message.setField(this, 1, value || []);
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.ressource.GetAllActionsRsp} returns this
  */
 proto.ressource.GetAllActionsRsp.prototype.addActions = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetAllActionsRsp} returns this
  */
 proto.ressource.GetAllActionsRsp.prototype.clearActionsList = function() {
-  this.setActionsList([]);
+  return this.setActionsList([]);
 };
 
 
@@ -6373,9 +6504,12 @@ proto.ressource.DeleteApplicationRqst.prototype.getApplicationid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteApplicationRqst} returns this
+ */
 proto.ressource.DeleteApplicationRqst.prototype.setApplicationid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -6500,9 +6634,12 @@ proto.ressource.DeleteApplicationRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteApplicationRsp} returns this
+ */
 proto.ressource.DeleteApplicationRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -6715,9 +6852,12 @@ proto.ressource.RessourcePermission.prototype.getNumber = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setNumber = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -6730,9 +6870,12 @@ proto.ressource.RessourcePermission.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -6745,17 +6888,21 @@ proto.ressource.RessourcePermission.prototype.getUser = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setUser = function(value) {
-  jspb.Message.setOneofField(this, 3, proto.ressource.RessourcePermission.oneofGroups_[0], value);
+  return jspb.Message.setOneofField(this, 3, proto.ressource.RessourcePermission.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the field making it undefined.
+ * @return {!proto.ressource.RessourcePermission} returns this
  */
 proto.ressource.RessourcePermission.prototype.clearUser = function() {
-  jspb.Message.setOneofField(this, 3, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
+  return jspb.Message.setOneofField(this, 3, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
 };
 
 
@@ -6777,17 +6924,21 @@ proto.ressource.RessourcePermission.prototype.getRole = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setRole = function(value) {
-  jspb.Message.setOneofField(this, 4, proto.ressource.RessourcePermission.oneofGroups_[0], value);
+  return jspb.Message.setOneofField(this, 4, proto.ressource.RessourcePermission.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the field making it undefined.
+ * @return {!proto.ressource.RessourcePermission} returns this
  */
 proto.ressource.RessourcePermission.prototype.clearRole = function() {
-  jspb.Message.setOneofField(this, 4, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
+  return jspb.Message.setOneofField(this, 4, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
 };
 
 
@@ -6809,17 +6960,21 @@ proto.ressource.RessourcePermission.prototype.getApplication = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setApplication = function(value) {
-  jspb.Message.setOneofField(this, 5, proto.ressource.RessourcePermission.oneofGroups_[0], value);
+  return jspb.Message.setOneofField(this, 5, proto.ressource.RessourcePermission.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the field making it undefined.
+ * @return {!proto.ressource.RessourcePermission} returns this
  */
 proto.ressource.RessourcePermission.prototype.clearApplication = function() {
-  jspb.Message.setOneofField(this, 5, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
+  return jspb.Message.setOneofField(this, 5, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
 };
 
 
@@ -6841,17 +6996,21 @@ proto.ressource.RessourcePermission.prototype.getService = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
 proto.ressource.RessourcePermission.prototype.setService = function(value) {
-  jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], value);
+  return jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the field making it undefined.
+ * @return {!proto.ressource.RessourcePermission} returns this
  */
 proto.ressource.RessourcePermission.prototype.clearService = function() {
-  jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
+  return jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
 };
 
 
@@ -6985,9 +7144,12 @@ proto.ressource.GetPermissionsRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetPermissionsRqst} returns this
+ */
 proto.ressource.GetPermissionsRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -7112,9 +7274,12 @@ proto.ressource.GetPermissionsRsp.prototype.getPermissions = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetPermissionsRsp} returns this
+ */
 proto.ressource.GetPermissionsRsp.prototype.setPermissions = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -7242,17 +7407,21 @@ proto.ressource.SetPermissionRqst.prototype.getPermission = function() {
 };
 
 
-/** @param {?proto.ressource.RessourcePermission|undefined} value */
+/**
+ * @param {?proto.ressource.RessourcePermission|undefined} value
+ * @return {!proto.ressource.SetPermissionRqst} returns this
+*/
 proto.ressource.SetPermissionRqst.prototype.setPermission = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.SetPermissionRqst} returns this
  */
 proto.ressource.SetPermissionRqst.prototype.clearPermission = function() {
-  this.setPermission(undefined);
+  return this.setPermission(undefined);
 };
 
 
@@ -7386,9 +7555,12 @@ proto.ressource.SetPermissionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SetPermissionRsp} returns this
+ */
 proto.ressource.SetPermissionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -7525,9 +7697,12 @@ proto.ressource.DeletePermissionsRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeletePermissionsRqst} returns this
+ */
 proto.ressource.DeletePermissionsRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -7540,9 +7715,12 @@ proto.ressource.DeletePermissionsRqst.prototype.getOwner = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeletePermissionsRqst} returns this
+ */
 proto.ressource.DeletePermissionsRqst.prototype.setOwner = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -7667,9 +7845,12 @@ proto.ressource.DeletePermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeletePermissionsRsp} returns this
+ */
 proto.ressource.DeletePermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -7895,9 +8076,12 @@ proto.ressource.GetAllFilesInfoRsp.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetAllFilesInfoRsp} returns this
+ */
 proto.ressource.GetAllFilesInfoRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -8123,9 +8307,12 @@ proto.ressource.GetAllApplicationsInfoRsp.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetAllApplicationsInfoRsp} returns this
+ */
 proto.ressource.GetAllApplicationsInfoRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -8286,9 +8473,12 @@ proto.ressource.UserSyncInfos.prototype.getBase = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.UserSyncInfos} returns this
+ */
 proto.ressource.UserSyncInfos.prototype.setBase = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -8301,9 +8491,12 @@ proto.ressource.UserSyncInfos.prototype.getQuery = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.UserSyncInfos} returns this
+ */
 proto.ressource.UserSyncInfos.prototype.setQuery = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -8316,9 +8509,12 @@ proto.ressource.UserSyncInfos.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.UserSyncInfos} returns this
+ */
 proto.ressource.UserSyncInfos.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -8331,9 +8527,12 @@ proto.ressource.UserSyncInfos.prototype.getEmail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.UserSyncInfos} returns this
+ */
 proto.ressource.UserSyncInfos.prototype.setEmail = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -8482,9 +8681,12 @@ proto.ressource.GroupSyncInfos.prototype.getBase = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GroupSyncInfos} returns this
+ */
 proto.ressource.GroupSyncInfos.prototype.setBase = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -8497,9 +8699,12 @@ proto.ressource.GroupSyncInfos.prototype.getQuery = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GroupSyncInfos} returns this
+ */
 proto.ressource.GroupSyncInfos.prototype.setQuery = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -8512,9 +8717,12 @@ proto.ressource.GroupSyncInfos.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GroupSyncInfos} returns this
+ */
 proto.ressource.GroupSyncInfos.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -8691,9 +8899,12 @@ proto.ressource.LdapSyncInfos.prototype.getLdapseriveid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LdapSyncInfos} returns this
+ */
 proto.ressource.LdapSyncInfos.prototype.setLdapseriveid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -8706,9 +8917,12 @@ proto.ressource.LdapSyncInfos.prototype.getConnectionid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LdapSyncInfos} returns this
+ */
 proto.ressource.LdapSyncInfos.prototype.setConnectionid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -8721,9 +8935,12 @@ proto.ressource.LdapSyncInfos.prototype.getRefresh = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.LdapSyncInfos} returns this
+ */
 proto.ressource.LdapSyncInfos.prototype.setRefresh = function(value) {
-  jspb.Message.setProto3IntField(this, 3, value);
+  return jspb.Message.setProto3IntField(this, 3, value);
 };
 
 
@@ -8737,17 +8954,21 @@ proto.ressource.LdapSyncInfos.prototype.getUsersyncinfos = function() {
 };
 
 
-/** @param {?proto.ressource.UserSyncInfos|undefined} value */
+/**
+ * @param {?proto.ressource.UserSyncInfos|undefined} value
+ * @return {!proto.ressource.LdapSyncInfos} returns this
+*/
 proto.ressource.LdapSyncInfos.prototype.setUsersyncinfos = function(value) {
-  jspb.Message.setWrapperField(this, 4, value);
+  return jspb.Message.setWrapperField(this, 4, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.LdapSyncInfos} returns this
  */
 proto.ressource.LdapSyncInfos.prototype.clearUsersyncinfos = function() {
-  this.setUsersyncinfos(undefined);
+  return this.setUsersyncinfos(undefined);
 };
 
 
@@ -8770,17 +8991,21 @@ proto.ressource.LdapSyncInfos.prototype.getGroupsyncinfos = function() {
 };
 
 
-/** @param {?proto.ressource.GroupSyncInfos|undefined} value */
+/**
+ * @param {?proto.ressource.GroupSyncInfos|undefined} value
+ * @return {!proto.ressource.LdapSyncInfos} returns this
+*/
 proto.ressource.LdapSyncInfos.prototype.setGroupsyncinfos = function(value) {
-  jspb.Message.setWrapperField(this, 5, value);
+  return jspb.Message.setWrapperField(this, 5, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.LdapSyncInfos} returns this
  */
 proto.ressource.LdapSyncInfos.prototype.clearGroupsyncinfos = function() {
-  this.setGroupsyncinfos(undefined);
+  return this.setGroupsyncinfos(undefined);
 };
 
 
@@ -8917,17 +9142,21 @@ proto.ressource.SynchronizeLdapRqst.prototype.getSyncinfo = function() {
 };
 
 
-/** @param {?proto.ressource.LdapSyncInfos|undefined} value */
+/**
+ * @param {?proto.ressource.LdapSyncInfos|undefined} value
+ * @return {!proto.ressource.SynchronizeLdapRqst} returns this
+*/
 proto.ressource.SynchronizeLdapRqst.prototype.setSyncinfo = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.SynchronizeLdapRqst} returns this
  */
 proto.ressource.SynchronizeLdapRqst.prototype.clearSyncinfo = function() {
-  this.setSyncinfo(undefined);
+  return this.setSyncinfo(undefined);
 };
 
 
@@ -9061,9 +9290,12 @@ proto.ressource.SynchronizeLdapRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SynchronizeLdapRsp} returns this
+ */
 proto.ressource.SynchronizeLdapRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -9200,9 +9432,12 @@ proto.ressource.SetRessourceOwnerRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.SetRessourceOwnerRqst} returns this
+ */
 proto.ressource.SetRessourceOwnerRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -9215,9 +9450,12 @@ proto.ressource.SetRessourceOwnerRqst.prototype.getOwner = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.SetRessourceOwnerRqst} returns this
+ */
 proto.ressource.SetRessourceOwnerRqst.prototype.setOwner = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -9342,9 +9580,12 @@ proto.ressource.SetRessourceOwnerRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SetRessourceOwnerRsp} returns this
+ */
 proto.ressource.SetRessourceOwnerRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -9469,9 +9710,12 @@ proto.ressource.GetRessourceOwnersRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetRessourceOwnersRqst} returns this
+ */
 proto.ressource.GetRessourceOwnersRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -9603,26 +9847,31 @@ proto.ressource.GetRessourceOwnersRsp.prototype.getOwnersList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ressource.GetRessourceOwnersRsp} returns this
+ */
 proto.ressource.GetRessourceOwnersRsp.prototype.setOwnersList = function(value) {
-  jspb.Message.setField(this, 1, value || []);
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.ressource.GetRessourceOwnersRsp} returns this
  */
 proto.ressource.GetRessourceOwnersRsp.prototype.addOwners = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetRessourceOwnersRsp} returns this
  */
 proto.ressource.GetRessourceOwnersRsp.prototype.clearOwnersList = function() {
-  this.setOwnersList([]);
+  return this.setOwnersList([]);
 };
 
 
@@ -9759,9 +10008,12 @@ proto.ressource.DeleteRessourceOwnerRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteRessourceOwnerRqst} returns this
+ */
 proto.ressource.DeleteRessourceOwnerRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -9774,9 +10026,12 @@ proto.ressource.DeleteRessourceOwnerRqst.prototype.getOwner = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteRessourceOwnerRqst} returns this
+ */
 proto.ressource.DeleteRessourceOwnerRqst.prototype.setOwner = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -9901,9 +10156,12 @@ proto.ressource.DeleteRessourceOwnerRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteRessourceOwnerRsp} returns this
+ */
 proto.ressource.DeleteRessourceOwnerRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -10028,9 +10286,12 @@ proto.ressource.DeleteRessourceOwnersRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteRessourceOwnersRqst} returns this
+ */
 proto.ressource.DeleteRessourceOwnersRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -10155,9 +10416,12 @@ proto.ressource.DeleteRessourceOwnersRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteRessourceOwnersRsp} returns this
+ */
 proto.ressource.DeleteRessourceOwnersRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -10294,9 +10558,12 @@ proto.ressource.ValidateApplicationAccessRqst.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateApplicationAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationAccessRqst.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -10309,9 +10576,12 @@ proto.ressource.ValidateApplicationAccessRqst.prototype.getMethod = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateApplicationAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationAccessRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -10436,9 +10706,12 @@ proto.ressource.ValidateApplicationAccessRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidateApplicationAccessRsp} returns this
+ */
 proto.ressource.ValidateApplicationAccessRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -10575,9 +10848,12 @@ proto.ressource.ValidateUserAccessRqst.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateUserAccessRqst} returns this
+ */
 proto.ressource.ValidateUserAccessRqst.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -10590,9 +10866,12 @@ proto.ressource.ValidateUserAccessRqst.prototype.getMethod = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateUserAccessRqst} returns this
+ */
 proto.ressource.ValidateUserAccessRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -10717,9 +10996,12 @@ proto.ressource.ValidateUserAccessRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidateUserAccessRsp} returns this
+ */
 proto.ressource.ValidateUserAccessRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -10880,9 +11162,12 @@ proto.ressource.ValidateUserRessourceAccessRqst.prototype.getToken = function() 
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateUserRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -10895,9 +11180,12 @@ proto.ressource.ValidateUserRessourceAccessRqst.prototype.getMethod = function()
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateUserRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -10910,9 +11198,12 @@ proto.ressource.ValidateUserRessourceAccessRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateUserRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -10925,9 +11216,12 @@ proto.ressource.ValidateUserRessourceAccessRqst.prototype.getPermission = functi
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.ValidateUserRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateUserRessourceAccessRqst.prototype.setPermission = function(value) {
-  jspb.Message.setProto3IntField(this, 4, value);
+  return jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -11052,9 +11346,12 @@ proto.ressource.ValidateUserRessourceAccessRsp.prototype.getResult = function() 
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidateUserRessourceAccessRsp} returns this
+ */
 proto.ressource.ValidateUserRessourceAccessRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -11215,9 +11512,12 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.getName = funct
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateApplicationRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -11230,9 +11530,12 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.getMethod = fun
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateApplicationRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -11245,9 +11548,12 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.getPath = funct
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateApplicationRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -11260,9 +11566,12 @@ proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.getPermission =
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.ValidateApplicationRessourceAccessRqst} returns this
+ */
 proto.ressource.ValidateApplicationRessourceAccessRqst.prototype.setPermission = function(value) {
-  jspb.Message.setProto3IntField(this, 4, value);
+  return jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -11387,9 +11696,12 @@ proto.ressource.ValidateApplicationRessourceAccessRsp.prototype.getResult = func
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidateApplicationRessourceAccessRsp} returns this
+ */
 proto.ressource.ValidateApplicationRessourceAccessRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -11538,9 +11850,12 @@ proto.ressource.CreateDirPermissionsRqst.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.CreateDirPermissionsRqst} returns this
+ */
 proto.ressource.CreateDirPermissionsRqst.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -11553,9 +11868,12 @@ proto.ressource.CreateDirPermissionsRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.CreateDirPermissionsRqst} returns this
+ */
 proto.ressource.CreateDirPermissionsRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -11568,9 +11886,12 @@ proto.ressource.CreateDirPermissionsRqst.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.CreateDirPermissionsRqst} returns this
+ */
 proto.ressource.CreateDirPermissionsRqst.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -11695,9 +12016,12 @@ proto.ressource.CreateDirPermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.CreateDirPermissionsRsp} returns this
+ */
 proto.ressource.CreateDirPermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -11846,9 +12170,12 @@ proto.ressource.RenameFilePermissionRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RenameFilePermissionRqst} returns this
+ */
 proto.ressource.RenameFilePermissionRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -11861,9 +12188,12 @@ proto.ressource.RenameFilePermissionRqst.prototype.getOldname = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RenameFilePermissionRqst} returns this
+ */
 proto.ressource.RenameFilePermissionRqst.prototype.setOldname = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -11876,9 +12206,12 @@ proto.ressource.RenameFilePermissionRqst.prototype.getNewname = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RenameFilePermissionRqst} returns this
+ */
 proto.ressource.RenameFilePermissionRqst.prototype.setNewname = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -12003,9 +12336,12 @@ proto.ressource.RenameFilePermissionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RenameFilePermissionRsp} returns this
+ */
 proto.ressource.RenameFilePermissionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -12130,9 +12466,12 @@ proto.ressource.DeleteDirPermissionsRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteDirPermissionsRqst} returns this
+ */
 proto.ressource.DeleteDirPermissionsRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -12257,9 +12596,12 @@ proto.ressource.DeleteDirPermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteDirPermissionsRsp} returns this
+ */
 proto.ressource.DeleteDirPermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -12384,9 +12726,12 @@ proto.ressource.DeleteFilePermissionsRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteFilePermissionsRqst} returns this
+ */
 proto.ressource.DeleteFilePermissionsRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -12511,9 +12856,12 @@ proto.ressource.DeleteFilePermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteFilePermissionsRsp} returns this
+ */
 proto.ressource.DeleteFilePermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -12638,9 +12986,12 @@ proto.ressource.DeleteAccountPermissionsRqst.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteAccountPermissionsRqst} returns this
+ */
 proto.ressource.DeleteAccountPermissionsRqst.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -12765,9 +13116,12 @@ proto.ressource.DeleteAccountPermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteAccountPermissionsRsp} returns this
+ */
 proto.ressource.DeleteAccountPermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -12892,9 +13246,12 @@ proto.ressource.DeleteRolePermissionsRqst.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.DeleteRolePermissionsRqst} returns this
+ */
 proto.ressource.DeleteRolePermissionsRqst.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -13019,9 +13376,12 @@ proto.ressource.DeleteRolePermissionsRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteRolePermissionsRsp} returns this
+ */
 proto.ressource.DeleteRolePermissionsRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -13218,9 +13578,12 @@ proto.ressource.LogInfo.prototype.getDate = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setDate = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -13233,9 +13596,12 @@ proto.ressource.LogInfo.prototype.getType = function() {
 };
 
 
-/** @param {!proto.ressource.LogType} value */
+/**
+ * @param {!proto.ressource.LogType} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setType = function(value) {
-  jspb.Message.setProto3EnumField(this, 2, value);
+  return jspb.Message.setProto3EnumField(this, 2, value);
 };
 
 
@@ -13248,9 +13614,12 @@ proto.ressource.LogInfo.prototype.getApplication = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setApplication = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -13263,9 +13632,12 @@ proto.ressource.LogInfo.prototype.getUserid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setUserid = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -13278,9 +13650,12 @@ proto.ressource.LogInfo.prototype.getUsername = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setUsername = function(value) {
-  jspb.Message.setProto3StringField(this, 5, value);
+  return jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -13293,9 +13668,12 @@ proto.ressource.LogInfo.prototype.getMethod = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 6, value);
+  return jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -13308,9 +13686,12 @@ proto.ressource.LogInfo.prototype.getMessage = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.LogInfo} returns this
+ */
 proto.ressource.LogInfo.prototype.setMessage = function(value) {
-  jspb.Message.setProto3StringField(this, 7, value);
+  return jspb.Message.setProto3StringField(this, 7, value);
 };
 
 
@@ -13438,17 +13819,21 @@ proto.ressource.LogRqst.prototype.getInfo = function() {
 };
 
 
-/** @param {?proto.ressource.LogInfo|undefined} value */
+/**
+ * @param {?proto.ressource.LogInfo|undefined} value
+ * @return {!proto.ressource.LogRqst} returns this
+*/
 proto.ressource.LogRqst.prototype.setInfo = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.LogRqst} returns this
  */
 proto.ressource.LogRqst.prototype.clearInfo = function() {
-  this.setInfo(undefined);
+  return this.setInfo(undefined);
 };
 
 
@@ -13582,9 +13967,12 @@ proto.ressource.LogRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.LogRsp} returns this
+ */
 proto.ressource.LogRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -13620,7 +14008,7 @@ proto.ressource.DeleteLogRqst.prototype.toObject = function(opt_includeInstance)
  */
 proto.ressource.DeleteLogRqst.toObject = function(includeInstance, msg) {
   var f, obj = {
-    date: jspb.Message.getFieldWithDefault(msg, 1, 0)
+    log: (f = msg.getLog()) && proto.ressource.LogInfo.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -13658,8 +14046,9 @@ proto.ressource.DeleteLogRqst.deserializeBinaryFromReader = function(msg, reader
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setDate(value);
+      var value = new proto.ressource.LogInfo;
+      reader.readMessage(value,proto.ressource.LogInfo.deserializeBinaryFromReader);
+      msg.setLog(value);
       break;
     default:
       reader.skipField();
@@ -13690,28 +14079,51 @@ proto.ressource.DeleteLogRqst.prototype.serializeBinary = function() {
  */
 proto.ressource.DeleteLogRqst.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getDate();
-  if (f !== 0) {
-    writer.writeInt64(
+  f = message.getLog();
+  if (f != null) {
+    writer.writeMessage(
       1,
-      f
+      f,
+      proto.ressource.LogInfo.serializeBinaryToWriter
     );
   }
 };
 
 
 /**
- * optional int64 date = 1;
- * @return {number}
+ * optional LogInfo log = 1;
+ * @return {?proto.ressource.LogInfo}
  */
-proto.ressource.DeleteLogRqst.prototype.getDate = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ressource.DeleteLogRqst.prototype.getLog = function() {
+  return /** @type{?proto.ressource.LogInfo} */ (
+    jspb.Message.getWrapperField(this, proto.ressource.LogInfo, 1));
 };
 
 
-/** @param {number} value */
-proto.ressource.DeleteLogRqst.prototype.setDate = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+/**
+ * @param {?proto.ressource.LogInfo|undefined} value
+ * @return {!proto.ressource.DeleteLogRqst} returns this
+*/
+proto.ressource.DeleteLogRqst.prototype.setLog = function(value) {
+  return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ressource.DeleteLogRqst} returns this
+ */
+proto.ressource.DeleteLogRqst.prototype.clearLog = function() {
+  return this.setLog(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ressource.DeleteLogRqst.prototype.hasLog = function() {
+  return jspb.Message.getField(this, 1) != null;
 };
 
 
@@ -13836,9 +14248,12 @@ proto.ressource.DeleteLogRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeleteLogRsp} returns this
+ */
 proto.ressource.DeleteLogRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -13963,9 +14378,12 @@ proto.ressource.SetLogMethodRqst.prototype.getMethod = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.SetLogMethodRqst} returns this
+ */
 proto.ressource.SetLogMethodRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -14090,9 +14508,12 @@ proto.ressource.SetLogMethodRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SetLogMethodRsp} returns this
+ */
 proto.ressource.SetLogMethodRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -14217,9 +14638,12 @@ proto.ressource.ResetLogMethodRqst.prototype.getMethod = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ResetLogMethodRqst} returns this
+ */
 proto.ressource.ResetLogMethodRqst.prototype.setMethod = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -14344,9 +14768,12 @@ proto.ressource.ResetLogMethodRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ResetLogMethodRsp} returns this
+ */
 proto.ressource.ResetLogMethodRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -14579,26 +15006,31 @@ proto.ressource.GetLogMethodsRsp.prototype.getMethodsList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ressource.GetLogMethodsRsp} returns this
+ */
 proto.ressource.GetLogMethodsRsp.prototype.setMethodsList = function(value) {
-  jspb.Message.setField(this, 1, value || []);
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.ressource.GetLogMethodsRsp} returns this
  */
 proto.ressource.GetLogMethodsRsp.prototype.addMethods = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetLogMethodsRsp} returns this
  */
 proto.ressource.GetLogMethodsRsp.prototype.clearMethodsList = function() {
-  this.setMethodsList([]);
+  return this.setMethodsList([]);
 };
 
 
@@ -14723,9 +15155,12 @@ proto.ressource.GetLogRqst.prototype.getQuery = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetLogRqst} returns this
+ */
 proto.ressource.GetLogRqst.prototype.setQuery = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -14861,9 +15296,12 @@ proto.ressource.GetLogRsp.prototype.getInfoList = function() {
 };
 
 
-/** @param {!Array<!proto.ressource.LogInfo>} value */
+/**
+ * @param {!Array<!proto.ressource.LogInfo>} value
+ * @return {!proto.ressource.GetLogRsp} returns this
+*/
 proto.ressource.GetLogRsp.prototype.setInfoList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -14879,9 +15317,10 @@ proto.ressource.GetLogRsp.prototype.addInfo = function(opt_value, opt_index) {
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetLogRsp} returns this
  */
 proto.ressource.GetLogRsp.prototype.clearInfoList = function() {
-  this.setInfoList([]);
+  return this.setInfoList([]);
 };
 
 
@@ -15006,9 +15445,12 @@ proto.ressource.ClearAllLogRqst.prototype.getType = function() {
 };
 
 
-/** @param {!proto.ressource.LogType} value */
+/**
+ * @param {!proto.ressource.LogType} value
+ * @return {!proto.ressource.ClearAllLogRqst} returns this
+ */
 proto.ressource.ClearAllLogRqst.prototype.setType = function(value) {
-  jspb.Message.setProto3EnumField(this, 1, value);
+  return jspb.Message.setProto3EnumField(this, 1, value);
 };
 
 
@@ -15133,9 +15575,12 @@ proto.ressource.ClearAllLogRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ClearAllLogRsp} returns this
+ */
 proto.ressource.ClearAllLogRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -15296,9 +15741,12 @@ proto.ressource.Ressource.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Ressource} returns this
+ */
 proto.ressource.Ressource.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -15311,9 +15759,12 @@ proto.ressource.Ressource.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Ressource} returns this
+ */
 proto.ressource.Ressource.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -15326,9 +15777,12 @@ proto.ressource.Ressource.prototype.getModified = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.Ressource} returns this
+ */
 proto.ressource.Ressource.prototype.setModified = function(value) {
-  jspb.Message.setProto3IntField(this, 3, value);
+  return jspb.Message.setProto3IntField(this, 3, value);
 };
 
 
@@ -15341,9 +15795,12 @@ proto.ressource.Ressource.prototype.getSize = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.Ressource} returns this
+ */
 proto.ressource.Ressource.prototype.setSize = function(value) {
-  jspb.Message.setProto3IntField(this, 4, value);
+  return jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -15471,17 +15928,21 @@ proto.ressource.SetRessourceRqst.prototype.getRessource = function() {
 };
 
 
-/** @param {?proto.ressource.Ressource|undefined} value */
+/**
+ * @param {?proto.ressource.Ressource|undefined} value
+ * @return {!proto.ressource.SetRessourceRqst} returns this
+*/
 proto.ressource.SetRessourceRqst.prototype.setRessource = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.SetRessourceRqst} returns this
  */
 proto.ressource.SetRessourceRqst.prototype.clearRessource = function() {
-  this.setRessource(undefined);
+  return this.setRessource(undefined);
 };
 
 
@@ -15615,9 +16076,12 @@ proto.ressource.SetRessourceRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SetRessourceRsp} returns this
+ */
 proto.ressource.SetRessourceRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -15754,9 +16218,12 @@ proto.ressource.SetActionPermissionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.SetActionPermissionRqst} returns this
+ */
 proto.ressource.SetActionPermissionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -15769,9 +16236,12 @@ proto.ressource.SetActionPermissionRqst.prototype.getPermission = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.SetActionPermissionRqst} returns this
+ */
 proto.ressource.SetActionPermissionRqst.prototype.setPermission = function(value) {
-  jspb.Message.setProto3IntField(this, 2, value);
+  return jspb.Message.setProto3IntField(this, 2, value);
 };
 
 
@@ -15896,9 +16366,12 @@ proto.ressource.SetActionPermissionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.SetActionPermissionRsp} returns this
+ */
 proto.ressource.SetActionPermissionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -16023,9 +16496,12 @@ proto.ressource.GetActionPermissionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetActionPermissionRqst} returns this
+ */
 proto.ressource.GetActionPermissionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -16150,9 +16626,12 @@ proto.ressource.GetActionPermissionRsp.prototype.getPermission = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ressource.GetActionPermissionRsp} returns this
+ */
 proto.ressource.GetActionPermissionRsp.prototype.setPermission = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -16280,17 +16759,21 @@ proto.ressource.RemoveRessourceRqst.prototype.getRessource = function() {
 };
 
 
-/** @param {?proto.ressource.Ressource|undefined} value */
+/**
+ * @param {?proto.ressource.Ressource|undefined} value
+ * @return {!proto.ressource.RemoveRessourceRqst} returns this
+*/
 proto.ressource.RemoveRessourceRqst.prototype.setRessource = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.ressource.RemoveRessourceRqst} returns this
  */
 proto.ressource.RemoveRessourceRqst.prototype.clearRessource = function() {
-  this.setRessource(undefined);
+  return this.setRessource(undefined);
 };
 
 
@@ -16424,9 +16907,12 @@ proto.ressource.RemoveRessourceRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemoveRessourceRsp} returns this
+ */
 proto.ressource.RemoveRessourceRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -16563,9 +17049,12 @@ proto.ressource.GetRessourcesRqst.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetRessourcesRqst} returns this
+ */
 proto.ressource.GetRessourcesRqst.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -16578,9 +17067,12 @@ proto.ressource.GetRessourcesRqst.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetRessourcesRqst} returns this
+ */
 proto.ressource.GetRessourcesRqst.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -16716,9 +17208,12 @@ proto.ressource.GetRessourcesRsp.prototype.getRessourcesList = function() {
 };
 
 
-/** @param {!Array<!proto.ressource.Ressource>} value */
+/**
+ * @param {!Array<!proto.ressource.Ressource>} value
+ * @return {!proto.ressource.GetRessourcesRsp} returns this
+*/
 proto.ressource.GetRessourcesRsp.prototype.setRessourcesList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -16734,9 +17229,10 @@ proto.ressource.GetRessourcesRsp.prototype.addRessources = function(opt_value, o
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetRessourcesRsp} returns this
  */
 proto.ressource.GetRessourcesRsp.prototype.clearRessourcesList = function() {
-  this.setRessourcesList([]);
+  return this.setRessourcesList([]);
 };
 
 
@@ -16861,9 +17357,12 @@ proto.ressource.RemoveActionPermissionRqst.prototype.getAction = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemoveActionPermissionRqst} returns this
+ */
 proto.ressource.RemoveActionPermissionRqst.prototype.setAction = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -16988,9 +17487,12 @@ proto.ressource.RemoveActionPermissionRsp.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemoveActionPermissionRsp} returns this
+ */
 proto.ressource.RemoveActionPermissionRsp.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 

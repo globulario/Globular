@@ -439,7 +439,7 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
 /**
  * Deploy the content of an application with a given name to the server.
  */
-func (self *Admin_Client) DeployApplication(name string, path string, token string, domain string) error {
+func (self *Admin_Client) DeployApplication(name string, path string, token string, domain string) (int, error) {
 
 	rqst := new(DeployApplicationRequest)
 	rqst.Name = name
@@ -451,22 +451,25 @@ func (self *Admin_Client) DeployApplication(name string, path string, token stri
 	var buffer bytes.Buffer
 	err := Utility.CompressDir("", Utility.GenerateUUID(name), &buffer)
 	if err != nil {
-		return err
+		return -1, err
 	}
+
 	// remove the dir and keep the archive in memory
 	os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain": domain})
+	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain": domain, "path": path})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// Open the stream...
 	stream, err := self.c.DeployApplication(ctx)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	const BufferSize = 1024 * 5 // the chunck size.
+	var size int
+
 	for {
 		var data [BufferSize]byte
 		bytesread, err := buffer.Read(data[0:BufferSize])
@@ -478,24 +481,24 @@ func (self *Admin_Client) DeployApplication(name string, path string, token stri
 			// send the data to the server.
 			err = stream.Send(rqst)
 			if err != nil {
-				return err
+				return -1, err
 			}
 		}
-
+		size += bytesread
 		if err == io.EOF {
 			err = nil
 			break
 		} else if err != nil {
-			return err
+			return -1, err
 		}
 	}
 
 	_, err = stream.CloseAndRecv()
 	if err != nil {
 		os.RemoveAll(Utility.GenerateUUID(name))
-		return err
+		return -1, err
 	}
 
-	return nil
+	return size, nil
 
 }

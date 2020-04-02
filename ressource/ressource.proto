@@ -396,7 +396,7 @@ message LogRsp{
 }
 
 message DeleteLogRqst{
-	int64 date = 1; // remove a log info with a given date
+	LogInfo log = 1;
 }
 
 message DeleteLogRsp{

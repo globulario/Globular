@@ -109,6 +109,11 @@ func (self *server) save() error {
 // Create a new KV connection and store it for futur use. If the connection already
 // exist it will be replace by the new one.
 func (self *server) CreateConnection(ctx context.Context, rsqt *storagepb.CreateConnectionRqst) (*storagepb.CreateConnectionRsp, error) {
+	if rsqt.Connection == nil {
+		return nil, errors.New("The request dosent contain connection object!")
+	}
+	fmt.Println("---->", rsqt.Connection)
+	fmt.Println("---->", self.Connections)
 	if _, ok := self.Connections[rsqt.Connection.Id]; ok {
 		self.stores[rsqt.Connection.Id].Close() // close the previous connection.
 	}

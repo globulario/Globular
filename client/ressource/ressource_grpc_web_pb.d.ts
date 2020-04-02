@@ -92,8 +92,8 @@ import {
 
 export class RessourceServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -403,8 +403,8 @@ export class RessourceServiceClient {
 
 export class RessourceServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   registerAccount(
     request: RegisterAccountRqst,

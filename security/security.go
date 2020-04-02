@@ -25,18 +25,23 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 
 	if len(address) == 0 {
 		err := errors.New("no address was given for service name " + name)
-		log.Println(err)
+		log.Panicln(err)
 		return nil, err
 	}
 
 	// In case of local service I will get the service value directly from
 	// the configuration file.
-	if Utility.IsLocal(address) {
-		serverConfig, err = getLocalConfig()
-		if err != nil {
-			return nil, err
+	serverConfig, err = getLocalConfig()
+	isLocal := true
+	if err == nil {
+		if config["Domain"] != address {
+			isLocal = false
 		}
 	} else {
+		isLocal = false
+	}
+
+	if !isLocal {
 		// First I will retreive the server configuration.
 		serverConfig, err = getRemoteConfig(address)
 		if err != nil {
@@ -114,6 +119,7 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return config, nil
 }
 
@@ -187,19 +193,25 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// Here I will get the local configuration...
 	var config map[string]interface{}
 	config, err = getLocalConfig()
+	isLocal := true
 	if err == nil {
-		pwd = config["CertPassword"].(string)
+		if config["Domain"] != address {
+			isLocal = false
+		}
 	} else {
-		// use the temp dir to store the certificate in that case.
-		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
-		err = nil
+		isLocal = false
 	}
 
-	if Utility.IsLocal(address) {
+	if isLocal {
+		pwd = config["CertPassword"].(string)
 		keyPath = path + string(os.PathSeparator) + "client.pem"
 		certPath = path + string(os.PathSeparator) + "client.crt"
 		caPath = path + string(os.PathSeparator) + "ca.crt"
 		return
+	} else {
+		// use the temp dir to store the certificate in that case.
+		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
+		err = nil
 	}
 
 	// must have write access of file.

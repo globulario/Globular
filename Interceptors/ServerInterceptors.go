@@ -6,7 +6,6 @@ package Interceptors
 // side.
 
 import "context"
-
 import "fmt"
 import "log"
 import "google.golang.org/grpc"
@@ -16,8 +15,17 @@ import "strings"
 import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
 
+import "google.golang.org/grpc/peer"
+import "github.com/davecourtois/Utility"
+import "github.com/davecourtois/Globular/storage/storage_store"
+import "time"
+
 var (
 	ressource_client *ressource.Ressource_Client
+
+	// That will contain the permission in memory to limit the number
+	// of ressource request...
+	cache *storage_store.BigCache_store
 )
 
 /**
@@ -28,12 +36,25 @@ func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
 	if ressource_client == nil {
 		ressource_client, err = ressource.NewRessource_Client(domain, "ressource")
 		if err != nil {
-			//log.Panicln("----> ", err)
 			return nil, err
 		}
 	}
 
 	return ressource_client, nil
+}
+
+/**
+ * A singleton use to access the cache.
+ */
+func getCache() *storage_store.BigCache_store {
+	if cache == nil {
+		cache = storage_store.NewBigCache_store()
+		err := cache.Open("")
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	return cache
 }
 
 /**
@@ -149,8 +170,6 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	//key := Utility.GenerateUUID(token + method + path + Utility.ToString(permission))
-	//log.Println("---> key", key)
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
 		return err
@@ -161,9 +180,11 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 	if err != nil {
 		return err
 	}
+
 	if !hasAccess {
 		return errors.New("Permission denied! for file " + path)
 	}
+
 	return nil
 }
 
@@ -174,8 +195,6 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	// key := Utility.GenerateUUID(applicationName + method + path + Utility.ToString(permission))
-	// log.Println("---> key", key)
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
 		return err
@@ -189,27 +208,48 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 	if !hasAccess {
 		return errors.New("Permission denied! for file " + path)
 	}
+
 	return nil
 }
 
 func ValidateUserAccess(domain string, token string, method string) (bool, error) {
-	// key := Utility.GenerateUUID(token + method)
-	// log.Println("---> key", key)
-	clientId, _, _ := ValidateToken(token)
-	fmt.Println("--------> validate user access: ", domain, clientId, method)
+	clientId, expire, err := ValidateToken(token)
+	key := Utility.GenerateUUID(clientId + method)
+	if err != nil || expire < time.Now().Unix() {
+		getCache().RemoveItem(key)
+	}
+
+	_, err = getCache().GetItem(key)
+	if err == nil {
+		fmt.Println("----> permission found ", domain, clientId, method)
+		// Here a value exist in the store...
+		return true, nil
+	}
+
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
+		fmt.Println("----> no ressource client found!", domain, err)
 		return false, err
 	}
 
 	// get access from remote source.
 	hasAccess, err := ressource_client.ValidateUserAccess(token, method)
+	if hasAccess {
+		getCache().SetItem(key, []byte(""))
+		fmt.Println("----> permission saved ", domain, clientId, method)
+	}
+
 	return hasAccess, err
 }
 
 func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
-	// key := Utility.GenerateUUID(application + method)
-	// log.Println("---> key", key)
+	key := Utility.GenerateUUID(application + method)
+
+	_, err := getCache().GetItem(key)
+	if err == nil {
+		// Here a value exist in the store...
+		return true, nil
+	}
 
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
@@ -218,6 +258,16 @@ func ValidateApplicationAccess(domain string, application string, method string)
 
 	// get access from remote source.
 	hasAccess, err := ressource_client.ValidateApplicationAccess(application, method)
+	if hasAccess {
+		getCache().SetItem(key, []byte(""))
+
+		// Here I will set a timeout for the permission.
+		timeout := time.NewTimer(15 * time.Minute)
+		go func() {
+			<-timeout.C
+			getCache().RemoveItem(key)
+		}()
+	}
 	return hasAccess, err
 }
 
@@ -229,41 +279,46 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var token string
 	var application string
 	var path string
-	var domain string // the domain of the ressource manager (where globular run)
+	var domain string // This is the target domain, the one use in TLS certificate.
+	var ip string
+	//var mac string
+
+	// Get the caller ip address.
+	p, _ := peer.FromContext(ctx)
+	ip = p.Addr.String()
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 		path = strings.Join(md["path"], "")
+		if !strings.HasPrefix("/", path) {
+			path = "/" + path
+		}
 		domain = strings.Join(md["domain"], "")
-	}
-
-	ressource_client, err := getRessourceClient(domain)
-	if err != nil {
-		return nil, err
+		//mac = strings.Join(md["mac"], "")
 	}
 
 	method := info.FullMethod
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := false
+	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
 
 	// needed to get access to the system.
-	if method == "/admin.AdminService/GetConfig" || method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" {
+	if method == "/admin.AdminService/GetConfig" || method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" || method == "/ressource.RessourceService/Log" {
 		hasAccess = true
 	}
 
-	clientId, _, err := ValidateToken(token)
-	if err == nil {
+	clientId, timeout, err := ValidateToken(token)
+
+	if err == nil && timeout > time.Now().Unix() {
 		if clientId == "sa" {
-			hasAccess = true
+			// Execute the action.
+			return handler(ctx, req)
 		}
 	} else if len(clientId) > 0 {
 		// Here the error is not nil and the token is not a valid
 		return nil, err
 	}
-
-	fmt.Println("validate access for", clientId, method, domain, application)
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
@@ -273,6 +328,13 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		hasAccess, _ = ValidateUserAccess(domain, token, method)
+	}
+
+	// Connect to the ressource services for the given domain.
+	log.Println("Validate access for ", clientId, application, domain, method)
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return nil, err
 	}
 
 	if !hasAccess {
@@ -298,23 +360,19 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	} else if method != "/persistence.PersistenceService/CreateConnection" && // Those method will make the server run in infinite loop
 		method != "/persistence.PersistenceService/FindOne" &&
-		method != "/persistence.PersistenceService/Count" {
+		method != "/persistence.PersistenceService/Count" && len(path) > 0 {
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
+		log.Println("---> validate ressource permission ", path, " for method ", method)
 		permission, err := ressource_client.GetActionPermission(method)
 		if err == nil && permission != -1 {
-			// So here I will try to validate each parameter that begin with a '/'
-			if strings.HasPrefix(path, "/") {
-
-				// I will test if the user has file permission.
-				err = ValidateUserRessourceAccess(domain, token, path, method, permission)
+			// I will test if the user has file permission.
+			err = ValidateUserRessourceAccess(domain, token, path, method, permission)
+			if err != nil {
+				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 				if err != nil {
-
-					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
-					if err != nil {
-						log.Println(err)
-						return nil, err
-					}
+					log.Println(err)
+					return nil, err
 				}
 			}
 		}
@@ -324,7 +382,9 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	result, err := handler(ctx, req)
 
 	// Send log event...
-	ressource_client.Log(application, clientId, method, err)
+	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
+		ressource_client.Log(application, clientId, method, err)
+	}
 
 	// Here depending of the request I will execute more actions.
 	if err == nil {
@@ -370,13 +430,35 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var token string
 	var application string
 	var domain string
-	//var path string
+	var path string
+	var ip string
+	var mac string
+	//Get the caller ip address.
+	p, _ := peer.FromContext(stream.Context())
+	ip = p.Addr.String()
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
-		//path = strings.Join(md["path"], "")
+		path = strings.Join(md["path"], "")
+		mac = strings.Join(md["mac"], "")
+		if !strings.HasPrefix("/", path) {
+			path = "/" + path
+		}
 		domain = strings.Join(md["domain"], "")
+	}
+
+	method := info.FullMethod
+	clientId, timeout, err := ValidateToken(token)
+
+	if err == nil && timeout > time.Now().Unix() {
+		if clientId == "sa" {
+			// Execute the action.
+			return handler(srv, stream)
+		}
+	} else if len(clientId) > 0 {
+		// Here the error is not nil and the token is not a valid
+		return err
 	}
 
 	ressource_client, err := getRessourceClient(domain)
@@ -384,24 +466,22 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		return err
 	}
 
-	method := info.FullMethod
-	hasAccess := false
-
-	if method == "/persistence.PersistenceService/Find" {
+	// If the call come from a local client it has hasAccess
+	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	// needed by the admin.
+	if application == "admin" && method == "/persistence.PersistenceService/Find" {
 		hasAccess = true
 	}
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
+		fmt.Println("456 validate access for", clientId, method, domain, application, ip, mac)
+
 		hasAccess, err = ValidateUserAccess(domain, token, method)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-	}
-
-	if !hasAccess {
-		return errors.New("Permission denied to execute method " + method)
 	}
 
 	// Test if the application has access to execute the method.
@@ -413,12 +493,33 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		}
 	}
 
+	// Return here if access is denied.
+	if !hasAccess {
+		return errors.New("Permission denied to execute method " + method)
+	}
+
+	// Now the permissions
+	if len(path) > 0 {
+		permission, err := ressource_client.GetActionPermission(method)
+		if err == nil && permission != -1 {
+			// I will test if the user has file permission.
+			err = ValidateUserRessourceAccess(domain, token, path, method, permission)
+			if err != nil {
+				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+			}
+
+		}
+	}
+
 	err = handler(srv, stream)
 
 	// TODO find when the stream is closing and log only one time.
 	//if err == io.EOF {
 	// Send log event...
-	clientId, _, _ := ValidateToken(token)
 	ressource_client.Log(application, clientId, method, err)
 	//}
 

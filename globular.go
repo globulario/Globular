@@ -55,6 +55,7 @@ import (
 	"github.com/davecourtois/Globular/ldap/ldap_client"
 	"github.com/davecourtois/Globular/monitoring/monitoring_client"
 	"github.com/davecourtois/Globular/persistence/persistence_client"
+	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
 	"github.com/go-acme/lego/v3/certcrypto"
@@ -140,6 +141,9 @@ type Globule struct {
 	creds   string // gRpc certificate
 	certs   string // https certificates
 	config  string // configuration directory
+
+	// Log store.
+	logs *storage_store.LevelDB_store
 
 	// Create the JWT key used to create the signature
 	jwtKey       []byte
@@ -373,6 +377,10 @@ func (self *Globule) Serve() {
 	// initialyse directories.
 	self.initDirectories()
 
+	// Open logs db.
+	self.logs = storage_store.NewLevelDB_store()
+	self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
+
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
 
@@ -456,14 +464,9 @@ func (self *Globule) createApplicationConnection() error {
 		return err
 	}
 
-	host := self.PersistenceHost
-	if host == self.Domain {
-		host = "0.0.0.0" // set it local.
-	}
-
 	for i := 0; i < len(applications); i++ {
 		// Open the user database connection.
-		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", host, float64(self.PersistencePort), 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
+		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "0.0.0.0", float64(self.PersistencePort), 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -1478,11 +1481,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 			return err
 		}
 
-		host := self.PersistenceHost
-		if host == self.Domain {
-			host = "0.0.0.0" // set it local.
-		}
-		err = p.CreateConnection(name+"_db", name+"_db", host, float64(self.PersistencePort), 0, name, application["password"].(string), 5000, "", false)
+		err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -1636,14 +1635,8 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return nil, err
 	}
 
-	// Set the local connection.
-	host := self.PersistenceHost
-	if host == self.Domain {
-		host = "0.0.0.0" // set it local.
-	}
-
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", host, float64(self.PersistencePort), 0, self.PersistenceUser, self.PersistencePassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", float64(self.PersistencePort), 0, self.PersistenceUser, self.PersistencePassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -2857,12 +2850,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 		return err
 	}
 
-	host := self.PersistenceHost
-	if host == self.Domain {
-		host = "0.0.0.0" // set it local.
-	}
-
-	err = p.CreateConnection(name+"_db", name+"_db", host, float64(self.PersistencePort), 0, name, password, 5000, "", false)
+	err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name, password, 5000, "", false)
 	if err != nil {
 		return errors.New("No persistence service are available to store ressource information.")
 	}
@@ -3004,13 +2992,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	name_ := objects[0]["name"].(string)
 	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")
 
-	host := self.PersistenceHost
-	if host == self.Domain {
-		host = "0.0.0.0" // set it local.
-	}
-
 	// Open the user database connection.
-	err = p.CreateConnection(name_+"_db", name_+"_db", host, float64(self.PersistencePort), 0, name_, rqst.Password, 5000, "", false)
+	err = p.CreateConnection(name_+"_db", name_+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4204,6 +4187,52 @@ func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.Ser
 	return nil
 }
 
+func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string, error) {
+	marshaler := new(jsonpb.Marshaler)
+	jsonStr, err := marshaler.MarshalToString(info)
+	if err != nil {
+		return "", "", err
+	}
+
+	key := ""
+	if info.GetType() == ressource.LogType_INFO {
+		// Increnment prometheus counter,
+		self.methodsCounterLog.WithLabelValues("INFO", info.Method).Inc()
+
+		// Append the log in leveldb
+		key += "/infos/" + Utility.ToString(info.Date)
+
+		// Set the application in the path
+		if len(info.Application) > 0 {
+			key += "/" + info.Application
+		}
+		// Set the User Name if available.
+		if len(info.UserName) > 0 {
+			key += "/" + info.UserName
+		}
+
+		key += "/" + Utility.GenerateUUID(jsonStr)
+
+	} else {
+		// Increnment prometheus counter,
+		self.methodsCounterLog.WithLabelValues("ERROR", info.Method).Inc()
+		key += "/errors/" + Utility.ToString(info.Date)
+
+		// Set the application in the path
+		if len(info.Application) > 0 {
+			key += "/" + info.Application
+		}
+		// Set the User Name if available.
+		if len(info.UserName) > 0 {
+			key += "/" + info.UserName
+		}
+
+		key += "/" + Utility.GenerateUUID(jsonStr)
+
+	}
+	return key, jsonStr, nil
+}
+
 func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
@@ -4214,55 +4243,14 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 		}
 	}
 
-	// Here I will use prometheus to export the metrics
-	logType := "INFO"
-	if info.GetType() == ressource.LogType_ERROR {
-		logType = "ERROR"
-	}
-
-	// Here I will log only if the user is not 'sa'
-	if info.UserName != "sa" && len(info.Application) > 0 && len(info.UserName) > 0 {
-		log.Println("---> ", info)
-
-		// I will save the error in the LOGS table.
-		p, err := self.getPersistenceSaConnection()
-		if err != nil {
-			return err
-		}
-
-		data, err := p.FindOne("local_ressource", "local_ressource", "Accounts", `{"name":"`+info.GetUserName()+`"}`, `[{"Projection":{"_id":1}}]`)
-		if err != nil {
-			return err
-		}
-
-		values := make(map[string]interface{}, 0)
-		err = json.Unmarshal([]byte(data), &values)
-		if err != nil {
-			return err
-		}
-
-		// set the user id
-		info.UserId = values["_id"].(string)
-
-		marshaler := new(jsonpb.Marshaler)
-		jsonStr, err := marshaler.MarshalToString(info)
-		if err != nil {
-			return err
-		}
-		_, err = p.InsertOne("local_ressource", "local_ressource", "Logs", jsonStr, "")
-		if err != nil {
-			return err
-		}
-	}
-
-	marshaler := new(jsonpb.Marshaler)
-	jsonStr, err := marshaler.MarshalToString(info)
+	key, jsonStr, err := self.getLogInfoKeyValue(info)
 	if err != nil {
 		return err
 	}
 
-	// Incrementing the prometheus counter.
-	self.methodsCounterLog.WithLabelValues(logType, info.Method).Inc()
+	// Append the error in leveldb
+	self.logs.SetItem(key, []byte(jsonStr))
+
 	if len(info.UserId) > 0 {
 		if info.UserId != "sa" {
 			eventHub, err := self.getEventHub()
@@ -4272,6 +4260,7 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 			eventHub.Publish(info.Method, []byte(jsonStr))
 		}
 	}
+
 	return nil
 }
 
@@ -4286,28 +4275,17 @@ func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressour
 }
 
 //* Log error or information into the data base *
+// Retreive log infos (the query must be something like /infos/'date'/'applicationName'/'userName'
 func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.RessourceService_GetLogServer) error {
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
 
-	// The list of all retreive info.
 	query := rqst.Query
 	if len(query) == 0 {
-		query = "{}"
+		query = "/*"
 	}
 
-	data, err := p.Find("local_ressource", "local_ressource", "Logs", query, `[{"Projection":{"_id":0}}]`)
-	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
+	data, err := self.logs.GetItem(query)
 
-	jsonDecoder := json.NewDecoder(strings.NewReader(data))
+	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
 
 	// read open bracket
 	_, err = jsonDecoder.Token()
@@ -4360,16 +4338,43 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 	return nil
 }
 
-//* Delete a log info with it date *
-func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
-	p, err := self.getPersistenceSaConnection()
+func (self *Globule) deleteLog(query string) error {
+
+	// First of all I will retreive the log info with a given date.
+	data, err := self.logs.GetItem(query)
+
+	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
+
+	// read open bracket
+	_, err = jsonDecoder.Token()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
-	err = p.DeleteOne("local_ressource", "local_ressource", "Logs", `{"date":"`+Utility.ToString(rqst.Date)+`"}`, ``)
+	for jsonDecoder.More() {
+		info := ressource.LogInfo{}
+
+		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
+		if err != nil {
+			return err
+		}
+
+		key, _, err := self.getLogInfoKeyValue(&info)
+		if err != nil {
+			return err
+		}
+		self.logs.RemoveItem(key)
+
+	}
+
+	return nil
+}
+
+//* Delete a log info with it date *
+func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
+
+	key, _, _ := self.getLogInfoKeyValue(rqst.Log)
+	err := self.logs.RemoveItem(key)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4381,16 +4386,16 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqs
 	}, nil
 }
 
-//* Clear all INFO/ERROR at once *
+//* Clear logs. *
 func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLogRqst) (*ressource.ClearAllLogRsp, error) {
-	p, err := self.getPersistenceSaConnection()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	var err error
+
+	if rqst.Type == ressource.LogType_ERROR {
+		err = self.deleteLog("/errors/*")
+	} else {
+		err = self.deleteLog("/infos/*")
 	}
 
-	err = p.Delete("local_ressource", "local_ressource", "Logs", `{}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

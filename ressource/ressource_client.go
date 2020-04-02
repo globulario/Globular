@@ -1,11 +1,13 @@
 package ressource
 
 import (
-	"strconv"
-
+	"context"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
+
+	"google.golang.org/grpc/metadata"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Utility"
@@ -500,6 +502,42 @@ func (self *Ressource_Client) GetActionPermission(action string) (int32, error) 
 	}
 
 	return rsp.Permission, nil
+}
+
+func (self *Ressource_Client) SetRessource(name string, path string, modified int64, size int64, token string) error {
+	ressource := &Ressource{
+		Name:     name,
+		Path:     path,
+		Modified: modified,
+		Size:     size,
+	}
+
+	rqst := &SetRessourceRqst{
+		Ressource: ressource,
+	}
+	md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	_, err := self.c.SetRessource(ctx, rqst)
+
+	return err
+}
+
+// Set action permission
+func (self *Ressource_Client) SetActionPermission(action string, permission int32, token string) error {
+
+	// Set action permission.
+	rqst := &SetActionPermissionRqst{
+		Action:     action,
+		Permission: permission,
+	}
+	md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	// Set action permission.
+	_, err := self.c.SetActionPermission(ctx, rqst)
+
+	return err
 }
 
 /////////////////////// Log ////////////////////////

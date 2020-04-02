@@ -11,14 +11,57 @@ import (
 // Implement the storage service with big store.
 type BigCache_store struct {
 	cache *bigcache.BigCache // The actual cache.
+
+	// Sychronization.
+	actions chan map[string]interface{}
 }
 
+func (self *BigCache_store) run() {
+	for {
+		select {
+		case action := <-self.actions:
+
+			if action["name"].(string) == "Open" {
+				action["result"].(chan error) <- self.open(action["options"].(string))
+			} else if action["name"].(string) == "SetItem" {
+				action["result"].(chan error) <- self.cache.Set(action["key"].(string), action["val"].([]byte))
+			} else if action["name"].(string) == "GetItem" {
+				val, err := self.cache.Get(action["key"].(string))
+				action["results"].(chan map[string]interface{}) <- map[string]interface{}{"val": val, "err": err}
+			} else if action["name"].(string) == "RemoveItem" {
+				action["result"].(chan error) <- self.cache.Delete(action["key"].(string))
+			} else if action["name"].(string) == "Clear" {
+				action["result"].(chan error) <- self.cache.Reset()
+			} else if action["name"].(string) == "Drop" {
+				action["result"].(chan error) <- self.cache.Reset()
+			} else if action["name"].(string) == "Close" {
+				action["result"].(chan error) <- self.cache.Close()
+				break // exit here.
+			}
+
+		}
+	}
+}
+
+// Use it to use the store.
 func NewBigCache_store() *BigCache_store {
 	s := new(BigCache_store)
+	s.actions = make(chan map[string]interface{}, 0)
+
+	go func() {
+		s.run()
+	}()
+
 	return s
 }
 
-func (self *BigCache_store) Open(optionsStr string) error {
+func (self *BigCache_store) Open(options string) error {
+	action := map[string]interface{}{"name": "Open", "result": make(chan error), "options": options}
+	self.actions <- action
+	return <-action["result"].(chan error)
+}
+
+func (self *BigCache_store) open(optionsStr string) error {
 	var config bigcache.Config
 	var err error
 	if len(optionsStr) == 0 {
@@ -57,30 +100,47 @@ func (self *BigCache_store) Open(optionsStr string) error {
 
 // Close the store.
 func (self *BigCache_store) Close() error {
-	return self.cache.Close()
+	action := map[string]interface{}{"name": "Close", "result": make(chan error)}
+	self.actions <- action
+	return <-action["result"].(chan error)
 }
 
 // Set item
 func (self *BigCache_store) SetItem(key string, val []byte) error {
-	return self.cache.Set(key, val)
+	action := map[string]interface{}{"name": "SetItem", "result": make(chan error), "key": key, "val": val}
+	self.actions <- action
+	return <-action["result"].(chan error)
 }
 
 // Get item with a given key.
 func (self *BigCache_store) GetItem(key string) ([]byte, error) {
-	return self.cache.Get(key)
+	action := map[string]interface{}{"name": "GetItem", "results": make(chan map[string]interface{}, 0), "key": key}
+	self.actions <- action
+	results := <-action["results"].(chan map[string]interface{})
+	if results["err"] != nil {
+		return nil, results["err"].(error)
+	}
+
+	return results["val"].([]byte), nil
 }
 
 // Remove an item
 func (self *BigCache_store) RemoveItem(key string) error {
-	return self.cache.Delete(key)
+	action := map[string]interface{}{"name": "RemoveItem", "result": make(chan error), "key": key}
+	self.actions <- action
+	return <-action["result"].(chan error)
 }
 
 // Clear the data store.
 func (self *BigCache_store) Clear() error {
-	return self.cache.Reset()
+	action := map[string]interface{}{"name": "Clear", "result": make(chan error)}
+	self.actions <- action
+	return <-action["result"].(chan error)
 }
 
 // Drop the data store.
 func (self *BigCache_store) Drop() error {
-	return self.cache.Reset()
+	action := map[string]interface{}{"name": "Drop", "result": make(chan error)}
+	self.actions <- action
+	return <-action["result"].(chan error)
 }

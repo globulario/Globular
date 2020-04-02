@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -158,21 +159,21 @@ func GetClientConnection(client Client) *grpc.ClientConn {
  * tmp directory for the client domain it's set in the metadata.
  */
 func GetClientContext(client Client) context.Context {
-	// Token's are kept in temporary directorys
-	domain := client.GetDomain()
-	ip := Utility.MyLocalIP()
-	//log.Println("------------> ", domain)
 
-	path := os.TempDir() + string(os.PathSeparator) + domain + "_token"
+	// if the address is local.
+	path := os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token"
 	token, err := ioutil.ReadFile(path)
 
 	if err == nil {
-		md := metadata.New(map[string]string{"token": string(token), "domain": domain, "ip": ip})
+		md := metadata.New(map[string]string{"token": string(token), "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
 	} else {
-		md := metadata.New(map[string]string{"token": "", "domain": domain, "ip": ip})
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
-		return ctx
+		fmt.Println("-------> fail to get the local token ", path, err)
 	}
+
+	md := metadata.New(map[string]string{"token": "", "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	return ctx
+
 }
