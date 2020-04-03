@@ -80,7 +80,7 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 }
 
 /**
- * Return the server local configuration fi one exist.
+ * Return the server local configuration if one exist.
  */
 func getLocalConfig() (map[string]interface{}, error) {
 	config := make(map[string]interface{}, 0)

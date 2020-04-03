@@ -272,27 +272,28 @@ func (self *Admin_Client) createServicePackage(publisherId string, serviceId str
 /**
  * Create and Upload the service archive on the server.
  */
-func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string, token string, domain string) (string, error) {
+func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string, token string, domain string) (string, int, error) {
 	// Here I will try to read the service configuation from the path.
 	configs, _ := Utility.FindFileByName(path, "config.json")
 	if len(configs) == 0 {
-		return "", errors.New("No configuration file was found")
+		return "", 0, errors.New("No configuration file was found")
 	}
 
+	// Find proto by name
 	_, err := Utility.FindFileByName(path, ".proto")
 	if len(configs) == 0 {
-		return "", errors.New("No prototype file was found")
+		return "", 0, errors.New("No prototype file was found")
 	}
 
 	s := make(map[string]interface{}, 0)
 	data, err := ioutil.ReadFile(configs[0])
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	err = json.Unmarshal(data, &s)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	// set the correct information inside the configuration
@@ -330,7 +331,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// the proto, the config and the executable only will be taken.
 	packagePath, err := self.createServicePackage(publisherId, serviceId, version, platform, path)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	// Remove the file when it's transfer on the server...
@@ -354,8 +355,9 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	var count int
 	reader := bufio.NewReader(packageFile)
 	part := make([]byte, chunksize)
-
+	size := 0
 	for {
+
 		if count, err = reader.Read(part); err != nil {
 			break
 		}
@@ -364,9 +366,10 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 		}
 		// send the data to the server.
 		err = stream.Send(rqst)
+		size += count
 	}
 	if err != io.EOF {
-		return "", err
+		return "", 0, err
 	} else {
 		err = nil
 	}
@@ -375,10 +378,10 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// publish.
 	rsp, err := stream.CloseAndRecv()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return rsp.Path, nil
+	return rsp.Path, size, nil
 }
 
 /**

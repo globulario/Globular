@@ -4010,8 +4010,8 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 	// Here I will use event to publish log information...
 	info := new(ressource.LogInfo)
 	info.Application = ""
-	info.UserId = ""
-	info.UserName = ""
+	info.UserId = "globular"
+	info.UserName = "globular"
 	info.Method = service
 	info.Date = time.Now().Unix()
 	info.Message = message
@@ -4033,6 +4033,7 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	info := new(ressource.LogInfo)
 	info.Application = application
 	info.UserId = token
+	info.UserName = token
 	info.Method = method
 	info.Date = time.Now().Unix()
 	if err_ != nil {
@@ -4244,6 +4245,12 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 		if err == nil {
 			info.UserName = name
 		}
+		info.UserId = info.UserName // keep only the user name
+		if info.UserName == "sa" {
+			return nil // not log sa activities...
+		}
+	} else {
+		return nil
 	}
 
 	key, jsonStr, err := self.getLogInfoKeyValue(info)
@@ -4253,7 +4260,6 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// Append the error in leveldb
 	self.logs.SetItem(key, []byte(jsonStr))
-
 	eventHub, err := self.getEventHub()
 	if err != nil {
 		return err

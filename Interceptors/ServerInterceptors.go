@@ -15,7 +15,7 @@ import "strings"
 import "errors"
 import "github.com/davecourtois/Globular/file/filepb"
 
-import "google.golang.org/grpc/peer"
+//import "google.golang.org/grpc/peer"
 import "github.com/davecourtois/Utility"
 import "github.com/davecourtois/Globular/storage/storage_store"
 import "time"
@@ -280,12 +280,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var application string
 	var path string
 	var domain string // This is the target domain, the one use in TLS certificate.
-	var ip string
+	//var ip string
 	//var mac string
 
 	// Get the caller ip address.
-	p, _ := peer.FromContext(ctx)
-	ip = p.Addr.String()
+	//p, _ := peer.FromContext(ctx)
+	//ip = p.Addr.String()
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
@@ -301,7 +301,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	method := info.FullMethod
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	hasAccess := false //strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
 
 	// needed to get access to the system.
 	if method == "/admin.AdminService/GetConfig" || method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" || method == "/ressource.RessourceService/Log" {
@@ -431,17 +431,17 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var application string
 	var domain string
 	var path string
-	var ip string
-	var mac string
+	//var ip string
+	//var mac string
 	//Get the caller ip address.
-	p, _ := peer.FromContext(stream.Context())
-	ip = p.Addr.String()
+	//p, _ := peer.FromContext(stream.Context())
+	//ip = p.Addr.String()
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 		path = strings.Join(md["path"], "")
-		mac = strings.Join(md["mac"], "")
+		//mac = strings.Join(md["mac"], "")
 		if !strings.HasPrefix("/", path) {
 			path = "/" + path
 		}
@@ -467,7 +467,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	hasAccess := false // strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
 	// needed by the admin.
 	if application == "admin" && method == "/persistence.PersistenceService/Find" {
 		hasAccess = true
@@ -475,8 +475,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
-		fmt.Println("456 validate access for", clientId, method, domain, application, ip, mac)
-
 		hasAccess, err = ValidateUserAccess(domain, token, method)
 		if err != nil {
 			log.Println(err)

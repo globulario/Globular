@@ -269,7 +269,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
+	path_, size, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
 	if err != nil {
 		return err
 	}
@@ -279,6 +279,20 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
+		return err
+	}
+
+	// Set action permission for delploy.
+	err = ressource_client.SetActionPermission("/admin.AdminService/PublishService", 2, token)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Set a ressource for the deployed application.
+	err = ressource_client.SetRessource(serviceId, path, time.Now().Unix(), int64(size), token)
+	if err != nil {
+		log.Println(err)
 		return err
 	}
 
