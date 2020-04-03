@@ -690,6 +690,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			for err == nil {
 				log.Println(s["Name"].(string), ":", line)
 				line, err = reader.ReadString('\n')
+				self.logServiceInfo(s["Name"].(string), line)
 			}
 
 			// if the process is not define.
@@ -698,10 +699,10 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 
 			err = s["Process"].(*exec.Cmd).Wait() // wait for the program to resturn
-			if err != nil {
 
+			if err != nil {
 				// I will log the program error into the admin logger.
-				self.logServiceError(s["Name"].(string), errb.String())
+				self.logServiceInfo(s["Name"].(string), errb.String())
 			}
 			// Print the
 			fmt.Println("service", s["Name"].(string), "err:", errb.String())
@@ -2327,6 +2328,8 @@ func (self *Globule) stopService(serviceId string) error {
 	}
 
 	s["State"] = "stopped"
+
+	self.logServiceInfo(s["Name"].(string), time.Now().String()+"Service "+s["Name"].(string)+" was stopped!")
 
 	log.Println("stop service", s["Name"])
 
@@ -4002,17 +4005,17 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
-func (self *Globule) logServiceError(service string, dump string) error {
+func (self *Globule) logServiceInfo(service string, message string) error {
 
 	// Here I will use event to publish log information...
 	info := new(ressource.LogInfo)
-	info.Application = service
+	info.Application = ""
 	info.UserId = ""
 	info.UserName = ""
-	info.Method = ""
+	info.Method = service
 	info.Date = time.Now().Unix()
-	info.Message = dump
-	info.Type = ressource.LogType_ERROR
+	info.Message = message
+	info.Type = ressource.LogType_ERROR // not necessarely errors..
 	self.log(info)
 
 	return nil
@@ -4200,7 +4203,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string
 		self.methodsCounterLog.WithLabelValues("INFO", info.Method).Inc()
 
 		// Append the log in leveldb
-		key += "/infos/" + Utility.ToString(info.Date)
+		key += "/infos/" + info.Method + Utility.ToString(info.Date)
 
 		// Set the application in the path
 		if len(info.Application) > 0 {
@@ -4216,7 +4219,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string
 	} else {
 		// Increnment prometheus counter,
 		self.methodsCounterLog.WithLabelValues("ERROR", info.Method).Inc()
-		key += "/errors/" + Utility.ToString(info.Date)
+		key += "/errors/" + info.Method + Utility.ToString(info.Date)
 
 		// Set the application in the path
 		if len(info.Application) > 0 {
@@ -4251,15 +4254,11 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 	// Append the error in leveldb
 	self.logs.SetItem(key, []byte(jsonStr))
 
-	if len(info.UserId) > 0 {
-		if info.UserId != "sa" {
-			eventHub, err := self.getEventHub()
-			if err != nil {
-				return err
-			}
-			eventHub.Publish(info.Method, []byte(jsonStr))
-		}
+	eventHub, err := self.getEventHub()
+	if err != nil {
+		return err
 	}
+	eventHub.Publish(info.Method, []byte(jsonStr))
 
 	return nil
 }
@@ -4370,7 +4369,7 @@ func (self *Globule) deleteLog(query string) error {
 	return nil
 }
 
-//* Delete a log info with it date *
+//* Delete a log info *
 func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
 
 	key, _, _ := self.getLogInfoKeyValue(rqst.Log)
@@ -4386,7 +4385,7 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqs
 	}, nil
 }
 
-//* Clear logs. *
+//* Clear logs. info or errors *
 func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLogRqst) (*ressource.ClearAllLogRsp, error) {
 	var err error
 
