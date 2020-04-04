@@ -379,8 +379,10 @@ func (self *Globule) Serve() {
 
 	// Open logs db.
 	self.logs = storage_store.NewLevelDB_store()
-	self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
-
+	err := self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
+	if err != nil {
+		log.Panicln(err)
+	}
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
 
@@ -389,16 +391,16 @@ func (self *Globule) Serve() {
 
 	// Here it suppose to be only one server instance per computer.
 	self.jwtKey = []byte(Utility.RandomUUID())
-	err := ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 
 	// The token that identify the server with other services
 	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
 	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 
 	// Here I will start the refresh token loop to refresh the server token.
@@ -727,22 +729,66 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	} else if s["Protocol"].(string) == "http" {
 		// any other http server except this one...
 		if !strings.HasPrefix(s["Name"].(string), "Globular") {
-			// Kill previous instance of the program.
-			Utility.KillProcessByName(s["Name"].(string))
-			log.Println("try to start process ", s["Name"].(string))
+
+			// Kill previous instance of the program...
+			if s["Process"] != nil {
+				if s["Process"].(*exec.Cmd).Process != nil {
+					s["Process"].(*exec.Cmd).Process.Kill()
+				}
+			}
 
 			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 
+			var errb bytes.Buffer
+			pipe, _ := s["Process"].(*exec.Cmd).StdoutPipe()
+			s["Process"].(*exec.Cmd).Stderr = &errb
+
+			// Here I will set the command dir.
+			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
-				log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
-				s["State"] = "fail"
-				return -1, -1, err
+				// The process already exist so I will not throw an error and I will use existing process instead. I will make the
+				if err.Error() != "exec: already started" {
+					s["State"] = "fail"
+					log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+					return -1, -1, err
+				}
 			}
-			s["State"] = "running"
-			self.Services[s["Id"].(string)] = s
 
-			return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
+			s["State"] = "running"
+			if err == nil {
+				go func() {
+
+					self.keepServiceAlive(s)
+
+					// display the message in the console.
+					reader := bufio.NewReader(pipe)
+					line, err := reader.ReadString('\n')
+					for err == nil {
+						log.Println(s["Name"].(string), ":", line)
+						line, err = reader.ReadString('\n')
+						self.logServiceInfo(s["Name"].(string), line)
+					}
+
+					// if the process is not define.
+					if s["Process"] == nil {
+						log.Println("No process found for service", s["Name"].(string))
+					}
+
+					err = s["Process"].(*exec.Cmd).Wait() // wait for the program to resturn
+
+					if err != nil {
+						// I will log the program error into the admin logger.
+						self.logServiceInfo(s["Name"].(string), errb.String())
+					}
+					// Print the
+					fmt.Println("service", s["Name"].(string), "err:", errb.String())
+
+				}()
+			}
+
+			// Save configuration stuff.
+			self.Services[s["Id"].(string)] = s
 		}
 	}
 

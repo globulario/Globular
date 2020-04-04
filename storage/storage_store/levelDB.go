@@ -30,7 +30,11 @@ func (self *LevelDB_store) run() {
 			if action["name"].(string) == "Open" {
 				action["result"].(chan error) <- self.open(action["path"].(string))
 			} else if action["name"].(string) == "SetItem" {
-				action["result"].(chan error) <- self.setItem(action["key"].(string), action["val"].([]byte))
+				if action["val"] != nil {
+					action["result"].(chan error) <- self.setItem(action["key"].(string), action["val"].([]byte))
+				} else {
+					action["result"].(chan error) <- self.setItem(action["key"].(string), nil)
+				}
 			} else if action["name"].(string) == "GetItem" {
 				val, err := self.getItem(action["key"].(string))
 				action["results"].(chan map[string]interface{}) <- map[string]interface{}{"val": val, "err": err}
@@ -177,6 +181,7 @@ func (self *LevelDB_store) drop() error {
 
 // Open the store with a give file path.
 func (self *LevelDB_store) Open(path string) error {
+	path = strings.ReplaceAll(path, "\\", "/")
 	action := map[string]interface{}{"name": "Open", "result": make(chan error), "path": path}
 	self.actions <- action
 	return <-action["result"].(chan error)

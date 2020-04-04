@@ -48,7 +48,7 @@ func main() {
 		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Required)")
 		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Required)")
 		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Required)")
-		publishCommand_plaform := publishCommand.Int("platform", 0, "1 = Linux32; 2 = Linux64; 3 = windows32; 4 = windows64 (Required)")
+		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32; linux64; win32; 4 = win64 (Required)")
 
 		switch os.Args[1] {
 		case "install":
@@ -163,9 +163,18 @@ func main() {
 				os.Exit(1)
 			}
 
-			if *publishCommand_plaform == -1 {
+			var platform int32
+			if *publishCommand_plaform == "" {
 				publishCommand.PrintDefaults()
 				os.Exit(1)
+			} else if *publishCommand_plaform == "linux32" {
+				platform = 1
+			} else if *publishCommand_plaform == "linux64" {
+				platform = 2
+			} else if *publishCommand_plaform == "win32" {
+				platform = 3
+			} else if *publishCommand_plaform == "win64" {
+				platform = 4
 			}
 
 			keywords := strings.Split(*publishCommand_keywords, ",")
@@ -174,7 +183,7 @@ func main() {
 			}
 
 			// Pulish the services.
-			publish(g, *publishCommand_path, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, int32(*publishCommand_plaform-1), keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
+			publish(g, *publishCommand_path, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, platform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
 		}
 
 	} else {
