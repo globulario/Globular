@@ -311,7 +311,7 @@ func (self *Ressource_Client) GetAllActions() ([]string, error) {
 	return rsp.Actions, err
 }
 
-/////////////////////////////// File permissions ///////////////////////////////
+/////////////////////////////// Ressouce permissions ///////////////////////////////
 
 /**
  * Set file permission for a given user.
@@ -413,6 +413,21 @@ func (self *Ressource_Client) ValidateApplicationRessourceAccess(application str
 	return rsp.GetResult(), nil
 }
 
+func (self *Ressource_Client) ValidatePeerRessourceAccess(name string, path string, method string, permission int32) (bool, error) {
+	rqst := &ValidatePeerRessourceAccessRqst{}
+	rqst.Name = name
+	rqst.Path = path
+	rqst.Method = method
+	rqst.Permission = permission
+
+	rsp, err := self.c.ValidatePeerRessourceAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
 func (self *Ressource_Client) ValidateUserAccess(token string, method string) (bool, error) {
 	rqst := &ValidateUserAccessRqst{}
 	rqst.Token = token
@@ -431,6 +446,18 @@ func (self *Ressource_Client) ValidateApplicationAccess(application string, meth
 	rqst.Name = application
 	rqst.Method = method
 	rsp, err := self.c.ValidateApplicationAccess(api.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.GetResult(), nil
+}
+
+func (self *Ressource_Client) ValidatePeerAccess(name string, method string) (bool, error) {
+	rqst := &ValidatePeerAccessRqst{}
+	rqst.Name = name
+	rqst.Method = method
+	rsp, err := self.c.ValidatePeerAccess(api.GetClientContext(self), rqst)
 	if err != nil {
 		return false, err
 	}

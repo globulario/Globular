@@ -31,7 +31,8 @@ import (
 	//"google.golang.org/grpc/status"
 	"encoding/binary"
 
-	"github.com/davecourtois/Globular/storage/storage_client"
+	"github.com/davecourtois/Globular/storage/storage_store"
+
 	"github.com/miekg/dns"
 )
 
@@ -80,16 +81,15 @@ type server struct {
 	// the actual values.
 	DnsPort         int      // the dns port
 	Domains         []string // The list of domains managed by this dns.
-	StorageService  string   // The domain of the loacal storage.
 	StorageDataPath string
+
+	store *storage_store.LevelDB_store
 
 	// The dns records... https://en.wikipedia.org/wiki/List_of_DNS_record_types
 	// see the wikipedia page to know exactly what are the values that can
 	// be use here.
 	Records map[string][]interface{}
 
-	// The link to the storage client.
-	storageClient      *storage_client.Storage_Client
 	connection_is_open bool
 }
 
@@ -102,7 +102,6 @@ func (self *server) init() {
 	// default value.
 	self.DnsPort = 5353 // 53 is the default dns port.
 	self.Domains = make([]string, 0)
-	self.StorageService = "localhost"
 	self.StorageDataPath = os.TempDir()
 
 	if err == nil {
@@ -115,21 +114,6 @@ func (self *server) init() {
 		fmt.Println("The value StorageDataPath in the configuration must be given. You can use /tmp (on linux) if you don't want to keep values indefilnely on the storage server.")
 	}
 
-	// Here I will initialyse the storage service.
-	// note that a storage server must be accessible by the dns service to
-	// store it informations.
-	if self.StorageService != "" {
-		// Create the connection with the server.
-		var err error
-		self.storageClient, err = storage_client.NewStorage_Client(self.StorageService, "storage_server")
-		if err != nil {
-			fmt.Println("---> fail to connect to storage service! ", err)
-		}
-
-	} else {
-		fmt.Println("No storage service is configure!")
-	}
-
 }
 
 // Open the connection if it's close.
@@ -138,22 +122,15 @@ func (self *server) openConnection() error {
 		return nil
 	}
 
-	err := self.storageClient.CreateConnection(connectionId, connectionId, 0.0) // use persitent storage here.
+	// Open store.
+	self.store = storage_store.NewLevelDB_store()
+	err := self.store.Open(`{"path":"` + self.StorageDataPath + `", "name":"dns_data_store"}`)
 	if err != nil {
 		return err
 	}
 
-	err = self.storageClient.OpenConnection(connectionId, `{"path":"`+self.StorageDataPath+`", "name":"dns_data_store"}`)
-	if err != nil {
-		// close the existing connection
-		self.storageClient.CloseConnection(connectionId)
-		err = self.storageClient.OpenConnection(connectionId, `{"path":"`+self.StorageDataPath+`", "name":"dns_data_store"}`)
-		if err != nil {
-			return err
-		}
-	}
-
 	self.connection_is_open = true
+
 	// Init the records with that connection.
 	self.initRecords()
 
@@ -189,6 +166,7 @@ func (self *server) isManaged(domain string) bool {
 
 // Set a dns entry.
 func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.SetAResponse, error) {
+
 	fmt.Println("Try set dns entry ", rqst.Domain)
 	if !self.isManaged(rqst.Domain) {
 		err := errors.New("The domain " + rqst.Domain + " is not manage by this dns.")
@@ -208,7 +186,7 @@ func (self *server) SetA(ctx context.Context, rqst *dnspb.SetARequest) (*dnspb.S
 	}
 
 	uuid := Utility.GenerateUUID("A:" + domain)
-	err = self.storageClient.SetItem(connectionId, uuid, []byte(rqst.A))
+	err = self.store.SetItem(uuid, []byte(rqst.A))
 	if err != nil {
 
 		return nil, status.Errorf(
@@ -241,7 +219,7 @@ func (self *server) RemoveA(ctx context.Context, rqst *dnspb.RemoveARequest) (*d
 	}
 
 	uuid := Utility.GenerateUUID("A:" + domain)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -265,7 +243,7 @@ func (self *server) get_ipv4(domain string) (string, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("A:" + domain)
-	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
+	ipv4, err := self.store.GetItem(uuid)
 	if err != nil {
 		return "", 0, status.Errorf(
 			codes.Internal,
@@ -285,7 +263,7 @@ func (self *server) GetA(ctx context.Context, rqst *dnspb.GetARequest) (*dnspb.G
 	domain := strings.ToLower(rqst.Domain)
 	uuid := Utility.GenerateUUID("A:" + domain)
 	fmt.Println("GetA --> try to find value: ", "A:"+rqst.Domain)
-	ipv4, err := self.storageClient.GetItem(connectionId, uuid)
+	ipv4, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -315,7 +293,7 @@ func (self *server) SetAAAA(ctx context.Context, rqst *dnspb.SetAAAARequest) (*d
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("AAAA:" + domain)
-	err = self.storageClient.SetItem(connectionId, uuid, []byte(rqst.Aaaa))
+	err = self.store.SetItem(uuid, []byte(rqst.Aaaa))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -346,7 +324,7 @@ func (self *server) RemoveAAAA(ctx context.Context, rqst *dnspb.RemoveAAAAReques
 	}
 
 	uuid := Utility.GenerateUUID("AAAA:" + domain)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -371,7 +349,7 @@ func (self *server) get_ipv6(domain string) (string, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("AAAA:" + domain)
-	address, err := self.storageClient.GetItem(connectionId, uuid)
+	address, err := self.store.GetItem(uuid)
 	if err != nil {
 		return "", 0, status.Errorf(
 			codes.Internal,
@@ -391,7 +369,7 @@ func (self *server) GetAAAA(ctx context.Context, rqst *dnspb.GetAAAARequest) (*d
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("AAAA:" + domain)
-	ipv6, err := self.storageClient.GetItem(connectionId, uuid)
+	ipv6, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -422,7 +400,7 @@ func (self *server) SetText(ctx context.Context, rqst *dnspb.SetTextRequest) (*d
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("TXT:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -446,7 +424,7 @@ func (self *server) getText(id string) ([]string, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("TXT:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 	}
 	values := make([]string, 0)
@@ -470,7 +448,7 @@ func (self *server) GetText(ctx context.Context, rqst *dnspb.GetTextRequest) (*d
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("TXT:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -501,7 +479,7 @@ func (self *server) RemoveText(ctx context.Context, rqst *dnspb.RemoveTextReques
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("TXT:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -525,7 +503,7 @@ func (self *server) SetNs(ctx context.Context, rqst *dnspb.SetNsRequest) (*dnspb
 	}
 
 	uuid := Utility.GenerateUUID("NS:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, []byte(rqst.Ns))
+	err = self.store.SetItem(uuid, []byte(rqst.Ns))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -547,7 +525,7 @@ func (self *server) getNs(id string) (string, uint32, error) {
 		return "", 0, err
 	}
 	uuid := Utility.GenerateUUID("NS:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return "", 0, status.Errorf(
 			codes.Internal,
@@ -566,7 +544,7 @@ func (self *server) GetNs(ctx context.Context, rqst *dnspb.GetNsRequest) (*dnspb
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("NS:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -589,7 +567,7 @@ func (self *server) RemoveNs(ctx context.Context, rqst *dnspb.RemoveNsRequest) (
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("NS:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -613,7 +591,7 @@ func (self *server) SetCName(ctx context.Context, rqst *dnspb.SetCNameRequest) (
 	}
 
 	uuid := Utility.GenerateUUID("CName:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, []byte(rqst.Cname))
+	err = self.store.SetItem(uuid, []byte(rqst.Cname))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -637,7 +615,7 @@ func (self *server) getCName(id string) (string, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("CName:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return "", 0, status.Errorf(
 			codes.Internal,
@@ -656,7 +634,7 @@ func (self *server) GetCName(ctx context.Context, rqst *dnspb.GetCNameRequest) (
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("CName:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -679,7 +657,7 @@ func (self *server) RemoveCName(ctx context.Context, rqst *dnspb.RemoveCNameRequ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("CName:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -710,7 +688,7 @@ func (self *server) SetMx(ctx context.Context, rqst *dnspb.SetMxRequest) (*dnspb
 	}
 
 	uuid := Utility.GenerateUUID("MX:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -734,7 +712,7 @@ func (self *server) getMx(id string) (map[string]interface{}, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("MX:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 
 	values := make(map[string]interface{}, 0) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, &values)
@@ -756,7 +734,7 @@ func (self *server) GetMx(ctx context.Context, rqst *dnspb.GetMxRequest) (*dnspb
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("MX:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -791,7 +769,7 @@ func (self *server) RemoveMx(ctx context.Context, rqst *dnspb.RemoveMxRequest) (
 	}
 
 	uuid := Utility.GenerateUUID("MX:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -822,7 +800,7 @@ func (self *server) SetSoa(ctx context.Context, rqst *dnspb.SetSoaRequest) (*dns
 	}
 
 	uuid := Utility.GenerateUUID("SOA:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -846,7 +824,7 @@ func (self *server) getSoa(id string) (*dnspb.SOA, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("SOA:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 
 	soa := new(dnspb.SOA) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, soa)
@@ -868,7 +846,7 @@ func (self *server) GetSoa(ctx context.Context, rqst *dnspb.GetSoaRequest) (*dns
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("SOA:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -900,7 +878,7 @@ func (self *server) RemoveSoa(ctx context.Context, rqst *dnspb.RemoveSoaRequest)
 	}
 
 	uuid := Utility.GenerateUUID("SOA:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -930,7 +908,7 @@ func (self *server) SetUri(ctx context.Context, rqst *dnspb.SetUriRequest) (*dns
 	}
 
 	uuid := Utility.GenerateUUID("URI:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -954,7 +932,7 @@ func (self *server) getUri(id string) (*dnspb.URI, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("URI:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 
 	uri := new(dnspb.URI) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, uri)
@@ -976,7 +954,7 @@ func (self *server) GetUri(ctx context.Context, rqst *dnspb.GetUriRequest) (*dns
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("URI:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1008,7 +986,7 @@ func (self *server) RemoveUri(ctx context.Context, rqst *dnspb.RemoveUriRequest)
 	}
 
 	uuid := Utility.GenerateUUID("URI:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1038,7 +1016,7 @@ func (self *server) SetAfsdb(ctx context.Context, rqst *dnspb.SetAfsdbRequest) (
 	}
 
 	uuid := Utility.GenerateUUID("AFSDB:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1062,7 +1040,7 @@ func (self *server) getAfsdb(id string) (*dnspb.AFSDB, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("AFSDB:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 
 	afsdb := new(dnspb.AFSDB) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, afsdb)
@@ -1085,7 +1063,7 @@ func (self *server) GetAfsdb(ctx context.Context, rqst *dnspb.GetAfsdbRequest) (
 	}
 
 	uuid := Utility.GenerateUUID("AFSDB:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1117,7 +1095,7 @@ func (self *server) RemoveAfsdb(ctx context.Context, rqst *dnspb.RemoveAfsdbRequ
 	}
 
 	uuid := Utility.GenerateUUID("AFSDB:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1147,7 +1125,7 @@ func (self *server) SetCaa(ctx context.Context, rqst *dnspb.SetCaaRequest) (*dns
 	}
 
 	uuid := Utility.GenerateUUID("CAA:" + rqst.Id)
-	err = self.storageClient.SetItem(connectionId, uuid, values)
+	err = self.store.SetItem(uuid, values)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1171,7 +1149,7 @@ func (self *server) getCaa(id string) (*dnspb.CAA, uint32, error) {
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	uuid := Utility.GenerateUUID("CAA:" + id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 
 	caa := new(dnspb.CAA) // use a map instead of Mx struct.
 	err = json.Unmarshal(data, caa)
@@ -1194,7 +1172,7 @@ func (self *server) GetCaa(ctx context.Context, rqst *dnspb.GetCaaRequest) (*dns
 	}
 
 	uuid := Utility.GenerateUUID("CAA:" + rqst.Id)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1226,7 +1204,7 @@ func (self *server) RemoveCaa(ctx context.Context, rqst *dnspb.RemoveCaaRequest)
 	}
 
 	uuid := Utility.GenerateUUID("CAA:" + rqst.Id)
-	err = self.storageClient.RemoveItem(connectionId, uuid)
+	err = self.store.RemoveItem(uuid)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1413,7 +1391,7 @@ func (self *server) initStringRecords(recordType string, ttl uint32, record map[
 	if err != nil {
 		return err
 	}
-	return self.storageClient.SetItem(connectionId, uuid, []byte(record["Value"].(string)))
+	return self.store.SetItem(uuid, []byte(record["Value"].(string)))
 }
 
 func (self *server) initSructRecords(recordType string, ttl uint32, record map[string]interface{}) error {
@@ -1423,7 +1401,7 @@ func (self *server) initSructRecords(recordType string, ttl uint32, record map[s
 		return err
 	}
 	uuid := Utility.GenerateUUID(recordType + ":" + record["Id"].(string))
-	err = self.storageClient.SetItem(connectionId, uuid, data)
+	err = self.store.SetItem(uuid, data)
 	if err != nil {
 		return err
 	}
@@ -1440,7 +1418,7 @@ func (self *server) initArrayRecords(recordType string, ttl uint32, record map[s
 
 	uuid := Utility.GenerateUUID(recordType + ":" + record["Id"].(string))
 
-	err = self.storageClient.SetItem(connectionId, uuid, data)
+	err = self.store.SetItem(uuid, data)
 	if err != nil {
 		return err
 	}
@@ -1452,13 +1430,13 @@ func (self *server) setTtl(uuid string, ttl uint32) error {
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, ttl)
 	uuid = Utility.GenerateUUID("TTL:" + uuid)
-	err := self.storageClient.SetItem(connectionId, uuid, data)
+	err := self.store.SetItem(uuid, data)
 	return err
 }
 
 func (self *server) getTtl(uuid string) uint32 {
 	uuid = Utility.GenerateUUID("TTL:" + uuid)
-	data, err := self.storageClient.GetItem(connectionId, uuid)
+	data, err := self.store.GetItem(uuid)
 	if err != nil {
 		return 60 // the default value
 	}
@@ -1611,7 +1589,10 @@ func main() {
 			}
 			defer f.Close()
 		}
-		s_impl.storageClient.CloseConnection("dns_service")
+		err := s_impl.store.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}()
 
 	// start lisen on the network for dns queries...

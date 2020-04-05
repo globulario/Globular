@@ -149,12 +149,6 @@ type Globule struct {
 	jwtKey       []byte
 	RootPassword string
 
-	// A remote database can be use here to store globular ressource information.
-	PersistenceHost     string
-	PersistenceUser     string
-	PersistencePassword string
-	PersistencePort     int
-
 	// client reference...
 	persistence_client_ *persistence_client.Persistence_Client
 
@@ -191,12 +185,6 @@ func NewGlobule() *Globule {
 	g.ServicesRepositoryProxy = 10008
 	g.CertificateAuthorityPort = 10009
 	g.CertificateAuthorityProxy = 10010
-
-	// Set default persitence information
-	g.PersistenceHost = g.Domain // Local persistence service.
-	g.PersistencePort = 27017
-	g.PersistenceUser = "sa"               // can be other user
-	g.PersistencePassword = g.RootPassword // the user password on the backend.
 
 	// set default values.
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
@@ -383,8 +371,15 @@ func (self *Globule) Serve() {
 	if err != nil {
 		log.Panicln(err)
 	}
+
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
+
+	// Handle the get ca certificate function
+	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+
+	// Handle the signing certificate function.
+	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
 
 	// Here I will kill proxies if there are running.
 	Utility.KillProcessByName("grpcwebproxy")
@@ -398,7 +393,7 @@ func (self *Globule) Serve() {
 
 	// The token that identify the server with other services
 	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
-	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
+	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -411,7 +406,7 @@ func (self *Globule) Serve() {
 			select {
 			case <-ticker.C:
 				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
-				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.Domain+"_token", []byte(token), 0644)
+				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 				if err != nil {
 					log.Println(err)
 				}
@@ -468,13 +463,29 @@ func (self *Globule) createApplicationConnection() error {
 
 	for i := 0; i < len(applications); i++ {
 		// Open the user database connection.
-		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "0.0.0.0", float64(self.PersistencePort), 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
+		err = p.CreateConnection(applications[i]["_id"].(string)+"_db", applications[i]["_id"].(string)+"_db", "0.0.0.0", 27017, 0, applications[i]["_id"].(string), applications[i]["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+/**
+ * Return the domain of the Globule. The name can be empty. If the name is empty
+ * it will mean that the domain is entirely control by the globule so it must be
+ * able to do it own validation, other wise the domain validation will be done by
+ * the globule asscosiate with that domain.
+ */
+func (self *Globule) getDomain() string {
+	domain := self.Domain
+	if len(self.Name) > 0 {
+		domain = self.Name + "." + domain
+
+	}
+	domain = strings.ToLower(domain)
+	return domain
 }
 
 /**
@@ -485,17 +496,17 @@ func (self *Globule) registerIpToDns() error {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
 				log.Println("register domain to dns:", self.DNS[i])
+
 				client, err := dns_client.NewDns_Client(self.DNS[i], "dns_server")
 				if err != nil {
 					log.Println("fail to connecto to dns server ", err)
 					return err
 				}
-
-				domain := self.Domain
-				_, err = client.SetA(domain, Utility.MyIP(), 60)
+				// The domain is the parent domain and getDomain the sub-domain
+				_, err = client.SetA(self.Domain, self.getDomain(), Utility.MyIP(), 60)
 
 				if err != nil {
-					log.Println("fail to bind address ", Utility.MyIP(), "with domain", domain, err)
+					log.Println("fail to bind address ", Utility.MyIP(), "with domain", self.getDomain(), err)
 					return err
 				}
 
@@ -523,7 +534,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 		proxyPath += ".exe" // in case of windows.
 	}
 
-	proxyBackendAddress := self.Domain + ":" + strconv.Itoa(port)
+	proxyBackendAddress := self.getDomain() + ":" + strconv.Itoa(port)
 	proxyAllowAllOrgins := "true"
 	proxyArgs := make([]string, 0)
 
@@ -617,7 +628,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	}
 
 	// set the domain of the service.
-	s["Domain"] = self.Domain
+	s["Domain"] = self.getDomain()
 
 	// if the service already exist.
 	srv := self.Services[s["Id"].(string)]
@@ -859,7 +870,7 @@ func (self *Globule) initServices() {
 	log.Println("external ip ", Utility.MyIP())
 
 	// If the protocol is https I will generate the TLS certificate.
-	security.GenerateServicesCertificates("1111", self.CertExpirationDelay, self.Domain, self.creds)
+	security.GenerateServicesCertificates("1111", self.CertExpirationDelay, self.getDomain(), self.creds)
 
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
@@ -994,25 +1005,6 @@ func (self *Globule) initServices() {
 			log.Println(err)
 		}
 	}
-
-	// if a dns service exist I will set the name of that globule on the server.
-	self.registerIpToDns()
-
-	// set the ip into the DNS servers.
-	ticker := time.NewTicker(5 * time.Second)
-	go func() {
-		ip := Utility.MyIP()
-		self.registerIpToDns()
-		for {
-			select {
-			case <-ticker.C:
-				/** If the ip change I will update the domain. **/
-				if ip != Utility.MyIP() {
-					self.registerIpToDns()
-				}
-			}
-		}
-	}()
 }
 
 // Method must be register in order to be assign to role.
@@ -1402,7 +1394,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["Discoveries"] = self.Discoveries
 	config["DNS"] = self.DNS
 	config["Protocol"] = self.Protocol
-	config["Domain"] = self.Domain
+	config["Domain"] = self.getDomain()
 	config["CertExpirationDelay"] = self.CertExpirationDelay
 	config["ExternalApplications"] = self.ExternalApplications
 	config["CertURL"] = self.CertURL
@@ -1528,7 +1520,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 			return err
 		}
 
-		err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name, application["password"].(string), 5000, "", false)
+		err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", 27017, 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -1549,7 +1541,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
  */
 func (self *Globule) startMonitoring() error {
 	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoring_Client(self.Domain, "monitoring_server")
+	m, err := monitoring_client.NewMonitoring_Client(self.getDomain(), "monitoring_server")
 	if err != nil {
 		return err
 	}
@@ -1676,14 +1668,14 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	var err error
 
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.PersistenceHost, "persistence_server")
+	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.getDomain(), "persistence_server")
 	if err != nil {
 		log.Println("fail to connect to persistence server ", err)
 		return nil, err
 	}
 
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", float64(self.PersistencePort), 0, self.PersistenceUser, self.PersistencePassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -1725,7 +1717,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 	self.saveConfig()
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 
 	return &admin.SetRootPasswordResponse{
 		Token: string(token),
@@ -1823,7 +1815,7 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordReq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 	return &admin.SetPasswordResponse{
 		Token: string(token),
 	}, nil
@@ -1898,7 +1890,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) 
 	}
 
 	// read the token.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1928,7 +1920,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *admin.SetRootEmailR
 	self.saveConfig()
 
 	// read the token.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.Domain + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2215,7 +2207,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	}
 
 	// set the domain of the service.
-	config["Domain"] = self.Domain
+	config["Domain"] = self.getDomain()
 
 	// get the config path.
 	var process interface{}
@@ -2299,12 +2291,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 		self.ServicesRepositoryProxy = Utility.ToInt(config["ServicesRepositoryProxy"].(float64))
 		self.CertificateAuthorityPort = Utility.ToInt(config["CertificateAuthorityPort"].(float64))
 		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
-
-		// Persistence client service.
-		self.PersistenceHost = config["PersistenceHost"].(string)
-		self.PersistencePassword = config["PersistencePassword"].(string)
-		self.PersistenceUser = config["PersistenceUser"].(string)
-		self.PersistencePort = Utility.ToInt(config["PersistencePort"].(float64))
 
 		self.Protocol = config["Protocol"].(string)
 		self.Domain = config["Domain"].(string)
@@ -2563,7 +2549,7 @@ func (self *Globule) startInternalService(id string, port int, proxy int, hasTls
 	reflection.Register(grpcServer)
 
 	// Here I will create the service configuration object.
-	s["Domain"] = self.Domain
+	s["Domain"] = self.getDomain()
 	s["Name"] = id
 	s["Port"] = port
 	s["Proxy"] = proxy
@@ -2624,11 +2610,6 @@ func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
-	// If the persistence server is remote.
-	if self.PersistenceHost != self.Domain {
-		return errors.New("Persistence service must be local to register sa")
-	}
-
 	// Here I will create super admin if it not already exist.
 	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
 
@@ -2685,7 +2666,7 @@ func (self *Globule) registerSa() error {
 func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 	var err error
 	if self.ldap_client_ == nil {
-		self.ldap_client_, err = ldap_client.NewLdap_Client(self.Domain, "ldap_server")
+		self.ldap_client_, err = ldap_client.NewLdap_Client(self.getDomain(), "ldap_server")
 	}
 	if err != nil {
 		log.Println("fail to connect to ldap server ", err)
@@ -2899,7 +2880,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 		return err
 	}
 
-	err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name, password, 5000, "", false)
+	err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", 27017, 0, name, password, 5000, "", false)
 	if err != nil {
 		return errors.New("No persistence service are available to store ressource information.")
 	}
@@ -2958,6 +2939,159 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	return &ressource.RegisterAccountRsp{
 		Result: tokenString, // Return the token string.
 	}, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Peer's Authorization and Authentication code.
+////////////////////////////////////////////////////////////////////////////////
+
+//* Register a new Peer on the network *
+func (self *Globule) RegisterPeer(ctx context.Context, rqst *ressource.RegisterPeerRqst) (*ressource.RegisterPeerRsp, error) {
+	// A peer want to be part of the network.
+
+	// Get the persistence connection
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		log.Println("authenticate fail to get persistence connection ", err)
+		return nil, err
+	}
+
+	// Here I will first look if a peer with a same name already exist on the
+	// ressources...
+	count, _ := p.Count("local_ressource", "local_ressource", "Peers", `{"Name":"`+rqst.Peer.Name+`"}`, "")
+	if count > 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer with name '"+rqst.Peer.Name+"' already exist!")))
+
+	}
+
+	// No authorization exist for that peer I will insert it.
+
+	// Here I will
+	return nil, nil
+}
+
+//* Return the list of authorized peers *
+func (self *Globule) GetPeers(rqst *ressource.GetPeersRqst, stream ressource.RessourceService_GetPeersServer) error {
+	return nil
+}
+
+//* Remove a peer from the network *
+func (self *Globule) DeletePeer(ctx context.Context, rqst *ressource.DeletePeerRqst) (*ressource.DeletePeerRsp, error) {
+	return nil, nil
+}
+
+//* Add peer action permission *
+func (self *Globule) AddPeerAction(ctx context.Context, rqst *ressource.AddPeerActionRqst) (*ressource.AddPeerActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Peers", `{"_id":"`+rqst.PeerId+`"}`, ``)
+	if err != nil {
+
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	peer := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &peer)
+
+	needSave := false
+	if peer["actions"] == nil {
+		peer["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		for i := 0; i < len(peer["actions"].([]interface{})); i++ {
+			if peer["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			peer["actions"] = append(peer["actions"].([]interface{}), rqst.Action)
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer named "+rqst.PeerId+" already contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(peer)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Peers", `{"_id":"`+rqst.PeerId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.AddPeerActionRsp{Result: true}, nil
+
+}
+
+//* Remove peer action permission *
+func (self *Globule) RemovePeerAction(ctx context.Context, rqst *ressource.RemovePeerActionRqst) (*ressource.RemovePeerActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStr, err := p.FindOne("local_ressource", "local_ressource", "Peers", `{"_id":"`+rqst.PeerId+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	peer := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &peer)
+
+	needSave := false
+	if peer["actions"] == nil {
+		peer["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		actions := make([]interface{}, 0)
+		for i := 0; i < len(peer["actions"].([]interface{})); i++ {
+			if peer["actions"].([]interface{})[i].(string) == rqst.Action {
+				exist = true
+			} else {
+				actions = append(actions, peer["actions"].([]interface{})[i])
+			}
+		}
+		if exist {
+			peer["actions"] = actions
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer named "+rqst.PeerId+" not contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(peer)
+		err := p.ReplaceOne("local_ressource", "local_ressource", "Peers", `{"_id":"`+rqst.PeerId+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressource.RemovePeerActionRsp{Result: true}, nil
 }
 
 //* Authenticate a account by it name or email.
@@ -3042,7 +3176,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")
 
 	// Open the user database connection.
-	err = p.CreateConnection(name_+"_db", name_+"_db", "0.0.0.0", float64(self.PersistencePort), 0, name_, rqst.Password, 5000, "", false)
+	err = p.CreateConnection(name_+"_db", name_+"_db", "0.0.0.0", 27017, 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3672,25 +3806,25 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressourc
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	role := make(map[string]interface{})
-	json.Unmarshal([]byte(jsonStr), &role)
+	application := make(map[string]interface{})
+	json.Unmarshal([]byte(jsonStr), &application)
 
 	needSave := false
-	if role["actions"] == nil {
-		role["actions"] = []string{rqst.Action}
+	if application["actions"] == nil {
+		application["actions"] = []string{rqst.Action}
 		needSave = true
 	} else {
 		exist := false
 		actions := make([]interface{}, 0)
-		for i := 0; i < len(role["actions"].([]interface{})); i++ {
-			if role["actions"].([]interface{})[i].(string) == rqst.Action {
+		for i := 0; i < len(application["actions"].([]interface{})); i++ {
+			if application["actions"].([]interface{})[i].(string) == rqst.Action {
 				exist = true
 			} else {
-				actions = append(actions, role["actions"].([]interface{})[i])
+				actions = append(actions, application["actions"].([]interface{})[i])
 			}
 		}
 		if exist {
-			role["actions"] = actions
+			application["actions"] = actions
 			needSave = true
 		} else {
 			return nil, status.Errorf(
@@ -3700,7 +3834,7 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressourc
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(role)
+		jsonStr, _ := json.Marshal(application)
 		err := p.ReplaceOne("local_ressource", "local_ressource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -4113,6 +4247,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// Here some method are accessible by default.
 	if method == "/ressource.RessourceService/GetAllActions" ||
 		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/RegisterPeer" ||
 		method == "/ressource.RessourceService/Authenticate" ||
 		method == "/ressource.RessourceService/RefreshToken" ||
 		method == "/ressource.RessourceService/GetPermissions" ||
@@ -4120,6 +4255,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/GetAllFilesInfo" ||
 		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
 		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/ValidateToken" ||
 		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationRessourceAccess" ||
 		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
@@ -5446,6 +5582,20 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.
 	}, nil
 }
 
+//* Validate a token *
+func (self *Globule) ValidateToken(ctx context.Context, rqst *ressource.ValidateTokenRqst) (*ressource.ValidateTokenRsp, error) {
+	clientId, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &ressource.ValidateTokenRsp{
+		ClientId: clientId,
+		Expired:  expireAt,
+	}, nil
+}
+
 /**
  * Validate application access by role
  */
@@ -5498,7 +5648,7 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
  * Validate user access by role
  */
 func (self *Globule) validateUserAccess(userName string, method string) error {
-	//log.Println("---> validate user access ", userName, " for method ", method)
+	log.Println("---> validate user access ", userName, " for method ", method)
 	if len(userName) == 0 {
 		return errors.New("No user  name was given to validate method access " + method)
 	}
@@ -5812,6 +5962,16 @@ func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqs
 	}, nil
 }
 
+//* Validate if a peer can access a given ressource. *
+func (self *Globule) ValidatePeerRessourceAccess(ctx context.Context, rqst *ressource.ValidatePeerRessourceAccessRqst) (*ressource.ValidatePeerRessourceAccessRsp, error) {
+	return nil, nil
+}
+
+//* Validate if a peer can access a given method. *
+func (self *Globule) ValidatePeerAccess(ctx context.Context, rqst *ressource.ValidatePeerAccessRqst) (*ressource.ValidatePeerAccessRsp, error) {
+	return nil, nil
+}
+
 //* Validate if user can access a given method. *
 func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressource.ValidateUserAccessRqst) (*ressource.ValidateUserAccessRsp, error) {
 
@@ -5931,7 +6091,7 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
-		self.event_client_, err = event_client.NewEvent_Client(self.Domain, "event_server")
+		self.event_client_, err = event_client.NewEvent_Client(self.getDomain(), "event_server")
 	}
 	return self.event_client_, err
 }
@@ -6054,8 +6214,8 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 	}
 
 	// Append the self domain to the list of discoveries where the services can be found.
-	if !Utility.Contains(rqst.Descriptor_.Discoveries, self.Domain) {
-		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, self.Domain)
+	if !Utility.Contains(rqst.Descriptor_.Discoveries, self.getDomain()) {
+		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, self.getDomain())
 	}
 
 	// Here I will test if the services already exist...
@@ -6226,7 +6386,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		id += "%WIN64"
 	}
 
-	repositoryId := self.Domain
+	repositoryId := self.getDomain()
 	// Now I will append the address of the repository into the service descriptor.
 	if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
 		bundle.Descriptor_.Repositories = append(bundle.Descriptor_.Repositories, repositoryId)
@@ -6266,8 +6426,8 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
  */
 func (self *Globule) Listen() error {
 	// append itself to service discoveries...
-	if !Utility.Contains(self.Discoveries, self.Domain) {
-		self.Discoveries = append(self.Discoveries, self.Domain)
+	if !Utility.Contains(self.Discoveries, self.getDomain()) {
+		self.Discoveries = append(self.Discoveries, self.getDomain())
 	}
 
 	subscribers := make(map[string]map[string][]string, 0)
@@ -6395,7 +6555,7 @@ func (self *Globule) Listen() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.AdminPort))
 		if err != nil {
-			log.Fatalf("could not start admin service %s: %s", self.Domain, err)
+			log.Fatalf("could not start admin service %s: %s", self.getDomain(), err)
 		}
 
 		admin.RegisterAdminServiceServer(admin_server, self)
@@ -6403,7 +6563,7 @@ func (self *Globule) Listen() error {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
-				log.Println("Admin service is up and running for domain ", self.Domain)
+				log.Println("Admin service is up and running for domain ", self.getDomain())
 				// no web-rpc server.
 				if err := admin_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -6431,7 +6591,7 @@ func (self *Globule) Listen() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RessourcePort))
 		if err != nil {
-			log.Fatalf("could not start ressource service %s: %s", self.Domain, err)
+			log.Fatalf("could not start ressource service %s: %s", self.getDomain(), err)
 		}
 
 		ressource.RegisterRessourceServiceServer(ressource_server, self)
@@ -6439,7 +6599,7 @@ func (self *Globule) Listen() error {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
-				log.Println("Ressource service is up and running for domain ", self.Domain)
+				log.Println("Ressource service is up and running for domain ", self.getDomain())
 				// no web-rpc server.
 				if err = ressource_server.Serve(lis); err != nil {
 					f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -6458,6 +6618,26 @@ func (self *Globule) Listen() error {
 			<-ch
 
 		}()
+
+		// In order to be able to give permission to a server
+		// I must register it to the globule associated
+		// with the base domain.
+
+		// set the ip into the DNS servers.
+		ticker_ := time.NewTicker(5 * time.Second)
+		go func() {
+			ip := Utility.MyIP()
+			self.registerIpToDns()
+			for {
+				select {
+				case <-ticker_.C:
+					if ip != Utility.MyIP() {
+						self.registerIpToDns()
+					}
+				}
+			}
+		}()
+
 	} else {
 		log.Println(err)
 	}
@@ -6468,7 +6648,7 @@ func (self *Globule) Listen() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
 		if err != nil {
-			log.Fatalf("could not start services discovery service %s: %s", self.Domain, err)
+			log.Fatalf("could not start services discovery service %s: %s", self.getDomain(), err)
 		}
 
 		services.RegisterServiceDiscoveryServer(services_discovery_server, self)
@@ -6476,7 +6656,7 @@ func (self *Globule) Listen() error {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
-				log.Println("Discovery service is up and running for domain ", self.Domain)
+				log.Println("Discovery service is up and running for domain ", self.getDomain())
 
 				// no web-rpc server.
 				if err := services_discovery_server.Serve(lis); err != nil {
@@ -6507,7 +6687,7 @@ func (self *Globule) Listen() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesRepositoryPort))
 		if err != nil {
-			log.Fatalf("could not start services repository service %s: %s", self.Domain, err)
+			log.Fatalf("could not start services repository service %s: %s", self.getDomain(), err)
 		}
 
 		services.RegisterServiceRepositoryServer(services_repository_server, self)
@@ -6515,7 +6695,7 @@ func (self *Globule) Listen() error {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
-				log.Println("Repository service is up and running for domain ", self.Domain)
+				log.Println("Repository service is up and running for domain ", self.getDomain())
 
 				// no web-rpc server.
 				if err := services_repository_server.Serve(lis); err != nil {
@@ -6542,7 +6722,7 @@ func (self *Globule) Listen() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
 		if err != nil {
-			log.Fatalf("could not certificate authority signing  service %s: %s", self.Domain, err)
+			log.Fatalf("could not certificate authority signing  service %s: %s", self.getDomain(), err)
 		}
 
 		ca.RegisterCertificateAuthorityServer(certificate_authority_server, self)
@@ -6550,7 +6730,7 @@ func (self *Globule) Listen() error {
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
 			go func() {
-				log.Println("Certificate Authority service is up and running for domain ", self.Domain)
+				log.Println("Certificate Authority service is up and running for domain ", self.getDomain())
 
 				// no web-rpc server.
 				if err := certificate_authority_server.Serve(lis); err != nil {
@@ -6577,12 +6757,6 @@ func (self *Globule) Listen() error {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
-	// Handle the get ca certificate function
-	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
-
-	// Handle the signing certificate function.
-	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
-
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	// handle the Interrupt
 	// set the register sa user.
@@ -6598,7 +6772,7 @@ func (self *Globule) Listen() error {
 		server := &http.Server{
 			Addr: ":" + strconv.Itoa(self.PortHttps),
 			TLSConfig: &tls.Config{
-				ServerName: self.Domain,
+				ServerName: self.getDomain(),
 			},
 		}
 
@@ -6612,7 +6786,7 @@ func (self *Globule) Listen() error {
 			// I need to remove the gRPC certificate and recreate it.
 			Utility.RemoveDirContents(self.creds)
 
-			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.Domain, self.certs)
+			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.certs)
 
 			time.Sleep(15 * time.Second)
 
@@ -6819,8 +6993,8 @@ func (self *Globule) ObtainCertificateForCsr() error {
 	self.CertStableURL = resource.CertStableURL
 
 	// Set the certificates paths...
-	self.Certificate = self.Domain + ".crt"
-	self.CertificateAuthorityBundle = self.Domain + ".issuer.crt"
+	self.Certificate = self.getDomain() + ".crt"
+	self.CertificateAuthorityBundle = self.getDomain() + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
 	ioutil.WriteFile(self.certs+string(os.PathSeparator)+self.Certificate, resource.Certificate, 0400)

@@ -134,7 +134,7 @@ func getCaCertificate(address string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("https://" + address + "/get_ca_certificate")
+	resp, err = http.Get("http://" + address + ":10000/get_ca_certificate")
 
 	if err != nil {
 		return "", err
@@ -163,7 +163,7 @@ func signCaCertificate(address string, csr string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("https://" + address + "/sign_ca_certificate?csr=" + csr_str)
+	resp, err = http.Get("http://" + address + ":10000/sign_ca_certificate?csr=" + csr_str)
 	if err != nil {
 		return "", err
 	}

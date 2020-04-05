@@ -164,17 +164,17 @@ func main() {
 			}
 
 			var platform int32
-			if *publishCommand_plaform == "" {
+			if *publishCommand_plaform == "linux32" {
+				platform = 0
+			} else if *publishCommand_plaform == "linux64" {
+				platform = 1
+			} else if *publishCommand_plaform == "win32" {
+				platform = 2
+			} else if *publishCommand_plaform == "win64" {
+				platform = 3
+			} else {
 				publishCommand.PrintDefaults()
 				os.Exit(1)
-			} else if *publishCommand_plaform == "linux32" {
-				platform = 1
-			} else if *publishCommand_plaform == "linux64" {
-				platform = 2
-			} else if *publishCommand_plaform == "win32" {
-				platform = 3
-			} else if *publishCommand_plaform == "win64" {
-				platform = 4
 			}
 
 			keywords := strings.Split(*publishCommand_keywords, ",")

@@ -1112,6 +1112,46 @@ export namespace DeleteRessourceOwnersRsp {
   }
 }
 
+export class ValidateTokenRqst extends jspb.Message {
+  getToken(): string;
+  setToken(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateTokenRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateTokenRqst): ValidateTokenRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidateTokenRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateTokenRqst;
+  static deserializeBinaryFromReader(message: ValidateTokenRqst, reader: jspb.BinaryReader): ValidateTokenRqst;
+}
+
+export namespace ValidateTokenRqst {
+  export type AsObject = {
+    token: string,
+  }
+}
+
+export class ValidateTokenRsp extends jspb.Message {
+  getClientid(): string;
+  setClientid(value: string): void;
+
+  getExpired(): number;
+  setExpired(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidateTokenRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidateTokenRsp): ValidateTokenRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidateTokenRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidateTokenRsp;
+  static deserializeBinaryFromReader(message: ValidateTokenRsp, reader: jspb.BinaryReader): ValidateTokenRsp;
+}
+
+export namespace ValidateTokenRsp {
+  export type AsObject = {
+    clientid: string,
+    expired: number,
+  }
+}
+
 export class ValidateApplicationAccessRqst extends jspb.Message {
   getName(): string;
   setName(value: string): void;
@@ -1187,6 +1227,46 @@ export class ValidateUserAccessRsp extends jspb.Message {
 }
 
 export namespace ValidateUserAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ValidatePeerAccessRqst extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidatePeerAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidatePeerAccessRqst): ValidatePeerAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidatePeerAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidatePeerAccessRqst;
+  static deserializeBinaryFromReader(message: ValidatePeerAccessRqst, reader: jspb.BinaryReader): ValidatePeerAccessRqst;
+}
+
+export namespace ValidatePeerAccessRqst {
+  export type AsObject = {
+    name: string,
+    method: string,
+  }
+}
+
+export class ValidatePeerAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidatePeerAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidatePeerAccessRsp): ValidatePeerAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidatePeerAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidatePeerAccessRsp;
+  static deserializeBinaryFromReader(message: ValidatePeerAccessRsp, reader: jspb.BinaryReader): ValidatePeerAccessRsp;
+}
+
+export namespace ValidatePeerAccessRsp {
   export type AsObject = {
     result: boolean,
   }
@@ -1283,6 +1363,54 @@ export class ValidateApplicationRessourceAccessRsp extends jspb.Message {
 }
 
 export namespace ValidateApplicationRessourceAccessRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class ValidatePeerRessourceAccessRqst extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getMethod(): string;
+  setMethod(value: string): void;
+
+  getPath(): string;
+  setPath(value: string): void;
+
+  getPermission(): number;
+  setPermission(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidatePeerRessourceAccessRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidatePeerRessourceAccessRqst): ValidatePeerRessourceAccessRqst.AsObject;
+  static serializeBinaryToWriter(message: ValidatePeerRessourceAccessRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidatePeerRessourceAccessRqst;
+  static deserializeBinaryFromReader(message: ValidatePeerRessourceAccessRqst, reader: jspb.BinaryReader): ValidatePeerRessourceAccessRqst;
+}
+
+export namespace ValidatePeerRessourceAccessRqst {
+  export type AsObject = {
+    name: string,
+    method: string,
+    path: string,
+    permission: number,
+  }
+}
+
+export class ValidatePeerRessourceAccessRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ValidatePeerRessourceAccessRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: ValidatePeerRessourceAccessRsp): ValidatePeerRessourceAccessRsp.AsObject;
+  static serializeBinaryToWriter(message: ValidatePeerRessourceAccessRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ValidatePeerRessourceAccessRsp;
+  static deserializeBinaryFromReader(message: ValidatePeerRessourceAccessRsp, reader: jspb.BinaryReader): ValidatePeerRessourceAccessRsp;
+}
+
+export namespace ValidatePeerRessourceAccessRsp {
   export type AsObject = {
     result: boolean,
   }
@@ -1818,6 +1946,32 @@ export namespace ClearAllLogRsp {
   }
 }
 
+export class Peer extends jspb.Message {
+  getName(): string;
+  setName(value: string): void;
+
+  getMacAddress(): string;
+  setMacAddress(value: string): void;
+
+  getSecret(): string;
+  setSecret(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Peer.AsObject;
+  static toObject(includeInstance: boolean, msg: Peer): Peer.AsObject;
+  static serializeBinaryToWriter(message: Peer, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Peer;
+  static deserializeBinaryFromReader(message: Peer, reader: jspb.BinaryReader): Peer;
+}
+
+export namespace Peer {
+  export type AsObject = {
+    name: string,
+    macAddress: string,
+    secret: string,
+  }
+}
+
 export class Ressource extends jspb.Message {
   getPath(): string;
   setPath(value: string): void;
@@ -2073,6 +2227,200 @@ export class RemoveActionPermissionRsp extends jspb.Message {
 }
 
 export namespace RemoveActionPermissionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RegisterPeerRqst extends jspb.Message {
+  getPeer(): Peer | undefined;
+  setPeer(value?: Peer): void;
+  hasPeer(): boolean;
+  clearPeer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RegisterPeerRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RegisterPeerRqst): RegisterPeerRqst.AsObject;
+  static serializeBinaryToWriter(message: RegisterPeerRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RegisterPeerRqst;
+  static deserializeBinaryFromReader(message: RegisterPeerRqst, reader: jspb.BinaryReader): RegisterPeerRqst;
+}
+
+export namespace RegisterPeerRqst {
+  export type AsObject = {
+    peer?: Peer.AsObject,
+  }
+}
+
+export class RegisterPeerRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RegisterPeerRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RegisterPeerRsp): RegisterPeerRsp.AsObject;
+  static serializeBinaryToWriter(message: RegisterPeerRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RegisterPeerRsp;
+  static deserializeBinaryFromReader(message: RegisterPeerRsp, reader: jspb.BinaryReader): RegisterPeerRsp;
+}
+
+export namespace RegisterPeerRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class GetPeersRqst extends jspb.Message {
+  getQuery(): string;
+  setQuery(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPeersRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPeersRqst): GetPeersRqst.AsObject;
+  static serializeBinaryToWriter(message: GetPeersRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPeersRqst;
+  static deserializeBinaryFromReader(message: GetPeersRqst, reader: jspb.BinaryReader): GetPeersRqst;
+}
+
+export namespace GetPeersRqst {
+  export type AsObject = {
+    query: string,
+  }
+}
+
+export class GetPeersRsp extends jspb.Message {
+  getPeersList(): Array<Peer>;
+  setPeersList(value: Array<Peer>): void;
+  clearPeersList(): void;
+  addPeers(value?: Peer, index?: number): Peer;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetPeersRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: GetPeersRsp): GetPeersRsp.AsObject;
+  static serializeBinaryToWriter(message: GetPeersRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetPeersRsp;
+  static deserializeBinaryFromReader(message: GetPeersRsp, reader: jspb.BinaryReader): GetPeersRsp;
+}
+
+export namespace GetPeersRsp {
+  export type AsObject = {
+    peersList: Array<Peer.AsObject>,
+  }
+}
+
+export class DeletePeerRqst extends jspb.Message {
+  getPeer(): Peer | undefined;
+  setPeer(value?: Peer): void;
+  hasPeer(): boolean;
+  clearPeer(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePeerRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePeerRqst): DeletePeerRqst.AsObject;
+  static serializeBinaryToWriter(message: DeletePeerRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePeerRqst;
+  static deserializeBinaryFromReader(message: DeletePeerRqst, reader: jspb.BinaryReader): DeletePeerRqst;
+}
+
+export namespace DeletePeerRqst {
+  export type AsObject = {
+    peer?: Peer.AsObject,
+  }
+}
+
+export class DeletePeerRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): DeletePeerRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: DeletePeerRsp): DeletePeerRsp.AsObject;
+  static serializeBinaryToWriter(message: DeletePeerRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): DeletePeerRsp;
+  static deserializeBinaryFromReader(message: DeletePeerRsp, reader: jspb.BinaryReader): DeletePeerRsp;
+}
+
+export namespace DeletePeerRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class AddPeerActionRqst extends jspb.Message {
+  getPeerid(): string;
+  setPeerid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddPeerActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: AddPeerActionRqst): AddPeerActionRqst.AsObject;
+  static serializeBinaryToWriter(message: AddPeerActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddPeerActionRqst;
+  static deserializeBinaryFromReader(message: AddPeerActionRqst, reader: jspb.BinaryReader): AddPeerActionRqst;
+}
+
+export namespace AddPeerActionRqst {
+  export type AsObject = {
+    peerid: string,
+    action: string,
+  }
+}
+
+export class AddPeerActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AddPeerActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: AddPeerActionRsp): AddPeerActionRsp.AsObject;
+  static serializeBinaryToWriter(message: AddPeerActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AddPeerActionRsp;
+  static deserializeBinaryFromReader(message: AddPeerActionRsp, reader: jspb.BinaryReader): AddPeerActionRsp;
+}
+
+export namespace AddPeerActionRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
+export class RemovePeerActionRqst extends jspb.Message {
+  getPeerid(): string;
+  setPeerid(value: string): void;
+
+  getAction(): string;
+  setAction(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemovePeerActionRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: RemovePeerActionRqst): RemovePeerActionRqst.AsObject;
+  static serializeBinaryToWriter(message: RemovePeerActionRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemovePeerActionRqst;
+  static deserializeBinaryFromReader(message: RemovePeerActionRqst, reader: jspb.BinaryReader): RemovePeerActionRqst;
+}
+
+export namespace RemovePeerActionRqst {
+  export type AsObject = {
+    peerid: string,
+    action: string,
+  }
+}
+
+export class RemovePeerActionRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): RemovePeerActionRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: RemovePeerActionRsp): RemovePeerActionRsp.AsObject;
+  static serializeBinaryToWriter(message: RemovePeerActionRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): RemovePeerActionRsp;
+  static deserializeBinaryFromReader(message: RemovePeerActionRsp, reader: jspb.BinaryReader): RemovePeerActionRsp;
+}
+
+export namespace RemovePeerActionRsp {
   export type AsObject = {
     result: boolean,
   }

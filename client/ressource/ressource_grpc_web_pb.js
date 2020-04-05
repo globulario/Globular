@@ -69,6 +69,401 @@ proto.ressource.RessourceServicePromiseClient =
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RegisterPeerRqst,
+ *   !proto.ressource.RegisterPeerRsp>}
+ */
+const methodDescriptor_RessourceService_RegisterPeer = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RegisterPeer',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RegisterPeerRqst,
+  proto.ressource.RegisterPeerRsp,
+  /**
+   * @param {!proto.ressource.RegisterPeerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RegisterPeerRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RegisterPeerRqst,
+ *   !proto.ressource.RegisterPeerRsp>}
+ */
+const methodInfo_RessourceService_RegisterPeer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RegisterPeerRsp,
+  /**
+   * @param {!proto.ressource.RegisterPeerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RegisterPeerRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RegisterPeerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RegisterPeerRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RegisterPeerRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.registerPeer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RegisterPeer',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_RegisterPeer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RegisterPeerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RegisterPeerRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.registerPeer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RegisterPeer',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_RegisterPeer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.GetPeersRqst,
+ *   !proto.ressource.GetPeersRsp>}
+ */
+const methodDescriptor_RessourceService_GetPeers = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/GetPeers',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.ressource.GetPeersRqst,
+  proto.ressource.GetPeersRsp,
+  /**
+   * @param {!proto.ressource.GetPeersRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetPeersRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.GetPeersRqst,
+ *   !proto.ressource.GetPeersRsp>}
+ */
+const methodInfo_RessourceService_GetPeers = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.GetPeersRsp,
+  /**
+   * @param {!proto.ressource.GetPeersRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.GetPeersRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.GetPeersRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetPeersRsp>}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.getPeers =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/ressource.RessourceService/GetPeers',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_GetPeers);
+};
+
+
+/**
+ * @param {!proto.ressource.GetPeersRqst} request The request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.GetPeersRsp>}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.getPeers =
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
+      '/ressource.RessourceService/GetPeers',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_GetPeers);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.DeletePeerRqst,
+ *   !proto.ressource.DeletePeerRsp>}
+ */
+const methodDescriptor_RessourceService_DeletePeer = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/DeletePeer',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.DeletePeerRqst,
+  proto.ressource.DeletePeerRsp,
+  /**
+   * @param {!proto.ressource.DeletePeerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeletePeerRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.DeletePeerRqst,
+ *   !proto.ressource.DeletePeerRsp>}
+ */
+const methodInfo_RessourceService_DeletePeer = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.DeletePeerRsp,
+  /**
+   * @param {!proto.ressource.DeletePeerRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.DeletePeerRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.DeletePeerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.DeletePeerRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.DeletePeerRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.deletePeer =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/DeletePeer',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_DeletePeer,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.DeletePeerRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.DeletePeerRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.deletePeer =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/DeletePeer',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_DeletePeer);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AddPeerActionRqst,
+ *   !proto.ressource.AddPeerActionRsp>}
+ */
+const methodDescriptor_RessourceService_AddPeerAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/AddPeerAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AddPeerActionRqst,
+  proto.ressource.AddPeerActionRsp,
+  /**
+   * @param {!proto.ressource.AddPeerActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddPeerActionRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.AddPeerActionRqst,
+ *   !proto.ressource.AddPeerActionRsp>}
+ */
+const methodInfo_RessourceService_AddPeerAction = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.AddPeerActionRsp,
+  /**
+   * @param {!proto.ressource.AddPeerActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AddPeerActionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.AddPeerActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.AddPeerActionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.AddPeerActionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.addPeerAction =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/AddPeerAction',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_AddPeerAction,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.AddPeerActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.AddPeerActionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.addPeerAction =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/AddPeerAction',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_AddPeerAction);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.RemovePeerActionRqst,
+ *   !proto.ressource.RemovePeerActionRsp>}
+ */
+const methodDescriptor_RessourceService_RemovePeerAction = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/RemovePeerAction',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.RemovePeerActionRqst,
+  proto.ressource.RemovePeerActionRsp,
+  /**
+   * @param {!proto.ressource.RemovePeerActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemovePeerActionRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.RemovePeerActionRqst,
+ *   !proto.ressource.RemovePeerActionRsp>}
+ */
+const methodInfo_RessourceService_RemovePeerAction = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.RemovePeerActionRsp,
+  /**
+   * @param {!proto.ressource.RemovePeerActionRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.RemovePeerActionRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.RemovePeerActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.RemovePeerActionRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.RemovePeerActionRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.removePeerAction =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/RemovePeerAction',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_RemovePeerAction,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.RemovePeerActionRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.RemovePeerActionRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.removePeerAction =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/RemovePeerAction',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_RemovePeerAction);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
  *   !proto.ressource.RegisterAccountRqst,
  *   !proto.ressource.RegisterAccountRsp>}
  */
@@ -1829,6 +2224,86 @@ proto.ressource.RessourceServicePromiseClient.prototype.getAllFilesInfo =
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidateTokenRqst,
+ *   !proto.ressource.ValidateTokenRsp>}
+ */
+const methodDescriptor_RessourceService_ValidateToken = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidateToken',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidateTokenRqst,
+  proto.ressource.ValidateTokenRsp,
+  /**
+   * @param {!proto.ressource.ValidateTokenRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateTokenRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidateTokenRqst,
+ *   !proto.ressource.ValidateTokenRsp>}
+ */
+const methodInfo_RessourceService_ValidateToken = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidateTokenRsp,
+  /**
+   * @param {!proto.ressource.ValidateTokenRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidateTokenRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidateTokenRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidateTokenRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidateTokenRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validateToken =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateToken',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidateToken,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidateTokenRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidateTokenRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validateToken =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidateToken',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidateToken);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
  *   !proto.ressource.ValidateUserRessourceAccessRqst,
  *   !proto.ressource.ValidateUserRessourceAccessRsp>}
  */
@@ -1989,6 +2464,86 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationResso
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidatePeerRessourceAccessRqst,
+ *   !proto.ressource.ValidatePeerRessourceAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidatePeerRessourceAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidatePeerRessourceAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidatePeerRessourceAccessRqst,
+  proto.ressource.ValidatePeerRessourceAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidatePeerRessourceAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidatePeerRessourceAccessRqst,
+ *   !proto.ressource.ValidatePeerRessourceAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidatePeerRessourceAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidatePeerRessourceAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidatePeerRessourceAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidatePeerRessourceAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidatePeerRessourceAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validatePeerRessourceAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidatePeerRessourceAccess',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidatePeerRessourceAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidatePeerRessourceAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validatePeerRessourceAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidatePeerRessourceAccess',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidatePeerRessourceAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
  *   !proto.ressource.ValidateUserAccessRqst,
  *   !proto.ressource.ValidateUserAccessRsp>}
  */
@@ -2143,6 +2698,86 @@ proto.ressource.RessourceServicePromiseClient.prototype.validateApplicationAcces
       request,
       metadata || {},
       methodDescriptor_RessourceService_ValidateApplicationAccess);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.ValidatePeerAccessRqst,
+ *   !proto.ressource.ValidatePeerAccessRsp>}
+ */
+const methodDescriptor_RessourceService_ValidatePeerAccess = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/ValidatePeerAccess',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.ValidatePeerAccessRqst,
+  proto.ressource.ValidatePeerAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidatePeerAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidatePeerAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.ValidatePeerAccessRqst,
+ *   !proto.ressource.ValidatePeerAccessRsp>}
+ */
+const methodInfo_RessourceService_ValidatePeerAccess = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.ValidatePeerAccessRsp,
+  /**
+   * @param {!proto.ressource.ValidatePeerAccessRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.ValidatePeerAccessRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.ValidatePeerAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.ValidatePeerAccessRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.ValidatePeerAccessRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.validatePeerAccess =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/ValidatePeerAccess',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidatePeerAccess,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.ValidatePeerAccessRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.ValidatePeerAccessRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.validatePeerAccess =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/ValidatePeerAccess',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_ValidatePeerAccess);
 };
 
 

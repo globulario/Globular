@@ -278,6 +278,15 @@ message DeleteRessourceOwnersRsp{
 	bool result = 1;
 }
 
+message ValidateTokenRqst{
+	string token = 1;
+}
+
+message ValidateTokenRsp{
+	string clientId = 1;
+	int64 expired = 2;
+}
+
 message ValidateApplicationAccessRqst{
 	string name=1;
 	string method=2;
@@ -296,6 +305,16 @@ message ValidateUserAccessRqst{
 message ValidateUserAccessRsp{
 	bool result=1;
 }
+
+message ValidatePeerAccessRqst{
+	string name=1;
+	string method=2;
+}
+
+message ValidatePeerAccessRsp{
+	bool result=1;
+}
+
 
 message ValidateUserRessourceAccessRqst{
 	string token=1;
@@ -316,6 +335,17 @@ message ValidateApplicationRessourceAccessRqst{
 }
 
 message ValidateApplicationRessourceAccessRsp{
+	bool result=1;
+}
+
+message ValidatePeerRessourceAccessRqst{
+	string name=1;
+	string method=2;
+	string path=3;
+	int32 permission=4;
+}
+
+message ValidatePeerRessourceAccessRsp{
 	bool result=1;
 }
 
@@ -445,6 +475,14 @@ message ClearAllLogRsp{
 
 ////////////////// Ressource //////////////////
 
+
+/** a globular server **/
+message Peer {
+	string name = 1; // must be unique on the network.
+	string mac_address= 2;
+	string secret = 3; // Must keep in level db.
+}
+
 /** A ressource can be anything with a path an a name **/
 message Ressource {
 	string path = 1;
@@ -505,11 +543,77 @@ message RemoveActionPermissionRsp{
 }
 
 /**
+ * Register peer request. The peer must be accept before Authenticate.
+ */
+message RegisterPeerRqst{
+	Peer peer = 1;
+}
+
+message RegisterPeerRsp{
+	bool result = 1;
+}
+
+/**
+ * Return the list of peer (query is use to get specific peer's).
+ */
+message GetPeersRqst{
+	string query = 1;
+}
+
+message GetPeersRsp{
+	repeated Peer peers = 1;
+}
+
+/**
+ * Remove a peer from the network.
+ */
+message DeletePeerRqst{
+	Peer peer = 1;
+}
+
+message DeletePeerRsp{
+	bool result = 1;
+}
+
+message AddPeerActionRqst{
+	string peerId = 1;
+	string action = 2;
+}
+
+message AddPeerActionRsp{
+	bool result = 1;
+}
+
+message RemovePeerActionRqst{
+	string peerId = 1;
+	string action = 2;
+}
+
+message RemovePeerActionRsp{
+	bool result = 1;
+}
+
+/**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
  * objects.
  */
 service RessourceService {
+	
+	/** Register a peer on the network **/
+	rpc RegisterPeer(RegisterPeerRqst) returns (RegisterPeerRsp);
+	
+	/** Return the list of peers **/
+	rpc GetPeers(GetPeersRqst) returns(stream GetPeersRsp);
+
+	/** Remove a peer from the network **/
+	rpc DeletePeer(DeletePeerRqst) returns (DeletePeerRsp);
+	
+	/** Add peer action permission **/
+	rpc AddPeerAction(AddPeerActionRqst) returns(AddPeerActionRsp);
+	
+	/** Remove peer action permission **/
+	rpc RemovePeerAction(RemovePeerActionRqst) returns(RemovePeerActionRsp);
 	
 	/** Register a new Account **/
 	rpc RegisterAccount(RegisterAccountRqst) returns (RegisterAccountRsp);
@@ -577,17 +681,26 @@ service RessourceService {
 	/** Retrun a json string with all file info **/
 	rpc GetAllFilesInfo(GetAllFilesInfoRqst) returns(GetAllFilesInfoRsp);
 	
-	/** Validate if user can access a given file. **/
+	/** Validate a token **/
+	rpc ValidateToken(ValidateTokenRqst) returns (ValidateTokenRsp);
+	
+	/** Validate if user can access a given ressource. **/
 	rpc ValidateUserRessourceAccess(ValidateUserRessourceAccessRqst) returns (ValidateUserRessourceAccessRsp);
 	
-	/** Validate if application can access a given file. **/
+	/** Validate if application can access a given ressouce. **/
 	rpc ValidateApplicationRessourceAccess(ValidateApplicationRessourceAccessRqst) returns (ValidateApplicationRessourceAccessRsp);
+	
+	/** Validate if a peer can access a given ressource. **/
+	rpc ValidatePeerRessourceAccess(ValidatePeerRessourceAccessRqst) returns (ValidatePeerRessourceAccessRsp);
 	
 	/** Validate if user can access a given method. **/
 	rpc ValidateUserAccess(ValidateUserAccessRqst) returns (ValidateUserAccessRsp);
 	
 	/** Validate if application can access a given method. **/
 	rpc ValidateApplicationAccess(ValidateApplicationAccessRqst) returns (ValidateApplicationAccessRsp);
+	
+	/** Validate if a peer can access a given method. **/
+	rpc ValidatePeerAccess(ValidatePeerAccessRqst) returns (ValidatePeerAccessRsp);
 	
 	/** Create Permission for a dir (recursive) **/
 	rpc CreateDirPermissions(CreateDirPermissionsRqst) returns(CreateDirPermissionsRsp);

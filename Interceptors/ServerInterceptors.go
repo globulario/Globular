@@ -7,7 +7,6 @@ package Interceptors
 
 import "context"
 import "fmt"
-import "log"
 import "google.golang.org/grpc"
 import "github.com/davecourtois/Globular/ressource"
 import "google.golang.org/grpc/metadata"
@@ -34,6 +33,7 @@ var (
 func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
 	var err error
 	if ressource_client == nil {
+		fmt.Println("get ressource client for domain: ", domain)
 		ressource_client, err = ressource.NewRessource_Client(domain, "ressource")
 		if err != nil {
 			return nil, err
@@ -51,7 +51,7 @@ func getCache() *storage_store.BigCache_store {
 		cache = storage_store.NewBigCache_store()
 		err := cache.Open("")
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 		}
 	}
 	return cache
@@ -189,7 +189,7 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 }
 
 /**
- * Validate application file permission.
+ * Validate application ressource permission.
  */
 func ValidateApplicationRessourceAccess(domain string, applicationName string, method string, path string, permission int32) error {
 
@@ -206,7 +206,31 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 		return err
 	}
 	if !hasAccess {
-		return errors.New("Permission denied! for file " + path)
+		return errors.New("Permission denied! for ressource " + path)
+	}
+
+	return nil
+}
+
+/**
+ * Validate peer ressouce permission.
+ */
+func ValidatePeerRessourceAccess(domain string, name string, method string, path string, permission int32) error {
+
+	// keep the values in the map for the lifetime of the token and validate it
+	// from local map.
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidatePeerRessourceAccess(name, path, method, permission)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		return errors.New("Permission denied! for ressource " + path)
 	}
 
 	return nil
@@ -214,6 +238,7 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 
 func ValidateUserAccess(domain string, token string, method string) (bool, error) {
 	clientId, expire, err := ValidateToken(token)
+
 	key := Utility.GenerateUUID(clientId + method)
 	if err != nil || expire < time.Now().Unix() {
 		getCache().RemoveItem(key)
@@ -221,27 +246,28 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 
 	_, err = getCache().GetItem(key)
 	if err == nil {
-		fmt.Println("----> permission found ", domain, clientId, method)
 		// Here a value exist in the store...
 		return true, nil
 	}
 
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
-		fmt.Println("----> no ressource client found!", domain, err)
 		return false, err
 	}
 
 	// get access from remote source.
 	hasAccess, err := ressource_client.ValidateUserAccess(token, method)
+
 	if hasAccess {
 		getCache().SetItem(key, []byte(""))
-		fmt.Println("----> permission saved ", domain, clientId, method)
 	}
 
 	return hasAccess, err
 }
 
+/**
+ * Validate Application method access.
+ */
 func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
 	key := Utility.GenerateUUID(application + method)
 
@@ -271,6 +297,35 @@ func ValidateApplicationAccess(domain string, application string, method string)
 	return hasAccess, err
 }
 
+func ValidatePeerAccess(domain string, name string, method string) (bool, error) {
+	key := Utility.GenerateUUID(name + method)
+
+	_, err := getCache().GetItem(key)
+	if err == nil {
+		// Here a value exist in the store...
+		return true, nil
+	}
+
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return false, err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidatePeerAccess(name, method)
+	if hasAccess {
+		getCache().SetItem(key, []byte(""))
+
+		// Here I will set a timeout for the permission.
+		timeout := time.NewTimer(15 * time.Minute)
+		go func() {
+			<-timeout.C
+			getCache().RemoveItem(key)
+		}()
+	}
+	return hasAccess, err
+}
+
 // That interceptor is use by all services except the ressource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -280,6 +335,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var application string
 	var path string
 	var domain string // This is the target domain, the one use in TLS certificate.
+	var peer string   // The name of the peer
 	//var ip string
 	//var mac string
 
@@ -325,13 +381,18 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
+	// Test if peer has access
+	if len(peer) > 0 && !hasAccess {
+		hasAccess, _ = ValidatePeerAccess(domain, peer, method)
+	}
+
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		hasAccess, _ = ValidateUserAccess(domain, token, method)
 	}
 
 	// Connect to the ressource services for the given domain.
-	log.Println("Validate access for ", clientId, application, domain, method)
+	fmt.Println("Validate access for ", clientId, application, domain, method)
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
 		return nil, err
@@ -353,8 +414,11 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		if err != nil {
 			err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 			if err != nil {
-				log.Println(err)
-				return nil, err
+				err = ValidatePeerRessourceAccess(domain, peer, path, method, permission)
+				if err != nil {
+					fmt.Println(err)
+					return nil, err
+				}
 			}
 		}
 
@@ -363,7 +427,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method != "/persistence.PersistenceService/Count" && len(path) > 0 {
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
-		log.Println("---> validate ressource permission ", path, " for method ", method)
+		fmt.Println("---> validate ressource permission ", path, " for method ", method)
 		permission, err := ressource_client.GetActionPermission(method)
 		if err == nil && permission != -1 {
 			// I will test if the user has file permission.
@@ -371,7 +435,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			if err != nil {
 				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 				if err != nil {
-					log.Println(err)
+					fmt.Println(err)
 					return nil, err
 				}
 			}
@@ -392,28 +456,28 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			rqst := req.(*filepb.CreateDirRequest)
 			err := ressource_client.CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/Rename" {
 			rqst := req.(*filepb.RenameRequest)
 			err := ressource_client.RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteFile" {
 			rqst := req.(*filepb.DeleteFileRequest)
 			err := ressource_client.DeleteFilePermissions(rqst.GetPath())
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteDir" {
 			rqst := req.(*filepb.DeleteDirRequest)
 			err := ressource_client.DeleteDirPermissions(rqst.GetPath())
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return nil, err
 			}
 		}
@@ -431,6 +495,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var application string
 	var domain string
 	var path string
+	var peer string
 	//var ip string
 	//var mac string
 	//Get the caller ip address.
@@ -477,7 +542,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	if len(token) > 0 && !hasAccess {
 		hasAccess, err = ValidateUserAccess(domain, token, method)
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return err
 		}
 	}
@@ -486,7 +551,15 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	if len(application) > 0 && !hasAccess {
 		hasAccess, err = ValidateApplicationAccess(domain, application, method)
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
+			return err
+		}
+	}
+
+	if len(peer) > 0 && !hasAccess {
+		hasAccess, err = ValidatePeerAccess(domain, peer, method)
+		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 	}
@@ -505,8 +578,11 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 			if err != nil {
 				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 				if err != nil {
-					log.Println(err)
-					return err
+					err = ValidatePeerRessourceAccess(domain, peer, path, method, permission)
+					if err != nil {
+						fmt.Println(err)
+						return err
+					}
 				}
 			}
 
@@ -522,7 +598,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	//}
 
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 		return err
 	}
 
