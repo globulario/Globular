@@ -480,7 +480,7 @@ func (self *Globule) createApplicationConnection() error {
  */
 func (self *Globule) getDomain() string {
 	domain := self.Domain
-	if len(self.Name) > 0 {
+	if len(self.Name) > 0 && domain != "localhost" {
 		domain = self.Name + "." + domain
 
 	}
@@ -1540,11 +1540,20 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
  * Start the monitoring service with prometheus.
  */
 func (self *Globule) startMonitoring() error {
+	if self.getConfig()["Services"].(map[string]interface{})["monitoring_server"] == nil {
+		return errors.New("No monitoring service configuration was found on that server!")
+	}
+
+	var err error
+
+	s := self.getConfig()["Services"].(map[string]interface{})["monitoring_server"].(map[string]interface{})
+
 	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoring_Client(self.getDomain(), "monitoring_server")
+	m, err := monitoring_client.NewMonitoring_Client(s["Domain"].(string), "monitoring_server")
 	if err != nil {
 		return err
 	}
+
 	// Here I will start promethus.
 	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
 	Utility.CreateDirIfNotExist(dataPath)
@@ -1665,10 +1674,16 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return self.persistence_client_, nil
 	}
 
+	if self.getConfig()["Services"].(map[string]interface{})["persistence_server"] == nil {
+		return nil, errors.New("No persistence service configuration was found on that server!")
+	}
+
 	var err error
 
+	s := self.getConfig()["Services"].(map[string]interface{})["persistence_server"].(map[string]interface{})
+
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistence_Client(self.getDomain(), "persistence_server")
+	self.persistence_client_, err = persistence_client.NewPersistence_Client(s["Domain"].(string), "persistence_server")
 	if err != nil {
 		log.Println("fail to connect to persistence server ", err)
 		return nil, err
@@ -2240,6 +2255,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	f.Close()
 
 	// sync the data/config file with the service file.
+	log.Println("---> save config: ", config)
 	jsonStr, _ := Utility.ToJson(config)
 
 	// here I will write the file
@@ -2664,9 +2680,17 @@ func (self *Globule) registerSa() error {
 }
 
 func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
+
+	if self.getConfig()["Services"].(map[string]interface{})["ldap_server"] == nil {
+		return nil, errors.New("No ldap service configuration was found on that server!")
+	}
+
 	var err error
+
+	s := self.getConfig()["Services"].(map[string]interface{})["ldap_server"].(map[string]interface{})
+
 	if self.ldap_client_ == nil {
-		self.ldap_client_, err = ldap_client.NewLdap_Client(self.getDomain(), "ldap_server")
+		self.ldap_client_, err = ldap_client.NewLdap_Client(s["Domain"].(string), "ldap_server")
 	}
 	if err != nil {
 		log.Println("fail to connect to ldap server ", err)
@@ -2958,7 +2982,9 @@ func (self *Globule) RegisterPeer(ctx context.Context, rqst *ressource.RegisterP
 
 	// Here I will first look if a peer with a same name already exist on the
 	// ressources...
-	count, _ := p.Count("local_ressource", "local_ressource", "Peers", `{"Name":"`+rqst.Peer.Name+`"}`, "")
+	_id := Utility.GenerateUUID(rqst.Peer.Name + rqst.Peer.MacAddress)
+
+	count, _ := p.Count("local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, "")
 	if count > 0 {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2967,19 +2993,118 @@ func (self *Globule) RegisterPeer(ctx context.Context, rqst *ressource.RegisterP
 	}
 
 	// No authorization exist for that peer I will insert it.
+	// Here will create the new peer.
+	peer := make(map[string]interface{}, 0)
+	peer["_id"] = _id
+	peer["name"] = rqst.Peer.Name
+	peer["mac_address"] = rqst.Peer.MacAddress
 
-	// Here I will
-	return nil, nil
+	peer["actions"] = make([]interface{}, 0)
+
+	jsonStr, _ := Utility.ToJson(peer)
+
+	_, err = p.InsertOne("local_ressource", "local_ressource", "Peers", jsonStr, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.RegisterPeerRsp{
+		Result: true,
+	}, nil
 }
 
 //* Return the list of authorized peers *
 func (self *Globule) GetPeers(rqst *ressource.GetPeersRqst, stream ressource.RessourceService_GetPeersServer) error {
+	// Get the persistence connection
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		log.Println("authenticate fail to get persistence connection ", err)
+		return err
+	}
+
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
+
+	data, err := p.Find("local_ressource", "local_ressource", "Peers", query, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	peers := make([]map[string]interface{}, 0)
+	err = json.Unmarshal([]byte(data), &peers)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 100
+	values := make([]*ressource.Peer, 0)
+
+	for i := 0; i < len(peers); i++ {
+		values = append(values, &ressource.Peer{Name: peers[i]["name"].(string), MacAddress: peers[i]["mac_address"].(string)})
+		if len(values) >= maxSize {
+			err := stream.Send(
+				&ressource.GetPeersRsp{
+					Peers: values,
+				},
+			)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			values = make([]*ressource.Peer, 0)
+		}
+	}
+
+	// Send reminding values.
+	if len(values) > 0 {
+		err := stream.Send(
+			&ressource.GetPeersRsp{
+				Peers: values,
+			},
+		)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
 	return nil
 }
 
 //* Remove a peer from the network *
 func (self *Globule) DeletePeer(ctx context.Context, rqst *ressource.DeletePeerRqst) (*ressource.DeletePeerRsp, error) {
-	return nil, nil
+	// Get the persistence connection
+	p, err := self.getPersistenceSaConnection()
+	if err != nil {
+		log.Println("authenticate fail to get persistence connection ", err)
+		return nil, err
+	}
+
+	// No authorization exist for that peer I will insert it.
+	// Here will create the new peer.
+	_id := Utility.GenerateUUID(rqst.Peer.Name + rqst.Peer.MacAddress)
+
+	err = p.DeleteOne("local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.DeletePeerRsp{
+		Result: true,
+	}, nil
 }
 
 //* Add peer action permission *
@@ -6089,9 +6214,16 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
  * Get access to the event services.
  */
 func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
+
+	if self.getConfig()["Services"].(map[string]interface{})["event_server"] == nil {
+		return nil, errors.New("No event service configuration was found on that server!")
+	}
+
+	s := self.getConfig()["Services"].(map[string]interface{})["event_server"].(map[string]interface{})
+
 	var err error
 	if self.event_client_ == nil {
-		self.event_client_, err = event_client.NewEvent_Client(self.getDomain(), "event_server")
+		self.event_client_, err = event_client.NewEvent_Client(s["Domain"].(string), "event_server")
 	}
 	return self.event_client_, err
 }

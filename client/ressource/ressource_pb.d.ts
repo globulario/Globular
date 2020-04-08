@@ -1953,9 +1953,6 @@ export class Peer extends jspb.Message {
   getMacAddress(): string;
   setMacAddress(value: string): void;
 
-  getSecret(): string;
-  setSecret(value: string): void;
-
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Peer.AsObject;
   static toObject(includeInstance: boolean, msg: Peer): Peer.AsObject;
@@ -1968,7 +1965,6 @@ export namespace Peer {
   export type AsObject = {
     name: string,
     macAddress: string,
-    secret: string,
   }
 }
 

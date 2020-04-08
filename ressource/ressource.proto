@@ -475,12 +475,10 @@ message ClearAllLogRsp{
 
 ////////////////// Ressource //////////////////
 
-
 /** a globular server **/
 message Peer {
 	string name = 1; // must be unique on the network.
 	string mac_address= 2;
-	string secret = 3; // Must keep in level db.
 }
 
 /** A ressource can be anything with a path an a name **/

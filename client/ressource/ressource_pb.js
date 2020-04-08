@@ -16921,8 +16921,7 @@ proto.ressource.Peer.prototype.toObject = function(opt_includeInstance) {
 proto.ressource.Peer.toObject = function(includeInstance, msg) {
   var f, obj = {
     name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    macAddress: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    secret: jspb.Message.getFieldWithDefault(msg, 3, "")
+    macAddress: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -16967,10 +16966,6 @@ proto.ressource.Peer.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {string} */ (reader.readString());
       msg.setMacAddress(value);
       break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSecret(value);
-      break;
     default:
       reader.skipField();
       break;
@@ -17014,13 +17009,6 @@ proto.ressource.Peer.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getSecret();
-  if (f.length > 0) {
-    writer.writeString(
-      3,
-      f
-    );
-  }
 };
 
 
@@ -17057,24 +17045,6 @@ proto.ressource.Peer.prototype.getMacAddress = function() {
  */
 proto.ressource.Peer.prototype.setMacAddress = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * optional string secret = 3;
- * @return {string}
- */
-proto.ressource.Peer.prototype.getSecret = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.ressource.Peer} returns this
- */
-proto.ressource.Peer.prototype.setSecret = function(value) {
-  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
