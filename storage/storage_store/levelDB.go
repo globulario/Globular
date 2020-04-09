@@ -122,7 +122,6 @@ func (self *LevelDB_store) getItem(key string) ([]byte, error) {
 	if strings.HasSuffix(key, "*") {
 		// I will made use of iterator to ket the values
 		values := "["
-		log.Println("---------> try to get items: ", key)
 		iter := self.db.NewIterator(util.BytesPrefix([]byte(key[:len(key)-2])), nil)
 
 		for ok := iter.Last(); ok; ok = iter.Prev() {

@@ -526,6 +526,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	srv := self.Services[id]
 	if srv.(map[string]interface{})["ProxyProcess"] != nil {
 		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		// time.Sleep(time.Second * 1)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -637,6 +638,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
 				if srv.(map[string]interface{})["Process"].(*exec.Cmd).Process != nil {
 					srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+					// time.Sleep(time.Second * 1)
 				}
 			}
 		}
@@ -745,6 +747,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			if s["Process"] != nil {
 				if s["Process"].(*exec.Cmd).Process != nil {
 					s["Process"].(*exec.Cmd).Process.Kill()
+					// time.Sleep(time.Second * 1)
 				}
 			}
 
@@ -1598,7 +1601,7 @@ scrape_configs:
     - targets: ['localhost:9100']
     
   - job_name: 'plc_exporter'
-    scrape_interval: 500ms
+    scrape_interval: 5s
     static_configs:
     - targets: ['localhost:2112']
 `
@@ -2364,12 +2367,15 @@ func (self *Globule) stopService(serviceId string) error {
 	}
 
 	err := s["Process"].(*exec.Cmd).Process.Kill()
+	// time.Sleep(time.Second * 1)
+
 	if err != nil {
 		return err
 	}
 
 	if s["ProxyProcess"] != nil {
 		err := s["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		// time.Sleep(time.Second * 1)
 		if err != nil {
 			return err
 		}
@@ -6642,6 +6648,8 @@ func (self *Globule) Listen() error {
 					if p.(*exec.Cmd).Process != nil {
 						log.Println("kill service process ", p.(*exec.Cmd).Process.Pid)
 						p.(*exec.Cmd).Process.Kill()
+						// time.Sleep(time.Second * 1)
+
 					}
 				}
 			}
@@ -6652,6 +6660,7 @@ func (self *Globule) Listen() error {
 					if p.(*exec.Cmd).Process != nil {
 						log.Println("kill proxy process ", p.(*exec.Cmd).Process.Pid)
 						p.(*exec.Cmd).Process.Kill()
+						// time.Sleep(time.Second * 1)
 					}
 				}
 			}
