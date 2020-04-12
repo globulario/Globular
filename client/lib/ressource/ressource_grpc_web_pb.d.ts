@@ -5,6 +5,8 @@ import {
   AddAccountRoleRsp,
   AddApplicationActionRqst,
   AddApplicationActionRsp,
+  AddPeerActionRqst,
+  AddPeerActionRsp,
   AddRoleActionRqst,
   AddRoleActionRsp,
   AuthenticateRqst,
@@ -27,6 +29,8 @@ import {
   DeleteFilePermissionsRsp,
   DeleteLogRqst,
   DeleteLogRsp,
+  DeletePeerRqst,
+  DeletePeerRsp,
   DeletePermissionsRqst,
   DeletePermissionsRsp,
   DeleteRessourceOwnerRqst,
@@ -47,6 +51,8 @@ import {
   GetAllFilesInfoRsp,
   GetLogRqst,
   GetLogRsp,
+  GetPeersRqst,
+  GetPeersRsp,
   GetPermissionsRqst,
   GetPermissionsRsp,
   GetRessourceOwnersRqst,
@@ -59,12 +65,16 @@ import {
   RefreshTokenRsp,
   RegisterAccountRqst,
   RegisterAccountRsp,
+  RegisterPeerRqst,
+  RegisterPeerRsp,
   RemoveAccountRoleRqst,
   RemoveAccountRoleRsp,
   RemoveActionPermissionRqst,
   RemoveActionPermissionRsp,
   RemoveApplicationActionRqst,
   RemoveApplicationActionRsp,
+  RemovePeerActionRqst,
+  RemovePeerActionRsp,
   RemoveRessourceRqst,
   RemoveRessourceRsp,
   RemoveRoleActionRqst,
@@ -85,6 +95,12 @@ import {
   ValidateApplicationAccessRsp,
   ValidateApplicationRessourceAccessRqst,
   ValidateApplicationRessourceAccessRsp,
+  ValidatePeerAccessRqst,
+  ValidatePeerAccessRsp,
+  ValidatePeerRessourceAccessRqst,
+  ValidatePeerRessourceAccessRsp,
+  ValidateTokenRqst,
+  ValidateTokenRsp,
   ValidateUserAccessRqst,
   ValidateUserAccessRsp,
   ValidateUserRessourceAccessRqst,
@@ -94,6 +110,39 @@ export class RessourceServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  registerPeer(
+    request: RegisterPeerRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RegisterPeerRsp) => void
+  ): grpcWeb.ClientReadableStream<RegisterPeerRsp>;
+
+  getPeers(
+    request: GetPeersRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetPeersRsp>;
+
+  deletePeer(
+    request: DeletePeerRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: DeletePeerRsp) => void
+  ): grpcWeb.ClientReadableStream<DeletePeerRsp>;
+
+  addPeerAction(
+    request: AddPeerActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: AddPeerActionRsp) => void
+  ): grpcWeb.ClientReadableStream<AddPeerActionRsp>;
+
+  removePeerAction(
+    request: RemovePeerActionRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: RemovePeerActionRsp) => void
+  ): grpcWeb.ClientReadableStream<RemovePeerActionRsp>;
 
   registerAccount(
     request: RegisterAccountRqst,
@@ -249,6 +298,13 @@ export class RessourceServiceClient {
                response: GetAllFilesInfoRsp) => void
   ): grpcWeb.ClientReadableStream<GetAllFilesInfoRsp>;
 
+  validateToken(
+    request: ValidateTokenRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidateTokenRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidateTokenRsp>;
+
   validateUserRessourceAccess(
     request: ValidateUserRessourceAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -263,6 +319,13 @@ export class RessourceServiceClient {
                response: ValidateApplicationRessourceAccessRsp) => void
   ): grpcWeb.ClientReadableStream<ValidateApplicationRessourceAccessRsp>;
 
+  validatePeerRessourceAccess(
+    request: ValidatePeerRessourceAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidatePeerRessourceAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidatePeerRessourceAccessRsp>;
+
   validateUserAccess(
     request: ValidateUserAccessRqst,
     metadata: grpcWeb.Metadata | undefined,
@@ -276,6 +339,13 @@ export class RessourceServiceClient {
     callback: (err: grpcWeb.Error,
                response: ValidateApplicationAccessRsp) => void
   ): grpcWeb.ClientReadableStream<ValidateApplicationAccessRsp>;
+
+  validatePeerAccess(
+    request: ValidatePeerAccessRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: ValidatePeerAccessRsp) => void
+  ): grpcWeb.ClientReadableStream<ValidatePeerAccessRsp>;
 
   createDirPermissions(
     request: CreateDirPermissionsRqst,
@@ -406,6 +476,31 @@ export class RessourceServicePromiseClient {
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
 
+  registerPeer(
+    request: RegisterPeerRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RegisterPeerRsp>;
+
+  getPeers(
+    request: GetPeersRqst,
+    metadata?: grpcWeb.Metadata
+  ): grpcWeb.ClientReadableStream<GetPeersRsp>;
+
+  deletePeer(
+    request: DeletePeerRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<DeletePeerRsp>;
+
+  addPeerAction(
+    request: AddPeerActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<AddPeerActionRsp>;
+
+  removePeerAction(
+    request: RemovePeerActionRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<RemovePeerActionRsp>;
+
   registerAccount(
     request: RegisterAccountRqst,
     metadata?: grpcWeb.Metadata
@@ -516,6 +611,11 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<GetAllFilesInfoRsp>;
 
+  validateToken(
+    request: ValidateTokenRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidateTokenRsp>;
+
   validateUserRessourceAccess(
     request: ValidateUserRessourceAccessRqst,
     metadata?: grpcWeb.Metadata
@@ -526,6 +626,11 @@ export class RessourceServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<ValidateApplicationRessourceAccessRsp>;
 
+  validatePeerRessourceAccess(
+    request: ValidatePeerRessourceAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidatePeerRessourceAccessRsp>;
+
   validateUserAccess(
     request: ValidateUserAccessRqst,
     metadata?: grpcWeb.Metadata
@@ -535,6 +640,11 @@ export class RessourceServicePromiseClient {
     request: ValidateApplicationAccessRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<ValidateApplicationAccessRsp>;
+
+  validatePeerAccess(
+    request: ValidatePeerAccessRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ValidatePeerAccessRsp>;
 
   createDirPermissions(
     request: CreateDirPermissionsRqst,

@@ -25,7 +25,6 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 
 	if len(address) == 0 {
 		err := errors.New("no address was given for service name " + name)
-		log.Panicln(err)
 		return nil, err
 	}
 

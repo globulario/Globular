@@ -17,6 +17,8 @@ goog.exportSymbol('proto.ressource.AddAccountRoleRqst', null, global);
 goog.exportSymbol('proto.ressource.AddAccountRoleRsp', null, global);
 goog.exportSymbol('proto.ressource.AddApplicationActionRqst', null, global);
 goog.exportSymbol('proto.ressource.AddApplicationActionRsp', null, global);
+goog.exportSymbol('proto.ressource.AddPeerActionRqst', null, global);
+goog.exportSymbol('proto.ressource.AddPeerActionRsp', null, global);
 goog.exportSymbol('proto.ressource.AddRoleActionRqst', null, global);
 goog.exportSymbol('proto.ressource.AddRoleActionRsp', null, global);
 goog.exportSymbol('proto.ressource.AuthenticateRqst', null, global);
@@ -39,6 +41,8 @@ goog.exportSymbol('proto.ressource.DeleteFilePermissionsRqst', null, global);
 goog.exportSymbol('proto.ressource.DeleteFilePermissionsRsp', null, global);
 goog.exportSymbol('proto.ressource.DeleteLogRqst', null, global);
 goog.exportSymbol('proto.ressource.DeleteLogRsp', null, global);
+goog.exportSymbol('proto.ressource.DeletePeerRqst', null, global);
+goog.exportSymbol('proto.ressource.DeletePeerRsp', null, global);
 goog.exportSymbol('proto.ressource.DeletePermissionsRqst', null, global);
 goog.exportSymbol('proto.ressource.DeletePermissionsRsp', null, global);
 goog.exportSymbol('proto.ressource.DeleteRessourceOwnerRqst', null, global);
@@ -61,6 +65,8 @@ goog.exportSymbol('proto.ressource.GetLogMethodsRqst', null, global);
 goog.exportSymbol('proto.ressource.GetLogMethodsRsp', null, global);
 goog.exportSymbol('proto.ressource.GetLogRqst', null, global);
 goog.exportSymbol('proto.ressource.GetLogRsp', null, global);
+goog.exportSymbol('proto.ressource.GetPeersRqst', null, global);
+goog.exportSymbol('proto.ressource.GetPeersRsp', null, global);
 goog.exportSymbol('proto.ressource.GetPermissionsRqst', null, global);
 goog.exportSymbol('proto.ressource.GetPermissionsRsp', null, global);
 goog.exportSymbol('proto.ressource.GetRessourceOwnersRqst', null, global);
@@ -73,16 +79,21 @@ goog.exportSymbol('proto.ressource.LogInfo', null, global);
 goog.exportSymbol('proto.ressource.LogRqst', null, global);
 goog.exportSymbol('proto.ressource.LogRsp', null, global);
 goog.exportSymbol('proto.ressource.LogType', null, global);
+goog.exportSymbol('proto.ressource.Peer', null, global);
 goog.exportSymbol('proto.ressource.RefreshTokenRqst', null, global);
 goog.exportSymbol('proto.ressource.RefreshTokenRsp', null, global);
 goog.exportSymbol('proto.ressource.RegisterAccountRqst', null, global);
 goog.exportSymbol('proto.ressource.RegisterAccountRsp', null, global);
+goog.exportSymbol('proto.ressource.RegisterPeerRqst', null, global);
+goog.exportSymbol('proto.ressource.RegisterPeerRsp', null, global);
 goog.exportSymbol('proto.ressource.RemoveAccountRoleRqst', null, global);
 goog.exportSymbol('proto.ressource.RemoveAccountRoleRsp', null, global);
 goog.exportSymbol('proto.ressource.RemoveActionPermissionRqst', null, global);
 goog.exportSymbol('proto.ressource.RemoveActionPermissionRsp', null, global);
 goog.exportSymbol('proto.ressource.RemoveApplicationActionRqst', null, global);
 goog.exportSymbol('proto.ressource.RemoveApplicationActionRsp', null, global);
+goog.exportSymbol('proto.ressource.RemovePeerActionRqst', null, global);
+goog.exportSymbol('proto.ressource.RemovePeerActionRsp', null, global);
 goog.exportSymbol('proto.ressource.RemoveRessourceRqst', null, global);
 goog.exportSymbol('proto.ressource.RemoveRessourceRsp', null, global);
 goog.exportSymbol('proto.ressource.RemoveRoleActionRqst', null, global);
@@ -112,6 +123,12 @@ goog.exportSymbol('proto.ressource.ValidateApplicationAccessRqst', null, global)
 goog.exportSymbol('proto.ressource.ValidateApplicationAccessRsp', null, global);
 goog.exportSymbol('proto.ressource.ValidateApplicationRessourceAccessRqst', null, global);
 goog.exportSymbol('proto.ressource.ValidateApplicationRessourceAccessRsp', null, global);
+goog.exportSymbol('proto.ressource.ValidatePeerAccessRqst', null, global);
+goog.exportSymbol('proto.ressource.ValidatePeerAccessRsp', null, global);
+goog.exportSymbol('proto.ressource.ValidatePeerRessourceAccessRqst', null, global);
+goog.exportSymbol('proto.ressource.ValidatePeerRessourceAccessRsp', null, global);
+goog.exportSymbol('proto.ressource.ValidateTokenRqst', null, global);
+goog.exportSymbol('proto.ressource.ValidateTokenRsp', null, global);
 goog.exportSymbol('proto.ressource.ValidateUserAccessRqst', null, global);
 goog.exportSymbol('proto.ressource.ValidateUserAccessRsp', null, global);
 goog.exportSymbol('proto.ressource.ValidateUserRessourceAccessRqst', null, global);
@@ -1260,6 +1277,48 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
+proto.ressource.ValidateTokenRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidateTokenRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidateTokenRqst.displayName = 'proto.ressource.ValidateTokenRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.ValidateTokenRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidateTokenRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidateTokenRsp.displayName = 'proto.ressource.ValidateTokenRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
 proto.ressource.ValidateApplicationAccessRqst = function(opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
@@ -1344,6 +1403,48 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
+proto.ressource.ValidatePeerAccessRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidatePeerAccessRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidatePeerAccessRqst.displayName = 'proto.ressource.ValidatePeerAccessRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.ValidatePeerAccessRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidatePeerAccessRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidatePeerAccessRsp.displayName = 'proto.ressource.ValidatePeerAccessRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
 proto.ressource.ValidateUserRessourceAccessRqst = function(opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
@@ -1417,6 +1518,48 @@ if (goog.DEBUG && !COMPILED) {
    * @override
    */
   proto.ressource.ValidateApplicationRessourceAccessRsp.displayName = 'proto.ressource.ValidateApplicationRessourceAccessRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidatePeerRessourceAccessRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidatePeerRessourceAccessRqst.displayName = 'proto.ressource.ValidatePeerRessourceAccessRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.ValidatePeerRessourceAccessRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.ValidatePeerRessourceAccessRsp.displayName = 'proto.ressource.ValidatePeerRessourceAccessRsp';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1995,6 +2138,27 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
+proto.ressource.Peer = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.Peer, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.Peer.displayName = 'proto.ressource.Peer';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
 proto.ressource.Ressource = function(opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
@@ -2257,6 +2421,216 @@ if (goog.DEBUG && !COMPILED) {
    * @override
    */
   proto.ressource.RemoveActionPermissionRsp.displayName = 'proto.ressource.RemoveActionPermissionRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.RegisterPeerRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.RegisterPeerRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.RegisterPeerRqst.displayName = 'proto.ressource.RegisterPeerRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.RegisterPeerRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.RegisterPeerRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.RegisterPeerRsp.displayName = 'proto.ressource.RegisterPeerRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.GetPeersRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.GetPeersRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.GetPeersRqst.displayName = 'proto.ressource.GetPeersRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.GetPeersRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ressource.GetPeersRsp.repeatedFields_, null);
+};
+goog.inherits(proto.ressource.GetPeersRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.GetPeersRsp.displayName = 'proto.ressource.GetPeersRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.DeletePeerRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.DeletePeerRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.DeletePeerRqst.displayName = 'proto.ressource.DeletePeerRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.DeletePeerRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.DeletePeerRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.DeletePeerRsp.displayName = 'proto.ressource.DeletePeerRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.AddPeerActionRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.AddPeerActionRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.AddPeerActionRqst.displayName = 'proto.ressource.AddPeerActionRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.AddPeerActionRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.AddPeerActionRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.AddPeerActionRsp.displayName = 'proto.ressource.AddPeerActionRsp';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.RemovePeerActionRqst = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.RemovePeerActionRqst, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.RemovePeerActionRqst.displayName = 'proto.ressource.RemovePeerActionRqst';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ressource.RemovePeerActionRsp = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ressource.RemovePeerActionRsp, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ressource.RemovePeerActionRsp.displayName = 'proto.ressource.RemovePeerActionRsp';
 }
 
 
@@ -10441,6 +10815,296 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  *     http://goto/soy-param-migration
  * @return {!Object}
  */
+proto.ressource.ValidateTokenRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidateTokenRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidateTokenRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidateTokenRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    token: jspb.Message.getFieldWithDefault(msg, 1, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidateTokenRqst}
+ */
+proto.ressource.ValidateTokenRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidateTokenRqst;
+  return proto.ressource.ValidateTokenRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidateTokenRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidateTokenRqst}
+ */
+proto.ressource.ValidateTokenRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setToken(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidateTokenRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidateTokenRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidateTokenRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidateTokenRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getToken();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string token = 1;
+ * @return {string}
+ */
+proto.ressource.ValidateTokenRqst.prototype.getToken = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateTokenRqst} returns this
+ */
+proto.ressource.ValidateTokenRqst.prototype.setToken = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.ValidateTokenRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidateTokenRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidateTokenRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidateTokenRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    clientid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    expired: jspb.Message.getFieldWithDefault(msg, 2, 0)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidateTokenRsp}
+ */
+proto.ressource.ValidateTokenRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidateTokenRsp;
+  return proto.ressource.ValidateTokenRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidateTokenRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidateTokenRsp}
+ */
+proto.ressource.ValidateTokenRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setClientid(value);
+      break;
+    case 2:
+      var value = /** @type {number} */ (reader.readInt64());
+      msg.setExpired(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidateTokenRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidateTokenRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidateTokenRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidateTokenRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getClientid();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getExpired();
+  if (f !== 0) {
+    writer.writeInt64(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string clientId = 1;
+ * @return {string}
+ */
+proto.ressource.ValidateTokenRsp.prototype.getClientid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidateTokenRsp} returns this
+ */
+proto.ressource.ValidateTokenRsp.prototype.setClientid = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional int64 expired = 2;
+ * @return {number}
+ */
+proto.ressource.ValidateTokenRsp.prototype.getExpired = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.ressource.ValidateTokenRsp} returns this
+ */
+proto.ressource.ValidateTokenRsp.prototype.setExpired = function(value) {
+  return jspb.Message.setProto3IntField(this, 2, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
 proto.ressource.ValidateApplicationAccessRqst.prototype.toObject = function(opt_includeInstance) {
   return proto.ressource.ValidateApplicationAccessRqst.toObject(opt_includeInstance, this);
 };
@@ -11001,6 +11665,296 @@ proto.ressource.ValidateUserAccessRsp.prototype.getResult = function() {
  * @return {!proto.ressource.ValidateUserAccessRsp} returns this
  */
 proto.ressource.ValidateUserAccessRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidatePeerAccessRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidatePeerAccessRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerAccessRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    method: jspb.Message.getFieldWithDefault(msg, 2, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidatePeerAccessRqst}
+ */
+proto.ressource.ValidatePeerAccessRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidatePeerAccessRqst;
+  return proto.ressource.ValidatePeerAccessRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidatePeerAccessRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidatePeerAccessRqst}
+ */
+proto.ressource.ValidatePeerAccessRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setMethod(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidatePeerAccessRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidatePeerAccessRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerAccessRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getMethod();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string name = 1;
+ * @return {string}
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidatePeerAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.setName = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string method = 2;
+ * @return {string}
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.getMethod = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidatePeerAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerAccessRqst.prototype.setMethod = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.ValidatePeerAccessRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidatePeerAccessRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidatePeerAccessRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerAccessRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidatePeerAccessRsp}
+ */
+proto.ressource.ValidatePeerAccessRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidatePeerAccessRsp;
+  return proto.ressource.ValidatePeerAccessRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidatePeerAccessRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidatePeerAccessRsp}
+ */
+proto.ressource.ValidatePeerAccessRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidatePeerAccessRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidatePeerAccessRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidatePeerAccessRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerAccessRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.ValidatePeerAccessRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidatePeerAccessRsp} returns this
+ */
+proto.ressource.ValidatePeerAccessRsp.prototype.setResult = function(value) {
   return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
@@ -11701,6 +12655,356 @@ proto.ressource.ValidateApplicationRessourceAccessRsp.prototype.getResult = func
  * @return {!proto.ressource.ValidateApplicationRessourceAccessRsp} returns this
  */
 proto.ressource.ValidateApplicationRessourceAccessRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidatePeerRessourceAccessRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    method: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    path: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    permission: jspb.Message.getFieldWithDefault(msg, 4, 0)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidatePeerRessourceAccessRqst;
+  return proto.ressource.ValidatePeerRessourceAccessRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setMethod(value);
+      break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPath(value);
+      break;
+    case 4:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setPermission(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidatePeerRessourceAccessRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getMethod();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+  f = message.getPath();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
+  f = message.getPermission();
+  if (f !== 0) {
+    writer.writeInt32(
+      4,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string name = 1;
+ * @return {string}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.setName = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string method = 2;
+ * @return {string}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.getMethod = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.setMethod = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * optional string path = 3;
+ * @return {string}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.getPath = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.setPath = function(value) {
+  return jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional int32 permission = 4;
+ * @return {number}
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.getPermission = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRqst} returns this
+ */
+proto.ressource.ValidatePeerRessourceAccessRqst.prototype.setPermission = function(value) {
+  return jspb.Message.setProto3IntField(this, 4, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.ValidatePeerRessourceAccessRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRsp}
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.ValidatePeerRessourceAccessRsp;
+  return proto.ressource.ValidatePeerRessourceAccessRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRsp}
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.ValidatePeerRessourceAccessRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.ValidatePeerRessourceAccessRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.ValidatePeerRessourceAccessRsp} returns this
+ */
+proto.ressource.ValidatePeerRessourceAccessRsp.prototype.setResult = function(value) {
   return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
@@ -15600,6 +16904,166 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  *     http://goto/soy-param-migration
  * @return {!Object}
  */
+proto.ressource.Peer.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.Peer.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.Peer} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.Peer.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    macAddress: jspb.Message.getFieldWithDefault(msg, 2, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.Peer}
+ */
+proto.ressource.Peer.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.Peer;
+  return proto.ressource.Peer.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.Peer} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.Peer}
+ */
+proto.ressource.Peer.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setName(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setMacAddress(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.Peer.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.Peer.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.Peer} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.Peer.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getName();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getMacAddress();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string name = 1;
+ * @return {string}
+ */
+proto.ressource.Peer.prototype.getName = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Peer} returns this
+ */
+proto.ressource.Peer.prototype.setName = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string mac_address = 2;
+ * @return {string}
+ */
+proto.ressource.Peer.prototype.getMacAddress = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.Peer} returns this
+ */
+proto.ressource.Peer.prototype.setMacAddress = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
 proto.ressource.Ressource.prototype.toObject = function(opt_includeInstance) {
   return proto.ressource.Ressource.toObject(opt_includeInstance, this);
 };
@@ -17492,6 +18956,1438 @@ proto.ressource.RemoveActionPermissionRsp.prototype.getResult = function() {
  * @return {!proto.ressource.RemoveActionPermissionRsp} returns this
  */
 proto.ressource.RemoveActionPermissionRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.RegisterPeerRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.RegisterPeerRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.RegisterPeerRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RegisterPeerRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    peer: (f = msg.getPeer()) && proto.ressource.Peer.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.RegisterPeerRqst}
+ */
+proto.ressource.RegisterPeerRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.RegisterPeerRqst;
+  return proto.ressource.RegisterPeerRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.RegisterPeerRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.RegisterPeerRqst}
+ */
+proto.ressource.RegisterPeerRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new proto.ressource.Peer;
+      reader.readMessage(value,proto.ressource.Peer.deserializeBinaryFromReader);
+      msg.setPeer(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.RegisterPeerRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.RegisterPeerRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.RegisterPeerRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RegisterPeerRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getPeer();
+  if (f != null) {
+    writer.writeMessage(
+      1,
+      f,
+      proto.ressource.Peer.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * optional Peer peer = 1;
+ * @return {?proto.ressource.Peer}
+ */
+proto.ressource.RegisterPeerRqst.prototype.getPeer = function() {
+  return /** @type{?proto.ressource.Peer} */ (
+    jspb.Message.getWrapperField(this, proto.ressource.Peer, 1));
+};
+
+
+/**
+ * @param {?proto.ressource.Peer|undefined} value
+ * @return {!proto.ressource.RegisterPeerRqst} returns this
+*/
+proto.ressource.RegisterPeerRqst.prototype.setPeer = function(value) {
+  return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ressource.RegisterPeerRqst} returns this
+ */
+proto.ressource.RegisterPeerRqst.prototype.clearPeer = function() {
+  return this.setPeer(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ressource.RegisterPeerRqst.prototype.hasPeer = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.RegisterPeerRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.RegisterPeerRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.RegisterPeerRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RegisterPeerRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.RegisterPeerRsp}
+ */
+proto.ressource.RegisterPeerRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.RegisterPeerRsp;
+  return proto.ressource.RegisterPeerRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.RegisterPeerRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.RegisterPeerRsp}
+ */
+proto.ressource.RegisterPeerRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.RegisterPeerRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.RegisterPeerRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.RegisterPeerRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RegisterPeerRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.RegisterPeerRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RegisterPeerRsp} returns this
+ */
+proto.ressource.RegisterPeerRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.GetPeersRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.GetPeersRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.GetPeersRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.GetPeersRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    query: jspb.Message.getFieldWithDefault(msg, 1, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.GetPeersRqst}
+ */
+proto.ressource.GetPeersRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.GetPeersRqst;
+  return proto.ressource.GetPeersRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.GetPeersRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.GetPeersRqst}
+ */
+proto.ressource.GetPeersRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setQuery(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.GetPeersRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.GetPeersRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.GetPeersRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.GetPeersRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getQuery();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string query = 1;
+ * @return {string}
+ */
+proto.ressource.GetPeersRqst.prototype.getQuery = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.GetPeersRqst} returns this
+ */
+proto.ressource.GetPeersRqst.prototype.setQuery = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ressource.GetPeersRsp.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.GetPeersRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.GetPeersRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.GetPeersRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.GetPeersRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    peersList: jspb.Message.toObjectList(msg.getPeersList(),
+    proto.ressource.Peer.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.GetPeersRsp}
+ */
+proto.ressource.GetPeersRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.GetPeersRsp;
+  return proto.ressource.GetPeersRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.GetPeersRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.GetPeersRsp}
+ */
+proto.ressource.GetPeersRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new proto.ressource.Peer;
+      reader.readMessage(value,proto.ressource.Peer.deserializeBinaryFromReader);
+      msg.addPeers(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.GetPeersRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.GetPeersRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.GetPeersRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.GetPeersRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getPeersList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      proto.ressource.Peer.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Peer peers = 1;
+ * @return {!Array<!proto.ressource.Peer>}
+ */
+proto.ressource.GetPeersRsp.prototype.getPeersList = function() {
+  return /** @type{!Array<!proto.ressource.Peer>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.ressource.Peer, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ressource.Peer>} value
+ * @return {!proto.ressource.GetPeersRsp} returns this
+*/
+proto.ressource.GetPeersRsp.prototype.setPeersList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ressource.Peer=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ressource.Peer}
+ */
+proto.ressource.GetPeersRsp.prototype.addPeers = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ressource.Peer, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.GetPeersRsp} returns this
+ */
+proto.ressource.GetPeersRsp.prototype.clearPeersList = function() {
+  return this.setPeersList([]);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.DeletePeerRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.DeletePeerRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.DeletePeerRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.DeletePeerRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    peer: (f = msg.getPeer()) && proto.ressource.Peer.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.DeletePeerRqst}
+ */
+proto.ressource.DeletePeerRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.DeletePeerRqst;
+  return proto.ressource.DeletePeerRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.DeletePeerRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.DeletePeerRqst}
+ */
+proto.ressource.DeletePeerRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new proto.ressource.Peer;
+      reader.readMessage(value,proto.ressource.Peer.deserializeBinaryFromReader);
+      msg.setPeer(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.DeletePeerRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.DeletePeerRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.DeletePeerRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.DeletePeerRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getPeer();
+  if (f != null) {
+    writer.writeMessage(
+      1,
+      f,
+      proto.ressource.Peer.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * optional Peer peer = 1;
+ * @return {?proto.ressource.Peer}
+ */
+proto.ressource.DeletePeerRqst.prototype.getPeer = function() {
+  return /** @type{?proto.ressource.Peer} */ (
+    jspb.Message.getWrapperField(this, proto.ressource.Peer, 1));
+};
+
+
+/**
+ * @param {?proto.ressource.Peer|undefined} value
+ * @return {!proto.ressource.DeletePeerRqst} returns this
+*/
+proto.ressource.DeletePeerRqst.prototype.setPeer = function(value) {
+  return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ressource.DeletePeerRqst} returns this
+ */
+proto.ressource.DeletePeerRqst.prototype.clearPeer = function() {
+  return this.setPeer(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ressource.DeletePeerRqst.prototype.hasPeer = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.DeletePeerRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.DeletePeerRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.DeletePeerRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.DeletePeerRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.DeletePeerRsp}
+ */
+proto.ressource.DeletePeerRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.DeletePeerRsp;
+  return proto.ressource.DeletePeerRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.DeletePeerRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.DeletePeerRsp}
+ */
+proto.ressource.DeletePeerRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.DeletePeerRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.DeletePeerRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.DeletePeerRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.DeletePeerRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.DeletePeerRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.DeletePeerRsp} returns this
+ */
+proto.ressource.DeletePeerRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.AddPeerActionRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.AddPeerActionRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.AddPeerActionRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.AddPeerActionRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    peerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    action: jspb.Message.getFieldWithDefault(msg, 2, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.AddPeerActionRqst}
+ */
+proto.ressource.AddPeerActionRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.AddPeerActionRqst;
+  return proto.ressource.AddPeerActionRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.AddPeerActionRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.AddPeerActionRqst}
+ */
+proto.ressource.AddPeerActionRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPeerid(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setAction(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.AddPeerActionRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.AddPeerActionRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.AddPeerActionRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.AddPeerActionRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getPeerid();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getAction();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string peerId = 1;
+ * @return {string}
+ */
+proto.ressource.AddPeerActionRqst.prototype.getPeerid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddPeerActionRqst} returns this
+ */
+proto.ressource.AddPeerActionRqst.prototype.setPeerid = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string action = 2;
+ * @return {string}
+ */
+proto.ressource.AddPeerActionRqst.prototype.getAction = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.AddPeerActionRqst} returns this
+ */
+proto.ressource.AddPeerActionRqst.prototype.setAction = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.AddPeerActionRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.AddPeerActionRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.AddPeerActionRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.AddPeerActionRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.AddPeerActionRsp}
+ */
+proto.ressource.AddPeerActionRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.AddPeerActionRsp;
+  return proto.ressource.AddPeerActionRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.AddPeerActionRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.AddPeerActionRsp}
+ */
+proto.ressource.AddPeerActionRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.AddPeerActionRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.AddPeerActionRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.AddPeerActionRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.AddPeerActionRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.AddPeerActionRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.AddPeerActionRsp} returns this
+ */
+proto.ressource.AddPeerActionRsp.prototype.setResult = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 1, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.RemovePeerActionRqst.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.RemovePeerActionRqst.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.RemovePeerActionRqst} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RemovePeerActionRqst.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    peerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    action: jspb.Message.getFieldWithDefault(msg, 2, "")
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.RemovePeerActionRqst}
+ */
+proto.ressource.RemovePeerActionRqst.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.RemovePeerActionRqst;
+  return proto.ressource.RemovePeerActionRqst.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.RemovePeerActionRqst} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.RemovePeerActionRqst}
+ */
+proto.ressource.RemovePeerActionRqst.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPeerid(value);
+      break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setAction(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.RemovePeerActionRqst.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.RemovePeerActionRqst.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.RemovePeerActionRqst} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RemovePeerActionRqst.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getPeerid();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+  f = message.getAction();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string peerId = 1;
+ * @return {string}
+ */
+proto.ressource.RemovePeerActionRqst.prototype.getPeerid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemovePeerActionRqst} returns this
+ */
+proto.ressource.RemovePeerActionRqst.prototype.setPeerid = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string action = 2;
+ * @return {string}
+ */
+proto.ressource.RemovePeerActionRqst.prototype.getAction = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RemovePeerActionRqst} returns this
+ */
+proto.ressource.RemovePeerActionRqst.prototype.setAction = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ressource.RemovePeerActionRsp.prototype.toObject = function(opt_includeInstance) {
+  return proto.ressource.RemovePeerActionRsp.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ressource.RemovePeerActionRsp} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RemovePeerActionRsp.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    result: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ressource.RemovePeerActionRsp}
+ */
+proto.ressource.RemovePeerActionRsp.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ressource.RemovePeerActionRsp;
+  return proto.ressource.RemovePeerActionRsp.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ressource.RemovePeerActionRsp} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ressource.RemovePeerActionRsp}
+ */
+proto.ressource.RemovePeerActionRsp.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setResult(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ressource.RemovePeerActionRsp.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ressource.RemovePeerActionRsp.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ressource.RemovePeerActionRsp} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ressource.RemovePeerActionRsp.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getResult();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool result = 1;
+ * @return {boolean}
+ */
+proto.ressource.RemovePeerActionRsp.prototype.getResult = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ressource.RemovePeerActionRsp} returns this
+ */
+proto.ressource.RemovePeerActionRsp.prototype.setResult = function(value) {
   return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
