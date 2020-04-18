@@ -616,6 +616,9 @@ export class RessourcePermission extends jspb.Message {
   getApplication(): string;
   setApplication(value: string): void;
 
+  getPeer(): string;
+  setPeer(value: string): void;
+
   getService(): string;
   setService(value: string): void;
 
@@ -636,6 +639,7 @@ export namespace RessourcePermission {
     user: string,
     role: string,
     application: string,
+    peer: string,
     service: string,
   }
 
@@ -644,7 +648,8 @@ export namespace RessourcePermission {
     USER = 3,
     ROLE = 4,
     APPLICATION = 5,
-    SERVICE = 6,
+    PEER = 6,
+    SERVICE = 7,
   }
 }
 
@@ -1953,6 +1958,11 @@ export class Peer extends jspb.Message {
   getMacAddress(): string;
   setMacAddress(value: string): void;
 
+  getActionsList(): Array<string>;
+  setActionsList(value: Array<string>): void;
+  clearActionsList(): void;
+  addActions(value: string, index?: number): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Peer.AsObject;
   static toObject(includeInstance: boolean, msg: Peer): Peer.AsObject;
@@ -1965,6 +1975,7 @@ export namespace Peer {
   export type AsObject = {
     name: string,
     macAddress: string,
+    actionsList: Array<string>,
   }
 }
 

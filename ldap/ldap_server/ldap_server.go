@@ -197,9 +197,6 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *ldappb.CreateCon
 	// set or update the connection and save it in json file.
 	self.Connections[c.Id] = c
 
-	// So here I will create the new ldap connection.
-	log.Println("try to connect: ", c.Id, c.Host, c.Password)
-
 	c.conn, err = self.connect(c.Id, c.User, c.Password)
 	defer c.conn.Close()
 
@@ -225,9 +222,6 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *ldappb.CreateCon
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	// Print the success message here.
-	log.Println("Connection " + c.Id + " was created with success!")
 
 	return &ldappb.CreateConnectionRsp{
 		Result: true,
@@ -365,18 +359,14 @@ func main() {
 	reflection.Register(grpcServer)
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
-
-		log.Println(s_impl.Name + " grpc service is closed")
 
 	}()
 

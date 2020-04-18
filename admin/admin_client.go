@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -57,7 +56,10 @@ func NewAdmin_Client(address string, name string) (*Admin_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = NewAdminServiceClient(client.cc)
 
 	return client, nil
@@ -340,7 +342,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// Read the package data.
 	packageFile, err := os.Open(packagePath)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
 	defer packageFile.Close()
 
@@ -348,7 +350,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// Open the stream...
 	stream, err := self.c.UploadServicePackage(ctx)
 	if err != nil {
-		log.Fatalf("error while TestSendEmailWithAttachements: %v", err)
+		return "", 0, err
 	}
 
 	const chunksize = 1024 * 5 // the chunck size.
@@ -387,7 +389,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 /**
  * Publish a service from a runing globular server.
  */
-func (self *Admin_Client) PublishService(path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string, token string, domain string) error {
+func (self *Admin_Client) PublishService(user string, path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string, token string, domain string) error {
 
 	rqst := new(PublishServiceRequest)
 	rqst.Path = path
@@ -401,7 +403,7 @@ func (self *Admin_Client) PublishService(path string, serviceId string, publishe
 	rqst.Platform = Platform(platform)
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": token, "domain": domain})
+	md := metadata.New(map[string]string{"token": token, "domain": domain, "user": user, "path": "/services/" + publisherId + "/" + serviceId + "/" + version})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	_, err := self.c.PublishService(ctx, rqst)
@@ -442,7 +444,7 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
 /**
  * Deploy the content of an application with a given name to the server.
  */
-func (self *Admin_Client) DeployApplication(name string, path string, token string, domain string) (int, error) {
+func (self *Admin_Client) DeployApplication(user string, name string, path string, token string, domain string) (int, error) {
 
 	rqst := new(DeployApplicationRequest)
 	rqst.Name = name
@@ -461,7 +463,7 @@ func (self *Admin_Client) DeployApplication(name string, path string, token stri
 	os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain": domain, "path": path})
+	md := metadata.New(map[string]string{"token": string(token), "application": name, "domain": domain, "path": "/applications", "user": user})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// Open the stream...

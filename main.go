@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/davecourtois/Globular/admin"
 	"github.com/davecourtois/Globular/ressource"
@@ -48,7 +46,7 @@ func main() {
 		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Required)")
 		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Required)")
 		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Required)")
-		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32; linux64; win32; 4 = win64 (Required)")
+		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32, linux64, win32, win64 (Required)")
 
 		switch os.Args[1] {
 		case "install":
@@ -205,6 +203,14 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 		return err
 	}
 
+	// Set action permission for delploy.
+	// Set action permission for delploy.
+	err = ressource_client.SetActionPermission("/admin.AdminService/DeployApplication", 2, "")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
@@ -218,28 +224,14 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 		return err
 	}
 
-	size, err := admin_client.DeployApplication(name, path, token, address)
+	_, err = admin_client.DeployApplication(user, name, path, token, address)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
 		return err
 	}
 
-	if !strings.HasPrefix("/", path) {
+	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
-	}
-
-	// Set action permission for delploy.
-	err = ressource_client.SetActionPermission("/admin.AdminService/DeployApplication", 2, token)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	// Set a ressource for the deployed application.
-	err = ressource_client.SetRessource(name, path, time.Now().Unix(), int64(size), token)
-	if err != nil {
-		log.Println(err)
-		return err
 	}
 
 	log.Println("Application", name, "was deployed successfully!")
@@ -265,8 +257,16 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 		return err
 	}
 
+	// Set action permission for delploy.
+	err = ressource_client.SetActionPermission("/admin.AdminService/PublishService", 2, "")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -274,34 +274,19 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	// The certificates will be taken from the address
 	admin_client, err := admin.NewAdmin_Client(address, "admin")
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, size, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
-	if err != nil {
-		return err
-	}
-	if platform < 0 {
-		return errors.New("Plaform must be a number from 1 to 4")
-	}
-
-	err = admin_client.PublishService(path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
-	if err != nil {
-		return err
-	}
-
-	// Set action permission for delploy.
-	err = ressource_client.SetActionPermission("/admin.AdminService/PublishService", 2, token)
+	path_, _, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	// Set a ressource for the deployed application.
-	err = ressource_client.SetRessource(serviceId, path, time.Now().Unix(), int64(size), token)
+	err = admin_client.PublishService(user, path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 

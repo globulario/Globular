@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -97,7 +96,6 @@ func (self *LevelDB_store) open(optionsStr string) error {
 		return err
 	}
 
-	log.Println("--> ", self.path, "db is open")
 	self.isOpen = true
 	return nil
 }

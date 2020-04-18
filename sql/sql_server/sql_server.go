@@ -121,7 +121,7 @@ func (c *connection) getConnectionString() string {
 	} else if c.Driver == "sqlite3" {
 		connectionString += c.Host + string(os.PathSeparator) + c.Name // The directory...
 	}
-	log.Println("connection string: ", connectionString)
+
 	return connectionString
 }
 
@@ -223,9 +223,6 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *sqlpb.CreateConn
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	// Print the success message here.
-	log.Println("Connection " + c.Id + " was created with success!")
 
 	return &sqlpb.CreateConnectionRsp{
 		Result: true,
@@ -336,19 +333,15 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	parameters := make([]interface{}, 0)
 	err = json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	log.Println("Execute query: ", query, " whit parameters: ", parameters)
-
 	// Here I the sql works.
 	rows, err := db.QueryContext(stream.Context(), query, parameters...)
 
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -359,7 +352,6 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	// First of all I will get the information about columns
 	columns, err := rows.Columns()
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -368,7 +360,6 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 	// The columns type.
 	columnsType, err := rows.ColumnTypes()
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -503,8 +494,6 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 	parameters := make([]interface{}, 0)
 	json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
 
-	log.Println("Execute query: ", query, " whit parameters: ", parameters)
-
 	// Execute the query here.
 	var lastId, affectedRows int64
 	var result sql.Result
@@ -513,7 +502,6 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 		// with transaction
 		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 		if err != nil {
-			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -524,20 +512,17 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 		if execErr != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				err = errors.New(fmt.Sprint("update failed: %v, unable to rollback: %v\n", execErr, rollbackErr))
-				log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 				return nil, status.Errorf(
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
 
 			err = errors.New(fmt.Sprint("update failed: %v", execErr))
-			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		if err := tx.Commit(); err != nil {
-			log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -548,7 +533,6 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 	}
 
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -557,7 +541,6 @@ func (self *server) ExecContext(ctx context.Context, rqst *sqlpb.ExecContextRqst
 	// So here I will stream affected row if there one.
 	affectedRows, err = result.RowsAffected()
 	if err != nil {
-		log.Println(Utility.FileLine(), Utility.FunctionName(), err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -660,18 +643,16 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
 
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	<-ch

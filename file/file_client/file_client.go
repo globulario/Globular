@@ -2,7 +2,6 @@ package file_client
 
 import (
 	"io"
-	"log"
 	"os"
 	"strconv"
 
@@ -50,7 +49,10 @@ func NewFile_Client(address string, name string) (*File_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = filepb.NewFileServiceClient(client.cc)
 
 	return client, nil
@@ -335,7 +337,7 @@ func (self *File_Client) DeleteFile(path string) error {
 
 	_, err := self.c.DeleteFile(api.GetClientContext(self), rqst)
 	if err != nil {
-		log.Fatalf("error while testing get file info: %v", err)
+		return err
 	}
 
 	return err

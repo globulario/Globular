@@ -48,7 +48,10 @@ func NewMonitoring_Client(address string, name string) (*Monitoring_Client, erro
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = monitoringpb.NewMonitoringServiceClient(client.cc)
 
 	return client, nil

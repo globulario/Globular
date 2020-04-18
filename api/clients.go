@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -97,7 +98,7 @@ func InitClient(client Client, address string, name string) error {
 /**
  * Get the client connection. The token is require to control access to ressource
  */
-func GetClientConnection(client Client) *grpc.ClientConn {
+func GetClientConnection(client Client) (*grpc.ClientConn, error) {
 	// initialyse the client values.
 	var cc *grpc.ClientConn
 	var err error
@@ -111,24 +112,25 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			}
 
 			if len(client.GetCertFile()) == 0 {
-				log.Println("no certificate file is available for client ")
+
+				return nil, errors.New("no certificate file is available for client")
 			}
 
 			certificate, err := tls.LoadX509KeyPair(client.GetCertFile(), client.GetKeyFile())
 			if err != nil {
-				log.Fatalf("could not load client key pair: %s", err)
+				return nil, err
 			}
 
 			// Create a certificate pool from the certificate authority
 			certPool := x509.NewCertPool()
 			ca, err := ioutil.ReadFile(client.GetCaFile())
 			if err != nil {
-				log.Fatalf("could not read ca certificate: %s", err)
+				return nil, err
 			}
 
 			// Append the certificates from the CA
 			if ok := certPool.AppendCertsFromPEM(ca); !ok {
-				log.Fatalf("failed to append ca certs")
+				return nil, errors.New("failed to append ca certs")
 			}
 
 			creds := credentials.NewTLS(&tls.Config{
@@ -141,17 +143,17 @@ func GetClientConnection(client Client) *grpc.ClientConn {
 			cc, err = grpc.Dial(address, grpc.WithTransportCredentials(creds))
 
 			if err != nil {
-				log.Fatalf("could not dial %s: %s", client.GetAddress(), err)
+				return nil, err
 			}
 		} else {
 			cc, err = grpc.Dial(address, grpc.WithInsecure())
 			if err != nil {
-				log.Fatalf("could not connect: %v", err)
+				return nil, err
 			}
 		}
 	}
 
-	return cc
+	return cc, nil
 }
 
 /**

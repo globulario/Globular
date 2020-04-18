@@ -52,7 +52,10 @@ func NewLdap_Client(address string, name string) (*LDAP_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = ldappb.NewLdapServiceClient(client.cc)
 
 	return client, nil

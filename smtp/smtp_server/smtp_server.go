@@ -139,9 +139,6 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *smtppb.CreateCon
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Print the success message here.
-	log.Println("Connection " + c.Id + " was created with success!")
-
 	return &smtppb.CreateConnectionRsp{
 		Result: true,
 	}, nil
@@ -222,7 +219,6 @@ func (self *server) sendEmail(id string, from string, to []string, cc []*CarbonC
 	mailer := gomail.NewMailer(config.Host, config.User, config.Password, int(config.Port))
 
 	if err := mailer.Send(msg); err != nil {
-		log.Println("--> 193 fail to send email: ", err)
 		return err
 	}
 	return nil
@@ -428,18 +424,16 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
 
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.

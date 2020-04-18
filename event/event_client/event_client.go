@@ -54,7 +54,11 @@ func NewEvent_Client(address string, name string) (*Event_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
+
 	client.c = eventpb.NewEventServiceClient(client.cc)
 	client.uuid = Utility.RandomUUID()
 
@@ -208,7 +212,6 @@ func (self *Event_Client) SetCaFile(caFile string) {
 ///////////////////// API ///////////////////////
 // Publish and event over the network
 func (self *Event_Client) Publish(name string, data interface{}) error {
-	//log.Println("publish event ", name)
 	rqst := &eventpb.PublishRequest{
 		Evt: &eventpb.Event{
 			Name: name,
@@ -232,7 +235,6 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 
 	stream, err := self.c.OnEvent(api.GetClientContext(self), rqst)
 	if err != nil {
-		log.Println("---> fail to connect to event server ", err)
 		return err
 	}
 
@@ -245,8 +247,6 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 				break
 			}
 			if err != nil {
-				// oher error stop processing stream.
-				log.Println("event stream error: ", err)
 				break
 			}
 
@@ -263,7 +263,6 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 // Subscribe to an event it return it subscriber uuid. The uuid must be use
 // to unsubscribe from the channel. data_channel is use to get event data.
 func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *eventpb.Event)) error {
-	//log.Println("Subscribe to event ", name)
 	rqst := &eventpb.SubscribeRequest{
 		Name: name,
 		Uuid: self.uuid,
@@ -287,7 +286,6 @@ func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *even
 
 // Exit event channel.
 func (self *Event_Client) UnSubscribe(name string, uuid string) error {
-	//log.Println("UnSubscribe event ", name)
 
 	// Unsubscribe from the event channel.
 	rqst := &eventpb.UnSubscribeRequest{

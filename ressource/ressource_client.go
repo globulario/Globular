@@ -51,7 +51,12 @@ func NewRessource_Client(address string, name string) (*Ressource_Client, error)
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
+
 	client.c = NewRessourceServiceClient(client.cc)
 
 	return client, nil
@@ -542,27 +547,54 @@ func (self *Ressource_Client) SetRessource(name string, path string, modified in
 	rqst := &SetRessourceRqst{
 		Ressource: ressource,
 	}
-	md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	var err error
+	if len(token) > 0 {
+		md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-	_, err := self.c.SetRessource(ctx, rqst)
+		_, err = self.c.SetRessource(ctx, rqst)
+	} else {
+		_, err = self.c.SetRessource(api.GetClientContext(self), rqst)
+	}
+
+	return err
+}
+
+func (self *Ressource_Client) SetRessourceOwner(owner string, path string, token string) error {
+	rqst := &SetRessourceOwnerRqst{
+		Owner: owner,
+		Path:  path,
+	}
+	var err error
+	if len(token) > 0 {
+		md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		_, err = self.c.SetRessourceOwner(ctx, rqst)
+	} else {
+		_, err = self.c.SetRessourceOwner(api.GetClientContext(self), rqst)
+	}
 
 	return err
 }
 
 // Set action permission
 func (self *Ressource_Client) SetActionPermission(action string, permission int32, token string) error {
-
+	var err error
 	// Set action permission.
 	rqst := &SetActionPermissionRqst{
 		Action:     action,
 		Permission: permission,
 	}
-	md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	if len(token) > 0 {
+		md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-	// Set action permission.
-	_, err := self.c.SetActionPermission(ctx, rqst)
+		// Set action permission.
+		_, err = self.c.SetActionPermission(ctx, rqst)
+	} else {
+		_, err = self.c.SetActionPermission(api.GetClientContext(self), rqst)
+	}
 
 	return err
 }
@@ -590,4 +622,20 @@ func (self *Ressource_Client) Log(application string, user string, method string
 	_, err := self.c.Log(api.GetClientContext(self), rqst)
 
 	return err
+}
+
+/////////////////////////////////// Peer's  ///////////////////////////////////
+
+// Register a peer with a given name and mac address.
+func (self *Ressource_Client) RegisterPeer(name string, mac string) error {
+	rqst := &RegisterPeerRqst{
+		Peer: &Peer{
+			MacAddress: mac,
+			Name:       name,
+		},
+	}
+
+	_, err := self.c.RegisterPeer(api.GetClientContext(self), rqst)
+	return err
+
 }

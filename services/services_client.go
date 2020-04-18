@@ -48,7 +48,12 @@ func NewServicesDiscovery_Client(address string, name string) (*ServicesDiscover
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
+
 	client.c = NewServiceDiscoveryClient(client.cc)
 
 	return client, nil
@@ -224,7 +229,12 @@ func NewServicesRepository_Client(address string, name string) (*ServicesReposit
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
+
 	client.c = NewServiceRepositoryClient(client.cc)
 	return client, nil
 }

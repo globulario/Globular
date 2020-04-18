@@ -50,7 +50,10 @@ func NewDns_Client(address string, name string) (*DNS_Client, error) {
 		return nil, err
 	}
 
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = dnspb.NewDnsServiceClient(client.cc)
 	return client, nil
 }

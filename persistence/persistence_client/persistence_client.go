@@ -48,7 +48,10 @@ func NewPersistence_Client(address string, name string) (*Persistence_Client, er
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = persistencepb.NewPersistenceServiceClient(client.cc)
 
 	return client, nil

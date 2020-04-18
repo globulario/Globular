@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -80,7 +81,7 @@ type server struct {
 }
 
 // Create the configuration file if is not already exist.
-func (self *server) init() {
+func (self *server) init() error {
 	// Initialyse connection maps.
 	self.Connections = make(map[string]connection, 0)
 
@@ -102,11 +103,11 @@ func (self *server) init() {
 			if err == nil {
 				self.stores[c.Id] = store
 			} else {
-				log.Println("fail to connect to "+address, err)
+				return err
 			}
 		}
 	}
-
+	return nil
 }
 
 // Save the configuration values.
@@ -181,8 +182,6 @@ func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.Cre
 	}
 
 	// Print the success message here.
-	log.Println("Connection " + c.Id + " was created with success!")
-
 	return &monitoringpb.CreateConnectionRsp{
 		Result: true,
 	}, nil
@@ -671,12 +670,14 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
+			}
 		}
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.

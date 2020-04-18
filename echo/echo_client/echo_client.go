@@ -132,7 +132,7 @@ func (self *Echo_Client) SetCaFile(caFile string) {
 
 ////////////////// Api //////////////////////
 func (self *Echo_Client) Echo(msg interface{}) (string, error) {
-	log.Println("echo service call: ", msg)
+
 	rqst := &echopb.EchoRequest{
 		Message: Utility.ToString(msg),
 	}

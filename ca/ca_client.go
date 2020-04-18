@@ -45,7 +45,10 @@ func NewCa_Client(address string, name string) (*Ca_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = NewCertificateAuthorityClient(client.cc)
 
 	return client, nil

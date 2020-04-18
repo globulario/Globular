@@ -157,7 +157,8 @@ message RessourcePermission {
 		string user = 3;
 		string role = 4;
 		string application = 5;
-		string service = 6;
+		string peer = 6;
+		string service = 7;
 	}
 }
 
@@ -479,6 +480,7 @@ message ClearAllLogRsp{
 message Peer {
 	string name = 1; // must be unique on the network.
 	string mac_address= 2;
+	repeated string actions=3;
 }
 
 /** A ressource can be anything with a path an a name **/

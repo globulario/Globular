@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -33,7 +34,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -114,7 +114,6 @@ func createThumbnail(file *os.File, thumbnailMaxHeight int, thumbnailMaxWidth in
 	// Set the buffer pointer back to the begening of the file...
 	file.Seek(0, 0)
 	var originalImg image.Image
-	var format string
 	var err error
 
 	if strings.HasSuffix(file.Name(), ".png") || strings.HasSuffix(file.Name(), ".PNG") {
@@ -128,7 +127,6 @@ func createThumbnail(file *os.File, thumbnailMaxHeight int, thumbnailMaxWidth in
 	}
 
 	if err != nil {
-		log.Println("File ", file.Name(), " Format is ", format, " error: ", err)
 		return ""
 	}
 
@@ -235,7 +233,6 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 	// get the file info
 	info, err := getFileInfo(path)
 	if err != nil {
-		log.Println("fail to read file ", path)
 		return nil, err
 	}
 	if info.IsDir == false {
@@ -244,7 +241,6 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Println("fail to read directory ", path)
 		return nil, err
 	}
 
@@ -309,7 +305,6 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 		}
 	}
 
-	log.Println("--> read dir: ", path)
 	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
 	if err != nil {
 		return err
@@ -685,12 +680,6 @@ func (self *server) DeleteFile(ctx context.Context, rqst *filepb.DeleteFileReque
 // port number must be pass as argument.
 func main() {
 
-	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, "file_service: ", log.LstdFlags))
-
-	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	// The first argument must be the port number to listen to.
 	port := defaultPort // the default value.
 
@@ -775,16 +764,13 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.

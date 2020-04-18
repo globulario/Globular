@@ -2,7 +2,6 @@ package persistence_store
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	//	"time"
@@ -70,17 +69,15 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 		var err error
 		client, err = mongo.NewClient(options.Client().ApplyURI(connectionStr))
 		if err != nil {
-			log.Println("---> fail to connect whit user: ", user, password)
 			return err
 		}
 	}
 
 	err := client.Connect(ctx)
 	if err != nil {
-		log.Println("--->65 fail to connect whit user: ", user, password)
 		return err
 	}
-	log.Println("---> connect success 83 ", connectionId, client != nil)
+
 	self.clients[connectionId] = client
 	return nil
 }
@@ -605,14 +602,8 @@ func (self *MongoStore) RunAdminCmd(ctx context.Context, connectionId string, us
 	args = append(args, "--eval")
 	args = append(args, script)
 
-	log.Println("run command ", cmd)
-	log.Println("args", args)
-
 	cmd_ := exec.Command(cmd, args...)
 	err := cmd_.Run()
-	if err != nil {
-		log.Println("---> error: ", err)
-	}
 
 	return err
 }

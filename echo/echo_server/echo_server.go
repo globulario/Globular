@@ -104,8 +104,6 @@ func (self *server) Echo(ctx context.Context, rsqt *echopb.EchoRequest) (*echopb
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	log.Println("Echo: ", rsqt.Message)
-
 	return &echopb.EchoResponse{
 		Message: rsqt.Message,
 	}, nil
@@ -159,8 +157,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("could not load server key pair: %s", err)
 			return
-		} else {
-			log.Println("load certificate from ", s_impl.CertFile, s_impl.KeyFile)
 		}
 
 		// Create a certificate pool from the certificate authority
@@ -197,16 +193,14 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.

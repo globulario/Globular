@@ -1583,11 +1583,10 @@ func main() {
 		fmt.Println(s_impl.Name + " grpc service is starting")
 		// no web-rpc server.
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
 		err := s_impl.store.Close()
 		if err != nil {

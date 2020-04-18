@@ -250,14 +250,12 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// Get the ca.crt certificate.
 	ca_crt, err := getCaCertificate(address)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
 	// Write the ca.crt file on the disk
 	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"ca.crt", []byte(ca_crt), 0664)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
@@ -265,35 +263,30 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// Step 1: Generate client private key.
 	err = GenerateClientPrivateKey(creds, pwd)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
 	// Step 2: Generate the client signing request.
 	err = GenerateClientCertificateSigningRequest(creds, pwd, address)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
 	// Step 3: Generate client signed certificate.
 	client_csr, err := ioutil.ReadFile(creds + string(os.PathSeparator) + "client.csr")
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
 	// Sign the certificate from the server ca...
 	client_crt, err := signCaCertificate(address, string(client_csr))
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
 	// Write bact the client certificate in file on the disk
 	err = ioutil.WriteFile(creds+string(os.PathSeparator)+"client.crt", []byte(client_crt), 0664)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
@@ -302,7 +295,6 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// Step 4: Convert to pem format.
 	err = KeyToPem("client", creds, pwd)
 	if err != nil {
-		log.Println(err)
 		return "", "", "", err
 	}
 
@@ -581,74 +573,68 @@ func KeyToPem(name string, path string, pwd string) error {
  * Private ca.key, server.key, server.pem, server.crt
  * Share ca.crt (needed by the client), server.csr (needed by the CA)
  */
-func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string) {
+func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string) error {
 
 	// Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)
 	err := GenerateAuthorityPrivateKey(path, pwd)
 	if err != nil {
-		log.Println(err)
-		return
+
+		return err
 	}
 
 	err = GenerateAuthorityTrustCertificate(path, pwd, expiration_delay, domain)
 	if err != nil {
-		log.Println(err)
-		return
+
+		return err
 	}
 
 	// Setp 2: Generate the server Private Key (server.key)
 	err = GenerateSeverPrivateKey(path, pwd)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Setp 3: Get a certificate signing request from the CA (server.csr)
 	err = GenerateServerCertificateSigningRequest(path, pwd, domain)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 4: Sign the certificate with the CA we create(it's called self signing) - server.crt
 	err = GenerateSignedServerCertificate(path, pwd, expiration_delay)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 5: Convert the server Certificate to .pem format (server.pem) - usable by gRpc
 	err = KeyToPem("server", path, pwd)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 6: Generate client private key.
 	err = GenerateClientPrivateKey(path, pwd)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 7: Generate the client signing request.
 	err = GenerateClientCertificateSigningRequest(path, pwd, domain)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 8: Generate client signed certificate.
 	err = GenerateSignedClientCertificate(path, pwd, expiration_delay)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	// Step 9: Convert to pem format.
 	err = KeyToPem("client", path, pwd)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
+
+	return nil
 }

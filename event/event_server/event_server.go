@@ -14,14 +14,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"time"
+	"fmt"
 
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/keepalive"
 )
 
 // TODO take care of TLS/https
@@ -142,7 +141,6 @@ func (self *server) run() {
 							if err != nil {
 								// append to channle list to be close.
 								toDelete = append(toDelete, uuid)
-								log.Println("error publish event to ", uuid, err)
 							}
 						}
 					}
@@ -340,9 +338,7 @@ func main() {
 		})
 
 		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: 5 * time.Minute, // <--- This fixes it!
-		})}
+		opts := []grpc.ServerOption{grpc.Creds(creds)}
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
@@ -353,18 +349,17 @@ func main() {
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
+
 		go s_impl.run()
 
 		// no web-rpc server.
+		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s_impl.Name, " was stop!")
 			}
-			defer f.Close()
 		}
-		log.Println(s_impl.Name + " grpc service is closed")
 	}()
 
 	// Wait for signal to stop.
