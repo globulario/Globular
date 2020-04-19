@@ -428,18 +428,13 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 				}
 			}
 
-		} else if method != "/persistence.PersistenceService/CreateConnection" && // Those method will make the server run in infinite loop
-			method != "/persistence.PersistenceService/FindOne" &&
-			method != "/persistence.PersistenceService/Count" && len(path) > 0 {
+		} else {
 			// Here I will retreive the permission from the database if there is some...
 			// the path will be found in the parameter of the method.
 			permission, err := ressource_client.GetActionPermission(method)
-			fmt.Println("--> 435 validate ressouce access ", domain, method, path, permission)
 			if err == nil && permission != -1 {
 				// I will test if the user has file permission.
-				fmt.Println("--> 438 validate ressouce access ", domain, path, method, permission)
 				err = ValidateUserRessourceAccess(domain, token, method, path, permission)
-				fmt.Println("--> 439 validate ressouce access err ", err)
 				if err != nil {
 					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 					if err != nil {
@@ -470,7 +465,11 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			}
 
 			// Here I will set the ressource owner for the directory.
-			ressource_client.SetRessourceOwner(clientId, rqst.GetPath(), "")
+			if strings.HasSuffix(rqst.GetPath(), "/") {
+				ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+rqst.GetName(), "")
+			} else {
+				ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+"/"+rqst.GetName(), "")
+			}
 
 		} else if method == "/file.FileService/Rename" {
 			rqst := req.(*filepb.RenameRequest)

@@ -899,6 +899,7 @@ func (self *Globule) initService(s map[string]interface{}) error {
 			s["CertFile"] = ""
 			s["KeyFile"] = ""
 		}
+
 	}
 
 	// any other http server except this one...
@@ -984,70 +985,8 @@ func (self *Globule) initServices() {
 			return nil
 		}
 		if err == nil && strings.HasSuffix(info.Name(), ".proto") {
-			name := info.Name()[0:strings.Index(info.Name(), ".")]
-			s := self.Services[name]
-			if s == nil {
-				s = self.Services[name+"_server"]
-			}
-
-			if s != nil {
-				s.(map[string]interface{})["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
-			}
-
-			// here I will parse the service defintion file to extract the
-			// service difinition.
-			reader, _ := os.Open(path)
-			defer reader.Close()
-
-			parser := proto.NewParser(reader)
-			definition, _ := parser.Parse()
-
-			// Stack values from walking tree
-			stack := make([]interface{}, 0)
-
-			handlePackage := func(stack *[]interface{}) func(*proto.Package) {
-				return func(p *proto.Package) {
-					*stack = append(*stack, p)
-				}
-			}(&stack)
-
-			handleService := func(stack *[]interface{}) func(*proto.Service) {
-				return func(s *proto.Service) {
-					*stack = append(*stack, s)
-				}
-			}(&stack)
-
-			handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
-				return func(r *proto.RPC) {
-					*stack = append(*stack, r)
-				}
-			}(&stack)
-
-			// Walk this way
-			proto.Walk(definition,
-				proto.WithPackage(handlePackage),
-				proto.WithService(handleService),
-				proto.WithRPC(handleRpc))
-
-			var packageName string
-			var serviceName string
-			var methodName string
-
-			for len(stack) > 0 {
-				var x interface{}
-				x, stack = stack[0], stack[1:]
-				switch v := x.(type) {
-				case *proto.Package:
-					packageName = v.Name
-				case *proto.Service:
-					serviceName = v.Name
-				case *proto.RPC:
-					methodName = v.Name
-					path := "/" + packageName + "." + serviceName + "/" + methodName
-					// So here I will register the method into the backend.
-					self.methods = append(self.methods, path)
-				}
-			}
+			//name := info.Name()[0:strings.Index(info.Name(), ".")]
+			// self.setServiceMethods(name, path)
 		}
 		return nil
 	})
@@ -1064,6 +1003,143 @@ func (self *Globule) initServices() {
 	}
 }
 
+func (self *Globule) getServiceMethods(name string, path string) []string {
+	methods := make([]string, 0)
+	s := self.Services[name]
+	if s == nil {
+		s = self.Services[name+"_server"]
+	}
+
+	if s != nil {
+		s.(map[string]interface{})["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+	}
+
+	// here I will parse the service defintion file to extract the
+	// service difinition.
+	log.Println("--> open file ", path)
+	reader, _ := os.Open(path)
+	defer reader.Close()
+
+	parser := proto.NewParser(reader)
+	definition, _ := parser.Parse()
+
+	// Stack values from walking tree
+	stack := make([]interface{}, 0)
+
+	handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+		return func(p *proto.Package) {
+			*stack = append(*stack, p)
+		}
+	}(&stack)
+
+	handleService := func(stack *[]interface{}) func(*proto.Service) {
+		return func(s *proto.Service) {
+			*stack = append(*stack, s)
+		}
+	}(&stack)
+
+	handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+		return func(r *proto.RPC) {
+			*stack = append(*stack, r)
+		}
+	}(&stack)
+
+	// Walk this way
+	proto.Walk(definition,
+		proto.WithPackage(handlePackage),
+		proto.WithService(handleService),
+		proto.WithRPC(handleRpc))
+
+	var packageName string
+	var serviceName string
+	var methodName string
+
+	for len(stack) > 0 {
+		var x interface{}
+		x, stack = stack[0], stack[1:]
+		switch v := x.(type) {
+		case *proto.Package:
+			packageName = v.Name
+		case *proto.Service:
+			serviceName = v.Name
+		case *proto.RPC:
+			methodName = v.Name
+			path := "/" + packageName + "." + serviceName + "/" + methodName
+			// So here I will register the method into the backend.
+			methods = append(methods, path)
+		}
+	}
+
+	return methods
+}
+
+func (self *Globule) setServiceMethods(name string, path string) {
+
+	s := self.Services[name]
+	if s == nil {
+		s = self.Services[name+"_server"]
+	}
+
+	if s != nil {
+		s.(map[string]interface{})["protoPath"] = strings.Replace(strings.Replace(path, self.path, "", -1), "\\", "/", -1)
+	}
+
+	// here I will parse the service defintion file to extract the
+	// service difinition.
+	reader, _ := os.Open(path)
+	defer reader.Close()
+
+	parser := proto.NewParser(reader)
+	definition, _ := parser.Parse()
+
+	// Stack values from walking tree
+	stack := make([]interface{}, 0)
+
+	handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+		return func(p *proto.Package) {
+			*stack = append(*stack, p)
+		}
+	}(&stack)
+
+	handleService := func(stack *[]interface{}) func(*proto.Service) {
+		return func(s *proto.Service) {
+			*stack = append(*stack, s)
+		}
+	}(&stack)
+
+	handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+		return func(r *proto.RPC) {
+			*stack = append(*stack, r)
+		}
+	}(&stack)
+
+	// Walk this way
+	proto.Walk(definition,
+		proto.WithPackage(handlePackage),
+		proto.WithService(handleService),
+		proto.WithRPC(handleRpc))
+
+	var packageName string
+	var serviceName string
+	var methodName string
+
+	for len(stack) > 0 {
+		var x interface{}
+		x, stack = stack[0], stack[1:]
+		switch v := x.(type) {
+		case *proto.Package:
+			packageName = v.Name
+		case *proto.Service:
+			serviceName = v.Name
+		case *proto.RPC:
+			methodName = v.Name
+			path := "/" + packageName + "." + serviceName + "/" + methodName
+			// So here I will register the method into the backend.
+			self.methods = append(self.methods, path)
+		}
+	}
+}
+
 // Method must be register in order to be assign to role.
 func (self *Globule) registerMethods() error {
 	// Here I will create the sa role if it dosen't exist.
@@ -1073,36 +1149,22 @@ func (self *Globule) registerMethods() error {
 	}
 
 	// Here I will persit the sa role if it dosent already exist.
-	count, err := p.Count(context.Background(), "local_ressource", "local_ressource", "Roles", `{ "_id":"sa"}`, "")
 	admin := make(map[string]interface{})
+	admin["_id"] = "sa"
+	admin["name"] = "sa"
+	admin["actions"] = self.methods
+	jsonStr, _ := Utility.ToJson(admin)
+
+	// I will set the role actions...
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Roles", `{"_id":"sa"}`, jsonStr, `[{"upsert":true}]`)
 	if err != nil {
 		return err
-	} else if count == 0 {
-		log.Println("need to create admin roles...")
-		admin["_id"] = "sa"
-		admin["name"] = "sa"
-		admin["actions"] = self.methods
-		id, err := p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Roles", admin, "")
-		if err != nil {
-			log.Println("---> 1087!", err)
-			return err
-		}
-		log.Println("role with id", id, "was created!")
-	} else {
-		admin["_id"] = "sa"
-		admin["name"] = "sa"
-		admin["actions"] = self.methods
-		jsonStr, _ := Utility.ToJson(admin)
-		// I will set the role actions...
-		err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Roles", `{"_id":"sa"}`, jsonStr, "")
-		if err != nil {
-			return err
-		}
-		log.Println("role sa with was updated!")
 	}
 
+	log.Println("role sa with was updated!")
+
 	// I will also create the guest role, the basic one
-	count, err = p.Count(context.Background(), "local_ressource", "local_ressource", "Roles", `{ "_id":"guest"}`, "")
+	count, err := p.Count(context.Background(), "local_ressource", "local_ressource", "Roles", `{ "_id":"guest"}`, "")
 	guest := make(map[string]interface{})
 	if err != nil {
 		return err
@@ -1281,7 +1343,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// set the file owner if the length of the user if greather than 0
-		log.Println("-----------> set owner ", user, path+"/"+files[i].Filename)
 		if len(user) > 0 {
 			globule.setRessourceOwner(user, path+"/"+files[i].Filename)
 		}
@@ -1546,16 +1607,16 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	Utility.ExtractTarGz(r)
 
 	// Copy the files to it final destination
-	path := self.webRoot + string(os.PathSeparator) + name
+	abosolutePath := self.webRoot + string(os.PathSeparator) + name
 
 	// Remove the existing files.
-	if Utility.Exists(path) {
-		os.RemoveAll(path)
+	if Utility.Exists(abosolutePath) {
+		os.RemoveAll(abosolutePath)
 	}
 
 	// Recreate the dir and move file in it.
-	Utility.CreateDirIfNotExist(path)
-	Utility.CopyDirContent(Utility.GenerateUUID(name), path)
+	Utility.CreateDirIfNotExist(abosolutePath)
+	Utility.CopyDirContent(Utility.GenerateUUID(name), abosolutePath)
 
 	// remove temporary files.
 	os.RemoveAll(Utility.GenerateUUID(name))
@@ -1579,6 +1640,10 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	ctx := stream.Context()
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
+
+		// Set user owner of the application directory.
+		self.setRessourceOwner(user, "/"+name)
+
 		path := strings.Join(md["path"], "")
 		res := &ressource.Ressource{
 			Path:     path,
@@ -2223,10 +2288,35 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			config := make(map[string]interface{})
 			json.Unmarshal(jsonStr, &config)
 
-			// save the new paths...
-			config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
-			config["protoPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string)+".proto", string(os.PathSeparator), "/")
 			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
+
+			// save the new paths...
+			if config["servicePath"] != nil {
+				// Take the existing servicePath from the configuration.
+				servicePath := string(os.PathSeparator) + dest
+				servicePath += string(os.PathSeparator) + config["servicePath"].(string)[strings.LastIndex(config["servicePath"].(string), "/"):]
+				config["servicePath"] = strings.ReplaceAll(servicePath, string(os.PathSeparator), "/")
+			} else {
+				config["servicePath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+config["Name"].(string), string(os.PathSeparator), "/")
+			}
+
+			// Here I will try to find .proto file.
+			files, err := ioutil.ReadDir(self.path + string(os.PathSeparator) + dest)
+			if err != nil {
+				return err
+			}
+
+			// proto file dosen't have the save name as the service itself.
+			protoPath := string(os.PathSeparator) + dest
+			for i := 0; i < len(files); i++ {
+				f := files[i]
+				if strings.HasSuffix(f.Name(), ".proto") {
+					protoPath += string(os.PathSeparator) + f.Name()
+					break
+				}
+			}
+
+			config["protoPath"] = strings.ReplaceAll(protoPath, string(os.PathSeparator), "/")
 
 			// Set execute permission
 			err = os.Chmod(self.path+config["servicePath"].(string), 0755)
@@ -2241,6 +2331,12 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			}
 
 			self.saveConfig() // save the configuration with the newly install service...
+
+			// Now I will set method in the admin...
+
+			// Here I will set the service method...
+			self.setServiceMethods(config["Name"].(string), self.path+config["protoPath"].(string))
+			self.registerMethods()
 
 			break
 		}
@@ -2305,6 +2401,17 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *admin.Uninstall
 			if s["PublisherId"].(string) == rqst.PublisherId && s["Id"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {
 				self.stopService(s["Id"].(string))
 				delete(self.Services, id)
+
+				// Get the list of method to remove from the list of actions.
+				toDelete := self.getServiceMethods(s["Id"].(string), s["protoPath"].(string))
+				methods := make([]string, 0)
+				for i := 0; i < len(self.methods); i++ {
+					if !Utility.Contains(toDelete, self.methods[i]) {
+						methods = append(methods, self.methods[i])
+					}
+				}
+				self.methods = methods
+				self.registerMethods() // refresh methods.
 			}
 		}
 	}
@@ -4197,8 +4304,8 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 		return err
 	}
 
-	if path == "/" {
-		return errors.New("You cannot assing permission on the root folder!")
+	if strings.TrimSpace(path) == "/" {
+		return errors.New("Root has no owner!")
 	}
 
 	// here I if the ressource is a directory I will set the permission on
@@ -4434,6 +4541,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// The token and the application id.
 	var token string
 	var application string
+	var clientId string
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
@@ -4468,7 +4576,9 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
-		clientId, expiredAt, err := Interceptors.ValidateToken(token)
+		var expiredAt int64
+
+		clientId, expiredAt, err = Interceptors.ValidateToken(token)
 
 		if err != nil {
 			return nil, err
@@ -4477,6 +4587,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		if expiredAt < time.Now().Unix() {
 			return nil, errors.New("The token is expired!")
 		}
+
 		if clientId == "sa" {
 			hasAccess = true
 		} else {
@@ -4532,8 +4643,9 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	// Execute the action.
 	result, err := handler(ctx, req)
-	// self.logInfo(application, method, token, err)
-
+	/*if len(clientId) > 0 {
+		self.logInfo(application, method, clientId, err)
+	}*/
 	if err == nil {
 		// Set permissions in case one of those methode is called.
 		if method == "/ressource.RessourceService/DeleteApplication" {
@@ -4872,7 +4984,7 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 		return err
 	}
 
-	query := make(map[string]string)
+	query := make(map[string]string, 0)
 	if len(rqst.Name) > 0 {
 		query["name"] = rqst.Name
 	}
@@ -4883,7 +4995,7 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 
 	queryStr, _ := Utility.ToJson(query)
 
-	data, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Ressources", queryStr, `[{"Projection":{"_id":0}}]`)
+	data, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Ressources", queryStr, ``)
 	if err != nil {
 		return err
 	}
@@ -4894,7 +5006,7 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 		res := data[i].(map[string]interface{})
 		// append the info inside the stream.
 		ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: int64(Utility.ToInt(res["modified"].(string))), Size: int64(Utility.ToInt(res["size"].(string)))})
-		if i == max-1 {
+		if len(ressources) == max-1 {
 			// I will send the stream at each 100 logs...
 			rsp := &ressource.GetRessourcesRsp{
 				Ressources: ressources,
@@ -4907,13 +5019,12 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
 			ressources = make([]*ressource.Ressource, 0)
-			i = 0
 		}
-		i++
 	}
 
 	// Send the last infos...
 	if len(ressources) > 0 {
+
 		rsp := &ressource.GetRessourcesRsp{
 			Ressources: ressources,
 		}
@@ -5423,13 +5534,14 @@ func (self *Globule) GetPermissions(ctx context.Context, rqst *ressource.GetPerm
 
 	permissions_ := make([]map[string]interface{}, len(permissions))
 	for i := 0; i < len(permissions); i++ {
-		permissions_[i] = make(map[string]interface{}, 0)
+		permission := make(map[string]interface{}, 0)
 		// Set the values.
-		permissions_[i]["path"] = permissions[i].GetPath()
-		permissions_[i]["number"] = permissions[i].GetNumber()
-		permissions_[i]["user"] = permissions[i].GetUser()
-		permissions_[i]["role"] = permissions[i].GetRole()
-		permissions_[i]["application"] = permissions[i].GetApplication()
+		permission["path"] = permissions[i].GetPath()
+		permission["number"] = permissions[i].GetNumber()
+		permission["user"] = permissions[i].GetUser()
+		permission["role"] = permissions[i].GetRole()
+		permission["application"] = permissions[i].GetApplication()
+		permissions_[i] = permission
 	}
 
 	jsonStr, err := json.Marshal(&permissions_)
@@ -5778,7 +5890,49 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 		return err
 	}
 
-	actions := application["actions"].([]interface{})
+	actions := []interface{}(application["actions"].(primitive.A))
+	if actions == nil {
+		return err
+	}
+
+	for i := 0; i < len(actions); i++ {
+		if actions[i].(string) == method {
+			return nil
+		}
+	}
+
+	return err
+}
+
+/**
+ * Validate application access by role
+ */
+func (self *Globule) validatePeerAccess(name string, method string) error {
+
+	if len(name) == 0 {
+		return errors.New("No peer was given to validate method access " + method)
+	}
+
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	// Now I will get the user roles and validate if the user can execute the
+	// method.
+	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"path":"/`+name+`"}`, ``)
+	if err != nil {
+		return err
+	}
+
+	peer := values.(map[string]interface{})
+
+	err = errors.New("permission denied! peer " + name + " cannot execute methode '" + method + "'")
+	if peer["actions"] == nil {
+		return err
+	}
+
+	actions := []interface{}(peer["actions"].(primitive.A))
 	if actions == nil {
 		return err
 	}
@@ -5832,8 +5986,7 @@ func (self *Globule) validateUserAccess(userName string, method string) error {
 		}
 	}
 
-	err = errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
-	return err
+	return errors.New("permission denied! account " + userName + " cannot execute methode '" + method + "'")
 }
 
 // Test if a role can use action.
@@ -5980,6 +6133,7 @@ func (self *Globule) hasPermission(name string, path string, permission int32) (
  * Validate if a user, a role or an application has write to do operation on a file or a directorty.
  */
 func (self *Globule) validateUserRessourceAccess(userName string, method string, path string, permission int32) error {
+
 	if len(userName) == 0 {
 		return errors.New("No user name was given to validate method access " + method)
 	}
@@ -6031,6 +6185,7 @@ func (self *Globule) validateUserRessourceAccess(userName string, method string,
 			return errors.New("Permission Denied for " + userName)
 		}
 	}
+
 	return nil
 }
 
@@ -6093,12 +6248,41 @@ func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqs
 
 //* Validate if a peer can access a given ressource. *
 func (self *Globule) ValidatePeerRessourceAccess(ctx context.Context, rqst *ressource.ValidatePeerRessourceAccessRqst) (*ressource.ValidatePeerRessourceAccessRsp, error) {
-	return nil, nil
+	path := rqst.GetPath()
+
+	hasPermission, count := self.hasPermission(rqst.Name, path, rqst.Permission)
+	if hasPermission {
+		return &ressource.ValidatePeerRessourceAccessRsp{
+			Result: true,
+		}, nil
+	}
+
+	// If theres permission definied and we are here it's means the user dosent
+	// have write to execute the action on the ressource.
+	if count > 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Permission Denied for "+rqst.Name)))
+
+	}
+
+	return &ressource.ValidatePeerRessourceAccessRsp{
+		Result: true,
+	}, nil
 }
 
 //* Validate if a peer can access a given method. *
 func (self *Globule) ValidatePeerAccess(ctx context.Context, rqst *ressource.ValidatePeerAccessRqst) (*ressource.ValidatePeerAccessRsp, error) {
-	return nil, nil
+	err := self.validatePeerAccess(rqst.GetName(), rqst.Method)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressource.ValidatePeerAccessRsp{
+		Result: true,
+	}, nil
 }
 
 //* Validate if user can access a given method. *
@@ -6120,6 +6304,7 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressource.Val
 
 	// Here I will test if the user can run that function or not...
 	err = self.validateUserAccess(clientID, rqst.Method)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -6262,27 +6447,31 @@ func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServic
 	for i := 0; i < len(data); i++ {
 		descriptor := data[i].(map[string]interface{})
 		descriptors[i] = new(services.ServiceDescriptor)
-		descriptors[i].Id = descriptor["Id"].(string)
-		descriptors[i].Description = descriptor["Description"].(string)
-		descriptors[i].PublisherId = descriptor["PublisherId"].(string)
-		descriptors[i].Version = descriptor["Version"].(string)
-
-		descriptor["Keywords"] = []interface{}(descriptor["Keywords"].(primitive.A))
-		descriptors[i].Keywords = make([]string, len(descriptor["Keywords"].([]interface{})))
-		for j := 0; j < len(descriptor["Keywords"].([]interface{})); j++ {
-			descriptors[i].Keywords[j] = descriptor["Keywords"].([]interface{})[j].(string)
+		descriptors[i].Id = descriptor["id"].(string)
+		descriptors[i].Description = descriptor["description"].(string)
+		descriptors[i].PublisherId = descriptor["publisherid"].(string)
+		descriptors[i].Version = descriptor["version"].(string)
+		if descriptor["keywords"] != nil {
+			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
+			descriptors[i].Keywords = make([]string, len(descriptor["keywords"].([]interface{})))
+			for j := 0; j < len(descriptor["keywords"].([]interface{})); j++ {
+				descriptors[i].Keywords[j] = descriptor["keywords"].([]interface{})[j].(string)
+			}
+		}
+		if descriptor["discoveries"] != nil {
+			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
+			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
+			for j := 0; j < len(descriptor["discoveries"].([]interface{})); j++ {
+				descriptors[i].Discoveries[j] = descriptor["discoveries"].([]interface{})[j].(string)
+			}
 		}
 
-		descriptor["Discoveries"] = []interface{}(descriptor["Discoveries"].(primitive.A))
-		descriptors[i].Discoveries = make([]string, len(descriptor["Discoveries"].([]interface{})))
-		for j := 0; j < len(descriptor["Discoveries"].([]interface{})); j++ {
-			descriptors[i].Discoveries[j] = descriptor["Discoveries"].([]interface{})[j].(string)
-		}
-
-		descriptor["Repositories"] = []interface{}(descriptor["Repositories"].(primitive.A))
-		descriptors[i].Repositories = make([]string, len(descriptor["Repositories"].([]interface{})))
-		for j := 0; j < len(descriptor["Repositories"].([]interface{})); j++ {
-			descriptors[i].Repositories[j] = descriptor["Repositories"].([]interface{})[j].(string)
+		if descriptor["repositories"] != nil {
+			descriptor["repositories"] = []interface{}(descriptor["repositories"].(primitive.A))
+			descriptors[i].Repositories = make([]string, len(descriptor["repositories"].([]interface{})))
+			for j := 0; j < len(descriptor["repositories"].([]interface{})); j++ {
+				descriptors[i].Repositories[j] = descriptor["repositories"].([]interface{})[j].(string)
+			}
 		}
 	}
 
@@ -6301,7 +6490,7 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.Ge
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	query := `{"id":"` + rqst.ServiceId + `", "publisherId":"` + rqst.PublisherId + `"}`
+	query := `{"id":"` + rqst.ServiceId + `", "publisherid":"` + rqst.PublisherId + `"}`
 
 	values, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Services", query, "")
 	if err != nil {
@@ -6310,8 +6499,43 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.Ge
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*services.ServiceDescriptor, 0)
+	if len(values) == 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service descriptor with id "+rqst.ServiceId+" was found for publisher id "+rqst.PublisherId)))
+	}
+
+	descriptors := make([]*services.ServiceDescriptor, len(values))
 	for i := 0; i < len(values); i++ {
+
+		descriptor := values[i].(map[string]interface{})
+		descriptors[i] = new(services.ServiceDescriptor)
+		descriptors[i].Id = descriptor["id"].(string)
+		descriptors[i].Description = descriptor["description"].(string)
+		descriptors[i].PublisherId = descriptor["publisherid"].(string)
+		descriptors[i].Version = descriptor["version"].(string)
+		if descriptor["keywords"] != nil {
+			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
+			descriptors[i].Keywords = make([]string, len(descriptor["keywords"].([]interface{})))
+			for j := 0; j < len(descriptor["keywords"].([]interface{})); j++ {
+				descriptors[i].Keywords[j] = descriptor["keywords"].([]interface{})[j].(string)
+			}
+		}
+		if descriptor["discoveries"] != nil {
+			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
+			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
+			for j := 0; j < len(descriptor["discoveries"].([]interface{})); j++ {
+				descriptors[i].Discoveries[j] = descriptor["discoveries"].([]interface{})[j].(string)
+			}
+		}
+
+		if descriptor["repositories"] != nil {
+			descriptor["repositories"] = []interface{}(descriptor["repositories"].(primitive.A))
+			descriptors[i].Repositories = make([]string, len(descriptor["repositories"].([]interface{})))
+			for j := 0; j < len(descriptor["repositories"].([]interface{})); j++ {
+				descriptors[i].Repositories[j] = descriptor["repositories"].([]interface{})[j].(string)
+			}
+		}
 
 	}
 
@@ -6345,24 +6569,31 @@ func (self *Globule) GetServicesDescriptor(ctx context.Context, rqst *services.G
 	for i := 0; i < len(data); i++ {
 		descriptor := data[i].(map[string]interface{})
 		descriptors[i] = new(services.ServiceDescriptor)
-		descriptors[i].Id = descriptor["Id"].(string)
-		descriptors[i].Description = descriptor["Description"].(string)
-		descriptors[i].PublisherId = descriptor["PublisherId"].(string)
-		descriptors[i].Version = descriptor["Version"].(string)
-
-		descriptors[i].Keywords = make([]string, len(descriptor["Keywords"].([]interface{})))
-		for j := 0; j < len(descriptor["Keywords"].([]interface{})); j++ {
-			descriptors[i].Keywords[j] = descriptor["Keywords"].([]interface{})[j].(string)
+		descriptors[i].Id = descriptor["id"].(string)
+		descriptors[i].Description = descriptor["description"].(string)
+		descriptors[i].PublisherId = descriptor["publisherid"].(string)
+		descriptors[i].Version = descriptor["version"].(string)
+		if descriptor["keywords"] != nil {
+			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
+			descriptors[i].Keywords = make([]string, len(descriptor["keywords"].([]interface{})))
+			for j := 0; j < len(descriptor["keywords"].([]interface{})); j++ {
+				descriptors[i].Keywords[j] = descriptor["keywords"].([]interface{})[j].(string)
+			}
+		}
+		if descriptor["discoveries"] != nil {
+			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
+			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
+			for j := 0; j < len(descriptor["discoveries"].([]interface{})); j++ {
+				descriptors[i].Discoveries[j] = descriptor["discoveries"].([]interface{})[j].(string)
+			}
 		}
 
-		descriptors[i].Discoveries = make([]string, len(descriptor["Discoveries"].([]interface{})))
-		for j := 0; j < len(descriptor["Discoveries"].([]interface{})); j++ {
-			descriptors[i].Discoveries[j] = descriptor["Discoveries"].([]interface{})[j].(string)
-		}
-
-		descriptors[i].Repositories = make([]string, len(descriptor["Repositories"].([]interface{})))
-		for j := 0; j < len(descriptor["Repositories"].([]interface{})); j++ {
-			descriptors[i].Repositories[j] = descriptor["Repositories"].([]interface{})[j].(string)
+		if descriptor["repositories"] != nil {
+			descriptor["repositories"] = []interface{}(descriptor["repositories"].(primitive.A))
+			descriptors[i].Repositories = make([]string, len(descriptor["repositories"].([]interface{})))
+			for j := 0; j < len(descriptor["repositories"].([]interface{})); j++ {
+				descriptors[i].Repositories[j] = descriptor["repositories"].([]interface{})[j].(string)
+			}
 		}
 	}
 
@@ -6389,7 +6620,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 	}
 
 	// Here I will test if the services already exist...
-	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
+	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
 	if err == nil {
 		// Update existing descriptor.
 
@@ -6397,7 +6628,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 		discoveries, err := Utility.ToJson(rqst.Descriptor_.Discoveries)
 		if err == nil {
 			values := `{"$set":{"discoveries":` + discoveries + `}}`
-			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -6409,7 +6640,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 		repositories, err := Utility.ToJson(rqst.Descriptor_.Repositories)
 		if err == nil {
 			values := `{"$set":{"repositories":` + repositories + `}}`
-			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherId":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
