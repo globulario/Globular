@@ -1,3 +1,4 @@
+// source: admin/admin.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -850,9 +851,12 @@ proto.admin.GetConfigResponse.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.GetConfigResponse} returns this
+ */
 proto.admin.GetConfigResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -977,9 +981,12 @@ proto.admin.SaveConfigRequest.prototype.getConfig = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SaveConfigRequest} returns this
+ */
 proto.admin.SaveConfigRequest.prototype.setConfig = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1104,9 +1111,12 @@ proto.admin.SaveConfigResponse.prototype.getResult = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SaveConfigResponse} returns this
+ */
 proto.admin.SaveConfigResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1231,9 +1241,12 @@ proto.admin.StopServiceRequest.prototype.getServiceId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.StopServiceRequest} returns this
+ */
 proto.admin.StopServiceRequest.prototype.setServiceId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1358,9 +1371,12 @@ proto.admin.StopServiceResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.StopServiceResponse} returns this
+ */
 proto.admin.StopServiceResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -1485,9 +1501,12 @@ proto.admin.StartServiceRequest.prototype.getServiceId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.StartServiceRequest} returns this
+ */
 proto.admin.StartServiceRequest.prototype.setServiceId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1624,9 +1643,12 @@ proto.admin.StartServiceResponse.prototype.getServicePid = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.admin.StartServiceResponse} returns this
+ */
 proto.admin.StartServiceResponse.prototype.setServicePid = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -1639,9 +1661,12 @@ proto.admin.StartServiceResponse.prototype.getProxyPid = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.admin.StartServiceResponse} returns this
+ */
 proto.admin.StartServiceResponse.prototype.setProxyPid = function(value) {
-  jspb.Message.setProto3IntField(this, 2, value);
+  return jspb.Message.setProto3IntField(this, 2, value);
 };
 
 
@@ -1797,9 +1822,12 @@ proto.admin.RegisterExternalApplicationRequest.prototype.getServiceId = function
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.RegisterExternalApplicationRequest} returns this
+ */
 proto.admin.RegisterExternalApplicationRequest.prototype.setServiceId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1812,9 +1840,12 @@ proto.admin.RegisterExternalApplicationRequest.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.RegisterExternalApplicationRequest} returns this
+ */
 proto.admin.RegisterExternalApplicationRequest.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -1827,26 +1858,31 @@ proto.admin.RegisterExternalApplicationRequest.prototype.getArgsList = function(
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.admin.RegisterExternalApplicationRequest} returns this
+ */
 proto.admin.RegisterExternalApplicationRequest.prototype.setArgsList = function(value) {
-  jspb.Message.setField(this, 3, value || []);
+  return jspb.Message.setField(this, 3, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.admin.RegisterExternalApplicationRequest} returns this
  */
 proto.admin.RegisterExternalApplicationRequest.prototype.addArgs = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.admin.RegisterExternalApplicationRequest} returns this
  */
 proto.admin.RegisterExternalApplicationRequest.prototype.clearArgsList = function() {
-  this.setArgsList([]);
+  return this.setArgsList([]);
 };
 
 
@@ -1971,9 +2007,12 @@ proto.admin.RegisterExternalApplicationResponse.prototype.getServicePid = functi
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.admin.RegisterExternalApplicationResponse} returns this
+ */
 proto.admin.RegisterExternalApplicationResponse.prototype.setServicePid = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -2110,9 +2149,12 @@ proto.admin.SetRootPasswordRequest.prototype.getOldpassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootPasswordRequest} returns this
+ */
 proto.admin.SetRootPasswordRequest.prototype.setOldpassword = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2125,9 +2167,12 @@ proto.admin.SetRootPasswordRequest.prototype.getNewpassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootPasswordRequest} returns this
+ */
 proto.admin.SetRootPasswordRequest.prototype.setNewpassword = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2252,9 +2297,12 @@ proto.admin.SetRootPasswordResponse.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootPasswordResponse} returns this
+ */
 proto.admin.SetRootPasswordResponse.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2391,9 +2439,12 @@ proto.admin.SetRootEmailRequest.prototype.getOldemail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootEmailRequest} returns this
+ */
 proto.admin.SetRootEmailRequest.prototype.setOldemail = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2406,9 +2457,12 @@ proto.admin.SetRootEmailRequest.prototype.getNewemail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootEmailRequest} returns this
+ */
 proto.admin.SetRootEmailRequest.prototype.setNewemail = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2533,9 +2587,12 @@ proto.admin.SetRootEmailResponse.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetRootEmailResponse} returns this
+ */
 proto.admin.SetRootEmailResponse.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2684,9 +2741,12 @@ proto.admin.SetPasswordRequest.prototype.getAccountid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetPasswordRequest} returns this
+ */
 proto.admin.SetPasswordRequest.prototype.setAccountid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2699,9 +2759,12 @@ proto.admin.SetPasswordRequest.prototype.getOldpassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetPasswordRequest} returns this
+ */
 proto.admin.SetPasswordRequest.prototype.setOldpassword = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2714,9 +2777,12 @@ proto.admin.SetPasswordRequest.prototype.getNewpassword = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetPasswordRequest} returns this
+ */
 proto.admin.SetPasswordRequest.prototype.setNewpassword = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -2841,9 +2907,12 @@ proto.admin.SetPasswordResponse.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetPasswordResponse} returns this
+ */
 proto.admin.SetPasswordResponse.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2992,9 +3061,12 @@ proto.admin.SetEmailRequest.prototype.getAccountid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetEmailRequest} returns this
+ */
 proto.admin.SetEmailRequest.prototype.setAccountid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3007,9 +3079,12 @@ proto.admin.SetEmailRequest.prototype.getOldemail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetEmailRequest} returns this
+ */
 proto.admin.SetEmailRequest.prototype.setOldemail = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -3022,9 +3097,12 @@ proto.admin.SetEmailRequest.prototype.getNewemail = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetEmailRequest} returns this
+ */
 proto.admin.SetEmailRequest.prototype.setNewemail = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -3149,9 +3227,12 @@ proto.admin.SetEmailResponse.prototype.getToken = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.SetEmailResponse} returns this
+ */
 proto.admin.SetEmailResponse.prototype.setToken = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3379,9 +3460,12 @@ proto.admin.PublishServiceRequest.prototype.getServiceid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setServiceid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3394,9 +3478,12 @@ proto.admin.PublishServiceRequest.prototype.getPublisherid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setPublisherid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -3409,9 +3496,12 @@ proto.admin.PublishServiceRequest.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -3424,9 +3514,12 @@ proto.admin.PublishServiceRequest.prototype.getDicorveryid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setDicorveryid = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -3439,9 +3532,12 @@ proto.admin.PublishServiceRequest.prototype.getRepositoryid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setRepositoryid = function(value) {
-  jspb.Message.setProto3StringField(this, 5, value);
+  return jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -3454,9 +3550,12 @@ proto.admin.PublishServiceRequest.prototype.getDescription = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setDescription = function(value) {
-  jspb.Message.setProto3StringField(this, 6, value);
+  return jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -3469,26 +3568,31 @@ proto.admin.PublishServiceRequest.prototype.getKeywordsList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setKeywordsList = function(value) {
-  jspb.Message.setField(this, 7, value || []);
+  return jspb.Message.setField(this, 7, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.admin.PublishServiceRequest} returns this
  */
 proto.admin.PublishServiceRequest.prototype.addKeywords = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 7, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 7, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.admin.PublishServiceRequest} returns this
  */
 proto.admin.PublishServiceRequest.prototype.clearKeywordsList = function() {
-  this.setKeywordsList([]);
+  return this.setKeywordsList([]);
 };
 
 
@@ -3501,9 +3605,12 @@ proto.admin.PublishServiceRequest.prototype.getVersion = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setVersion = function(value) {
-  jspb.Message.setProto3StringField(this, 8, value);
+  return jspb.Message.setProto3StringField(this, 8, value);
 };
 
 
@@ -3516,9 +3623,12 @@ proto.admin.PublishServiceRequest.prototype.getPlatform = function() {
 };
 
 
-/** @param {!proto.admin.Platform} value */
+/**
+ * @param {!proto.admin.Platform} value
+ * @return {!proto.admin.PublishServiceRequest} returns this
+ */
 proto.admin.PublishServiceRequest.prototype.setPlatform = function(value) {
-  jspb.Message.setProto3EnumField(this, 9, value);
+  return jspb.Message.setProto3EnumField(this, 9, value);
 };
 
 
@@ -3667,9 +3777,12 @@ proto.admin.UploadServicePackageRequest.prototype.getData_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.admin.UploadServicePackageRequest} returns this
+ */
 proto.admin.UploadServicePackageRequest.prototype.setData = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -3794,9 +3907,12 @@ proto.admin.UploadServicePackageResponse.prototype.getPath = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.UploadServicePackageResponse} returns this
+ */
 proto.admin.UploadServicePackageResponse.prototype.setPath = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -3921,9 +4037,12 @@ proto.admin.PublishServiceResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.PublishServiceResponse} returns this
+ */
 proto.admin.PublishServiceResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4084,9 +4203,12 @@ proto.admin.InstallServiceRequest.prototype.getDicorveryid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.InstallServiceRequest} returns this
+ */
 proto.admin.InstallServiceRequest.prototype.setDicorveryid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -4099,9 +4221,12 @@ proto.admin.InstallServiceRequest.prototype.getServiceid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.InstallServiceRequest} returns this
+ */
 proto.admin.InstallServiceRequest.prototype.setServiceid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -4114,9 +4239,12 @@ proto.admin.InstallServiceRequest.prototype.getPublisherid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.InstallServiceRequest} returns this
+ */
 proto.admin.InstallServiceRequest.prototype.setPublisherid = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -4129,9 +4257,12 @@ proto.admin.InstallServiceRequest.prototype.getVersion = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.InstallServiceRequest} returns this
+ */
 proto.admin.InstallServiceRequest.prototype.setVersion = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -4256,9 +4387,12 @@ proto.admin.InstallServiceResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.InstallServiceResponse} returns this
+ */
 proto.admin.InstallServiceResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4296,7 +4430,8 @@ proto.admin.UninstallServiceRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     serviceid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     publisherid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    version: jspb.Message.getFieldWithDefault(msg, 3, "")
+    version: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    deletepermissions: jspb.Message.getBooleanFieldWithDefault(msg, 4, false)
   };
 
   if (includeInstance) {
@@ -4344,6 +4479,10 @@ proto.admin.UninstallServiceRequest.deserializeBinaryFromReader = function(msg, 
     case 3:
       var value = /** @type {string} */ (reader.readString());
       msg.setVersion(value);
+      break;
+    case 4:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setDeletepermissions(value);
       break;
     default:
       reader.skipField();
@@ -4395,6 +4534,13 @@ proto.admin.UninstallServiceRequest.serializeBinaryToWriter = function(message, 
       f
     );
   }
+  f = message.getDeletepermissions();
+  if (f) {
+    writer.writeBool(
+      4,
+      f
+    );
+  }
 };
 
 
@@ -4407,9 +4553,12 @@ proto.admin.UninstallServiceRequest.prototype.getServiceid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.UninstallServiceRequest} returns this
+ */
 proto.admin.UninstallServiceRequest.prototype.setServiceid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -4422,9 +4571,12 @@ proto.admin.UninstallServiceRequest.prototype.getPublisherid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.UninstallServiceRequest} returns this
+ */
 proto.admin.UninstallServiceRequest.prototype.setPublisherid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -4437,9 +4589,30 @@ proto.admin.UninstallServiceRequest.prototype.getVersion = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.UninstallServiceRequest} returns this
+ */
 proto.admin.UninstallServiceRequest.prototype.setVersion = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional bool deletePermissions = 4;
+ * @return {boolean}
+ */
+proto.admin.UninstallServiceRequest.prototype.getDeletepermissions = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 4, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.UninstallServiceRequest} returns this
+ */
+proto.admin.UninstallServiceRequest.prototype.setDeletepermissions = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 4, value);
 };
 
 
@@ -4564,9 +4737,12 @@ proto.admin.UninstallServiceResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.UninstallServiceResponse} returns this
+ */
 proto.admin.UninstallServiceResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -4703,9 +4879,12 @@ proto.admin.DeployApplicationRequest.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.admin.DeployApplicationRequest} returns this
+ */
 proto.admin.DeployApplicationRequest.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -4742,9 +4921,12 @@ proto.admin.DeployApplicationRequest.prototype.getData_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.admin.DeployApplicationRequest} returns this
+ */
 proto.admin.DeployApplicationRequest.prototype.setData = function(value) {
-  jspb.Message.setProto3BytesField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -4869,9 +5051,12 @@ proto.admin.DeployApplicationResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.admin.DeployApplicationResponse} returns this
+ */
 proto.admin.DeployApplicationResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 

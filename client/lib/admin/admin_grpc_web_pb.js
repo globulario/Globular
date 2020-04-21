@@ -37,16 +37,6 @@ proto.admin.AdminServiceClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
 
 
@@ -73,17 +63,29 @@ proto.admin.AdminServicePromiseClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.SetRootPasswordRequest,
+ *   !proto.admin.SetRootPasswordResponse>}
+ */
+const methodDescriptor_AdminService_SetRootPassword = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/SetRootPassword',
+  grpc.web.MethodType.UNARY,
+  proto.admin.SetRootPasswordRequest,
+  proto.admin.SetRootPasswordResponse,
+  /**
+   * @param {!proto.admin.SetRootPasswordRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetRootPasswordResponse.deserializeBinary
+);
 
 
 /**
@@ -94,7 +96,10 @@ proto.admin.AdminServicePromiseClient =
  */
 const methodInfo_AdminService_SetRootPassword = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.SetRootPasswordResponse,
-  /** @param {!proto.admin.SetRootPasswordRequest} request */
+  /**
+   * @param {!proto.admin.SetRootPasswordRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -118,7 +123,7 @@ proto.admin.AdminServiceClient.prototype.setRootPassword =
       '/admin.AdminService/SetRootPassword',
       request,
       metadata || {},
-      methodInfo_AdminService_SetRootPassword,
+      methodDescriptor_AdminService_SetRootPassword,
       callback);
 };
 
@@ -137,8 +142,30 @@ proto.admin.AdminServicePromiseClient.prototype.setRootPassword =
       '/admin.AdminService/SetRootPassword',
       request,
       metadata || {},
-      methodInfo_AdminService_SetRootPassword);
+      methodDescriptor_AdminService_SetRootPassword);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.SetRootEmailRequest,
+ *   !proto.admin.SetRootEmailResponse>}
+ */
+const methodDescriptor_AdminService_SetRootEmail = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/SetRootEmail',
+  grpc.web.MethodType.UNARY,
+  proto.admin.SetRootEmailRequest,
+  proto.admin.SetRootEmailResponse,
+  /**
+   * @param {!proto.admin.SetRootEmailRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetRootEmailResponse.deserializeBinary
+);
 
 
 /**
@@ -149,7 +176,10 @@ proto.admin.AdminServicePromiseClient.prototype.setRootPassword =
  */
 const methodInfo_AdminService_SetRootEmail = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.SetRootEmailResponse,
-  /** @param {!proto.admin.SetRootEmailRequest} request */
+  /**
+   * @param {!proto.admin.SetRootEmailRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -173,7 +203,7 @@ proto.admin.AdminServiceClient.prototype.setRootEmail =
       '/admin.AdminService/SetRootEmail',
       request,
       metadata || {},
-      methodInfo_AdminService_SetRootEmail,
+      methodDescriptor_AdminService_SetRootEmail,
       callback);
 };
 
@@ -192,8 +222,30 @@ proto.admin.AdminServicePromiseClient.prototype.setRootEmail =
       '/admin.AdminService/SetRootEmail',
       request,
       metadata || {},
-      methodInfo_AdminService_SetRootEmail);
+      methodDescriptor_AdminService_SetRootEmail);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.SetPasswordRequest,
+ *   !proto.admin.SetPasswordResponse>}
+ */
+const methodDescriptor_AdminService_SetPassword = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/SetPassword',
+  grpc.web.MethodType.UNARY,
+  proto.admin.SetPasswordRequest,
+  proto.admin.SetPasswordResponse,
+  /**
+   * @param {!proto.admin.SetPasswordRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetPasswordResponse.deserializeBinary
+);
 
 
 /**
@@ -204,7 +256,10 @@ proto.admin.AdminServicePromiseClient.prototype.setRootEmail =
  */
 const methodInfo_AdminService_SetPassword = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.SetPasswordResponse,
-  /** @param {!proto.admin.SetPasswordRequest} request */
+  /**
+   * @param {!proto.admin.SetPasswordRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -228,7 +283,7 @@ proto.admin.AdminServiceClient.prototype.setPassword =
       '/admin.AdminService/SetPassword',
       request,
       metadata || {},
-      methodInfo_AdminService_SetPassword,
+      methodDescriptor_AdminService_SetPassword,
       callback);
 };
 
@@ -247,8 +302,30 @@ proto.admin.AdminServicePromiseClient.prototype.setPassword =
       '/admin.AdminService/SetPassword',
       request,
       metadata || {},
-      methodInfo_AdminService_SetPassword);
+      methodDescriptor_AdminService_SetPassword);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.SetEmailRequest,
+ *   !proto.admin.SetEmailResponse>}
+ */
+const methodDescriptor_AdminService_SetEmail = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/SetEmail',
+  grpc.web.MethodType.UNARY,
+  proto.admin.SetEmailRequest,
+  proto.admin.SetEmailResponse,
+  /**
+   * @param {!proto.admin.SetEmailRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SetEmailResponse.deserializeBinary
+);
 
 
 /**
@@ -259,7 +336,10 @@ proto.admin.AdminServicePromiseClient.prototype.setPassword =
  */
 const methodInfo_AdminService_SetEmail = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.SetEmailResponse,
-  /** @param {!proto.admin.SetEmailRequest} request */
+  /**
+   * @param {!proto.admin.SetEmailRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -283,7 +363,7 @@ proto.admin.AdminServiceClient.prototype.setEmail =
       '/admin.AdminService/SetEmail',
       request,
       metadata || {},
-      methodInfo_AdminService_SetEmail,
+      methodDescriptor_AdminService_SetEmail,
       callback);
 };
 
@@ -302,8 +382,30 @@ proto.admin.AdminServicePromiseClient.prototype.setEmail =
       '/admin.AdminService/SetEmail',
       request,
       metadata || {},
-      methodInfo_AdminService_SetEmail);
+      methodDescriptor_AdminService_SetEmail);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.GetConfigRequest,
+ *   !proto.admin.GetConfigResponse>}
+ */
+const methodDescriptor_AdminService_GetConfig = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/GetConfig',
+  grpc.web.MethodType.UNARY,
+  proto.admin.GetConfigRequest,
+  proto.admin.GetConfigResponse,
+  /**
+   * @param {!proto.admin.GetConfigRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.GetConfigResponse.deserializeBinary
+);
 
 
 /**
@@ -314,7 +416,10 @@ proto.admin.AdminServicePromiseClient.prototype.setEmail =
  */
 const methodInfo_AdminService_GetConfig = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.GetConfigResponse,
-  /** @param {!proto.admin.GetConfigRequest} request */
+  /**
+   * @param {!proto.admin.GetConfigRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -338,7 +443,7 @@ proto.admin.AdminServiceClient.prototype.getConfig =
       '/admin.AdminService/GetConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_GetConfig,
+      methodDescriptor_AdminService_GetConfig,
       callback);
 };
 
@@ -357,8 +462,30 @@ proto.admin.AdminServicePromiseClient.prototype.getConfig =
       '/admin.AdminService/GetConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_GetConfig);
+      methodDescriptor_AdminService_GetConfig);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.GetConfigRequest,
+ *   !proto.admin.GetConfigResponse>}
+ */
+const methodDescriptor_AdminService_GetFullConfig = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/GetFullConfig',
+  grpc.web.MethodType.UNARY,
+  proto.admin.GetConfigRequest,
+  proto.admin.GetConfigResponse,
+  /**
+   * @param {!proto.admin.GetConfigRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.GetConfigResponse.deserializeBinary
+);
 
 
 /**
@@ -369,7 +496,10 @@ proto.admin.AdminServicePromiseClient.prototype.getConfig =
  */
 const methodInfo_AdminService_GetFullConfig = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.GetConfigResponse,
-  /** @param {!proto.admin.GetConfigRequest} request */
+  /**
+   * @param {!proto.admin.GetConfigRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -393,7 +523,7 @@ proto.admin.AdminServiceClient.prototype.getFullConfig =
       '/admin.AdminService/GetFullConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_GetFullConfig,
+      methodDescriptor_AdminService_GetFullConfig,
       callback);
 };
 
@@ -412,8 +542,30 @@ proto.admin.AdminServicePromiseClient.prototype.getFullConfig =
       '/admin.AdminService/GetFullConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_GetFullConfig);
+      methodDescriptor_AdminService_GetFullConfig);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.SaveConfigRequest,
+ *   !proto.admin.SaveConfigResponse>}
+ */
+const methodDescriptor_AdminService_SaveConfig = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/SaveConfig',
+  grpc.web.MethodType.UNARY,
+  proto.admin.SaveConfigRequest,
+  proto.admin.SaveConfigResponse,
+  /**
+   * @param {!proto.admin.SaveConfigRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.SaveConfigResponse.deserializeBinary
+);
 
 
 /**
@@ -424,7 +576,10 @@ proto.admin.AdminServicePromiseClient.prototype.getFullConfig =
  */
 const methodInfo_AdminService_SaveConfig = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.SaveConfigResponse,
-  /** @param {!proto.admin.SaveConfigRequest} request */
+  /**
+   * @param {!proto.admin.SaveConfigRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -448,7 +603,7 @@ proto.admin.AdminServiceClient.prototype.saveConfig =
       '/admin.AdminService/SaveConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_SaveConfig,
+      methodDescriptor_AdminService_SaveConfig,
       callback);
 };
 
@@ -467,8 +622,30 @@ proto.admin.AdminServicePromiseClient.prototype.saveConfig =
       '/admin.AdminService/SaveConfig',
       request,
       metadata || {},
-      methodInfo_AdminService_SaveConfig);
+      methodDescriptor_AdminService_SaveConfig);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.StopServiceRequest,
+ *   !proto.admin.StopServiceResponse>}
+ */
+const methodDescriptor_AdminService_StopService = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/StopService',
+  grpc.web.MethodType.UNARY,
+  proto.admin.StopServiceRequest,
+  proto.admin.StopServiceResponse,
+  /**
+   * @param {!proto.admin.StopServiceRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.StopServiceResponse.deserializeBinary
+);
 
 
 /**
@@ -479,7 +656,10 @@ proto.admin.AdminServicePromiseClient.prototype.saveConfig =
  */
 const methodInfo_AdminService_StopService = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.StopServiceResponse,
-  /** @param {!proto.admin.StopServiceRequest} request */
+  /**
+   * @param {!proto.admin.StopServiceRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -503,7 +683,7 @@ proto.admin.AdminServiceClient.prototype.stopService =
       '/admin.AdminService/StopService',
       request,
       metadata || {},
-      methodInfo_AdminService_StopService,
+      methodDescriptor_AdminService_StopService,
       callback);
 };
 
@@ -522,8 +702,30 @@ proto.admin.AdminServicePromiseClient.prototype.stopService =
       '/admin.AdminService/StopService',
       request,
       metadata || {},
-      methodInfo_AdminService_StopService);
+      methodDescriptor_AdminService_StopService);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.StartServiceRequest,
+ *   !proto.admin.StartServiceResponse>}
+ */
+const methodDescriptor_AdminService_StartService = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/StartService',
+  grpc.web.MethodType.UNARY,
+  proto.admin.StartServiceRequest,
+  proto.admin.StartServiceResponse,
+  /**
+   * @param {!proto.admin.StartServiceRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.StartServiceResponse.deserializeBinary
+);
 
 
 /**
@@ -534,7 +736,10 @@ proto.admin.AdminServicePromiseClient.prototype.stopService =
  */
 const methodInfo_AdminService_StartService = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.StartServiceResponse,
-  /** @param {!proto.admin.StartServiceRequest} request */
+  /**
+   * @param {!proto.admin.StartServiceRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -558,7 +763,7 @@ proto.admin.AdminServiceClient.prototype.startService =
       '/admin.AdminService/StartService',
       request,
       metadata || {},
-      methodInfo_AdminService_StartService,
+      methodDescriptor_AdminService_StartService,
       callback);
 };
 
@@ -577,8 +782,30 @@ proto.admin.AdminServicePromiseClient.prototype.startService =
       '/admin.AdminService/StartService',
       request,
       metadata || {},
-      methodInfo_AdminService_StartService);
+      methodDescriptor_AdminService_StartService);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.PublishServiceRequest,
+ *   !proto.admin.PublishServiceResponse>}
+ */
+const methodDescriptor_AdminService_PublishService = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/PublishService',
+  grpc.web.MethodType.UNARY,
+  proto.admin.PublishServiceRequest,
+  proto.admin.PublishServiceResponse,
+  /**
+   * @param {!proto.admin.PublishServiceRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.PublishServiceResponse.deserializeBinary
+);
 
 
 /**
@@ -589,7 +816,10 @@ proto.admin.AdminServicePromiseClient.prototype.startService =
  */
 const methodInfo_AdminService_PublishService = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.PublishServiceResponse,
-  /** @param {!proto.admin.PublishServiceRequest} request */
+  /**
+   * @param {!proto.admin.PublishServiceRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -613,7 +843,7 @@ proto.admin.AdminServiceClient.prototype.publishService =
       '/admin.AdminService/PublishService',
       request,
       metadata || {},
-      methodInfo_AdminService_PublishService,
+      methodDescriptor_AdminService_PublishService,
       callback);
 };
 
@@ -632,8 +862,30 @@ proto.admin.AdminServicePromiseClient.prototype.publishService =
       '/admin.AdminService/PublishService',
       request,
       metadata || {},
-      methodInfo_AdminService_PublishService);
+      methodDescriptor_AdminService_PublishService);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.InstallServiceRequest,
+ *   !proto.admin.InstallServiceResponse>}
+ */
+const methodDescriptor_AdminService_InstallService = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/InstallService',
+  grpc.web.MethodType.UNARY,
+  proto.admin.InstallServiceRequest,
+  proto.admin.InstallServiceResponse,
+  /**
+   * @param {!proto.admin.InstallServiceRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.InstallServiceResponse.deserializeBinary
+);
 
 
 /**
@@ -644,7 +896,10 @@ proto.admin.AdminServicePromiseClient.prototype.publishService =
  */
 const methodInfo_AdminService_InstallService = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.InstallServiceResponse,
-  /** @param {!proto.admin.InstallServiceRequest} request */
+  /**
+   * @param {!proto.admin.InstallServiceRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -668,7 +923,7 @@ proto.admin.AdminServiceClient.prototype.installService =
       '/admin.AdminService/InstallService',
       request,
       metadata || {},
-      methodInfo_AdminService_InstallService,
+      methodDescriptor_AdminService_InstallService,
       callback);
 };
 
@@ -687,8 +942,30 @@ proto.admin.AdminServicePromiseClient.prototype.installService =
       '/admin.AdminService/InstallService',
       request,
       metadata || {},
-      methodInfo_AdminService_InstallService);
+      methodDescriptor_AdminService_InstallService);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.UninstallServiceRequest,
+ *   !proto.admin.UninstallServiceResponse>}
+ */
+const methodDescriptor_AdminService_UninstallService = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/UninstallService',
+  grpc.web.MethodType.UNARY,
+  proto.admin.UninstallServiceRequest,
+  proto.admin.UninstallServiceResponse,
+  /**
+   * @param {!proto.admin.UninstallServiceRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.UninstallServiceResponse.deserializeBinary
+);
 
 
 /**
@@ -699,7 +976,10 @@ proto.admin.AdminServicePromiseClient.prototype.installService =
  */
 const methodInfo_AdminService_UninstallService = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.UninstallServiceResponse,
-  /** @param {!proto.admin.UninstallServiceRequest} request */
+  /**
+   * @param {!proto.admin.UninstallServiceRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -723,7 +1003,7 @@ proto.admin.AdminServiceClient.prototype.uninstallService =
       '/admin.AdminService/UninstallService',
       request,
       metadata || {},
-      methodInfo_AdminService_UninstallService,
+      methodDescriptor_AdminService_UninstallService,
       callback);
 };
 
@@ -742,8 +1022,30 @@ proto.admin.AdminServicePromiseClient.prototype.uninstallService =
       '/admin.AdminService/UninstallService',
       request,
       metadata || {},
-      methodInfo_AdminService_UninstallService);
+      methodDescriptor_AdminService_UninstallService);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.admin.RegisterExternalApplicationRequest,
+ *   !proto.admin.RegisterExternalApplicationResponse>}
+ */
+const methodDescriptor_AdminService_RegisterExternalApplication = new grpc.web.MethodDescriptor(
+  '/admin.AdminService/RegisterExternalApplication',
+  grpc.web.MethodType.UNARY,
+  proto.admin.RegisterExternalApplicationRequest,
+  proto.admin.RegisterExternalApplicationResponse,
+  /**
+   * @param {!proto.admin.RegisterExternalApplicationRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.admin.RegisterExternalApplicationResponse.deserializeBinary
+);
 
 
 /**
@@ -754,7 +1056,10 @@ proto.admin.AdminServicePromiseClient.prototype.uninstallService =
  */
 const methodInfo_AdminService_RegisterExternalApplication = new grpc.web.AbstractClientBase.MethodInfo(
   proto.admin.RegisterExternalApplicationResponse,
-  /** @param {!proto.admin.RegisterExternalApplicationRequest} request */
+  /**
+   * @param {!proto.admin.RegisterExternalApplicationRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -778,7 +1083,7 @@ proto.admin.AdminServiceClient.prototype.registerExternalApplication =
       '/admin.AdminService/RegisterExternalApplication',
       request,
       metadata || {},
-      methodInfo_AdminService_RegisterExternalApplication,
+      methodDescriptor_AdminService_RegisterExternalApplication,
       callback);
 };
 
@@ -797,7 +1102,7 @@ proto.admin.AdminServicePromiseClient.prototype.registerExternalApplication =
       '/admin.AdminService/RegisterExternalApplication',
       request,
       metadata || {},
-      methodInfo_AdminService_RegisterExternalApplication);
+      methodDescriptor_AdminService_RegisterExternalApplication);
 };
 
 

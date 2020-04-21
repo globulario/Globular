@@ -1,9 +1,11 @@
 package event_client
 
 import (
+	"fmt"
 	"io"
-	"log"
 	"strconv"
+
+	"time"
 
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
@@ -65,11 +67,19 @@ func NewEvent_Client(address string, name string) (*Event_Client, error) {
 	// The channel where data will be exchange.
 	client.actions = make(chan map[string]interface{})
 
-	// Here I will also open the event stream to receive event from server.
+	// Open a connection with the server. In case the server is not ready
+	// It will wait 5 second and try it again.
+	nb_try_connect := 15
+
 	go func() {
-		err := client.run()
-		if err != nil {
-			log.Println("Fail to create event client: ", err)
+		for nb_try_connect > 0 {
+			err := client.run()
+			if err != nil && nb_try_connect == 0 {
+				fmt.Println("78 Fail to create event client: ", name, err)
+				break // exit loop.
+			}
+			time.Sleep(5 * time.Second) // wait five seconds.
+			nb_try_connect--
 		}
 	}()
 
@@ -270,6 +280,7 @@ func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *even
 
 	_, err := self.c.Subscribe(api.GetClientContext(self), rqst)
 	if err != nil {
+		fmt.Println("fail to subscribe to event name ", name, err)
 		return err
 	}
 
@@ -281,6 +292,7 @@ func (self *Event_Client) Subscribe(name string, uuid string, fct func(evt *even
 
 	// set the action.
 	self.actions <- action
+
 	return nil
 }
 

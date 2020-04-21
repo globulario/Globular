@@ -32,8 +32,8 @@ import {
 
 export class AdminServiceClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRequest,
@@ -130,8 +130,8 @@ export class AdminServiceClient {
 
 export class AdminServicePromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   setRootPassword(
     request: SetRootPasswordRequest,

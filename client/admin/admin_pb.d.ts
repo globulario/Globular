@@ -524,6 +524,9 @@ export class UninstallServiceRequest extends jspb.Message {
   getVersion(): string;
   setVersion(value: string): void;
 
+  getDeletepermissions(): boolean;
+  setDeletepermissions(value: boolean): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): UninstallServiceRequest.AsObject;
   static toObject(includeInstance: boolean, msg: UninstallServiceRequest): UninstallServiceRequest.AsObject;
@@ -537,6 +540,7 @@ export namespace UninstallServiceRequest {
     serviceid: string,
     publisherid: string,
     version: string,
+    deletepermissions: boolean,
   }
 }
 

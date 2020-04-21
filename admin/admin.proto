@@ -138,6 +138,7 @@ message UninstallServiceRequest{
 	string serviceId = 1;
 	string publisherId = 2;
 	string version = 3;
+	bool deletePermissions = 4;
 }
 
 message UninstallServiceResponse{

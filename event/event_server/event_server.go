@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -20,7 +19,6 @@ import (
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 )
 
 // TODO take care of TLS/https
@@ -99,7 +97,7 @@ func (self *server) save() error {
 
 // That function process channel operation and run in it own go routine.
 func (self *server) run() {
-
+	fmt.Println("start event service")
 	channels := make(map[string][]string)
 	streams := make(map[string]eventpb.EventService_OnEventServer)
 	quits := make(map[string]chan bool)
@@ -269,12 +267,6 @@ func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (
 // port number must be pass as argument.
 func main() {
 
-	// set the logger.
-	grpclog.SetLogger(log.New(os.Stdout, "event_service: ", log.LstdFlags))
-
-	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	// The first argument must be the port number to listen to.
 	port := defaultPort // the default value.
 
@@ -303,7 +295,7 @@ func main() {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
+		fmt.Println("could not listen on %s: %s", s_impl.Domain, err)
 		return
 	}
 
@@ -312,7 +304,7 @@ func main() {
 		// Load the certificates from disk
 		certificate, err := tls.LoadX509KeyPair(s_impl.CertFile, s_impl.KeyFile)
 		if err != nil {
-			log.Fatalf("could not load server key pair: %s", err)
+			fmt.Println("could not load server key pair: %s", err)
 			return
 		}
 
@@ -320,13 +312,13 @@ func main() {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
 		if err != nil {
-			log.Fatalf("could not read ca certificate: %s", err)
+			fmt.Println("could not read ca certificate: %s", err)
 			return
 		}
 
 		// Append the client certificates from the CA
 		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			log.Fatalf("failed to append client certs")
+			fmt.Println("failed to append client certs")
 			return
 		}
 
@@ -355,7 +347,6 @@ func main() {
 		// no web-rpc server.
 		fmt.Println(s_impl.Name + " grpc service is starting")
 		if err := grpcServer.Serve(lis); err != nil {
-
 			if err.Error() == "signal: killed" {
 				fmt.Println("service ", s_impl.Name, " was stop!")
 			}

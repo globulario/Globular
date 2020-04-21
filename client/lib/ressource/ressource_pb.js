@@ -2139,7 +2139,7 @@ if (goog.DEBUG && !COMPILED) {
  * @constructor
  */
 proto.ressource.Peer = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ressource.Peer.repeatedFields_, null);
 };
 goog.inherits(proto.ressource.Peer, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -7026,7 +7026,7 @@ proto.ressource.DeleteApplicationRsp.prototype.setResult = function(value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ressource.RessourcePermission.oneofGroups_ = [[3,4,5,6]];
+proto.ressource.RessourcePermission.oneofGroups_ = [[3,4,5,6,7]];
 
 /**
  * @enum {number}
@@ -7036,7 +7036,8 @@ proto.ressource.RessourcePermission.OwnerCase = {
   USER: 3,
   ROLE: 4,
   APPLICATION: 5,
-  SERVICE: 6
+  PEER: 6,
+  SERVICE: 7
 };
 
 /**
@@ -7082,7 +7083,8 @@ proto.ressource.RessourcePermission.toObject = function(includeInstance, msg) {
     user: jspb.Message.getFieldWithDefault(msg, 3, ""),
     role: jspb.Message.getFieldWithDefault(msg, 4, ""),
     application: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    service: jspb.Message.getFieldWithDefault(msg, 6, "")
+    peer: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    service: jspb.Message.getFieldWithDefault(msg, 7, "")
   };
 
   if (includeInstance) {
@@ -7140,6 +7142,10 @@ proto.ressource.RessourcePermission.deserializeBinaryFromReader = function(msg, 
       msg.setApplication(value);
       break;
     case 6:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPeer(value);
+      break;
+    case 7:
       var value = /** @type {string} */ (reader.readString());
       msg.setService(value);
       break;
@@ -7211,6 +7217,13 @@ proto.ressource.RessourcePermission.serializeBinaryToWriter = function(message, 
   if (f != null) {
     writer.writeString(
       6,
+      f
+    );
+  }
+  f = /** @type {string} */ (jspb.Message.getField(message, 7));
+  if (f != null) {
+    writer.writeString(
+      7,
       f
     );
   }
@@ -7362,10 +7375,10 @@ proto.ressource.RessourcePermission.prototype.hasApplication = function() {
 
 
 /**
- * optional string service = 6;
+ * optional string peer = 6;
  * @return {string}
  */
-proto.ressource.RessourcePermission.prototype.getService = function() {
+proto.ressource.RessourcePermission.prototype.getPeer = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
 };
 
@@ -7374,7 +7387,7 @@ proto.ressource.RessourcePermission.prototype.getService = function() {
  * @param {string} value
  * @return {!proto.ressource.RessourcePermission} returns this
  */
-proto.ressource.RessourcePermission.prototype.setService = function(value) {
+proto.ressource.RessourcePermission.prototype.setPeer = function(value) {
   return jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], value);
 };
 
@@ -7383,7 +7396,7 @@ proto.ressource.RessourcePermission.prototype.setService = function(value) {
  * Clears the field making it undefined.
  * @return {!proto.ressource.RessourcePermission} returns this
  */
-proto.ressource.RessourcePermission.prototype.clearService = function() {
+proto.ressource.RessourcePermission.prototype.clearPeer = function() {
   return jspb.Message.setOneofField(this, 6, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
 };
 
@@ -7392,8 +7405,44 @@ proto.ressource.RessourcePermission.prototype.clearService = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ressource.RessourcePermission.prototype.hasService = function() {
+proto.ressource.RessourcePermission.prototype.hasPeer = function() {
   return jspb.Message.getField(this, 6) != null;
+};
+
+
+/**
+ * optional string service = 7;
+ * @return {string}
+ */
+proto.ressource.RessourcePermission.prototype.getService = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 7, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
+proto.ressource.RessourcePermission.prototype.setService = function(value) {
+  return jspb.Message.setOneofField(this, 7, proto.ressource.RessourcePermission.oneofGroups_[0], value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ressource.RessourcePermission} returns this
+ */
+proto.ressource.RessourcePermission.prototype.clearService = function() {
+  return jspb.Message.setOneofField(this, 7, proto.ressource.RessourcePermission.oneofGroups_[0], undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ressource.RessourcePermission.prototype.hasService = function() {
+  return jspb.Message.getField(this, 7) != null;
 };
 
 
@@ -16889,6 +16938,13 @@ proto.ressource.ClearAllLogRsp.prototype.setResult = function(value) {
 
 
 
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ressource.Peer.repeatedFields_ = [3];
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -16921,7 +16977,8 @@ proto.ressource.Peer.prototype.toObject = function(opt_includeInstance) {
 proto.ressource.Peer.toObject = function(includeInstance, msg) {
   var f, obj = {
     name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    macAddress: jspb.Message.getFieldWithDefault(msg, 2, "")
+    macAddress: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    actionsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -16966,6 +17023,10 @@ proto.ressource.Peer.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {string} */ (reader.readString());
       msg.setMacAddress(value);
       break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addActions(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -17009,6 +17070,13 @@ proto.ressource.Peer.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getActionsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      3,
+      f
+    );
+  }
 };
 
 
@@ -17045,6 +17113,43 @@ proto.ressource.Peer.prototype.getMacAddress = function() {
  */
 proto.ressource.Peer.prototype.setMacAddress = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * repeated string actions = 3;
+ * @return {!Array<string>}
+ */
+proto.ressource.Peer.prototype.getActionsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ressource.Peer} returns this
+ */
+proto.ressource.Peer.prototype.setActionsList = function(value) {
+  return jspb.Message.setField(this, 3, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ressource.Peer} returns this
+ */
+proto.ressource.Peer.prototype.addActions = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ressource.Peer} returns this
+ */
+proto.ressource.Peer.prototype.clearActionsList = function() {
+  return this.setActionsList([]);
 };
 
 

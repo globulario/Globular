@@ -379,7 +379,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		}
 	}
 
-	fmt.Println("Validate access for ", clientId, application, domain, method)
+	// fmt.Println("Validate access for ", clientId, application, domain, method)
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
