@@ -52,12 +52,12 @@ namespace Globular
             this.interceptor = new Globular.ServerUnaryInterceptor(this);
         }
 
-        private RessourceClient getRessourceClient()
+        private RessourceClient getRessourceClient(string domain)
         {
             if (this.ressourceClient == null)
             {
                 // there must be a globular server runing in order to validate ressources.
-                ressourceClient = new RessourceClient(this.Domain, "Ressource");
+                ressourceClient = new RessourceClient(domain, "Ressource");
             }
             return this.ressourceClient;
         }
@@ -102,9 +102,9 @@ namespace Globular
         /// <param name="name">The name of the ressource must be unique in it contex (path + '/' + name)</param>
         /// <param name="modified">The last time the ressource was access</param>
         /// <param name="size">The size of the ressource (optional)</param>
-        public void setRessource(string path, string name, int modified, int size)
+        public void setRessource(string domain, string path, string name, int modified, int size)
         {
-            this.getRessourceClient().SetRessource(path, name, modified, size);
+            this.getRessourceClient(domain).SetRessource(path, name, modified, size);
         }
 
         /// <summary>
@@ -113,34 +113,34 @@ namespace Globular
         /// <param name="token">Bearer Token</param>
         /// <param name="method"></param>
         /// <returns></returns>
-        public bool validateUserAccess(string token, string method)
+        public bool validateUserAccess(string domain, string token, string method)
         {
-            return this.getRessourceClient().ValidateApplicationAccess(token, method);
+            return this.getRessourceClient(domain).ValidateApplicationAccess(token, method);
         }
 
-        public bool validateApplicationAccess(string application, string method)
+        public bool validateApplicationAccess(string domain, string application, string method)
         {
-            return this.getRessourceClient().ValidateApplicationAccess(application, method);
+            return this.getRessourceClient(domain).ValidateApplicationAccess(application, method);
         }
 
-        public bool validateUserRessourceAccess(string token, string path, string method, int permission)
+        public bool validateUserRessourceAccess(string domain, string token, string path, string method, int permission)
         {
-            return this.getRessourceClient().ValidateUserRessourceAccess(token, path, method, permission);
+            return this.getRessourceClient(domain).ValidateUserRessourceAccess(token, path, method, permission);
         }
 
-        public bool validateApplicationRessourceAccess(string application, string path, string method, int permission)
+        public bool validateApplicationRessourceAccess(string domain, string application, string path, string method, int permission)
         {
-            return this.getRessourceClient().ValidateApplicationRessourceAccess(application, path, method, permission);
+            return this.getRessourceClient(domain).ValidateApplicationRessourceAccess(application, path, method, permission);
         }
 
-        public int getActionPermission(string action)
+        public int getActionPermission(string domain, string action)
         {
-            return this.getRessourceClient().GetActionPermission(action);
+            return this.getRessourceClient(domain).GetActionPermission(action);
         }
 
-        public void logInfo(string application, string token, string method, string message, int logType)
+        public void logInfo(string domain, string application, string token, string method, string message, int logType)
         {
-            this.getRessourceClient().Log(application, token, method, message, logType);
+            this.getRessourceClient(domain).Log(application, token, method, message, logType);
         }
     }
 
@@ -160,6 +160,8 @@ namespace Globular
             Metadata metadatas = context.RequestHeaders;
             string application = "";
             string token = "";
+            string path = "";
+            string domain = "";
             string method = context.Method;
             bool hasAccess = false;
             // Console.Write("----> validate method: " + method);
@@ -170,20 +172,37 @@ namespace Globular
                 if (metadata.Key == "application")
                 {
                     application = metadata.Value;
-                    if (!hasAccess)
-                    {
-                        hasAccess = this.service.validateApplicationAccess(application, method);
-                    }
                 }
                 else if (metadata.Key == "token")
                 {
                     token = metadata.Value;
-                    if (!hasAccess)
-                    {
-                        hasAccess = this.service.validateUserAccess(token, method);
-                    }
+                }
+                else if (metadata.Key == "path")
+                {
+                    path = metadata.Value;
+                }
+                else if (metadata.Key == "domain")
+                {
+                    domain = metadata.Value;
                 }
             }
+
+            // A domain must be given to get access to the ressource manager.
+            if (domain.Length == 0)
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Permission denied, no domain was given!"), metadatas);
+            }
+
+            if (application.Length > 0)
+            {
+                hasAccess = this.service.validateApplicationAccess(domain, application, method);
+            }
+
+            if (!hasAccess)
+            {
+                hasAccess = this.service.validateUserAccess(domain, token, method);
+            }
+
 
             // Here I will validate the user for action.
             if (!hasAccess)
@@ -194,27 +213,20 @@ namespace Globular
             }
 
             // Now if the action has ressource access permission defines...
-            var permission = this.service.getActionPermission(method);
+            var permission = this.service.getActionPermission(domain, method);
             if (permission != -1)
             {
-                // In that case a permission was set for the action so I will try to validate method parameters...
-
                 // Now I will try to validate ressource if there is none...
-                foreach (var prop in request.GetType().GetProperties())
+                if (path.Length > 0)
                 {
-                    if (prop.PropertyType == typeof(string))
+                    var hasRessourcePermission = this.service.validateUserRessourceAccess(domain, token, path, method, permission);
+                    if (!hasRessourcePermission)
                     {
-                        string path = (string)prop.GetValue(request, null);
-                        if (path.StartsWith("/"))
-                        {
-                            var hasRessourcePermission = this.service.validateUserRessourceAccess(token, path, method, permission);
-                            if(!hasRessourcePermission){
-                                this.service.validateApplicationRessourceAccess(application, path, method, permission);
-                            }
-                            if(!hasRessourcePermission){
-                                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Permission denied"), metadatas);
-                            }
-                        }
+                        this.service.validateApplicationRessourceAccess(domain, application, path, method, permission);
+                    }
+                    if (!hasRessourcePermission)
+                    {
+                        throw new RpcException(new Status(StatusCode.PermissionDenied, "Permission denied"), metadatas);
                     }
                 }
             }

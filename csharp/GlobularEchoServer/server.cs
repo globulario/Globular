@@ -34,6 +34,8 @@ namespace Echo
             this.Version = "0.0.1";
             this.Value = "echo value!";
         }
+
+        // Overide method of the service to implement in C#
         public override Task<global::Echo.EchoResponse> Echo(global::Echo.EchoRequest request, grpc::ServerCallContext context)
         {
             Echo.EchoResponse rsp = new EchoResponse();

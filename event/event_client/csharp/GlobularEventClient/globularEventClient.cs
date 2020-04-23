@@ -34,9 +34,7 @@ namespace Globular
         private void processEvent(){
             // Here I will start on event processing.
             var data_channel = Channel.CreateUnbounded<Event.Event>();
-
             var evt = data_channel.Reader.WaitToReadAsync();
-
         }
 
         /// <summary>
@@ -81,7 +79,6 @@ namespace Globular
         public void OnEvent(string uuid, Channel<Event.Event> channel){
             // Here I will open a channel write.
             var writer = channel.Writer;
-            
         }
 
     }

@@ -15,4 +15,3 @@ E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\De
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\Debug\netcoreapp2.1\GlobularClient.pdb
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\bin\Debug\netcoreapp2.1\GlobularRessourceClient.pdb
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.csproj.CopyComplete
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularEchoServer\obj\Debug\netcoreapp2.1\GlobularEchoServer.csproj.CoreCompileInputs.cache

@@ -11,4 +11,3 @@ E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\bin\Debug\
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.csproj.CopyComplete
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.dll
 E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.pdb
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netcoreapp2.1\GlobularServer.csproj.CoreCompileInputs.cache

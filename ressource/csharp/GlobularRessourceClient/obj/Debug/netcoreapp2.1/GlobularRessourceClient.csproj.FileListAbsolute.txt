@@ -9,4 +9,3 @@ E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessour
 E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.csproj.CopyComplete
 E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.dll
 E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.pdb
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.csproj.CoreCompileInputs.cache
