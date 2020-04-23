@@ -13,14 +13,12 @@ namespace Globular
 
         public struct Action {
             string name;
-
-
         }
 
         /// <summary>
         /// gRPC client for event service.
         /// </summary>
-        /// <param name="address">Can be a domain or a IP address ex: localhos or 127.0.0.1</param>
+        /// <param name="address">Can be a domain or a IP address ex: localhost or 127.0.0.1</param>
         /// <param name="name">The name of the service on the server. ex: persistence_server</param>
         /// <returns>Return the instance of the client with it connection ready to be use.</returns>
         public GlobularEventClient(string address, string name) : base(address, name)
