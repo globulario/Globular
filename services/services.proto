@@ -71,7 +71,7 @@ message GetServiceDescriptorResponse {
 }
 
 message GetServicesDescriptorRequest {
-	
+	string query = 1;
 }
 
 message GetServicesDescriptorResponse {
@@ -92,10 +92,10 @@ service ServiceDiscovery {
 	rpc FindServices(FindServicesDescriptorRequest) returns (FindServicesDescriptorResponse);
 	
 	/** Return the list of all services **/
-	rpc GetServiceDescriptor(GetServiceDescriptorRequest) returns (GetServiceDescriptorResponse);
+	rpc GetServiceDescriptor(GetServiceDescriptorRequest) returns ( GetServiceDescriptorResponse);
 	
 	/** Return the list of all services **/
-	rpc GetServicesDescriptor(GetServicesDescriptorRequest) returns(GetServicesDescriptorResponse); 
+	rpc GetServicesDescriptor(GetServicesDescriptorRequest) returns(stream GetServicesDescriptorResponse); 
 	
 	/** Publish a service to service discovery **/
 	rpc publishServiceDescriptor(PublishServiceDescriptorRequest) returns(PublishServiceDescriptorResponse); 
@@ -109,4 +109,7 @@ service ServiceRepository {
 	
 	/** Upload a service to a service directory **/
 	rpc uploadBundle(stream UploadBundleRequest) returns(UploadBundleResponse);
+	
+	/** Return the list of bundel associated with a service. **/
+	
 }

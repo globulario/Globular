@@ -363,6 +363,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		method == "/services.ServiceDiscovery/FindServices" ||
 		method == "/services.ServiceDiscovery/FindServices/GetServiceDescriptor" ||
 		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" ||
+		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" ||
 		method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" ||
 		method == "/ressource.RessourceService/Log" {
 		hasAccess = true
@@ -546,7 +547,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// If the call come from a local client it has hasAccess
 	hasAccess := false // strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
 	// needed by the admin.
-	if application == "admin" && method == "/persistence.PersistenceService/Find" {
+	if application == "admin" ||
+		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" {
 		hasAccess = true
 	}
 

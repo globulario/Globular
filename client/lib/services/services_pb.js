@@ -1,3 +1,4 @@
+// source: services/services.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -520,9 +521,12 @@ proto.services.ServiceDescriptor.prototype.getId = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setId = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -535,9 +539,12 @@ proto.services.ServiceDescriptor.prototype.getPublisherid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setPublisherid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -550,9 +557,12 @@ proto.services.ServiceDescriptor.prototype.getVersion = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setVersion = function(value) {
-  jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
@@ -565,9 +575,12 @@ proto.services.ServiceDescriptor.prototype.getDescription = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setDescription = function(value) {
-  jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
@@ -580,26 +593,31 @@ proto.services.ServiceDescriptor.prototype.getRepositoriesList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setRepositoriesList = function(value) {
-  jspb.Message.setField(this, 5, value || []);
+  return jspb.Message.setField(this, 5, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.addRepositories = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 5, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 5, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.clearRepositoriesList = function() {
-  this.setRepositoriesList([]);
+  return this.setRepositoriesList([]);
 };
 
 
@@ -612,26 +630,31 @@ proto.services.ServiceDescriptor.prototype.getDiscoveriesList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setDiscoveriesList = function(value) {
-  jspb.Message.setField(this, 6, value || []);
+  return jspb.Message.setField(this, 6, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.addDiscoveries = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 6, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 6, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.clearDiscoveriesList = function() {
-  this.setDiscoveriesList([]);
+  return this.setDiscoveriesList([]);
 };
 
 
@@ -644,26 +667,31 @@ proto.services.ServiceDescriptor.prototype.getKeywordsList = function() {
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.services.ServiceDescriptor} returns this
+ */
 proto.services.ServiceDescriptor.prototype.setKeywordsList = function(value) {
-  jspb.Message.setField(this, 7, value || []);
+  return jspb.Message.setField(this, 7, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.addKeywords = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 7, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 7, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.ServiceDescriptor} returns this
  */
 proto.services.ServiceDescriptor.prototype.clearKeywordsList = function() {
-  this.setKeywordsList([]);
+  return this.setKeywordsList([]);
 };
 
 
@@ -827,17 +855,21 @@ proto.services.ServiceBundle.prototype.getDescriptor = function() {
 };
 
 
-/** @param {?proto.services.ServiceDescriptor|undefined} value */
+/**
+ * @param {?proto.services.ServiceDescriptor|undefined} value
+ * @return {!proto.services.ServiceBundle} returns this
+*/
 proto.services.ServiceBundle.prototype.setDescriptor = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.services.ServiceBundle} returns this
  */
 proto.services.ServiceBundle.prototype.clearDescriptor = function() {
-  this.setDescriptor(undefined);
+  return this.setDescriptor(undefined);
 };
 
 
@@ -859,9 +891,12 @@ proto.services.ServiceBundle.prototype.getBuildnumber = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.ServiceBundle} returns this
+ */
 proto.services.ServiceBundle.prototype.setBuildnumber = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -874,9 +909,12 @@ proto.services.ServiceBundle.prototype.getPlaform = function() {
 };
 
 
-/** @param {!proto.services.Platform} value */
+/**
+ * @param {!proto.services.Platform} value
+ * @return {!proto.services.ServiceBundle} returns this
+ */
 proto.services.ServiceBundle.prototype.setPlaform = function(value) {
-  jspb.Message.setProto3EnumField(this, 3, value);
+  return jspb.Message.setProto3EnumField(this, 3, value);
 };
 
 
@@ -913,9 +951,12 @@ proto.services.ServiceBundle.prototype.getBinairies_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.services.ServiceBundle} returns this
+ */
 proto.services.ServiceBundle.prototype.setBinairies = function(value) {
-  jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -1043,17 +1084,21 @@ proto.services.PublishServiceDescriptorRequest.prototype.getDescriptor = functio
 };
 
 
-/** @param {?proto.services.ServiceDescriptor|undefined} value */
+/**
+ * @param {?proto.services.ServiceDescriptor|undefined} value
+ * @return {!proto.services.PublishServiceDescriptorRequest} returns this
+*/
 proto.services.PublishServiceDescriptorRequest.prototype.setDescriptor = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.services.PublishServiceDescriptorRequest} returns this
  */
 proto.services.PublishServiceDescriptorRequest.prototype.clearDescriptor = function() {
-  this.setDescriptor(undefined);
+  return this.setDescriptor(undefined);
 };
 
 
@@ -1187,9 +1232,12 @@ proto.services.PublishServiceDescriptorResponse.prototype.getResult = function()
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.services.PublishServiceDescriptorResponse} returns this
+ */
 proto.services.PublishServiceDescriptorResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -1338,9 +1386,12 @@ proto.services.UploadBundleRequest.prototype.getData_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.services.UploadBundleRequest} returns this
+ */
 proto.services.UploadBundleRequest.prototype.setData = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1465,9 +1516,12 @@ proto.services.UploadBundleResponse.prototype.getResult = function() {
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.services.UploadBundleResponse} returns this
+ */
 proto.services.UploadBundleResponse.prototype.setResult = function(value) {
-  jspb.Message.setProto3BooleanField(this, 1, value);
+  return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
 
@@ -1607,17 +1661,21 @@ proto.services.DownloadBundleRequest.prototype.getDescriptor = function() {
 };
 
 
-/** @param {?proto.services.ServiceDescriptor|undefined} value */
+/**
+ * @param {?proto.services.ServiceDescriptor|undefined} value
+ * @return {!proto.services.DownloadBundleRequest} returns this
+*/
 proto.services.DownloadBundleRequest.prototype.setDescriptor = function(value) {
-  jspb.Message.setWrapperField(this, 1, value);
+  return jspb.Message.setWrapperField(this, 1, value);
 };
 
 
 /**
  * Clears the message field making it undefined.
+ * @return {!proto.services.DownloadBundleRequest} returns this
  */
 proto.services.DownloadBundleRequest.prototype.clearDescriptor = function() {
-  this.setDescriptor(undefined);
+  return this.setDescriptor(undefined);
 };
 
 
@@ -1639,9 +1697,12 @@ proto.services.DownloadBundleRequest.prototype.getPlaform = function() {
 };
 
 
-/** @param {!proto.services.Platform} value */
+/**
+ * @param {!proto.services.Platform} value
+ * @return {!proto.services.DownloadBundleRequest} returns this
+ */
 proto.services.DownloadBundleRequest.prototype.setPlaform = function(value) {
-  jspb.Message.setProto3EnumField(this, 2, value);
+  return jspb.Message.setProto3EnumField(this, 2, value);
 };
 
 
@@ -1790,9 +1851,12 @@ proto.services.DownloadBundleResponse.prototype.getData_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.services.DownloadBundleResponse} returns this
+ */
 proto.services.DownloadBundleResponse.prototype.setData = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1929,9 +1993,12 @@ proto.services.GetServiceDescriptorRequest.prototype.getServiceid = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.GetServiceDescriptorRequest} returns this
+ */
 proto.services.GetServiceDescriptorRequest.prototype.setServiceid = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -1944,9 +2011,12 @@ proto.services.GetServiceDescriptorRequest.prototype.getPublisherid = function()
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.services.GetServiceDescriptorRequest} returns this
+ */
 proto.services.GetServiceDescriptorRequest.prototype.setPublisherid = function(value) {
-  jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -2082,9 +2152,12 @@ proto.services.GetServiceDescriptorResponse.prototype.getResultsList = function(
 };
 
 
-/** @param {!Array<!proto.services.ServiceDescriptor>} value */
+/**
+ * @param {!Array<!proto.services.ServiceDescriptor>} value
+ * @return {!proto.services.GetServiceDescriptorResponse} returns this
+*/
 proto.services.GetServiceDescriptorResponse.prototype.setResultsList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -2100,9 +2173,10 @@ proto.services.GetServiceDescriptorResponse.prototype.addResults = function(opt_
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.GetServiceDescriptorResponse} returns this
  */
 proto.services.GetServiceDescriptorResponse.prototype.clearResultsList = function() {
-  this.setResultsList([]);
+  return this.setResultsList([]);
 };
 
 
@@ -2138,7 +2212,7 @@ proto.services.GetServicesDescriptorRequest.prototype.toObject = function(opt_in
  */
 proto.services.GetServicesDescriptorRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-
+    query: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -2175,6 +2249,10 @@ proto.services.GetServicesDescriptorRequest.deserializeBinaryFromReader = functi
     }
     var field = reader.getFieldNumber();
     switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setQuery(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -2204,6 +2282,31 @@ proto.services.GetServicesDescriptorRequest.prototype.serializeBinary = function
  */
 proto.services.GetServicesDescriptorRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
+  f = message.getQuery();
+  if (f.length > 0) {
+    writer.writeString(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional string query = 1;
+ * @return {string}
+ */
+proto.services.GetServicesDescriptorRequest.prototype.getQuery = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.services.GetServicesDescriptorRequest} returns this
+ */
+proto.services.GetServicesDescriptorRequest.prototype.setQuery = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -2339,9 +2442,12 @@ proto.services.GetServicesDescriptorResponse.prototype.getResultsList = function
 };
 
 
-/** @param {!Array<!proto.services.ServiceDescriptor>} value */
+/**
+ * @param {!Array<!proto.services.ServiceDescriptor>} value
+ * @return {!proto.services.GetServicesDescriptorResponse} returns this
+*/
 proto.services.GetServicesDescriptorResponse.prototype.setResultsList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -2357,9 +2463,10 @@ proto.services.GetServicesDescriptorResponse.prototype.addResults = function(opt
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.GetServicesDescriptorResponse} returns this
  */
 proto.services.GetServicesDescriptorResponse.prototype.clearResultsList = function() {
-  this.setResultsList([]);
+  return this.setResultsList([]);
 };
 
 
@@ -2491,26 +2598,31 @@ proto.services.FindServicesDescriptorRequest.prototype.getKeywordsList = functio
 };
 
 
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.services.FindServicesDescriptorRequest} returns this
+ */
 proto.services.FindServicesDescriptorRequest.prototype.setKeywordsList = function(value) {
-  jspb.Message.setField(this, 1, value || []);
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.services.FindServicesDescriptorRequest} returns this
  */
 proto.services.FindServicesDescriptorRequest.prototype.addKeywords = function(value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
 };
 
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.FindServicesDescriptorRequest} returns this
  */
 proto.services.FindServicesDescriptorRequest.prototype.clearKeywordsList = function() {
-  this.setKeywordsList([]);
+  return this.setKeywordsList([]);
 };
 
 
@@ -2646,9 +2758,12 @@ proto.services.FindServicesDescriptorResponse.prototype.getResultsList = functio
 };
 
 
-/** @param {!Array<!proto.services.ServiceDescriptor>} value */
+/**
+ * @param {!Array<!proto.services.ServiceDescriptor>} value
+ * @return {!proto.services.FindServicesDescriptorResponse} returns this
+*/
 proto.services.FindServicesDescriptorResponse.prototype.setResultsList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -2664,9 +2779,10 @@ proto.services.FindServicesDescriptorResponse.prototype.addResults = function(op
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.services.FindServicesDescriptorResponse} returns this
  */
 proto.services.FindServicesDescriptorResponse.prototype.clearResultsList = function() {
-  this.setResultsList([]);
+  return this.setResultsList([]);
 };
 
 

@@ -156,9 +156,13 @@ func (self *ServicesDiscovery_Client) FindServices(keywords []string) ([]*Servic
 /**
  * Get list of service descriptor for one service with  various version.
  */
-func (self *ServicesDiscovery_Client) GetServicesDescriptor(service_id string) ([]*ServiceDescriptor, error) {
-	rqst := new(GetServicesDescriptorRequest)
-	rsp, err := self.c.GetServicesDescriptor(api.GetClientContext(self), rqst)
+func (self *ServicesDiscovery_Client) GetServiceDescriptor(service_id string, publisher_id string) ([]*ServiceDescriptor, error) {
+	rqst := &GetServiceDescriptorRequest{
+		ServiceId:   service_id,
+		PublisherId: publisher_id,
+	}
+
+	rsp, err := self.c.GetServiceDescriptor(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
@@ -169,17 +173,33 @@ func (self *ServicesDiscovery_Client) GetServicesDescriptor(service_id string) (
 /**
  * Get a list of all services descriptor for a given server.
  */
-func (self *ServicesDiscovery_Client) GetServiceDescriptor(service_id string, publisher_id string) ([]*ServiceDescriptor, error) {
-	rqst := new(GetServiceDescriptorRequest)
-	rqst.ServiceId = service_id
-	rqst.PublisherId = publisher_id
+func (self *ServicesDiscovery_Client) GetServicesDescriptor() ([]*ServiceDescriptor, error) {
+	descriptors := make([]*ServiceDescriptor, 0)
+	rqst := &GetServicesDescriptorRequest{}
 
-	rsp, err := self.c.GetServiceDescriptor(api.GetClientContext(self), rqst)
+	stream, err := self.c.GetServicesDescriptor(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
 	}
 
-	return rsp.Results, nil
+	// Here I will create the final array
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			// end of stream...
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		descriptors = append(descriptors, msg.GetResults()...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return descriptors, nil
 }
 
 /** Publish a service to service discovery **/

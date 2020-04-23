@@ -50,7 +50,10 @@ func NewSmtp_Client(address string, name string) (*SMTP_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = smtppb.NewSmtpServiceClient(client.cc)
 
 	return client, nil

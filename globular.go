@@ -455,9 +455,6 @@ func (self *Globule) Serve() {
 	// Here I will save the server attribute
 	self.saveConfig()
 
-	// Here i will connect the service listener.
-	// time.Sleep(15 * time.Second) // wait for services to start...
-
 	// lisen
 	self.Listen()
 }
@@ -905,6 +902,7 @@ func (self *Globule) initService(s map[string]interface{}) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(s["Name"].(string), "Globular") {
 		hasChange := self.saveServiceConfig(s)
+
 		// Kill previous instance of the program.
 		if hasChange || s["Process"] == nil {
 			self.Services[s["Id"].(string)] = s
@@ -1496,6 +1494,7 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 		// remove running information...
 		delete(service.(map[string]interface{}), "Process")
 		delete(service.(map[string]interface{}), "ProxyProcess")
+
 	}
 
 	str, err := Utility.ToJson(config)
@@ -2289,7 +2288,7 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			os.RemoveAll(self.path + string(os.PathSeparator) + id)
 
 			// I will repalce the service configuration with the new one...
-			jsonStr, err := ioutil.ReadFile(dest + string(os.PathSeparator) + "config.json")
+			jsonStr, err := ioutil.ReadFile(self.path + string(os.PathSeparator) + dest + string(os.PathSeparator) + "config.json")
 			if err != nil {
 				return err
 			}
@@ -2336,6 +2335,9 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			// Set service tls true if the protocol is https
 			config["TLS"] = self.Protocol == "https"
 
+			// Set the id with the descriptor id.
+			config["Id"] = descriptor.Id
+
 			// initialyse the new service.
 			err = self.initService(config)
 			if err != nil {
@@ -2343,8 +2345,6 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			}
 
 			self.saveConfig() // save the configuration with the newly install service...
-
-			// Now I will set method in the admin...
 
 			// Here I will set the service method...
 			self.setServiceMethods(config["Name"].(string), self.path+config["protoPath"].(string))
@@ -3503,6 +3503,12 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
+	}
+
+	if len(values) == 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account found for entry "+rqst.Name)))
 	}
 
 	if values[0].(map[string]interface{})["password"].(string) != Utility.GenerateUUID(rqst.Password) {
@@ -6596,57 +6602,70 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.Ge
 }
 
 //* Return the list of all services *
-func (self *Globule) GetServicesDescriptor(ctx context.Context, rqst *services.GetServicesDescriptorRequest) (*services.GetServicesDescriptorResponse, error) {
+func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorRequest, stream services.ServiceDiscovery_GetServicesDescriptorServer) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, status.Errorf(
+		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	data, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Services", `{}`, "")
 	if err != nil {
-		return nil, status.Errorf(
+		return status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*services.ServiceDescriptor, len(data))
+	descriptors := make([]*services.ServiceDescriptor, 0)
 	for i := 0; i < len(data); i++ {
-		descriptor := data[i].(map[string]interface{})
-		descriptors[i] = new(services.ServiceDescriptor)
-		descriptors[i].Id = descriptor["id"].(string)
-		descriptors[i].Description = descriptor["description"].(string)
-		descriptors[i].PublisherId = descriptor["publisherid"].(string)
-		descriptors[i].Version = descriptor["version"].(string)
-		if descriptor["keywords"] != nil {
-			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
-			descriptors[i].Keywords = make([]string, len(descriptor["keywords"].([]interface{})))
-			for j := 0; j < len(descriptor["keywords"].([]interface{})); j++ {
-				descriptors[i].Keywords[j] = descriptor["keywords"].([]interface{})[j].(string)
+		descriptor := new(services.ServiceDescriptor)
+
+		descriptor.Id = data[i].(map[string]interface{})["id"].(string)
+		descriptor.Description = data[i].(map[string]interface{})["description"].(string)
+		descriptor.PublisherId = data[i].(map[string]interface{})["publisherid"].(string)
+		descriptor.Version = data[i].(map[string]interface{})["version"].(string)
+		if data[i].(map[string]interface{})["keywords"] != nil {
+			data[i].(map[string]interface{})["keywords"] = []interface{}(data[i].(map[string]interface{})["keywords"].(primitive.A))
+			descriptor.Keywords = make([]string, len(data[i].(map[string]interface{})["keywords"].([]interface{})))
+			for j := 0; j < len(data[i].(map[string]interface{})["keywords"].([]interface{})); j++ {
+				descriptor.Keywords[j] = data[i].(map[string]interface{})["keywords"].([]interface{})[j].(string)
 			}
 		}
-		if descriptor["discoveries"] != nil {
-			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
-			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
-			for j := 0; j < len(descriptor["discoveries"].([]interface{})); j++ {
-				descriptors[i].Discoveries[j] = descriptor["discoveries"].([]interface{})[j].(string)
+		if data[i].(map[string]interface{})["discoveries"] != nil {
+			data[i].(map[string]interface{})["discoveries"] = []interface{}(data[i].(map[string]interface{})["discoveries"].(primitive.A))
+			descriptor.Discoveries = make([]string, len(data[i].(map[string]interface{})["discoveries"].([]interface{})))
+			for j := 0; j < len(data[i].(map[string]interface{})["discoveries"].([]interface{})); j++ {
+				descriptor.Discoveries[j] = data[i].(map[string]interface{})["discoveries"].([]interface{})[j].(string)
 			}
 		}
 
-		if descriptor["repositories"] != nil {
-			descriptor["repositories"] = []interface{}(descriptor["repositories"].(primitive.A))
-			descriptors[i].Repositories = make([]string, len(descriptor["repositories"].([]interface{})))
-			for j := 0; j < len(descriptor["repositories"].([]interface{})); j++ {
-				descriptors[i].Repositories[j] = descriptor["repositories"].([]interface{})[j].(string)
+		if data[i].(map[string]interface{})["repositories"] != nil {
+			data[i].(map[string]interface{})["repositories"] = []interface{}(data[i].(map[string]interface{})["repositories"].(primitive.A))
+			descriptor.Repositories = make([]string, len(data[i].(map[string]interface{})["repositories"].([]interface{})))
+			for j := 0; j < len(data[i].(map[string]interface{})["repositories"].([]interface{})); j++ {
+				descriptor.Repositories[j] = data[i].(map[string]interface{})["repositories"].([]interface{})[j].(string)
 			}
+		}
+
+		descriptors = append(descriptors, descriptor)
+		// send at each 20
+		if i%20 == 0 {
+			stream.Send(&services.GetServicesDescriptorResponse{
+				Results: descriptors,
+			})
+			descriptors = make([]*services.ServiceDescriptor, 0)
 		}
 	}
 
+	if len(descriptors) > 0 {
+		stream.Send(&services.GetServicesDescriptorResponse{
+			Results: descriptors,
+		})
+	}
+
 	// Return the list of Service Descriptor.
-	return &services.GetServicesDescriptorResponse{
-		Results: descriptors,
-	}, nil
+	return nil
 }
 
 //* Publish a service to service discovery *
@@ -6928,7 +6947,6 @@ func (self *Globule) Listen() error {
 					// So here I will subscribe to service update event.
 					err := eventHub.Subscribe(id, uuid, fct)
 					if err == nil {
-						log.Println("subscribe to ", id)
 						subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
 					} else {
 						log.Println("fail to subscribe to ", id)

@@ -16,8 +16,8 @@ import {
 
 export class ServiceDiscoveryClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   findServices(
     request: FindServicesDescriptorRequest,
@@ -35,9 +35,7 @@ export class ServiceDiscoveryClient {
 
   getServicesDescriptor(
     request: GetServicesDescriptorRequest,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.Error,
-               response: GetServicesDescriptorResponse) => void
+    metadata?: grpcWeb.Metadata
   ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
 
   publishServiceDescriptor(
@@ -51,8 +49,8 @@ export class ServiceDiscoveryClient {
 
 export class ServiceRepositoryClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   downloadBundle(
     request: DownloadBundleRequest,
@@ -63,8 +61,8 @@ export class ServiceRepositoryClient {
 
 export class ServiceDiscoveryPromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   findServices(
     request: FindServicesDescriptorRequest,
@@ -79,7 +77,7 @@ export class ServiceDiscoveryPromiseClient {
   getServicesDescriptor(
     request: GetServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetServicesDescriptorResponse>;
+  ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
 
   publishServiceDescriptor(
     request: PublishServiceDescriptorRequest,
@@ -90,8 +88,8 @@ export class ServiceDiscoveryPromiseClient {
 
 export class ServiceRepositoryPromiseClient {
   constructor (hostname: string,
-               credentials: null | { [index: string]: string; },
-               options: null | { [index: string]: string; });
+               credentials?: null | { [index: string]: string; },
+               options?: null | { [index: string]: string; });
 
   downloadBundle(
     request: DownloadBundleRequest,

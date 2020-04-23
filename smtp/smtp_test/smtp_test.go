@@ -11,13 +11,19 @@ import (
 )
 
 var (
-	client = smtp_client.NewSmtp_Client("localhost", "smtp_server")
+	client *smtp_client.SMTP_Client
 )
 
 // First test create a fresh new connection...
 func TestCreateConnection(t *testing.T) {
+	var err error
+	client, err = smtp_client.NewSmtp_Client("globular.io", "smtp_server")
+	if err != nil {
+		log.Panicln(err)
+	}
+
 	fmt.Println("Connection creation test.")
-	err := client.CreateConnection("test_smtp", "username", "password", 25, "localhost")
+	err = client.CreateConnection("test_smtp", "username", "password", 25, "localhost")
 	if err != nil {
 		log.Panicln(err)
 	}

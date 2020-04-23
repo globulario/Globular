@@ -37,16 +37,6 @@ proto.services.ServiceDiscoveryClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
 
 
@@ -73,17 +63,29 @@ proto.services.ServiceDiscoveryPromiseClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.services.FindServicesDescriptorRequest,
+ *   !proto.services.FindServicesDescriptorResponse>}
+ */
+const methodDescriptor_ServiceDiscovery_FindServices = new grpc.web.MethodDescriptor(
+  '/services.ServiceDiscovery/FindServices',
+  grpc.web.MethodType.UNARY,
+  proto.services.FindServicesDescriptorRequest,
+  proto.services.FindServicesDescriptorResponse,
+  /**
+   * @param {!proto.services.FindServicesDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.FindServicesDescriptorResponse.deserializeBinary
+);
 
 
 /**
@@ -94,7 +96,10 @@ proto.services.ServiceDiscoveryPromiseClient =
  */
 const methodInfo_ServiceDiscovery_FindServices = new grpc.web.AbstractClientBase.MethodInfo(
   proto.services.FindServicesDescriptorResponse,
-  /** @param {!proto.services.FindServicesDescriptorRequest} request */
+  /**
+   * @param {!proto.services.FindServicesDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -118,7 +123,7 @@ proto.services.ServiceDiscoveryClient.prototype.findServices =
       '/services.ServiceDiscovery/FindServices',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_FindServices,
+      methodDescriptor_ServiceDiscovery_FindServices,
       callback);
 };
 
@@ -137,8 +142,30 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.findServices =
       '/services.ServiceDiscovery/FindServices',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_FindServices);
+      methodDescriptor_ServiceDiscovery_FindServices);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.services.GetServiceDescriptorRequest,
+ *   !proto.services.GetServiceDescriptorResponse>}
+ */
+const methodDescriptor_ServiceDiscovery_GetServiceDescriptor = new grpc.web.MethodDescriptor(
+  '/services.ServiceDiscovery/GetServiceDescriptor',
+  grpc.web.MethodType.UNARY,
+  proto.services.GetServiceDescriptorRequest,
+  proto.services.GetServiceDescriptorResponse,
+  /**
+   * @param {!proto.services.GetServiceDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.GetServiceDescriptorResponse.deserializeBinary
+);
 
 
 /**
@@ -149,7 +176,10 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.findServices =
  */
 const methodInfo_ServiceDiscovery_GetServiceDescriptor = new grpc.web.AbstractClientBase.MethodInfo(
   proto.services.GetServiceDescriptorResponse,
-  /** @param {!proto.services.GetServiceDescriptorRequest} request */
+  /**
+   * @param {!proto.services.GetServiceDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -173,7 +203,7 @@ proto.services.ServiceDiscoveryClient.prototype.getServiceDescriptor =
       '/services.ServiceDiscovery/GetServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_GetServiceDescriptor,
+      methodDescriptor_ServiceDiscovery_GetServiceDescriptor,
       callback);
 };
 
@@ -192,8 +222,30 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.getServiceDescriptor =
       '/services.ServiceDiscovery/GetServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_GetServiceDescriptor);
+      methodDescriptor_ServiceDiscovery_GetServiceDescriptor);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.services.GetServicesDescriptorRequest,
+ *   !proto.services.GetServicesDescriptorResponse>}
+ */
+const methodDescriptor_ServiceDiscovery_GetServicesDescriptor = new grpc.web.MethodDescriptor(
+  '/services.ServiceDiscovery/GetServicesDescriptor',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.services.GetServicesDescriptorRequest,
+  proto.services.GetServicesDescriptorResponse,
+  /**
+   * @param {!proto.services.GetServicesDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.GetServicesDescriptorResponse.deserializeBinary
+);
 
 
 /**
@@ -204,7 +256,10 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.getServiceDescriptor =
  */
 const methodInfo_ServiceDiscovery_GetServicesDescriptor = new grpc.web.AbstractClientBase.MethodInfo(
   proto.services.GetServicesDescriptorResponse,
-  /** @param {!proto.services.GetServicesDescriptorRequest} request */
+  /**
+   * @param {!proto.services.GetServicesDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -213,42 +268,59 @@ const methodInfo_ServiceDiscovery_GetServicesDescriptor = new grpc.web.AbstractC
 
 
 /**
- * @param {!proto.services.GetServicesDescriptorRequest} request The
- *     request proto
+ * @param {!proto.services.GetServicesDescriptorRequest} request The request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.Error, ?proto.services.GetServicesDescriptorResponse)}
- *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.services.GetServicesDescriptorResponse>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.services.GetServicesDescriptorResponse>}
  *     The XHR Node Readable Stream
  */
 proto.services.ServiceDiscoveryClient.prototype.getServicesDescriptor =
-    function(request, metadata, callback) {
-  return this.client_.rpcCall(this.hostname_ +
+    function(request, metadata) {
+  return this.client_.serverStreaming(this.hostname_ +
       '/services.ServiceDiscovery/GetServicesDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_GetServicesDescriptor,
-      callback);
+      methodDescriptor_ServiceDiscovery_GetServicesDescriptor);
 };
 
 
 /**
- * @param {!proto.services.GetServicesDescriptorRequest} request The
- *     request proto
+ * @param {!proto.services.GetServicesDescriptorRequest} request The request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.services.GetServicesDescriptorResponse>}
- *     A native promise that resolves to the response
+ * @return {!grpc.web.ClientReadableStream<!proto.services.GetServicesDescriptorResponse>}
+ *     The XHR Node Readable Stream
  */
 proto.services.ServiceDiscoveryPromiseClient.prototype.getServicesDescriptor =
     function(request, metadata) {
-  return this.client_.unaryCall(this.hostname_ +
+  return this.client_.serverStreaming(this.hostname_ +
       '/services.ServiceDiscovery/GetServicesDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_GetServicesDescriptor);
+      methodDescriptor_ServiceDiscovery_GetServicesDescriptor);
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.services.PublishServiceDescriptorRequest,
+ *   !proto.services.PublishServiceDescriptorResponse>}
+ */
+const methodDescriptor_ServiceDiscovery_publishServiceDescriptor = new grpc.web.MethodDescriptor(
+  '/services.ServiceDiscovery/publishServiceDescriptor',
+  grpc.web.MethodType.UNARY,
+  proto.services.PublishServiceDescriptorRequest,
+  proto.services.PublishServiceDescriptorResponse,
+  /**
+   * @param {!proto.services.PublishServiceDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.PublishServiceDescriptorResponse.deserializeBinary
+);
 
 
 /**
@@ -259,7 +331,10 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.getServicesDescriptor =
  */
 const methodInfo_ServiceDiscovery_publishServiceDescriptor = new grpc.web.AbstractClientBase.MethodInfo(
   proto.services.PublishServiceDescriptorResponse,
-  /** @param {!proto.services.PublishServiceDescriptorRequest} request */
+  /**
+   * @param {!proto.services.PublishServiceDescriptorRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -283,7 +358,7 @@ proto.services.ServiceDiscoveryClient.prototype.publishServiceDescriptor =
       '/services.ServiceDiscovery/publishServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_publishServiceDescriptor,
+      methodDescriptor_ServiceDiscovery_publishServiceDescriptor,
       callback);
 };
 
@@ -302,7 +377,7 @@ proto.services.ServiceDiscoveryPromiseClient.prototype.publishServiceDescriptor 
       '/services.ServiceDiscovery/publishServiceDescriptor',
       request,
       metadata || {},
-      methodInfo_ServiceDiscovery_publishServiceDescriptor);
+      methodDescriptor_ServiceDiscovery_publishServiceDescriptor);
 };
 
 
@@ -329,16 +404,6 @@ proto.services.ServiceRepositoryClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
 
 
@@ -365,17 +430,29 @@ proto.services.ServiceRepositoryPromiseClient =
    */
   this.hostname_ = hostname;
 
-  /**
-   * @private @const {?Object} The credentials to be used to connect
-   *    to the server
-   */
-  this.credentials_ = credentials;
-
-  /**
-   * @private @const {?Object} Options for the client
-   */
-  this.options_ = options;
 };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.services.DownloadBundleRequest,
+ *   !proto.services.DownloadBundleResponse>}
+ */
+const methodDescriptor_ServiceRepository_downloadBundle = new grpc.web.MethodDescriptor(
+  '/services.ServiceRepository/downloadBundle',
+  grpc.web.MethodType.SERVER_STREAMING,
+  proto.services.DownloadBundleRequest,
+  proto.services.DownloadBundleResponse,
+  /**
+   * @param {!proto.services.DownloadBundleRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.services.DownloadBundleResponse.deserializeBinary
+);
 
 
 /**
@@ -386,7 +463,10 @@ proto.services.ServiceRepositoryPromiseClient =
  */
 const methodInfo_ServiceRepository_downloadBundle = new grpc.web.AbstractClientBase.MethodInfo(
   proto.services.DownloadBundleResponse,
-  /** @param {!proto.services.DownloadBundleRequest} request */
+  /**
+   * @param {!proto.services.DownloadBundleRequest} request
+   * @return {!Uint8Array}
+   */
   function(request) {
     return request.serializeBinary();
   },
@@ -407,7 +487,7 @@ proto.services.ServiceRepositoryClient.prototype.downloadBundle =
       '/services.ServiceRepository/downloadBundle',
       request,
       metadata || {},
-      methodInfo_ServiceRepository_downloadBundle);
+      methodDescriptor_ServiceRepository_downloadBundle);
 };
 
 
@@ -424,7 +504,7 @@ proto.services.ServiceRepositoryPromiseClient.prototype.downloadBundle =
       '/services.ServiceRepository/downloadBundle',
       request,
       metadata || {},
-      methodInfo_ServiceRepository_downloadBundle);
+      methodDescriptor_ServiceRepository_downloadBundle);
 };
 
 

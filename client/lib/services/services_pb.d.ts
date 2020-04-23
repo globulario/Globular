@@ -245,6 +245,9 @@ export namespace GetServiceDescriptorResponse {
 }
 
 export class GetServicesDescriptorRequest extends jspb.Message {
+  getQuery(): string;
+  setQuery(value: string): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetServicesDescriptorRequest.AsObject;
   static toObject(includeInstance: boolean, msg: GetServicesDescriptorRequest): GetServicesDescriptorRequest.AsObject;
@@ -255,6 +258,7 @@ export class GetServicesDescriptorRequest extends jspb.Message {
 
 export namespace GetServicesDescriptorRequest {
   export type AsObject = {
+    query: string,
   }
 }
 
