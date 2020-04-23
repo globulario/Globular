@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GlobularPersistenceClient\GlobularPersistenceClient.csproj" />
+    <ProjectReference Include="..\..\..\..\ressource\csharp\GlobularRessourceClient\GlobularRessourceClient.csproj" />
   </ItemGroup>
 
 </Project>

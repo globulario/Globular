@@ -19,6 +19,14 @@ namespace Globular
             this.client = new Ressource.RessourceService.RessourceServiceClient(this.channel);
         }
 
+        public string Authenticate(string user, string password){
+            Ressource.AuthenticateRqst rqst = new Ressource.AuthenticateRqst();
+            rqst.Name = user;
+            rqst.Password = password;
+            var rsp = this.client.Authenticate(rqst, this.GetClientContext());
+            return rsp.Token;
+        }
+
         /// <summary>
         /// Validate if the user can access a given method.
         /// </summary>

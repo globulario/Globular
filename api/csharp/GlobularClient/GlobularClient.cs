@@ -3,13 +3,47 @@ using System.Text.Json;
 using System.IO;
 using System.Threading.Tasks;
 using Grpc.Core;
+using System.Collections.Generic;
 
 namespace Globular
 {
+    /** Globular server config. **/
+    public class ServerConfig
+    {
+        public string Domain { get; set; }
+        public string Name { get; set; }
+        public string Protocol { get; set; }
+        public string CertStableURL { get; set; }
+        public string CertURL { get; set; }
+        public uint PortHttp { get; set; }
+        public uint PortHttps { get; set; }
+        public uint AdminPort { get; set; }
+        public uint AdminProxy { get; set; }
+        public string AdminEmail { get; set; }
+        public uint RessourcePort { get; set; }
+        public uint RessourceProxy { get; set; }
+        public uint ServicesDiscoveryPort { get; set; }
+        public uint ServicesDiscoveryProxy { get; set; }
+        public uint ServicesRepositoryPort { get; set; }
+        public uint ServicesRepositoryProxy { get; set; }
+        public uint CertificateAuthorityPort { get; set; }
+        public uint CertificateAuthorityProxy { get; set; }
+        public uint SessionTimeout { get; set; }
+        public uint CertExpirationDelay { get; set; }
+        public uint IdleTimeout { get; set; }
+
+        public string[] Discoveries { get; set; }
+        public string[] DNS { get; set; }
+
+        // The map of service object.
+        public Dictionary<string, ServiceConfig> Services { get; set; }
+
+    }
+
     /**
      * Used by JSON serialysation.
      */
-    public class Config
+    public class ServiceConfig
     {
         public string CertAuthorityTrust { get; set; }
         public string CertFile { get; set; }
@@ -18,7 +52,6 @@ namespace Globular
         public string Name { get; set; }
         public int Port { get; set; }
         public bool TLS { get; set; }
-
     }
 
     public class Client
@@ -31,9 +64,7 @@ namespace Globular
         private string caFile;
         private string keyFile;
         private string certFile;
-
         protected Channel channel;
-
 
         // Return the ipv4 address
         public string GetAddress()
@@ -140,8 +171,7 @@ namespace Globular
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
-            string rqst = "http://localhost:10000/client_config?address=" + address + "&name=" + name;
-
+            string rqst = "http://" + address + ":10000/config";
             var task = Task.Run(() => client.GetAsync(rqst));
             task.Wait();
             var rsp = task.Result;
@@ -151,15 +181,20 @@ namespace Globular
             }
 
             // Here I will parse the JSON object and initialyse values from it...
-            var config = JsonSerializer.Deserialize<Config>(rsp.Content.ReadAsStringAsync().Result);
+            var serverConfig = JsonSerializer.Deserialize<ServerConfig>(rsp.Content.ReadAsStringAsync().Result);
+            if (!serverConfig.Services.ContainsKey(name))
+            {
+                throw new System.InvalidOperationException("No serivce found with name " + name + "!");
+            }
+
+            // get the service config.
+            var config = serverConfig.Services[name];
             this.port = config.Port;
             this.hasTls = config.TLS;
             this.domain = config.Domain;
             this.caFile = config.CertAuthorityTrust;
             this.certFile = config.CertFile;
             this.keyFile = config.KeyFile;
-
-            // Now I will open the channel with the server.
 
             // Here I will create grpc connection with the service...
             if (!this.HasTLS())
@@ -169,27 +204,51 @@ namespace Globular
             }
             else
             {
+                // TODO test if the service is local. 
+
+
                 // Secure connection.
                 var cacert = File.ReadAllText(this.caFile);
                 var clientcert = File.ReadAllText(this.certFile);
                 var clientkey = File.ReadAllText(this.keyFile);
                 var ssl = new SslCredentials(cacert, new KeyCertificatePair(clientcert, clientkey));
+
                 this.channel = new Channel(this.domain, this.port, ssl);
             }
         }
 
-        protected Metadata GetClientContext()
+        protected Metadata GetClientContext(string token = "", string application = "", string domain = "", string path = "")
         {
-            // Here I will get the token from the file.
-            var path = Path.GetTempPath() + Path.PathSeparator + this.domain + "_token";
-            string token = "";
             // Set the token in the metadata.
             var metadata = new Metadata();
 
-            if (File.Exists(path))
+            // Here I will get the token from the file.
+            if (token.Length == 0)
             {
-                token = File.ReadAllText(path);
-                metadata.Add("token", token);
+                var path_ = Path.GetTempPath() + Path.PathSeparator + this.domain + "_token";
+                if (File.Exists(path_))
+                {
+                    token = File.ReadAllText(path_);
+                    metadata.Add("token", token);
+                }
+            }else{
+                 metadata.Add("token", token);
+            }
+
+            // set the local domain.
+            if(domain.Length == 0){
+                metadata.Add("domain", this.domain);
+            }else{
+                 metadata.Add("domain", domain);
+            }
+
+            if(application.Length>0){
+                 metadata.Add("application", application);
+            }
+
+            // The path of ressource if there one.
+            if(path.Length>0){
+                 metadata.Add("path", path);
             }
 
             return metadata;

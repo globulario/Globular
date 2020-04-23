@@ -52,7 +52,7 @@ export interface IConfig {
   PortHttps: Number;
   AdminPort: Number;
   AdminProxy: Number;
-  AdminEmail: Number;
+  AdminEmail: String;
   RessourcePort: Number;
   RessourceProxy: Number;
   ServicesDiscoveryPort: Number;
