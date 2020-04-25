@@ -115,7 +115,7 @@ namespace Globular
         /// <returns></returns>
         public bool validateUserAccess(string domain, string token, string method)
         {
-            return this.getRessourceClient(domain).ValidateApplicationAccess(token, method);
+            return this.getRessourceClient(domain).ValidateUserAccess(token, method);
         }
 
         public bool validateApplicationAccess(string domain, string application, string method)

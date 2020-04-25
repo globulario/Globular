@@ -1793,7 +1793,7 @@
           "build/netcoreapp1.0/xunit.runner.visualstudio.props": {}
         }
       },
-      "GlobularClient/1.0.1": {
+      "GlobularClient/1.0.2": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
         "dependencies": {
@@ -1812,7 +1812,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
         "dependencies": {
-          "GlobularClient": "1.0.1",
+          "GlobularClient": "1.0.2",
           "Google.Protobuf": "3.11.4",
           "Grpc": "2.27.0",
           "Grpc.Core": "2.27.0"
@@ -6207,7 +6207,7 @@
         "xunit.runner.visualstudio.nuspec"
       ]
     },
-    "GlobularClient/1.0.1": {
+    "GlobularClient/1.0.2": {
       "type": "project",
       "path": "../../api/csharp/GlobularClient/GlobularClient.csproj",
       "msbuildProject": "../../api/csharp/GlobularClient/GlobularClient.csproj"
@@ -6233,7 +6233,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\mm006819\\.nuget\\packages\\": {},
+    "C:\\Users\\davec\\.nuget\\packages\\": {},
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
@@ -6242,14 +6242,14 @@
       "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer.Tests\\GlobularServer.Tests.csproj",
       "projectName": "GlobularServer.Tests",
       "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer.Tests\\GlobularServer.Tests.csproj",
-      "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
       "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\csharp\\GlobularServer.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -6297,10 +6297,16 @@
           }
         },
         "imports": [
-          "net461"
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48"
         ],
         "assetTargetFallback": true,
-        "warn": true
+        "warn": true,
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
       }
     }
   }

@@ -78,6 +78,14 @@ message GetServicesDescriptorResponse {
 	repeated ServiceDescriptor results = 1;
 }
 
+message SetServiceDescriptorRequest {
+	ServiceDescriptor descriptor = 1;
+}
+
+message SetServiceDescriptorResponse {
+	bool result = 1;
+}
+
 message FindServicesDescriptorRequest {
 	repeated string keywords = 1;
 }
@@ -95,21 +103,21 @@ service ServiceDiscovery {
 	rpc GetServiceDescriptor(GetServiceDescriptorRequest) returns ( GetServiceDescriptorResponse);
 	
 	/** Return the list of all services **/
-	rpc GetServicesDescriptor(GetServicesDescriptorRequest) returns(stream GetServicesDescriptorResponse); 
+	rpc GetServicesDescriptor(GetServicesDescriptorRequest) returns(stream GetServicesDescriptorResponse);
+	
+	/** Save a service descriptor **/
+	rpc SetServiceDescriptor(SetServiceDescriptorRequest) returns(SetServiceDescriptorResponse);
 	
 	/** Publish a service to service discovery **/
-	rpc publishServiceDescriptor(PublishServiceDescriptorRequest) returns(PublishServiceDescriptorResponse); 
+	rpc PublishServiceDescriptor(PublishServiceDescriptorRequest) returns(PublishServiceDescriptorResponse);
 	
 }
 
 /** functionality to download/upload a service **/
 service ServiceRepository {
 	/** Download a service from a service directory **/
-	rpc downloadBundle(DownloadBundleRequest) returns(stream DownloadBundleResponse);
+	rpc DownloadBundle(DownloadBundleRequest) returns(stream DownloadBundleResponse);
 	
 	/** Upload a service to a service directory **/
-	rpc uploadBundle(stream UploadBundleRequest) returns(UploadBundleResponse);
-	
-	/** Return the list of bundel associated with a service. **/
-	
+	rpc UploadBundle(stream UploadBundleRequest) returns(UploadBundleResponse);
 }

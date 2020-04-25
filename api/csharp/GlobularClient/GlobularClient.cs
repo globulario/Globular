@@ -4,6 +4,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Grpc.Core;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
 
 namespace Globular
 {
@@ -167,6 +169,170 @@ namespace Globular
         {
             this.caFile = caFile;
         }
+
+        // Get the CA public certificate.
+        private string getCaCertificate(string address)
+        {
+            // Get the configuration from the globular server.
+            var client = new HttpClient();
+            string rqst = "http://" + address + ":10000/get_ca_certificate";
+            var task = Task.Run(() => client.GetAsync(rqst));
+            task.Wait();
+            var rsp = task.Result;
+            if (rsp.IsSuccessStatusCode == false)
+            {
+                throw new System.InvalidOperationException("Fail to get client configuration " + rqst);
+            }
+
+            return rsp.Content.ReadAsStringAsync().Result;
+        }
+
+        public static string Base64Encode(string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
+
+        // ask globular CA to sign the cerificate.
+        private string signCaCertificate(string address, string csr)
+        {
+            var client = new HttpClient();
+
+            string csr_str = Base64Encode(csr);
+            string rqst = "http://" + address + ":10000/sign_ca_certificate?csr=" + csr_str;
+            var task = Task.Run(() => client.GetAsync(rqst));
+            task.Wait();
+            var rsp = task.Result;
+            if (rsp.IsSuccessStatusCode == false)
+            {
+                throw new System.InvalidOperationException("Fail to get sign ca certificate!");
+            }
+
+            return rsp.Content.ReadAsStringAsync().Result;
+        }
+
+        /**
+         * I will made use of openssl as external command to be able to generate key and
+         * certificate the same way in every language.
+         */
+        private void generateClientPrivateKey(string path, string pwd)
+        {
+            if (File.Exists(path + "/client.key"))
+            {
+                return;
+            }
+
+            Process process_0 = new Process();
+            process_0.StartInfo.FileName = "openssl.exe";
+
+            // Set args
+            process_0.StartInfo.ArgumentList.Add("genrsa");
+            process_0.StartInfo.ArgumentList.Add("-passout");
+            process_0.StartInfo.ArgumentList.Add("pass:" + pwd);
+            process_0.StartInfo.ArgumentList.Add("-des3");
+            process_0.StartInfo.ArgumentList.Add("-out");
+            process_0.StartInfo.ArgumentList.Add(path + "/client.pass.key");
+            process_0.StartInfo.ArgumentList.Add("4096");
+
+            // set options
+            process_0.StartInfo.UseShellExecute = false;
+            process_0.StartInfo.RedirectStandardOutput = true;
+            process_0.StartInfo.RedirectStandardError = true;
+
+            process_0.Start();
+            process_0.WaitForExit();
+
+            Process process_1 = new Process();
+            process_1.StartInfo.FileName = "openssl.exe";
+
+            // Set args
+            process_1.StartInfo.ArgumentList.Add("rsa");
+            process_1.StartInfo.ArgumentList.Add("-passin");
+            process_1.StartInfo.ArgumentList.Add("pass:" + pwd);
+            process_1.StartInfo.ArgumentList.Add("-in");
+            process_1.StartInfo.ArgumentList.Add(path + "/client.pass.key");
+            process_1.StartInfo.ArgumentList.Add("-out");
+            process_1.StartInfo.ArgumentList.Add(path + "/client.key");
+
+            // set options
+            process_1.StartInfo.UseShellExecute = false;
+            process_1.StartInfo.RedirectStandardOutput = true;
+            process_1.StartInfo.RedirectStandardError = true;
+            process_1.Start();
+            process_1.WaitForExit();
+
+            // remove the intermediary file.
+            File.Delete(path + "/client.pass.key");
+        }
+
+        /**
+         * Generate a client signing request for a given domain.
+         */
+        private void generateClientCertificateSigningRequest(string path, string domain)
+        {
+            if (File.Exists(path + "/client.csr"))
+            {
+                return;
+            }
+
+            Process process_0 = new Process();
+            process_0.StartInfo.FileName = "openssl.exe";
+
+            // Set args
+            process_0.StartInfo.ArgumentList.Add("req");
+            process_0.StartInfo.ArgumentList.Add("-new");
+            process_0.StartInfo.ArgumentList.Add("-key");
+            process_0.StartInfo.ArgumentList.Add(path + "/client.key");
+            process_0.StartInfo.ArgumentList.Add("-out");
+            process_0.StartInfo.ArgumentList.Add(path + "/client.csr");
+            process_0.StartInfo.ArgumentList.Add("-subj");
+            process_0.StartInfo.ArgumentList.Add("/CN=" + domain);
+
+            // set options
+            process_0.StartInfo.UseShellExecute = false;
+            process_0.StartInfo.RedirectStandardOutput = true;
+            process_0.StartInfo.RedirectStandardError = true;
+
+            process_0.Start();
+            process_0.WaitForExit();
+        }
+
+        private void keyToPem(string name, string path, string pwd)
+        {
+            if (File.Exists(path + "/" + name + ".pem"))
+            {
+                return;
+            }
+
+            Process process_0 = new Process();
+            process_0.StartInfo.FileName = "openssl.exe";
+
+            // Set args
+            process_0.StartInfo.ArgumentList.Add("pkcs8");
+            process_0.StartInfo.ArgumentList.Add("-topk8");
+            process_0.StartInfo.ArgumentList.Add("-nocrypt");
+            process_0.StartInfo.ArgumentList.Add("-passin");
+            process_0.StartInfo.ArgumentList.Add("pass:" + pwd);
+            process_0.StartInfo.ArgumentList.Add("-in");
+            process_0.StartInfo.ArgumentList.Add(path + "/" + name + ".key");
+            process_0.StartInfo.ArgumentList.Add("-out");
+            process_0.StartInfo.ArgumentList.Add(path + "/" + name + ".pem");
+
+            // set options
+            process_0.StartInfo.UseShellExecute = false;
+            process_0.StartInfo.RedirectStandardOutput = true;
+            process_0.StartInfo.RedirectStandardError = true;
+
+            process_0.Start();
+            process_0.WaitForExit();
+        }
+
+        private static bool VerifyPeer(VerifyPeerContext context)
+        {
+            File.WriteAllText("c:/temp/toto.txt", "VerifiPeer!");
+            return true;
+        }
+
         private void init(string address, string name)
         {
             // Get the configuration from the globular server.
@@ -192,27 +358,66 @@ namespace Globular
             this.port = config.Port;
             this.hasTls = config.TLS;
             this.domain = config.Domain;
-            this.caFile = config.CertAuthorityTrust;
-            this.certFile = config.CertFile;
-            this.keyFile = config.KeyFile;
+
 
             // Here I will create grpc connection with the service...
             if (!this.HasTLS())
             {
                 // Non secure connection.
-                this.channel = new Channel(this.GetDomain() + ":" + this.GetPort(), ChannelCredentials.Insecure);
+                this.channel = new Channel(this.domain, this.port, ChannelCredentials.Insecure);
             }
             else
             {
-                // TODO test if the service is local. 
+                // if the client is not local I will generate TLS certificates.
+                if (File.Exists(Path.GetTempPath() + "/" + this.domain + "_token"))
+                {
+                    this.caFile = config.CertAuthorityTrust;
+                    this.certFile = config.CertFile;
+                    this.keyFile = config.KeyFile;
+                }
+                else
+                {
+                    // I will need to create certificate and make it sign by the CA.
+                    var path = Path.GetTempPath() + "/config/grpc_tls/" + this.domain;
 
+                    if (!Directory.Exists(path))
+                    {
+                        Directory.CreateDirectory(path);
+                    }
 
-                // Secure connection.
+                    // Now I will create the certificates.
+                    var ca_crt = getCaCertificate(this.domain);
+                    File.WriteAllText(path + "/ca.crt", ca_crt);
+
+                    var pwd = "1111"; // Set in the configuration...
+
+                    // Now I will generate the certificate for the client...
+                    // Step 1: Generate client private key.
+                    this.generateClientPrivateKey(path, pwd);
+
+                    // Step 2: Generate the client signing request.
+                    this.generateClientCertificateSigningRequest(path, this.domain);
+
+                    // Step 3: Generate client signed certificate.
+                    var client_csr = File.ReadAllText(path + "/client.csr");
+                    var client_crt = this.signCaCertificate(this.domain, client_csr);
+                    File.WriteAllText(path + "/client.crt", client_crt);
+
+                    // Step 4: Convert client.key to pem file.
+                    this.keyToPem("client", path, pwd);
+
+                    // Set path in the config.
+                    this.keyFile = path + "/client.key";
+                    this.caFile = path + "/ca.crt";
+                    this.certFile = path + "/client.crt";
+                }
+
                 var cacert = File.ReadAllText(this.caFile);
                 var clientcert = File.ReadAllText(this.certFile);
                 var clientkey = File.ReadAllText(this.keyFile);
-                var ssl = new SslCredentials(cacert, new KeyCertificatePair(clientcert, clientkey));
+                var ssl = new SslCredentials(cacert, new KeyCertificatePair(clientcert, clientkey), VerifyPeer);
 
+                //File.WriteAllText("c:/temp/toto.txt", clientkey);
                 this.channel = new Channel(this.domain, this.port, ssl);
             }
         }
@@ -225,30 +430,37 @@ namespace Globular
             // Here I will get the token from the file.
             if (token.Length == 0)
             {
-                var path_ = Path.GetTempPath() + Path.PathSeparator + this.domain + "_token";
+                var path_ = Path.GetTempPath() + "/" + this.domain + "_token";
                 if (File.Exists(path_))
                 {
                     token = File.ReadAllText(path_);
                     metadata.Add("token", token);
                 }
-            }else{
-                 metadata.Add("token", token);
+            }
+            else
+            {
+                metadata.Add("token", token);
             }
 
             // set the local domain.
-            if(domain.Length == 0){
+            if (domain.Length == 0)
+            {
                 metadata.Add("domain", this.domain);
-            }else{
-                 metadata.Add("domain", domain);
+            }
+            else
+            {
+                metadata.Add("domain", domain);
             }
 
-            if(application.Length>0){
-                 metadata.Add("application", application);
+            if (application.Length > 0)
+            {
+                metadata.Add("application", application);
             }
 
             // The path of ressource if there one.
-            if(path.Length>0){
-                 metadata.Add("path", path);
+            if (path.Length > 0)
+            {
+                metadata.Add("path", path);
             }
 
             return metadata;

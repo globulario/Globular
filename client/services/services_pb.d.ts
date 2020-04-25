@@ -282,6 +282,44 @@ export namespace GetServicesDescriptorResponse {
   }
 }
 
+export class SetServiceDescriptorRequest extends jspb.Message {
+  getDescriptor(): ServiceDescriptor | undefined;
+  setDescriptor(value?: ServiceDescriptor): void;
+  hasDescriptor(): boolean;
+  clearDescriptor(): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetServiceDescriptorRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: SetServiceDescriptorRequest): SetServiceDescriptorRequest.AsObject;
+  static serializeBinaryToWriter(message: SetServiceDescriptorRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetServiceDescriptorRequest;
+  static deserializeBinaryFromReader(message: SetServiceDescriptorRequest, reader: jspb.BinaryReader): SetServiceDescriptorRequest;
+}
+
+export namespace SetServiceDescriptorRequest {
+  export type AsObject = {
+    descriptor?: ServiceDescriptor.AsObject,
+  }
+}
+
+export class SetServiceDescriptorResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): SetServiceDescriptorResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: SetServiceDescriptorResponse): SetServiceDescriptorResponse.AsObject;
+  static serializeBinaryToWriter(message: SetServiceDescriptorResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): SetServiceDescriptorResponse;
+  static deserializeBinaryFromReader(message: SetServiceDescriptorResponse, reader: jspb.BinaryReader): SetServiceDescriptorResponse;
+}
+
+export namespace SetServiceDescriptorResponse {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
 export class FindServicesDescriptorRequest extends jspb.Message {
   getKeywordsList(): Array<string>;
   setKeywordsList(value: Array<string>): void;

@@ -203,14 +203,6 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 		return err
 	}
 
-	// Set action permission for delploy.
-	// Set action permission for delploy.
-	err = ressource_client.SetActionPermission("/admin.AdminService/DeployApplication", 2, "")
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
 	token, err := ressource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
@@ -254,13 +246,6 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
 	if err != nil {
 		log.Panicln(err)
-		return err
-	}
-
-	// Set action permission for delploy.
-	err = ressource_client.SetActionPermission("/admin.AdminService/PublishService", 2, "")
-	if err != nil {
-		log.Println(err)
 		return err
 	}
 

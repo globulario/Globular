@@ -158,7 +158,7 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "GlobularClient/1.0.1": {
+      "GlobularClient/1.0.2": {
         "dependencies": {
           "Grpc": "2.27.0",
           "Grpc.Core": "2.27.0",
@@ -170,7 +170,7 @@
       },
       "GlobularRessourceClient/1.0.0": {
         "dependencies": {
-          "GlobularClient": "1.0.1",
+          "GlobularClient": "1.0.2",
           "Google.Protobuf": "3.11.4",
           "Grpc": "2.27.0",
           "Grpc.Core": "2.27.0"
@@ -308,7 +308,7 @@
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
     },
-    "GlobularClient/1.0.1": {
+    "GlobularClient/1.0.2": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

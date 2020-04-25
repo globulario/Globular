@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -170,8 +169,6 @@ func GetClientContext(client Client) context.Context {
 		md := metadata.New(map[string]string{"token": string(token), "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
-	} else {
-		fmt.Println("-------> fail to get the local token ", path, err)
 	}
 
 	md := metadata.New(map[string]string{"token": "", "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})

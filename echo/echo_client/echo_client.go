@@ -1,7 +1,6 @@
 package echo_client
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/davecourtois/Globular/api"
@@ -47,7 +46,10 @@ func NewEcho_Client(address string, name string) (*Echo_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = echopb.NewEchoServiceClient(client.cc)
 
 	return client, nil

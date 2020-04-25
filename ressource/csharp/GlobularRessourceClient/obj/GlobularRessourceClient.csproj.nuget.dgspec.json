@@ -5,7 +5,7 @@
   },
   "projects": {
     "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "restore": {
         "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj",
         "projectName": "GlobularClient",
@@ -21,14 +21,14 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "netcoreapp2.1"
+          "netcoreapp3.1"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "netcoreapp2.1": {
+          "netcoreapp3.1": {
             "projectReferences": {}
           }
         },
@@ -39,21 +39,15 @@
         }
       },
       "frameworks": {
-        "netcoreapp2.1": {
+        "netcoreapp3.1": {
           "dependencies": {
             "Grpc": {
               "target": "Package",
-              "version": "[2.27.0, )"
+              "version": "[2.28.1, )"
             },
             "Grpc.Core": {
               "target": "Package",
-              "version": "[2.27.0, )"
-            },
-            "Microsoft.NETCore.App": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.1.0, )",
-              "autoReferenced": true
+              "version": "[2.28.1, )"
             },
             "System.Text.Json": {
               "target": "Package",
@@ -70,6 +64,11 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
         }
       }
@@ -91,14 +90,14 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "netcoreapp2.1"
+          "netcoreapp3.1"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "netcoreapp2.1": {
+          "netcoreapp3.1": {
             "projectReferences": {
               "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
                 "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj"
@@ -113,7 +112,7 @@
         }
       },
       "frameworks": {
-        "netcoreapp2.1": {
+        "netcoreapp3.1": {
           "dependencies": {
             "Google.Protobuf": {
               "target": "Package",
@@ -121,17 +120,11 @@
             },
             "Grpc": {
               "target": "Package",
-              "version": "[2.27.0, )"
+              "version": "[2.28.1, )"
             },
             "Grpc.Core": {
               "target": "Package",
-              "version": "[2.27.0, )"
-            },
-            "Microsoft.NETCore.App": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.1.0, )",
-              "autoReferenced": true
+              "version": "[2.28.1, )"
             }
           },
           "imports": [
@@ -144,6 +137,11 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
         }
       }

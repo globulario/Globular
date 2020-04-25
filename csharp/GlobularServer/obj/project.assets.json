@@ -396,7 +396,7 @@
           "ref/netstandard1.3/System.Threading.Tasks.dll": {}
         }
       },
-      "GlobularClient/1.0.1": {
+      "GlobularClient/1.0.2": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
         "dependencies": {
@@ -415,7 +415,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
         "dependencies": {
-          "GlobularClient": "1.0.1",
+          "GlobularClient": "1.0.2",
           "Google.Protobuf": "3.11.4",
           "Grpc": "2.27.0",
           "Grpc.Core": "2.27.0"
@@ -1540,7 +1540,7 @@
         "system.threading.tasks.nuspec"
       ]
     },
-    "GlobularClient/1.0.1": {
+    "GlobularClient/1.0.2": {
       "type": "project",
       "path": "../../api/csharp/GlobularClient/GlobularClient.csproj",
       "msbuildProject": "../../api/csharp/GlobularClient/GlobularClient.csproj"

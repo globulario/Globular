@@ -6,7 +6,7 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using System.Threading;
 using System.Threading.Tasks;
-
+using System.IO;
 
 namespace Echo
 {
@@ -23,22 +23,36 @@ namespace Echo
                 var echoServer = new EchoServiceImpl();
                 // init values from the configuration file.
                 echoServer = echoServer.init();
-
-                server = new Server
+                if (echoServer.TLS == true)
                 {
-                    Services = { EchoService.BindService(echoServer).Intercept(echoServer.interceptor) },
-                    Ports = { new ServerPort("localhost", echoServer.Port, ServerCredentials.Insecure) }
-                };
+                    // Read ssl certificate and initialyse credential with it.
+                    var cacert = File.ReadAllText(echoServer.CertAuthorityTrust);
+                    var servercert = File.ReadAllText(echoServer.CertFile);
+                    var serverkey = File.ReadAllText(echoServer.KeyFile);
+                    var keypair = new KeyCertificatePair(servercert, serverkey);
+                    // secure connection parameters.
+                    var ssl = new SslServerCredentials(new List<KeyCertificatePair>() { keypair }, cacert, false);
+                    // create the server.
+                    server = new Server
+                    {
+                        Services = { EchoService.BindService(echoServer).Intercept(echoServer.interceptor) },
+                        Ports = { new ServerPort(echoServer.Domain, echoServer.Port, ssl) }
+                    };
+                }
+                else
+                {
+                    // non secure server.
+                    server = new Server
+                    {
+                        Services = { EchoService.BindService(echoServer).Intercept(echoServer.interceptor) },
+                        Ports = { new ServerPort(echoServer.Domain, echoServer.Port, ServerCredentials.Insecure) }
+                    };
+                }
 
                 Console.WriteLine("Echo server listening on port " + echoServer.Port);
 
                 // GRPC server.
                 server.Start();
-
-                while (true)
-                {
-                    Thread.Sleep(1000);
-                }
             });
             Console.CancelKeyPress += new ConsoleCancelEventHandler(OnExit);
             _closing.WaitOne();

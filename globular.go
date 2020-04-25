@@ -1556,6 +1556,9 @@ func (self *Globule) getConfig() map[string]interface{} {
 		s["State"] = service_config.(map[string]interface{})["State"]
 		s["Id"] = name
 		s["Name"] = service_config.(map[string]interface{})["Name"]
+		s["CertFile"] = service_config.(map[string]interface{})["CertFile"]
+		s["KeyFile"] = service_config.(map[string]interface{})["KeyFile"]
+		s["CertAuthorityTrust"] = service_config.(map[string]interface{})["CertAuthorityTrust"]
 		config["Services"].(map[string]interface{})[name] = s
 	}
 
@@ -1636,6 +1639,12 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	application["password"] = Utility.GenerateUUID(name)
 	application["path"] = "/" + name                 // The path must be the same as the application name.
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
+
+	// Set action permission for delploy.
+	err = self.setActionPermission("/admin.AdminService/DeployApplication", 2)
+	if err != nil {
+		return err
+	}
 
 	// Here I will set the ressource to manage the applicaiton access permission.
 	ctx := stream.Context()
@@ -2202,6 +2211,14 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	// Here I will send a event to be sure all server will update...
 	var marshaler jsonpb.Marshaler
 	data, err := marshaler.MarshalToString(serviceDescriptor)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Set action permission for delploy.
+	err = self.setActionPermission("/admin.AdminService/PublishService", 2)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -5161,23 +5178,31 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 	}, nil
 }
 
-//* Set a ressource from a client (custom service) to globular
-func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressource.SetActionPermissionRqst) (*ressource.SetActionPermissionRsp, error) {
+func (self *Globule) setActionPermission(action string, permission int32) error {
 
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	actionPermission := make(map[string]interface{}, 0)
-	actionPermission["action"] = rqst.Action
-	actionPermission["permission"] = rqst.Permission
-	actionPermission["_id"] = Utility.GenerateUUID(rqst.Action)
+	actionPermission["action"] = action
+	actionPermission["permission"] = permission
+	actionPermission["_id"] = Utility.GenerateUUID(action)
 
 	actionPermissionStr, _ := Utility.ToJson(actionPermission)
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, actionPermissionStr, `[{"upsert":true}]`)
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+actionPermission["_id"].(string)+`"}`, actionPermissionStr, `[{"upsert":true}]`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Set a ressource from a client (custom service) to globular
+func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressource.SetActionPermissionRqst) (*ressource.SetActionPermissionRsp, error) {
+
+	err := self.setActionPermission(rqst.Action, rqst.Permission)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -5223,9 +5248,9 @@ func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressource.Ge
 	// Try to delete the account...
 	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, "")
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return &ressource.GetActionPermissionRsp{
+			Permission: int32(-1),
+		}, nil
 	}
 
 	actionPermission := values.(map[string]interface{})
@@ -5918,7 +5943,6 @@ func (self *Globule) ValidateToken(ctx context.Context, rqst *ressource.Validate
  * Validate application access by role
  */
 func (self *Globule) validateApplicationAccess(name string, method string) error {
-
 	if len(name) == 0 {
 		return errors.New("No application was given to validate method access " + method)
 	}
@@ -6043,7 +6067,6 @@ func (self *Globule) validateUserAccess(userName string, method string) error {
 
 // Test if a role can use action.
 func (self *Globule) canRunAction(roleName string, method string) error {
-
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return err
@@ -6668,6 +6691,41 @@ func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorR
 	return nil
 }
 
+/**
+ */
+func (self *Globule) SetServiceDescriptor(ctx context.Context, rqst *services.SetServiceDescriptorRequest) (*services.SetServiceDescriptorResponse, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	var marshaler jsonpb.Marshaler
+
+	jsonStr, err := marshaler.MarshalToString(rqst.Descriptor_)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// little fix...
+	jsonStr = strings.ReplaceAll(jsonStr, "publisherId", "publisherid")
+
+	// Always create a new if not already exist.
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, jsonStr, `[{"upsert": true}]`)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &services.SetServiceDescriptorResponse{
+		Result: true,
+	}, nil
+}
+
 //* Publish a service to service discovery *
 func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *services.PublishServiceDescriptorRequest) (*services.PublishServiceDescriptorResponse, error) {
 
@@ -6836,12 +6894,17 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 
 	// Generate the bundle id....
 	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Id + "%" + bundle.Descriptor_.Version
+	var platform string
 	if bundle.Plaform == services.Platform_LINUX32 {
 		id += "%LINUX32"
+		platform = "LINUX32"
 	} else if bundle.Plaform == services.Platform_LINUX64 {
 		id += "%LINUX64"
+		platform = "LINUX64"
 	} else if bundle.Plaform == services.Platform_WIN32 {
 		id += "%WIN32"
+		platform = "WIN32"
+		platform = "WIN64"
 	} else if bundle.Plaform == services.Platform_WIN64 {
 		id += "%WIN64"
 	}
@@ -6876,7 +6939,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		return err
 	}
 
-	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum}, "")
+	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": platform, "publisherid": bundle.Descriptor_.PublisherId, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
 
 	return err
 }
@@ -7049,7 +7112,7 @@ func (self *Globule) Listen() error {
 	ressource_server, err := self.startInternalService("ressource", self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 
-		// Create the channel to listen on admin port.
+		// Create the channel to listen on ressource port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RessourcePort))
 		if err != nil {
 			log.Fatalf("could not start ressource service %s: %s", self.getDomain(), err)

@@ -11,6 +11,8 @@ import {
   GetServicesDescriptorResponse,
   PublishServiceDescriptorRequest,
   PublishServiceDescriptorResponse,
+  SetServiceDescriptorRequest,
+  SetServiceDescriptorResponse,
   UploadBundleRequest,
   UploadBundleResponse} from './services_pb';
 
@@ -37,6 +39,13 @@ export class ServiceDiscoveryClient {
     request: GetServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
   ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
+
+  setServiceDescriptor(
+    request: SetServiceDescriptorRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: SetServiceDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<SetServiceDescriptorResponse>;
 
   publishServiceDescriptor(
     request: PublishServiceDescriptorRequest,
@@ -78,6 +87,11 @@ export class ServiceDiscoveryPromiseClient {
     request: GetServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
   ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
+
+  setServiceDescriptor(
+    request: SetServiceDescriptorRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<SetServiceDescriptorResponse>;
 
   publishServiceDescriptor(
     request: PublishServiceDescriptorRequest,
