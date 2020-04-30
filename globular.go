@@ -3618,7 +3618,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `[{"Projection":{"expireAt":1}}]`)
 	if err == nil {
 		lastTokenInfo := values.(map[string]interface{})
-		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(float64)), 0)
+		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(int32)), 0)
 
 		// That mean a newer token was already refresh.
 		if savedTokenExpireAt.Before(time.Unix(expireAt, 0)) {
@@ -4646,9 +4646,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		var expiredAt int64
-
 		clientId, expiredAt, err = Interceptors.ValidateToken(token)
-
 		if err != nil {
 			return nil, err
 		}
@@ -4712,9 +4710,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	// Execute the action.
 	result, err := handler(ctx, req)
-	/*if len(clientId) > 0 {
-		self.logInfo(application, method, clientId, err)
-	}*/
+
 	if err == nil {
 		// Set permissions in case one of those methode is called.
 		if method == "/ressource.RessourceService/DeleteApplication" {
@@ -4734,6 +4730,16 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 			err := self.deleteAccountPermissions("/" + rqst.Id)
 			if err != nil {
 				return nil, err
+			}
+		} else if method == "/ressource.RessourceService/SetRessource" {
+			if clientId != "sa" {
+				rqst := req.(*ressource.SetRessourceRqst)
+
+				// In that case i will set the userId as the owner of the ressource.
+				err := self.setRessourceOwner(clientId, rqst.Ressource.Path+"/"+rqst.Ressource.Name)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -5038,9 +5044,31 @@ func (self *Globule) getRessources(path string) ([]*ressource.Ressource, error) 
 
 	for i := 0; i < len(data); i++ {
 		res := data[i].(map[string]interface{})
+		var size int64
+		if res["size"] != nil {
+			size = int64(Utility.ToInt(res["size"].(string)))
+		}
+
+		var modified int64
+		if res["modified"] != nil {
+			modified = int64(Utility.ToInt(res["modified"].(string)))
+		}
+
+		if res["path"] == nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No path was given for the ressource!")))
+		}
+
+		if res["name"] == nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No name was given for the ressource!")))
+		}
+
 		// append the info inside the stream.
 		if strings.HasPrefix(res["path"].(string), path) {
-			ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: int64(Utility.ToInt(res["modified"].(string))), Size: int64(Utility.ToInt(res["size"].(string)))})
+			ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
 		}
 	}
 	return ressources, nil
@@ -5073,8 +5101,30 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 	max := 100
 	for i := 0; i < len(data); i++ {
 		res := data[i].(map[string]interface{})
+		var size int64
+		if res["size"] != nil {
+			size = int64(Utility.ToInt(res["size"].(string)))
+		}
+
+		var modified int64
+		if res["modified"] != nil {
+			modified = int64(Utility.ToInt(res["modified"].(string)))
+		}
+
+		if res["path"] == nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No path was given for the ressource!")))
+		}
+
+		if res["name"] == nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No name was given for the ressource!")))
+		}
+
 		// append the info inside the stream.
-		ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: int64(Utility.ToInt(res["modified"].(string))), Size: int64(Utility.ToInt(res["size"].(string)))})
+		ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
 		if len(ressources) == max-1 {
 			// I will send the stream at each 100 logs...
 			rsp := &ressource.GetRessourcesRsp{

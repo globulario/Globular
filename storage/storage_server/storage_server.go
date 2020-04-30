@@ -112,8 +112,7 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *storagepb.Create
 	if rsqt.Connection == nil {
 		return nil, errors.New("The request dosent contain connection object!")
 	}
-	fmt.Println("---->", rsqt.Connection)
-	fmt.Println("---->", self.Connections)
+
 	if _, ok := self.Connections[rsqt.Connection.Id]; ok {
 		self.stores[rsqt.Connection.Id].Close() // close the previous connection.
 	}

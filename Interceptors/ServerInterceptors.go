@@ -554,28 +554,16 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
-		hasAccess, err = ValidateUserAccess(domain, token, method)
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
+		hasAccess, _ = ValidateUserAccess(domain, token, method)
 	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
-		hasAccess, err = ValidateApplicationAccess(domain, application, method)
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
+		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
 	if len(peer) > 0 && !hasAccess {
-		hasAccess, err = ValidatePeerAccess(domain, peer, method)
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
+		hasAccess, _ = ValidatePeerAccess(domain, peer, method)
 	}
 
 	// Return here if access is denied.
