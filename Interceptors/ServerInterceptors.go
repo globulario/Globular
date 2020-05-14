@@ -236,7 +236,7 @@ func ValidatePeerRessourceAccess(domain string, name string, method string, path
 }
 
 func ValidateUserAccess(domain string, token string, method string) (bool, error) {
-	clientId, expire, err := ValidateToken(token)
+	clientId, _, expire, err := ValidateToken(token)
 
 	key := Utility.GenerateUUID(clientId + method)
 	if err != nil || expire < time.Now().Unix() {
@@ -325,6 +325,16 @@ func ValidatePeerAccess(domain string, name string, method string) (bool, error)
 	return hasAccess, err
 }
 
+// Refresh a token.
+func refreshToken(domain string, token string) (string, error) {
+	ressource_client, err := getRessourceClient(domain)
+	if err != nil {
+		return "", err
+	}
+
+	return ressource_client.RefreshToken(token)
+}
+
 // That interceptor is use by all services except the ressource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -335,6 +345,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	var path string
 	var domain string  // This is the target domain, the one use in TLS certificate.
 	var peer_id string // The name of the peer
+
 	//var ip string
 	//var mac string
 
@@ -369,18 +380,15 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		hasAccess = true
 	}
 
-	clientId, timeout, err := ValidateToken(token)
-	if len(clientId) > 0 {
+	var clientId string
+	var err error
+
+	if len(token) > 0 {
+		clientId, _, _, err = ValidateToken(token)
 		if err != nil {
 			return nil, err
 		}
-
-		if timeout < time.Now().Unix() {
-			return nil, errors.New("token is expired!")
-		}
 	}
-
-	// fmt.Println("Validate access for ", clientId, application, domain, method)
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
@@ -439,7 +447,6 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 				if err != nil {
 					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 					if err != nil {
-						fmt.Println(err)
 						return nil, err
 					}
 				}
@@ -527,15 +534,14 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	method := info.FullMethod
-	clientId, timeout, err := ValidateToken(token)
 
-	if len(clientId) > 0 {
+	var clientId string
+	var err error
+
+	if len(token) > 0 {
+		clientId, _, _, err = ValidateToken(token)
 		if err != nil {
 			return err
-		}
-
-		if timeout < time.Now().Unix() {
-			return errors.New("token is expired!")
 		}
 	}
 
@@ -582,12 +588,16 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 				if err != nil {
 					err = ValidatePeerRessourceAccess(domain, peer, method, path, permission)
 					if err != nil {
-						fmt.Println(err)
 						return err
 					}
 				}
 			}
 
+		}
+	} else if clientId != "sa" {
+		permission, err := ressource_client.GetActionPermission(method)
+		if err == nil && permission != -1 {
+			return errors.New("Permission denied to execute method " + method)
 		}
 	}
 

@@ -386,6 +386,13 @@ message DeleteFilePermissionsRsp{
 	bool result=1;
 }
 
+message AccountExistRqst{
+	string id = 1;
+}
+
+message AccountExistRsp{
+	bool result=1;
+}
 
 message DeleteAccountPermissionsRqst{
 	string id = 1;
@@ -602,6 +609,9 @@ service RessourceService {
 	
 	/** Register a peer on the network **/
 	rpc RegisterPeer(RegisterPeerRqst) returns (RegisterPeerRsp);
+	
+	/** Test if an account exist **/
+	rpc AccountExist(AccountExistRqst) returns (AccountExistRsp);
 	
 	/** Return the list of peers **/
 	rpc GetPeers(GetPeersRqst) returns(stream GetPeersRsp);

@@ -149,6 +149,86 @@ proto.ressource.RessourceServicePromiseClient.prototype.registerPeer =
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
+ *   !proto.ressource.AccountExistRqst,
+ *   !proto.ressource.AccountExistRsp>}
+ */
+const methodDescriptor_RessourceService_AccountExist = new grpc.web.MethodDescriptor(
+  '/ressource.RessourceService/AccountExist',
+  grpc.web.MethodType.UNARY,
+  proto.ressource.AccountExistRqst,
+  proto.ressource.AccountExistRsp,
+  /**
+   * @param {!proto.ressource.AccountExistRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AccountExistRsp.deserializeBinary
+);
+
+
+/**
+ * @const
+ * @type {!grpc.web.AbstractClientBase.MethodInfo<
+ *   !proto.ressource.AccountExistRqst,
+ *   !proto.ressource.AccountExistRsp>}
+ */
+const methodInfo_RessourceService_AccountExist = new grpc.web.AbstractClientBase.MethodInfo(
+  proto.ressource.AccountExistRsp,
+  /**
+   * @param {!proto.ressource.AccountExistRqst} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.ressource.AccountExistRsp.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.ressource.AccountExistRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.Error, ?proto.ressource.AccountExistRsp)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.ressource.AccountExistRsp>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.ressource.RessourceServiceClient.prototype.accountExist =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/ressource.RessourceService/AccountExist',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_AccountExist,
+      callback);
+};
+
+
+/**
+ * @param {!proto.ressource.AccountExistRqst} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.ressource.AccountExistRsp>}
+ *     A native promise that resolves to the response
+ */
+proto.ressource.RessourceServicePromiseClient.prototype.accountExist =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/ressource.RessourceService/AccountExist',
+      request,
+      metadata || {},
+      methodDescriptor_RessourceService_AccountExist);
+};
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
  *   !proto.ressource.GetPeersRqst,
  *   !proto.ressource.GetPeersRsp>}
  */

@@ -1,6 +1,8 @@
 import * as grpcWeb from 'grpc-web';
 
 import {
+  AccountExistRqst,
+  AccountExistRsp,
   AddAccountRoleRqst,
   AddAccountRoleRsp,
   AddApplicationActionRqst,
@@ -117,6 +119,13 @@ export class RessourceServiceClient {
     callback: (err: grpcWeb.Error,
                response: RegisterPeerRsp) => void
   ): grpcWeb.ClientReadableStream<RegisterPeerRsp>;
+
+  accountExist(
+    request: AccountExistRqst,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: AccountExistRsp) => void
+  ): grpcWeb.ClientReadableStream<AccountExistRsp>;
 
   getPeers(
     request: GetPeersRqst,
@@ -480,6 +489,11 @@ export class RessourceServicePromiseClient {
     request: RegisterPeerRqst,
     metadata?: grpcWeb.Metadata
   ): Promise<RegisterPeerRsp>;
+
+  accountExist(
+    request: AccountExistRqst,
+    metadata?: grpcWeb.Metadata
+  ): Promise<AccountExistRsp>;
 
   getPeers(
     request: GetPeersRqst,

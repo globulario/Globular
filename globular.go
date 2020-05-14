@@ -410,7 +410,7 @@ func (self *Globule) Serve() {
 	}
 
 	// The token that identify the server with other services
-	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
+	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
 	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 	if err != nil {
 		log.Panicln(err)
@@ -423,7 +423,7 @@ func (self *Globule) Serve() {
 		for {
 			select {
 			case <-ticker.C:
-				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
+				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
 				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 				if err != nil {
 					log.Println(err)
@@ -1300,7 +1300,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		user, _, _ = Interceptors.ValidateToken(token)
+		user, _, _, _ = Interceptors.ValidateToken(token)
 		hasPermission = true
 	}
 
@@ -1318,7 +1318,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			user, _, _ = Interceptors.ValidateToken(token)
+			user, _, _, _ = Interceptors.ValidateToken(token)
 			hasPermission = true
 		}
 
@@ -1524,8 +1524,8 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
 	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
 	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
+	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
 	config["SessionTimeout"] = self.SessionTimeout
-	config["CertificateAuthorityProxy"] = self.CertificateAuthorityProxy
 	config["Discoveries"] = self.Discoveries
 	config["Version"] = self.Version
 	config["Platform"] = self.Platform
@@ -3111,6 +3111,25 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	}, nil
 }
 
+func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountExistRqst) (*ressource.AccountExistRsp, error) {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// first of all the Persistence service must be active.
+	count, err := p.Count(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Id+`"}`, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ressource.AccountExistRsp{
+		Result: count > 0,
+	}, nil
+
+}
 func (self *Globule) registerAccount(id string, name string, email string, password string, roles []interface{}) error {
 
 	// That service made user of persistence service.
@@ -3203,7 +3222,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// Generate a token to identify the user.
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Name)
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Name, rqst.Account.Email)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3217,8 +3236,8 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	name, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Tokens", map[string]interface{}{"_id": name, "expireAt": Utility.ToString(expireAt)}, "")
+	name, email, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Tokens", map[string]interface{}{"_id": name, "email": email, "expireAt": Utility.ToString(expireAt)}, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3499,7 +3518,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	// in case of sa user.(admin)
 	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
 		// Generate a token to identify the user.
-		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa")
+		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -3553,7 +3572,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	}
 
 	// Generate a token to identify the user.
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, values[0].(map[string]interface{})["name"].(string))
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, values[0].(map[string]interface{})["name"].(string), values[0].(map[string]interface{})["email"].(string))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3579,8 +3598,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	}
 
 	// save the newly create token into the database.
-	name, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	name, email, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`", "email":"`+email+`", "expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3605,7 +3624,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	}
 
 	// first of all I will validate the current token.
-	name, expireAt, _ := Interceptors.ValidateToken(rqst.Token)
+	name, email, expireAt, _ := Interceptors.ValidateToken(rqst.Token)
 	// If the token is older than seven day without being refresh then I retrun an error.
 	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
 		return nil, status.Errorf(
@@ -3628,7 +3647,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 		}
 	}
 
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name)
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name, email)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3636,9 +3655,9 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	}
 
 	// get back the new expireAt
-	name, expireAt, _ = Interceptors.ValidateToken(tokenString)
+	name, email, expireAt, _ = Interceptors.ValidateToken(tokenString)
 
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`", "email":"`+email+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -4623,6 +4642,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// Here some method are accessible by default.
 	if method == "/ressource.RessourceService/GetAllActions" ||
 		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/AccountExist" ||
 		method == "/ressource.RessourceService/RegisterPeer" ||
 		method == "/ressource.RessourceService/GetPeers" ||
 		method == "/ressource.RessourceService/Authenticate" ||
@@ -4646,7 +4666,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		var expiredAt int64
-		clientId, expiredAt, err = Interceptors.ValidateToken(token)
+		clientId, _, expiredAt, err = Interceptors.ValidateToken(token)
 		if err != nil {
 			return nil, err
 		}
@@ -4809,7 +4829,7 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserName) > 0 {
-		name, _, err := Interceptors.ValidateToken(info.UserName)
+		name, _, _, err := Interceptors.ValidateToken(info.UserName)
 		if err == nil {
 			info.UserName = name
 		}
@@ -5759,7 +5779,7 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 		return nil, err
 	}
 
-	clientId, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
+	clientId, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -5977,7 +5997,7 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.
 
 //* Validate a token *
 func (self *Globule) ValidateToken(ctx context.Context, rqst *ressource.ValidateTokenRqst) (*ressource.ValidateTokenRsp, error) {
-	clientId, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+	clientId, _, expireAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -6154,7 +6174,7 @@ func (self *Globule) authenticateClient(ctx context.Context) (string, string, in
 		token := strings.Join(md["token"], "")
 		// In that case no token was given...
 		if len(token) > 0 {
-			userId, expired, err = Interceptors.ValidateToken(token)
+			userId, _, expired, err = Interceptors.ValidateToken(token)
 		}
 		return applicationId, userId, expired, err
 	}
@@ -6320,7 +6340,7 @@ func (self *Globule) ValidateUserRessourceAccess(ctx context.Context, rqst *ress
 	path := rqst.GetPath() // The path of the ressource.
 
 	// first of all I will validate the token.
-	clientId, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
+	clientId, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -6414,7 +6434,7 @@ func (self *Globule) ValidatePeerAccess(ctx context.Context, rqst *ressource.Val
 func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressource.ValidateUserAccessRqst) (*ressource.ValidateUserAccessRsp, error) {
 
 	// first of all I will validate the token.
-	clientID, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
+	clientID, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

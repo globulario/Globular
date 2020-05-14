@@ -1581,6 +1581,42 @@ export namespace DeleteFilePermissionsRsp {
   }
 }
 
+export class AccountExistRqst extends jspb.Message {
+  getId(): string;
+  setId(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AccountExistRqst.AsObject;
+  static toObject(includeInstance: boolean, msg: AccountExistRqst): AccountExistRqst.AsObject;
+  static serializeBinaryToWriter(message: AccountExistRqst, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AccountExistRqst;
+  static deserializeBinaryFromReader(message: AccountExistRqst, reader: jspb.BinaryReader): AccountExistRqst;
+}
+
+export namespace AccountExistRqst {
+  export type AsObject = {
+    id: string,
+  }
+}
+
+export class AccountExistRsp extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): AccountExistRsp.AsObject;
+  static toObject(includeInstance: boolean, msg: AccountExistRsp): AccountExistRsp.AsObject;
+  static serializeBinaryToWriter(message: AccountExistRsp, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): AccountExistRsp;
+  static deserializeBinaryFromReader(message: AccountExistRsp, reader: jspb.BinaryReader): AccountExistRsp;
+}
+
+export namespace AccountExistRsp {
+  export type AsObject = {
+    result: boolean,
+  }
+}
+
 export class DeleteAccountPermissionsRqst extends jspb.Message {
   getId(): string;
   setId(value: string): void;

@@ -204,6 +204,21 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 }
 
 /**
+ *  Generate a new token from expired one.
+ */
+func (self *Ressource_Client) RefreshToken(token string) (string, error) {
+	rqst := new(RefreshTokenRqst)
+	rqst.Token = token
+
+	rsp, err := self.c.RefreshToken(api.GetClientContext(self), rqst)
+	if err != nil {
+		return "", err
+	}
+
+	return rsp.Token, nil
+}
+
+/**
  * Create a new role with given action list.
  */
 func (self *Ressource_Client) CreateRole(name string, actions []string) error {
