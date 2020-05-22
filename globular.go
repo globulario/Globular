@@ -1173,6 +1173,7 @@ func (self *Globule) registerMethods() error {
 		guest["actions"] = []string{
 			"/admin.AdminService/GetConfig",
 			"/ressource.RessourceService/RegisterAccount",
+			"/ressource.RessourceService/AccountExist",
 			"/ressource.RessourceService/Authenticate",
 			"/ressource.RessourceService/RefreshToken",
 			"/ressource.RessourceService/GetPermissions",
@@ -1606,8 +1607,21 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 		}
 	}
 
+	// Before extract I will keep the archive.
+	backupPath := self.webRoot + string(os.PathSeparator) + "_old" + string(os.PathSeparator) + name
+
+	Utility.CreateIfNotExists(backupPath, 0644)
+	backupPath += string(os.PathSeparator) + Utility.ToString(time.Now().Unix()) + ".tar.gz"
+
+	err := ioutil.WriteFile(backupPath, buffer.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
+
+	// Before I will
 	Utility.ExtractTarGz(r)
 
 	// Copy the files to it final destination
@@ -2558,6 +2572,9 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("--------> save config")
+	log.Println(config)
+
 	// if the configuration is one of services...
 	if config["Id"] != nil {
 		srv := self.Services[config["Id"].(string)]
@@ -3111,25 +3128,6 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 	}, nil
 }
 
-func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountExistRqst) (*ressource.AccountExistRsp, error) {
-
-	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
-	if err != nil {
-		return nil, err
-	}
-
-	// first of all the Persistence service must be active.
-	count, err := p.Count(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Id+`"}`, "")
-	if err != nil {
-		return nil, err
-	}
-
-	return &ressource.AccountExistRsp{
-		Result: count > 0,
-	}, nil
-
-}
 func (self *Globule) registerAccount(id string, name string, email string, password string, roles []interface{}) error {
 
 	// That service made user of persistence service.
@@ -3236,8 +3234,8 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	name, email, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Tokens", map[string]interface{}{"_id": name, "email": email, "expireAt": Utility.ToString(expireAt)}, "")
+	name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Tokens", map[string]interface{}{"_id": name, "expireAt": Utility.ToString(expireAt)}, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3248,6 +3246,46 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	return &ressource.RegisterAccountRsp{
 		Result: tokenString, // Return the token string.
 	}, nil
+}
+
+func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountExistRqst) (*ressource.AccountExistRsp, error) {
+	var exist bool
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+	// Test with the _id
+	count, _ := p.Count(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.Id+`"}`, "")
+	if count > 0 {
+		exist = true
+	}
+
+	// Test with the name
+	if !exist {
+		count, _ := p.Count(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+rqst.Id+`"}`, "")
+		if count > 0 {
+			exist = true
+		}
+	}
+
+	// Test with the email.
+	if !exist {
+		count, _ := p.Count(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"email":"`+rqst.Id+`"}`, "")
+		if count > 0 {
+			exist = true
+		}
+	}
+	if exist {
+		return &ressource.AccountExistRsp{
+			Result: true,
+		}, nil
+	}
+
+	return nil, status.Errorf(
+		codes.Internal,
+		Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Account with id name or email '"+rqst.Id+"' dosent exist!")))
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3598,13 +3636,15 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	}
 
 	// save the newly create token into the database.
-	name, email, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`", "email":"`+email+`", "expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	// So here I will start a timer
 
 	// Here I got the token I will now put it in the cache.
 	return &ressource.AuthenticateRsp{
@@ -3625,6 +3665,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 
 	// first of all I will validate the current token.
 	name, email, expireAt, _ := Interceptors.ValidateToken(rqst.Token)
+
 	// If the token is older than seven day without being refresh then I retrun an error.
 	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
 		return nil, status.Errorf(
@@ -3655,14 +3696,16 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	}
 
 	// get back the new expireAt
-	name, email, expireAt, _ = Interceptors.ValidateToken(tokenString)
+	name, _, expireAt, _ = Interceptors.ValidateToken(tokenString)
 
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`", "email":"`+email+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	log.Println("--------> refresh token succed!", tokenString)
 
 	// return the token string.
 	return &ressource.RefreshTokenRsp{
@@ -5201,6 +5244,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 	// Remove ressource that match...
 	for i := 0; i < len(ressources); i++ {
 		res := ressources[i]
+
 		// In case the ressource is a sub-ressource I will remove it...
 		if len(rqst.Ressource.Name) > 0 {
 			if rqst.Ressource.Name == res.GetName() {

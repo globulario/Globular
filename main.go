@@ -482,7 +482,4 @@ COPY services /globular/services
 	if err != nil {
 		log.Println(err)
 	}
-
-	//
-
 }
