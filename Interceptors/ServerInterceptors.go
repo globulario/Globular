@@ -5,19 +5,21 @@ package Interceptors
 // the value in the map will be discard. That way it will put less charge on the server
 // side.
 
-import "context"
-import "fmt"
-import "google.golang.org/grpc"
-import "github.com/davecourtois/Globular/ressource"
-import "google.golang.org/grpc/metadata"
-import "strings"
-import "errors"
-import "github.com/davecourtois/Globular/file/filepb"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
 
-//import "google.golang.org/grpc/peer"
-import "github.com/davecourtois/Utility"
-import "github.com/davecourtois/Globular/storage/storage_store"
-import "time"
+	"github.com/davecourtois/Globular/file/filepb"
+	"github.com/davecourtois/Globular/ressource"
+	"github.com/davecourtois/Globular/storage/storage_store"
+	"github.com/davecourtois/Utility"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	//"google.golang.org/grpc/peer"
+)
 
 var (
 	ressource_client *ressource.Ressource_Client
@@ -515,8 +517,9 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var application string
 	var domain string
 	var path string
-	var peer string
+	var peer_ string
 	//var ip string
+
 	//var mac string
 	//Get the caller ip address.
 	//p, _ := peer.FromContext(stream.Context())
@@ -568,8 +571,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
-	if len(peer) > 0 && !hasAccess {
-		hasAccess, _ = ValidatePeerAccess(domain, peer, method)
+	if len(peer_) > 0 && !hasAccess {
+		hasAccess, _ = ValidatePeerAccess(domain, peer_, method)
 	}
 
 	// Return here if access is denied.
@@ -586,7 +589,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 			if err != nil {
 				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
 				if err != nil {
-					err = ValidatePeerRessourceAccess(domain, peer, method, path, permission)
+					err = ValidatePeerRessourceAccess(domain, peer_, method, path, permission)
 					if err != nil {
 						return err
 					}
