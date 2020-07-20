@@ -179,6 +179,12 @@ export class EventHub {
    * @param {*} uuid 
    */
   unSubscribe(name: string, uuid: string) {
+    if(this.subscribers[name]==undefined){
+      return
+    }
+    if(this.subscribers[name][uuid]==undefined){
+      return
+    }
     // Remove the local subscriber.
     delete this.subscribers[name][uuid]
     if (Object.keys(this.subscribers[name]).length == 0) {

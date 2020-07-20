@@ -61,6 +61,8 @@ type server struct {
 	PublisherId        string
 	KeepUpToDate       bool
 	KeepAlive          bool
+	Permissions        []interface{} // contains the action permission for the services.
+
 }
 
 // Create the configuration file if is not already exist.
@@ -134,7 +136,9 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = "localhost"
+	s_impl.PublisherId = domain
+	s_impl.Permissions = make([]interface{}, 0)
+
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

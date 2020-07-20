@@ -33,7 +33,7 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 	serverConfig, err = getLocalConfig()
 	isLocal := true
 	if err == nil {
-		if config["Domain"] != address {
+		if serverConfig["Domain"] != address {
 			isLocal = false
 		}
 	} else {
@@ -56,6 +56,7 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 
 	// Set the config tls...
 	config["TLS"] = serverConfig["Protocol"].(string) == "https"
+	config["Domain"] = address
 
 	// get / init credential values.
 	if config["TLS"] == false {

@@ -75,6 +75,7 @@ type server struct {
 	PublisherId        string
 	KeepUpToDate       bool
 	KeepAlive          bool
+	Permissions        []interface{} // contains the action permission for the services.
 
 	// saved connections
 	Connections map[string]connection
@@ -825,7 +826,8 @@ func main() {
 	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
-	s_impl.PublisherId = "localhost"
+	s_impl.PublisherId = domain
+	s_impl.Permissions = make([]interface{}, 0)
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()

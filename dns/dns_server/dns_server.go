@@ -76,6 +76,7 @@ type server struct {
 	PublisherId        string
 	KeepUpToDate       bool
 	KeepAlive          bool
+	Permissions        []interface{} // contains the action permission for the services.
 
 	// Contain the configuration of the storage service use to store
 	// the actual values.
@@ -1518,6 +1519,7 @@ func main() {
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
 	s_impl.PublisherId = domain // value by default.
+	s_impl.Permissions = make([]interface{}, 0)
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

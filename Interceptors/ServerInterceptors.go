@@ -59,112 +59,6 @@ func getCache() *storage_store.BigCache_store {
 }
 
 /**
- * Return the file permission necessary for a given method.
- */
-func getFilePermissionForMethod(method string, req interface{}) (string, int32) {
-	var path string
-	var permission int32
-
-	if method == "/file.FileService/ReadDir" {
-		rqst := req.(*filepb.ReadDirRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 4
-	} else if method == "/file.FileService/CreateDir" {
-		rqst := req.(*filepb.CreateDirRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 2
-	} else if method == "/file.FileService/DeleteDir" {
-		rqst := req.(*filepb.DeleteDirRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 1
-	} else if method == "/file.FileService/Rename" {
-		rqst := req.(*filepb.RenameRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath() + "/" + rqst.GetOldName()
-		} else {
-			path = rqst.GetOldName()
-		}
-		permission = 2
-	} else if method == "/file.FileService/GetFileInfo" {
-		rqst := req.(*filepb.ReadFileRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 4
-	} else if method == "/file.FileService/ReadFile" {
-		rqst := req.(*filepb.SaveFileRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 4
-	} else if method == "/file.FileService/SaveFile" {
-		rqst := req.(*filepb.SaveFileRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 2
-	} else if method == "/file.FileService/DeleteFile" {
-		rqst := req.(*filepb.DeleteFileRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 1
-	} else if method == "/file.FileService/GetThumbnails" {
-		rqst := req.(*filepb.GetThumbnailsRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 4
-	} else if method == "/file.FileService/WriteExcelFile" {
-		rqst := req.(*filepb.WriteExcelFileRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 2
-	} else if method == "/file.FileService/CreateAchive" {
-		rqst := req.(*filepb.CreateArchiveRequest)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 4
-	} else if method == "/ressource.RessourceService/SetPermission" {
-		rqst := req.(*ressource.SetPermissionRqst)
-		if len(rqst.Permission.GetPath()) > 1 {
-			path = rqst.Permission.GetPath()
-		}
-		permission = 2
-	} else if method == "/ressource.RessourceService/DeletePermissions" {
-		rqst := req.(*ressource.DeletePermissionsRqst)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 1
-	} else if method == "/ressource.RessourceService/SetRessourceOwner" {
-		rqst := req.(*ressource.SetRessourceOwnerRqst)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 2
-	} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
-		rqst := req.(*ressource.DeleteRessourceOwnerRqst)
-		if len(rqst.GetPath()) > 1 {
-			path = rqst.GetPath()
-		}
-		permission = 1
-	}
-
-	path = strings.ReplaceAll(path, "\\", "/")
-	return path, permission
-
-}
-
-/**
  * Validate user file permission.
  */
 func ValidateUserRessourceAccess(domain string, token string, method string, path string, permission int32) error {
@@ -423,37 +317,21 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	// Now I will test file permission.
 	if clientId != "sa" {
-		if strings.HasPrefix(method, "/file.FileService/") {
-			path, permission := getFilePermissionForMethod(method, req)
 
+		// Here I will retreive the permission from the database if there is some...
+		// the path will be found in the parameter of the method.
+		permission, err := ressource_client.GetActionPermission(method)
+		if err == nil && permission != -1 {
 			// I will test if the user has file permission.
 			err = ValidateUserRessourceAccess(domain, token, method, path, permission)
 			if err != nil {
-				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
+				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
 				if err != nil {
-					err = ValidatePeerRessourceAccess(domain, peer_id, method, path, permission)
-					if err != nil {
-						fmt.Println(err)
-						return nil, err
-					}
-				}
-			}
-
-		} else {
-			// Here I will retreive the permission from the database if there is some...
-			// the path will be found in the parameter of the method.
-			permission, err := ressource_client.GetActionPermission(method)
-			if err == nil && permission != -1 {
-				// I will test if the user has file permission.
-				err = ValidateUserRessourceAccess(domain, token, method, path, permission)
-				if err != nil {
-					err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
-					if err != nil {
-						return nil, err
-					}
+					return nil, err
 				}
 			}
 		}
+
 	}
 
 	// Execute the action.

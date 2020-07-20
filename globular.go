@@ -22,6 +22,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -143,6 +144,9 @@ type Globule struct {
 
 	// The list of method supported by this server.
 	methods []string
+
+	// Array of action permissions
+	actionPermissions []interface{}
 
 	// The prometheus logging informations.
 	methodsCounterLog *prometheus.CounterVec
@@ -492,8 +496,7 @@ func (self *Globule) createApplicationConnection() error {
 func (self *Globule) getDomain() string {
 	domain := self.Domain
 	if len(self.Name) > 0 && domain != "localhost" {
-		domain = self.Name + "." + domain
-
+		domain = /*self.Name + "." +*/ domain
 	}
 	domain = strings.ToLower(domain)
 	return domain
@@ -932,6 +935,16 @@ func (self *Globule) initServices() {
 
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
+	self.methods = append(self.methods, "/file.FileService/FileUploadHandler")
+
+	self.actionPermissions = make([]interface{}, 0)
+
+	// Set local action permission
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeletePermissions", "permission": 1})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/SetRessourceOwner", "permission": 2})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeleteRessourceOwner", "permission": 2})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "permission": 2})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "permission": 2})
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
@@ -1014,7 +1027,6 @@ func (self *Globule) getServiceMethods(name string, path string) []string {
 
 	// here I will parse the service defintion file to extract the
 	// service difinition.
-	log.Println("--> open file ", path)
 	reader, _ := os.Open(path)
 	defer reader.Close()
 
@@ -1207,6 +1219,12 @@ func (self *Globule) registerMethods() error {
 	// Create connection application.
 	self.createApplicationConnection()
 
+	// Here I will also set permssion for local services.
+	for i := 0; i < len(self.actionPermissions); i++ {
+		permission := self.actionPermissions[i].(map[string]interface{})
+		self.setActionPermission(permission["action"].(string), int32(Utility.ToInt(permission["permission"])))
+	}
+
 	return nil
 }
 
@@ -1288,9 +1306,19 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If application is defined.
 	token := r.Header.Get("token")
+	application := r.Header.Get("application")
 	domain := r.Header.Get("domain")
 	hasPermission := false
 	user := ""
+
+	log.Println("-------> validate path '", path, "' for ", application)
+	if len(application) != 0 {
+
+		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
+		if err == nil {
+			hasPermission = true
+		}
+	}
 
 	if len(token) != 0 && !hasPermission {
 		// Test if the requester has the permission to do the upload...
@@ -1343,6 +1371,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// set the file owner if the length of the user if greather than 0
 		if len(user) > 0 {
+
+			log.Println("--------> path ", path)
+			log.Println("--------> file name ", files[i].Filename)
+
 			globule.setRessourceOwner(user, path+"/"+files[i].Filename)
 		}
 		// Create the file.
@@ -1654,12 +1686,6 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 	application["path"] = "/" + name                 // The path must be the same as the application name.
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
-	// Set action permission for delploy.
-	err = self.setActionPermission("/admin.AdminService/DeployApplication", 2)
-	if err != nil {
-		return err
-	}
-
 	// Here I will set the ressource to manage the applicaiton access permission.
 	ctx := stream.Context()
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
@@ -1712,6 +1738,16 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 		if err != nil {
 			return err
 		}
+	}
+
+	// here is a little workaround to be sure the bundle.js file will not be cached in the brower...
+	indexHtml, err := ioutil.ReadFile(abosolutePath + "/index.html")
+	if err == nil {
+		var re = regexp.MustCompile(`\/bundle\.js(\?updated=\d*)?`)
+		indexHtml_ := re.ReplaceAllString(string(indexHtml), "/bundle.js?updated="+Utility.ToString(time.Now().Unix()))
+		// save it back.
+		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
+
 	}
 
 	return nil
@@ -2231,14 +2267,6 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Set action permission for delploy.
-	err = self.setActionPermission("/admin.AdminService/PublishService", 2)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	// Here I will send an event that the service has a new version...
 	// eventHub, err := event_client.NewEvent_Client(rqst.DicorveryId, "event_server")
 	self.discorveriesEventHub[rqst.DicorveryId].Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
@@ -2558,6 +2586,14 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 		return false
 	}
 
+	// Here I will get the list of service permission and set it...
+	if config["Permissions"] != nil {
+		for i := 0; i < len(config["Permissions"].([]interface{})); i++ {
+			permission := config["Permissions"].([]interface{})[i].(map[string]interface{})
+			self.actionPermissions = append(self.actionPermissions, permission)
+		}
+	}
+
 	return true
 }
 
@@ -2571,9 +2607,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	log.Println("--------> save config")
-	log.Println(config)
 
 	// if the configuration is one of services...
 	if config["Id"] != nil {
@@ -3705,8 +3738,6 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	log.Println("--------> refresh token succed!", tokenString)
-
 	// return the token string.
 	return &ressource.RefreshTokenRsp{
 		Token: tokenString,
@@ -4439,6 +4470,10 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 		return errors.New("Root has no owner!")
 	}
 
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-1]
+	}
+
 	// here I if the ressource is a directory I will set the permission on
 	// subdirectory and files...
 	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
@@ -4448,7 +4483,11 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 			if err == nil {
 				for i := 0; i < len(files); i++ {
 					file := files[i]
-					self.setRessourceOwner(owner, path+"/"+file.Name())
+					if strings.HasSuffix(path, "/") {
+						self.setRessourceOwner(owner, path+file.Name())
+					} else {
+						self.setRessourceOwner(owner, path+"/"+file.Name())
+					}
 				}
 			} else {
 				return err
@@ -4484,7 +4523,13 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 					}
 				}
 			}
-			self.setRessourceOwner(owner, ressources[i].GetPath()+"/"+ressources[i].GetName())
+
+			if strings.HasSuffix(ressources[i].GetPath(), "/") {
+				self.setRessourceOwner(owner, ressources[i].GetPath()+ressources[i].GetName())
+			} else {
+				self.setRessourceOwner(owner, ressources[i].GetPath()+"/"+ressources[i].GetName())
+			}
+
 		}
 	}
 
@@ -4527,6 +4572,10 @@ func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressource.SetR
 func (self *Globule) GetAbsolutePath(path string) string {
 
 	path = strings.ReplaceAll(path, "\\", "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-2]
+	}
+
 	if len(path) > 1 {
 		if strings.HasPrefix(path, "/") {
 			path = strings.ReplaceAll(self.webRoot, "\\", "/") + path
@@ -4723,7 +4772,8 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		} else {
 			// special case that need ownership of the ressource or be sa
 			if method == "/ressource.RessourceService/SetPermission" || method == "/ressource.RessourceService/DeletePermissions" ||
-				method == "/ressource.RessourceService/SetRessourceOwner" || method == "/ressource.RessourceService/DeleteRessourceOwner" {
+				method == "/ressource.RessourceService/SetRessourceOwner" || method == "/ressource.RessourceService/DeleteRessourceOwner" ||
+				method == "/ressource.RessourceService/CreateDirPermissions" {
 				var path string
 				if method == "/ressource.RessourceService/SetPermission" {
 					rqst := req.(*ressource.SetPermissionRqst)
@@ -4739,6 +4789,10 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 					path = rqst.Path
 				} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
 					rqst := req.(*ressource.DeleteRessourceOwnerRqst)
+					// Here I will validate that the user is the owner.
+					path = rqst.Path
+				} else if method == "/ressource.RessourceService/CreateDirPermissions" {
+					rqst := req.(*ressource.CreateDirPermissionsRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
 				}
@@ -5447,6 +5501,9 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 	// The first thing I will do is test if the file exist.
 	path := rqst.GetPermission().GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-2]
+	}
 
 	// Now if the permission exist I will read the file info.
 	fileInfo, _ := os.Stat(self.GetAbsolutePath(path))
@@ -5818,6 +5875,7 @@ func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressource.Dele
 
 //* Create Permission for a dir (recursive) *
 func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.CreateDirPermissionsRqst) (*ressource.CreateDirPermissionsRsp, error) {
+
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, err
@@ -5846,7 +5904,7 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 
 	// Now I will create the new permission of the created directory.
 	for i := 0; i < len(permissions); i++ {
-		// Copye the permission.
+		// Copy the permission.
 		permission := permissions[i].(map[string]interface{})
 		permission_ := make(map[string]interface{}, 0)
 		permission_["owner"] = permission["owner"]
@@ -5874,7 +5932,7 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 
 	// The user who create a directory will be the owner of the
 	// directory.
-	if clientId != "sa" && clientId != "guest" {
+	if clientId != "sa" && clientId != "guest" && len(rqst.GetName()) > 0 {
 		ressourceOwner := make(map[string]interface{}, 0)
 		ressourceOwner["owner"] = clientId
 		ressourceOwner["path"] = path + "/" + rqst.GetName()
@@ -5892,6 +5950,9 @@ func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.R
 
 	path := rqst.GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-2]
+	}
 
 	oldPath := rqst.OldName
 	newPath := rqst.NewName
@@ -5965,6 +6026,9 @@ func (self *Globule) deleteDirPermissions(path string) error {
 	}
 
 	path = strings.ReplaceAll(path, "\\", "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-2]
+	}
 
 	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
 	permissions, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Permissions", `{}`, "")
@@ -6233,17 +6297,8 @@ func (self *Globule) isOwner(name string, path string) bool {
 		return false
 	}
 
-	// Now I will get the user roles and validate if the user can execute the
-	// method.
-	values, err := client.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+name+`"}`, `[{"Projection":{"roles":1}}]`)
-	if err != nil {
-		return false
-	}
-
-	account := values.(map[string]interface{})
-
 	// If the user is the owner of the ressource it has the permission
-	count, err := client.Count(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+account["_id"].(string)+`"}`, ``)
+	count, err := client.Count(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`","owner":"`+name+`"}`, ``)
 	if err == nil {
 		if count > 0 {
 			return true

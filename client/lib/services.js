@@ -114,6 +114,12 @@ var EventHub = /** @class */ (function () {
      * @param {*} uuid
      */
     EventHub.prototype.unSubscribe = function (name, uuid) {
+        if (this.subscribers[name] == undefined) {
+            return;
+        }
+        if (this.subscribers[name][uuid] == undefined) {
+            return;
+        }
         // Remove the local subscriber.
         delete this.subscribers[name][uuid];
         if (Object.keys(this.subscribers[name]).length == 0) {

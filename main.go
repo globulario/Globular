@@ -419,14 +419,17 @@ COPY services /globular/services
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {
+
 						// set the name.
 						if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["servicePath"] != nil {
 
 							execPath := dir + s["servicePath"].(string)
 							protoPath := dir + s["protoPath"].(string)
+							if string(os.PathSeparator) == "\\" {
+								execPath += ".exe" // in case of windows
+							}
 
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
-
 								var serviceDir = path + string(os.PathSeparator) + "services"
 								if len(config["PublisherId"].(string)) == 0 {
 									serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
@@ -436,15 +439,14 @@ COPY services /globular/services
 
 								destPath := serviceDir + string(os.PathSeparator) + name
 								if string(os.PathSeparator) == "\\" {
-									execPath += ".exe" // in case of windows
 									destPath += ".exe"
 								}
+
 								if Utility.Exists(execPath) {
 									Utility.CreateDirIfNotExist(serviceDir)
 
 									err := Utility.Copy(execPath, destPath)
 									if err != nil {
-
 										log.Panicln(execPath, destPath, err)
 									}
 
@@ -463,16 +465,34 @@ COPY services /globular/services
 									if Utility.Exists(protoPath) {
 										Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
 									}
+								} else {
+									fmt.Println("executable not exist ", execPath)
 								}
+							} else if !Utility.Exists(execPath) {
+								log.Println("no executable found at path " + execPath)
+							} else if !Utility.Exists(protoPath) {
+								log.Println("no proto file found at path " + protoPath)
 							}
+						} else if config["PublisherId"] == nil {
+							fmt.Println("no publisher was define!")
+						} else if config["Version"] == nil {
+							fmt.Println("no version was define!")
+						} else if s["protoPath"] == nil {
+							fmt.Println(" no proto file was found!")
+						} else if s["servicePath"] != nil {
+							fmt.Println("no executable was found!")
 						}
+					} else {
+						fmt.Println(err)
 					}
 				} else {
-					log.Println("service", id, "configuration is incomplete!")
+					fmt.Println("service", id, "configuration is incomplete!")
 				}
 			} else {
-				log.Println("service", id, "has no configuration!")
+				fmt.Println("service", id, "has no configuration!")
 			}
+		} else {
+			fmt.Println("service Name for ", id, " is missing")
 		}
 	}
 

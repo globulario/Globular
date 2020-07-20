@@ -143,6 +143,7 @@ type server struct {
 	PublisherId        string
 	KeepUpToDate       bool
 	KeepAlive          bool
+	Permissions        []interface{} // contains the action permission for the services.
 
 	// The map of connection...
 	Connections map[string]connection
@@ -331,11 +332,14 @@ func (self *server) QueryContext(rqst *sqlpb.QueryContextRqst, stream sqlpb.SqlS
 
 	// The list of parameters
 	parameters := make([]interface{}, 0)
-	err = json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
-	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	if len(rqst.Query.Parameters) > 0 {
+		err = json.Unmarshal([]byte(rqst.Query.Parameters), &parameters)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+
+		}
 	}
 
 	// Here I the sql works.
@@ -583,7 +587,8 @@ func main() {
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
-	s_impl.PublisherId = "localhost"
+	s_impl.PublisherId = domain
+	s_impl.Permissions = make([]interface{}, 0)
 
 	// Here I will retreive the list of connections from file if there are some...
 	s_impl.init()

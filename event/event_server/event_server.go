@@ -57,6 +57,7 @@ type server struct {
 	PublisherId        string
 	KeepUpToDate       bool
 	KeepAlive          bool
+	Permissions        []interface{} // contains the action permission for the services.
 
 	// Use to sync event channel manipulation.
 	actions chan map[string]interface{}
@@ -282,7 +283,8 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = "localhost"
+	s_impl.PublisherId = domain
+	s_impl.Permissions = make([]interface{}, 0)
 
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
