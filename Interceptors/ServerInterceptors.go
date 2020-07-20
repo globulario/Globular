@@ -252,10 +252,8 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
+		// in case of ressource path.
 		path = strings.Join(md["path"], "")
-		if !strings.HasPrefix(path, "/") {
-			path = "/" + path
-		}
 		domain = strings.Join(md["domain"], "")
 		//mac = strings.Join(md["mac"], "")
 	}
