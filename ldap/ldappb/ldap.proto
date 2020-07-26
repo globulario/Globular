@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ldap;
 
-option go_package="ldappb";
+option go_package="ldap/ldappb";
 
 message Connection {
 	string id = 1;

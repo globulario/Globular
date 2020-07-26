@@ -5,6 +5,7 @@ protoc ca/ca.proto --go_out=plugins=grpc:.
 protoc services/services.proto --go_out=plugins=grpc:.
 protoc dns/dnspb/dns.proto --go_out=plugins=grpc:.
 protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
+protoc search/searchpb/search.proto --go_out=plugins=grpc:.
 protoc event/eventpb/event.proto --go_out=plugins=grpc:.
 protoc storage/storagepb/storage.proto --go_out=plugins=grpc:.
 protoc file/filepb/file.proto --go_out=plugins=grpc:.
@@ -41,6 +42,8 @@ protoc services/services.proto --js_out=import_style=commonjs:client
 protoc services/services.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
 protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+protoc search/searchpb/search.proto --js_out=import_style=commonjs:client
+protoc search/searchpb/search.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc event/eventpb/event.proto --js_out=import_style=commonjs:client
 protoc event/eventpb/event.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 protoc storage/storagepb/storage.proto --js_out=import_style=commonjs:client

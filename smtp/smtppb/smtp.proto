@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package smtp;
 
-option go_package="smtppb";
+option go_package="smtp/smtppb";
 
 message Connection {
 	string id = 1;

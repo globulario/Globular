@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"net"
+
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Globular/ressource"
 	"github.com/davecourtois/Globular/storage/storage_store"
@@ -258,7 +260,22 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		//mac = strings.Join(md["mac"], "")
 	}
 
+	// Here I will test if the
 	method := info.FullMethod
+
+	if len(domain) == 0 {
+		return nil, errors.New("No domain was given for method call '" + method + "'")
+	}
+
+	// now I will test if the given domain fit the caller address.
+	ips, err := net.LookupIP(domain)
+	if err != nil {
+		return nil, err
+	}
+
+	// display the ips.
+	fmt.Println(ips)
+	//fmt.Println(ip)
 
 	// If the call come from a local client it has hasAccess
 	hasAccess := false // strings.HasPrefix(ip, "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
@@ -275,7 +292,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	}
 
 	var clientId string
-	var err error
+	//var err error
 
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)
@@ -323,11 +340,21 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			// I will test if the user has file permission.
 			err = ValidateUserRessourceAccess(domain, token, method, path, permission)
 			if err != nil {
-				err = ValidateApplicationRessourceAccess(domain, application, path, method, permission)
-				if err != nil {
+				if len(application) == 0 {
 					return nil, err
 				}
+				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
+				if err != nil {
+					if len(peer_id) == 0 {
+						return nil, err
+					}
+					err = ValidatePeerRessourceAccess(domain, peer_id, method, path, permission)
+					if err != nil {
+						return nil, err
+					}
+				}
 			}
+
 		}
 
 	}
@@ -393,7 +420,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var application string
 	var domain string
 	var path string
-	var peer_ string
+	var peer_id string
 	//var ip string
 
 	//var mac string
@@ -447,8 +474,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
-	if len(peer_) > 0 && !hasAccess {
-		hasAccess, _ = ValidatePeerAccess(domain, peer_, method)
+	if len(peer_id) > 0 && !hasAccess {
+		hasAccess, _ = ValidatePeerAccess(domain, peer_id, method)
 	}
 
 	// Return here if access is denied.
@@ -463,9 +490,15 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 			// I will test if the user has file permission.
 			err = ValidateUserRessourceAccess(domain, token, method, path, permission)
 			if err != nil {
+				if len(application) == 0 {
+					return err
+				}
 				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
 				if err != nil {
-					err = ValidatePeerRessourceAccess(domain, peer_, method, path, permission)
+					if len(peer_id) == 0 {
+						return err
+					}
+					err = ValidatePeerRessourceAccess(domain, peer_id, method, path, permission)
 					if err != nil {
 						return err
 					}

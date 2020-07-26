@@ -10,22 +10,84 @@ import { IConfig, IServiceConfig } from './services';
 /**
  * Return the globular configuration file. The return config object
  * can contain sensible information so it must be called with appropriate
- * permission level.
+ * level of permission.
  * @param globular
  * @param application
  * @param domain
  * @param callback
  * @param errorCallback
  */
-export declare function readFullConfig(globular: Globular, application: string, domain: string, callback: (config: IConfig) => void, errorCallback: (err: any) => void): void;
-export declare function saveConfig(globular: Globular, application: string, domain: string, config: IConfig, callback: (config: IConfig) => void, errorCallback: (err: any) => void): void;
+export declare function readFullConfig(globular: Globular, callback: (config: IConfig) => void, errorCallback: (err: any) => void): void;
+/**
+ * Save a configuration
+ * @param globular
+ * @param application
+ * @param domain
+ * @param config The configuration to be save.
+ * @param callback
+ * @param errorCallback
+ */
+export declare function saveConfig(globular: Globular, config: IConfig, callback: (config: IConfig) => void, errorCallback: (err: any) => void): void;
+/**
+ * Return the list of all action permissions.
+ * Action permission are apply on ressource managed by those action.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+export declare function readAllActionPermissions(globular: Globular, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Return the list of ressources.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param path
+ * @param name
+ * @param callback
+ * @param errorCallback
+ */
+export declare function getRessources(globular: Globular, path: string, name: string, callback: (results: Ressource[]) => void, errorCallback: (err: any) => void): void;
+/**
+ * Set/create action permission.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param permission
+ * @param callback
+ * @param errorCallback
+ */
+export declare function setActionPermission(globular: Globular, action: string, permission: number, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete action permission.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+export declare function removeActionPermission(globular: Globular, action: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete a ressource
+ * @param globular
+ * @param application
+ * @param domain
+ * @param path
+ * @param name
+ * @param callback
+ * @param errorCallback
+ */
+export declare function removeRessource(globular: Globular, path: string, name: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Retreive the list of ressource owner.
  * @param path
  * @param callback
  * @param errorCallback
  */
-export declare function getRessourceOwners(globular: Globular, application: string, domain: string, path: string, callback: (infos: Array<any>) => void, errorCallback: (err: any) => void): void;
+export declare function getRessourceOwners(globular: Globular, path: string, callback: (infos: any[]) => void, errorCallback: (err: any) => void): void;
 /**
  * The ressource owner to be set.
  * @param path The path of the ressource
@@ -33,7 +95,7 @@ export declare function getRessourceOwners(globular: Globular, application: stri
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-export declare function setRessourceOwners(globular: Globular, application: string, domain: string, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function setRessourceOwners(globular: Globular, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Delete a given ressource owner
  * @param path The path of the ressource.
@@ -41,14 +103,14 @@ export declare function setRessourceOwners(globular: Globular, application: stri
  * @param callback The sucess callback
  * @param errorCallback The error callback
  */
-export declare function deleteRessourceOwners(globular: Globular, application: string, domain: string, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function deleteRessourceOwners(globular: Globular, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
- * Retreive the permission for a given file.
+ * Retreive the permission for a given ressource.
  * @param path
  * @param callback
  * @param errorCallback
  */
-export declare function getRessourcePermissions(globular: Globular, application: string, domain: string, path: string, callback: (infos: Array<any>) => void, errorCallback: (err: any) => void): void;
+export declare function getRessourcePermissions(globular: Globular, path: string, callback: (infos: any[]) => void, errorCallback: (err: any) => void): void;
 /**
  * The permission can be assigned to
  * a User, a Role or an Application.
@@ -67,7 +129,7 @@ export declare enum OwnerType {
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-export declare function setRessourcePermission(globular: Globular, application: string, domain: string, path: string, owner: string, ownerType: OwnerType, number: number, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function setRessourcePermission(globular: Globular, path: string, owner: string, ownerType: OwnerType, permissionNumber: number, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Delete a file permission for a give user.
  * @param path The path of the file on the server.
@@ -75,7 +137,7 @@ export declare function setRessourcePermission(globular: Globular, application: 
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-export declare function deleteRessourcePermissions(globular: Globular, application: string, domain: string, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function deleteRessourcePermissions(globular: Globular, path: string, owner: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Return server files operations.
  * @param globular
@@ -84,7 +146,7 @@ export declare function deleteRessourcePermissions(globular: Globular, applicati
  * @param callbak
  * @param errorCallback
  */
-export declare function getAllFilesInfo(globular: Globular, application: string, domain: string, callbak: (filesInfo: any) => void, errorCallback: (err: any) => void): void;
+export declare function getAllFilesInfo(globular: Globular, callbak: (filesInfo: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Rename a file or a directorie with given name.
  * @param path The path inside webroot
@@ -93,21 +155,21 @@ export declare function getAllFilesInfo(globular: Globular, application: string,
  * @param callback  The success callback.
  * @param errorCallback The error callback.
  */
-export declare function renameFile(globular: Globular, application: string, domain: string, path: string, newName: string, oldName: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function renameFile(globular: Globular, path: string, newName: string, oldName: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Delete a file with a given path.
  * @param path The path of the file to be deleted.
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-export declare function deleteFile(globular: Globular, application: string, domain: string, path: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function deleteFile(globular: Globular, path: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
- *
+ * Remove a given directory and all element it contain.
  * @param path The path of the directory to be deleted.
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-export declare function deleteDir(globular: Globular, application: string, domain: string, path: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function deleteDir(globular: Globular, path: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Create a dir archive.
  * @param path
@@ -115,33 +177,33 @@ export declare function deleteDir(globular: Globular, application: string, domai
  * @param callback
  * @param errorCallback
  */
-export declare function createArchive(globular: Globular, application: string, domain: string, path: string, name: string, callback: (path: string) => void, errorCallback: (err: any) => void): void;
+export declare function createArchive(globular: Globular, path: string, name: string, callback: (path: string) => void, errorCallback: (err: any) => void): void;
 /**
- *
+ * Download a file from the server.
  * @param urlToSend
  */
-export declare function downloadFileHttp(globular: Globular, application: string, domain: string, urlToSend: string, fileName: string, callback: () => void): void;
+export declare function downloadFileHttp(urlToSend: string, fileName: string, callback: () => void): void;
 /**
  * Download a directory as archive file. (.tar.gz)
  * @param path The path of the directory to dowload.
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-export declare function downloadDir(globular: Globular, application: string, domain: string, path: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function downloadDir(globular: Globular, path: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Read the content of a dir from a given path.
  * @param path The parent path of the dir to be read.
  * @param callback  Return the path of the dir with more information.
  * @param errorCallback Return a error if the file those not contain the value.
  */
-export declare function readDir(globular: Globular, application: string, domain: string, path: string, callback: (dir: any) => void, errorCallback: (err: any) => void): void;
+export declare function readDir(globular: Globular, path: string, callback: (dir: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Create a new directory inside existing one.
  * @param path The path of the directory
  * @param callback The callback
  * @param errorCallback The error callback
  */
-export declare function createDir(globular: Globular, application: string, domain: string, path: string, callback: (dirName: string) => void, errorCallback: (err: any) => void): void;
+export declare function createDir(globular: Globular, path: string, callback: (dirName: string) => void, errorCallback: (err: any) => void): void;
 /**
  * Run a query over a time series database.
  * @param globular
@@ -153,7 +215,7 @@ export declare function createDir(globular: Globular, application: string, domai
  * @param callback
  * @param errorCallback
  */
-export declare function queryTs(globular: Globular, application: string, domain: string, connectionId: string, query: string, ts: number, callback: (value: any) => void, errorCallback: (error: any) => void): void;
+export declare function queryTs(globular: Globular, connectionId: string, query: string, ts: number, callback: (value: any) => void, errorCallback: (error: any) => void): void;
 /**
  * Run query over a time series
  * @param globular
@@ -167,9 +229,18 @@ export declare function queryTs(globular: Globular, application: string, domain:
  * @param callback
  * @param errorCallback
  */
-export declare function queryTsRange(globular: Globular, application: string, domain: string, connectionId: string, query: string, startTime: number, endTime: number, step: number, callback: (values: any) => void, errorCallback: (err: any) => void): void;
+export declare function queryTsRange(globular: Globular, connectionId: string, query: string, startTime: number, endTime: number, step: number, callback: (values: any) => void, errorCallback: (err: any) => void): void;
 /**
- * Register a new user.
+ * Return the list of all account on the server, guest and admin are new account...
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+export declare function GetAllAccountsInfo(globular: Globular, callback: (accounts: any[]) => void, errorCallback: (err: any) => void): void;
+/**
+ * Register a new account.
  * @param userName The name of the account
  * @param email The email
  * @param password The password
@@ -177,14 +248,14 @@ export declare function queryTsRange(globular: Globular, application: string, do
  * @param callback
  * @param errorCallback
  */
-export declare function registerAccount(globular: Globular, application: string, domain: string, userName: string, email: string, password: string, confirmPassword: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
+export declare function registerAccount(globular: Globular, userName: string, email: string, password: string, confirmPassword: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Remove an account from the server.
  * @param name  The _id of the account.
  * @param callback The callback when the action succed
  * @param errorCallback The error callback.
  */
-export declare function DeleteAccount(globular: Globular, application: string, domain: string, id: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
+export declare function DeleteAccount(globular: Globular, id: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Remove a role from an account.
  * @param accountId The account id
@@ -192,7 +263,7 @@ export declare function DeleteAccount(globular: Globular, application: string, d
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-export declare function RemoveRoleFromAccount(globular: Globular, application: string, domain: string, accountId: string, roleId: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
+export declare function RemoveRoleFromAccount(globular: Globular, accountId: string, roleId: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Append a role to an account.
  * @param accountId The account id
@@ -200,7 +271,7 @@ export declare function RemoveRoleFromAccount(globular: Globular, application: s
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-export declare function AppendRoleToAccount(globular: Globular, application: string, domain: string, accountId: string, roleId: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
+export declare function AppendRoleToAccount(globular: Globular, accountId: string, roleId: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Update the account email
  * @param accountId The account id
@@ -209,7 +280,7 @@ export declare function AppendRoleToAccount(globular: Globular, application: str
  * @param callback  the callback when success
  * @param errorCallback the error callback in case of error
  */
-export declare function updateAccountEmail(globular: Globular, application: string, domain: string, accountId: string, old_email: string, new_email: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function updateAccountEmail(globular: Globular, accountId: string, oldEmail: string, newEmail: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * The update account password
  * @param accountId The account id
@@ -219,50 +290,71 @@ export declare function updateAccountEmail(globular: Globular, application: stri
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-export declare function updateAccountPassword(globular: Globular, application: string, domain: string, accountId: string, old_password: string, new_password: string, confirm_password: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function updateAccountPassword(globular: Globular, accountId: string, oldPassword: string, newPassword: string, confirmPassword: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Authenticate the user and get the token
- * @param userName The account name or email
- * @param password  The user password
+ * @param globular
+ * @param eventHub
+ * @param application
+ * @param domain
+ * @param userName
+ * @param password
  * @param callback
  * @param errorCallback
  */
-export declare function authenticate(globular: Globular, eventHub: EventHub, application: string, domain: string, userName: string, password: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
+export declare function authenticate(globular: Globular, eventHub: EventHub, userName: string, password: string, callback: (value: any) => void, errorCallback: (err: any) => void): void;
 /**
- * Function to be use to refresh token or full configuration.
- * @param callback On success callback
- * @param errorCallback On error callback
+ * Function to be use to refresh token.
+ * @param globular
+ * @param eventHub
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
  */
-export declare function refreshToken(globular: Globular, eventHub: EventHub, application: string, domain: string, callback: (token: any) => void, errorCallback: (err: any) => void): void;
+export declare function refreshToken(globular: Globular, eventHub: EventHub, callback: (token: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Save user data into the user_data collection.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param data
+ * @param callback
+ * @param errorCallback
  */
-export declare function appendUserData(globular: Globular, application: string, domain: string, data: any, callback: (id: string) => void): void;
+export declare function appendUserData(globular: Globular, data: any, callback: (id: string) => void, errorCallback: (err: any) => void): void;
 /**
  * Read user data one result at time.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
  */
-export declare function readOneUserData(globular: Globular, application: string, domain: string, query: string, callback: (results: any) => void): void;
+export declare function readOneUserData(globular: Globular, query: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Read all user data.
- */
-export declare function readUserData(globular: Globular, application: string, domain: string, query: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-/**
- * Return the list of all account on the server, guest and admin are new account...
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
  * @param callback
+ * @param errorCallback
  */
-export declare function GetAllAccountsInfo(globular: Globular, application: string, domain: string, callback: (accounts: Array<any>) => void, errorCallback: (err: any) => void): void;
+export declare function readUserData(globular: Globular, query: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
 /**
  * Retreive all available actions on the server.
  * @param callback That function is call in case of success.
  * @param errorCallback That function is call in case error.
  */
-export declare function getAllActions(globular: Globular, application: string, domain: string, callback: (ations: Array<string>) => void, errorCallback: (err: any) => void): void;
+export declare function getAllActions(globular: Globular, callback: (ations: string[]) => void, errorCallback: (err: any) => void): void;
 /**
  * Retreive the list of all available roles on the server.
  * @param callback That function is call in case of success.
  * @param errorCallback That function is call in case error.
  */
-export declare function getAllRoles(globular: Globular, application: string, domain: string, callback: (roles: Array<any>) => void, errorCallback: (err: any) => void): void;
+export declare function getAllRoles(globular: Globular, callback: (roles: any[]) => void, errorCallback: (err: any) => void): void;
 /**
  * Append Action to a given role.
  * @param action The action name.
@@ -270,7 +362,7 @@ export declare function getAllRoles(globular: Globular, application: string, dom
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-export declare function AppendActionToRole(globular: Globular, application: string, domain: string, role: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function AppendActionToRole(globular: Globular, role: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Remove the action from a given role.
  * @param action The action id
@@ -278,18 +370,120 @@ export declare function AppendActionToRole(globular: Globular, application: stri
  * @param callback success callback
  * @param errorCallback error callback
  */
-export declare function RemoveActionFromRole(globular: Globular, application: string, domain: string, role: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function CreateRole(globular: Globular, application: string, domain: string, id: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function DeleteRole(globular: Globular, application: string, domain: string, id: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function GetAllApplicationsInfo(globular: Globular, application: string, domain: string, callback: (infos: any) => void, errorCallback: (err: any) => void): void;
-export declare function AppendActionToApplication(globular: Globular, application: string, domain: string, applicationId: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function RemoveActionFromApplication(globular: Globular, application: string, domain: string, applicationId: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function DeleteApplication(globular: Globular, application: string, domain: string, applicationId: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function SaveApplication(globular: Globular, eventHub: EventHub, application_: string, domain: string, application: any, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function GetAllPeersInfo(globular: Globular, application: string, domain: string, query: string, callback: (peers: Peer[]) => void, errorCallback: (err: any) => void): void;
-export declare function AppendActionToPeer(globular: Globular, application: string, domain: string, id: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function RemoveActionFromPeer(globular: Globular, application: string, domain: string, id: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function DeletePeer(globular: Globular, application: string, domain: string, peer: Peer, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function RemoveActionFromRole(globular: Globular, role: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Create a new Role
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param callback
+ * @param errorCallback
+ */
+export declare function CreateRole(globular: Globular, id: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete a given role
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param callback
+ * @param errorCallback
+ */
+export declare function DeleteRole(globular: Globular, id: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Return the list of all application
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+export declare function GetAllApplicationsInfo(globular: Globular, callback: (infos: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Append action to application.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param applicationId
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+export declare function AppendActionToApplication(globular: Globular, applicationId: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Remove action from application.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+export declare function RemoveActionFromApplication(globular: Globular, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete application
+ * @param globular
+ * @param application
+ * @param domain
+ * @param applicationId
+ * @param callback
+ * @param errorCallback
+ */
+export declare function DeleteApplication(globular: Globular, applicationId: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Save application
+ * @param globular
+ * @param eventHub
+ * @param applicationId
+ * @param domain
+ * @param application
+ * @param callback
+ * @param errorCallback
+ */
+export declare function SaveApplication(globular: Globular, eventHub: EventHub, _application: any, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Return the list of all peers.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
+ */
+export declare function GetAllPeersInfo(globular: Globular, query: string, callback: (peers: Peer[]) => void, errorCallback: (err: any) => void): void;
+/**
+ * Append action to peer.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+export declare function AppendActionToPeer(globular: Globular, id: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Remove an action from a peers.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+export declare function RemoveActionFromPeer(globular: Globular, id: string, action: string, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete a peer.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param peer
+ * @param callback
+ * @param errorCallback
+ */
+export declare function DeletePeer(globular: Globular, peer: Peer, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Return a list of service descriptor related to a service host by a server.
  * @param globular
@@ -300,7 +494,7 @@ export declare function DeletePeer(globular: Globular, application: string, doma
  * @param callback
  * @param errorCallback
  */
-export declare function GetServiceDescriptor(globular: Globular, application: string, domain: string, serviceId: string, publisherId: string, callback: (descriptors: Array<ServiceDescriptor>) => void, errorCallback: (err: any) => void): void;
+export declare function GetServiceDescriptor(globular: Globular, serviceId: string, publisherId: string, callback: (descriptors: ServiceDescriptor[]) => void, errorCallback: (err: any) => void): void;
 /**
  * Get the list of all service descriptor hosted on a server.
  * @param globular The globular object instance
@@ -309,81 +503,146 @@ export declare function GetServiceDescriptor(globular: Globular, application: st
  * @param callback
  * @param errorCallback
  */
-export declare function GetServicesDescriptor(globular: Globular, application: string, domain: string, callback: (descriptors: Array<ServiceDescriptor>) => void, errorCallback: (err: any) => void): void;
-export declare function SetServicesDescriptor(globular: Globular, application: string, domain: string, descriptor: ServiceDescriptor, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function GetServicesDescriptor(globular: Globular, callback: (descriptors: ServiceDescriptor[]) => void, errorCallback: (err: any) => void): void;
+/**
+ * Create or update a service descriptor.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param descriptor
+ * @param callback
+ * @param errorCallback
+ */
+export declare function SetServicesDescriptor(globular: Globular, descriptor: ServiceDescriptor, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Find services by keywords.
  * @param query
  * @param callback
  */
-export declare function findServices(globular: Globular, application: string, domain: string, keywords: Array<string>, callback: (results: Array<ServiceDescriptor>) => void, errorCallback: (err: any) => void): void;
-export declare function installService(globular: Globular, application: string, domain: string, discoveryId: string, serviceId: string, publisherId: string, version: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function findServices(globular: Globular, keywords: string[], callback: (results: ServiceDescriptor[]) => void, errorCallback: (err: any) => void): void;
+/**
+ * Install a service
+ * @param globular
+ * @param application
+ * @param domain
+ * @param discoveryId
+ * @param serviceId
+ * @param publisherId
+ * @param version
+ * @param callback
+ * @param errorCallback
+ */
+export declare function installService(globular: Globular, discoveryId: string, serviceId: string, publisherId: string, version: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Stop a service.
  */
-export declare function stopService(globular: Globular, application: string, domain: string, serviceId: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function stopService(globular: Globular, serviceId: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Start a service
  * @param serviceId The id of the service to start.
  * @param callback  The callback on success.
  */
-export declare function startService(globular: Globular, application: string, domain: string, serviceId: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function startService(globular: Globular, serviceId: string, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Here I will save the service configuration.
  * @param service The configuration to save.
  */
-export declare function saveService(globular: Globular, application: string, domain: string, service: IServiceConfig, callback: (config: any) => void, errorCallback: (err: any) => void): void;
-export declare function uninstallService(globular: Globular, application: string, domain: string, service: IServiceConfig, deletePermissions: boolean, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function saveService(globular: Globular, service: IServiceConfig, callback: (config: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Uninstall a service from the server.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param service
+ * @param deletePermissions
+ * @param callback
+ * @param errorCallback
+ */
+export declare function uninstallService(globular: Globular, service: IServiceConfig, deletePermissions: boolean, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Return the list of service bundles.
  * @param callback
  */
-export declare function GetServiceBundles(globular: Globular, application: string, domain: string, publisherId: string, serviceId: string, version: string, callback: (bundles: Array<any>) => void, errorCallback: (err: any) => void): void;
-export declare function getReferencedValue(globular: Globular, application: string, domain: string, ref: any, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+export declare function GetServiceBundles(globular: Globular, publisherId: string, serviceId: string, version: string, callback: (bundles: any[]) => void, errorCallback: (err: any) => void): void;
 /**
- * Read all errors data.
+ * Get the object pointed by a reference.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param ref
  * @param callback
+ * @param errorCallback
  */
-export declare function readErrors(globular: Globular, application: string, domain: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-export declare function readAllActionPermission(globular: Globular, application: string, domain: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-export declare function getRessources(globular: Globular, application: string, domain: string, path: string, name: string, callback: (results: Ressource[]) => void, errorCallback: (err: any) => void): void;
-export declare function setActionPermission(globular: Globular, application: string, domain: string, action: string, permission: number, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-export declare function removeActionPermission(globular: Globular, application: string, domain: string, action: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-export declare function removeRessource(globular: Globular, application: string, domain: string, path: string, name: string, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function getReferencedValue(globular: Globular, ref: any, callback: (results: any) => void, errorCallback: (err: any) => void): void;
 /**
- * Read all logs
- * @param callback The success callback.
+ * Read all errors data for server log.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
  */
-export declare function readLogs(globular: Globular, application: string, domain: string, query: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
-export declare function clearAllLog(globular: Globular, application: string, domain: string, logType: LogType, callback: () => void, errorCallback: (err: any) => void): void;
-export declare function deleteLog(globular: Globular, application: string, domain: string, log: LogInfo, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function readErrors(globular: Globular, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+/**
+ *  Read all logs
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
+ */
+export declare function readLogs(globular: Globular, query: string, callback: (results: any) => void, errorCallback: (err: any) => void): void;
+/**
+ * Clear all log of a given type.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param logType
+ * @param callback
+ * @param errorCallback
+ */
+export declare function clearAllLog(globular: Globular, logType: LogType, callback: () => void, errorCallback: (err: any) => void): void;
+/**
+ * Delete log entry.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param log
+ * @param callback
+ * @param errorCallback
+ */
+export declare function deleteLogEntry(globular: Globular, log: LogInfo, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Return the logged method and their count.
  * @param pipeline
  * @param callback
  * @param errorCallback
  */
-export declare function getNumbeOfLogsByMethod(globular: Globular, application: string, domain: string, callback: (resuts: Array<any>) => void, errorCallback: (err: any) => void): void;
+export declare function getNumbeOfLogsByMethod(globular: Globular, callback: (resuts: any[]) => void, errorCallback: (err: any) => void): void;
 export declare enum PLC_TYPE {
     ALEN_BRADLEY = 1,
     SIEMENS = 2,
     MODBUS = 3
 }
 /**
-* Read a plc tag from the defined backend.
-* @param plcType  The plc type can be Alen Bradley or Simens, modbus is on the planned.
-* @param connectionId  The connection id defined for that plc.
-* @param name The name of the tag to read.
-* @param type The type name of the plc.
-* @param offset The offset in the memory.
-*/
-export declare function readPlcTag(globular: Globular, application: string, domain: string, plcType: PLC_TYPE, connectionId: string, name: string, type: TagType, offset: number): Promise<any>;
+ * Read a plc tag.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param plcType
+ * @param connectionId
+ * @param name
+ * @param type
+ * @param offset
+ */
+export declare function readPlcTag(globular: Globular, plcType: PLC_TYPE, connectionId: string, name: string, type: TagType, offset: number): Promise<any>;
 /**
  * Synchronize LDAP and Globular/MongoDB user and roles.
  * @param info The synchronisations informations.
  * @param callback success callback.
  */
-export declare function syncLdapInfos(globular: Globular, application: string, domain: string, info: any, timeout: number, callback: () => void, errorCallback: (err: any) => void): void;
+export declare function syncLdapInfos(globular: Globular, info: any, timeout: number, callback: () => void, errorCallback: (err: any) => void): void;
 /**
  * Ping globular sql service.
  * @param globular
@@ -393,4 +652,4 @@ export declare function syncLdapInfos(globular: Globular, application: string, d
  * @param callback
  * @param errorCallback
  */
-export declare function pingSql(globular: Globular, application: string, domain: string, connectionId: string, callback: (pong: string) => {}, errorCallback: (err: any) => void): void;
+export declare function pingSql(globular: Globular, connectionId: string, callback: (pong: string) => {}, errorCallback: (err: any) => void): void;

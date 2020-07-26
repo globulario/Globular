@@ -1512,7 +1512,7 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	Utility.RegisterType(s_impl) // must be call dynamically
-	s_impl.Name = Utility.GetExecName(os.Args[0])
+	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

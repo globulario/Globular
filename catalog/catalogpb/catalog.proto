@@ -4,7 +4,7 @@
 syntax = "proto3";
 package catalog;
 
-option go_package="catalogpb";
+option go_package="catalog/catalogpb";
 
 enum StoreType{
 	MONGO = 0;

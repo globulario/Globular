@@ -48,23 +48,28 @@ var persistence_pb_1 = require("./persistence/persistencepb/persistence_pb");
 var services_pb_1 = require("./services/services_pb");
 var file_pb_1 = require("./file/filepb/file_pb");
 var plc_pb_1 = require("./plc/plcpb/plc_pb");
+// Here I will get the authentication information.
+var domain = window.location.hostname;
+var application = window.location.pathname.split('/')[1];
+var token = localStorage.getItem("user_token");
 /**
  * Return the globular configuration file. The return config object
  * can contain sensible information so it must be called with appropriate
- * permission level.
+ * level of permission.
  * @param globular
  * @param application
  * @param domain
  * @param callback
  * @param errorCallback
  */
-function readFullConfig(globular, application, domain, callback, errorCallback) {
+function readFullConfig(globular, callback, errorCallback) {
     var rqst = new admin_pb_1.GetConfigRequest();
     if (globular.adminService !== undefined) {
         globular.adminService
             .getFullConfig(rqst, {
-            token: localStorage.getItem("user_token"),
-            application: application, domain: domain
+            "token": token,
+            "application": application,
+            "domain": domain
         })
             .then(function (rsp) {
             globular.config = JSON.parse(rsp.getResult());
@@ -77,15 +82,24 @@ function readFullConfig(globular, application, domain, callback, errorCallback) 
     }
 }
 exports.readFullConfig = readFullConfig;
-// Save the configuration.
-function saveConfig(globular, application, domain, config, callback, errorCallback) {
+/**
+ * Save a configuration
+ * @param globular
+ * @param application
+ * @param domain
+ * @param config The configuration to be save.
+ * @param callback
+ * @param errorCallback
+ */
+function saveConfig(globular, config, callback, errorCallback) {
     var rqst = new admin_pb_1.SaveConfigRequest();
     rqst.setConfig(JSON.stringify(config));
     if (globular.adminService !== undefined) {
         globular.adminService
             .saveConfig(rqst, {
-            token: localStorage.getItem("user_token"),
-            application: application, domain: domain
+            "token": token,
+            "application": application,
+            "domain": domain
         })
             .then(function (rsp) {
             config = JSON.parse(rsp.getResult());
@@ -97,20 +111,164 @@ function saveConfig(globular, application, domain, config, callback, errorCallba
     }
 }
 exports.saveConfig = saveConfig;
-///////////////////////////////////// Ressources actions /////////////////////////////////////
+///////////////////////////////////// Ressource & Permissions operations /////////////////////////////////
+/**
+ * Return the list of all action permissions.
+ * Action permission are apply on ressource managed by those action.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+function readAllActionPermissions(globular, callback, errorCallback) {
+    var database = "local_ressource";
+    var collection = "ActionPermission";
+    var rqst = new persistence_pb_1.FindRqst();
+    rqst.setId(database);
+    rqst.setDatabase(database);
+    rqst.setCollection(collection);
+    rqst.setOptions("");
+    rqst.setQuery("{}");
+    // call persist data
+    var stream = globular.persistenceService.find(rqst, {
+        "token": token,
+        "application": application, "domain": domain
+    });
+    var results = new Array();
+    // Get the stream and set event on it...
+    stream.on("data", function (rsp) {
+        results = results.concat(JSON.parse(rsp.getJsonstr()));
+    });
+    stream.on("status", function (status) {
+        if (status.code === 0) {
+            callback(results);
+        }
+        else {
+            errorCallback({ "message": status.details });
+        }
+    });
+}
+exports.readAllActionPermissions = readAllActionPermissions;
+/**
+ * Return the list of ressources.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param path
+ * @param name
+ * @param callback
+ * @param errorCallback
+ */
+function getRessources(globular, path, name, callback, errorCallback) {
+    var rqst = new ressource_pb_1.GetRessourcesRqst;
+    rqst.setPath(path);
+    rqst.setName(name);
+    // call persist data
+    var stream = globular.ressourceService.getRessources(rqst, {
+        "token": token,
+        "application": application, "domain": domain
+    });
+    var results = new Array();
+    // Get the stream and set event on it...
+    stream.on("data", function (rsp) {
+        results = results.concat(rsp.getRessourcesList());
+    });
+    stream.on("status", function (status) {
+        if (status.code === 0) {
+            callback(results);
+        }
+        else {
+            errorCallback({ "message": status.details });
+        }
+    });
+}
+exports.getRessources = getRessources;
+/**
+ * Set/create action permission.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param permission
+ * @param callback
+ * @param errorCallback
+ */
+function setActionPermission(globular, action, permission, callback, errorCallback) {
+    var rqst = new ressource_pb_1.SetActionPermissionRqst;
+    rqst.setAction(action);
+    rqst.setPermission(permission);
+    // Call set action permission.
+    globular.ressourceService.setActionPermission(rqst, {
+        "token": token,
+        "application": application, "domain": domain
+    }).then(callback)
+        .catch(function (err) {
+        errorCallback(err);
+    });
+}
+exports.setActionPermission = setActionPermission;
+/**
+ * Delete action permission.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+function removeActionPermission(globular, action, callback, errorCallback) {
+    var rqst = new ressource_pb_1.RemoveActionPermissionRqst;
+    rqst.setAction(action);
+    // Call set action permission.
+    globular.ressourceService.removeActionPermission(rqst, {
+        "token": token,
+        "application": application, "domain": domain
+    }).then(callback)
+        .catch(function (err) {
+        errorCallback(err);
+    });
+}
+exports.removeActionPermission = removeActionPermission;
+/**
+ * Delete a ressource
+ * @param globular
+ * @param application
+ * @param domain
+ * @param path
+ * @param name
+ * @param callback
+ * @param errorCallback
+ */
+function removeRessource(globular, path, name, callback, errorCallback) {
+    var rqst = new ressource_pb_1.RemoveRessourceRqst;
+    var ressource = new ressource_pb_1.Ressource;
+    ressource.setPath(path);
+    ressource.setName(name);
+    rqst.setRessource(ressource);
+    globular.ressourceService.removeRessource(rqst, {
+        "token": token,
+        "application": application,
+        "domain": domain
+    }).then(callback)
+        .catch(function (err) {
+        errorCallback(err);
+    });
+}
+exports.removeRessource = removeRessource;
 /**
  * Retreive the list of ressource owner.
  * @param path
  * @param callback
  * @param errorCallback
  */
-function getRessourceOwners(globular, application, domain, path, callback, errorCallback) {
+function getRessourceOwners(globular, path, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetRessourceOwnersRqst;
     path = path.replace("/webroot", "");
     rqst.setPath(path);
     globular.ressourceService.getRessourceOwners(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback(rsp.getOwnersList());
     }).catch(function (err) {
@@ -125,14 +283,15 @@ exports.getRessourceOwners = getRessourceOwners;
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-function setRessourceOwners(globular, application, domain, path, owner, callback, errorCallback) {
+function setRessourceOwners(globular, path, owner, callback, errorCallback) {
     var rqst = new ressource_pb_1.SetRessourceOwnerRqst;
     path = path.replace("/webroot", ""); // remove the /webroot part.
     rqst.setPath(path);
     rqst.setOwner(owner);
     globular.ressourceService.setRessourceOwner(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain
     }).then(function () {
         callback();
     }).catch(function (err) {
@@ -147,14 +306,15 @@ exports.setRessourceOwners = setRessourceOwners;
  * @param callback The sucess callback
  * @param errorCallback The error callback
  */
-function deleteRessourceOwners(globular, application, domain, path, owner, callback, errorCallback) {
+function deleteRessourceOwners(globular, path, owner, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeleteRessourceOwnerRqst;
     path = path.replace("/webroot", ""); // remove the /webroot part.
     rqst.setPath(path);
     rqst.setOwner(owner);
     globular.ressourceService.deleteRessourceOwner(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain
     }).then(function () {
         callback();
     }).catch(function (err) {
@@ -163,28 +323,29 @@ function deleteRessourceOwners(globular, application, domain, path, owner, callb
 }
 exports.deleteRessourceOwners = deleteRessourceOwners;
 /**
- * Retreive the permission for a given file.
+ * Retreive the permission for a given ressource.
  * @param path
  * @param callback
  * @param errorCallback
  */
-function getRessourcePermissions(globular, application, domain, path, callback, errorCallback) {
+function getRessourcePermissions(globular, path, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetPermissionsRqst;
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
     globular.ressourceService
         .getPermissions(rqst, {
-        application: application, domain: domain
+        "application": application,
+        "domain": domain
     })
         .then(function (rsp) {
         var permissions = JSON.parse(rsp.getPermissions());
         callback(permissions);
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -209,35 +370,36 @@ var OwnerType;
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-function setRessourcePermission(globular, application, domain, path, owner, ownerType, number, callback, errorCallback) {
+function setRessourcePermission(globular, path, owner, ownerType, permissionNumber, callback, errorCallback) {
     var rqst = new ressource_pb_1.SetPermissionRqst;
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     var permission = new ressource_pb_1.RessourcePermission;
     permission.setPath(path);
-    permission.setNumber(number);
-    if (ownerType == OwnerType.User) {
+    permission.setNumber(permissionNumber);
+    if (ownerType === OwnerType.User) {
         permission.setUser(owner);
     }
-    else if (ownerType == OwnerType.Role) {
+    else if (ownerType === OwnerType.Role) {
         permission.setRole(owner);
     }
-    else if (ownerType == OwnerType.Application) {
+    else if (ownerType === OwnerType.Application) {
         permission.setApplication(owner);
     }
     rqst.setPermission(permission);
     globular.ressourceService
         .setPermission(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain
     })
         .then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -250,24 +412,25 @@ exports.setRessourcePermission = setRessourcePermission;
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-function deleteRessourcePermissions(globular, application, domain, path, owner, callback, errorCallback) {
+function deleteRessourcePermissions(globular, path, owner, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeletePermissionsRqst;
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
     rqst.setOwner(owner);
     globular.ressourceService
         .deletePermissions(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain
     })
         .then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -282,10 +445,10 @@ exports.deleteRessourcePermissions = deleteRessourcePermissions;
  * @param callbak
  * @param errorCallback
  */
-function getAllFilesInfo(globular, application, domain, callbak, errorCallback) {
+function getAllFilesInfo(globular, callbak, errorCallback) {
     var rqst = new ressource_pb_1.GetAllFilesInfoRqst();
     globular.ressourceService
-        .getAllFilesInfo(rqst, { application: application, domain: domain })
+        .getAllFilesInfo(rqst, { "application": application, "domain": domain })
         .then(function (rsp) {
         var filesInfo = JSON.parse(rsp.getResult());
         callbak(filesInfo);
@@ -303,10 +466,10 @@ exports.getAllFilesInfo = getAllFilesInfo;
  * @param callback  The success callback.
  * @param errorCallback The error callback.
  */
-function renameFile(globular, application, domain, path, newName, oldName, callback, errorCallback) {
+function renameFile(globular, path, newName, oldName, callback, errorCallback) {
     var rqst = new file_pb_1.RenameRequest();
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
@@ -314,14 +477,16 @@ function renameFile(globular, application, domain, path, newName, oldName, callb
     rqst.setNewName(newName);
     globular.fileService
         .rename(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain,
+        "path": path + "/" + oldName
     })
         .then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -333,51 +498,55 @@ exports.renameFile = renameFile;
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-function deleteFile(globular, application, domain, path, callback, errorCallback) {
+function deleteFile(globular, path, callback, errorCallback) {
     var rqst = new file_pb_1.DeleteFileRequest();
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
     globular.fileService
         .deleteFile(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain,
+        "path": path
     })
         .then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
 }
 exports.deleteFile = deleteFile;
 /**
- *
+ * Remove a given directory and all element it contain.
  * @param path The path of the directory to be deleted.
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-function deleteDir(globular, application, domain, path, callback, errorCallback) {
+function deleteDir(globular, path, callback, errorCallback) {
     var rqst = new file_pb_1.DeleteDirRequest();
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
     globular.fileService
         .deleteDir(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain,
+        "path": path
     })
         .then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -390,35 +559,37 @@ exports.deleteDir = deleteDir;
  * @param callback
  * @param errorCallback
  */
-function createArchive(globular, application, domain, path, name, callback, errorCallback) {
+function createArchive(globular, path, name, callback, errorCallback) {
     var rqst = new file_pb_1.CreateArchiveRequest;
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     rqst.setPath(path);
     rqst.setName(name);
     globular.fileService.createAchive(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain,
+        "path": path
     }).then(function (rsp) {
         callback(rsp.getResult());
     }).catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
 }
 exports.createArchive = createArchive;
 /**
- *
+ * Download a file from the server.
  * @param urlToSend
  */
-function downloadFileHttp(globular, application, domain, urlToSend, fileName, callback) {
+function downloadFileHttp(urlToSend, fileName, callback) {
     var req = new XMLHttpRequest();
     req.open("GET", urlToSend, true);
     // Set the token to manage downlaod access.
-    req.setRequestHeader("token", localStorage.getItem("user_token"));
+    req.setRequestHeader("token", token);
     req.setRequestHeader("application", application);
     req.setRequestHeader("domain", domain);
     req.responseType = "blob";
@@ -439,25 +610,23 @@ exports.downloadFileHttp = downloadFileHttp;
  * @param callback The success callback.
  * @param errorCallback The error callback.
  */
-function downloadDir(globular, application, domain, path, callback, errorCallback) {
+function downloadDir(globular, path, callback, errorCallback) {
     var name = path.split("/")[path.split("/").length - 1];
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
-        path = "/";
-    }
     // Create an archive-> download it-> delete it...
-    createArchive(globular, application, domain, path, name, function (path) {
-        var name = path.split("/")[path.split("/").length - 1];
+    createArchive(globular, path, name, function (_path) {
         // display the archive path...
-        downloadFileHttp(globular, application, domain, window.location.origin + path, name, function () {
+        downloadFileHttp(window.location.origin + _path, name, function () {
             // Here the file was downloaded I will now delete it.
             setTimeout(function () {
                 // wait a little and remove the archive from the server.
                 var rqst = new file_pb_1.DeleteFileRequest;
-                rqst.setPath(path);
+                rqst.setPath(path + "/" + name);
                 globular.fileService.deleteFile(rqst, {
-                    token: localStorage.getItem("user_token"),
-                    application: application, domain: domain
+                    "token": token,
+                    "application": application,
+                    "domain": domain,
+                    "path": path
                 }).then(callback)
                     .catch(errorCallback);
             }, 5000); // wait 5 second, arbritary...
@@ -478,9 +647,9 @@ function mergeTypedArraysUnsafe(a, b) {
  * @param callback  Return the path of the dir with more information.
  * @param errorCallback Return a error if the file those not contain the value.
  */
-function readDir(globular, application, domain, path, callback, errorCallback) {
+function readDir(globular, path, callback, errorCallback) {
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     var rqst = new file_pb_1.ReadDirRequest;
@@ -490,16 +659,17 @@ function readDir(globular, application, domain, path, callback, errorCallback) {
     rqst.setThumnailwidth(256);
     var uint8array = new Uint8Array(0);
     var stream = globular.fileService.readDir(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application,
+        "domain": domain,
+        "path": path
     });
     stream.on("data", function (rsp) {
         uint8array = mergeTypedArraysUnsafe(uint8array, rsp.getData());
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
-            var jsonStr = new TextDecoder("utf-8").decode(uint8array);
-            var content = JSON.parse(jsonStr);
+        if (status.code === 0) {
+            var content = JSON.parse(new TextDecoder("utf-8").decode(uint8array));
             callback(content);
         }
         else {
@@ -510,13 +680,14 @@ function readDir(globular, application, domain, path, callback, errorCallback) {
 }
 exports.readDir = readDir;
 /**
- *
+ * Test if a file is contain in a list of files.
  * @param files
  */
 function fileExist(fileName, files) {
     if (files != null) {
-        for (var i = 0; i < files.length; i++) {
-            if (files[i].Name == fileName) {
+        for (var _i = 0, files_1 = files; _i < files_1.length; _i++) {
+            var file = files_1[_i];
+            if (file.Name === fileName) {
                 return true;
             }
         }
@@ -529,13 +700,13 @@ function fileExist(fileName, files) {
  * @param callback The callback
  * @param errorCallback The error callback
  */
-function createDir(globular, application, domain, path, callback, errorCallback) {
+function createDir(globular, path, callback, errorCallback) {
     path = path.replace("/webroot", ""); // remove the /webroot part.
-    if (path.length == 0) {
+    if (path.length === 0) {
         path = "/";
     }
     // first of all I will read the directory content...
-    readDir(globular, application, domain, path, function (dir) {
+    readDir(globular, path, function (dir) {
         var newDirName = "New Folder";
         for (var i = 0; i < 1024; i++) {
             if (!fileExist(newDirName, dir.Files)) {
@@ -549,8 +720,10 @@ function createDir(globular, application, domain, path, callback, errorCallback)
         rqst.setName(newDirName);
         // Create a directory at the given path.
         globular.fileService.createDir(rqst, {
-            token: localStorage.getItem("user_token"),
-            application: application, domain: domain
+            "token": token,
+            "application": application,
+            "domain": domain,
+            "path": path
         }).then(function () {
             // The new directory was created.
             callback(newDirName);
@@ -573,25 +746,26 @@ exports.createDir = createDir;
  * @param callback
  * @param errorCallback
  */
-function queryTs(globular, application, domain, connectionId, query, ts, callback, errorCallback) {
+function queryTs(globular, connectionId, query, ts, callback, errorCallback) {
     // Create a new request.
-    var request = new monitoring_pb_1.QueryRequest();
-    request.setConnectionid(connectionId);
-    request.setQuery(query);
-    request.setTs(ts);
+    var rqst = new monitoring_pb_1.QueryRequest();
+    rqst.setConnectionid(connectionId);
+    rqst.setQuery(query);
+    rqst.setTs(ts);
     // Now I will test with promise
     globular.monitoringService
-        .query(request, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        .query(rqst, {
+        "token": token,
+        "application": application,
+        "domain": domain
     })
         .then(function (resp) {
-        if (callback != undefined) {
+        if (callback !== undefined) {
             callback(JSON.parse(resp.getValue()));
         }
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -610,25 +784,26 @@ exports.queryTs = queryTs;
  * @param callback
  * @param errorCallback
  */
-function queryTsRange(globular, application, domain, connectionId, query, startTime, endTime, step, callback, errorCallback) {
+function queryTsRange(globular, connectionId, query, startTime, endTime, step, callback, errorCallback) {
     // Create a new request.
-    var request = new monitoring_pb_1.QueryRangeRequest();
-    request.setConnectionid(connectionId);
-    request.setQuery(query);
-    request.setStarttime(startTime);
-    request.setEndtime(endTime);
-    request.setStep(step);
+    var rqst = new monitoring_pb_1.QueryRangeRequest();
+    rqst.setConnectionid(connectionId);
+    rqst.setQuery(query);
+    rqst.setStarttime(startTime);
+    rqst.setEndtime(endTime);
+    rqst.setStep(step);
     var buffer = { value: "", warning: "" };
-    var stream = globular.monitoringService.queryRange(request, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+    var stream = globular.monitoringService.queryRange(rqst, {
+        "token": token,
+        "application": application,
+        "domain": domain
     });
     stream.on("data", function (rsp) {
         buffer.value += rsp.getValue();
         buffer.warning = rsp.getWarnings();
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(JSON.parse(buffer.value));
         }
         else {
@@ -642,7 +817,39 @@ function queryTsRange(globular, application, domain, connectionId, query, startT
 exports.queryTsRange = queryTsRange;
 ///////////////////////////////////// Account management action //////////////////////////////////////
 /**
- * Register a new user.
+ * Return the list of all account on the server, guest and admin are new account...
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+function GetAllAccountsInfo(globular, callback, errorCallback) {
+    var rqst = new persistence_pb_1.FindRqst();
+    rqst.setCollection("Accounts");
+    rqst.setDatabase("local_ressource");
+    rqst.setId("local_ressource");
+    rqst.setQuery("{}"); // means all values.
+    var stream = globular.persistenceService.find(rqst, {
+        "application": application,
+        "domain": domain
+    });
+    var accounts = [];
+    stream.on("data", function (rsp) {
+        accounts = accounts.concat(JSON.parse(rsp.getJsonstr()));
+    });
+    stream.on("status", function (status) {
+        if (status.code === 0) {
+            callback(accounts);
+        }
+        else {
+            errorCallback({ "message": status.details });
+        }
+    });
+}
+exports.GetAllAccountsInfo = GetAllAccountsInfo;
+/**
+ * Register a new account.
  * @param userName The name of the account
  * @param email The email
  * @param password The password
@@ -650,7 +857,7 @@ exports.queryTsRange = queryTsRange;
  * @param callback
  * @param errorCallback
  */
-function registerAccount(globular, application, domain, userName, email, password, confirmPassword, callback, errorCallback) {
+function registerAccount(globular, userName, email, password, confirmPassword, callback, errorCallback) {
     var request = new ressource_pb_1.RegisterAccountRqst();
     var account = new ressource_pb_1.Account();
     account.setName(userName);
@@ -660,7 +867,10 @@ function registerAccount(globular, application, domain, userName, email, passwor
     request.setConfirmPassword(confirmPassword);
     // Create the user account.
     globular.ressourceService
-        .registerAccount(request, { application: application, domain: domain })
+        .registerAccount(request, {
+        "application": application,
+        "domain": domain
+    })
         .then(function (rsp) {
         callback(rsp.getResult());
     })
@@ -675,12 +885,12 @@ exports.registerAccount = registerAccount;
  * @param callback The callback when the action succed
  * @param errorCallback The error callback.
  */
-function DeleteAccount(globular, application, domain, id, callback, errorCallback) {
+function DeleteAccount(globular, id, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeleteAccountRqst;
     rqst.setId(id);
     // Remove the account from the database.
     globular.ressourceService
-        .deleteAccount(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+        .deleteAccount(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback(rsp.getResult());
     })
@@ -696,12 +906,12 @@ exports.DeleteAccount = DeleteAccount;
  * @param callback The success callback
  * @param errorCallback The error callback
  */
-function RemoveRoleFromAccount(globular, application, domain, accountId, roleId, callback, errorCallback) {
+function RemoveRoleFromAccount(globular, accountId, roleId, callback, errorCallback) {
     var rqst = new ressource_pb_1.RemoveAccountRoleRqst;
     rqst.setAccountid(accountId);
     rqst.setRoleid(roleId);
     globular.ressourceService
-        .removeAccountRole(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+        .removeAccountRole(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback(rsp.getResult());
     })
@@ -717,12 +927,12 @@ exports.RemoveRoleFromAccount = RemoveRoleFromAccount;
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-function AppendRoleToAccount(globular, application, domain, accountId, roleId, callback, errorCallback) {
+function AppendRoleToAccount(globular, accountId, roleId, callback, errorCallback) {
     var rqst = new ressource_pb_1.AddAccountRoleRqst;
     rqst.setAccountid(accountId);
     rqst.setRoleid(roleId);
     globular.ressourceService
-        .addAccountRole(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+        .addAccountRole(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback(rsp.getResult());
     })
@@ -739,19 +949,19 @@ exports.AppendRoleToAccount = AppendRoleToAccount;
  * @param callback  the callback when success
  * @param errorCallback the error callback in case of error
  */
-function updateAccountEmail(globular, application, domain, accountId, old_email, new_email, callback, errorCallback) {
+function updateAccountEmail(globular, accountId, oldEmail, newEmail, callback, errorCallback) {
     var rqst = new admin_pb_1.SetEmailRequest;
     rqst.setAccountid(accountId);
-    rqst.setOldemail(old_email);
-    rqst.setNewemail(new_email);
+    rqst.setOldemail(oldEmail);
+    rqst.setNewemail(newEmail);
     globular.adminService.setEmail(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log("fail to save config ", err);
+        errorCallback(err);
     });
 }
 exports.updateAccountEmail = updateAccountEmail;
@@ -764,23 +974,23 @@ exports.updateAccountEmail = updateAccountEmail;
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-function updateAccountPassword(globular, application, domain, accountId, old_password, new_password, confirm_password, callback, errorCallback) {
+function updateAccountPassword(globular, accountId, oldPassword, newPassword, confirmPassword, callback, errorCallback) {
     var rqst = new admin_pb_1.SetPasswordRequest;
     rqst.setAccountid(accountId);
-    rqst.setOldpassword(old_password);
-    rqst.setNewpassword(new_password);
-    if (confirm_password != new_password) {
+    rqst.setOldpassword(oldPassword);
+    rqst.setNewpassword(newPassword);
+    if (confirmPassword !== newPassword) {
         errorCallback("password not match!");
         return;
     }
     globular.adminService.setPassword(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback();
     })
         .catch(function (error) {
-        if (errorCallback != undefined) {
+        if (errorCallback !== undefined) {
             errorCallback(error);
         }
     });
@@ -788,26 +998,30 @@ function updateAccountPassword(globular, application, domain, accountId, old_pas
 exports.updateAccountPassword = updateAccountPassword;
 /**
  * Authenticate the user and get the token
- * @param userName The account name or email
- * @param password  The user password
+ * @param globular
+ * @param eventHub
+ * @param application
+ * @param domain
+ * @param userName
+ * @param password
  * @param callback
  * @param errorCallback
  */
-function authenticate(globular, eventHub, application, domain, userName, password, callback, errorCallback) {
+function authenticate(globular, eventHub, userName, password, callback, errorCallback) {
     var rqst = new ressource_pb_1.AuthenticateRqst();
     rqst.setName(userName);
     rqst.setPassword(password);
     // Create the user account.
     globular.ressourceService
-        .authenticate(rqst, { application: application, domain: domain })
+        .authenticate(rqst, { "application": application, "domain": domain })
         .then(function (rsp) {
         // Here I will set the token in the localstorage.
-        var token = rsp.getToken();
+        token = rsp.getToken();
         var decoded = jwt(token);
         // here I will save the user token and user_name in the local storage.
         localStorage.setItem("user_token", token);
         localStorage.setItem("user_name", decoded.username);
-        readFullConfig(globular, application, domain, function (config) {
+        readFullConfig(globular, function (config) {
             // Publish local login event.
             eventHub.publish("onlogin", config, true); // return the full config...
             callback(decoded);
@@ -816,48 +1030,53 @@ function authenticate(globular, eventHub, application, domain, userName, passwor
         });
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.authenticate = authenticate;
 /**
- * Function to be use to refresh token or full configuration.
- * @param callback On success callback
- * @param errorCallback On error callback
+ * Function to be use to refresh token.
+ * @param globular
+ * @param eventHub
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
  */
-function refreshToken(globular, eventHub, application, domain, callback, errorCallback) {
+function refreshToken(globular, eventHub, callback, errorCallback) {
     var rqst = new ressource_pb_1.RefreshTokenRqst();
     rqst.setToken(localStorage.getItem("user_token"));
     globular.ressourceService
         .refreshToken(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         // Here I will set the token in the localstorage.
-        var token = rsp.getToken();
+        token = rsp.getToken();
         var decoded = jwt(token);
         // here I will save the user token and user_name in the local storage.
         localStorage.setItem("user_token", token);
         localStorage.setItem("user_name", decoded.username);
-        readFullConfig(globular, application, domain, function (config) {
-            // Publish local login event.
-            eventHub.publish("onlogin", config, true); // return the full config...
-            callback(decoded);
-        }, function (err) {
-            errorCallback(err);
-        });
+        // Publish local login event.
+        eventHub.publish("onlogin", globular.config, true); // return the full config...
+        callback(decoded);
     })
         .catch(function (err) {
-        onerror(err);
+        errorCallback(err);
     });
 }
 exports.refreshToken = refreshToken;
 /**
  * Save user data into the user_data collection.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param data
+ * @param callback
+ * @param errorCallback
  */
-function appendUserData(globular, application, domain, data, callback) {
+function appendUserData(globular, data, callback, errorCallback) {
     var userName = localStorage.getItem("user_name");
     var database = userName + "_db";
     var collection = "user_data";
@@ -870,21 +1089,27 @@ function appendUserData(globular, application, domain, data, callback) {
     // call persist data
     globular.persistenceService
         .insertOne(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback(rsp.getId());
     })
         .catch(function (err) {
-        console.log(err);
+        errorCallback(err);
     });
 }
 exports.appendUserData = appendUserData;
 /**
  * Read user data one result at time.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
  */
-function readOneUserData(globular, application, domain, query, callback) {
+function readOneUserData(globular, query, callback, errorCallback) {
     var userName = localStorage.getItem("user_name");
     var database = userName + "_db";
     var collection = "user_data";
@@ -897,21 +1122,27 @@ function readOneUserData(globular, application, domain, query, callback) {
     // call persist data
     globular.persistenceService
         .findOne(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback(JSON.parse(rsp.getJsonstr()));
     })
         .catch(function (err) {
-        console.log(err);
+        errorCallback(err);
     });
 }
 exports.readOneUserData = readOneUserData;
 /**
  * Read all user data.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
  */
-function readUserData(globular, application, domain, query, callback, errorCallback) {
+function readUserData(globular, query, callback, errorCallback) {
     var userName = localStorage.getItem("user_name");
     var database = userName + "_db";
     var collection = "user_data";
@@ -923,8 +1154,8 @@ function readUserData(globular, application, domain, query, callback, errorCallb
     rqst.setOptions("");
     // call persist data
     var stream = globular.persistenceService.find(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     });
     var results = new Array();
     // Get the stream and set event on it...
@@ -932,7 +1163,7 @@ function readUserData(globular, application, domain, query, callback, errorCallb
         results = results.concat(JSON.parse(rsp.getJsonstr()));
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(results);
         }
         else {
@@ -943,41 +1174,14 @@ function readUserData(globular, application, domain, query, callback, errorCallb
 exports.readUserData = readUserData;
 ///////////////////////////////////// Role action //////////////////////////////////////
 /**
- * Return the list of all account on the server, guest and admin are new account...
- * @param callback
- */
-function GetAllAccountsInfo(globular, application, domain, callback, errorCallback) {
-    var rqst = new persistence_pb_1.FindRqst();
-    rqst.setCollection("Accounts");
-    rqst.setDatabase("local_ressource");
-    rqst.setId("local_ressource");
-    rqst.setQuery("{}"); // means all values.
-    var stream = globular.persistenceService.find(rqst, {
-        application: application, domain: domain
-    });
-    var accounts = new Array();
-    stream.on("data", function (rsp) {
-        accounts = accounts.concat(JSON.parse(rsp.getJsonstr()));
-    });
-    stream.on("status", function (status) {
-        if (status.code == 0) {
-            callback(accounts);
-        }
-        else {
-            errorCallback({ "message": status.details });
-        }
-    });
-}
-exports.GetAllAccountsInfo = GetAllAccountsInfo;
-/**
  * Retreive all available actions on the server.
  * @param callback That function is call in case of success.
  * @param errorCallback That function is call in case error.
  */
-function getAllActions(globular, application, domain, callback, errorCallback) {
+function getAllActions(globular, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetAllActionsRqst();
     globular.ressourceService
-        .getAllActions(rqst, { application: application, domain: domain })
+        .getAllActions(rqst, { "application": application, "domain": domain })
         .then(function (rsp) {
         callback(rsp.getActionsList());
     })
@@ -991,21 +1195,21 @@ exports.getAllActions = getAllActions;
  * @param callback That function is call in case of success.
  * @param errorCallback That function is call in case error.
  */
-function getAllRoles(globular, application, domain, callback, errorCallback) {
+function getAllRoles(globular, callback, errorCallback) {
     var rqst = new persistence_pb_1.FindRqst();
     rqst.setCollection("Roles");
     rqst.setDatabase("local_ressource");
     rqst.setId("local_ressource");
     rqst.setQuery("{}"); // means all values.
     var stream = globular.persistenceService.find(rqst, {
-        application: application, domain: domain
+        "application": application, "domain": domain
     });
-    var roles = new Array();
+    var roles = [];
     stream.on("data", function (rsp) {
         roles = roles.concat(JSON.parse(rsp.getJsonstr()));
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(roles);
         }
         else {
@@ -1021,14 +1225,14 @@ exports.getAllRoles = getAllRoles;
  * @param callback The success callback
  * @param errorCallback The error callback.
  */
-function AppendActionToRole(globular, application, domain, role, action, callback, errorCallback) {
+function AppendActionToRole(globular, role, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.AddRoleActionRqst();
     rqst.setRoleid(role);
     rqst.setAction(action);
     globular.ressourceService
         .addRoleAction(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback();
@@ -1045,14 +1249,14 @@ exports.AppendActionToRole = AppendActionToRole;
  * @param callback success callback
  * @param errorCallback error callback
  */
-function RemoveActionFromRole(globular, application, domain, role, action, callback, errorCallback) {
+function RemoveActionFromRole(globular, role, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.RemoveRoleActionRqst();
     rqst.setRoleid(role);
     rqst.setAction(action);
     globular.ressourceService
         .removeRoleAction(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback();
@@ -1062,7 +1266,16 @@ function RemoveActionFromRole(globular, application, domain, role, action, callb
     });
 }
 exports.RemoveActionFromRole = RemoveActionFromRole;
-function CreateRole(globular, application, domain, id, callback, errorCallback) {
+/**
+ * Create a new Role
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param callback
+ * @param errorCallback
+ */
+function CreateRole(globular, id, callback, errorCallback) {
     var rqst = new ressource_pb_1.CreateRoleRqst();
     var role = new ressource_pb_1.Role();
     role.setId(id);
@@ -1070,8 +1283,8 @@ function CreateRole(globular, application, domain, id, callback, errorCallback) 
     rqst.setRole(role);
     globular.ressourceService
         .createRole(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback();
@@ -1081,13 +1294,22 @@ function CreateRole(globular, application, domain, id, callback, errorCallback) 
     });
 }
 exports.CreateRole = CreateRole;
-function DeleteRole(globular, application, domain, id, callback, errorCallback) {
+/**
+ * Delete a given role
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param callback
+ * @param errorCallback
+ */
+function DeleteRole(globular, id, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeleteRoleRqst();
     rqst.setRoleid(id);
     globular.ressourceService
         .deleteRole(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         callback();
@@ -1098,7 +1320,15 @@ function DeleteRole(globular, application, domain, id, callback, errorCallback) 
 }
 exports.DeleteRole = DeleteRole;
 ///////////////////////////////////// Application operations /////////////////////////////////
-function GetAllApplicationsInfo(globular, application, domain, callback, errorCallback) {
+/**
+ * Return the list of all application
+ * @param globular
+ * @param application
+ * @param domain
+ * @param callback
+ * @param errorCallback
+ */
+function GetAllApplicationsInfo(globular, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetAllApplicationsInfoRqst();
     globular.ressourceService
         .getAllApplicationsInfo(rqst)
@@ -1111,80 +1341,123 @@ function GetAllApplicationsInfo(globular, application, domain, callback, errorCa
     });
 }
 exports.GetAllApplicationsInfo = GetAllApplicationsInfo;
-function AppendActionToApplication(globular, application, domain, applicationId, action, callback, errorCallback) {
+/**
+ * Append action to application.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param applicationId
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+function AppendActionToApplication(globular, applicationId, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.AddApplicationActionRqst;
     rqst.setApplicationid(applicationId);
     rqst.setAction(action);
-    globular.ressourceService.addApplicationAction(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.addApplicationAction(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.AppendActionToApplication = AppendActionToApplication;
-function RemoveActionFromApplication(globular, application, domain, applicationId, action, callback, errorCallback) {
+/**
+ * Remove action from application.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+function RemoveActionFromApplication(globular, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.RemoveApplicationActionRqst;
-    rqst.setApplicationid(applicationId);
+    rqst.setApplicationid(application);
     rqst.setAction(action);
-    globular.ressourceService.removeApplicationAction(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.removeApplicationAction(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.RemoveActionFromApplication = RemoveActionFromApplication;
-function DeleteApplication(globular, application, domain, applicationId, callback, errorCallback) {
+/**
+ * Delete application
+ * @param globular
+ * @param application
+ * @param domain
+ * @param applicationId
+ * @param callback
+ * @param errorCallback
+ */
+function DeleteApplication(globular, applicationId, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeleteApplicationRqst;
     rqst.setApplicationid(applicationId);
-    globular.ressourceService.deleteApplication(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.deleteApplication(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.DeleteApplication = DeleteApplication;
-function SaveApplication(globular, eventHub, application_, domain, application, callback, errorCallback) {
+/**
+ * Save application
+ * @param globular
+ * @param eventHub
+ * @param applicationId
+ * @param domain
+ * @param application
+ * @param callback
+ * @param errorCallback
+ */
+function SaveApplication(globular, eventHub, _application, callback, errorCallback) {
     var rqst = new persistence_pb_1.ReplaceOneRqst;
     rqst.setCollection("Applications");
     rqst.setDatabase("local_ressource");
     rqst.setId("local_ressource");
-    rqst.setValue(JSON.stringify(application));
-    rqst.setQuery("{\"_id\":\"" + application._id + "\"}"); // means all values.
-    globular.persistenceService.replaceOne(rqst, { token: localStorage.getItem("user_token"), application: application_, domain: domain })
+    rqst.setValue(JSON.stringify(_application));
+    rqst.setQuery("{\"_id\":\"" + _application._id + "\"}"); // means all values.
+    globular.persistenceService.replaceOne(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         eventHub.publish("update_application_info_event", JSON.stringify(application), false);
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.SaveApplication = SaveApplication;
 ///////////////////////////////////// Peers operations /////////////////////////////////
-function GetAllPeersInfo(globular, application, domain, query, callback, errorCallback) {
+/**
+ * Return the list of all peers.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
+ */
+function GetAllPeersInfo(globular, query, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetPeersRqst();
     rqst.setQuery(query);
     var peers = new Array();
     var stream = globular.ressourceService.getPeers(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     });
     // Get the stream and set event on it...
     stream.on("data", function (rsp) {
         peers = peers.concat(rsp.getPeersList());
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(peers);
         }
         else {
@@ -1193,43 +1466,69 @@ function GetAllPeersInfo(globular, application, domain, query, callback, errorCa
     });
 }
 exports.GetAllPeersInfo = GetAllPeersInfo;
-function AppendActionToPeer(globular, application, domain, id, action, callback, errorCallback) {
+/**
+ * Append action to peer.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+function AppendActionToPeer(globular, id, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.AddPeerActionRqst;
     rqst.setPeerid(id);
     rqst.setAction(action);
-    globular.ressourceService.addPeerAction(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.addPeerAction(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.AppendActionToPeer = AppendActionToPeer;
-function RemoveActionFromPeer(globular, application, domain, id, action, callback, errorCallback) {
+/**
+ * Remove an action from a peers.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param id
+ * @param action
+ * @param callback
+ * @param errorCallback
+ */
+function RemoveActionFromPeer(globular, id, action, callback, errorCallback) {
     var rqst = new ressource_pb_1.RemovePeerActionRqst;
     rqst.setPeerid(id);
     rqst.setAction(action);
-    globular.ressourceService.removePeerAction(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.removePeerAction(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
 exports.RemoveActionFromPeer = RemoveActionFromPeer;
-function DeletePeer(globular, application, domain, peer, callback, errorCallback) {
+/**
+ * Delete a peer.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param peer
+ * @param callback
+ * @param errorCallback
+ */
+function DeletePeer(globular, peer, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeletePeerRqst;
     rqst.setPeer(peer);
-    globular.ressourceService.deletePeer(rqst, { token: localStorage.getItem("user_token"), application: application, domain: domain })
+    globular.ressourceService.deletePeer(rqst, { "token": token, "application": application, "domain": domain })
         .then(function (rsp) {
         callback();
     })
         .catch(function (err) {
-        console.log(err);
         errorCallback(err);
     });
 }
@@ -1245,13 +1544,13 @@ exports.DeletePeer = DeletePeer;
  * @param callback
  * @param errorCallback
  */
-function GetServiceDescriptor(globular, application, domain, serviceId, publisherId, callback, errorCallback) {
+function GetServiceDescriptor(globular, serviceId, publisherId, callback, errorCallback) {
     var rqst = new services_pb_1.GetServiceDescriptorRequest;
     rqst.setServiceid(serviceId);
     rqst.setPublisherid(publisherId);
     globular.servicesDicovery.getServiceDescriptor(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback(rsp.getResultsList());
     }).catch(function (err) {
@@ -1267,17 +1566,17 @@ exports.GetServiceDescriptor = GetServiceDescriptor;
  * @param callback
  * @param errorCallback
  */
-function GetServicesDescriptor(globular, application, domain, callback, errorCallback) {
+function GetServicesDescriptor(globular, callback, errorCallback) {
     var rqst = new services_pb_1.GetServicesDescriptorRequest;
     var stream = globular.servicesDicovery.getServicesDescriptor(rqst, {
-        application: application, domain: domain
+        "application": application, "domain": domain
     });
     var descriptors = new Array();
     stream.on("data", function (rsp) {
         descriptors = descriptors.concat(rsp.getResultsList());
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(descriptors);
         }
         else {
@@ -1286,12 +1585,21 @@ function GetServicesDescriptor(globular, application, domain, callback, errorCal
     });
 }
 exports.GetServicesDescriptor = GetServicesDescriptor;
-function SetServicesDescriptor(globular, application, domain, descriptor, callback, errorCallback) {
+/**
+ * Create or update a service descriptor.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param descriptor
+ * @param callback
+ * @param errorCallback
+ */
+function SetServicesDescriptor(globular, descriptor, callback, errorCallback) {
     var rqst = new services_pb_1.SetServiceDescriptorRequest;
     rqst.setDescriptor(descriptor);
     globular.servicesDicovery.setServiceDescriptor(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(callback)
         .catch(function (err) {
         errorCallback(err);
@@ -1303,22 +1611,33 @@ exports.SetServicesDescriptor = SetServicesDescriptor;
  * @param query
  * @param callback
  */
-function findServices(globular, application, domain, keywords, callback, errorCallback) {
+function findServices(globular, keywords, callback, errorCallback) {
     var rqst = new services_pb_1.FindServicesDescriptorRequest();
     rqst.setKeywordsList(keywords);
     // Find services by keywords.
     globular.servicesDicovery
-        .findServices(rqst, { application: application, domain: domain })
+        .findServices(rqst, { "application": application, "domain": domain })
         .then(function (rsp) {
-        var results = rsp.getResultsList();
-        callback(results);
+        callback(rsp.getResultsList());
     })
         .catch(function (err) {
         errorCallback(err);
     });
 }
 exports.findServices = findServices;
-function installService(globular, application, domain, discoveryId, serviceId, publisherId, version, callback, errorCallback) {
+/**
+ * Install a service
+ * @param globular
+ * @param application
+ * @param domain
+ * @param discoveryId
+ * @param serviceId
+ * @param publisherId
+ * @param version
+ * @param callback
+ * @param errorCallback
+ */
+function installService(globular, discoveryId, serviceId, publisherId, version, callback, errorCallback) {
     var rqst = new admin_pb_1.InstallServiceRequest();
     rqst.setPublisherid(publisherId);
     rqst.setDicorveryid(discoveryId);
@@ -1327,11 +1646,11 @@ function installService(globular, application, domain, discoveryId, serviceId, p
     // Install the service.
     globular.adminService
         .installService(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
-        readFullConfig(globular, application, domain, callback, errorCallback);
+        readFullConfig(globular, callback, errorCallback);
     }).catch(function (err) {
         errorCallback(err);
     });
@@ -1340,13 +1659,13 @@ exports.installService = installService;
 /**
  * Stop a service.
  */
-function stopService(globular, application, domain, serviceId, callback, errorCallback) {
+function stopService(globular, serviceId, callback, errorCallback) {
     var rqst = new admin_pb_1.StopServiceRequest();
     rqst.setServiceId(serviceId);
     globular.adminService
         .stopService(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function () {
         callback();
@@ -1361,13 +1680,13 @@ exports.stopService = stopService;
  * @param serviceId The id of the service to start.
  * @param callback  The callback on success.
  */
-function startService(globular, application, domain, serviceId, callback, errorCallback) {
+function startService(globular, serviceId, callback, errorCallback) {
     var rqst = new admin_pb_1.StartServiceRequest();
     rqst.setServiceId(serviceId);
     globular.adminService
         .startService(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function () {
         callback();
@@ -1381,25 +1700,34 @@ exports.startService = startService;
  * Here I will save the service configuration.
  * @param service The configuration to save.
  */
-function saveService(globular, application, domain, service, callback, errorCallback) {
+function saveService(globular, service, callback, errorCallback) {
     var rqst = new admin_pb_1.SaveConfigRequest();
     rqst.setConfig(JSON.stringify(service));
     globular.adminService
         .saveConfig(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         // The service with updated values...
-        var service = JSON.parse(rsp.getResult());
-        callback(service);
+        callback(JSON.parse(rsp.getResult()));
     })
         .catch(function (err) {
         errorCallback(err);
     });
 }
 exports.saveService = saveService;
-function uninstallService(globular, application, domain, service, deletePermissions, callback, errorCallback) {
+/**
+ * Uninstall a service from the server.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param service
+ * @param deletePermissions
+ * @param callback
+ * @param errorCallback
+ */
+function uninstallService(globular, service, deletePermissions, callback, errorCallback) {
     var rqst = new admin_pb_1.UninstallServiceRequest;
     rqst.setServiceid(service.Id);
     rqst.setPublisherid(service.PublisherId);
@@ -1407,8 +1735,8 @@ function uninstallService(globular, application, domain, service, deletePermissi
     rqst.setDeletepermissions(deletePermissions);
     globular.adminService
         .uninstallService(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     })
         .then(function (rsp) {
         delete globular.config.Services[service.Id];
@@ -1424,21 +1752,21 @@ exports.uninstallService = uninstallService;
  * Return the list of service bundles.
  * @param callback
  */
-function GetServiceBundles(globular, application, domain, publisherId, serviceId, version, callback, errorCallback) {
+function GetServiceBundles(globular, publisherId, serviceId, version, callback, errorCallback) {
     var rqst = new persistence_pb_1.FindRqst();
     rqst.setCollection("ServiceBundle");
     rqst.setDatabase("local_ressource");
     rqst.setId("local_ressource");
     rqst.setQuery("{}"); // means all values.
     var stream = globular.persistenceService.find(rqst, {
-        application: application, domain: domain
+        "application": application, "domain": domain
     });
-    var bundles = new Array();
+    var bundles = [];
     stream.on("data", function (rsp) {
         bundles = bundles.concat(JSON.parse(rsp.getJsonstr()));
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             // filter localy.
             callback(bundles.filter(function (bundle) { return String(bundle._id).startsWith(publisherId + '%' + serviceId + '%' + version); }));
         }
@@ -1448,8 +1776,16 @@ function GetServiceBundles(globular, application, domain, publisherId, serviceId
     });
 }
 exports.GetServiceBundles = GetServiceBundles;
-// Get the object pointed by a reference.
-function getReferencedValue(globular, application, domain, ref, callback, errorCallback) {
+/**
+ * Get the object pointed by a reference.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param ref
+ * @param callback
+ * @param errorCallback
+ */
+function getReferencedValue(globular, ref, callback, errorCallback) {
     var database = ref.$db;
     var collection = ref.$ref;
     var rqst = new persistence_pb_1.FindOneRqst();
@@ -1459,8 +1795,8 @@ function getReferencedValue(globular, application, domain, ref, callback, errorC
     rqst.setQuery("{\"_id\":\"" + ref.$id + "\"}");
     rqst.setOptions("");
     globular.persistenceService.findOne(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback(JSON.parse(rsp.getJsonstr()));
     }).catch(function (err) {
@@ -1468,11 +1804,16 @@ function getReferencedValue(globular, application, domain, ref, callback, errorC
     });
 }
 exports.getReferencedValue = getReferencedValue;
+///////////////////////////// Logging Operations ////////////////////////////////////////
 /**
- * Read all errors data.
+ * Read all errors data for server log.
+ * @param globular
+ * @param application
+ * @param domain
  * @param callback
+ * @param errorCallback
  */
-function readErrors(globular, application, domain, callback, errorCallback) {
+function readErrors(globular, callback, errorCallback) {
     var database = "local_ressource";
     var collection = "Logs";
     var rqst = new persistence_pb_1.FindOneRqst();
@@ -1483,8 +1824,8 @@ function readErrors(globular, application, domain, callback, errorCallback) {
     rqst.setQuery("{}");
     // call persist data
     var stream = globular.persistenceService.find(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     });
     var results = new Array();
     // Get the stream and set event on it...
@@ -1492,7 +1833,7 @@ function readErrors(globular, application, domain, callback, errorCallback) {
         results = results.concat(JSON.parse(rsp.getJsonstr()));
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(results);
         }
         else {
@@ -1501,114 +1842,22 @@ function readErrors(globular, application, domain, callback, errorCallback) {
     });
 }
 exports.readErrors = readErrors;
-///////////////////////////////////// Ressource & Permissions operations /////////////////////////////////
-function readAllActionPermission(globular, application, domain, callback, errorCallback) {
-    var database = "local_ressource";
-    var collection = "ActionPermission";
-    var rqst = new persistence_pb_1.FindRqst();
-    rqst.setId(database);
-    rqst.setDatabase(database);
-    rqst.setCollection(collection);
-    rqst.setOptions("");
-    rqst.setQuery("{}");
-    // call persist data
-    var stream = globular.persistenceService.find(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
-    });
-    var results = new Array();
-    // Get the stream and set event on it...
-    stream.on("data", function (rsp) {
-        results = results.concat(JSON.parse(rsp.getJsonstr()));
-    });
-    stream.on("status", function (status) {
-        if (status.code == 0) {
-            callback(results);
-        }
-        else {
-            errorCallback({ "message": status.details });
-        }
-    });
-}
-exports.readAllActionPermission = readAllActionPermission;
-function getRessources(globular, application, domain, path, name, callback, errorCallback) {
-    var rqst = new ressource_pb_1.GetRessourcesRqst;
-    rqst.setPath(path);
-    rqst.setName(name);
-    // call persist data
-    var stream = globular.ressourceService.getRessources(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
-    });
-    var results = new Array();
-    // Get the stream and set event on it...
-    stream.on("data", function (rsp) {
-        results = results.concat(rsp.getRessourcesList());
-    });
-    stream.on("status", function (status) {
-        if (status.code == 0) {
-            callback(results);
-        }
-        else {
-            errorCallback({ "message": status.details });
-        }
-    });
-}
-exports.getRessources = getRessources;
-function setActionPermission(globular, application, domain, action, permission, callback, errorCallback) {
-    var rqst = new ressource_pb_1.SetActionPermissionRqst;
-    rqst.setAction(action);
-    rqst.setPermission(permission);
-    // Call set action permission.
-    globular.ressourceService.setActionPermission(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
-    }).then(callback)
-        .catch(function (err) {
-        errorCallback(err);
-    });
-}
-exports.setActionPermission = setActionPermission;
-function removeActionPermission(globular, application, domain, action, callback, errorCallback) {
-    var rqst = new ressource_pb_1.RemoveActionPermissionRqst;
-    rqst.setAction(action);
-    // Call set action permission.
-    globular.ressourceService.removeActionPermission(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
-    }).then(callback)
-        .catch(function (err) {
-        errorCallback(err);
-    });
-}
-exports.removeActionPermission = removeActionPermission;
-function removeRessource(globular, application, domain, path, name, callback, errorCallback) {
-    var rqst = new ressource_pb_1.RemoveRessourceRqst;
-    var ressource = new ressource_pb_1.Ressource;
-    ressource.setPath(path);
-    ressource.setName(name);
-    rqst.setRessource(ressource);
-    globular.ressourceService.removeRessource(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
-    }).then(callback)
-        .catch(function (err) {
-        errorCallback(err);
-    });
-}
-exports.removeRessource = removeRessource;
-///////////////////////////// Logging Operations ////////////////////////////////////////
 /**
- * Read all logs
- * @param callback The success callback.
+ *  Read all logs
+ * @param globular
+ * @param application
+ * @param domain
+ * @param query
+ * @param callback
+ * @param errorCallback
  */
-function readLogs(globular, application, domain, query, callback, errorCallback) {
+function readLogs(globular, query, callback, errorCallback) {
     var rqst = new ressource_pb_1.GetLogRqst();
     rqst.setQuery(query);
     // call persist data
     var stream = globular.ressourceService.getLog(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     });
     var results = new Array();
     // Get the stream and set event on it...
@@ -1616,7 +1865,7 @@ function readLogs(globular, application, domain, query, callback, errorCallback)
         results = results.concat(rsp.getInfoList());
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             results = results.sort(function (t1, t2) {
                 var name1 = t1.getDate();
                 var name2 = t2.getDate();
@@ -1631,43 +1880,60 @@ function readLogs(globular, application, domain, query, callback, errorCallback)
             callback(results);
         }
         else {
-            console.log(status.details);
             errorCallback({ "message": status.details });
         }
     });
 }
 exports.readLogs = readLogs;
-function clearAllLog(globular, application, domain, logType, callback, errorCallback) {
+/**
+ * Clear all log of a given type.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param logType
+ * @param callback
+ * @param errorCallback
+ */
+function clearAllLog(globular, logType, callback, errorCallback) {
     var rqst = new ressource_pb_1.ClearAllLogRqst;
     rqst.setType(logType);
     globular.ressourceService.clearAllLog(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(callback)
         .catch(function (err) {
         errorCallback(err);
     });
 }
 exports.clearAllLog = clearAllLog;
-function deleteLog(globular, application, domain, log, callback, errorCallback) {
+/**
+ * Delete log entry.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param log
+ * @param callback
+ * @param errorCallback
+ */
+function deleteLogEntry(globular, log, callback, errorCallback) {
     var rqst = new ressource_pb_1.DeleteLogRqst;
     rqst.setLog(log);
     globular.ressourceService.deleteLog(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(callback)
         .catch(function (err) {
         errorCallback(err);
     });
 }
-exports.deleteLog = deleteLog;
+exports.deleteLogEntry = deleteLogEntry;
 /**
  * Return the logged method and their count.
  * @param pipeline
  * @param callback
  * @param errorCallback
  */
-function getNumbeOfLogsByMethod(globular, application, domain, callback, errorCallback) {
+function getNumbeOfLogsByMethod(globular, callback, errorCallback) {
     var database = "local_ressource";
     var collection = "Logs";
     var rqst = new persistence_pb_1.AggregateRqst;
@@ -1679,8 +1945,8 @@ function getNumbeOfLogsByMethod(globular, application, domain, callback, errorCa
     rqst.setPipeline(pipeline);
     // call persist data
     var stream = globular.persistenceService.aggregate(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     });
     var results = new Array();
     // Get the stream and set event on it...
@@ -1688,7 +1954,7 @@ function getNumbeOfLogsByMethod(globular, application, domain, callback, errorCa
         results = results.concat(JSON.parse(rsp.getJsonstr()));
     });
     stream.on("status", function (status) {
-        if (status.code == 0) {
+        if (status.code === 0) {
             callback(results);
         }
         else {
@@ -1705,14 +1971,17 @@ var PLC_TYPE;
     PLC_TYPE[PLC_TYPE["MODBUS"] = 3] = "MODBUS";
 })(PLC_TYPE = exports.PLC_TYPE || (exports.PLC_TYPE = {}));
 /**
-* Read a plc tag from the defined backend.
-* @param plcType  The plc type can be Alen Bradley or Simens, modbus is on the planned.
-* @param connectionId  The connection id defined for that plc.
-* @param name The name of the tag to read.
-* @param type The type name of the plc.
-* @param offset The offset in the memory.
-*/
-function readPlcTag(globular, application, domain, plcType, connectionId, name, type, offset) {
+ * Read a plc tag.
+ * @param globular
+ * @param application
+ * @param domain
+ * @param plcType
+ * @param connectionId
+ * @param name
+ * @param type
+ * @param offset
+ */
+function readPlcTag(globular, plcType, connectionId, name, type, offset) {
     return __awaiter(this, void 0, void 0, function () {
         var rqst, result, rsp, rsp, err_1;
         return __generator(this, function (_a) {
@@ -1726,11 +1995,11 @@ function readPlcTag(globular, application, domain, plcType, connectionId, name, 
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 11, , 12]);
-                    if (!(plcType == PLC_TYPE.ALEN_BRADLEY)) return [3 /*break*/, 5];
-                    if (!(globular.plcService_ab != undefined)) return [3 /*break*/, 3];
+                    if (!(plcType === PLC_TYPE.ALEN_BRADLEY)) return [3 /*break*/, 5];
+                    if (!(globular.plcService_ab !== undefined)) return [3 /*break*/, 3];
                     return [4 /*yield*/, globular.plcService_ab.readTag(rqst, {
-                            token: localStorage.getItem("user_token"),
-                            application: application, domain: domain
+                            "token": token,
+                            "application": application, "domain": domain
                         })];
                 case 2:
                     rsp = _a.sent();
@@ -1739,11 +2008,11 @@ function readPlcTag(globular, application, domain, plcType, connectionId, name, 
                 case 3: return [2 /*return*/, "No Alen Bradlay PLC server configured!"];
                 case 4: return [3 /*break*/, 10];
                 case 5:
-                    if (!(plcType == PLC_TYPE.SIEMENS)) return [3 /*break*/, 9];
-                    if (!(globular.plcService_siemens != undefined)) return [3 /*break*/, 7];
+                    if (!(plcType === PLC_TYPE.SIEMENS)) return [3 /*break*/, 9];
+                    if (!(globular.plcService_siemens !== undefined)) return [3 /*break*/, 7];
                     return [4 /*yield*/, globular.plcService_siemens.readTag(rqst, {
-                            token: localStorage.getItem("user_token"),
-                            application: application, domain: domain
+                            "token": token,
+                            "application": application, "domain": domain
                         })];
                 case 6:
                     rsp = _a.sent();
@@ -1758,14 +2027,14 @@ function readPlcTag(globular, application, domain, plcType, connectionId, name, 
                     return [2 /*return*/, err_1];
                 case 12:
                     // Here I got the value in a string I will convert it into it type.
-                    if (type == plc_pb_1.TagType.BOOL) {
-                        return [2 /*return*/, result == "true" ? true : false];
+                    if (type === plc_pb_1.TagType.BOOL) {
+                        return [2 /*return*/, result === "true" ? true : false];
                     }
-                    else if (type == plc_pb_1.TagType.REAL) {
+                    else if (type === plc_pb_1.TagType.REAL) {
                         return [2 /*return*/, parseFloat(result)];
                     }
                     else { // Must be cinsidere a integer.
-                        return [2 /*return*/, parseInt(result)];
+                        return [2 /*return*/, parseInt(result, 10)];
                     }
                     return [2 /*return*/];
             }
@@ -1779,7 +2048,7 @@ exports.readPlcTag = readPlcTag;
  * @param info The synchronisations informations.
  * @param callback success callback.
  */
-function syncLdapInfos(globular, application, domain, info, timeout, callback, errorCallback) {
+function syncLdapInfos(globular, info, timeout, callback, errorCallback) {
     var rqst = new ressource_pb_1.SynchronizeLdapRqst;
     var syncInfos = new ressource_pb_1.LdapSyncInfos;
     syncInfos.setConnectionid(info.connectionId);
@@ -1799,9 +2068,10 @@ function syncLdapInfos(globular, application, domain, info, timeout, callback, e
     rqst.setSyncinfo(syncInfos);
     // Try to synchronyze the ldap service.
     globular.ressourceService.synchronizeLdap(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
+        callback();
     }).catch(function (err) {
         errorCallback(err);
     });
@@ -1817,12 +2087,12 @@ exports.syncLdapInfos = syncLdapInfos;
  * @param callback
  * @param errorCallback
  */
-function pingSql(globular, application, domain, connectionId, callback, errorCallback) {
+function pingSql(globular, connectionId, callback, errorCallback) {
     var rqst = new persistence_pb_1.PingConnectionRqst;
     rqst.setId(connectionId);
     globular.sqlService.ping(rqst, {
-        token: localStorage.getItem("user_token"),
-        application: application, domain: domain
+        "token": token,
+        "application": application, "domain": domain
     }).then(function (rsp) {
         callback(rsp.getResult());
     }).catch(function (err) {

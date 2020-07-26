@@ -10,6 +10,7 @@ require (
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2 // indirect
+	github.com/davecourtois/GoXapian v0.0.0-20190424213518-8ebe66deb0b4
 	github.com/davecourtois/Utility v0.0.0-20191113001648-1908e5a3b45f
 	github.com/decker502/dnspod-go v0.2.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20191001013358-cfbb681360f0
@@ -54,7 +55,7 @@ require (
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91 // indirect
 	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.24.0
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/alexcesaro/quotedprintable.v2 v2.0.0-20150314193201-9b4a113f96b3 // indirect
 	gopkg.in/gomail.v1 v1.0.0-20150320132819-11b919ab4933
 	gopkg.in/ldap.v3 v3.1.0

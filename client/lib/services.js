@@ -55,7 +55,7 @@ var EventHub = /** @class */ (function () {
         // This is the client uuid
         this.uuid = randomUUID();
         // Open the connection with the server.
-        if (this.service != undefined) {
+        if (this.service !== undefined) {
             // The first step is to subscribe to an event channel.
             var rqst = new event_pb_1.OnEventRequest();
             rqst.setUuid(this.uuid);
@@ -68,7 +68,7 @@ var EventHub = /** @class */ (function () {
                 _this.dispatch(evt.getName(), data);
             });
             stream.on('status', function (status) {
-                if (status.code == 0) {
+                if (status.code === 0) {
                     /** Nothing to do here. */
                 }
             });
@@ -92,7 +92,7 @@ var EventHub = /** @class */ (function () {
             rqst.setName(name);
             rqst.setUuid(this.uuid);
             this.service.subscribe(rqst).then(function (rsp) {
-                if (_this.subscribers[name] == undefined) {
+                if (_this.subscribers[name] === undefined) {
                     _this.subscribers[name] = {};
                 }
                 _this.subscribers[name][uuid] = onevent;
@@ -101,7 +101,7 @@ var EventHub = /** @class */ (function () {
         }
         else {
             // create a uuid and call onsubscribe callback.
-            if (this.subscribers[name] == undefined) {
+            if (this.subscribers[name] === undefined) {
                 this.subscribers[name] = {};
             }
             this.subscribers[name][uuid] = onevent;
@@ -114,25 +114,25 @@ var EventHub = /** @class */ (function () {
      * @param {*} uuid
      */
     EventHub.prototype.unSubscribe = function (name, uuid) {
-        if (this.subscribers[name] == undefined) {
+        if (this.subscribers[name] === undefined) {
             return;
         }
-        if (this.subscribers[name][uuid] == undefined) {
+        if (this.subscribers[name][uuid] === undefined) {
             return;
         }
         // Remove the local subscriber.
         delete this.subscribers[name][uuid];
-        if (Object.keys(this.subscribers[name]).length == 0) {
+        if (Object.keys(this.subscribers[name]).length === 0) {
             delete this.subscribers[name];
             // disconnect from the distant server.
-            if (this.service != undefined) {
-                var request = new event_pb_1.UnSubscribeRequest();
-                request.setName(name);
-                request.setUuid(this.subscriptions[name]);
+            if (this.service !== undefined) {
+                var rqst = new event_pb_1.UnSubscribeRequest();
+                rqst.setName(name);
+                rqst.setUuid(this.subscriptions[name]);
                 // remove the subcription uuid.
                 delete this.subscriptions[name];
                 // Now I will test with promise
-                this.service.unSubscribe(request)
+                this.service.unSubscribe(rqst)
                     .then(function (resp) {
                     /** Nothing to do here */
                 })
@@ -149,20 +149,20 @@ var EventHub = /** @class */ (function () {
      * @param {*} local If the event is not local the data must be seraliaze before sent.
      */
     EventHub.prototype.publish = function (name, data, local) {
-        if (local == true) {
+        if (local === true) {
             this.dispatch(name, data);
         }
         else {
             // Create a new request.
-            var request = new event_pb_1.PublishRequest();
+            var rqst = new event_pb_1.PublishRequest();
             var evt = new event_pb_1.Event();
             evt.setName(name);
             var enc = new TextEncoder(); // always utf-8
             // encode the string to a array of byte
             evt.setData(enc.encode(data));
-            request.setEvt(evt);
+            rqst.setEvt(evt);
             // Now I will test with promise
-            this.service.publish(request)
+            this.service.publish(rqst)
                 .then(function (resp) {
                 /** Nothing to do here. */
             })
@@ -175,9 +175,9 @@ var EventHub = /** @class */ (function () {
     EventHub.prototype.dispatch = function (name, data) {
         for (var uuid in this.subscribers[name]) {
             // call the event callback function.
-            if (this.subscribers != undefined) {
-                if (this.subscribers[name] != undefined) {
-                    if (this.subscribers[name][uuid] != undefined) {
+            if (this.subscribers !== undefined) {
+                if (this.subscribers[name] !== undefined) {
+                    if (this.subscribers[name][uuid] !== undefined) {
                         this.subscribers[name][uuid](data);
                     }
                 }

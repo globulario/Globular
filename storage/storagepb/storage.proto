@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package storage;
 
-option go_package="storagepb";
+option go_package="storage/storagepb";
 
 enum StoreType{
 	LEVEL_DB = 0; // persistent storage

@@ -4,7 +4,7 @@
 syntax = "proto3";
 package echo;
 
-option go_package="echopb";
+option go_package="echo/echopb";
 
 message EchoRequest {
   string message = 1;

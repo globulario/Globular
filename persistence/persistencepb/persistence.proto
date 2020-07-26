@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package persistence;
 
-option go_package="persistencepb";
+option go_package="persistence/persistencepb";
 
 enum StoreType{
 	MONGO = 0;

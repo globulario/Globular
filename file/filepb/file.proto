@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package file;
 
-option go_package="filepb";
+option go_package="file/filepb";
 
 message Empty {}
 

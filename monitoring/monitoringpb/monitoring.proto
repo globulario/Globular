@@ -4,7 +4,7 @@
 syntax = "proto3";
 package monitoring;
 
-option go_package="monitoringpb";
+option go_package="monitoring/monitoringpb";
 
 enum StoreType{
 	PROMETHEUS = 0;

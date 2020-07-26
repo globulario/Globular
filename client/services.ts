@@ -26,11 +26,11 @@ export interface IServiceConfig {
   Name: string;
   State: string;
   Domain: string;
-  Port: Number;
-  Proxy: Number;
-  TLS: Boolean;
-  KeepUpToDate: Boolean;
-  KeepAlive: Boolean;
+  Port: number;
+  Proxy: number;
+  TLS: boolean;
+  KeepUpToDate: boolean;
+  KeepAlive: boolean;
   PublisherId: string;
   Version: string;
 }
@@ -48,24 +48,24 @@ export interface IServices {
 export interface IConfig {
   Name: string;
   Domain: string;
-  PortHttp: Number;
-  PortHttps: Number;
-  AdminPort: Number;
-  AdminProxy: Number;
-  AdminEmail: String;
-  RessourcePort: Number;
-  RessourceProxy: Number;
-  ServicesDiscoveryPort: Number;
-  ServicesDiscoveryProxy: Number;
-  ServicesRepositoryPort: Number;
-  ServicesRepositoryProxy: Number;
-  CertificateAuthorityPort: Number;
-  CertificateAuthorityProxy: Number;
-  SessionTimeout: Number;
+  PortHttp: number;
+  PortHttps: number;
+  AdminPort: number;
+  AdminProxy: number;
+  AdminEmail: string;
+  RessourcePort: number;
+  RessourceProxy: number;
+  ServicesDiscoveryPort: number;
+  ServicesDiscoveryProxy: number;
+  ServicesRepositoryPort: number;
+  ServicesRepositoryProxy: number;
+  CertificateAuthorityPort: number;
+  CertificateAuthorityProxy: number;
+  SessionTimeout: number;
   Protocol: string;
-  Discoveries: Array<string>;
-  DNS: Array<string>;
-  CertExpirationDelay: Number;
+  Discoveries: string[];
+  DNS: string[];
+  CertExpirationDelay: number;
   CertStableURL: string;
   CertURL: string;
   IdleTimeout: number;
@@ -79,15 +79,15 @@ export interface IConfig {
  * @returns {string} A string containing the UUID.
  */
 function randomUUID(): string {
-  var s = new Array();
-  var itoh = '0123456789abcdef'; // Make array of random hex digits. The UUID only has 32 digits in it, but we
+  const s = new Array();
+  const itoh = '0123456789abcdef'; // Make array of random hex digits. The UUID only has 32 digits in it, but we
 
   // allocate an extra items to make room for the '-'s we'll be inserting.
-  for (var i = 0; i < 36; i++) s[i] = Math.floor(Math.random() * 0x10); // Conform to RFC-4122, section 4.4
+  for (let i = 0; i < 36; i++) s[i] = Math.floor(Math.random() * 0x10); // Conform to RFC-4122, section 4.4
   s[14] = 4; // Set 4 high bits of time_high field to version
   s[19] = s[19] & 0x3 | 0x8; // Specify 2 high bits of clock sequence
   // Convert to hex chars
-  for (var i = 0; i < 36; i++) s[i] = itoh[s[i]]; // Insert '-'s
+  for (let i = 0; i < 36; i++) s[i] = itoh[s[i]]; // Insert '-'s
   s[8] = s[13] = s[18] = s[23] = '-';
   return s.join('');
 }
@@ -115,28 +115,28 @@ export class EventHub {
     this.uuid = randomUUID();
 
     // Open the connection with the server.
-    if (this.service != undefined) {
+    if (this.service !== undefined) {
       // The first step is to subscribe to an event channel.
-      var rqst = new OnEventRequest()
+      const rqst = new OnEventRequest()
       rqst.setUuid(this.uuid)
 
-      var stream = this.service.onEvent(rqst, {});
+      const stream = this.service.onEvent(rqst, {});
 
       // Get the stream and set event on it...
       stream.on('data', (rsp: any) => {
-        var evt = rsp.getEvt()
-        var data = new TextDecoder("utf-8").decode(evt.getData());
+        const evt = rsp.getEvt()
+        const data = new TextDecoder("utf-8").decode(evt.getData());
         // dispatch the event localy.
         this.dispatch(evt.getName(), data)
       });
 
-      stream.on('status', function (status: any) {
-        if (status.code == 0) {
+      stream.on('status', (status: any)=> {
+        if (status.code === 0) {
           /** Nothing to do here. */
         }
       });
 
-      stream.on('end', function () {
+      stream.on('end',  () => {
         // stream end signal
         /** Nothing to do here. */
       });
@@ -151,13 +151,13 @@ export class EventHub {
    */
   subscribe(name: string, onsubscribe: (uuid: string) => any, onevent: (data: any) => any, local: boolean) {
     // Register the local subscriber.
-    let uuid = randomUUID()
+    const uuid = randomUUID()
     if (!local) {
-      let rqst = new SubscribeRequest
+      const rqst = new SubscribeRequest
       rqst.setName(name)
       rqst.setUuid(this.uuid)
       this.service.subscribe(rqst).then((rsp: SubscribeResponse) => {
-        if (this.subscribers[name] == undefined) {
+        if (this.subscribers[name] === undefined) {
           this.subscribers[name] = {}
         }
         this.subscribers[name][uuid] = onevent
@@ -165,7 +165,7 @@ export class EventHub {
       })
     } else {
       // create a uuid and call onsubscribe callback.
-      if (this.subscribers[name] == undefined) {
+      if (this.subscribers[name] === undefined) {
         this.subscribers[name] = {}
       }
       this.subscribers[name][uuid] = onevent
@@ -179,27 +179,27 @@ export class EventHub {
    * @param {*} uuid 
    */
   unSubscribe(name: string, uuid: string) {
-    if(this.subscribers[name]==undefined){
+    if(this.subscribers[name]=== undefined){
       return
     }
-    if(this.subscribers[name][uuid]==undefined){
+    if(this.subscribers[name][uuid]=== undefined){
       return
     }
     // Remove the local subscriber.
     delete this.subscribers[name][uuid]
-    if (Object.keys(this.subscribers[name]).length == 0) {
+    if (Object.keys(this.subscribers[name]).length === 0) {
       delete this.subscribers[name]
       // disconnect from the distant server.
-      if (this.service != undefined) {
-        var request = new UnSubscribeRequest();
-        request.setName(name);
-        request.setUuid(this.subscriptions[name])
+      if (this.service !== undefined) {
+        const rqst = new UnSubscribeRequest();
+        rqst.setName(name);
+        rqst.setUuid(this.subscriptions[name])
 
         // remove the subcription uuid.
         delete this.subscriptions[name]
 
         // Now I will test with promise
-        this.service.unSubscribe(request)
+        this.service.unSubscribe(rqst)
           .then((resp: any) => {
             /** Nothing to do here */
           })
@@ -217,21 +217,21 @@ export class EventHub {
    * @param {*} local If the event is not local the data must be seraliaze before sent.
    */
   publish(name: string, data: any, local: boolean) {
-    if (local == true) {
+    if (local === true) {
       this.dispatch(name, data)
     } else {
       // Create a new request.
-      var request = new PublishRequest();
-      var evt = new Event();
+      const rqst = new PublishRequest();
+      const evt = new Event();
       evt.setName(name)
 
-      var enc = new TextEncoder(); // always utf-8
+      const enc = new TextEncoder(); // always utf-8
       // encode the string to a array of byte
       evt.setData(enc.encode(data))
-      request.setEvt(evt);
+      rqst.setEvt(evt);
 
       // Now I will test with promise
-      this.service.publish(request)
+      this.service.publish(rqst)
         .then((resp: any) => {
           /** Nothing to do here. */
         })
@@ -243,11 +243,11 @@ export class EventHub {
 
   /** Dispatch the event localy */
   dispatch(name: string, data: any) {
-      for (var uuid in this.subscribers[name]) {
+      for (const uuid in this.subscribers[name]) {
           // call the event callback function.
-          if(this.subscribers != undefined){
-              if(this.subscribers[name] != undefined){
-                  if(this.subscribers[name][uuid]!= undefined){
+          if(this.subscribers !== undefined){
+              if(this.subscribers[name] !== undefined){
+                  if(this.subscribers[name][uuid]!== undefined){
                       this.subscribers[name][uuid](data);
                   }
               }

@@ -2395,7 +2395,7 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 			config["TLS"] = self.Protocol == "https"
 
 			// Set the id with the descriptor id.
-			config["Id"] = descriptor.Id
+			config["Id"] = strings.Replace(descriptor.Id, ".exe", "", -1)
 
 			// initialyse the new service.
 			err = self.initService(config)
