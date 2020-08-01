@@ -28,6 +28,7 @@ require (
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/kalafut/imohash v1.0.0 // indirect
 	github.com/klauspost/compress v1.10.8 // indirect
+	github.com/ledongthuc/pdf v0.0.0-20200323191019-23c5852adbd2
 	github.com/lib/pq v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/miekg/dns v1.1.29
