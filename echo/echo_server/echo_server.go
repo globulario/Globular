@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/echo/echopb"

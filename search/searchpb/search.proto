@@ -1,0 +1,141 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+package echo;
+
+option go_package="search/searchpb";
+
+
+enum EngineType{
+	XAPIAN = 0;
+}
+
+message GetVersionRequest {
+
+}
+
+message GetVersionResponse {
+  string message = 1;
+}
+
+message IndexJsonObjectRequest {
+	/** The path of the database on the server. If empty the db will be created in memory */
+	string path = 1;
+	/** The JSON string */
+	string jsonStr = 2;
+	/** The language to be use to index the object */
+	string language = 3; 
+	/** The field that contain the id of the object. */
+	string id = 4;
+	/** The list of fields to be use as index */
+	repeated string indexs = 5;
+	/** Must be anything, can be the path of object to access it. */
+	string data = 6;
+
+}
+
+message IndexJsonObjectResponse {
+	/** Nothing **/
+}
+
+message IndexFileRequest {
+	/** The path of the database on the server. If empty the db will be created in memory */
+	string dbPath = 1;
+	/** The path of the file must be accessible from the server */
+	string filePath = 2;
+	/** The language to be use to index the object */
+	string language = 3; 
+}
+
+message IndexFileResponse {
+	/** Nothing **/
+}
+
+message IndexDirRequest {
+	/** The path of the database on the server. If empty the db will be created in memory */
+	string dbPath = 1;
+	/** The path of the dir must be accessible from the server */
+	string dirPath = 2;
+	/** The language to be use to index the object */
+	string language = 3; 
+}
+
+message IndexDirResponse {
+	/** Nothing **/
+}
+
+message DeleteDocumentRequest {
+	string path = 1;
+	string id = 2;
+}
+
+message DeleteDocumentResponse {
+}
+
+message CountRequest {
+	string path = 1;
+}
+
+message CountResponse {
+	int32 result = 1;
+}
+
+message SearchResult {
+	int32 rank = 1;
+	string docId = 2;
+	string data = 3;
+	repeated string snippets = 4;
+}
+
+message SearchDocumentsRequest{
+	string path = 1;
+	string query = 2;
+	string language = 3;
+	repeated string fields = 4;
+	int32 offset = 5; // start result
+	int32 pageSize = 6; // number of result to be return.
+	int32 snippetLength = 7; // The length of the snippet.
+}
+
+message SearchDocumentsResponse{
+	repeated SearchResult results=1;
+}
+
+service SearchService {
+	/**
+	 * Return the version number of the search engine.
+	 */
+	 rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+
+	/**
+	 * That function is use to index JSON object/array of object
+	 */
+	rpc IndexJsonObject(IndexJsonObjectRequest) returns (IndexJsonObjectResponse);
+	
+	/**
+	 * Index file can be plain text file, PDF file...
+	 */
+	rpc IndexFile(IndexFileRequest) returns (IndexFileResponse);
+	
+	/**
+	 * Index a directory and all it content (text file, pdf file, docx, xlsx... )...
+	 */
+	rpc IndexDir(IndexDirRequest) returns (IndexDirResponse);
+	
+	/**
+	 * Return the number of document in a database.
+	 */
+	rpc Count(CountRequest) returns (CountResponse);
+	
+	/**
+	 * Remove a document from the db
+	 */
+	rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+	
+	/**
+	 * Search documents
+	 */
+	rpc SearchDocuments(SearchDocumentsRequest) returns (SearchDocumentsResponse);
+
+}	

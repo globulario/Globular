@@ -19,6 +19,7 @@ var ressource_grpc_web_pb_1 = require("./ressource/ressource_grpc_web_pb");
 var services_grpc_web_pb_1 = require("./services/services_grpc_web_pb");
 var ca_grpc_web_pb_1 = require("./ca/ca_grpc_web_pb");
 var event_pb_1 = require("./event/eventpb/event_pb");
+var search_grpc_web_pb_1 = require("./search/searchpb/search_grpc_web_pb");
 /**
  * Create a "version 4" RFC-4122 UUID (Universal Unique Identifier) string.
  * @returns {string} A string containing the UUID.
@@ -224,6 +225,13 @@ var Globular = /** @class */ (function () {
                 protocol = 'https';
             }
             this.echoService = new echo_grpc_web_pb_1.EchoServicePromiseClient(protocol + '://' + this.config.Services['echo_server'].Domain + ':' + this.config.Services['echo_server'].Proxy, null, null);
+        }
+        if (this.config.Services['search_server'] != null) {
+            var protocol = 'http';
+            if (this.config.Services['search_server'].TLS == true) {
+                protocol = 'https';
+            }
+            this.searchService = new search_grpc_web_pb_1.SearchServicePromiseClient(protocol + '://' + this.config.Services['search_server'].Domain + ':' + this.config.Services['search_server'].Proxy, null, null);
         }
         if (this.config.Services['event_server'] != null) {
             var protocol = 'http';

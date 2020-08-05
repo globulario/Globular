@@ -17,7 +17,7 @@ import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb
 import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from './services/services_grpc_web_pb';
 import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
 import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event, OnEventRequest, SubscribeResponse } from './event/eventpb/event_pb';
-
+import { SearchServiceClient, SearchServicePromiseClient } from './search/searchpb/search_grpc_web_pb';
 /**
  * The service configuration information.
  */
@@ -281,6 +281,7 @@ export class Globular {
   storageService: StorageServicePromiseClient | undefined;
   monitoringService: MonitoringServicePromiseClient | undefined;
   spcService: SpcServicePromiseClient | undefined;
+  searchService: SearchServicePromiseClient | undefined;
 
   // Non open source services.
   plcService_ab: PlcServicePromiseClient | undefined;
@@ -350,6 +351,17 @@ export class Globular {
       }
       this.echoService = new EchoServicePromiseClient(
         protocol + '://' + this.config.Services['echo_server'].Domain + ':' + this.config.Services['echo_server'].Proxy,
+        null,
+        null,
+      );
+    }
+    if (this.config.Services['search_server'] != null) {
+      let protocol = 'http';
+      if (this.config.Services['search_server'].TLS == true) {
+        protocol = 'https';
+      }
+      this.searchService = new SearchServicePromiseClient(
+        protocol + '://' + this.config.Services['search_server'].Domain + ':' + this.config.Services['search_server'].Proxy,
         null,
         null,
       );

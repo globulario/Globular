@@ -15,6 +15,7 @@ import { AdminServicePromiseClient } from './admin/admin_grpc_web_pb';
 import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb';
 import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from './services/services_grpc_web_pb';
 import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
+import { SearchServicePromiseClient } from './search/searchpb/search_grpc_web_pb';
 /**
  * The service configuration information.
  */
@@ -122,6 +123,7 @@ export declare class Globular {
     storageService: StorageServicePromiseClient | undefined;
     monitoringService: MonitoringServicePromiseClient | undefined;
     spcService: SpcServicePromiseClient | undefined;
+    searchService: SearchServicePromiseClient | undefined;
     plcService_ab: PlcServicePromiseClient | undefined;
     plcService_siemens: PlcServicePromiseClient | undefined;
     plcLinkService: PlcLinkServicePromiseClient | undefined;

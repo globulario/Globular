@@ -16,5 +16,6 @@ spc*
 dist*
 config
 data
+bin
 webroot
 node_modules
