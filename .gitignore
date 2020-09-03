@@ -10,6 +10,7 @@ config.json
 *.pb.go
 *.g.cs
 *.csproj
+package-lock.json
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
