@@ -1,0 +1,11 @@
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netcoreapp2.1\GlobularRessourceClient.deps.json
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netcoreapp2.1\GlobularRessourceClient.dll
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netcoreapp2.1\GlobularRessourceClient.pdb
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netcoreapp2.1\GlobularClient.dll
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netcoreapp2.1\GlobularClient.pdb
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.csprojAssemblyReference.cache
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.AssemblyInfoInputs.cache
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.AssemblyInfo.cs
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.csproj.CopyComplete
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.dll
+E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netcoreapp2.1\GlobularRessourceClient.pdb

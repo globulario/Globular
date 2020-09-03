@@ -1,0 +1,205 @@
+/**
+ * Admin functionality.
+ */
+syntax = "proto3";
+package admin;
+
+option go_package="admin";
+
+// Return the configuration of the whole server.
+message GetConfigRequest {
+}
+
+message GetConfigResponse {
+  string result = 1;
+}
+
+message SaveConfigRequest {
+  string config = 1; // The json string
+}
+
+message SaveConfigResponse {
+  string result = 1;
+}
+
+message StopServiceRequest {
+  string service_id = 1;
+}
+
+message StopServiceResponse {
+  bool result = 1;
+}
+
+message StartServiceRequest {
+  string service_id = 1;
+}
+
+// Return the pid of
+message StartServiceResponse {
+  int64 service_pid = 1;
+  int64 proxy_pid = 2;
+}
+
+
+// Register an external service.
+message RegisterExternalApplicationRequest {
+  string service_id = 1;
+  string path = 2;
+  repeated string args = 3;
+}
+
+// Return the pid of the service.
+message RegisterExternalApplicationResponse {
+  int64 service_pid = 1;
+}
+
+message SetRootPasswordRequest{
+	string oldPassword = 1;
+	string newPassword = 2;
+}
+
+message SetRootPasswordResponse {
+	string token = 1;
+}
+
+message SetRootEmailRequest{
+	string oldEmail = 1;
+	string newEmail = 2;
+}
+
+message SetRootEmailResponse {
+	string token = 1;
+}
+
+message SetPasswordRequest{
+	string accountId = 1;
+	string oldPassword = 2;
+	string newPassword = 3;
+}
+
+message SetPasswordResponse {
+	string token = 1;
+}
+
+message SetEmailRequest{
+	string accountId = 1;
+	string oldEmail = 2;
+	string newEmail = 3;
+}
+
+message SetEmailResponse {
+	string token = 1;
+}
+
+/** more can be append here **/
+enum Platform {
+	LINUX32 = 0;
+	LINUX64 = 1;
+	WIN32 = 2;
+	WIN64 = 3;
+}
+
+message PublishServiceRequest{
+	string serviceId = 1;
+	string publisherId = 2;
+	string path = 3;
+	string dicorveryId = 4;
+	string repositoryId = 5;
+	string description = 6;
+	repeated string keywords = 7;
+	string version = 8;
+	Platform platform = 9;
+}
+
+message UploadServicePackageRequest{
+	bytes data = 1;
+}
+
+message UploadServicePackageResponse{
+	string path = 1;
+}
+
+message PublishServiceResponse{
+	bool result = 1;
+}
+
+message InstallServiceRequest{
+	string dicorveryId = 1;
+	string serviceId = 2;
+	string publisherId = 3;
+	string version = 4;
+}
+
+message InstallServiceResponse{
+	bool result = 1;
+}
+
+message UninstallServiceRequest{
+	string serviceId = 1;
+	string publisherId = 2;
+	string version = 3;
+	bool deletePermissions = 4;
+}
+
+message UninstallServiceResponse{
+	bool result = 1;
+}
+
+message DeployApplicationRequest{
+	string name = 1;
+	bytes data = 2;
+}
+
+message DeployApplicationResponse{
+	bool result = 1;
+}
+
+service AdminService {
+		
+  //Set the root password
+  rpc SetRootPassword(SetRootPasswordRequest) returns(SetRootPasswordResponse);
+
+  //Set the root email
+  rpc SetRootEmail(SetRootEmailRequest) returns(SetRootEmailResponse);
+	
+  //Set the account password
+  rpc SetPassword(SetPasswordRequest) returns(SetPasswordResponse);
+
+  //Set the account email
+  rpc SetEmail(SetEmailRequest) returns(SetEmailResponse);
+
+  // Return configuration whitout all detail, no needed to be secure.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Return the configuration with all detail, must be secure.
+  rpc GetFullConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Save a service configuration
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse);
+
+  // Stop a service
+  rpc StopService(StopServiceRequest) returns (StopServiceResponse);
+
+  // Start a service
+  rpc StartService(StartServiceRequest) returns (StartServiceResponse);
+
+  // Create and upload service package
+  rpc UploadServicePackage(stream UploadServicePackageRequest) returns(UploadServicePackageResponse);
+
+  // Publish a service...
+  rpc PublishService(PublishServiceRequest) returns (PublishServiceResponse);
+
+  // Install a service...
+  rpc InstallService(InstallServiceRequest) returns (InstallServiceResponse);
+
+  // Uninstall a service...
+  rpc UninstallService(UninstallServiceRequest) returns (UninstallServiceResponse);
+
+  // Register external service to be start by Globular in order to run 
+  // as exemple MongoDB and Prometheus.
+  rpc RegisterExternalApplication(RegisterExternalApplicationRequest) returns (RegisterExternalApplicationResponse);
+
+  // Deloyed a web application to a globular node.
+  rpc DeployApplication(stream DeployApplicationRequest) returns (DeployApplicationResponse);
+
+}

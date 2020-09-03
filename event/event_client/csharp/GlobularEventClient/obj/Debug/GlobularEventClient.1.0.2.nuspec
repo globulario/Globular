@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>GlobularEventClient</id>
+    <version>1.0.2</version>
+    <title>Globular Event Client</title>
+    <authors>Dave Courtois</authors>
+    <owners>Dave Courtois</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">LICENSE.txt</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <description>.Net gRPC client for globular Event service</description>
+    <dependencies>
+      <group targetFramework=".NETCoreApp3.0">
+        <dependency id="GlobularClient" version="1.0.1" exclude="Build,Analyzers" />
+        <dependency id="Google.Protobuf" version="3.11.4" exclude="Build,Analyzers" />
+        <dependency id="Grpc" version="2.27.0" exclude="Build,Analyzers" />
+        <dependency id="Grpc.Core" version="2.27.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="E:\Project\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.0\GlobularEventClient.dll" target="lib\netcoreapp3.0\GlobularEventClient.dll" />
+    <file src="E:\Project\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\licenses\LICENSE.txt" target="LICENSE.txt" />
+  </files>
+</package>
