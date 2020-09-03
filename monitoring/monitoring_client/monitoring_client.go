@@ -8,6 +8,8 @@ import (
 	"io"
 	"strconv"
 
+	"context"
+
 	"google.golang.org/grpc"
 )
 
@@ -18,6 +20,9 @@ import (
 type Monitoring_Client struct {
 	cc *grpc.ClientConn
 	c  monitoringpb.MonitoringServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -42,9 +47,9 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(address string, name string) (*Monitoring_Client, error) {
+func NewMonitoring_Client(address string, id string) (*Monitoring_Client, error) {
 	client := new(Monitoring_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +62,13 @@ func NewMonitoring_Client(address string, name string) (*Monitoring_Client, erro
 	return client, nil
 }
 
+func (self *Monitoring_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *Monitoring_Client) GetDomain() string {
 	return self.domain
@@ -65,6 +77,11 @@ func (self *Monitoring_Client) GetDomain() string {
 // Return the address
 func (self *Monitoring_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *Monitoring_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -80,6 +97,11 @@ func (self *Monitoring_Client) Close() {
 // Set grpc_service port.
 func (self *Monitoring_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client id.
+func (self *Monitoring_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

@@ -14,10 +14,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"errors"
 
 	"github.com/davecourtois/Globular/Interceptors"
+	"github.com/davecourtois/Globular/smtp/smtp_client"
 	"github.com/davecourtois/Globular/smtp/smtppb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -25,6 +27,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
+
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	gomail "gopkg.in/gomail.v1"
@@ -55,7 +58,10 @@ type connection struct {
 
 type server struct {
 	// The global attribute of the services.
+	Id                 string
 	Name               string
+	Path               string
+	Proto              string
 	Port               int
 	Proxy              int
 	Protocol           string
@@ -77,6 +83,10 @@ type server struct {
 }
 
 func (self *server) init() {
+
+	// That function is use to get access to other server.
+	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -84,6 +94,10 @@ func (self *server) init() {
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
 }
@@ -360,7 +374,11 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	s_impl.Name = string(smtppb.File_smtp_smtppb_smtp_proto.Services().Get(0).FullName())
+	s_impl.Proto = smtppb.File_smtp_smtppb_smtp_proto.Path()
+	s_impl.Path, _ = os.Executable()
+	package_ := string(smtppb.File_smtp_smtppb_smtp_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Domain = domain
 	s_impl.Proxy = defaultProxy

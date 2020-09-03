@@ -7,6 +7,8 @@ import (
 
 	"time"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/davecourtois/Utility"
@@ -20,6 +22,9 @@ import (
 type Event_Client struct {
 	cc *grpc.ClientConn
 	c  eventpb.EventServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -50,9 +55,9 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(address string, name string) (*Event_Client, error) {
+func NewEvent_Client(address string, id string) (*Event_Client, error) {
 	client := new(Event_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +80,7 @@ func NewEvent_Client(address string, name string) (*Event_Client, error) {
 		for nb_try_connect > 0 {
 			err := client.run()
 			if err != nil && nb_try_connect == 0 {
-				fmt.Println("78 Fail to create event client: ", name, err)
+				fmt.Println("78 Fail to create event client: ", id, err)
 				break // exit loop.
 			}
 			time.Sleep(5 * time.Second) // wait five seconds.
@@ -137,6 +142,13 @@ func (self *Event_Client) run() error {
 	}
 }
 
+func (self *Event_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *Event_Client) GetDomain() string {
 	return self.domain
@@ -145,6 +157,11 @@ func (self *Event_Client) GetDomain() string {
 // Return the address
 func (self *Event_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *Event_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -165,6 +182,11 @@ func (self *Event_Client) Close() {
 // Set grpc_service port.
 func (self *Event_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client instance id.
+func (self *Event_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

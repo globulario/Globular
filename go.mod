@@ -16,6 +16,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20191001013358-cfbb681360f0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/emicklei/proto v1.9.0
+	github.com/giampaolo/psutil v0.0.0-20200815084658-ee60bad61082 // indirect
 	github.com/glendc/go-external-ip v0.0.0-20200601212049-c872357d968e // indirect
 	github.com/go-acme/lego/v3 v3.7.0
 	github.com/go-ini/ini v1.44.0 // indirect
@@ -33,6 +34,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/miekg/dns v1.1.29
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
+	github.com/neptulon/ca v0.0.0-20151130214530-0c1ac1eda71a
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
@@ -40,7 +42,7 @@ require (
 	github.com/prometheus/common v0.10.0 // indirect
 	github.com/robinson/gos7 v0.0.0-20191007095816-929a8656546f
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/shirou/gopsutil v2.19.10+incompatible // indirect
+	github.com/shirou/gopsutil v2.20.7+incompatible // indirect
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0
@@ -56,6 +58,7 @@ require (
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91 // indirect
 	google.golang.org/grpc v1.29.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v0.0.0-20200814200710-a3740e5ed326 // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/alexcesaro/quotedprintable.v2 v2.0.0-20150314193201-9b4a113f96b3 // indirect
 	gopkg.in/gomail.v1 v1.0.0-20150320132819-11b919ab4933

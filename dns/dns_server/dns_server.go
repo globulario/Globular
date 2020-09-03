@@ -26,13 +26,13 @@ import (
 	//"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	//"google.golang.org/grpc/grpclog"
+	"github.com/davecourtois/Globular/dns/dns_client"
 	"google.golang.org/grpc/reflection"
 
 	//"google.golang.org/grpc/status"
 	"encoding/binary"
 
 	"github.com/davecourtois/Globular/storage/storage_store"
-
 	"github.com/miekg/dns"
 )
 
@@ -58,7 +58,10 @@ var (
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
+	Id              string
 	Name            string
+	Path            string
+	Proto           string
 	Port            int
 	Proxy           int
 	AllowAllOrigins bool
@@ -96,6 +99,10 @@ type server struct {
 
 // Create the configuration file if is not already exist.
 func (self *server) init() {
+
+	// That function is use to get access to other server.
+	Utility.RegisterFunction("NewDns_Client", dns_client.NewDns_Client)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
@@ -108,6 +115,10 @@ func (self *server) init() {
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
 
@@ -1512,7 +1523,11 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	Utility.RegisterType(s_impl) // must be call dynamically
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	s_impl.Name = string(dnspb.File_dns_dnspb_dns_proto.Services().Get(0).FullName())
+	s_impl.Proto = dnspb.File_dns_dnspb_dns_proto.Path()
+	s_impl.Path, _ = os.Executable()
+	package_ := string(dnspb.File_dns_dnspb_dns_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

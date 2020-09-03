@@ -8,6 +8,8 @@ import (
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/file/filepb"
 
+	"context"
+
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
@@ -19,6 +21,9 @@ import (
 type File_Client struct {
 	cc *grpc.ClientConn
 	c  filepb.FileServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -43,9 +48,9 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(address string, name string) (*File_Client, error) {
+func NewFile_Client(address string, id string) (*File_Client, error) {
 	client := new(File_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +63,13 @@ func NewFile_Client(address string, name string) (*File_Client, error) {
 	return client, nil
 }
 
+func (self *File_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *File_Client) GetDomain() string {
 	return self.domain
@@ -66,6 +78,11 @@ func (self *File_Client) GetDomain() string {
 // Return the address
 func (self *File_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *File_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -81,6 +98,11 @@ func (self *File_Client) Close() {
 // Set grpc_service port.
 func (self *File_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client instance id.
+func (self *File_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

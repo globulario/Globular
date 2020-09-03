@@ -22,6 +22,9 @@ type Ressource_Client struct {
 	cc *grpc.ClientConn
 	c  RessourceServiceClient
 
+	// The id of the service
+	id string
+
 	// The name of the service
 	name string
 
@@ -45,9 +48,9 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(address string, name string) (*Ressource_Client, error) {
+func NewRessource_Client(address string, id string) (*Ressource_Client, error) {
 	client := new(Ressource_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +65,13 @@ func NewRessource_Client(address string, name string) (*Ressource_Client, error)
 	return client, nil
 }
 
+func (self *Ressource_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the ipv4 address
 // Return the address
 func (self *Ressource_Client) GetAddress() string {
@@ -71,6 +81,11 @@ func (self *Ressource_Client) GetAddress() string {
 // Return the domain
 func (self *Ressource_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the id of the service instance
+func (self *Ressource_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -86,6 +101,11 @@ func (self *Ressource_Client) Close() {
 // Set grpc_service port.
 func (self *Ressource_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client name.
+func (self *Ressource_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.
@@ -433,21 +453,6 @@ func (self *Ressource_Client) ValidateApplicationRessourceAccess(application str
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) ValidatePeerRessourceAccess(name string, path string, method string, permission int32) (bool, error) {
-	rqst := &ValidatePeerRessourceAccessRqst{}
-	rqst.Name = name
-	rqst.Path = path
-	rqst.Method = method
-	rqst.Permission = permission
-
-	rsp, err := self.c.ValidatePeerRessourceAccess(api.GetClientContext(self), rqst)
-	if err != nil {
-		return false, err
-	}
-
-	return rsp.GetResult(), nil
-}
-
 func (self *Ressource_Client) ValidateUserAccess(token string, method string) (bool, error) {
 	rqst := &ValidateUserAccessRqst{}
 	rqst.Token = token
@@ -466,18 +471,6 @@ func (self *Ressource_Client) ValidateApplicationAccess(application string, meth
 	rqst.Name = application
 	rqst.Method = method
 	rsp, err := self.c.ValidateApplicationAccess(api.GetClientContext(self), rqst)
-	if err != nil {
-		return false, err
-	}
-
-	return rsp.GetResult(), nil
-}
-
-func (self *Ressource_Client) ValidatePeerAccess(name string, method string) (bool, error) {
-	rqst := &ValidatePeerAccessRqst{}
-	rqst.Name = name
-	rqst.Method = method
-	rsp, err := self.c.ValidatePeerAccess(api.GetClientContext(self), rqst)
 	if err != nil {
 		return false, err
 	}
@@ -637,20 +630,4 @@ func (self *Ressource_Client) Log(application string, user string, method string
 	_, err := self.c.Log(api.GetClientContext(self), rqst)
 
 	return err
-}
-
-/////////////////////////////////// Peer's  ///////////////////////////////////
-
-// Register a peer with a given name and mac address.
-func (self *Ressource_Client) RegisterPeer(name string, mac string) error {
-	rqst := &RegisterPeerRqst{
-		Peer: &Peer{
-			MacAddress: mac,
-			Name:       name,
-		},
-	}
-
-	_, err := self.c.RegisterPeer(api.GetClientContext(self), rqst)
-	return err
-
 }

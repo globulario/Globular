@@ -48,6 +48,7 @@ var persistence_pb_1 = require("./persistence/persistencepb/persistence_pb");
 var services_pb_1 = require("./services/services_pb");
 var file_pb_1 = require("./file/filepb/file_pb");
 var plc_pb_1 = require("./plc/plcpb/plc_pb");
+var search_pb_1 = require("./search/searchpb/search_pb");
 // Here I will get the authentication information.
 var domain = window.location.hostname;
 var application = window.location.pathname.split('/')[1];
@@ -2100,3 +2101,37 @@ function pingSql(globular, connectionId, callback, errorCallback) {
     });
 }
 exports.pingSql = pingSql;
+///////////////////////////// Search Operations ////////////////////////////////////////
+/**
+ * Search Documents from given database(s) and return results. The search engine in use is
+ * xapian, so query must follow xapian query rules.
+ * @param globular The server object.
+ * @param paths The list of database paths.
+ * @param query The query to execute.
+ * @param language The language of the database.
+ * @param fields The list of field to query, can be empty if all fields must be search or fields are specified in the query.
+ * @param offset The offset of resultset
+ * @param pageSize The number of result to return
+ * @param snippetLength The length of the snippet result.
+ * @param callback The success callback
+ * @param errorCallback The error callback.
+ */
+function searchDocuments(globular, paths, query, language, fields, offset, pageSize, snippetLength, callback, errorCallback) {
+    var rqst = new search_pb_1.SearchDocumentsRequest;
+    rqst.setPathsList(paths);
+    rqst.setQuery(query);
+    rqst.setLanguage(language);
+    rqst.setFieldsList(fields);
+    rqst.setOffset(offset);
+    rqst.setPagesize(pageSize);
+    rqst.setSnippetlength(snippetLength);
+    globular.searchService.searchDocuments(rqst, {
+        "token": token,
+        "application": application, "domain": domain
+    }).then(function (rsp) {
+        callback(rsp.getResultsList());
+    }).catch(function (err) {
+        errorCallback(err);
+    });
+}
+exports.searchDocuments = searchDocuments;

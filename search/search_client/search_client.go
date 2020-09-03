@@ -3,6 +3,8 @@ package Search_client
 import (
 	"strconv"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/search/searchpb"
 
@@ -17,6 +19,9 @@ import (
 type Search_Client struct {
 	cc *grpc.ClientConn
 	c  searchpb.SearchServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -41,9 +46,9 @@ type Search_Client struct {
 }
 
 // Create a connection to the service.
-func NewSearch_Client(address string, name string) (*Search_Client, error) {
+func NewSearch_Client(address string, id string) (*Search_Client, error) {
 	client := new(Search_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +61,13 @@ func NewSearch_Client(address string, name string) (*Search_Client, error) {
 	return client, nil
 }
 
+func (self *Search_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *Search_Client) GetDomain() string {
 	return self.domain
@@ -64,6 +76,11 @@ func (self *Search_Client) GetDomain() string {
 // Return the address
 func (self *Search_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *Search_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -79,6 +96,11 @@ func (self *Search_Client) Close() {
 // Set grpc_service port.
 func (self *Search_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client service id.
+func (self *Search_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.
@@ -219,9 +241,9 @@ func (self *Search_Client) IndexDir(dbPath string, dirPath string, language stri
  *  -pageSize The number of result to be return.
  *  -snippetLength The length of the snippet.
  */
-func (self *Search_Client) SearchDocuments(path string, query string, language string, fields []string, offset int32, pageSize int32, snippetLength int32) ([]*searchpb.SearchResult, error) {
+func (self *Search_Client) SearchDocuments(paths []string, query string, language string, fields []string, offset int32, pageSize int32, snippetLength int32) ([]*searchpb.SearchResult, error) {
 	rqst := &searchpb.SearchDocumentsRequest{
-		Path:          path,
+		Paths:         paths,
 		Query:         query,
 		Language:      language,
 		Fields:        fields,

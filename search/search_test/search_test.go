@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	client       *Search_client.Search_Client
-	testFilePath = "/media/dave/DCB5-6ABA/tmp"
+	client    *Search_client.Search_Client
+	tmpDir    = "C:/temp" // "/media/dave/DCB5-6ABA/tmp"
+	ebookPath = "E:/Ebook"
 )
 
 func getClient() *Search_client.Search_Client {
@@ -61,13 +62,13 @@ func TestIndexJsonObject(t *testing.T) {
 	]
 	`
 
-	err := getClient().IndexJsonObject("/tmp/search_test_db", str, "english", "id", []string{"name", "BornAt"}, "")
+	err := getClient().IndexJsonObject(tmpDir+"/search_test_db", str, "english", "id", []string{"name", "BornAt"}, "")
 	if err != nil {
 		log.Println(err)
 	}
 
 	// Count the number of document in the db
-	count, _ := getClient().Count("/tmp/search_test_db")
+	count, _ := getClient().Count(tmpDir + "/search_test_db")
 
 	log.Println(count)
 }
@@ -86,15 +87,15 @@ func TestVersion(t *testing.T) {
 }
 
 func TestSearchDocument(t *testing.T) {
-	path := "/tmp/search_test_db"
-	query := "Tom"
+	paths := []string{tmpDir + "/search_test_db"}
+	query := `name:"Tom Cruise"`
 	language := "english"
 	fields := []string{"Name"}
 	offset := int32(0)
 	pageSize := int32(10)
 	snippetLength := int32(500)
 
-	results, err := getClient().SearchDocuments(path, query, language, fields, offset, pageSize, snippetLength)
+	results, err := getClient().SearchDocuments(paths, query, language, fields, offset, pageSize, snippetLength)
 	if err != nil {
 		log.Println(err)
 		return
@@ -107,34 +108,36 @@ func TestSearchDocument(t *testing.T) {
 }
 
 func TestDeleteDocument(t *testing.T) {
-	err := getClient().DeleteDocument("/tmp/search_test_db", "2")
+	err := getClient().DeleteDocument(tmpDir+"/search_test_db", "2")
 	if err != nil {
 		log.Println(err)
 	}
 
 	// Count the number of document in the db
-	count, _ := getClient().Count("/tmp/search_test_db")
+	count, _ := getClient().Count(tmpDir + "/search_test_db")
 	log.Println(count)
 }
 
+/*
 func TestIndexDir(t *testing.T) {
-	path := testFilePath + "/ebook"
-	err := getClient().IndexDir("/tmp/dir_db", path, "english")
+	path := ebookPath
+	err := getClient().IndexDir(tmpDir+"/dir_db", path, "english")
 	if err != nil {
 		log.Print(err)
 	}
 }
+*/
 
 func TestSearchTextFiles(t *testing.T) {
-	path := "/tmp/dir_db"
+	paths := []string{tmpDir + "/dir_db"}
 	query := `File`
 	language := "english"
 	fields := []string{}
 	offset := int32(0)
-	pageSize := int32(1000)
+	pageSize := int32(10)
 	snippetLength := int32(70)
 
-	results, err := getClient().SearchDocuments(path, query, language, fields, offset, pageSize, snippetLength)
+	results, err := getClient().SearchDocuments(paths, query, language, fields, offset, pageSize, snippetLength)
 	if err != nil {
 		log.Println(err)
 	}
@@ -148,25 +151,27 @@ func TestSearchTextFiles(t *testing.T) {
 	}
 }
 
+/*
 func TestIndexPdfFile(t *testing.T) {
-	path := testFilePath + "ebook/TalendOpenStudio_BigData_GettingStarted_EN_7.1.1.pdf"
-	err := getClient().IndexFile("c:/temp/search_test_db", path, "english")
+	path := ebookPath + "/TalendOpenStudio_BigData_GettingStarted_EN_7.1.1.pdf"
+	err := getClient().IndexFile(tmpDir+"/search_test_db", path, "english")
 	if err != nil {
 		log.Print(err)
 	}
 }
-
+*/
+/*
 //  Search text in a given file. I made use the snippet's to display search results.
 func TestSearchTextFile(t *testing.T) {
-	path := "/tmp/search_test_db"
+	paths := []string{tmpDir + "/search_test_db"}
 	query := `Boy OR Girl OR Dog AND Cat`
 	language := "english"
 	fields := []string{}
 	offset := int32(0)
-	pageSize := int32(1000)
+	pageSize := int32(10)
 	snippetLength := int32(70)
 
-	results, err := getClient().SearchDocuments(path, query, language, fields, offset, pageSize, snippetLength)
+	results, err := getClient().SearchDocuments(paths, query, language, fields, offset, pageSize, snippetLength)
 	if err != nil {
 		log.Println(err)
 	}
@@ -178,3 +183,4 @@ func TestSearchTextFile(t *testing.T) {
 		}
 	}
 }
+*/

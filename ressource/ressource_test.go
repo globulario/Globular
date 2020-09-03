@@ -8,7 +8,7 @@ import (
 
 var (
 	// Connect to the plc client.
-	client = NewRessource_Client("10.67.44.131", "ressource")
+	client = NewRessource_Client("10.67.44.131", "ressource.RessourceService")
 )
 
 /*

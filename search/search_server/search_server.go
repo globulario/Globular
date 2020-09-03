@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 
 	//	"google.golang.org/grpc/codes"
+	"github.com/davecourtois/Globular/search/search_client"
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
@@ -52,7 +53,9 @@ var (
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
+	Id              string
 	Name            string
+	Path            string
 	Port            int
 	Proxy           int
 	AllowAllOrigins bool
@@ -78,12 +81,20 @@ type server struct {
 
 // Create the configuration file if is not already exist.
 func (self *server) init() {
+
+	// That function is use to get access to other server.
+	Utility.RegisterFunction("NewSearch_Client", search_client.NewSearch_Client)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
 }
@@ -277,18 +288,29 @@ func (self *server) addSubDBs(db xapian.Database, path string) []xapian.Database
 }
 
 // Search documents...
-func (self *server) searchDocuments(path string, language string, fields []string, queryStr string, offset int32, pageSize int32, snippetLength int32) ([]*searchpb.SearchResult, error) {
+func (self *server) searchDocuments(paths []string, language string, fields []string, queryStr string, offset int32, pageSize int32, snippetLength int32) ([]*searchpb.SearchResult, error) {
 
-	// Open the db for read...
-	db := xapian.NewDatabase(path)
+	if len(paths) == 0 {
+		return nil, errors.New("No database was path given!")
+	}
+
+	db := xapian.NewDatabase(paths[0])
 	defer xapian.DeleteDatabase(db)
 
-	// Now I will recursively append data base is there is some subdirectory...
-	subDbs := self.addSubDBs(db, path)
+	// Open the db for read...
+	for i := 1; i < len(paths); i++ {
+		path := paths[i]
+		_db := xapian.NewDatabase(path)
+		defer xapian.DeleteDatabase(_db)
 
-	// clear pointer memory...
-	for i := 0; i < len(subDbs); i++ {
-		defer xapian.DeleteDatabase(subDbs[i])
+		// Now I will recursively append data base is there is some subdirectory...
+		subDbs := self.addSubDBs(_db, path)
+		db.Add_database(_db)
+
+		// clear pointer memory...
+		for j := 0; j < len(subDbs); j++ {
+			defer xapian.DeleteDatabase(subDbs[j])
+		}
 	}
 
 	queryParser := xapian.NewQueryParser()
@@ -366,7 +388,7 @@ func (self *server) SearchDocuments(ctx context.Context, rqst *searchpb.SearchDo
 	var results []*searchpb.SearchResult
 	var err error
 
-	results, err = self.searchDocuments(rqst.Path, rqst.Language, rqst.Fields, rqst.Query, rqst.Offset, rqst.PageSize, rqst.SnippetLength)
+	results, err = self.searchDocuments(rqst.Paths, rqst.Language, rqst.Fields, rqst.Query, rqst.Offset, rqst.PageSize, rqst.SnippetLength)
 	if err != nil {
 		return nil, err
 	}
@@ -382,8 +404,17 @@ func (self *server) SearchDocuments(ctx context.Context, rqst *searchpb.SearchDo
  */
 func (self *server) indexDir(dbPath string, dirPath string, language string) error {
 
+	dirInfo, err := os.Stat(dirPath)
+	if err != nil {
+		return err
+	}
+
+	if !dirInfo.IsDir() {
+		return errors.New("The file " + dirPath + " is not a directory ")
+	}
+
 	// So here I will create the directory entry in the dbPath
-	err := Utility.CreateDirIfNotExist(dbPath)
+	err = Utility.CreateDirIfNotExist(dbPath)
 
 	if err != nil {
 		return err
@@ -422,6 +453,32 @@ func (self *server) indexDir(dbPath string, dirPath string, language string) err
 		}
 	}
 
+	mime := "folder"
+
+	// set document meta data.
+	modified := "D" + dirInfo.ModTime().Format("YYYYMMDD")
+	doc := xapian.NewDocument()
+	defer xapian.DeleteDocument(doc)
+	doc.Add_term(modified)
+	doc.Add_term("P" + dirPath)
+	doc.Add_term("T" + mime)
+
+	id := "Q" + Utility.GenerateUUID(dirPath)
+	doc.Add_boolean_term(id)
+
+	infos := make(map[string]interface{}, 0)
+
+	infos["path"] = dirPath
+	infos["type"] = "file"
+
+	infos["mime"] = mime
+
+	jsonStr, _ := Utility.ToJson(infos)
+	doc.Set_data(jsonStr)
+
+	// Create the directory information.
+	db.Replace_document(id, doc)
+
 	db.Commit_transaction()
 	db.Close()
 
@@ -433,16 +490,7 @@ func (self *server) indexDir(dbPath string, dirPath string, language string) err
  */
 func (self *server) IndexDir(ctx context.Context, rqst *searchpb.IndexDirRequest) (*searchpb.IndexDirResponse, error) {
 
-	fileInfo, err := os.Stat(rqst.DirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if !fileInfo.IsDir() {
-		return nil, errors.New("The file " + rqst.DirPath + " is not a directory ")
-	}
-
-	err = self.indexDir(rqst.DbPath, rqst.DirPath, rqst.Language)
+	err := self.indexDir(rqst.DbPath, rqst.DirPath, rqst.Language)
 	if err != nil {
 		return nil, err
 	}
@@ -507,10 +555,12 @@ func (self *server) indexFile(db xapian.WritableDatabase, path string, language 
 
 	id := "Q" + Utility.GenerateUUID(path)
 	doc.Add_boolean_term(id)
+
 	infos := make(map[string]interface{}, 0)
 	infos["path"] = path
 	infos["type"] = "file"
 	infos["mime"] = mime
+
 	jsonStr, _ := Utility.ToJson(infos)
 	doc.Set_data(jsonStr)
 
@@ -612,7 +662,7 @@ func (self *server) snippets(terms []string, path string, mime string, length in
 			snippet = strings.Join(words, " ")
 
 			// Now I will set html balise.
-			snippet = "<div class='snippet'>" + strings.ReplaceAll(snippet, terms[i], "<b>"+terms[i]+"</b>") + " ... </div>"
+			snippet = "<div class='snippet'>" + strings.ReplaceAll(snippet, terms[i], "<div class='founded-term'>"+terms[i]+"</div>") + " ... </div>"
 
 			snippets = append(snippets, snippet)
 
@@ -729,8 +779,12 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	s_impl.Name = string(searchpb.File_search_searchpb_search_proto.Services().Get(0).FullName())
+	s_impl.Proto = searchpb.File_search_searchpb_search_proto.Path()
 	s_impl.Port = port
+	s_impl.Path, _ = os.Executable()
+	package_ := string(searchpb.File_search_searchpb_search_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain

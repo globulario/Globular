@@ -27,6 +27,9 @@ type Admin_Client struct {
 	cc *grpc.ClientConn
 	c  AdminServiceClient
 
+	// The id of the service
+	id string
+
 	// The name of the service
 	name string
 
@@ -50,9 +53,9 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(address string, name string) (*Admin_Client, error) {
+func NewAdmin_Client(address string, id string) (*Admin_Client, error) {
 	client := new(Admin_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +68,13 @@ func NewAdmin_Client(address string, name string) (*Admin_Client, error) {
 	return client, nil
 }
 
+func (self *Admin_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the address
 func (self *Admin_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
@@ -73,6 +83,11 @@ func (self *Admin_Client) GetAddress() string {
 // Return the domain
 func (self *Admin_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the id of the service instance
+func (self *Admin_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -88,6 +103,11 @@ func (self *Admin_Client) Close() {
 // Set grpc_service port.
 func (self *Admin_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client service instance id.
+func (self *Admin_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

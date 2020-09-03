@@ -8,6 +8,8 @@ import (
 	"log"
 	"strconv"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"google.golang.org/grpc"
 )
@@ -18,6 +20,9 @@ import (
 type ServicesDiscovery_Client struct {
 	cc *grpc.ClientConn
 	c  ServiceDiscoveryClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -42,9 +47,9 @@ type ServicesDiscovery_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesDiscovery_Client(address string, name string) (*ServicesDiscovery_Client, error) {
+func NewServicesDiscovery_Client(address string, id string) (*ServicesDiscovery_Client, error) {
 	client := new(ServicesDiscovery_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +64,13 @@ func NewServicesDiscovery_Client(address string, name string) (*ServicesDiscover
 	return client, nil
 }
 
+func (self *ServicesDiscovery_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the ipv4 address
 func (self *ServicesDiscovery_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
@@ -67,6 +79,11 @@ func (self *ServicesDiscovery_Client) GetAddress() string {
 // Return the domain
 func (self *ServicesDiscovery_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the id of the service instance
+func (self *ServicesDiscovery_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -82,6 +99,11 @@ func (self *ServicesDiscovery_Client) Close() {
 // Set grpc_service port.
 func (self *ServicesDiscovery_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client name.
+func (self *ServicesDiscovery_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.
@@ -220,6 +242,9 @@ type ServicesRepository_Client struct {
 	cc *grpc.ClientConn
 	c  ServiceRepositoryClient
 
+	// The id of the service
+	id string
+
 	// The name of the service
 	name string
 
@@ -243,9 +268,9 @@ type ServicesRepository_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesRepository_Client(address string, name string) (*ServicesRepository_Client, error) {
+func NewServicesRepository_Client(address string, id string) (*ServicesRepository_Client, error) {
 	client := new(ServicesRepository_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -264,9 +289,21 @@ func (self *ServicesRepository_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
 }
 
+func (self *ServicesRepository_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *ServicesRepository_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the id of the service instance
+func (self *ServicesRepository_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -282,6 +319,11 @@ func (self *ServicesRepository_Client) Close() {
 // Set grpc_service port.
 func (self *ServicesRepository_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client service id.
+func (self *ServicesRepository_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

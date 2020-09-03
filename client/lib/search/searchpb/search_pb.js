@@ -16,7 +16,6 @@ goog.exportSymbol('proto.echo.CountRequest', null, global);
 goog.exportSymbol('proto.echo.CountResponse', null, global);
 goog.exportSymbol('proto.echo.DeleteDocumentRequest', null, global);
 goog.exportSymbol('proto.echo.DeleteDocumentResponse', null, global);
-goog.exportSymbol('proto.echo.EngineType', null, global);
 goog.exportSymbol('proto.echo.GetVersionRequest', null, global);
 goog.exportSymbol('proto.echo.GetVersionResponse', null, global);
 goog.exportSymbol('proto.echo.IndexDirRequest', null, global);
@@ -2336,7 +2335,7 @@ proto.echo.SearchResult.prototype.clearSnippetsList = function() {
  * @private {!Array<number>}
  * @const
  */
-proto.echo.SearchDocumentsRequest.repeatedFields_ = [4];
+proto.echo.SearchDocumentsRequest.repeatedFields_ = [1,4];
 
 
 
@@ -2369,7 +2368,7 @@ proto.echo.SearchDocumentsRequest.prototype.toObject = function(opt_includeInsta
  */
 proto.echo.SearchDocumentsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    path: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    pathsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
     query: jspb.Message.getFieldWithDefault(msg, 2, ""),
     language: jspb.Message.getFieldWithDefault(msg, 3, ""),
     fieldsList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f,
@@ -2414,7 +2413,7 @@ proto.echo.SearchDocumentsRequest.deserializeBinaryFromReader = function(msg, re
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setPath(value);
+      msg.addPaths(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
@@ -2469,9 +2468,9 @@ proto.echo.SearchDocumentsRequest.prototype.serializeBinary = function() {
  */
 proto.echo.SearchDocumentsRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getPath();
+  f = message.getPathsList();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeRepeatedString(
       1,
       f
     );
@@ -2522,20 +2521,39 @@ proto.echo.SearchDocumentsRequest.serializeBinaryToWriter = function(message, wr
 
 
 /**
- * optional string path = 1;
- * @return {string}
+ * repeated string paths = 1;
+ * @return {!Array<string>}
  */
-proto.echo.SearchDocumentsRequest.prototype.getPath = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.echo.SearchDocumentsRequest.prototype.getPathsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.echo.SearchDocumentsRequest} returns this
+ */
+proto.echo.SearchDocumentsRequest.prototype.setPathsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
 };
 
 
 /**
  * @param {string} value
+ * @param {number=} opt_index
  * @return {!proto.echo.SearchDocumentsRequest} returns this
  */
-proto.echo.SearchDocumentsRequest.prototype.setPath = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+proto.echo.SearchDocumentsRequest.prototype.addPaths = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.echo.SearchDocumentsRequest} returns this
+ */
+proto.echo.SearchDocumentsRequest.prototype.clearPathsList = function() {
+  return this.setPathsList([]);
 };
 
 
@@ -2825,12 +2843,5 @@ proto.echo.SearchDocumentsResponse.prototype.clearResultsList = function() {
   return this.setResultsList([]);
 };
 
-
-/**
- * @enum {number}
- */
-proto.echo.EngineType = {
-  XAPIAN: 0
-};
 
 goog.object.extend(exports, proto.echo);

@@ -271,8 +271,10 @@ export namespace SearchResult {
 }
 
 export class SearchDocumentsRequest extends jspb.Message {
-  getPath(): string;
-  setPath(value: string): void;
+  getPathsList(): Array<string>;
+  setPathsList(value: Array<string>): void;
+  clearPathsList(): void;
+  addPaths(value: string, index?: number): void;
 
   getQuery(): string;
   setQuery(value: string): void;
@@ -304,7 +306,7 @@ export class SearchDocumentsRequest extends jspb.Message {
 
 export namespace SearchDocumentsRequest {
   export type AsObject = {
-    path: string,
+    pathsList: Array<string>,
     query: string,
     language: string,
     fieldsList: Array<string>,
@@ -334,6 +336,3 @@ export namespace SearchDocumentsResponse {
   }
 }
 
-export enum EngineType { 
-  XAPIAN = 0,
-}

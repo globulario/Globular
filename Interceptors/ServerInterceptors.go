@@ -12,19 +12,30 @@ import (
 	"strings"
 	"time"
 
-	"net"
-
 	"github.com/davecourtois/Globular/file/filepb"
+	"github.com/davecourtois/Globular/lb"
+
+	"github.com/davecourtois/Globular/api"
+	"github.com/davecourtois/Globular/lb/lbpb"
 	"github.com/davecourtois/Globular/ressource"
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Utility"
+
+	"github.com/shirou/gopsutil/load"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	//"google.golang.org/grpc/peer"
 )
 
 var (
+	// The ressource client
 	ressource_client *ressource.Ressource_Client
+
+	// The load balancer client.
+	lb_client *lb.Lb_Client
+
+	// The map will contain connection with other server of same kind to load
+	// balance the server charge.
+	clients map[string]api.Client
 
 	// That will contain the permission in memory to limit the number
 	// of ressource request...
@@ -34,10 +45,58 @@ var (
 /**
  * Get a the local ressource client.
  */
+func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*lb.Lb_Client, error) {
+
+	var err error
+	if lb_client == nil {
+		lb_client, err = lb.NewLb_Client(domain, "lb.LoadBalancingService")
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println("----> start load balancing for ", serviceName)
+
+		// Here I will create the client map.
+		clients = make(map[string]api.Client)
+
+		// Now I will start reporting load at each minutes.
+		ticker := time.NewTicker(1 * time.Minute)
+		go func() {
+			for {
+				select {
+				case <-ticker.C:
+					stats, err := load.Avg()
+					if err != nil {
+						break
+					}
+					load_info := &lbpb.LoadInfo{
+						ServerInfo: &lbpb.ServerInfo{
+							Id:     serverId,
+							Name:   serviceName,
+							Domain: serverDomain,
+							Port:   serverPort,
+						},
+						Load1:  stats.Load1,
+						Load5:  stats.Load5,
+						Load15: stats.Load15,
+					}
+
+					lb_client.ReportLoadInfo(load_info)
+				}
+			}
+		}()
+	}
+
+	return lb_client, nil
+}
+
+/**
+ * Get a the local ressource client.
+ */
 func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
 	var err error
 	if ressource_client == nil {
-		ressource_client, err = ressource.NewRessource_Client(domain, "ressource")
+		ressource_client, err = ressource.NewRessource_Client(domain, "ressource.RessourceService")
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +138,8 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 	}
 
 	if !hasAccess {
-		return errors.New("Permission denied! for file " + path)
+		user, _, _, _ := ValidateToken(token)
+		return errors.New("Permission denied for user " + user + " to execute methode " + method + " on ressource " + path)
 	}
 
 	return nil
@@ -103,31 +163,7 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 		return err
 	}
 	if !hasAccess {
-		return errors.New("Permission denied! for ressource " + path)
-	}
-
-	return nil
-}
-
-/**
- * Validate peer ressouce permission.
- */
-func ValidatePeerRessourceAccess(domain string, name string, method string, path string, permission int32) error {
-
-	// keep the values in the map for the lifetime of the token and validate it
-	// from local map.
-	ressource_client, err := getRessourceClient(domain)
-	if err != nil {
-		return err
-	}
-
-	// get access from remote source.
-	hasAccess, err := ressource_client.ValidatePeerRessourceAccess(name, path, method, permission)
-	if err != nil {
-		return err
-	}
-	if !hasAccess {
-		return errors.New("Permission denied! for ressource " + path)
+		return errors.New("Permission denied for application " + applicationName + " to execute method " + method + " on ressource " + path)
 	}
 
 	return nil
@@ -194,35 +230,6 @@ func ValidateApplicationAccess(domain string, application string, method string)
 	return hasAccess, err
 }
 
-func ValidatePeerAccess(domain string, name string, method string) (bool, error) {
-	key := Utility.GenerateUUID(name + method)
-
-	_, err := getCache().GetItem(key)
-	if err == nil {
-		// Here a value exist in the store...
-		return true, nil
-	}
-
-	ressource_client, err := getRessourceClient(domain)
-	if err != nil {
-		return false, err
-	}
-
-	// get access from remote source.
-	hasAccess, err := ressource_client.ValidatePeerAccess(name, method)
-	if hasAccess {
-		getCache().SetItem(key, []byte(""))
-
-		// Here I will set a timeout for the permission.
-		timeout := time.NewTimer(15 * time.Minute)
-		go func() {
-			<-timeout.C
-			getCache().RemoveItem(key)
-		}()
-	}
-	return hasAccess, err
-}
-
 // Refresh a token.
 func refreshToken(domain string, token string) (string, error) {
 	ressource_client, err := getRessourceClient(domain)
@@ -235,21 +242,15 @@ func refreshToken(domain string, token string) (string, error) {
 
 // That interceptor is use by all services except the ressource service who has
 // it own interceptor.
-func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
 	// The token and the application id.
 	var token string
 	var application string
 	var path string
-	var domain string  // This is the target domain, the one use in TLS certificate.
-	var peer_id string // The name of the peer
+	var domain string // This is the target domain, the one use in TLS certificate.
 
-	//var ip string
-	//var mac string
-
-	// Get the caller ip address.
-	//p, _ := peer.FromContext(ctx)
-	//ip = p.Addr.String()
+	var load_balanced bool
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
@@ -257,7 +258,10 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		// in case of ressource path.
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
-		//mac = strings.Join(md["mac"], "")
+
+		load_balanced_ := strings.Join(md["load_balanced"], "")
+		ctx = metadata.AppendToOutgoingContext(ctx, "load_balanced", "") // Set back the value to nothing.
+		load_balanced = load_balanced_ == "true"
 	}
 
 	// Here I will test if the
@@ -266,16 +270,6 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if len(domain) == 0 {
 		return nil, errors.New("No domain was given for method call '" + method + "'")
 	}
-
-	// now I will test if the given domain fit the caller address.
-	ips, err := net.LookupIP(domain)
-	if err != nil {
-		return nil, err
-	}
-
-	// display the ips.
-	fmt.Println(ips)
-	//fmt.Println(ip)
 
 	// If the call come from a local client it has hasAccess
 	hasAccess := false // strings.HasPrefix(ip, "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
@@ -292,7 +286,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	}
 
 	var clientId string
-	//var err error
+	var err error
 
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)
@@ -306,18 +300,12 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
-	// Test if peer has access
-	if len(peer_id) > 0 && !hasAccess {
-		hasAccess, _ = ValidatePeerAccess(domain, peer_id, method)
-	}
-
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		hasAccess, _ = ValidateUserAccess(domain, token, method)
 	}
 
 	// Connect to the ressource services for the given domain.
-
 	ressource_client, err := getRessourceClient(domain)
 	if err != nil {
 		return nil, err
@@ -345,13 +333,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 				}
 				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
 				if err != nil {
-					if len(peer_id) == 0 {
-						return nil, err
-					}
-					err = ValidatePeerRessourceAccess(domain, peer_id, method, path, permission)
-					if err != nil {
-						return nil, err
-					}
+					return nil, err
 				}
 			}
 
@@ -359,8 +341,86 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 
 	}
 
+	// Here I will exclude local service from the load balancing.
+	var candidates []*lbpb.ServerInfo
+	// I will try to get the list of candidates for load balancing
+	if Utility.GetProperty(info.Server, "Port") != nil {
+
+		// Here I will refresh the load balance of the server to keep track of real load.
+		lb_client, err := getLoadBalancingClient(domain, Utility.GetProperty(info.Server, "Id").(string), Utility.GetProperty(info.Server, "Name").(string), Utility.GetProperty(info.Server, "Domain").(string), int32(Utility.GetProperty(info.Server, "Port").(int)))
+		if err != nil {
+			return nil, err
+		}
+
+		stats, _ := load.Avg()
+		load_info := &lbpb.LoadInfo{
+			ServerInfo: &lbpb.ServerInfo{
+				Id:     Utility.GetProperty(info.Server, "Id").(string),
+				Name:   Utility.GetProperty(info.Server, "Name").(string),
+				Domain: Utility.GetProperty(info.Server, "Domain").(string),
+				Port:   int32(Utility.GetProperty(info.Server, "Port").(int)),
+			},
+			Load1:  stats.Load1,
+			Load5:  stats.Load5,
+			Load15: stats.Load15,
+		}
+		lb_client.ReportLoadInfo(load_info)
+
+		// if load balanced is false I will get list of candidate.
+		if load_balanced == false {
+			candidates, _ = lb_client.GetCandidates(Utility.GetProperty(info.Server, "Name").(string))
+		}
+
+	}
+
+	var result interface{}
+
 	// Execute the action.
-	result, err := handler(ctx, req)
+	if candidates != nil {
+		serverId := Utility.GetProperty(info.Server, "Id").(string)
+		// Here there is some candidate in the list.
+		for i := 0; i < len(candidates); i++ {
+			candidate := candidates[i]
+
+			if candidate.GetId() == serverId {
+				// In that case the handler is the actual server.
+				result, err = handler(ctx, rqst)
+				fmt.Println("398 execute load balanced request ", serverId)
+				break // stop the loop...
+			} else {
+				// Here the canditade is the actual server so I will dispatch the request to the candidate.
+				if clients[candidate.GetId()] == nil {
+					// Here I will create an instance of the client.
+					newClientFct := method[1:strings.Index(method, ".")]
+					newClientFct = "New" + strings.ToUpper(newClientFct[0:1]) + newClientFct[1:] + "_Client"
+					fmt.Println(newClientFct)
+					// Here I will create a connection with the other server in order to be able to dispatch the request.
+					results, err := Utility.CallFunction(newClientFct, candidate.GetDomain(), candidate.GetId())
+					if err != nil {
+						fmt.Println(err)
+						continue // skip to the next client.
+					}
+					// So here I will keep the client inside the map.
+					clients[candidate.GetId()] = results[0].Interface().(api.Client)
+				}
+				fmt.Println("416 redirect rqst from ", serverId, " to ", candidate.GetId())
+				// Here I will invoke the request on the server whit the same context, so permission and token etc will be kept the save.
+				result, err = clients[candidate.GetId()].Invoke(method, rqst, metadata.AppendToOutgoingContext(ctx, "load_balanced", "true", "domain", Utility.GetProperty(info.Server, "Domain").(string), "path", path, "application", application, "token", token))
+				if err != nil {
+					fmt.Println(err)
+					continue // skip to the next client.
+				} else {
+					break
+				}
+			}
+		}
+
+	} else {
+		if Utility.GetProperty(info.Server, "Id") != nil {
+			fmt.Println("421 execute request ", Utility.GetProperty(info.Server, "Id").(string))
+		}
+		result, err = handler(ctx, rqst)
+	}
 
 	// Send log event...
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
@@ -370,7 +430,7 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	// Here depending of the request I will execute more actions.
 	if err == nil {
 		if method == "/file.FileService/CreateDir" && clientId != "sa" {
-			rqst := req.(*filepb.CreateDirRequest)
+			rqst := rqst.(*filepb.CreateDirRequest)
 			err := ressource_client.CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
 			if err != nil {
 				fmt.Println(err)
@@ -385,21 +445,21 @@ func ServerUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 			}
 
 		} else if method == "/file.FileService/Rename" {
-			rqst := req.(*filepb.RenameRequest)
+			rqst := rqst.(*filepb.RenameRequest)
 			err := ressource_client.RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
 			if err != nil {
 				fmt.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteFile" {
-			rqst := req.(*filepb.DeleteFileRequest)
+			rqst := rqst.(*filepb.DeleteFileRequest)
 			err := ressource_client.DeleteFilePermissions(rqst.GetPath())
 			if err != nil {
 				fmt.Println(err)
 				return nil, err
 			}
 		} else if method == "/file.FileService/DeleteDir" {
-			rqst := req.(*filepb.DeleteDirRequest)
+			rqst := rqst.(*filepb.DeleteDirRequest)
 			err := ressource_client.DeleteDirPermissions(rqst.GetPath())
 			if err != nil {
 				fmt.Println(err)
@@ -420,7 +480,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var application string
 	var domain string
 	var path string
-	var peer_id string
 	//var ip string
 
 	//var mac string
@@ -474,10 +533,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
-	if len(peer_id) > 0 && !hasAccess {
-		hasAccess, _ = ValidatePeerAccess(domain, peer_id, method)
-	}
-
 	// Return here if access is denied.
 	if !hasAccess {
 		return errors.New("Permission denied to execute method " + method)
@@ -495,13 +550,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 				}
 				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
 				if err != nil {
-					if len(peer_id) == 0 {
-						return err
-					}
-					err = ValidatePeerRessourceAccess(domain, peer_id, method, path, permission)
-					if err != nil {
-						return err
-					}
+					return err
 				}
 			}
 

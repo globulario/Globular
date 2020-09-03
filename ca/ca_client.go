@@ -3,6 +3,8 @@ package ca
 import (
 	"strconv"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"google.golang.org/grpc"
 )
@@ -14,6 +16,9 @@ import (
 type Ca_Client struct {
 	cc *grpc.ClientConn
 	c  CertificateAuthorityClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -38,10 +43,10 @@ type Ca_Client struct {
 }
 
 // Create a connection to the service.
-func NewCa_Client(address string, name string) (*Ca_Client, error) {
+func NewCa_Client(address string, id string) (*Ca_Client, error) {
 	client := new(Ca_Client)
 
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +59,13 @@ func NewCa_Client(address string, name string) (*Ca_Client, error) {
 	return client, nil
 }
 
+func (self *Ca_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the address
 func (self *Ca_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
@@ -62,6 +74,11 @@ func (self *Ca_Client) GetAddress() string {
 // Return the domain
 func (self *Ca_Client) GetDomain() string {
 	return self.domain
+}
+
+// Return the id of the service instance
+func (self *Ca_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -77,6 +94,11 @@ func (self *Ca_Client) Close() {
 // Set grpc_service port.
 func (self *Ca_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client instance id.
+func (self *Ca_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

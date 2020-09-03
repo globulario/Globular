@@ -3,6 +3,8 @@ package catalog_client
 import (
 	"strconv"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/catalog/catalogpb"
 	"github.com/davecourtois/Utility"
@@ -17,6 +19,9 @@ import (
 type Catalog_Client struct {
 	cc *grpc.ClientConn
 	c  catalogpb.CatalogServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -41,16 +46,27 @@ type Catalog_Client struct {
 }
 
 // Create a connection to the service.
-func NewCatalog_Client(address string, name string) (*Catalog_Client, error) {
+func NewCatalog_Client(address string, id string) (*Catalog_Client, error) {
 	client := new(Catalog_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
+
 	client.c = catalogpb.NewCatalogServiceClient(client.cc)
 
 	return client, nil
+}
+
+func (self *Catalog_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
 }
 
 // Return the domain
@@ -60,6 +76,11 @@ func (self *Catalog_Client) GetDomain() string {
 
 func (self *Catalog_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *Catalog_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -75,6 +96,11 @@ func (self *Catalog_Client) Close() {
 // Set grpc_service port.
 func (self *Catalog_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client instance id.
+func (self *Catalog_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

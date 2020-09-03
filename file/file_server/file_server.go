@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/davecourtois/Globular/Interceptors"
+	"github.com/davecourtois/Globular/file/file_client"
 	"github.com/davecourtois/Globular/file/filepb"
 	"github.com/davecourtois/Utility"
 	"github.com/nfnt/resize"
@@ -40,8 +41,8 @@ import (
 
 // TODO take care of TLS/https
 var (
-	defaultPort  = 10011
-	defaultProxy = 10012
+	defaultPort  = 10043
+	defaultProxy = 10044
 
 	// By default all origins are allowed.
 	allow_all_origins = true
@@ -58,7 +59,10 @@ var (
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
+	Id                 string
 	Name               string
+	Path               string
+	Proto              string
 	Port               int
 	Proxy              int
 	AllowAllOrigins    bool
@@ -81,12 +85,19 @@ type server struct {
 
 // Create the configuration file if is not already exist.
 func (self *server) init() {
+
+	Utility.RegisterFunction("NewFile_Client", file_client.NewFile_Client)
+
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
 }
@@ -690,7 +701,12 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	// The name must the same as the grpc service name.
+	s_impl.Name = string(filepb.File_file_filepb_file_proto.Services().Get(0).FullName())
+	s_impl.Proto = filepb.File_file_filepb_file_proto.Path()
+	s_impl.Path, _ = os.Executable()
+	package_ := string(filepb.File_file_filepb_file_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
@@ -773,7 +789,9 @@ func main() {
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor)}...)
+		grpcServer = grpc.NewServer(
+			grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor),
+			grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor))
 	}
 
 	filepb.RegisterFileServiceServer(grpcServer, s_impl)

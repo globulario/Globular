@@ -18,6 +18,8 @@ import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from '.
 import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
 import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event, OnEventRequest, SubscribeResponse } from './event/eventpb/event_pb';
 import { SearchServiceClient, SearchServicePromiseClient } from './search/searchpb/search_grpc_web_pb';
+import { LoadBalancingServiceClient, LoadBalancingServicePromiseClient } from './lb/lb_grpc_web_pb';
+
 /**
  * The service configuration information.
  */
@@ -61,6 +63,7 @@ export interface IConfig {
   ServicesRepositoryProxy: number;
   CertificateAuthorityPort: number;
   CertificateAuthorityProxy: number;
+  LoadBalancingServiceProxy: number;
   SessionTimeout: number;
   Protocol: string;
   Discoveries: string[];
@@ -264,6 +267,7 @@ export class Globular {
   config: IConfig | undefined;
   // The admin service.
   adminService: AdminServicePromiseClient | undefined;
+  loadBalancingService: LoadBalancingServicePromiseClient | undefined;
   ressourceService: RessourceServicePromiseClient | undefined;
   servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
   servicesRepository: ServiceRepositoryPromiseClient | undefined;
@@ -307,6 +311,12 @@ export class Globular {
       null,
     );
 
+    this.loadBalancingService = new LoadBalancingServicePromiseClient(
+      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.LoadBalancingServiceProxy,
+      null,
+      null,
+    );
+
     /** That service help to find and install or publish new service on the backend. */
     this.servicesDicovery = new ServiceDiscoveryPromiseClient(
       this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy,
@@ -329,204 +339,266 @@ export class Globular {
     );
 
     // Iinitialisation of services.
-    if (this.config.Services['catalog_server'] != undefined) {
+
+    // The catalog server
+    let catalog_server = this.getFirstConfigByName('catalog.CatalogService')
+    if (catalog_server != undefined) {
       let protocol = 'http';
-      if (this.config.Services['catalog_server'].TLS == true) {
+      if (catalog_server.TLS == true) {
         protocol = 'https';
       }
       this.catalogService = new CatalogServicePromiseClient(
         protocol +
         '://' +
-        this.config.Services['catalog_server'].Domain +
+        catalog_server.Domain +
         ':' +
-        this.config.Services['catalog_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['echo_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['echo_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.echoService = new EchoServicePromiseClient(
-        protocol + '://' + this.config.Services['echo_server'].Domain + ':' + this.config.Services['echo_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['search_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['search_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.searchService = new SearchServicePromiseClient(
-        protocol + '://' + this.config.Services['search_server'].Domain + ':' + this.config.Services['search_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['event_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['event_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.eventService = new EventServicePromiseClient(
-        protocol +
-        '://' +
-        this.config.Services['event_server'].Domain +
-        ':' +
-        this.config.Services['event_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['file_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['file_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.fileService = new FileServicePromiseClient(
-        protocol + '://' + this.config.Services['file_server'].Domain + ':' + this.config.Services['file_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['ldap_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['ldap_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.ldapService = new LdapServicePromiseClient(
-        protocol + '://' + this.config.Services['ldap_server'].Domain + ':' + this.config.Services['ldap_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['persistence_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['persistence_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.persistenceService = new PersistenceServicePromiseClient(
-        protocol +
-        '://' +
-        this.config.Services['persistence_server'].Domain +
-        ':' +
-        this.config.Services['persistence_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['smtp_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['smtp_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.smtpService = new SmtpServicePromiseClient(
-        protocol + '://' + this.config.Services['smtp_server'].Domain + ':' + this.config.Services['smtp_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['sql_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['sql_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.sqlService = new SqlServicePromiseClient(
-        protocol + '://' + this.config.Services['sql_server'].Domain + ':' + this.config.Services['sql_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['storage_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['storage_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.storageService = new StorageServicePromiseClient(
-        protocol +
-        '://' +
-        this.config.Services['storage_server'].Domain +
-        ':' +
-        this.config.Services['storage_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['monitoring_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['monitoring_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.monitoringService = new MonitoringServicePromiseClient(
-        protocol +
-        '://' +
-        this.config.Services['monitoring_server'].Domain +
-        ':' +
-        this.config.Services['monitoring_server'].Proxy,
-        null,
-        null,
-      );
-    }
-    if (this.config.Services['spc_server'] != null) {
-      let protocol = 'http';
-      if (this.config.Services['spc_server'].TLS == true) {
-        protocol = 'https';
-      }
-      this.spcService = new SpcServicePromiseClient(
-        protocol + '://' + this.config.Services['spc_server'].Domain + ':' + this.config.Services['spc_server'].Proxy,
+        catalog_server.Proxy,
         null,
         null,
       );
     }
 
-    // non open source services.
-    if (this.config.Services['plc_server_ab'] != null) {
+    // The echo server
+    let echo_server = this.getFirstConfigByName('echo.EchoService')
+    if (echo_server != null) {
       let protocol = 'http';
-      if (this.config.Services['plc_server_ab'].TLS == true) {
+      if (echo_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.echoService = new EchoServicePromiseClient(
+        protocol + '://' + echo_server.Domain + ':' + echo_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The search service
+    let search_server = this.getFirstConfigByName('search.SearchService')
+    if (search_server != null) {
+      let protocol = 'http';
+      if (search_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.searchService = new SearchServicePromiseClient(
+        protocol + '://' + search_server.Domain + ':' + search_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The event server.
+    let event_server = this.getFirstConfigByName('event.EventService')
+    if (event_server != null) {
+      let protocol = 'http';
+      if (event_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.eventService = new EventServicePromiseClient(
+        protocol +
+        '://' +
+        event_server.Domain +
+        ':' +
+        event_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The file server.
+    let file_server = this.getFirstConfigByName('file.FileService')
+    if (file_server != null) {
+      let protocol = 'http';
+      if (file_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.fileService = new FileServicePromiseClient(
+        protocol + '://' + file_server.Domain + ':' + file_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The ldap server
+    let ldap_server = this.getFirstConfigByName('ldap.LdapService')
+    if (ldap_server != null) {
+      let protocol = 'http';
+      if (ldap_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.ldapService = new LdapServicePromiseClient(
+        protocol + '://' + ldap_server.Domain + ':' + ldap_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The persistence server.
+    let persistence_server = this.getFirstConfigByName('persistence.PersistenceService')
+    if (persistence_server != null) {
+      let protocol = 'http';
+      if (persistence_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.persistenceService = new PersistenceServicePromiseClient(
+        protocol +
+        '://' +
+        persistence_server.Domain +
+        ':' +
+        persistence_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The smtp server
+    let smtp_server = this.getFirstConfigByName('smtp.SmtpService')
+
+    if (smtp_server != null) {
+      let protocol = 'http';
+      if (smtp_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.smtpService = new SmtpServicePromiseClient(
+        protocol + '://' + smtp_server.Domain + ':' + smtp_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The sql service.
+    let sql_server = this.getFirstConfigByName('sql.SqlService')
+    if (sql_server != null) {
+      let protocol = 'http';
+      if (sql_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.sqlService = new SqlServicePromiseClient(
+        protocol + '://' + sql_server.Domain + ':' + sql_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The storage service.
+    let storage_server = this.getFirstConfigByName('storage.StorageService')
+    if (storage_server != null) {
+      let protocol = 'http';
+      if (storage_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.storageService = new StorageServicePromiseClient(
+        protocol +
+        '://' +
+        storage_server.Domain +
+        ':' +
+        storage_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The monitoring service.
+    let monitoring_server = this.getFirstConfigByName('monitoring.MonitoringService')
+
+    if (monitoring_server != null) {
+      let protocol = 'http';
+      if (monitoring_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.monitoringService = new MonitoringServicePromiseClient(
+        protocol +
+        '://' +
+        monitoring_server.Domain +
+        ':' +
+        monitoring_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // The spc server.
+    let spc_server = this.getFirstConfigByName('spc.SpcService')
+    if (spc_server != null) {
+      let protocol = 'http';
+      if (spc_server.TLS == true) {
+        protocol = 'https';
+      }
+      this.spcService = new SpcServicePromiseClient(
+        protocol + '://' + spc_server.Domain + ':' + spc_server.Proxy,
+        null,
+        null,
+      );
+    }
+
+    // TODO Here I got tow implementation of the same service.
+    // So I will use it Path instead of name...
+    /*
+    // The plc_server_ab
+    let plc_server_ab = this.getFirstConfigByName('plc.PlcService')
+    if (plc_server_ab != null) {
+      let protocol = 'http';
+      if (plc_server_ab.TLS == true) {
         protocol = 'https';
       }
       this.plcService_ab = new PlcServicePromiseClient(
         protocol +
         '://' +
-        this.config.Services['plc_server_ab'].Domain +
+        plc_server_ab.Domain +
         ':' +
-        this.config.Services['plc_server_ab'].Proxy,
+        plc_server_ab.Proxy,
         null,
         null,
       );
     }
-    if (this.config.Services['plc_server_siemens'] != null) {
+
+    // PLC simmens
+    let plc_server_siemens = this.getFirstConfigByName('plc.PlcService')
+    if (plc_server_siemens != null) {
       let protocol = 'http';
-      if (this.config.Services['plc_server_siemens'].TLS == true) {
+      if (plc_server_siemens.TLS == true) {
         protocol = 'https';
       }
       this.plcService_siemens = new PlcServicePromiseClient(
         protocol +
         '://' +
-        this.config.Services['plc_server_siemens'].Domain +
+        plc_server_siemens.Domain +
         ':' +
-        this.config.Services['plc_server_siemens'].Proxy,
+        plc_server_siemens.Proxy,
         null,
         null,
       );
     }
-    if (this.config.Services['plc_link_server'] != null) {
+    */
+
+    // PLC Link server.
+    let plc_link_server = this.getFirstConfigByName('plc_link.PlcLinkService')
+    if (plc_link_server != null) {
       let protocol = 'http';
-      if (this.config.Services['plc_link_server'].TLS == true) {
+      if (plc_link_server.TLS == true) {
         protocol = 'https';
       }
       this.plcLinkService = new PlcLinkServicePromiseClient(
         protocol +
         '://' +
-        this.config.Services['plc_link_server'].Domain +
+        plc_link_server.Domain +
         ':' +
-        this.config.Services['plc_link_server'].Proxy,
+        plc_link_server.Proxy,
         null,
         null,
       );
     }
+  }
+
+  // Return the first configuration that match the given name.
+  // The load balancer will be in charge to select the correct service instance from the list
+  // The first instance is the entry point of the services.
+  getFirstConfigByName(name:string): IServiceConfig {
+    for(const id in this.config.Services){
+      const service = this.config.Services[id]
+      if(service.Name == name){
+        return service;
+      }
+    }
+    return null;
   }
 }

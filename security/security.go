@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecourtois/Utility"
@@ -17,7 +18,7 @@ import (
 
 // That function will be access via http so event server or client will be able
 // to get particular service configuration.
-func GetClientConfig(address string, name string) (map[string]interface{}, error) {
+func GetClientConfig(address string, name string, port int) (map[string]interface{}, error) {
 
 	var serverConfig map[string]interface{}
 	var config map[string]interface{}
@@ -42,7 +43,7 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 
 	if !isLocal {
 		// First I will retreive the server configuration.
-		serverConfig, err = getRemoteConfig(address)
+		serverConfig, err = getRemoteConfig(address, port)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +86,9 @@ func GetClientConfig(address string, name string) (map[string]interface{}, error
 func getLocalConfig() (map[string]interface{}, error) {
 	config := make(map[string]interface{}, 0)
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
-	data, err := ioutil.ReadFile(string(root) + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
+	root_ := string(root)[0:strings.Index(string(root), ":")]
+
+	data, err := ioutil.ReadFile(root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
 
 	if err != nil {
 		return nil, err
@@ -102,12 +105,12 @@ func getLocalConfig() (map[string]interface{}, error) {
 /**
  * Get the remote client configuration.
  */
-func getRemoteConfig(address string) (map[string]interface{}, error) {
+func getRemoteConfig(address string, port int) (map[string]interface{}, error) {
 
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":10000/config")
+	resp, err = http.Get("http://" + address + ":" + Utility.ToString(port) + "/config")
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +129,7 @@ func getRemoteConfig(address string) (map[string]interface{}, error) {
 /**
  * Get the ca certificate
  */
-func getCaCertificate(address string) (string, error) {
+func getCaCertificate(address string, port int) (string, error) {
 	if len(address) == 0 {
 		return "", errors.New("No address was given!")
 	}
@@ -134,7 +137,7 @@ func getCaCertificate(address string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":10000/get_ca_certificate")
+	resp, err = http.Get("http://" + address + ":" + Utility.ToString(port) + "/get_ca_certificate")
 
 	if err != nil {
 		return "", err
@@ -153,7 +156,7 @@ func getCaCertificate(address string) (string, error) {
 	return "", errors.New("fail to retreive ca certificate with error " + Utility.ToString(resp.StatusCode))
 }
 
-func signCaCertificate(address string, csr string) (string, error) {
+func signCaCertificate(address string, csr string, port int) (string, error) {
 
 	if len(address) == 0 {
 		return "", errors.New("No address was given!")
@@ -163,7 +166,7 @@ func signCaCertificate(address string, csr string) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":10000/sign_ca_certificate?csr=" + csr_str)
+	resp, err = http.Get("http://" + address + ":" + string(port) + "/sign_ca_certificate?csr=" + csr_str)
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +190,10 @@ func signCaCertificate(address string, csr string) (string, error) {
 func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
 
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
-	path := string(root) + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
+	root_ := string(root)[0:strings.Index(string(root), ":")]
+	port := string(root)[strings.Index(string(root), ":")+1:]
+
+	path := root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "grpc_tls"
 	pwd := "1111"
 
 	// Here I will get the local configuration...
@@ -249,7 +255,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// be deployed. Certificate autority run wihtout tls.
 
 	// Get the ca.crt certificate.
-	ca_crt, err := getCaCertificate(address)
+	ca_crt, err := getCaCertificate(address, Utility.ToInt(port))
 	if err != nil {
 		return "", "", "", err
 	}
@@ -280,7 +286,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	}
 
 	// Sign the certificate from the server ca...
-	client_crt, err := signCaCertificate(address, string(client_csr))
+	client_crt, err := signCaCertificate(address, string(client_csr), Utility.ToInt(port))
 	if err != nil {
 		return "", "", "", err
 	}

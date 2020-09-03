@@ -9,6 +9,7 @@ import (
 	"github.com/davecourtois/Globular/plc_link/plc_linkpb"
 
 	//	"github.com/davecourtois/Utility"
+
 	"google.golang.org/grpc"
 )
 
@@ -19,6 +20,9 @@ import (
 type PlcLink_Client struct {
 	cc *grpc.ClientConn
 	c  plc_link_pb.PlcLinkServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -43,7 +47,7 @@ type PlcLink_Client struct {
 }
 
 // Create a connection to the service.
-func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) *PlcLink_Client {
+func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, certFile string, caFile string, token string) (*PlcLink_Client, error) {
 	client := new(PlcLink_Client)
 
 	client.domain = domain
@@ -53,10 +57,18 @@ func NewPlcLink_Client(domain string, port int, hasTLS bool, keyFile string, cer
 	client.keyFile = keyFile
 	client.certFile = certFile
 	client.caFile = caFile
-	client.cc = api.GetClientConnection(client, token)
+	var err error
+	client.cc, err = api.GetClientConnection(client)
 	client.c = plc_link_pb.NewPlcLinkServiceClient(client.cc)
 
-	return client
+	return client, err
+}
+
+func (self *PlcLink_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
 }
 
 // Return the domain
@@ -67,6 +79,16 @@ func (self *PlcLink_Client) GetDomain() string {
 // Return the address
 func (self *PlcLink_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *PlcLink_Client) GetId() string {
+	return self.id
+}
+
+// Set the client id.
+func (self *PlcLink_Client) SetId(id string) {
+	self.id = id
 }
 
 // Return the name of the service
@@ -101,33 +123,42 @@ func (self *PlcLink_Client) GetCaFile() string {
 	return self.caFile
 }
 
+// Set the client is a secure client.
+func (self *PlcLink_Client) SetTLS(hasTls bool) {
+	self.hasTLS = hasTls
+}
+
+// Set TLS certificate file path
+func (self *PlcLink_Client) SetCertFile(certFile string) {
+	self.certFile = certFile
+}
+
+// Set TLS key file path
+func (self *PlcLink_Client) SetKeyFile(keyFile string) {
+	self.keyFile = keyFile
+}
+
+// Set TLS authority trust certificate file path
+func (self *PlcLink_Client) SetCaFile(caFile string) {
+	self.caFile = caFile
+}
+
+// Set grpc_service port.
+func (self *PlcLink_Client) SetPort(port int) {
+	self.port = port
+}
+
+// Set the client name.
+func (self *PlcLink_Client) SetName(name string) {
+	self.name = name
+}
+
+// Set the domain.
+func (self *PlcLink_Client) SetDomain(domain string) {
+	self.domain = domain
+}
+
 ////////////////// API ///////////////////
-
-// Create a new connection with a plc service.
-func (self *PlcLink_Client) CreateConnection(id string, domain string, address string) error {
-	// Create a new connection
-	rqst := &plc_link_pb.CreateConnectionRqst{
-		Connection: &plc_link_pb.Connection{
-			Id:      id,
-			Domain:  domain,
-			Address: address,
-		},
-	}
-
-	_, err := self.c.CreateConnection(context.Background(), rqst)
-	return err
-}
-
-// Delete a connection
-func (self *PlcLink_Client) DeleteConnection(connectionId string) error {
-	// Create a new connection
-	rqst := &plc_link_pb.DeleteConnectionRqst{
-		Id: connectionId,
-	}
-
-	_, err := self.c.DeleteConnection(context.Background(), rqst)
-	return err
-}
 
 /**
  * Link tow tag together.
@@ -140,19 +171,15 @@ func (self *PlcLink_Client) Link(id string, frequency int32, src_domain string, 
 			Frequency: frequency,
 			Source: &plc_link_pb.Tag{
 				Domain:       src_domain,
-				Address:      src_address,
 				ConnectionId: src_connectionId,
 				Name:         src_tag_name,
-				Label:        src_tag_label,
 				TypeName:     src_tag_typeName,
 				Offset:       src_offset,
 			},
 			Target: &plc_link_pb.Tag{
 				Domain:       trg_domain,
-				Address:      trg_address,
 				ConnectionId: trg_connectionId,
 				Name:         trg_tag_name,
-				Label:        trg_tag_label,
 				TypeName:     trg_tag_typeName,
 				Offset:       trg_offset,
 			},

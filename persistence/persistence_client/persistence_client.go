@@ -6,6 +6,8 @@ import (
 
 	"strconv"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/persistence/persistencepb"
 	"github.com/davecourtois/Utility"
@@ -18,6 +20,9 @@ import (
 type Persistence_Client struct {
 	cc *grpc.ClientConn
 	c  persistencepb.PersistenceServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -42,9 +47,9 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(address string, name string) (*Persistence_Client, error) {
+func NewPersistence_Client(address string, id string) (*Persistence_Client, error) {
 	client := new(Persistence_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +62,13 @@ func NewPersistence_Client(address string, name string) (*Persistence_Client, er
 	return client, nil
 }
 
+func (self *Persistence_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *Persistence_Client) GetDomain() string {
 	return self.domain
@@ -65,6 +77,11 @@ func (self *Persistence_Client) GetDomain() string {
 // Return the address
 func (self *Persistence_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *Persistence_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -82,6 +99,11 @@ func (self *Persistence_Client) Close() {
 // Set grpc_service port.
 func (self *Persistence_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client instance id.
+func (self *Persistence_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

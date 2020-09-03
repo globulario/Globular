@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -16,6 +16,7 @@ import (
 
 	"fmt"
 
+	"github.com/davecourtois/Globular/event/event_client"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -40,7 +41,10 @@ var (
 // Value need by Globular to start the services...
 type server struct {
 	// The global attribute of the services.
+	Id              string
 	Name            string
+	Path            string
+	Proto           string
 	Port            int
 	Proxy           int
 	AllowAllOrigins bool
@@ -67,13 +71,23 @@ type server struct {
 // Create the configuration file if is not already exist.
 func (self *server) init() {
 	// Here I will retreive the list of connections from file if there are some...
+
+	// That function is use to get access to other server.
+	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
+
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
+
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
+
 }
 
 // Save the configuration values.
@@ -278,7 +292,11 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	s_impl.Name = string(eventpb.File_event_eventpb_event_proto.Services().Get(0).FullName())
+	s_impl.Proto = eventpb.File_event_eventpb_event_proto.Path()
+	s_impl.Path, _ = os.Executable()
+	package_ := string(eventpb.File_event_eventpb_event_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
@@ -315,13 +333,13 @@ func main() {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
 		if err != nil {
-			fmt.Println("could not read ca certificate: %s", err)
+			log.Fatalf("could not read ca certificate: %s", err)
 			return
 		}
 
 		// Append the client certificates from the CA
 		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			fmt.Println("failed to append client certs")
+			log.Fatalf("failed to append client certs")
 			return
 		}
 

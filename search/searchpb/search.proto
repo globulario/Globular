@@ -7,10 +7,6 @@ package echo;
 option go_package="search/searchpb";
 
 
-enum EngineType{
-	XAPIAN = 0;
-}
-
 message GetVersionRequest {
 
 }
@@ -89,7 +85,7 @@ message SearchResult {
 }
 
 message SearchDocumentsRequest{
-	string path = 1;
+	repeated string paths = 1;
 	string query = 2;
 	string language = 3;
 	repeated string fields = 4;

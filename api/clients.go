@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
+
+	"reflect"
 
 	"github.com/davecourtois/Globular/security"
 	"github.com/davecourtois/Utility"
@@ -24,7 +27,10 @@ type Client interface {
 	// Get Domain return the client domain.
 	GetDomain() string
 
-	// Return the name of the service
+	// Return the id of the service.
+	GetId() string
+
+	// Return the name of the service.
 	GetName() string
 
 	// Close the client.
@@ -34,6 +40,9 @@ type Client interface {
 	// The configuration will be get from that address and the port will
 	// be set back to the correct address.
 	SetPort(int)
+
+	// Set the id of the client
+	SetId(string)
 
 	// Set the name of the client
 	SetName(string)
@@ -66,23 +75,34 @@ type Client interface {
 
 	// Set TLS authority trust certificate file path
 	SetCaFile(string)
+
+	// Invoque a request on the client and return it grpc reply.
+	Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error)
 }
 
 /**
  * Initialyse the client security and set it port to
  */
-func InitClient(client Client, address string, name string) error {
+func InitClient(client Client, address string, id string) error {
+
 	// Set the domain and the name from the incomming...
 	client.SetDomain(address)
-	client.SetName(name)
 
 	// Here I will initialyse the client
-	config, err := security.GetClientConfig(address, name)
+	// TODO get the configuration port
+	config, err := security.GetClientConfig(address, id, 10000)
 	if err != nil {
 		return err
 	}
 
 	// Set client attributes.
+	if config["Id"] != nil {
+		client.SetId(config["Id"].(string))
+	} else {
+		client.SetId(config["Name"].(string))
+	}
+
+	client.SetName(config["Name"].(string))
 	client.SetPort(int(config["Port"].(float64)))
 	client.SetDomain(config["Domain"].(string))
 
@@ -91,6 +111,7 @@ func InitClient(client Client, address string, name string) error {
 	client.SetCertFile(config["CertFile"].(string))
 	client.SetCaFile(config["CertAuthorityTrust"].(string))
 	client.SetTLS(config["TLS"].(bool))
+
 	return nil
 }
 
@@ -117,11 +138,13 @@ func GetClientConnection(client Client) (*grpc.ClientConn, error) {
 
 			certificate, err := tls.LoadX509KeyPair(client.GetCertFile(), client.GetKeyFile())
 			if err != nil {
+				log.Println("-------> 140 ", err)
 				return nil, err
 			}
 
 			// Create a certificate pool from the certificate authority
 			certPool := x509.NewCertPool()
+
 			ca, err := ioutil.ReadFile(client.GetCaFile())
 			if err != nil {
 				return nil, err
@@ -175,4 +198,25 @@ func GetClientContext(client Client) context.Context {
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	return ctx
 
+}
+
+/**
+ * Invoke a method on a client. The client is
+ * ctx is the client request context.
+ * method is the rpc method to run.
+ * rqst is the request to run.
+ */
+func InvokeClientRequest(client interface{}, ctx context.Context, method string, rqst interface{}) (interface{}, error) {
+	methodName := method[strings.LastIndex(method, "/")+1:]
+	var err error
+	reply, err_ := Utility.CallMethod(client, methodName, []interface{}{ctx, rqst})
+	if err_ != nil {
+		if reflect.TypeOf(err_).Kind() == reflect.String {
+			err = errors.New(err_.(string))
+		} else {
+			err = err_.(error)
+		}
+	}
+
+	return reply, err
 }

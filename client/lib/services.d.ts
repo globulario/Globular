@@ -16,6 +16,7 @@ import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb
 import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from './services/services_grpc_web_pb';
 import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
 import { SearchServicePromiseClient } from './search/searchpb/search_grpc_web_pb';
+import { LoadBalancingServicePromiseClient } from './lb/lb_grpc_web_pb';
 /**
  * The service configuration information.
  */
@@ -57,6 +58,7 @@ export interface IConfig {
     ServicesRepositoryProxy: number;
     CertificateAuthorityPort: number;
     CertificateAuthorityProxy: number;
+    LoadBalancingServiceProxy: number;
     SessionTimeout: number;
     Protocol: string;
     Discoveries: string[];
@@ -108,6 +110,7 @@ export declare class EventHub {
 export declare class Globular {
     config: IConfig | undefined;
     adminService: AdminServicePromiseClient | undefined;
+    loadBalancingService: LoadBalancingServicePromiseClient | undefined;
     ressourceService: RessourceServicePromiseClient | undefined;
     servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
     servicesRepository: ServiceRepositoryPromiseClient | undefined;
@@ -129,4 +132,5 @@ export declare class Globular {
     plcLinkService: PlcLinkServicePromiseClient | undefined;
     /** The configuation. */
     constructor(config: IConfig);
+    getFirstConfigByName(name: string): IServiceConfig;
 }

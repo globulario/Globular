@@ -197,7 +197,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
+	ressource_client, err := ressource.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Println("fail to access ressource service at "+address+" with error ", err)
 		return err
@@ -211,7 +211,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := admin.NewAdmin_Client(address, "admin") // create the ressource server.
+	admin_client, err := admin.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource.NewRessource_Client(address, "ressource")
+	ressource_client, err := ressource.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -257,7 +257,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := admin.NewAdmin_Client(address, "admin")
+	admin_client, err := admin.NewAdmin_Client(address, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err
@@ -421,9 +421,9 @@ COPY services /globular/services
 					if err == nil {
 
 						// set the name.
-						if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["servicePath"] != nil {
+						if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["Path"] != nil {
 
-							execPath := dir + s["servicePath"].(string)
+							execPath := dir + s["Path"].(string)
 							protoPath := dir + s["protoPath"].(string)
 							if string(os.PathSeparator) == "\\" {
 								execPath += ".exe" // in case of windows
@@ -479,7 +479,7 @@ COPY services /globular/services
 							fmt.Println("no version was define!")
 						} else if s["protoPath"] == nil {
 							fmt.Println(" no proto file was found!")
-						} else if s["servicePath"] != nil {
+						} else if s["Path"] != nil {
 							fmt.Println("no executable was found!")
 						}
 					} else {

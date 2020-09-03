@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecourtois/Globular/Interceptors"
@@ -24,9 +25,9 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
+	"github.com/davecourtois/Globular/ldap/ldap_client"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-
 	LDAP "gopkg.in/ldap.v3"
 )
 
@@ -57,7 +58,10 @@ type connection struct {
 type server struct {
 
 	// The global attribute of the services.
+	Id                 string
 	Name               string
+	Path               string
+	Proto              string
 	Port               int
 	Proxy              int
 	Protocol           string
@@ -80,11 +84,19 @@ type server struct {
 
 func (self *server) init() {
 	// Here I will retreive the list of connections from file if there are some...
+
+	// That function is use to get access to other server.
+	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
+
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	file, err := ioutil.ReadFile(dir + "/config.json")
 	if err == nil {
 		json.Unmarshal([]byte(file), self)
 	} else {
+		if len(self.Id) == 0 {
+			// Generate random id for the server instance.
+			self.Id = Utility.RandomUUID()
+		}
 		self.save()
 	}
 }
@@ -297,7 +309,11 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
-	s_impl.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
+	s_impl.Name = string(ldappb.File_ldap_ldappb_ldap_proto.Services().Get(0).FullName())
+	s_impl.Path, _ = os.Executable()
+	package_ := string(ldappb.File_ldap_ldappb_ldap_proto.Package().Name())
+	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
+	s_impl.Proto = ldappb.File_ldap_ldappb_ldap_proto.Path()
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

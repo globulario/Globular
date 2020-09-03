@@ -7,6 +7,7 @@ import { ServiceDescriptor } from "./services/services_pb";
 import { TagType } from "./plc/plcpb/plc_pb";
 import { Globular, EventHub } from './services';
 import { IConfig, IServiceConfig } from './services';
+import { SearchResult } from "./search/searchpb/search_pb";
 /**
  * Return the globular configuration file. The return config object
  * can contain sensible information so it must be called with appropriate
@@ -653,3 +654,18 @@ export declare function syncLdapInfos(globular: Globular, info: any, timeout: nu
  * @param errorCallback
  */
 export declare function pingSql(globular: Globular, connectionId: string, callback: (pong: string) => {}, errorCallback: (err: any) => void): void;
+/**
+ * Search Documents from given database(s) and return results. The search engine in use is
+ * xapian, so query must follow xapian query rules.
+ * @param globular The server object.
+ * @param paths The list of database paths.
+ * @param query The query to execute.
+ * @param language The language of the database.
+ * @param fields The list of field to query, can be empty if all fields must be search or fields are specified in the query.
+ * @param offset The offset of resultset
+ * @param pageSize The number of result to return
+ * @param snippetLength The length of the snippet result.
+ * @param callback The success callback
+ * @param errorCallback The error callback.
+ */
+export declare function searchDocuments(globular: Globular, paths: string[], query: string, language: string, fields: string[], offset: number, pageSize: number, snippetLength: number, callback: (results: SearchResult[]) => void, errorCallback: (err: any) => void): void;

@@ -13,13 +13,13 @@ var spc_grpc_web_pb_1 = require("./spc/spcpb/spc_grpc_web_pb");
 var sql_grpc_web_pb_1 = require("./sql/sqlpb/sql_grpc_web_pb");
 var storage_grpc_web_pb_1 = require("./storage/storagepb/storage_grpc_web_pb");
 var monitoring_grpc_web_pb_1 = require("./monitoring/monitoringpb/monitoring_grpc_web_pb");
-var plc_grpc_web_pb_1 = require("./plc/plcpb/plc_grpc_web_pb");
 var admin_grpc_web_pb_1 = require("./admin/admin_grpc_web_pb");
 var ressource_grpc_web_pb_1 = require("./ressource/ressource_grpc_web_pb");
 var services_grpc_web_pb_1 = require("./services/services_grpc_web_pb");
 var ca_grpc_web_pb_1 = require("./ca/ca_grpc_web_pb");
 var event_pb_1 = require("./event/eventpb/event_pb");
 var search_grpc_web_pb_1 = require("./search/searchpb/search_grpc_web_pb");
+var lb_grpc_web_pb_1 = require("./lb/lb_grpc_web_pb");
 /**
  * Create a "version 4" RFC-4122 UUID (Universal Unique Identifier) string.
  * @returns {string} A string containing the UUID.
@@ -201,6 +201,7 @@ var Globular = /** @class */ (function () {
         this.adminService = new admin_grpc_web_pb_1.AdminServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.AdminProxy, null, null);
         /** That service is use to control acces to ressource like method access and account. */
         this.ressourceService = new ressource_grpc_web_pb_1.RessourceServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy, null, null);
+        this.loadBalancingService = new lb_grpc_web_pb_1.LoadBalancingServicePromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.LoadBalancingServiceProxy, null, null);
         /** That service help to find and install or publish new service on the backend. */
         this.servicesDicovery = new services_grpc_web_pb_1.ServiceDiscoveryPromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy, null, null);
         /** Functionality to use service repository server. */
@@ -208,145 +209,199 @@ var Globular = /** @class */ (function () {
         /** Certificate authority function needed for TLS client. */
         this.certificateAuthority = new ca_grpc_web_pb_1.CertificateAuthorityPromiseClient(this.config.Protocol + '://' + this.config.Domain + ':' + this.config.CertificateAuthorityProxy, null, null);
         // Iinitialisation of services.
-        if (this.config.Services['catalog_server'] != undefined) {
+        // The catalog server
+        var catalog_server = this.getFirstConfigByName('catalog.CatalogService');
+        if (catalog_server != undefined) {
             var protocol = 'http';
-            if (this.config.Services['catalog_server'].TLS == true) {
+            if (catalog_server.TLS == true) {
                 protocol = 'https';
             }
             this.catalogService = new catalog_grpc_web_pb_1.CatalogServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['catalog_server'].Domain +
+                catalog_server.Domain +
                 ':' +
-                this.config.Services['catalog_server'].Proxy, null, null);
+                catalog_server.Proxy, null, null);
         }
-        if (this.config.Services['echo_server'] != null) {
+        // The echo server
+        var echo_server = this.getFirstConfigByName('echo.EchoService');
+        if (echo_server != null) {
             var protocol = 'http';
-            if (this.config.Services['echo_server'].TLS == true) {
+            if (echo_server.TLS == true) {
                 protocol = 'https';
             }
-            this.echoService = new echo_grpc_web_pb_1.EchoServicePromiseClient(protocol + '://' + this.config.Services['echo_server'].Domain + ':' + this.config.Services['echo_server'].Proxy, null, null);
+            this.echoService = new echo_grpc_web_pb_1.EchoServicePromiseClient(protocol + '://' + echo_server.Domain + ':' + echo_server.Proxy, null, null);
         }
-        if (this.config.Services['search_server'] != null) {
+        // The search service
+        var search_server = this.getFirstConfigByName('search.SearchService');
+        if (search_server != null) {
             var protocol = 'http';
-            if (this.config.Services['search_server'].TLS == true) {
+            if (search_server.TLS == true) {
                 protocol = 'https';
             }
-            this.searchService = new search_grpc_web_pb_1.SearchServicePromiseClient(protocol + '://' + this.config.Services['search_server'].Domain + ':' + this.config.Services['search_server'].Proxy, null, null);
+            this.searchService = new search_grpc_web_pb_1.SearchServicePromiseClient(protocol + '://' + search_server.Domain + ':' + search_server.Proxy, null, null);
         }
-        if (this.config.Services['event_server'] != null) {
+        // The event server.
+        var event_server = this.getFirstConfigByName('event.EventService');
+        if (event_server != null) {
             var protocol = 'http';
-            if (this.config.Services['event_server'].TLS == true) {
+            if (event_server.TLS == true) {
                 protocol = 'https';
             }
             this.eventService = new event_grpc_web_pb_1.EventServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['event_server'].Domain +
+                event_server.Domain +
                 ':' +
-                this.config.Services['event_server'].Proxy, null, null);
+                event_server.Proxy, null, null);
         }
-        if (this.config.Services['file_server'] != null) {
+        // The file server.
+        var file_server = this.getFirstConfigByName('file.FileService');
+        if (file_server != null) {
             var protocol = 'http';
-            if (this.config.Services['file_server'].TLS == true) {
+            if (file_server.TLS == true) {
                 protocol = 'https';
             }
-            this.fileService = new file_grpc_web_pb_1.FileServicePromiseClient(protocol + '://' + this.config.Services['file_server'].Domain + ':' + this.config.Services['file_server'].Proxy, null, null);
+            this.fileService = new file_grpc_web_pb_1.FileServicePromiseClient(protocol + '://' + file_server.Domain + ':' + file_server.Proxy, null, null);
         }
-        if (this.config.Services['ldap_server'] != null) {
+        // The ldap server
+        var ldap_server = this.getFirstConfigByName('ldap.LdapService');
+        if (ldap_server != null) {
             var protocol = 'http';
-            if (this.config.Services['ldap_server'].TLS == true) {
+            if (ldap_server.TLS == true) {
                 protocol = 'https';
             }
-            this.ldapService = new ldap_grpc_web_pb_1.LdapServicePromiseClient(protocol + '://' + this.config.Services['ldap_server'].Domain + ':' + this.config.Services['ldap_server'].Proxy, null, null);
+            this.ldapService = new ldap_grpc_web_pb_1.LdapServicePromiseClient(protocol + '://' + ldap_server.Domain + ':' + ldap_server.Proxy, null, null);
         }
-        if (this.config.Services['persistence_server'] != null) {
+        // The persistence server.
+        var persistence_server = this.getFirstConfigByName('persistence.PersistenceService');
+        if (persistence_server != null) {
             var protocol = 'http';
-            if (this.config.Services['persistence_server'].TLS == true) {
+            if (persistence_server.TLS == true) {
                 protocol = 'https';
             }
             this.persistenceService = new persistence_grpc_web_pb_1.PersistenceServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['persistence_server'].Domain +
+                persistence_server.Domain +
                 ':' +
-                this.config.Services['persistence_server'].Proxy, null, null);
+                persistence_server.Proxy, null, null);
         }
-        if (this.config.Services['smtp_server'] != null) {
+        // The smtp server
+        var smtp_server = this.getFirstConfigByName('smtp.SmtpService');
+        if (smtp_server != null) {
             var protocol = 'http';
-            if (this.config.Services['smtp_server'].TLS == true) {
+            if (smtp_server.TLS == true) {
                 protocol = 'https';
             }
-            this.smtpService = new smtp_grpc_web_pb_1.SmtpServicePromiseClient(protocol + '://' + this.config.Services['smtp_server'].Domain + ':' + this.config.Services['smtp_server'].Proxy, null, null);
+            this.smtpService = new smtp_grpc_web_pb_1.SmtpServicePromiseClient(protocol + '://' + smtp_server.Domain + ':' + smtp_server.Proxy, null, null);
         }
-        if (this.config.Services['sql_server'] != null) {
+        // The sql service.
+        var sql_server = this.getFirstConfigByName('sql.SqlService');
+        if (sql_server != null) {
             var protocol = 'http';
-            if (this.config.Services['sql_server'].TLS == true) {
+            if (sql_server.TLS == true) {
                 protocol = 'https';
             }
-            this.sqlService = new sql_grpc_web_pb_1.SqlServicePromiseClient(protocol + '://' + this.config.Services['sql_server'].Domain + ':' + this.config.Services['sql_server'].Proxy, null, null);
+            this.sqlService = new sql_grpc_web_pb_1.SqlServicePromiseClient(protocol + '://' + sql_server.Domain + ':' + sql_server.Proxy, null, null);
         }
-        if (this.config.Services['storage_server'] != null) {
+        // The storage service.
+        var storage_server = this.getFirstConfigByName('storage.StorageService');
+        if (storage_server != null) {
             var protocol = 'http';
-            if (this.config.Services['storage_server'].TLS == true) {
+            if (storage_server.TLS == true) {
                 protocol = 'https';
             }
             this.storageService = new storage_grpc_web_pb_1.StorageServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['storage_server'].Domain +
+                storage_server.Domain +
                 ':' +
-                this.config.Services['storage_server'].Proxy, null, null);
+                storage_server.Proxy, null, null);
         }
-        if (this.config.Services['monitoring_server'] != null) {
+        // The monitoring service.
+        var monitoring_server = this.getFirstConfigByName('monitoring.MonitoringService');
+        if (monitoring_server != null) {
             var protocol = 'http';
-            if (this.config.Services['monitoring_server'].TLS == true) {
+            if (monitoring_server.TLS == true) {
                 protocol = 'https';
             }
             this.monitoringService = new monitoring_grpc_web_pb_1.MonitoringServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['monitoring_server'].Domain +
+                monitoring_server.Domain +
                 ':' +
-                this.config.Services['monitoring_server'].Proxy, null, null);
+                monitoring_server.Proxy, null, null);
         }
-        if (this.config.Services['spc_server'] != null) {
+        // The spc server.
+        var spc_server = this.getFirstConfigByName('spc.SpcService');
+        if (spc_server != null) {
             var protocol = 'http';
-            if (this.config.Services['spc_server'].TLS == true) {
+            if (spc_server.TLS == true) {
                 protocol = 'https';
             }
-            this.spcService = new spc_grpc_web_pb_1.SpcServicePromiseClient(protocol + '://' + this.config.Services['spc_server'].Domain + ':' + this.config.Services['spc_server'].Proxy, null, null);
+            this.spcService = new spc_grpc_web_pb_1.SpcServicePromiseClient(protocol + '://' + spc_server.Domain + ':' + spc_server.Proxy, null, null);
         }
-        // non open source services.
-        if (this.config.Services['plc_server_ab'] != null) {
-            var protocol = 'http';
-            if (this.config.Services['plc_server_ab'].TLS == true) {
-                protocol = 'https';
-            }
-            this.plcService_ab = new plc_grpc_web_pb_1.PlcServicePromiseClient(protocol +
-                '://' +
-                this.config.Services['plc_server_ab'].Domain +
-                ':' +
-                this.config.Services['plc_server_ab'].Proxy, null, null);
+        // TODO Here I got tow implementation of the same service.
+        // So I will use it Path instead of name...
+        /*
+        // The plc_server_ab
+        let plc_server_ab = this.getFirstConfigByName('plc.PlcService')
+        if (plc_server_ab != null) {
+          let protocol = 'http';
+          if (plc_server_ab.TLS == true) {
+            protocol = 'https';
+          }
+          this.plcService_ab = new PlcServicePromiseClient(
+            protocol +
+            '://' +
+            plc_server_ab.Domain +
+            ':' +
+            plc_server_ab.Proxy,
+            null,
+            null,
+          );
         }
-        if (this.config.Services['plc_server_siemens'] != null) {
-            var protocol = 'http';
-            if (this.config.Services['plc_server_siemens'].TLS == true) {
-                protocol = 'https';
-            }
-            this.plcService_siemens = new plc_grpc_web_pb_1.PlcServicePromiseClient(protocol +
-                '://' +
-                this.config.Services['plc_server_siemens'].Domain +
-                ':' +
-                this.config.Services['plc_server_siemens'].Proxy, null, null);
+    
+        // PLC simmens
+        let plc_server_siemens = this.getFirstConfigByName('plc.PlcService')
+        if (plc_server_siemens != null) {
+          let protocol = 'http';
+          if (plc_server_siemens.TLS == true) {
+            protocol = 'https';
+          }
+          this.plcService_siemens = new PlcServicePromiseClient(
+            protocol +
+            '://' +
+            plc_server_siemens.Domain +
+            ':' +
+            plc_server_siemens.Proxy,
+            null,
+            null,
+          );
         }
-        if (this.config.Services['plc_link_server'] != null) {
+        */
+        // PLC Link server.
+        var plc_link_server = this.getFirstConfigByName('plc_link.PlcLinkService');
+        if (plc_link_server != null) {
             var protocol = 'http';
-            if (this.config.Services['plc_link_server'].TLS == true) {
+            if (plc_link_server.TLS == true) {
                 protocol = 'https';
             }
             this.plcLinkService = new plc_link_grpc_web_pb_1.PlcLinkServicePromiseClient(protocol +
                 '://' +
-                this.config.Services['plc_link_server'].Domain +
+                plc_link_server.Domain +
                 ':' +
-                this.config.Services['plc_link_server'].Proxy, null, null);
+                plc_link_server.Proxy, null, null);
         }
     }
+    // Return the first configuration that match the given name.
+    // The load balancer will be in charge to select the correct service instance from the list
+    // The first instance is the entry point of the services.
+    Globular.prototype.getFirstConfigByName = function (name) {
+        for (var id in this.config.Services) {
+            var service = this.config.Services[id];
+            if (service.Name == name) {
+                return service;
+            }
+        }
+        return null;
+    };
     return Globular;
 }());
 exports.Globular = Globular;

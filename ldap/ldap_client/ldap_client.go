@@ -7,6 +7,8 @@ import (
 
 	"encoding/json"
 
+	"context"
+
 	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/ldap/ldappb"
 	"google.golang.org/grpc"
@@ -19,6 +21,9 @@ import (
 type LDAP_Client struct {
 	cc *grpc.ClientConn
 	c  ldappb.LdapServiceClient
+
+	// The id of the service on the server.
+	id string
 
 	// The name of the service
 	name string
@@ -46,9 +51,9 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(address string, name string) (*LDAP_Client, error) {
+func NewLdap_Client(address string, id string) (*LDAP_Client, error) {
 	client := new(LDAP_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +66,13 @@ func NewLdap_Client(address string, name string) (*LDAP_Client, error) {
 	return client, nil
 }
 
+func (self *LDAP_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *LDAP_Client) GetDomain() string {
 	return self.domain
@@ -68,6 +80,11 @@ func (self *LDAP_Client) GetDomain() string {
 
 func (self *LDAP_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service
+func (self *LDAP_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -83,6 +100,11 @@ func (self *LDAP_Client) Close() {
 // Set grpc_service port.
 func (self *LDAP_Client) SetPort(port int) {
 	self.port = port
+}
+
+// Set the client id.
+func (self *LDAP_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the client name.

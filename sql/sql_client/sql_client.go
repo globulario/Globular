@@ -1,6 +1,7 @@
 package sql_client
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"strconv"
@@ -17,6 +18,9 @@ import (
 type SQL_Client struct {
 	cc *grpc.ClientConn
 	c  sqlpb.SqlServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -41,16 +45,26 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(address string, name string) (*SQL_Client, error) {
+func NewSql_Client(address string, id string) (*SQL_Client, error) {
 	client := new(SQL_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
-	client.cc = api.GetClientConnection(client)
+	client.cc, err = api.GetClientConnection(client)
+	if err != nil {
+		return nil, err
+	}
 	client.c = sqlpb.NewSqlServiceClient(client.cc)
 
 	return client, nil
+}
+
+func (self *SQL_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
 }
 
 // Return the domain
@@ -61,6 +75,11 @@ func (self *SQL_Client) GetDomain() string {
 // Return the address
 func (self *SQL_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *SQL_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -81,6 +100,11 @@ func (self *SQL_Client) SetPort(port int) {
 // Set the client name.
 func (self *SQL_Client) SetName(name string) {
 	self.name = name
+}
+
+// Set the client service instance id.
+func (self *SQL_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the domain.

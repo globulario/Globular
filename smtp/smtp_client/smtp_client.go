@@ -1,7 +1,7 @@
 package smtp_client
 
 import (
-	// "context"
+	"context"
 	"log"
 
 	"fmt"
@@ -20,6 +20,9 @@ import (
 type SMTP_Client struct {
 	cc *grpc.ClientConn
 	c  smtppb.SmtpServiceClient
+
+	// The id of the service
+	id string
 
 	// The name of the service
 	name string
@@ -44,9 +47,9 @@ type SMTP_Client struct {
 }
 
 // Create a connection to the service.
-func NewSmtp_Client(address string, name string) (*SMTP_Client, error) {
+func NewSmtp_Client(address string, id string) (*SMTP_Client, error) {
 	client := new(SMTP_Client)
-	err := api.InitClient(client, address, name)
+	err := api.InitClient(client, address, id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +62,13 @@ func NewSmtp_Client(address string, name string) (*SMTP_Client, error) {
 	return client, nil
 }
 
+func (self *SMTP_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
+	if ctx == nil {
+		ctx = api.GetClientContext(self)
+	}
+	return api.InvokeClientRequest(self.c, ctx, method, rqst)
+}
+
 // Return the domain
 func (self *SMTP_Client) GetDomain() string {
 	return self.domain
@@ -67,6 +77,11 @@ func (self *SMTP_Client) GetDomain() string {
 // Return the address
 func (self *SMTP_Client) GetAddress() string {
 	return self.domain + ":" + strconv.Itoa(self.port)
+}
+
+// Return the id of the service instance
+func (self *SMTP_Client) GetId() string {
+	return self.id
 }
 
 // Return the name of the service
@@ -87,6 +102,11 @@ func (self *SMTP_Client) SetPort(port int) {
 // Set the client name.
 func (self *SMTP_Client) SetName(name string) {
 	self.name = name
+}
+
+// Set the service instance id
+func (self *SMTP_Client) SetId(id string) {
+	self.id = id
 }
 
 // Set the domain.
