@@ -8,6 +8,8 @@ config.json
 # Test binary, build with `go test -c`
 *.test
 *.pb.go
+*.pb.cc
+*.pb.h
 *.g.cs
 *_pb.js
 *.csproj
