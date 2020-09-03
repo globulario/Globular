@@ -9,13 +9,13 @@ config.json
 *.test
 *.pb.go
 *.g.cs
+*_pb.js
 *.csproj
 package-lock.json
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 *.vs*
-plc*
 spc*
 dist/
 config/
