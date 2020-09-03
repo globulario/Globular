@@ -1,9 +1,0 @@
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\bin\Debug\netstandard2.0\GlobularServer.deps.json
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\bin\Debug\netstandard2.0\GlobularServer.dll
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\bin\Debug\netstandard2.0\GlobularServer.pdb
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.csprojAssemblyReference.cache
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.csproj.CoreCompileInputs.cache
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.AssemblyInfoInputs.cache
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.AssemblyInfo.cs
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.dll
-E:\Project\src\github.com\davecourtois\Globular\csharp\GlobularServer\obj\Debug\netstandard2.0\GlobularServer.pdb
