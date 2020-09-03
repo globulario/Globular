@@ -20,3 +20,7 @@ data/
 bin/
 webroot/
 node_modules/
+*.key
+*.pem
+*.crs
+*.crt
