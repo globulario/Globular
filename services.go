@@ -60,6 +60,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 			}
 
 			for _, s := range self.Services {
+
 				if s.(map[string]interface{})["PublisherId"] != nil {
 					id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
 
@@ -101,15 +102,23 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 								}
 							}
 						}
+
 					}
 
 					// So here I will subscribe to service update event.
-					err := eventHub.Subscribe(id, uuid, fct)
-					if err == nil {
-						subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
-						log.Println("subscription to ", id, " succeed!")
-					} else {
-						log.Println("fail to subscribe to ", id)
+					registered := false
+
+					for nbTry := 5; registered == false && nbTry > 0; nbTry-- {
+						err := eventHub.Subscribe(id, uuid, fct)
+						if err == nil {
+							subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+							log.Println("subscription to ", id, " succeed!")
+							registered = true
+						} else {
+							log.Println("fail to subscribe to ", id)
+							nbTry--
+							time.Sleep(5 * time.Second)
+						}
 					}
 				}
 			}

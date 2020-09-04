@@ -50,9 +50,15 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 		}
 	}
 
-	if serverConfig["Services"].(map[string]interface{})[name] != nil {
-		config = serverConfig["Services"].(map[string]interface{})[name].(map[string]interface{})
-	} else {
+	// get service by id or by name... (take the first service with a given name in case of name.
+	for _, s := range serverConfig["Services"].(map[string]interface{}) {
+		if s.(map[string]interface{})["Name"].(string) == name || s.(map[string]interface{})["Id"].(string) == name {
+			config = s.(map[string]interface{})
+			break
+		}
+	}
+
+	if config == nil {
 		return nil, errors.New("No service found whit name " + name + " exist on the server.")
 	}
 

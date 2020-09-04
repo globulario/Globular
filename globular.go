@@ -435,6 +435,7 @@ func (self *Globule) Serve() {
 	if err != nil {
 		log.Println(err)
 	}
+
 }
 
 /**
@@ -999,7 +1000,6 @@ func (self *Globule) initServices() {
 		log.Println(err)
 	}
 
-	// Init services.
 	for _, s := range self.Services {
 		// Remove existing process information.
 		delete(s.(map[string]interface{}), "Process")
@@ -1349,6 +1349,7 @@ func (self *Globule) GetAbsolutePath(path string) string {
 func (self *Globule) Listen() error {
 
 	// Here I will subscribe to event service to keep then up to date.
+
 	subscribers := self.keepServicesUpToDate()
 
 	// Catch the Ctrl-C and SIGTERM from kill command
