@@ -127,7 +127,6 @@ func (self *server) init() {
 		}
 		self.save()
 	}
-
 }
 
 // Save the configuration values.

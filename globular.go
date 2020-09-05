@@ -20,12 +20,16 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/davecourtois/Globular/lb/lbpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -144,12 +148,13 @@ type Globule struct {
 	// prometheus.CounterVec
 
 	// Directories.
-	path     string // The path of the exec...
-	webRoot  string // The root of the http file server.
-	data     string // the data directory
-	creds    string // tls certificates
-	config   string // configuration directory
-	lastPort int    // The last attributed port number.
+	path    string // The path of the exec...
+	webRoot string // The root of the http file server.
+	data    string // the data directory
+	creds   string // tls certificates
+	config  string // configuration directory
+
+	ports []int // The list of available ports.
 
 	// Log store.
 	logs *storage_store.LevelDB_store
@@ -182,6 +187,7 @@ type Globule struct {
 func NewGlobule() *Globule {
 	// Here I will initialyse configuration.
 	g := new(Globule)
+
 	g.Version = "1.0.0" // Automate version...
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.RootPassword = "adminadmin"
@@ -242,28 +248,31 @@ func NewGlobule() *Globule {
 		portsRange := strings.Split(g.PortsRange, "-")
 
 		start := Utility.ToInt(portsRange[0])
-		// end :=  Utility.ToInt(portsRange[0])
+		end := Utility.ToInt(portsRange[1])
 
-		g.AdminPort = start
-		g.AdminProxy = start + 1
-		g.RessourcePort = start + 2
-		g.RessourceProxy = start + 3
+		g.ports = make([]int, 0)
+
+		for i := start; i < end; i++ {
+			g.ports = append(g.ports, i)
+		}
+
+		g.AdminPort, _ = g.getNextAvailablePort()
+		g.AdminProxy, _ = g.getNextAvailablePort()
+		g.RessourcePort, _ = g.getNextAvailablePort()
+		g.RessourceProxy, _ = g.getNextAvailablePort()
 
 		// services management...
-		g.ServicesDiscoveryPort = start + 4
-		g.ServicesDiscoveryProxy = start + 5
-		g.ServicesRepositoryPort = start + 6
-		g.ServicesRepositoryProxy = start + 7
-		g.CertificateAuthorityPort = start + 8
-		g.CertificateAuthorityProxy = start + 9
-		g.LoadBalancingServicePort = start + 10
-		g.LoadBalancingServiceProxy = start + 11
+		g.ServicesDiscoveryPort, _ = g.getNextAvailablePort()
+		g.ServicesDiscoveryProxy, _ = g.getNextAvailablePort()
+		g.ServicesRepositoryPort, _ = g.getNextAvailablePort()
+		g.ServicesRepositoryProxy, _ = g.getNextAvailablePort()
+		g.CertificateAuthorityPort, _ = g.getNextAvailablePort()
+		g.CertificateAuthorityProxy, _ = g.getNextAvailablePort()
+		g.LoadBalancingServicePort, _ = g.getNextAvailablePort()
+		g.LoadBalancingServiceProxy, _ = g.getNextAvailablePort()
 
 		// save the configuration to set the port number.
 		g.saveConfig()
-
-		// Keep the last attributed port number.
-		g.lastPort = start + 11
 
 	}
 
@@ -284,6 +293,36 @@ func NewGlobule() *Globule {
 	globule = g
 
 	return g
+}
+
+/**
+ * Return the next available port.
+ **/
+func (self *Globule) getNextAvailablePort() (int, error) {
+	if len(self.ports) == 0 {
+		return -1, errors.New("No ports are avalaible from range " + self.PortsRange + " you must extend the range and restart the server.")
+	}
+	port := self.ports[0]
+	self.ports = self.ports[1:]
+
+	return port, nil
+}
+
+/**
+ * set back the port in the avalaible port list.
+ */
+func (self *Globule) releasePort(port int) {
+	for _, p := range self.ports {
+		if p == port {
+			return
+		}
+	}
+
+	// append the port
+	self.ports = append(self.ports, port)
+
+	// sort the array.
+	sort.Ints(self.ports[:])
 }
 
 /**
@@ -604,11 +643,105 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 
 	s["Process"].(*exec.Cmd).Wait()
 
-	time.Sleep(time.Second * 5)
+	//time.Sleep(time.Second * 5)
 	_, _, err := self.startService(s)
 	if err != nil {
 		return
 	}
+}
+
+/**
+ * Start internal service admin and ressource are use that function.
+ */
+func (self *Globule) startInternalService(id string, proto string, port int, proxy int, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, error) {
+
+	if self.Services[id] != nil {
+		hasTls = self.Services[id].(map[string]interface{})["TLS"].(bool)
+	}
+
+	// set the logger.
+	//grpclog.SetLogger(log.New(os.Stdout, id+" service: ", log.LstdFlags))
+
+	// Set the log information in case of crash...
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	s := make(map[string]interface{}, 0)
+	var grpcServer *grpc.Server
+	if hasTls {
+		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+		certFile := self.creds + string(os.PathSeparator) + "server.crt"
+		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+
+		s["CertFile"] = certFile
+		s["KeyFile"] = keyFile
+		s["CertAuthorityTrust"] = certAuthorityTrust
+
+		// Load the certificates from disk
+		certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a certificate pool from the certificate authority
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(certAuthorityTrust)
+		if err != nil {
+			return nil, err
+		}
+
+		// Append the client certificates from the CA
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			return nil, err
+		}
+
+		// Create the TLS credentials
+		creds := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+			ClientCAs:    certPool,
+		})
+
+		// Create the gRPC server with the credentials
+		opts := []grpc.ServerOption{grpc.Creds(creds),
+			grpc.UnaryInterceptor(unaryInterceptor),
+			grpc.StreamInterceptor(streamInterceptor)}
+
+		// Create the gRPC server with the credentials
+		grpcServer = grpc.NewServer(opts...)
+
+	} else {
+		s["CertFile"] = ""
+		s["KeyFile"] = ""
+		s["CertAuthorityTrust"] = ""
+
+		grpcServer = grpc.NewServer([]grpc.ServerOption{
+			grpc.UnaryInterceptor(unaryInterceptor),
+			grpc.StreamInterceptor(streamInterceptor)}...)
+	}
+
+	reflection.Register(grpcServer)
+
+	// Here I will create the service configuration object.
+	s["Domain"] = self.getDomain()
+	s["Name"] = id
+	s["Id"] = id
+	s["Proto"] = proto
+	s["Port"] = port
+	s["Proxy"] = proxy
+	s["TLS"] = hasTls
+
+	self.Services[id] = s
+
+	// save the config.
+	self.saveConfig()
+
+	// start the proxy
+	log.Println("-------> start service ", id, port, proxy)
+	err := self.startProxy(id, port, proxy)
+	if err != nil {
+		return nil, err
+	}
+
+	return grpcServer, nil
 }
 
 /**
@@ -659,12 +792,18 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			servicePath += ".exe" // in case of windows.
 		}
 
+		// Get the next available port.
+		port, err := self.getNextAvailablePort()
+		if err != nil {
+			return -1, -1, err
+		}
+
+		// File service need root...
 		if s["Name"].(string) == "file.FileService" {
-			// File service need root...
 			s["Root"] = globule.webRoot
-			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]), globule.webRoot)
+			s["Process"] = exec.Command(servicePath, Utility.ToString(port), globule.webRoot)
 		} else {
-			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+			s["Process"] = exec.Command(servicePath, Utility.ToString(port))
 		}
 
 		var errb bytes.Buffer
@@ -677,21 +816,21 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		err = s["Process"].(*exec.Cmd).Start()
 		if err != nil {
 			s["State"] = "fail"
-			log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+			log.Println("Fail to start service: ", s["Name"].(string), " at port ", port, " with error ", err)
 			return -1, -1, err
 		}
 
 		go func() {
 
 			// Here I will append the service to the load balancer.
-			if s["Port"] != nil {
+			if port != -1 {
 				log.Println("Append ", s["Name"].(string), " to load balancer.")
 				load_info := &lbpb.LoadInfo{
 					ServerInfo: &lbpb.ServerInfo{
 						Id:     s["Id"].(string),
 						Name:   s["Name"].(string),
 						Domain: s["Domain"].(string),
-						Port:   int32(s["Port"].(float64)),
+						Port:   int32(port),
 					},
 					Load1:  0, // All service will be initialise with a 0 load.
 					Load5:  0,
@@ -727,9 +866,15 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 			}
 
-			// Print the
+			// Print the error
 			if len(errb.String()) > 0 {
 				fmt.Println("service", s["Name"].(string), "err:", errb.String())
+			}
+
+			// I will stop it proxy.
+			if s["ProxyProcess"].(*exec.Cmd).Process != nil {
+				s["ProxyProcess"].(*exec.Cmd).Process.Kill()
+				//time.Sleep(time.Second * 5)
 			}
 
 			// I will remove the service from the load balancer.
@@ -737,19 +882,32 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				Id:     s["Id"].(string),
 				Name:   s["Name"].(string),
 				Domain: s["Domain"].(string),
-				Port:   int32(s["Port"].(float64)),
+				Port:   int32(port),
 			}
+
+			// release port
+			self.releasePort(port)
+			self.releasePort(Utility.ToInt(s["Proxy"]))
 
 		}()
 
-		// Save configuration stuff.
-		self.Services[s["Id"].(string)] = s
-
-		// Start the proxy.
-		err = self.startProxy(s["Id"].(string), int(s["Port"].(float64)), int(s["Proxy"].(float64)))
+		// get another port.
+		proxy, err := self.getNextAvailablePort()
 		if err != nil {
 			return -1, -1, err
 		}
+
+		// Start the proxy.
+		err = self.startProxy(s["Id"].(string), port, proxy)
+		if err != nil {
+			return -1, -1, err
+		}
+
+		// Save configuration stuff.
+		s["Port"] = port
+		s["Proxy"] = proxy
+
+		self.Services[s["Id"].(string)] = s
 
 		// get back the service info with the proxy process in it
 		s = self.Services[s["Id"].(string)].(map[string]interface{})
@@ -765,7 +923,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			if s["Process"] != nil {
 				if s["Process"].(*exec.Cmd).Process != nil {
 					s["Process"].(*exec.Cmd).Process.Kill()
-					// time.Sleep(time.Second * 1)
+					//time.Sleep(time.Second * 5)
 				}
 			}
 
@@ -1217,7 +1375,6 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	// Cast-it to the persistence client.
 	self.persistence_client_, err = persistence_client.NewPersistence_Client(s["Domain"].(string), s["Id"].(string))
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -1371,9 +1528,10 @@ func (self *Globule) Listen() error {
 				if reflect.TypeOf(p).String() == "*exec.Cmd" {
 					if p.(*exec.Cmd).Process != nil {
 						p.(*exec.Cmd).Process.Kill()
-
+						//time.Sleep(5 * time.Second)
 					}
 				}
+				self.releasePort(Utility.ToInt(value.(map[string]interface{})["Port"]))
 			}
 
 			if value.(map[string]interface{})["ProxyProcess"] != nil {
@@ -1383,6 +1541,7 @@ func (self *Globule) Listen() error {
 						p.(*exec.Cmd).Process.Kill()
 					}
 				}
+				self.releasePort(Utility.ToInt(value.(map[string]interface{})["Proxy"]))
 			}
 		}
 

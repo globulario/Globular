@@ -24,18 +24,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"os/exec"
 	"reflect"
 	"runtime"
-
-	"google.golang.org/grpc/reflection"
-
-	"google.golang.org/grpc/credentials"
-
-	"google.golang.org/grpc"
 
 	"github.com/davecourtois/Globular/lb/lbpb"
 
@@ -1309,97 +1301,4 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 	return &admin.RegisterExternalApplicationResponse{
 		ServicePid: int64(pid),
 	}, nil
-}
-
-/**
- * Start internal service admin and ressource are use that function.
- */
-func (self *Globule) startInternalService(id string, proto string, port int, proxy int, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, error) {
-
-	if self.Services[id] != nil {
-		hasTls = self.Services[id].(map[string]interface{})["TLS"].(bool)
-	}
-
-	// set the logger.
-	//grpclog.SetLogger(log.New(os.Stdout, id+" service: ", log.LstdFlags))
-
-	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	s := make(map[string]interface{}, 0)
-	var grpcServer *grpc.Server
-	if hasTls {
-		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
-		certFile := self.creds + string(os.PathSeparator) + "server.crt"
-		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
-
-		s["CertFile"] = certFile
-		s["KeyFile"] = keyFile
-		s["CertAuthorityTrust"] = certAuthorityTrust
-
-		// Load the certificates from disk
-		certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(certAuthorityTrust)
-		if err != nil {
-			return nil, err
-		}
-
-		// Append the client certificates from the CA
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			return nil, err
-		}
-
-		// Create the TLS credentials
-		creds := credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{certificate},
-			ClientCAs:    certPool,
-		})
-
-		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds),
-			grpc.UnaryInterceptor(unaryInterceptor),
-			grpc.StreamInterceptor(streamInterceptor)}
-
-		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(opts...)
-
-	} else {
-		s["CertFile"] = ""
-		s["KeyFile"] = ""
-		s["CertAuthorityTrust"] = ""
-
-		grpcServer = grpc.NewServer([]grpc.ServerOption{
-			grpc.UnaryInterceptor(unaryInterceptor),
-			grpc.StreamInterceptor(streamInterceptor)}...)
-	}
-
-	reflection.Register(grpcServer)
-
-	// Here I will create the service configuration object.
-	s["Domain"] = self.getDomain()
-	s["Name"] = id
-	s["Id"] = id
-	s["Proto"] = proto
-	s["Port"] = port
-	s["Proxy"] = proxy
-	s["TLS"] = hasTls
-
-	self.Services[id] = s
-
-	// save the config.
-	self.saveConfig()
-
-	// start the proxy
-	err := self.startProxy(id, port, proxy)
-	if err != nil {
-		return nil, err
-	}
-
-	return grpcServer, nil
 }

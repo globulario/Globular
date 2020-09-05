@@ -58,6 +58,7 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 		}
 	}
 
+	// No service with name or id was found...
 	if config == nil {
 		return nil, errors.New("No service found whit name " + name + " exist on the server.")
 	}
@@ -201,6 +202,8 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	port := string(root)[strings.Index(string(root), ":")+1:]
 
 	path := root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
+
+	// TODO Clarify the use of the password here.
 	pwd := "1111"
 
 	// Here I will get the local configuration...

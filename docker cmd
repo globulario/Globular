@@ -1,4 +1,3 @@
-
 # create volume to keep data persistent between container.
 sudo docker volume create data
 sudo docker volume create config
@@ -34,6 +33,3 @@ sudo docker tag globular davecourtois/globular
 sudo docker push davecourtois/globular
 
 # Pull image from the hub.
-
-
-

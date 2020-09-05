@@ -67,6 +67,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					if subscribers[self.Discoveries[i]][id] == nil {
 						subscribers[self.Discoveries[i]][id] = make([]string, 0)
 					}
+
 					// each channel has it event...
 					uuid := Utility.RandomUUID()
 					fct := func(evt *eventpb.Event) {
@@ -106,8 +107,8 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					}
 
 					// So here I will subscribe to service update event.
+					// try 5 time wait 5 second before given up.
 					registered := false
-
 					for nbTry := 5; registered == false && nbTry > 0; nbTry-- {
 						err := eventHub.Subscribe(id, uuid, fct)
 						if err == nil {
