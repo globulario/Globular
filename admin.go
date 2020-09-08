@@ -20,6 +20,7 @@ import (
 	"regexp"
 
 	"github.com/davecourtois/Globular/services"
+	"github.com/davecourtois/Globular/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -38,8 +39,8 @@ import (
 	"os/signal"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/admin"
-	"github.com/davecourtois/Globular/ressource"
+	"github.com/davecourtois/Globular/admin/adminpb"
+	"github.com/davecourtois/Globular/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -47,7 +48,7 @@ import (
 )
 
 func (self *Globule) startAdminService() error {
-	admin_server, err := self.startInternalService(string(admin.File_admin_admin_proto.Services().Get(0).FullName()), admin.File_admin_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	admin_server, err := self.startInternalService(string(adminpb.File_admin_admin_proto.Services().Get(0).FullName()), adminpb.File_admin_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -58,7 +59,7 @@ func (self *Globule) startAdminService() error {
 			return err
 		}
 
-		admin.RegisterAdminServiceServer(admin_server, self)
+		adminpb.RegisterAdminServiceServer(admin_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -165,7 +166,7 @@ func (self *Globule) saveConfig() {
 /**
  * Return globular configuration.
  */
-func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
+func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
 	config, err := Utility.ToMap(self)
 	if err != nil {
@@ -189,14 +190,14 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *admin.GetConfigReq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &admin.GetConfigResponse{
+	return &adminpb.GetConfigResponse{
 		Result: str,
 	}, nil
 
 }
 
 // Return the configuration.
-func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest) (*admin.GetConfigResponse, error) {
+func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
 	config := self.getConfig()
 
@@ -207,7 +208,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *admin.GetConfigRequest
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &admin.GetConfigResponse{
+	return &adminpb.GetConfigResponse{
 		Result: str,
 	}, nil
 }
@@ -285,7 +286,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 }
 
 // Save a service configuration
-func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigRequest) (*admin.SaveConfigResponse, error) {
+func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
 
 	config := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(rqst.Config), &config)
@@ -295,7 +296,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// if the configuration is one of services...
+	// if the configuration is one of servicespb...
 	if config["Id"] != nil {
 		srv := self.Services[config["Id"].(string)]
 		if srv != nil {
@@ -351,13 +352,13 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *admin.SaveConfigReque
 
 	// return the new configuration file...
 	result, _ := Utility.ToJson(config)
-	return &admin.SaveConfigResponse{
+	return &adminpb.SaveConfigResponse{
 		Result: result,
 	}, nil
 }
 
 // Deloyed a web application to a globular node.
-func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicationServer) error {
+func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
@@ -367,7 +368,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			// end of stream...
-			stream.SendAndClose(&admin.DeployApplicationResponse{
+			stream.SendAndClose(&adminpb.DeployApplicationResponse{
 				Result: true,
 			})
 			break
@@ -435,7 +436,7 @@ func (self *Globule) DeployApplication(stream admin.AdminService_DeployApplicati
 		self.setRessourceOwner(user, "/"+name)
 
 		path := strings.Join(md["path"], "")
-		res := &ressource.Ressource{
+		res := &ressourcepb.Ressource{
 			Path:     path,
 			Modified: time.Now().Unix(),
 			Size:     int64(buffer.Len()),
@@ -547,7 +548,7 @@ func (self *Globule) registerSa() error {
 }
 
 //Set the root password
-func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPasswordRequest) (*admin.SetRootPasswordResponse, error) {
+func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootPasswordRequest) (*adminpb.SetRootPasswordResponse, error) {
 	// Here I will set the root password.
 	if self.RootPassword != rqst.OldPassword {
 		return nil, status.Errorf(
@@ -581,7 +582,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *admin.SetRootPas
 
 	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 
-	return &admin.SetRootPasswordResponse{
+	return &adminpb.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
 
@@ -664,7 +665,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 }
 
 //Set the root password
-func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordRequest) (*admin.SetPasswordResponse, error) {
+func (self *Globule) SetPassword(ctx context.Context, rqst *adminpb.SetPasswordRequest) (*adminpb.SetPasswordResponse, error) {
 
 	// First of all I will get the user information from the database.
 	err := self.setPassword(rqst.AccountId, rqst.OldPassword, rqst.NewPassword)
@@ -676,14 +677,14 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *admin.SetPasswordReq
 	}
 
 	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
-	return &admin.SetPasswordResponse{
+	return &adminpb.SetPasswordResponse{
 		Token: string(token),
 	}, nil
 
 }
 
 //Set the root password
-func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) (*admin.SetEmailResponse, error) {
+func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest) (*adminpb.SetEmailResponse, error) {
 
 	// Here I will set the root password.
 	// First of all I will get the user information from the database.
@@ -753,13 +754,13 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *admin.SetEmailRequest) 
 	}
 
 	// Return the token.
-	return &admin.SetEmailResponse{
+	return &adminpb.SetEmailResponse{
 		Token: string(token),
 	}, nil
 }
 
 //Set the root email
-func (self *Globule) SetRootEmail(ctx context.Context, rqst *admin.SetRootEmailRequest) (*admin.SetRootEmailResponse, error) {
+func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmailRequest) (*adminpb.SetRootEmailResponse, error) {
 	// Here I will set the root password.
 
 	if self.AdminEmail != rqst.OldEmail {
@@ -783,13 +784,13 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *admin.SetRootEmailR
 	}
 
 	// Return the token.
-	return &admin.SetRootEmailResponse{
+	return &adminpb.SetRootEmailResponse{
 		Token: string(token),
 	}, nil
 }
 
 // Upload a service package.
-func (self *Globule) UploadServicePackage(stream admin.AdminService_UploadServicePackageServer) error {
+func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServicePackageServer) error {
 	// The bundle will cantain the necessary information to install the service.
 	path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
 	fo, err := os.Create(path)
@@ -804,7 +805,7 @@ func (self *Globule) UploadServicePackage(stream admin.AdminService_UploadServic
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			// end of stream...
-			stream.SendAndClose(&admin.UploadServicePackageResponse{
+			stream.SendAndClose(&adminpb.UploadServicePackageResponse{
 				Path: path,
 			})
 			break
@@ -819,7 +820,7 @@ func (self *Globule) UploadServicePackage(stream admin.AdminService_UploadServic
 }
 
 // Publish a service. The service must be install localy on the server.
-func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServiceRequest) (*admin.PublishServiceResponse, error) {
+func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
 	services_discovery, err := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
@@ -829,7 +830,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
-	// Connect to the repository services.
+	// Connect to the repository servicespb.
 	services_repository, err := services.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
 	if err != nil {
 		return nil, status.Errorf(
@@ -838,7 +839,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	}
 
 	// Now I will upload the service to the repository...
-	serviceDescriptor := &services.ServiceDescriptor{
+	serviceDescriptor := &servicespb.ServiceDescriptor{
 		Id:           rqst.ServiceId,
 		PublisherId:  rqst.PublisherId,
 		Version:      rqst.Version,
@@ -894,7 +895,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
 		path := strings.Join(md["path"], "")
-		res := &ressource.Ressource{
+		res := &ressourcepb.Ressource{
 			Path:     path,
 			Modified: time.Now().Unix(),
 			Size:     fi.Size(),
@@ -904,31 +905,31 @@ func (self *Globule) PublishService(ctx context.Context, rqst *admin.PublishServ
 		self.setRessourceOwner(user, "/services/"+rqst.PublisherId)
 	}
 
-	return &admin.PublishServiceResponse{
+	return &adminpb.PublishServiceResponse{
 		Result: true,
 	}, nil
 }
 
 // Install/Update a service on globular instance.
-func (self *Globule) installService(descriptor *services.ServiceDescriptor) error {
+func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) error {
 	// repository must exist...
 	if len(descriptor.Repositories) == 0 {
 		return errors.New("No service repository was found for service " + descriptor.Id)
 	}
 
-	var platform services.Platform
+	var platform servicespb.Platform
 	// The first step will be to create the archive.
 	if runtime.GOOS == "windows" {
 		if runtime.GOARCH == "amd64" {
-			platform = services.Platform_WIN64
+			platform = servicespb.Platform_WIN64
 		} else if runtime.GOARCH == "386" {
-			platform = services.Platform_WIN32
+			platform = servicespb.Platform_WIN32
 		}
 	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
 		if runtime.GOARCH == "amd64" {
-			platform = services.Platform_LINUX64
+			platform = servicespb.Platform_LINUX64
 		} else if runtime.GOARCH == "386" {
-			platform = services.Platform_LINUX32
+			platform = servicespb.Platform_LINUX32
 		}
 	} else if runtime.GOOS == "darwin" {
 		/** TODO Deploy services on other platforme here... **/
@@ -943,13 +944,13 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 		bundle, err := services_repository.DownloadBundle(descriptor, platform)
 		if err == nil {
 			id := descriptor.PublisherId + "%" + descriptor.Id + "%" + descriptor.Version
-			if platform == services.Platform_LINUX32 {
+			if platform == servicespb.Platform_LINUX32 {
 				id += "%LINUX32"
-			} else if platform == services.Platform_LINUX64 {
+			} else if platform == servicespb.Platform_LINUX64 {
 				id += "%LINUX64"
-			} else if platform == services.Platform_WIN32 {
+			} else if platform == servicespb.Platform_WIN32 {
 				id += "%WIN32"
-			} else if platform == services.Platform_WIN64 {
+			} else if platform == servicespb.Platform_WIN64 {
 				id += "%WIN64"
 			}
 
@@ -1034,7 +1035,7 @@ func (self *Globule) installService(descriptor *services.ServiceDescriptor) erro
 }
 
 // Install/Update a service on globular instance.
-func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServiceRequest) (*admin.InstallServiceResponse, error) {
+func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
 
 	// Connect to the dicovery services
 	var services_discovery *services.ServicesDiscovery_Client
@@ -1071,14 +1072,14 @@ func (self *Globule) InstallService(ctx context.Context, rqst *admin.InstallServ
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &admin.InstallServiceResponse{
+	return &adminpb.InstallServiceResponse{
 		Result: true,
 	}, nil
 
 }
 
 // Uninstall a service...
-func (self *Globule) UninstallService(ctx context.Context, rqst *admin.UninstallServiceRequest) (*admin.UninstallServiceResponse, error) {
+func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.UninstallServiceRequest) (*adminpb.UninstallServiceResponse, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -1127,7 +1128,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *admin.Uninstall
 	}
 
 	// Now I will remove the service.
-	// Service are located into the services...
+	// Service are located into the servicespb...
 	path := self.path + string(os.PathSeparator) + "services" + string(os.PathSeparator) + rqst.PublisherId + string(os.PathSeparator) + rqst.ServiceId + string(os.PathSeparator) + rqst.Version
 
 	// remove directory and sub-directory.
@@ -1141,7 +1142,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *admin.Uninstall
 	// save the config.
 	self.saveConfig()
 
-	return &admin.UninstallServiceResponse{
+	return &adminpb.UninstallServiceResponse{
 		Result: true,
 	}, nil
 }
@@ -1197,7 +1198,7 @@ func (self *Globule) stopService(serviceId string) error {
 }
 
 // Stop a service
-func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceRequest) (*admin.StopServiceResponse, error) {
+func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceRequest) (*adminpb.StopServiceResponse, error) {
 	err := self.stopService(rqst.ServiceId)
 	if err != nil {
 		return nil, status.Errorf(
@@ -1205,13 +1206,13 @@ func (self *Globule) StopService(ctx context.Context, rqst *admin.StopServiceReq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &admin.StopServiceResponse{
+	return &adminpb.StopServiceResponse{
 		Result: true,
 	}, nil
 }
 
 // Start a service
-func (self *Globule) StartService(ctx context.Context, rqst *admin.StartServiceRequest) (*admin.StartServiceResponse, error) {
+func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServiceRequest) (*adminpb.StartServiceResponse, error) {
 
 	s := self.Services[rqst.ServiceId]
 	if s == nil {
@@ -1226,7 +1227,7 @@ func (self *Globule) StartService(ctx context.Context, rqst *admin.StartServiceR
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-	return &admin.StartServiceResponse{
+	return &adminpb.StartServiceResponse{
 		ProxyPid:   int64(proxy_pid),
 		ServicePid: int64(service_pid),
 	}, nil
@@ -1275,7 +1276,7 @@ func (self *Globule) stopExternalApplication(serviceId string) error {
 }
 
 // Register external service to be start by Globular in order to run
-func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admin.RegisterExternalApplicationRequest) (*admin.RegisterExternalApplicationResponse, error) {
+func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *adminpb.RegisterExternalApplicationRequest) (*adminpb.RegisterExternalApplicationResponse, error) {
 
 	// Here I will get the command path.
 	externalCmd := ExternalApplication{
@@ -1298,7 +1299,7 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &admin.RegisterExternalApplicationResponse{
+	return &adminpb.RegisterExternalApplicationResponse{
 		ServicePid: int64(pid),
 	}, nil
 }

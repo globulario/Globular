@@ -27,7 +27,7 @@ import (
 	"os/signal"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/ressource"
+	"github.com/davecourtois/Globular/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
 	"github.com/golang/protobuf/jsonpb"
@@ -39,7 +39,7 @@ import (
 )
 
 func (self *Globule) startRessourceService() error {
-	ressource_server, err := self.startInternalService(string(ressource.File_ressource_ressource_proto.Services().Get(0).FullName()), ressource.File_ressource_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
+	ressource_server, err := self.startInternalService(string(ressourcepb.File_ressource_ressource_proto.Services().Get(0).FullName()), ressourcepb.File_ressource_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 
 		// Create the channel to listen on ressource port.
@@ -48,7 +48,7 @@ func (self *Globule) startRessourceService() error {
 			log.Fatalf("could not start ressource service %s: %s", self.getDomain(), err)
 		}
 
-		ressource.RegisterRessourceServiceServer(ressource_server, self)
+		ressourcepb.RegisterRessourceServiceServer(ressource_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -263,18 +263,18 @@ func (self *Globule) registerMethods() error {
 		guest["name"] = "guest"
 		guest["actions"] = []string{
 			"/admin.AdminService/GetConfig",
-			"/ressource.RessourceService/RegisterAccount",
-			"/ressource.RessourceService/AccountExist",
-			"/ressource.RessourceService/Authenticate",
-			"/ressource.RessourceService/RefreshToken",
-			"/ressource.RessourceService/GetPermissions",
-			"/ressource.RessourceService/GetAllFilesInfo",
-			"/ressource.RessourceService/GetAllApplicationsInfo",
-			"/ressource.RessourceService/GetRessourceOwners",
-			"/ressource.RessourceService/ValidateUserRessourceAccess",
-			"/ressource.RessourceService/ValidateApplicationRessourceAccess",
-			"/ressource.RessourceService/ValidateUserRessourceAccess",
-			"/ressource.RessourceService/ValidateApplicationAccess",
+			"/ressourcepb.RessourceService/RegisterAccount",
+			"/ressourcepb.RessourceService/AccountExist",
+			"/ressourcepb.RessourceService/Authenticate",
+			"/ressourcepb.RessourceService/RefreshToken",
+			"/ressourcepb.RessourceService/GetPermissions",
+			"/ressourcepb.RessourceService/GetAllFilesInfo",
+			"/ressourcepb.RessourceService/GetAllApplicationsInfo",
+			"/ressourcepb.RessourceService/GetRessourceOwners",
+			"/ressourcepb.RessourceService/ValidateUserRessourceAccess",
+			"/ressourcepb.RessourceService/ValidateApplicationRessourceAccess",
+			"/ressourcepb.RessourceService/ValidateUserRessourceAccess",
+			"/ressourcepb.RessourceService/ValidateApplicationAccess",
 			"/event.EventService/Subscribe",
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
 			"/event.EventService/Quit",
@@ -286,7 +286,7 @@ func (self *Globule) registerMethods() error {
 			"/persistence.PersistenceService/Find",
 			"/persistence.PersistenceService/FindOne",
 			"/persistence.PersistenceService/Count",
-			"/ressource.RessourceService/GetAllActions"}
+			"/ressourcepb.RessourceService/GetAllActions"}
 
 		_, err := p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Roles", guest, "")
 		if err != nil {
@@ -332,7 +332,7 @@ func (self *Globule) createApplicationConnection() error {
 }
 
 /** Append new LDAP synchronization informations. **/
-func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.SynchronizeLdapRqst) (*ressource.SynchronizeLdapRsp, error) {
+func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressourcepb.SynchronizeLdapRqst) (*ressourcepb.SynchronizeLdapRsp, error) {
 
 	if rqst.SyncInfo == nil {
 		return nil, status.Errorf(
@@ -471,7 +471,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *ressource.Synchr
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync groups infos was given!")))
 	}
 
-	return &ressource.SynchronizeLdapRsp{
+	return &ressourcepb.SynchronizeLdapRsp{
 		Result: true,
 	}, nil
 }
@@ -545,7 +545,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 }
 
 /* Register a new Account */
-func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.RegisterAccountRqst) (*ressource.RegisterAccountRsp, error) {
+func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressourcepb.RegisterAccountRqst) (*ressourcepb.RegisterAccountRsp, error) {
 	if rqst.ConfirmPassword != rqst.Password {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -591,12 +591,12 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *ressource.Regist
 	}
 
 	// Now I will
-	return &ressource.RegisterAccountRsp{
+	return &ressourcepb.RegisterAccountRsp{
 		Result: tokenString, // Return the token string.
 	}, nil
 }
 
-func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountExistRqst) (*ressource.AccountExistRsp, error) {
+func (self *Globule) AccountExist(ctx context.Context, rqst *ressourcepb.AccountExistRqst) (*ressourcepb.AccountExistRsp, error) {
 	var exist bool
 	// Get the persistence connection
 	p, err := self.getPersistenceStore()
@@ -625,7 +625,7 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountEx
 		}
 	}
 	if exist {
-		return &ressource.AccountExistRsp{
+		return &ressourcepb.AccountExistRsp{
 			Result: true,
 		}, nil
 	}
@@ -639,8 +639,8 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *ressource.AccountEx
 //* Authenticate a account by it name or email.
 // That function test if the password is the correct one for a given user
 // if it is a token is generate and that token will be use by other service
-// to validate permission over the requested ressource.
-func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.AuthenticateRqst) (*ressource.AuthenticateRsp, error) {
+// to validate permission over the requested ressourcepb.
+func (self *Globule) Authenticate(ctx context.Context, rqst *ressourcepb.AuthenticateRqst) (*ressourcepb.AuthenticateRsp, error) {
 	// Get the persistence connection
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -658,7 +658,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 		}
 
 		/** Return the token only **/
-		return &ressource.AuthenticateRsp{
+		return &ressourcepb.AuthenticateRsp{
 			Token: tokenString,
 		}, nil
 	}
@@ -741,7 +741,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 	// So here I will start a timer
 
 	// Here I got the token I will now put it in the cache.
-	return &ressource.AuthenticateRsp{
+	return &ressourcepb.AuthenticateRsp{
 		Token: tokenString,
 	}, nil
 }
@@ -749,7 +749,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressource.Authentic
 /**
  * Refresh token get a new token.
  */
-func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTokenRqst) (*ressource.RefreshTokenRsp, error) {
+func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.RefreshTokenRqst) (*ressourcepb.RefreshTokenRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -800,13 +800,13 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressource.RefreshTo
 	}
 
 	// return the token string.
-	return &ressource.RefreshTokenRsp{
+	return &ressourcepb.RefreshTokenRsp{
 		Token: tokenString,
 	}, nil
 }
 
 //* Delete an account *
-func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAccountRqst) (*ressource.DeleteAccountRsp, error) {
+func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressourcepb.DeleteAccountRqst) (*ressourcepb.DeleteAccountRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -878,7 +878,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressource.DeleteAc
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteAccountRsp{
+	return &ressourcepb.DeleteAccountRsp{
 		Result: rqst.Id,
 	}, nil
 }
@@ -912,7 +912,7 @@ func (self *Globule) createRole(id string, name string, actions []string) error 
 }
 
 //* Create a role with given action list *
-func (self *Globule) CreateRole(ctx context.Context, rqst *ressource.CreateRoleRqst) (*ressource.CreateRoleRsp, error) {
+func (self *Globule) CreateRole(ctx context.Context, rqst *ressourcepb.CreateRoleRqst) (*ressourcepb.CreateRoleRsp, error) {
 	// That service made user of persistence service.
 	err := self.createRole(rqst.Role.Id, rqst.Role.Name, rqst.Role.Actions)
 	if err != nil {
@@ -921,11 +921,11 @@ func (self *Globule) CreateRole(ctx context.Context, rqst *ressource.CreateRoleR
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.CreateRoleRsp{Result: true}, nil
+	return &ressourcepb.CreateRoleRsp{Result: true}, nil
 }
 
 //* Delete a role with a given id *
-func (self *Globule) DeleteRole(ctx context.Context, rqst *ressource.DeleteRoleRqst) (*ressource.DeleteRoleRsp, error) {
+func (self *Globule) DeleteRole(ctx context.Context, rqst *ressourcepb.DeleteRoleRqst) (*ressourcepb.DeleteRoleRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -1005,11 +1005,11 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *ressource.DeleteRoleR
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteRoleRsp{Result: true}, nil
+	return &ressourcepb.DeleteRoleRsp{Result: true}, nil
 }
 
 //* Append an action to existing role. *
-func (self *Globule) AddRoleAction(ctx context.Context, rqst *ressource.AddRoleActionRqst) (*ressource.AddRoleActionRsp, error) {
+func (self *Globule) AddRoleAction(ctx context.Context, rqst *ressourcepb.AddRoleActionRqst) (*ressourcepb.AddRoleActionRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1062,11 +1062,11 @@ func (self *Globule) AddRoleAction(ctx context.Context, rqst *ressource.AddRoleA
 		}
 	}
 
-	return &ressource.AddRoleActionRsp{Result: true}, nil
+	return &ressourcepb.AddRoleActionRsp{Result: true}, nil
 }
 
 //* Remove an action to existing role. *
-func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *ressource.RemoveRoleActionRqst) (*ressource.RemoveRoleActionRsp, error) {
+func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *ressourcepb.RemoveRoleActionRqst) (*ressourcepb.RemoveRoleActionRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -1120,11 +1120,11 @@ func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *ressource.Remov
 		}
 	}
 
-	return &ressource.RemoveRoleActionRsp{Result: true}, nil
+	return &ressourcepb.RemoveRoleActionRsp{Result: true}, nil
 }
 
 //* Add role to a given account *
-func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAccountRoleRqst) (*ressource.AddAccountRoleRsp, error) {
+func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressourcepb.AddAccountRoleRqst) (*ressourcepb.AddAccountRoleRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1192,11 +1192,11 @@ func (self *Globule) AddAccountRole(ctx context.Context, rqst *ressource.AddAcco
 		}
 
 	}
-	return &ressource.AddAccountRoleRsp{Result: true}, nil
+	return &ressourcepb.AddAccountRoleRsp{Result: true}, nil
 }
 
 //* Remove a role from a given account *
-func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.RemoveAccountRoleRqst) (*ressource.RemoveAccountRoleRsp, error) {
+func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressourcepb.RemoveAccountRoleRqst) (*ressourcepb.RemoveAccountRoleRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1270,11 +1270,11 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *ressource.Remo
 		}
 
 	}
-	return &ressource.RemoveAccountRoleRsp{Result: true}, nil
+	return &ressourcepb.RemoveAccountRoleRsp{Result: true}, nil
 }
 
 //* Append an action to existing application. *
-func (self *Globule) AddApplicationAction(ctx context.Context, rqst *ressource.AddApplicationActionRqst) (*ressource.AddApplicationActionRsp, error) {
+func (self *Globule) AddApplicationAction(ctx context.Context, rqst *ressourcepb.AddApplicationActionRqst) (*ressourcepb.AddApplicationActionRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1326,11 +1326,11 @@ func (self *Globule) AddApplicationAction(ctx context.Context, rqst *ressource.A
 		}
 	}
 
-	return &ressource.AddApplicationActionRsp{Result: true}, nil
+	return &ressourcepb.AddApplicationActionRsp{Result: true}, nil
 }
 
 //* Remove an action to existing application. *
-func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressource.RemoveApplicationActionRqst) (*ressource.RemoveApplicationActionRsp, error) {
+func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressourcepb.RemoveApplicationActionRqst) (*ressourcepb.RemoveApplicationActionRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -1382,11 +1382,11 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *ressourc
 		}
 	}
 
-	return &ressource.RemoveApplicationActionRsp{Result: true}, nil
+	return &ressourcepb.RemoveApplicationActionRsp{Result: true}, nil
 }
 
 //* Delete an application from the server. *
-func (self *Globule) DeleteApplication(ctx context.Context, rqst *ressource.DeleteApplicationRqst) (*ressource.DeleteApplicationRsp, error) {
+func (self *Globule) DeleteApplication(ctx context.Context, rqst *ressourcepb.DeleteApplicationRqst) (*ressourcepb.DeleteApplicationRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -1449,7 +1449,7 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *ressource.Dele
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteApplicationRsp{
+	return &ressourcepb.DeleteApplicationRsp{
 		Result: true,
 	}, nil
 }
@@ -1469,7 +1469,7 @@ func (self *Globule) deleteAccountPermissions(name string) error {
 }
 
 //* Delete all permission for a given account *
-func (self *Globule) DeleteAccountPermissions(ctx context.Context, rqst *ressource.DeleteAccountPermissionsRqst) (*ressource.DeleteAccountPermissionsRsp, error) {
+func (self *Globule) DeleteAccountPermissions(ctx context.Context, rqst *ressourcepb.DeleteAccountPermissionsRqst) (*ressourcepb.DeleteAccountPermissionsRsp, error) {
 
 	err := self.deleteAccountPermissions(rqst.Id)
 	if err != nil {
@@ -1478,7 +1478,7 @@ func (self *Globule) DeleteAccountPermissions(ctx context.Context, rqst *ressour
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteAccountPermissionsRsp{
+	return &ressourcepb.DeleteAccountPermissionsRsp{
 		Result: true,
 	}, nil
 }
@@ -1498,7 +1498,7 @@ func (self *Globule) deleteRolePermissions(name string) error {
 }
 
 //* Delete all permission for a given role *
-func (self *Globule) DeleteRolePermissions(ctx context.Context, rqst *ressource.DeleteRolePermissionsRqst) (*ressource.DeleteRolePermissionsRsp, error) {
+func (self *Globule) DeleteRolePermissions(ctx context.Context, rqst *ressourcepb.DeleteRolePermissionsRqst) (*ressourcepb.DeleteRolePermissionsRsp, error) {
 
 	err := self.deleteRolePermissions(rqst.Id)
 	if err != nil {
@@ -1507,7 +1507,7 @@ func (self *Globule) DeleteRolePermissions(ctx context.Context, rqst *ressource.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteRolePermissionsRsp{
+	return &ressourcepb.DeleteRolePermissionsRsp{
 		Result: true,
 	}, nil
 }
@@ -1515,8 +1515,8 @@ func (self *Globule) DeleteRolePermissions(ctx context.Context, rqst *ressource.
 /**
  * Return the list of all actions avalaible on the server.
  */
-func (self *Globule) GetAllActions(ctx context.Context, rqst *ressource.GetAllActionsRqst) (*ressource.GetAllActionsRsp, error) {
-	return &ressource.GetAllActionsRsp{Actions: self.methods}, nil
+func (self *Globule) GetAllActions(ctx context.Context, rqst *ressourcepb.GetAllActionsRqst) (*ressourcepb.GetAllActionsRsp, error) {
+	return &ressourcepb.GetAllActionsRsp{Actions: self.methods}, nil
 }
 
 /////////////////////// Ressource permission owner /////////////////////////////
@@ -1614,7 +1614,7 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 }
 
 //* Set Ressource owner *
-func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressource.SetRessourceOwnerRqst) (*ressource.SetRessourceOwnerRsp, error) {
+func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressourcepb.SetRessourceOwnerRqst) (*ressourcepb.SetRessourceOwnerRsp, error) {
 	// That service made user of persistence service.
 	path := rqst.GetPath()
 
@@ -1625,13 +1625,13 @@ func (self *Globule) SetRessourceOwner(ctx context.Context, rqst *ressource.SetR
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.SetRessourceOwnerRsp{
+	return &ressourcepb.SetRessourceOwnerRsp{
 		Result: true,
 	}, nil
 }
 
 //* Get the ressource owner *
-func (self *Globule) GetRessourceOwners(ctx context.Context, rqst *ressource.GetRessourceOwnersRqst) (*ressource.GetRessourceOwnersRsp, error) {
+func (self *Globule) GetRessourceOwners(ctx context.Context, rqst *ressourcepb.GetRessourceOwnersRqst) (*ressourcepb.GetRessourceOwnersRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1656,13 +1656,13 @@ func (self *Globule) GetRessourceOwners(ctx context.Context, rqst *ressource.Get
 		owners = append(owners, ressourceOwners[i].(map[string]interface{})["owner"].(string))
 	}
 
-	return &ressource.GetRessourceOwnersRsp{
+	return &ressourcepb.GetRessourceOwnersRsp{
 		Owners: owners,
 	}, nil
 }
 
 //* Get the ressource owner *
-func (self *Globule) DeleteRessourceOwner(ctx context.Context, rqst *ressource.DeleteRessourceOwnerRqst) (*ressource.DeleteRessourceOwnerRsp, error) {
+func (self *Globule) DeleteRessourceOwner(ctx context.Context, rqst *ressourcepb.DeleteRessourceOwnerRqst) (*ressourcepb.DeleteRessourceOwnerRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1681,12 +1681,12 @@ func (self *Globule) DeleteRessourceOwner(ctx context.Context, rqst *ressource.D
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteRessourceOwnerRsp{
+	return &ressourcepb.DeleteRessourceOwnerRsp{
 		Result: true,
 	}, nil
 }
 
-func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.DeleteRessourceOwnersRqst) (*ressource.DeleteRessourceOwnersRsp, error) {
+func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressourcepb.DeleteRessourceOwnersRqst) (*ressourcepb.DeleteRessourceOwnersRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1705,7 +1705,7 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteRessourceOwnersRsp{
+	return &ressourcepb.DeleteRessourceOwnersRsp{
 		Result: true,
 	}, nil
 }
@@ -1714,14 +1714,14 @@ func (self *Globule) DeleteRessourceOwners(ctx context.Context, rqst *ressource.
 func (self *Globule) logServiceInfo(service string, message string) error {
 
 	// Here I will use event to publish log information...
-	info := new(ressource.LogInfo)
+	info := new(ressourcepb.LogInfo)
 	info.Application = ""
 	info.UserId = "globular"
 	info.UserName = "globular"
 	info.Method = service
 	info.Date = time.Now().Unix()
 	info.Message = message
-	info.Type = ressource.LogType_ERROR // not necessarely errors..
+	info.Type = ressourcepb.LogType_ERROR // not necessarely errors..
 	self.log(info)
 
 	return nil
@@ -1731,12 +1731,12 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
 
 	// Remove cyclic calls
-	if method == "/ressource.RessourceService/Log" {
+	if method == "/ressourcepb.RessourceService/Log" {
 		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itself!")
 	}
 
 	// Here I will use event to publish log information...
-	info := new(ressource.LogInfo)
+	info := new(ressourcepb.LogInfo)
 	info.Application = application
 	info.UserId = token
 	info.UserName = token
@@ -1744,9 +1744,9 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = ressource.LogType_ERROR
+		info.Type = ressourcepb.LogType_ERROR
 	} else {
-		info.Type = ressource.LogType_INFO
+		info.Type = ressourcepb.LogType_INFO
 	}
 
 	self.log(info)
@@ -1772,24 +1772,24 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	var err error
 
 	// Here some method are accessible by default.
-	if method == "/ressource.RessourceService/GetAllActions" ||
-		method == "/ressource.RessourceService/RegisterAccount" ||
-		method == "/ressource.RessourceService/AccountExist" ||
-		method == "/ressource.RessourceService/Authenticate" ||
-		method == "/ressource.RessourceService/RefreshToken" ||
-		method == "/ressource.RessourceService/GetPermissions" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/GetAllFilesInfo" ||
-		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
-		method == "/ressource.RessourceService/ValidateToken" ||
-		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationRessourceAccess" ||
-		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
-		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
-		method == "/ressource.RessourceService/GetActionPermission" ||
-		method == "/ressource.RessourceService/Log" ||
-		method == "/ressource.RessourceService/GetLog" {
+	if method == "/ressourcepb.RessourceService/GetAllActions" ||
+		method == "/ressourcepb.RessourceService/RegisterAccount" ||
+		method == "/ressourcepb.RessourceService/AccountExist" ||
+		method == "/ressourcepb.RessourceService/Authenticate" ||
+		method == "/ressourcepb.RessourceService/RefreshToken" ||
+		method == "/ressourcepb.RessourceService/GetPermissions" ||
+		method == "/ressourcepb.RessourceService/GetRessourceOwners" ||
+		method == "/ressourcepb.RessourceService/GetAllFilesInfo" ||
+		method == "/ressourcepb.RessourceService/GetAllApplicationsInfo" ||
+		method == "/ressourcepb.RessourceService/GetRessourceOwners" ||
+		method == "/ressourcepb.RessourceService/ValidateToken" ||
+		method == "/ressourcepb.RessourceService/ValidateUserRessourceAccess" ||
+		method == "/ressourcepb.RessourceService/ValidateApplicationRessourceAccess" ||
+		method == "/ressourcepb.RessourceService/ValidateUserRessourceAccess" ||
+		method == "/ressourcepb.RessourceService/ValidateApplicationAccess" ||
+		method == "/ressourcepb.RessourceService/GetActionPermission" ||
+		method == "/ressourcepb.RessourceService/Log" ||
+		method == "/ressourcepb.RessourceService/GetLog" {
 		hasAccess = true
 	}
 
@@ -1809,28 +1809,28 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 			hasAccess = true
 		} else {
 			// special case that need ownership of the ressource or be sa
-			if method == "/ressource.RessourceService/SetPermission" || method == "/ressource.RessourceService/DeletePermissions" ||
-				method == "/ressource.RessourceService/SetRessourceOwner" || method == "/ressource.RessourceService/DeleteRessourceOwner" ||
-				method == "/ressource.RessourceService/CreateDirPermissions" {
+			if method == "/ressourcepb.RessourceService/SetPermission" || method == "/ressourcepb.RessourceService/DeletePermissions" ||
+				method == "/ressourcepb.RessourceService/SetRessourceOwner" || method == "/ressourcepb.RessourceService/DeleteRessourceOwner" ||
+				method == "/ressourcepb.RessourceService/CreateDirPermissions" {
 				var path string
-				if method == "/ressource.RessourceService/SetPermission" {
-					rqst := req.(*ressource.SetPermissionRqst)
+				if method == "/ressourcepb.RessourceService/SetPermission" {
+					rqst := req.(*ressourcepb.SetPermissionRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Permission.GetPath()
-				} else if method == "/ressource.RessourceService/DeletePermissions" {
-					rqst := req.(*ressource.DeletePermissionsRqst)
+				} else if method == "/ressourcepb.RessourceService/DeletePermissions" {
+					rqst := req.(*ressourcepb.DeletePermissionsRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressource.RessourceService/SetRessourceOwner" {
-					rqst := req.(*ressource.SetRessourceOwnerRqst)
+				} else if method == "/ressourcepb.RessourceService/SetRessourceOwner" {
+					rqst := req.(*ressourcepb.SetRessourceOwnerRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
-					rqst := req.(*ressource.DeleteRessourceOwnerRqst)
+				} else if method == "/ressourcepb.RessourceService/DeleteRessourceOwner" {
+					rqst := req.(*ressourcepb.DeleteRessourceOwnerRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressource.RessourceService/CreateDirPermissions" {
-					rqst := req.(*ressource.CreateDirPermissionsRqst)
+				} else if method == "/ressourcepb.RessourceService/CreateDirPermissions" {
+					rqst := req.(*ressourcepb.CreateDirPermissionsRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
 				}
@@ -1868,29 +1868,29 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	if err == nil {
 		// Set permissions in case one of those methode is called.
-		if method == "/ressource.RessourceService/DeleteApplication" {
-			rqst := req.(*ressource.DeleteApplicationRqst)
+		if method == "/ressourcepb.RessourceService/DeleteApplication" {
+			rqst := req.(*ressourcepb.DeleteApplicationRqst)
 			err := self.deleteDirPermissions("/" + rqst.ApplicationId)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressource.RessourceService/DeleteRole" {
-			rqst := req.(*ressource.DeleteRoleRqst)
+		} else if method == "/ressourcepb.RessourceService/DeleteRole" {
+			rqst := req.(*ressourcepb.DeleteRoleRqst)
 			err := self.deleteRolePermissions("/" + rqst.RoleId)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressource.RessourceService/DeleteAccount" {
-			rqst := req.(*ressource.DeleteAccountRqst)
+		} else if method == "/ressourcepb.RessourceService/DeleteAccount" {
+			rqst := req.(*ressourcepb.DeleteAccountRqst)
 			err := self.deleteAccountPermissions("/" + rqst.Id)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressource.RessourceService/SetRessource" {
+		} else if method == "/ressourcepb.RessourceService/SetRessource" {
 			if clientId != "sa" {
-				rqst := req.(*ressource.SetRessourceRqst)
+				rqst := req.(*ressourcepb.SetRessourceRqst)
 
-				// In that case i will set the userId as the owner of the ressource.
+				// In that case i will set the userId as the owner of the ressourcepb.
 				err := self.setRessourceOwner(clientId, rqst.Ressource.Path+"/"+rqst.Ressource.Name)
 				if err != nil {
 					return nil, err
@@ -1914,7 +1914,7 @@ func (self *Globule) streamRessourceInterceptor(srv interface{}, stream grpc.Ser
 	return nil
 }
 
-func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string, error) {
+func (self *Globule) getLogInfoKeyValue(info *ressourcepb.LogInfo) (string, string, error) {
 	marshaler := new(jsonpb.Marshaler)
 	jsonStr, err := marshaler.MarshalToString(info)
 	if err != nil {
@@ -1922,7 +1922,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string
 	}
 
 	key := ""
-	if info.GetType() == ressource.LogType_INFO {
+	if info.GetType() == ressourcepb.LogType_INFO {
 		// Increnment prometheus counter,
 		self.methodsCounterLog.WithLabelValues("INFO", info.Method).Inc()
 
@@ -1960,7 +1960,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressource.LogInfo) (string, string
 	return key, jsonStr, nil
 }
 
-func (self *Globule) log(info *ressource.LogInfo) error {
+func (self *Globule) log(info *ressourcepb.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserName) > 0 {
@@ -1994,18 +1994,18 @@ func (self *Globule) log(info *ressource.LogInfo) error {
 }
 
 //* Log error or information into the data base *
-func (self *Globule) Log(ctx context.Context, rqst *ressource.LogRqst) (*ressource.LogRsp, error) {
+func (self *Globule) Log(ctx context.Context, rqst *ressourcepb.LogRqst) (*ressourcepb.LogRsp, error) {
 	// Publish event...
 	self.log(rqst.Info)
 
-	return &ressource.LogRsp{
+	return &ressourcepb.LogRsp{
 		Result: true,
 	}, nil
 }
 
 //* Log error or information into the data base *
 // Retreive log infos (the query must be something like /infos/'date'/'applicationName'/'userName'
-func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.RessourceService_GetLogServer) error {
+func (self *Globule) GetLog(rqst *ressourcepb.GetLogRqst, stream ressourcepb.RessourceService_GetLogServer) error {
 
 	query := rqst.Query
 	if len(query) == 0 {
@@ -2022,11 +2022,11 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 		return err
 	}
 
-	infos := make([]*ressource.LogInfo, 0)
+	infos := make([]*ressourcepb.LogInfo, 0)
 	i := 0
 	max := 100
 	for jsonDecoder.More() {
-		info := ressource.LogInfo{}
+		info := ressourcepb.LogInfo{}
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
 			return err
@@ -2035,7 +2035,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 		infos = append(infos, &info)
 		if i == max-1 {
 			// I will send the stream at each 100 logs...
-			rsp := &ressource.GetLogRsp{
+			rsp := &ressourcepb.GetLogRsp{
 				Info: infos,
 			}
 			// Send the infos
@@ -2045,7 +2045,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
-			infos = make([]*ressource.LogInfo, 0)
+			infos = make([]*ressourcepb.LogInfo, 0)
 			i = 0
 		}
 		i++
@@ -2053,7 +2053,7 @@ func (self *Globule) GetLog(rqst *ressource.GetLogRqst, stream ressource.Ressour
 
 	// Send the last infos...
 	if len(infos) > 0 {
-		rsp := &ressource.GetLogRsp{
+		rsp := &ressourcepb.GetLogRsp{
 			Info: infos,
 		}
 		err = stream.Send(rsp)
@@ -2081,7 +2081,7 @@ func (self *Globule) deleteLog(query string) error {
 	}
 
 	for jsonDecoder.More() {
-		info := ressource.LogInfo{}
+		info := ressourcepb.LogInfo{}
 
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
@@ -2100,7 +2100,7 @@ func (self *Globule) deleteLog(query string) error {
 }
 
 //* Delete a log info *
-func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqst) (*ressource.DeleteLogRsp, error) {
+func (self *Globule) DeleteLog(ctx context.Context, rqst *ressourcepb.DeleteLogRqst) (*ressourcepb.DeleteLogRsp, error) {
 
 	key, _, _ := self.getLogInfoKeyValue(rqst.Log)
 	err := self.logs.RemoveItem(key)
@@ -2110,16 +2110,16 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *ressource.DeleteLogRqs
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteLogRsp{
+	return &ressourcepb.DeleteLogRsp{
 		Result: true,
 	}, nil
 }
 
 //* Clear logs. info or errors *
-func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLogRqst) (*ressource.ClearAllLogRsp, error) {
+func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressourcepb.ClearAllLogRqst) (*ressourcepb.ClearAllLogRsp, error) {
 	var err error
 
-	if rqst.Type == ressource.LogType_ERROR {
+	if rqst.Type == ressourcepb.LogType_ERROR {
 		err = self.deleteLog("/errors/*")
 	} else {
 		err = self.deleteLog("/infos/*")
@@ -2131,13 +2131,13 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressource.ClearAllLo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ClearAllLogRsp{
+	return &ressourcepb.ClearAllLogRsp{
 		Result: true,
 	}, nil
 }
 
 ///////////////////////  ressource management. /////////////////
-func (self *Globule) setRessource(r *ressource.Ressource) error {
+func (self *Globule) setRessource(r *ressourcepb.Ressource) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return err
@@ -2164,7 +2164,7 @@ func (self *Globule) setRessource(r *ressource.Ressource) error {
 }
 
 //* Set a ressource from a client (custom service) to globular
-func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessourceRqst) (*ressource.SetRessourceRsp, error) {
+func (self *Globule) SetRessource(ctx context.Context, rqst *ressourcepb.SetRessourceRqst) (*ressourcepb.SetRessourceRsp, error) {
 	if rqst.Ressource == nil {
 
 		return nil, status.Errorf(
@@ -2179,12 +2179,12 @@ func (self *Globule) SetRessource(ctx context.Context, rqst *ressource.SetRessou
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.SetRessourceRsp{
+	return &ressourcepb.SetRessourceRsp{
 		Result: true,
 	}, nil
 }
 
-func (self *Globule) getRessources(path string) ([]*ressource.Ressource, error) {
+func (self *Globule) getRessources(path string) ([]*ressourcepb.Ressource, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, err
@@ -2195,7 +2195,7 @@ func (self *Globule) getRessources(path string) ([]*ressource.Ressource, error) 
 		return nil, err
 	}
 
-	ressources := make([]*ressource.Ressource, 0)
+	ressources := make([]*ressourcepb.Ressource, 0)
 
 	for i := 0; i < len(data); i++ {
 		res := data[i].(map[string]interface{})
@@ -2223,14 +2223,14 @@ func (self *Globule) getRessources(path string) ([]*ressource.Ressource, error) 
 
 		// append the info inside the stream.
 		if strings.HasPrefix(res["path"].(string), path) {
-			ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
+			ressources = append(ressources, &ressourcepb.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
 		}
 	}
 	return ressources, nil
 }
 
 //* Get all ressources
-func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream ressource.RessourceService_GetRessourcesServer) error {
+func (self *Globule) GetRessources(rqst *ressourcepb.GetRessourcesRqst, stream ressourcepb.RessourceService_GetRessourcesServer) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return err
@@ -2252,7 +2252,7 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 		return err
 	}
 
-	ressources := make([]*ressource.Ressource, 0)
+	ressources := make([]*ressourcepb.Ressource, 0)
 	max := 100
 	for i := 0; i < len(data); i++ {
 		res := data[i].(map[string]interface{})
@@ -2279,10 +2279,10 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 		}
 
 		// append the info inside the stream.
-		ressources = append(ressources, &ressource.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
+		ressources = append(ressources, &ressourcepb.Ressource{Path: res["path"].(string), Name: res["name"].(string), Modified: modified, Size: size})
 		if len(ressources) == max-1 {
 			// I will send the stream at each 100 logs...
-			rsp := &ressource.GetRessourcesRsp{
+			rsp := &ressourcepb.GetRessourcesRsp{
 				Ressources: ressources,
 			}
 			// Send the infos
@@ -2292,14 +2292,14 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
-			ressources = make([]*ressource.Ressource, 0)
+			ressources = make([]*ressourcepb.Ressource, 0)
 		}
 	}
 
 	// Send the last infos...
 	if len(ressources) > 0 {
 
-		rsp := &ressource.GetRessourcesRsp{
+		rsp := &ressourcepb.GetRessourcesRsp{
 			Ressources: ressources,
 		}
 		err = stream.Send(rsp)
@@ -2314,7 +2314,7 @@ func (self *Globule) GetRessources(rqst *ressource.GetRessourcesRqst, stream res
 }
 
 //* Remove a ressource from a client (custom service) to globular
-func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.RemoveRessourceRqst) (*ressource.RemoveRessourceRsp, error) {
+func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressourcepb.RemoveRessourceRqst) (*ressourcepb.RemoveRessourceRsp, error) {
 
 	// Because regex dosent work properly I retreive all the ressources.
 	p, err := self.getPersistenceStore()
@@ -2332,7 +2332,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	toDelete := make([]*ressource.Ressource, 0)
+	toDelete := make([]*ressourcepb.Ressource, 0)
 	// Remove ressource that match...
 	for i := 0; i < len(ressources); i++ {
 		res := ressources[i]
@@ -2348,7 +2348,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 
 	}
 
-	// Now I will delete the ressource.
+	// Now I will delete the ressourcepb.
 	for i := 0; i < len(toDelete); i++ {
 		id := Utility.GenerateUUID(toDelete[i].Path + toDelete[i].Name)
 		err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Ressources", `{"_id":"`+id+`"}`, "")
@@ -2379,7 +2379,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressource.Remove
 		}
 	}
 
-	return &ressource.RemoveRessourceRsp{
+	return &ressourcepb.RemoveRessourceRsp{
 		Result: true,
 	}, nil
 }
@@ -2406,7 +2406,7 @@ func (self *Globule) setActionPermission(action string, permission int32) error 
 }
 
 //* Set a ressource from a client (custom service) to globular
-func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressource.SetActionPermissionRqst) (*ressource.SetActionPermissionRsp, error) {
+func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressourcepb.SetActionPermissionRqst) (*ressourcepb.SetActionPermissionRsp, error) {
 
 	err := self.setActionPermission(rqst.Action, rqst.Permission)
 	if err != nil {
@@ -2415,13 +2415,13 @@ func (self *Globule) SetActionPermission(ctx context.Context, rqst *ressource.Se
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.SetActionPermissionRsp{
+	return &ressourcepb.SetActionPermissionRsp{
 		Result: true,
 	}, nil
 }
 
 //* Remove a ressource from a client (custom service) to globular
-func (self *Globule) RemoveActionPermission(ctx context.Context, rqst *ressource.RemoveActionPermissionRqst) (*ressource.RemoveActionPermissionRsp, error) {
+func (self *Globule) RemoveActionPermission(ctx context.Context, rqst *ressourcepb.RemoveActionPermissionRqst) (*ressourcepb.RemoveActionPermissionRsp, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -2437,13 +2437,13 @@ func (self *Globule) RemoveActionPermission(ctx context.Context, rqst *ressource
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.RemoveActionPermissionRsp{
+	return &ressourcepb.RemoveActionPermissionRsp{
 		Result: true,
 	}, nil
 }
 
 //* Remove a ressource from a client (custom service) to globular
-func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressource.GetActionPermissionRqst) (*ressource.GetActionPermissionRsp, error) {
+func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressourcepb.GetActionPermissionRqst) (*ressourcepb.GetActionPermissionRsp, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -2454,14 +2454,14 @@ func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressource.Ge
 	// Try to delete the account...
 	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "ActionPermission", `{"_id":"`+Utility.GenerateUUID(rqst.Action)+`"}`, "")
 	if err != nil {
-		return &ressource.GetActionPermissionRsp{
+		return &ressourcepb.GetActionPermissionRsp{
 			Permission: int32(-1),
 		}, nil
 	}
 
 	actionPermission := values.(map[string]interface{})
 
-	return &ressource.GetActionPermissionRsp{
+	return &ressourcepb.GetActionPermissionRsp{
 		Permission: actionPermission["permission"].(int32),
 	}, nil
 }
@@ -2527,7 +2527,7 @@ func (self *Globule) setRessourcePermission(owner string, path string, permissio
 }
 
 //* Set a file permission, create new one if not already exist. *
-func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermissionRqst) (*ressource.SetPermissionRsp, error) {
+func (self *Globule) SetPermission(ctx context.Context, rqst *ressourcepb.SetPermissionRqst) (*ressourcepb.SetPermissionRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -2550,7 +2550,7 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 	var owner map[string]interface{}
 
 	switch v := rqst.Permission.GetOwner().(type) {
-	case *ressource.RessourcePermission_User:
+	case *ressourcepb.RessourcePermission_User:
 		// In that case I will try to find a user with that id
 		values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"_id":"`+v.User+`"}`, ``)
 		if err != nil {
@@ -2559,7 +2559,7 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		owner = values.(map[string]interface{})
-	case *ressource.RessourcePermission_Role:
+	case *ressourcepb.RessourcePermission_Role:
 		// In that case I will try to find a role with that id
 		values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Roles", `{"_id":"`+v.Role+`"}`, "")
 		if err != nil {
@@ -2568,7 +2568,7 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		owner = values.(map[string]interface{})
-	case *ressource.RessourcePermission_Application:
+	case *ressourcepb.RessourcePermission_Application:
 		// In that case I will try to find a role with that id
 		values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Applications", `{"_id":"`+v.Application+`"}`, "")
 		if err != nil {
@@ -2638,12 +2638,12 @@ func (self *Globule) SetPermission(ctx context.Context, rqst *ressource.SetPermi
 		}
 	}
 
-	return &ressource.SetPermissionRsp{
+	return &ressourcepb.SetPermissionRsp{
 		Result: true,
 	}, nil
 }
 
-func (self *Globule) setPermissionOwner(owner string, permission *ressource.RessourcePermission) error {
+func (self *Globule) setPermissionOwner(owner string, permission *ressourcepb.RessourcePermission) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return err
@@ -2652,7 +2652,7 @@ func (self *Globule) setPermissionOwner(owner string, permission *ressource.Ress
 	// Here I will try to find the owner in the user table
 	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"_id":"`+owner+`"}`, ``)
 	if err == nil {
-		permission.Owner = &ressource.RessourcePermission_User{
+		permission.Owner = &ressourcepb.RessourcePermission_User{
 			User: owner,
 		}
 		return nil
@@ -2662,7 +2662,7 @@ func (self *Globule) setPermissionOwner(owner string, permission *ressource.Ress
 	// In that case I will try to find a role with that id
 	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Roles", `{"_id":"`+owner+`"}`, "")
 	if err == nil {
-		permission.Owner = &ressource.RessourcePermission_Role{
+		permission.Owner = &ressourcepb.RessourcePermission_Role{
 			Role: owner,
 		}
 		return nil
@@ -2670,7 +2670,7 @@ func (self *Globule) setPermissionOwner(owner string, permission *ressource.Ress
 
 	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Applications", `{"_id":"`+owner+`"}`, "")
 	if err == nil {
-		permission.Owner = &ressource.RessourcePermission_Application{
+		permission.Owner = &ressourcepb.RessourcePermission_Application{
 			Application: owner,
 		}
 		return nil
@@ -2682,7 +2682,7 @@ func (self *Globule) setPermissionOwner(owner string, permission *ressource.Ress
 /**
  *
  */
-func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermission, error) {
+func (self *Globule) getDirPermissions(path string) ([]*ressourcepb.RessourcePermission, error) {
 	if !Utility.Exists(self.GetAbsolutePath(path)) {
 		return nil, errors.New("No directory found with path " + self.GetAbsolutePath(path))
 	}
@@ -2700,10 +2700,10 @@ func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermi
 	}
 
 	// Now I will read the permission values.
-	permissions := make([]*ressource.RessourcePermission, 0)
+	permissions := make([]*ressourcepb.RessourcePermission, 0)
 	for i := 0; i < len(permissions_); i++ {
 		permission_ := permissions_[i].(map[string]interface{})
-		permission := &ressource.RessourcePermission{Path: permission_["path"].(string), Owner: nil, Number: permission_["permission"].(int32)}
+		permission := &ressourcepb.RessourcePermission{Path: permission_["path"].(string), Owner: nil, Number: permission_["permission"].(int32)}
 		err = self.setPermissionOwner(permission_["owner"].(string), permission)
 		if err != nil {
 			return nil, err
@@ -2741,7 +2741,7 @@ func (self *Globule) getDirPermissions(path string) ([]*ressource.RessourcePermi
 	return permissions, nil
 }
 
-func (self *Globule) getRessourcePermissions(path string) ([]*ressource.RessourcePermission, error) {
+func (self *Globule) getRessourcePermissions(path string) ([]*ressourcepb.RessourcePermission, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -2755,11 +2755,11 @@ func (self *Globule) getRessourcePermissions(path string) ([]*ressource.Ressourc
 		return nil, err
 	}
 
-	permissions := make([]*ressource.RessourcePermission, 0)
+	permissions := make([]*ressourcepb.RessourcePermission, 0)
 
 	for i := 0; i < len(permissions_); i++ {
 		permission_ := permissions_[i].(map[string]interface{})
-		permission := &ressource.RessourcePermission{Path: permission_["path"].(string), Owner: nil, Number: permission_["permission"].(int32)}
+		permission := &ressourcepb.RessourcePermission{Path: permission_["path"].(string), Owner: nil, Number: permission_["permission"].(int32)}
 		err = self.setPermissionOwner(permission_["owner"].(string), permission)
 		if err != nil {
 			return nil, err
@@ -2770,7 +2770,7 @@ func (self *Globule) getRessourcePermissions(path string) ([]*ressource.Ressourc
 	return permissions, nil
 }
 
-func (self *Globule) getPermissions(path string) ([]*ressource.RessourcePermission, error) {
+func (self *Globule) getPermissions(path string) ([]*ressourcepb.RessourcePermission, error) {
 
 	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
 	if err == nil {
@@ -2808,7 +2808,7 @@ func (self *Globule) getPermissions(path string) ([]*ressource.RessourcePermissi
 }
 
 //* Get All permissions for a given file/dir *
-func (self *Globule) GetPermissions(ctx context.Context, rqst *ressource.GetPermissionsRqst) (*ressource.GetPermissionsRsp, error) {
+func (self *Globule) GetPermissions(ctx context.Context, rqst *ressourcepb.GetPermissionsRqst) (*ressourcepb.GetPermissionsRsp, error) {
 
 	path := rqst.GetPath()
 	permissions, err := self.getPermissions(path)
@@ -2837,7 +2837,7 @@ func (self *Globule) GetPermissions(ctx context.Context, rqst *ressource.GetPerm
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.GetPermissionsRsp{
+	return &ressourcepb.GetPermissionsRsp{
 		Permissions: string(jsonStr),
 	}, nil
 }
@@ -2861,14 +2861,14 @@ func (self *Globule) deletePermissions(path string, owner string) error {
 		permission := permissions[i]
 		if len(owner) > 0 {
 			switch v := permission.GetOwner().(type) {
-			case *ressource.RessourcePermission_User:
+			case *ressourcepb.RessourcePermission_User:
 				if v.User == owner {
 					err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+permission.GetPath()+`","owner":"`+v.User+`"}`, "")
 					if err != nil {
 						return err
 					}
 				}
-			case *ressource.RessourcePermission_Role:
+			case *ressourcepb.RessourcePermission_Role:
 				if v.Role == owner {
 					err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+permission.GetPath()+`","owner":"`+v.Role+`"}`, "")
 					if err != nil {
@@ -2876,7 +2876,7 @@ func (self *Globule) deletePermissions(path string, owner string) error {
 					}
 				}
 
-			case *ressource.RessourcePermission_Application:
+			case *ressourcepb.RessourcePermission_Application:
 				if v.Application == owner {
 					err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+permission.GetPath()+`","owner":"`+v.Application+`"}`, "")
 					if err != nil {
@@ -2896,7 +2896,7 @@ func (self *Globule) deletePermissions(path string, owner string) error {
 }
 
 //* Delete a file permission *
-func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressource.DeletePermissionsRqst) (*ressource.DeletePermissionsRsp, error) {
+func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressourcepb.DeletePermissionsRqst) (*ressourcepb.DeletePermissionsRsp, error) {
 
 	// That service made user of persistence service.
 	err := self.deletePermissions(rqst.GetPath(), rqst.GetOwner())
@@ -2906,13 +2906,13 @@ func (self *Globule) DeletePermissions(ctx context.Context, rqst *ressource.Dele
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeletePermissionsRsp{
+	return &ressourcepb.DeletePermissionsRsp{
 		Result: true,
 	}, nil
 }
 
 //* Create Permission for a dir (recursive) *
-func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.CreateDirPermissionsRqst) (*ressource.CreateDirPermissionsRsp, error) {
+func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressourcepb.CreateDirPermissionsRqst) (*ressourcepb.CreateDirPermissionsRsp, error) {
 
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -2978,13 +2978,13 @@ func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressource.C
 		p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, ressourceOwnerStr, `[{"upsert":true}]`)
 	}
 
-	return &ressource.CreateDirPermissionsRsp{
+	return &ressourcepb.CreateDirPermissionsRsp{
 		Result: true,
 	}, nil
 }
 
 //* Rename file/dir permission *
-func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.RenameFilePermissionRqst) (*ressource.RenameFilePermissionRsp, error) {
+func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressourcepb.RenameFilePermissionRqst) (*ressourcepb.RenameFilePermissionRsp, error) {
 
 	path := rqst.GetPath()
 	path = strings.ReplaceAll(path, "\\", "/")
@@ -3052,7 +3052,7 @@ func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressource.R
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-	return &ressource.RenameFilePermissionRsp{
+	return &ressourcepb.RenameFilePermissionRsp{
 		Result: true,
 	}, nil
 }
@@ -3100,7 +3100,7 @@ func (self *Globule) deleteDirPermissions(path string) error {
 }
 
 //* Delete Permission for a dir (recursive) *
-func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressource.DeleteDirPermissionsRqst) (*ressource.DeleteDirPermissionsRsp, error) {
+func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressourcepb.DeleteDirPermissionsRqst) (*ressourcepb.DeleteDirPermissionsRsp, error) {
 	err := self.deleteDirPermissions(rqst.GetPath())
 	if err != nil {
 		return nil, status.Errorf(
@@ -3108,13 +3108,13 @@ func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressource.D
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteDirPermissionsRsp{
+	return &ressourcepb.DeleteDirPermissionsRsp{
 		Result: true,
 	}, nil
 }
 
 //* Delete a single file permission *
-func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.DeleteFilePermissionsRqst) (*ressource.DeleteFilePermissionsRsp, error) {
+func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressourcepb.DeleteFilePermissionsRqst) (*ressourcepb.DeleteFilePermissionsRsp, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, err
@@ -3136,20 +3136,20 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressource.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.DeleteFilePermissionsRsp{
+	return &ressourcepb.DeleteFilePermissionsRsp{
 		Result: true,
 	}, nil
 }
 
 //* Validate a token *
-func (self *Globule) ValidateToken(ctx context.Context, rqst *ressource.ValidateTokenRqst) (*ressource.ValidateTokenRsp, error) {
+func (self *Globule) ValidateToken(ctx context.Context, rqst *ressourcepb.ValidateTokenRqst) (*ressourcepb.ValidateTokenRsp, error) {
 	clientId, _, expireAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-	return &ressource.ValidateTokenRsp{
+	return &ressourcepb.ValidateTokenRsp{
 		ClientId: clientId,
 		Expired:  expireAt,
 	}, nil
@@ -3414,7 +3414,7 @@ func (self *Globule) validateUserRessourceAccess(userName string, method string,
 	}
 
 	// If theres permission definied and we are here it's means the user dosent
-	// have write to execute the action on the ressource.
+	// have write to execute the action on the ressourcepb.
 	if count > 0 {
 		return errors.New("Permission Denied for " + userName)
 	}
@@ -3430,9 +3430,9 @@ func (self *Globule) validateUserRessourceAccess(userName string, method string,
 }
 
 //* Validate if user can access a given file. *
-func (self *Globule) ValidateUserRessourceAccess(ctx context.Context, rqst *ressource.ValidateUserRessourceAccessRqst) (*ressource.ValidateUserRessourceAccessRsp, error) {
+func (self *Globule) ValidateUserRessourceAccess(ctx context.Context, rqst *ressourcepb.ValidateUserRessourceAccessRqst) (*ressourcepb.ValidateUserRessourceAccessRsp, error) {
 
-	path := rqst.GetPath() // The path of the ressource.
+	path := rqst.GetPath() // The path of the ressourcepb.
 
 	// first of all I will validate the token.
 	clientId, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
@@ -3455,25 +3455,25 @@ func (self *Globule) ValidateUserRessourceAccess(ctx context.Context, rqst *ress
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ValidateUserRessourceAccessRsp{
+	return &ressourcepb.ValidateUserRessourceAccessRsp{
 		Result: true,
 	}, nil
 }
 
 //* Validate if application can access a given file. *
-func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqst *ressource.ValidateApplicationRessourceAccessRqst) (*ressource.ValidateApplicationRessourceAccessRsp, error) {
+func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqst *ressourcepb.ValidateApplicationRessourceAccessRqst) (*ressourcepb.ValidateApplicationRessourceAccessRsp, error) {
 
 	path := rqst.GetPath()
 
 	hasApplicationPermission, count := self.hasPermission(rqst.Name, path, rqst.Permission)
 	if hasApplicationPermission {
-		return &ressource.ValidateApplicationRessourceAccessRsp{
+		return &ressourcepb.ValidateApplicationRessourceAccessRsp{
 			Result: true,
 		}, nil
 	}
 
 	// If theres permission definied and we are here it's means the user dosent
-	// have write to execute the action on the ressource.
+	// have write to execute the action on the ressourcepb.
 	if count > 0 {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3481,13 +3481,13 @@ func (self *Globule) ValidateApplicationRessourceAccess(ctx context.Context, rqs
 
 	}
 
-	return &ressource.ValidateApplicationRessourceAccessRsp{
+	return &ressourcepb.ValidateApplicationRessourceAccessRsp{
 		Result: true,
 	}, nil
 }
 
 //* Validate if user can access a given method. *
-func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressource.ValidateUserAccessRqst) (*ressource.ValidateUserAccessRsp, error) {
+func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressourcepb.ValidateUserAccessRqst) (*ressourcepb.ValidateUserAccessRsp, error) {
 
 	// first of all I will validate the token.
 	clientID, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
@@ -3512,13 +3512,13 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressource.Val
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ValidateUserAccessRsp{
+	return &ressourcepb.ValidateUserAccessRsp{
 		Result: true,
 	}, nil
 }
 
 //* Validate if application can access a given method. *
-func (self *Globule) ValidateApplicationAccess(ctx context.Context, rqst *ressource.ValidateApplicationAccessRqst) (*ressource.ValidateApplicationAccessRsp, error) {
+func (self *Globule) ValidateApplicationAccess(ctx context.Context, rqst *ressourcepb.ValidateApplicationAccessRqst) (*ressourcepb.ValidateApplicationAccessRsp, error) {
 	err := self.validateApplicationAccess(rqst.GetName(), rqst.Method)
 	if err != nil {
 		return nil, status.Errorf(
@@ -3526,13 +3526,13 @@ func (self *Globule) ValidateApplicationAccess(ctx context.Context, rqst *ressou
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ressource.ValidateApplicationAccessRsp{
+	return &ressourcepb.ValidateApplicationAccessRsp{
 		Result: true,
 	}, nil
 }
 
 //* Retrun a json string with all file info *
-func (self *Globule) GetAllFilesInfo(ctx context.Context, rqst *ressource.GetAllFilesInfoRqst) (*ressource.GetAllFilesInfoRsp, error) {
+func (self *Globule) GetAllFilesInfo(ctx context.Context, rqst *ressourcepb.GetAllFilesInfoRqst) (*ressourcepb.GetAllFilesInfoRsp, error) {
 	// That map will contain the list of all directories.
 	dirs := make(map[string]map[string]interface{})
 
@@ -3573,10 +3573,10 @@ func (self *Globule) GetAllFilesInfo(ctx context.Context, rqst *ressource.GetAll
 	if err != nil {
 		return nil, err
 	}
-	return &ressource.GetAllFilesInfoRsp{Result: string(jsonStr)}, nil
+	return &ressourcepb.GetAllFilesInfoRsp{Result: string(jsonStr)}, nil
 }
 
-func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource.GetAllApplicationsInfoRqst) (*ressource.GetAllApplicationsInfoRsp, error) {
+func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressourcepb.GetAllApplicationsInfoRqst) (*ressourcepb.GetAllApplicationsInfoRsp, error) {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -3594,7 +3594,7 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 
 	jsonStr, _ := Utility.ToJson(values)
 
-	return &ressource.GetAllApplicationsInfoRsp{
+	return &ressourcepb.GetAllApplicationsInfoRsp{
 		Result: jsonStr,
 	}, nil
 

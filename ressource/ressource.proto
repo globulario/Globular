@@ -4,7 +4,7 @@
 syntax = "proto3";
 package ressource;
 
-option go_package = "ressource";
+option go_package = "ressource/ressourcepb";
 
 /** Account **/
 message Account {

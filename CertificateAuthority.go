@@ -15,7 +15,7 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/ca"
+	"github.com/davecourtois/Globular/ca/capb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,7 +23,7 @@ import (
 
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
-	certificate_authority_server, err := self.startInternalService(string(ca.File_ca_ca_proto.Services().Get(0).FullName()), ca.File_ca_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	certificate_authority_server, err := self.startInternalService(string(capb.File_ca_ca_proto.Services().Get(0).FullName()), capb.File_ca_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
@@ -31,7 +31,7 @@ func (self *Globule) startCertificateAuthorityService() error {
 			log.Fatalf("could not certificate authority signing  service %s: %s", self.getDomain(), err)
 		}
 
-		ca.RegisterCertificateAuthorityServer(certificate_authority_server, self)
+		capb.RegisterCertificateAuthorityServer(certificate_authority_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -76,9 +76,9 @@ func (self *Globule) signCertificate(client_csr string) (string, error) {
 	args = append(args, "-in")
 	args = append(args, client_csr_path)
 	args = append(args, "-CA")
-	args = append(args, self.creds+string(os.PathSeparator)+"ca.crt") // use certificate
+	args = append(args, self.creds+string(os.PathSeparator)+"capb.crt") // use certificate
 	args = append(args, "-CAkey")
-	args = append(args, self.creds+string(os.PathSeparator)+"ca.key") // and private key to sign the incommin csr
+	args = append(args, self.creds+string(os.PathSeparator)+"capb.key") // and private key to sign the incommin csr
 	args = append(args, "-set_serial")
 	args = append(args, "01")
 	args = append(args, "-out")
@@ -106,7 +106,7 @@ func (self *Globule) signCertificate(client_csr string) (string, error) {
 }
 
 // Signed certificate request (CSR)
-func (self *Globule) SignCertificate(ctx context.Context, rqst *ca.SignCertificateRequest) (*ca.SignCertificateResponse, error) {
+func (self *Globule) SignCertificate(ctx context.Context, rqst *capb.SignCertificateRequest) (*capb.SignCertificateResponse, error) {
 
 	client_crt, err := self.signCertificate(rqst.Csr)
 
@@ -118,22 +118,22 @@ func (self *Globule) SignCertificate(ctx context.Context, rqst *ca.SignCertifica
 
 	}
 
-	return &ca.SignCertificateResponse{
+	return &capb.SignCertificateResponse{
 		Crt: client_crt,
 	}, nil
 }
 
-// Return the Authority Trust Certificate. (ca.crt)
-func (self *Globule) GetCaCertificate(ctx context.Context, rqst *ca.GetCaCertificateRequest) (*ca.GetCaCertificateResponse, error) {
+// Return the Authority Trust Certificate. (capb.crt)
+func (self *Globule) GetCaCertificate(ctx context.Context, rqst *capb.GetCaCertificateRequest) (*capb.GetCaCertificateResponse, error) {
 
-	ca_crt, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "ca.crt")
+	ca_crt, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "capb.crt")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &ca.GetCaCertificateResponse{
+	return &capb.GetCaCertificateResponse{
 		Ca: string(ca_crt),
 	}, nil
 }

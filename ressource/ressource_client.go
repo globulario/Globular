@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/davecourtois/Globular/api"
+	"github.com/davecourtois/Globular/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )
@@ -20,7 +21,7 @@ import (
 
 type Ressource_Client struct {
 	cc *grpc.ClientConn
-	c  RessourceServiceClient
+	c  ressourcepb.RessourceServiceClient
 
 	// The id of the service
 	id string
@@ -60,7 +61,7 @@ func NewRessource_Client(address string, id string) (*Ressource_Client, error) {
 		return nil, err
 	}
 
-	client.c = NewRessourceServiceClient(client.cc)
+	client.c = ressourcepb.NewRessourceServiceClient(client.cc)
 
 	return client, nil
 }
@@ -163,8 +164,8 @@ func (self *Ressource_Client) SetCaFile(caFile string) {
 ////////////// API ////////////////
 // Register a new Account.
 func (self *Ressource_Client) RegisterAccount(name string, email string, password string, confirmation_password string) error {
-	rqst := &RegisterAccountRqst{
-		Account: &Account{
+	rqst := &ressourcepb.RegisterAccountRqst{
+		Account: &ressourcepb.Account{
 			Name:     name,
 			Email:    email,
 			Password: "",
@@ -183,7 +184,7 @@ func (self *Ressource_Client) RegisterAccount(name string, email string, passwor
 
 // Delete an account.
 func (self *Ressource_Client) DeleteAccount(id string) error {
-	rqst := &DeleteAccountRqst{
+	rqst := &ressourcepb.DeleteAccountRqst{
 		Id: id,
 	}
 
@@ -201,7 +202,7 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
 		os.Remove(path)
 	}
 
-	rqst := &AuthenticateRqst{
+	rqst := &ressourcepb.AuthenticateRqst{
 		Name:     name,
 		Password: password,
 	}
@@ -227,7 +228,7 @@ func (self *Ressource_Client) Authenticate(name string, password string) (string
  *  Generate a new token from expired one.
  */
 func (self *Ressource_Client) RefreshToken(token string) (string, error) {
-	rqst := new(RefreshTokenRqst)
+	rqst := new(ressourcepb.RefreshTokenRqst)
 	rqst.Token = token
 
 	rsp, err := self.c.RefreshToken(api.GetClientContext(self), rqst)
@@ -242,8 +243,8 @@ func (self *Ressource_Client) RefreshToken(token string) (string, error) {
  * Create a new role with given action list.
  */
 func (self *Ressource_Client) CreateRole(name string, actions []string) error {
-	rqst := new(CreateRoleRqst)
-	role := new(Role)
+	rqst := new(ressourcepb.CreateRoleRqst)
+	role := new(ressourcepb.Role)
 	role.Name = name
 	role.Actions = actions
 	rqst.Role = role
@@ -253,7 +254,7 @@ func (self *Ressource_Client) CreateRole(name string, actions []string) error {
 }
 
 func (self *Ressource_Client) DeleteRole(name string) error {
-	rqst := new(DeleteRoleRqst)
+	rqst := new(ressourcepb.DeleteRoleRqst)
 	rqst.RoleId = name
 
 	_, err := self.c.DeleteRole(api.GetClientContext(self), rqst)
@@ -265,7 +266,7 @@ func (self *Ressource_Client) DeleteRole(name string) error {
  * Add a action to a given role.
  */
 func (self *Ressource_Client) AddRoleAction(roleId string, action string) error {
-	rqst := &AddRoleActionRqst{
+	rqst := &ressourcepb.AddRoleActionRqst{
 		RoleId: roleId,
 		Action: action,
 	}
@@ -278,7 +279,7 @@ func (self *Ressource_Client) AddRoleAction(roleId string, action string) error 
  * Remove action from a given role.
  */
 func (self *Ressource_Client) RemoveRoleAction(roleId string, action string) error {
-	rqst := &RemoveRoleActionRqst{
+	rqst := &ressourcepb.RemoveRoleActionRqst{
 		RoleId: roleId,
 		Action: action,
 	}
@@ -291,7 +292,7 @@ func (self *Ressource_Client) RemoveRoleAction(roleId string, action string) err
  * Add a action to a given application.
  */
 func (self *Ressource_Client) AddApplicationAction(applicationId string, action string) error {
-	rqst := &AddApplicationActionRqst{
+	rqst := &ressourcepb.AddApplicationActionRqst{
 		ApplicationId: applicationId,
 		Action:        action,
 	}
@@ -304,7 +305,7 @@ func (self *Ressource_Client) AddApplicationAction(applicationId string, action 
  * Remove action from a given application.
  */
 func (self *Ressource_Client) RemoveApplicationAction(applicationId string, action string) error {
-	rqst := &RemoveApplicationActionRqst{
+	rqst := &ressourcepb.RemoveApplicationActionRqst{
 		ApplicationId: applicationId,
 		Action:        action,
 	}
@@ -317,7 +318,7 @@ func (self *Ressource_Client) RemoveApplicationAction(applicationId string, acti
  * Set role to a account
  */
 func (self *Ressource_Client) AddAccountRole(accountId string, roleId string) error {
-	rqst := &AddAccountRoleRqst{
+	rqst := &ressourcepb.AddAccountRoleRqst{
 		AccountId: accountId,
 		RoleId:    roleId,
 	}
@@ -330,7 +331,7 @@ func (self *Ressource_Client) AddAccountRole(accountId string, roleId string) er
  * Remove role from an account
  */
 func (self *Ressource_Client) RemoveAccountRole(accountId string, roleId string) error {
-	rqst := &RemoveAccountRoleRqst{
+	rqst := &ressourcepb.RemoveAccountRoleRqst{
 		AccountId: accountId,
 		RoleId:    roleId,
 	}
@@ -343,7 +344,7 @@ func (self *Ressource_Client) RemoveAccountRole(accountId string, roleId string)
  * Return the list of all available actions on the server.
  */
 func (self *Ressource_Client) GetAllActions() ([]string, error) {
-	rqst := &GetAllActionsRqst{}
+	rqst := &ressourcepb.GetAllActionsRqst{}
 	rsp, err := self.c.GetAllActions(api.GetClientContext(self), rqst)
 	if err != nil {
 		return nil, err
@@ -357,9 +358,9 @@ func (self *Ressource_Client) GetAllActions() ([]string, error) {
  * Set file permission for a given user.
  */
 func (self *Ressource_Client) SetRessourcePermissionByUser(userId string, path string, permission int32) error {
-	rqst := &SetPermissionRqst{
-		Permission: &RessourcePermission{
-			Owner: &RessourcePermission_User{
+	rqst := &ressourcepb.SetPermissionRqst{
+		Permission: &ressourcepb.RessourcePermission{
+			Owner: &ressourcepb.RessourcePermission_User{
 				User: userId,
 			},
 			Path:   path,
@@ -375,9 +376,9 @@ func (self *Ressource_Client) SetRessourcePermissionByUser(userId string, path s
  * Set file permission for a given role.
  */
 func (self *Ressource_Client) SetRessourcePermissionByRole(roleId string, path string, permission int32) error {
-	rqst := &SetPermissionRqst{
-		Permission: &RessourcePermission{
-			Owner: &RessourcePermission_Role{
+	rqst := &ressourcepb.SetPermissionRqst{
+		Permission: &ressourcepb.RessourcePermission{
+			Owner: &ressourcepb.RessourcePermission_Role{
 				Role: roleId,
 			},
 			Path:   path,
@@ -390,7 +391,7 @@ func (self *Ressource_Client) SetRessourcePermissionByRole(roleId string, path s
 }
 
 func (self *Ressource_Client) GetRessourcePermissions(path string) (string, error) {
-	rqst := &GetPermissionsRqst{
+	rqst := &ressourcepb.GetPermissionsRqst{
 		Path: path,
 	}
 
@@ -402,7 +403,7 @@ func (self *Ressource_Client) GetRessourcePermissions(path string) (string, erro
 }
 
 func (self *Ressource_Client) DeleteRessourcePermissions(path string, owner string) error {
-	rqst := &DeletePermissionsRqst{
+	rqst := &ressourcepb.DeletePermissionsRqst{
 		Path:  path,
 		Owner: owner,
 	}
@@ -413,7 +414,7 @@ func (self *Ressource_Client) DeleteRessourcePermissions(path string, owner stri
 }
 
 func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
-	rqst := &GetAllFilesInfoRqst{}
+	rqst := &ressourcepb.GetAllFilesInfoRqst{}
 
 	rsp, err := self.c.GetAllFilesInfo(api.GetClientContext(self), rqst)
 	if err != nil {
@@ -424,7 +425,7 @@ func (self *Ressource_Client) GetAllFilesInfo() (string, error) {
 }
 
 func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path string, method string, permission int32) (bool, error) {
-	rqst := &ValidateUserRessourceAccessRqst{}
+	rqst := &ressourcepb.ValidateUserRessourceAccessRqst{}
 	rqst.Token = token
 	rqst.Path = path
 	rqst.Method = method
@@ -439,7 +440,7 @@ func (self *Ressource_Client) ValidateUserRessourceAccess(token string, path str
 }
 
 func (self *Ressource_Client) ValidateApplicationRessourceAccess(application string, path string, method string, permission int32) (bool, error) {
-	rqst := &ValidateApplicationRessourceAccessRqst{}
+	rqst := &ressourcepb.ValidateApplicationRessourceAccessRqst{}
 	rqst.Name = application
 	rqst.Path = path
 	rqst.Method = method
@@ -454,7 +455,7 @@ func (self *Ressource_Client) ValidateApplicationRessourceAccess(application str
 }
 
 func (self *Ressource_Client) ValidateUserAccess(token string, method string) (bool, error) {
-	rqst := &ValidateUserAccessRqst{}
+	rqst := &ressourcepb.ValidateUserAccessRqst{}
 	rqst.Token = token
 	rqst.Method = method
 
@@ -467,7 +468,7 @@ func (self *Ressource_Client) ValidateUserAccess(token string, method string) (b
 }
 
 func (self *Ressource_Client) ValidateApplicationAccess(application string, method string) (bool, error) {
-	rqst := &ValidateApplicationAccessRqst{}
+	rqst := &ressourcepb.ValidateApplicationAccessRqst{}
 	rqst.Name = application
 	rqst.Method = method
 	rsp, err := self.c.ValidateApplicationAccess(api.GetClientContext(self), rqst)
@@ -479,7 +480,7 @@ func (self *Ressource_Client) ValidateApplicationAccess(application string, meth
 }
 
 func (self *Ressource_Client) CreateDirPermissions(token string, path string, name string) error {
-	rqst := &CreateDirPermissionsRqst{
+	rqst := &ressourcepb.CreateDirPermissionsRqst{
 		Token: token,
 		Path:  path,
 		Name:  name,
@@ -489,7 +490,7 @@ func (self *Ressource_Client) CreateDirPermissions(token string, path string, na
 }
 
 func (self *Ressource_Client) RenameFilePermission(path string, oldName string, newName string) error {
-	rqst := &RenameFilePermissionRqst{
+	rqst := &ressourcepb.RenameFilePermissionRqst{
 		Path:    path,
 		OldName: oldName,
 		NewName: newName,
@@ -500,7 +501,7 @@ func (self *Ressource_Client) RenameFilePermission(path string, oldName string, 
 }
 
 func (self *Ressource_Client) DeleteDirPermissions(path string) error {
-	rqst := &DeleteDirPermissionsRqst{
+	rqst := &ressourcepb.DeleteDirPermissionsRqst{
 		Path: path,
 	}
 	_, err := self.c.DeleteDirPermissions(api.GetClientContext(self), rqst)
@@ -508,7 +509,7 @@ func (self *Ressource_Client) DeleteDirPermissions(path string) error {
 }
 
 func (self *Ressource_Client) DeleteFilePermissions(path string) error {
-	rqst := &DeleteFilePermissionsRqst{
+	rqst := &ressourcepb.DeleteFilePermissionsRqst{
 		Path: path,
 	}
 	_, err := self.c.DeleteFilePermissions(api.GetClientContext(self), rqst)
@@ -516,7 +517,7 @@ func (self *Ressource_Client) DeleteFilePermissions(path string) error {
 }
 
 func (self *Ressource_Client) DeleteRolePermissions(id string) error {
-	rqst := &DeleteRolePermissionsRqst{
+	rqst := &ressourcepb.DeleteRolePermissionsRqst{
 		Id: id,
 	}
 	_, err := self.c.DeleteRolePermissions(api.GetClientContext(self), rqst)
@@ -524,7 +525,7 @@ func (self *Ressource_Client) DeleteRolePermissions(id string) error {
 }
 
 func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
-	rqst := &DeleteAccountPermissionsRqst{
+	rqst := &ressourcepb.DeleteAccountPermissionsRqst{
 		Id: id,
 	}
 	_, err := self.c.DeleteAccountPermissions(api.GetClientContext(self), rqst)
@@ -532,7 +533,7 @@ func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
 }
 
 func (self *Ressource_Client) GetActionPermission(action string) (int32, error) {
-	rqst := &GetActionPermissionRqst{
+	rqst := &ressourcepb.GetActionPermissionRqst{
 		Action: action,
 	}
 
@@ -545,14 +546,14 @@ func (self *Ressource_Client) GetActionPermission(action string) (int32, error) 
 }
 
 func (self *Ressource_Client) SetRessource(name string, path string, modified int64, size int64, token string) error {
-	ressource := &Ressource{
+	ressource := &ressourcepb.Ressource{
 		Name:     name,
 		Path:     path,
 		Modified: modified,
 		Size:     size,
 	}
 
-	rqst := &SetRessourceRqst{
+	rqst := &ressourcepb.SetRessourceRqst{
 		Ressource: ressource,
 	}
 	var err error
@@ -569,7 +570,7 @@ func (self *Ressource_Client) SetRessource(name string, path string, modified in
 }
 
 func (self *Ressource_Client) SetRessourceOwner(owner string, path string, token string) error {
-	rqst := &SetRessourceOwnerRqst{
+	rqst := &ressourcepb.SetRessourceOwnerRqst{
 		Owner: owner,
 		Path:  path,
 	}
@@ -590,7 +591,7 @@ func (self *Ressource_Client) SetRessourceOwner(owner string, path string, token
 func (self *Ressource_Client) SetActionPermission(action string, permission int32, token string) error {
 	var err error
 	// Set action permission.
-	rqst := &SetActionPermissionRqst{
+	rqst := &ressourcepb.SetActionPermissionRqst{
 		Action:     action,
 		Permission: permission,
 	}
@@ -613,17 +614,17 @@ func (self *Ressource_Client) SetActionPermission(action string, permission int3
 func (self *Ressource_Client) Log(application string, user string, method string, err_ error) error {
 
 	// Here I set a log information.
-	rqst := new(LogRqst)
-	info := new(LogInfo)
+	rqst := new(ressourcepb.LogRqst)
+	info := new(ressourcepb.LogInfo)
 	info.Application = application
 	info.UserName = user
 	info.Method = method
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = LogType_ERROR
+		info.Type = ressourcepb.LogType_ERROR
 	} else {
-		info.Type = LogType_INFO
+		info.Type = ressourcepb.LogType_INFO
 	}
 	rqst.Info = info
 

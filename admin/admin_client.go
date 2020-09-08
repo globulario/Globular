@@ -12,7 +12,9 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/davecourtois/Globular/admin/adminpb"
 	"github.com/davecourtois/Globular/api"
+	"github.com/davecourtois/Globular/services/servicespb"
 
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -25,7 +27,7 @@ import (
 
 type Admin_Client struct {
 	cc *grpc.ClientConn
-	c  AdminServiceClient
+	c  adminpb.AdminServiceClient
 
 	// The id of the service
 	id string
@@ -63,7 +65,7 @@ func NewAdmin_Client(address string, id string) (*Admin_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.c = NewAdminServiceClient(client.cc)
+	client.c = adminpb.NewAdminServiceClient(client.cc)
 
 	return client, nil
 }
@@ -166,7 +168,7 @@ func (self *Admin_Client) SetCaFile(caFile string) {
 
 // Get server configuration.
 func (self *Admin_Client) GetConfig() (string, error) {
-	rqst := new(GetConfigRequest)
+	rqst := new(adminpb.GetConfigRequest)
 	rsp, err := self.c.GetConfig(api.GetClientContext(self), rqst)
 	if err != nil {
 		return "", err
@@ -178,7 +180,7 @@ func (self *Admin_Client) GetConfig() (string, error) {
 // Get the server configuration with all detail must be secured.
 func (self *Admin_Client) GetFullConfig() (string, error) {
 
-	rqst := new(GetConfigRequest)
+	rqst := new(adminpb.GetConfigRequest)
 
 	rsp, err := self.c.GetFullConfig(api.GetClientContext(self), rqst)
 	if err != nil {
@@ -189,7 +191,7 @@ func (self *Admin_Client) GetFullConfig() (string, error) {
 }
 
 func (self *Admin_Client) SaveConfig(config string) error {
-	rqst := &SaveConfigRequest{
+	rqst := &adminpb.SaveConfigRequest{
 		Config: config,
 	}
 
@@ -202,7 +204,7 @@ func (self *Admin_Client) SaveConfig(config string) error {
 }
 
 func (self *Admin_Client) StartService(id string) (int, int, error) {
-	rqst := new(StartServiceRequest)
+	rqst := new(adminpb.StartServiceRequest)
 	rqst.ServiceId = id
 	rsp, err := self.c.StartService(api.GetClientContext(self), rqst)
 	if err != nil {
@@ -213,7 +215,7 @@ func (self *Admin_Client) StartService(id string) (int, int, error) {
 }
 
 func (self *Admin_Client) StopService(id string) error {
-	rqst := new(StopServiceRequest)
+	rqst := new(adminpb.StopServiceRequest)
 	rqst.ServiceId = id
 	_, err := self.c.StopService(api.GetClientContext(self), rqst)
 	if err != nil {
@@ -225,7 +227,7 @@ func (self *Admin_Client) StopService(id string) error {
 
 // Register and start an application.
 func (self *Admin_Client) RegisterExternalApplication(id string, path string, args []string) (int, error) {
-	rqst := &RegisterExternalApplicationRequest{
+	rqst := &adminpb.RegisterExternalApplicationRequest{
 		ServiceId: id,
 		Path:      path,
 		Args:      args,
@@ -243,17 +245,17 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 /////////////////////////// Services management functions ////////////////////////
 
 /** Create a service package **/
-func (self *Admin_Client) createServicePackage(publisherId string, serviceId string, version string, platform Platform, servicePath string) (string, error) {
+func (self *Admin_Client) createServicePackage(publisherId string, serviceId string, version string, platform servicespb.Platform, servicePath string) (string, error) {
 
 	// Take the information from the configuration...
 	id := publisherId + "%" + serviceId + "%" + version
-	if platform == Platform_LINUX32 {
+	if platform == servicespb.Platform_LINUX32 {
 		id += "%LINUX32"
-	} else if platform == Platform_LINUX64 {
+	} else if platform == servicespb.Platform_LINUX64 {
 		id += "%LINUX64"
-	} else if platform == Platform_WIN32 {
+	} else if platform == servicespb.Platform_WIN32 {
 		id += "%WIN32"
-	} else if platform == Platform_WIN64 {
+	} else if platform == servicespb.Platform_WIN64 {
 		id += "%WIN64"
 	}
 
@@ -326,20 +328,20 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	jsonStr, _ := Utility.ToJson(&s)
 	ioutil.WriteFile(configs[0], []byte(jsonStr), 0644)
 
-	var platform Platform
+	var platform servicespb.Platform
 
 	// The first step will be to create the archive.
 	if runtime.GOOS == "windows" {
 		if runtime.GOARCH == "amd64" {
-			platform = Platform_WIN64
+			platform = servicespb.Platform_WIN64
 		} else if runtime.GOARCH == "386" {
-			platform = Platform_WIN32
+			platform = servicespb.Platform_WIN32
 		}
 	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
 		if runtime.GOARCH == "amd64" {
-			platform = Platform_LINUX64
+			platform = servicespb.Platform_LINUX64
 		} else if runtime.GOARCH == "386" {
-			platform = Platform_LINUX32
+			platform = servicespb.Platform_LINUX32
 		}
 	} else if runtime.GOOS == "darwin" {
 		/** TODO Deploy services on other platforme here... **/
@@ -383,7 +385,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 		if count, err = reader.Read(part); err != nil {
 			break
 		}
-		rqst := &UploadServicePackageRequest{
+		rqst := &adminpb.UploadServicePackageRequest{
 			Data: part[:count],
 		}
 		// send the data to the server.
@@ -411,7 +413,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
  */
 func (self *Admin_Client) PublishService(user string, path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string, token string, domain string) error {
 
-	rqst := new(PublishServiceRequest)
+	rqst := new(adminpb.PublishServiceRequest)
 	rqst.Path = path
 	rqst.PublisherId = publisherId
 	rqst.Description = description
@@ -420,7 +422,7 @@ func (self *Admin_Client) PublishService(user string, path string, serviceId str
 	rqst.Keywords = keywords
 	rqst.Version = version
 	rqst.ServiceId = serviceId
-	rqst.Platform = Platform(platform)
+	rqst.Platform = adminpb.Platform(platform)
 
 	// Set the token into the context and send the request.
 	md := metadata.New(map[string]string{"token": token, "domain": domain, "user": user, "path": "/services/" + publisherId + "/" + serviceId + "/" + version})
@@ -436,7 +438,7 @@ func (self *Admin_Client) PublishService(user string, path string, serviceId str
  */
 func (self *Admin_Client) InstallService(discoveryId string, publisherId string, serviceId string) error {
 
-	rqst := new(InstallServiceRequest)
+	rqst := new(adminpb.InstallServiceRequest)
 	rqst.DicorveryId = discoveryId
 	rqst.PublisherId = publisherId
 	rqst.ServiceId = serviceId
@@ -451,7 +453,7 @@ func (self *Admin_Client) InstallService(discoveryId string, publisherId string,
  */
 func (self *Admin_Client) UninstallService(publisherId string, serviceId string, version string) error {
 
-	rqst := new(UninstallServiceRequest)
+	rqst := new(adminpb.UninstallServiceRequest)
 	rqst.PublisherId = publisherId
 	rqst.ServiceId = serviceId
 	rqst.Version = version
@@ -466,7 +468,7 @@ func (self *Admin_Client) UninstallService(publisherId string, serviceId string,
  */
 func (self *Admin_Client) DeployApplication(user string, name string, path string, token string, domain string) (int, error) {
 
-	rqst := new(DeployApplicationRequest)
+	rqst := new(adminpb.DeployApplicationRequest)
 	rqst.Name = name
 
 	Utility.CreateDirIfNotExist(Utility.GenerateUUID(name))
@@ -499,7 +501,7 @@ func (self *Admin_Client) DeployApplication(user string, name string, path strin
 		var data [BufferSize]byte
 		bytesread, err := buffer.Read(data[0:BufferSize])
 		if bytesread > 0 {
-			rqst := &DeployApplicationRequest{
+			rqst := &adminpb.DeployApplicationRequest{
 				Data: data[0:bytesread],
 				Name: name,
 			}

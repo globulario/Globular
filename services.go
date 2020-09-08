@@ -32,6 +32,7 @@ import (
 	"github.com/davecourtois/Globular/event/event_client"
 	"github.com/davecourtois/Globular/event/eventpb"
 	"github.com/davecourtois/Globular/services"
+	"github.com/davecourtois/Globular/services/servicespb"
 	"github.com/davecourtois/Utility"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -71,7 +72,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					// each channel has it event...
 					uuid := Utility.RandomUUID()
 					fct := func(evt *eventpb.Event) {
-						descriptor := new(services.ServiceDescriptor)
+						descriptor := new(servicespb.ServiceDescriptor)
 						jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
 
 						// here I will update the service if it's version is lower
@@ -137,7 +138,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 // Start service discovery
 func (self *Globule) startDiscoveryService() error {
 	// The service discovery.
-	services_discovery_server, err := self.startInternalService(string(services.File_services_services_proto.Services().Get(0).FullName()), services.File_services_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	services_discovery_server, err := self.startInternalService(string(servicespb.File_services_services_proto.Services().Get(0).FullName()), servicespb.File_services_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
@@ -145,7 +146,7 @@ func (self *Globule) startDiscoveryService() error {
 			log.Fatalf("could not start services discovery service %s: %s", self.getDomain(), err)
 		}
 
-		services.RegisterServiceDiscoveryServer(services_discovery_server, self)
+		servicespb.RegisterServiceDiscoveryServer(services_discovery_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -167,7 +168,7 @@ func (self *Globule) startDiscoveryService() error {
 
 // Start service repository
 func (self *Globule) startRepositoryService() error {
-	services_repository_server, err := self.startInternalService(string(services.File_services_services_proto.Services().Get(1).FullName()), services.File_services_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
+	services_repository_server, err := self.startInternalService(string(servicespb.File_services_services_proto.Services().Get(1).FullName()), servicespb.File_services_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -179,7 +180,7 @@ func (self *Globule) startRepositoryService() error {
 			log.Fatalf("could not start services repository service %s: %s", self.getDomain(), err)
 		}
 
-		services.RegisterServiceRepositoryServer(services_repository_server, self)
+		servicespb.RegisterServiceRepositoryServer(services_repository_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -220,7 +221,7 @@ func (self *Globule) getServiceConfigByName(name string) []map[string]interface{
 }
 
 // Discovery
-func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServicesDescriptorRequest) (*services.FindServicesDescriptorResponse, error) {
+func (self *Globule) FindServices(ctx context.Context, rqst *servicespb.FindServicesDescriptorRequest) (*servicespb.FindServicesDescriptorResponse, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -242,10 +243,10 @@ func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*services.ServiceDescriptor, len(data))
+	descriptors := make([]*servicespb.ServiceDescriptor, len(data))
 	for i := 0; i < len(data); i++ {
 		descriptor := data[i].(map[string]interface{})
-		descriptors[i] = new(services.ServiceDescriptor)
+		descriptors[i] = new(servicespb.ServiceDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
@@ -275,13 +276,13 @@ func (self *Globule) FindServices(ctx context.Context, rqst *services.FindServic
 	}
 
 	// Return the list of Service Descriptor.
-	return &services.FindServicesDescriptorResponse{
+	return &servicespb.FindServicesDescriptorResponse{
 		Results: descriptors,
 	}, nil
 }
 
 //* Return the list of all services *
-func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.GetServiceDescriptorRequest) (*services.GetServiceDescriptorResponse, error) {
+func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *servicespb.GetServiceDescriptorRequest) (*servicespb.GetServiceDescriptorResponse, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -304,11 +305,11 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.Ge
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service descriptor with id "+rqst.ServiceId+" was found for publisher id "+rqst.PublisherId)))
 	}
 
-	descriptors := make([]*services.ServiceDescriptor, len(values))
+	descriptors := make([]*servicespb.ServiceDescriptor, len(values))
 	for i := 0; i < len(values); i++ {
 
 		descriptor := values[i].(map[string]interface{})
-		descriptors[i] = new(services.ServiceDescriptor)
+		descriptors[i] = new(servicespb.ServiceDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
@@ -343,13 +344,13 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *services.Ge
 	})
 
 	// Return the list of Service Descriptor.
-	return &services.GetServiceDescriptorResponse{
+	return &servicespb.GetServiceDescriptorResponse{
 		Results: descriptors,
 	}, nil
 }
 
 //* Return the list of all services *
-func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorRequest, stream services.ServiceDiscovery_GetServicesDescriptorServer) error {
+func (self *Globule) GetServicesDescriptor(rqst *servicespb.GetServicesDescriptorRequest, stream servicespb.ServiceDiscovery_GetServicesDescriptorServer) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return status.Errorf(
@@ -364,9 +365,9 @@ func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorR
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*services.ServiceDescriptor, 0)
+	descriptors := make([]*servicespb.ServiceDescriptor, 0)
 	for i := 0; i < len(data); i++ {
-		descriptor := new(services.ServiceDescriptor)
+		descriptor := new(servicespb.ServiceDescriptor)
 
 		descriptor.Id = data[i].(map[string]interface{})["id"].(string)
 		descriptor.Description = data[i].(map[string]interface{})["description"].(string)
@@ -398,15 +399,15 @@ func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorR
 		descriptors = append(descriptors, descriptor)
 		// send at each 20
 		if i%20 == 0 {
-			stream.Send(&services.GetServicesDescriptorResponse{
+			stream.Send(&servicespb.GetServicesDescriptorResponse{
 				Results: descriptors,
 			})
-			descriptors = make([]*services.ServiceDescriptor, 0)
+			descriptors = make([]*servicespb.ServiceDescriptor, 0)
 		}
 	}
 
 	if len(descriptors) > 0 {
-		stream.Send(&services.GetServicesDescriptorResponse{
+		stream.Send(&servicespb.GetServicesDescriptorResponse{
 			Results: descriptors,
 		})
 	}
@@ -417,7 +418,7 @@ func (self *Globule) GetServicesDescriptor(rqst *services.GetServicesDescriptorR
 
 /**
  */
-func (self *Globule) SetServiceDescriptor(ctx context.Context, rqst *services.SetServiceDescriptorRequest) (*services.SetServiceDescriptorResponse, error) {
+func (self *Globule) SetServiceDescriptor(ctx context.Context, rqst *servicespb.SetServiceDescriptorRequest) (*servicespb.SetServiceDescriptorResponse, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -445,13 +446,13 @@ func (self *Globule) SetServiceDescriptor(ctx context.Context, rqst *services.Se
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &services.SetServiceDescriptorResponse{
+	return &servicespb.SetServiceDescriptorResponse{
 		Result: true,
 	}, nil
 }
 
 //* Publish a service to service discovery *
-func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *services.PublishServiceDescriptorRequest) (*services.PublishServiceDescriptorResponse, error) {
+func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *servicespb.PublishServiceDescriptorRequest) (*servicespb.PublishServiceDescriptorResponse, error) {
 
 	// Here I will save the descriptor inside the storage...
 	p, err := self.getPersistenceStore()
@@ -507,28 +508,28 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 
 	}
 
-	return &services.PublishServiceDescriptorResponse{
+	return &servicespb.PublishServiceDescriptorResponse{
 		Result: true,
 	}, nil
 }
 
 // Repository
 /** Download a service from a service directory **/
-func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream services.ServiceRepository_DownloadBundleServer) error {
-	bundle := new(services.ServiceBundle)
+func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stream servicespb.ServiceRepository_DownloadBundleServer) error {
+	bundle := new(servicespb.ServiceBundle)
 	bundle.Plaform = rqst.Plaform
 	bundle.Descriptor_ = rqst.Descriptor_
 
 	// Generate the bundle id....
 	var id string
 	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Id + "%" + bundle.Descriptor_.Version
-	if bundle.Plaform == services.Platform_LINUX32 {
+	if bundle.Plaform == servicespb.Platform_LINUX32 {
 		id += "%LINUX32"
-	} else if bundle.Plaform == services.Platform_LINUX64 {
+	} else if bundle.Plaform == servicespb.Platform_LINUX64 {
 		id += "%LINUX64"
-	} else if bundle.Plaform == services.Platform_WIN32 {
+	} else if bundle.Plaform == servicespb.Platform_WIN32 {
 		id += "%WIN32"
-	} else if bundle.Plaform == services.Platform_WIN64 {
+	} else if bundle.Plaform == servicespb.Platform_WIN64 {
 		id += "%WIN64"
 	}
 
@@ -571,7 +572,7 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 		var data [BufferSize]byte
 		bytesread, err := buffer.Read(data[0:BufferSize])
 		if bytesread > 0 {
-			rqst := &services.DownloadBundleResponse{
+			rqst := &servicespb.DownloadBundleResponse{
 				Data: data[0:bytesread],
 			}
 			// send the data to the server.
@@ -589,7 +590,7 @@ func (self *Globule) DownloadBundle(rqst *services.DownloadBundleRequest, stream
 }
 
 /** Upload a service to a service directory **/
-func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundleServer) error {
+func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBundleServer) error {
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
@@ -597,7 +598,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			// end of stream...
-			stream.SendAndClose(&services.UploadBundleResponse{
+			stream.SendAndClose(&servicespb.UploadBundleResponse{
 				Result: true,
 			})
 			break
@@ -610,7 +611,7 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 
 	// The buffer that contain the
 	dec := gob.NewDecoder(&buffer)
-	bundle := new(services.ServiceBundle)
+	bundle := new(servicespb.ServiceBundle)
 	err := dec.Decode(bundle)
 	if err != nil {
 		return err
@@ -619,17 +620,17 @@ func (self *Globule) UploadBundle(stream services.ServiceRepository_UploadBundle
 	// Generate the bundle id....
 	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Id + "%" + bundle.Descriptor_.Version
 	var platform string
-	if bundle.Plaform == services.Platform_LINUX32 {
+	if bundle.Plaform == servicespb.Platform_LINUX32 {
 		id += "%LINUX32"
 		platform = "LINUX32"
-	} else if bundle.Plaform == services.Platform_LINUX64 {
+	} else if bundle.Plaform == servicespb.Platform_LINUX64 {
 		id += "%LINUX64"
 		platform = "LINUX64"
-	} else if bundle.Plaform == services.Platform_WIN32 {
+	} else if bundle.Plaform == servicespb.Platform_WIN32 {
 		id += "%WIN32"
 		platform = "WIN32"
 		platform = "WIN64"
-	} else if bundle.Plaform == services.Platform_WIN64 {
+	} else if bundle.Plaform == servicespb.Platform_WIN64 {
 		id += "%WIN64"
 	}
 

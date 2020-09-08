@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/davecourtois/Globular/api"
+	"github.com/davecourtois/Globular/ca/capb"
 	"google.golang.org/grpc"
 )
 
@@ -15,7 +16,7 @@ import (
 
 type Ca_Client struct {
 	cc *grpc.ClientConn
-	c  CertificateAuthorityClient
+	c  capb.CertificateAuthorityClient
 
 	// The id of the service
 	id string
@@ -54,7 +55,7 @@ func NewCa_Client(address string, id string) (*Ca_Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.c = NewCertificateAuthorityClient(client.cc)
+	client.c = capb.NewCertificateAuthorityClient(client.cc)
 
 	return client, nil
 }
@@ -163,7 +164,7 @@ func (self *Ca_Client) SetCaFile(caFile string) {
  */
 func (self *Ca_Client) SignCertificate(csr string) (string, error) {
 	// The certificate request.
-	rqst := new(SignCertificateRequest)
+	rqst := new(capb.SignCertificateRequest)
 	rqst.Csr = csr
 
 	rsp, err := self.c.SignCertificate(api.GetClientContext(self), rqst)
@@ -178,7 +179,7 @@ func (self *Ca_Client) SignCertificate(csr string) (string, error) {
  * Get the ca.crt file content.
  */
 func (self *Ca_Client) GetCaCertificate() (string, error) {
-	rqst := new(GetCaCertificateRequest)
+	rqst := new(capb.GetCaCertificateRequest)
 
 	rsp, err := self.c.GetCaCertificate(api.GetClientContext(self), rqst)
 	if err == nil {

@@ -46,10 +46,11 @@ import (
 
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Utility"
-	"github.com/go-acme/lego/v3/certcrypto"
-	"github.com/go-acme/lego/v3/challenge/http01"
-	"github.com/go-acme/lego/v3/lego"
-	"github.com/go-acme/lego/v3/registration"
+	"github.com/go-acme/lego/v4/certcrypto"
+	"github.com/go-acme/lego/v4/certificate"
+	"github.com/go-acme/lego/v4/challenge/http01"
+	"github.com/go-acme/lego/v4/lego"
+	"github.com/go-acme/lego/v4/registration"
 
 	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/davecourtois/Globular/persistence/persistence_store"
@@ -566,7 +567,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 
 	// Now I will start the proxy that will be use by javascript client.
 	proxyPath := string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-	if string(os.PathSeparator) == "\\" {
+	if string(os.PathSeparator) == "\\" && !strings.HasSuffix(proxyPath, ".exe") {
 		proxyPath += ".exe" // in case of windows.
 	}
 
@@ -788,7 +789,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// Start the service process.
-		if string(os.PathSeparator) == "\\" {
+		if string(os.PathSeparator) == "\\" && !strings.HasSuffix(servicePath, ".exe") {
 			servicePath += ".exe" // in case of windows.
 		}
 
@@ -1709,7 +1710,12 @@ func (self *Globule) obtainCertificateForCsr() error {
 		return err
 	}
 
-	resource, err := client.Certificate.ObtainForCSR(*csr, true)
+	cert_rqst := certificate.ObtainForCSRRequest{
+		CSR:    csr,
+		Bundle: true,
+	}
+
+	resource, err := client.Certificate.ObtainForCSR(cert_rqst)
 	if err != nil {
 		return err
 	}
