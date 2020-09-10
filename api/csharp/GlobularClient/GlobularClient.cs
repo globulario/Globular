@@ -17,6 +17,7 @@ namespace Globular
         public string Protocol { get; set; }
         public string CertStableURL { get; set; }
         public string CertURL { get; set; }
+        public uint ConfigurationPort { get; set; }
         public uint PortHttp { get; set; }
         public uint PortHttps { get; set; }
         public uint AdminPort { get; set; }
@@ -30,6 +31,8 @@ namespace Globular
         public uint ServicesRepositoryProxy { get; set; }
         public uint CertificateAuthorityPort { get; set; }
         public uint CertificateAuthorityProxy { get; set; }
+        public uint LoadBalancingServicePort { get; set; }
+        public uint LoadBalancingServiceProxy { get; set; }
         public uint SessionTimeout { get; set; }
         public uint CertExpirationDelay { get; set; }
         public uint IdleTimeout { get; set; }
@@ -52,33 +55,37 @@ namespace Globular
         public string KeyFile { get; set; }
         public string Domain { get; set; }
         public string Name { get; set; }
+        public string Id { get; set; }
+        public string Path { get; set; }
+        public string Proto { get; set; }
         public int Port { get; set; }
         public bool TLS { get; set; }
     }
 
     public class Client
     {
+    	private string id;
         private string name;
-        private string address;
         private string domain;
         private int port;
         private bool hasTls;
         private string caFile;
         private string keyFile;
         private string certFile;
+        
         protected Channel channel;
-
-        // Return the ipv4 address
-        public string GetAddress()
-        {
-            return this.address;
-        }
 
         // Get Domain return the client domain.
         public string GetDomain()
         {
             return this.domain;
         }
+        
+        public string GetId()
+        {
+            return this.id;
+        }
+
 
         public string GetName()
         {
@@ -97,9 +104,9 @@ namespace Globular
             this.channel.ShutdownAsync().Wait();
         }
 
-        // At firt the port contain the http(s) address of the globular server.
-        // The configuration will be get from that address and the port will
-        // be set back to the correct address.
+        // At firt the port contain the http(s) domain of the globular server.
+        // The configuration will be get from that domain and the port will
+        // be set back to the correct domain.
         public void SetPort(int port)
         {
             this.port = port;
@@ -171,11 +178,11 @@ namespace Globular
         }
 
         // Get the CA public certificate.
-        private string getCaCertificate(string address)
+        private string getCaCertificate(string domain, uint ConfigurationPort)
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
-            string rqst = "http://" + address + ":10000/get_ca_certificate";
+            string rqst = "http://" + domain + ":" + ConfigurationPort + "/get_ca_certificate";
             var task = Task.Run(() => client.GetAsync(rqst));
             task.Wait();
             var rsp = task.Result;
@@ -194,12 +201,12 @@ namespace Globular
         }
 
         // ask globular CA to sign the cerificate.
-        private string signCaCertificate(string address, string csr)
+        private string signCaCertificate(string domain, uint ConfigurationPort, string csr)
         {
             var client = new HttpClient();
 
             string csr_str = Base64Encode(csr);
-            string rqst = "http://" + address + ":10000/sign_ca_certificate?csr=" + csr_str;
+            string rqst = "http://" + domain + ":" + ConfigurationPort + "/sign_ca_certificate?csr=" + csr_str;
             var task = Task.Run(() => client.GetAsync(rqst));
             task.Wait();
             var rsp = task.Result;
@@ -333,11 +340,11 @@ namespace Globular
             return true;
         }
 
-        private void init(string address, string name)
+        private void init(string domain, string name, uint configurationPort)
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
-            string rqst = "http://" + address + ":10000/config";
+            string rqst = "http://" + domain + ":" + configurationPort +"/config";
             var task = Task.Run(() => client.GetAsync(rqst));
             task.Wait();
             var rsp = task.Result;
@@ -378,7 +385,7 @@ namespace Globular
                 else
                 {
                     // I will need to create certificate and make it sign by the CA.
-                    var path = Path.GetTempPath() + "/config/grpc_tls/" + this.domain;
+                    var path = Path.GetTempPath() + "/config/tls/" + this.domain;
 
                     if (!Directory.Exists(path))
                     {
@@ -400,7 +407,7 @@ namespace Globular
 
                     // Step 3: Generate client signed certificate.
                     var client_csr = File.ReadAllText(path + "/client.csr");
-                    var client_crt = this.signCaCertificate(this.domain, client_csr);
+                    var client_crt = this.signCaCertificate(this.domain, configurationPort, client_csr);
                     File.WriteAllText(path + "/client.crt", client_crt);
 
                     // Step 4: Convert client.key to pem file.
@@ -466,19 +473,13 @@ namespace Globular
             return metadata;
         }
 
-        public Client(string address, string name)
+        public Client(string domain, uint configurationPort, string name)
         {
             this.name = name;
-            this.address = address;
-
-            // Here I will initialyse the configuration.
-            if (address.IndexOf(':') > 0)
-            {
-                address = address.Split(':')[0];
-            }
-
+            this.domain = domain;
+        
             // Now I will get the client configuration.
-            this.init(address, name);
+            this.init(domain, name, configurationPort);
         }
     }
 }

@@ -10,10 +10,10 @@ namespace Globular
         /// <summary>
         /// The ressource client is use by the interceptor to validate user access.
         /// </summary>
-        /// <param name="address"></param>
+        /// <param name="domain"></param>
         /// <param name="name"></param>
         /// <returns></returns>
-        public RessourceClient(string address, string name) : base(address, name)
+        public RessourceClient(string domain, string name) : base(domain, name)
         {
             // Here I will create grpc connection with the service...
             this.client = new Ressource.RessourceService.RessourceServiceClient(this.channel);

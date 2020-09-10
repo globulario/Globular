@@ -21,94 +21,126 @@ namespace Ressource {
   {
     static readonly string __ServiceName = "ressource.RessourceService";
 
-    static readonly grpc::Marshaller<global::Ressource.RegisterAccountRqst> __Marshaller_ressource_RegisterAccountRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RegisterAccountRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RegisterAccountRsp> __Marshaller_ressource_RegisterAccountRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RegisterAccountRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteAccountRqst> __Marshaller_ressource_DeleteAccountRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteAccountRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteAccountRsp> __Marshaller_ressource_DeleteAccountRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteAccountRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AuthenticateRqst> __Marshaller_ressource_AuthenticateRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AuthenticateRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AuthenticateRsp> __Marshaller_ressource_AuthenticateRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AuthenticateRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SynchronizeLdapRqst> __Marshaller_ressource_SynchronizeLdapRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SynchronizeLdapRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SynchronizeLdapRsp> __Marshaller_ressource_SynchronizeLdapRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SynchronizeLdapRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RefreshTokenRqst> __Marshaller_ressource_RefreshTokenRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RefreshTokenRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RefreshTokenRsp> __Marshaller_ressource_RefreshTokenRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RefreshTokenRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddAccountRoleRqst> __Marshaller_ressource_AddAccountRoleRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddAccountRoleRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddAccountRoleRsp> __Marshaller_ressource_AddAccountRoleRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddAccountRoleRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveAccountRoleRqst> __Marshaller_ressource_RemoveAccountRoleRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveAccountRoleRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveAccountRoleRsp> __Marshaller_ressource_RemoveAccountRoleRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveAccountRoleRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.CreateRoleRqst> __Marshaller_ressource_CreateRoleRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.CreateRoleRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.CreateRoleRsp> __Marshaller_ressource_CreateRoleRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.CreateRoleRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRoleRqst> __Marshaller_ressource_DeleteRoleRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRoleRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRoleRsp> __Marshaller_ressource_DeleteRoleRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRoleRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddRoleActionRqst> __Marshaller_ressource_AddRoleActionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddRoleActionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddRoleActionRsp> __Marshaller_ressource_AddRoleActionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddRoleActionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveRoleActionRqst> __Marshaller_ressource_RemoveRoleActionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRoleActionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveRoleActionRsp> __Marshaller_ressource_RemoveRoleActionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRoleActionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddApplicationActionRqst> __Marshaller_ressource_AddApplicationActionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddApplicationActionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.AddApplicationActionRsp> __Marshaller_ressource_AddApplicationActionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.AddApplicationActionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveApplicationActionRqst> __Marshaller_ressource_RemoveApplicationActionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveApplicationActionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveApplicationActionRsp> __Marshaller_ressource_RemoveApplicationActionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveApplicationActionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllActionsRqst> __Marshaller_ressource_GetAllActionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllActionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllActionsRsp> __Marshaller_ressource_GetAllActionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllActionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetPermissionsRqst> __Marshaller_ressource_GetPermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetPermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetPermissionsRsp> __Marshaller_ressource_GetPermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetPermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetPermissionRqst> __Marshaller_ressource_SetPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetPermissionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetPermissionRsp> __Marshaller_ressource_SetPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetPermissionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeletePermissionsRqst> __Marshaller_ressource_DeletePermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeletePermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeletePermissionsRsp> __Marshaller_ressource_DeletePermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeletePermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourceOwnerRqst> __Marshaller_ressource_SetRessourceOwnerRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceOwnerRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourceOwnerRsp> __Marshaller_ressource_SetRessourceOwnerRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceOwnerRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetRessourceOwnersRqst> __Marshaller_ressource_GetRessourceOwnersRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourceOwnersRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetRessourceOwnersRsp> __Marshaller_ressource_GetRessourceOwnersRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourceOwnersRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnerRqst> __Marshaller_ressource_DeleteRessourceOwnerRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRessourceOwnerRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnerRsp> __Marshaller_ressource_DeleteRessourceOwnerRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRessourceOwnerRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnersRqst> __Marshaller_ressource_DeleteRessourceOwnersRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRessourceOwnersRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnersRsp> __Marshaller_ressource_DeleteRessourceOwnersRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRessourceOwnersRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRqst> __Marshaller_ressource_GetAllFilesInfoRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllFilesInfoRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRsp> __Marshaller_ressource_GetAllFilesInfoRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllFilesInfoRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRqst> __Marshaller_ressource_ValidateUserRessourceAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserRessourceAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRsp> __Marshaller_ressource_ValidateUserRessourceAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserRessourceAccessRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRqst> __Marshaller_ressource_ValidateApplicationRessourceAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationRessourceAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRsp> __Marshaller_ressource_ValidateApplicationRessourceAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationRessourceAccessRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRqst> __Marshaller_ressource_ValidateUserAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRsp> __Marshaller_ressource_ValidateUserAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateUserAccessRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRqst> __Marshaller_ressource_ValidateApplicationAccessRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationAccessRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRsp> __Marshaller_ressource_ValidateApplicationAccessRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ValidateApplicationAccessRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRqst> __Marshaller_ressource_CreateDirPermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.CreateDirPermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRsp> __Marshaller_ressource_CreateDirPermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.CreateDirPermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRqst> __Marshaller_ressource_RenameFilePermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RenameFilePermissionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRsp> __Marshaller_ressource_RenameFilePermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RenameFilePermissionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRqst> __Marshaller_ressource_DeleteDirPermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteDirPermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRsp> __Marshaller_ressource_DeleteDirPermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteDirPermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRqst> __Marshaller_ressource_DeleteFilePermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteFilePermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRsp> __Marshaller_ressource_DeleteFilePermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteFilePermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRqst> __Marshaller_ressource_DeleteAccountPermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteAccountPermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRsp> __Marshaller_ressource_DeleteAccountPermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteAccountPermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRolePermissionsRqst> __Marshaller_ressource_DeleteRolePermissionsRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRolePermissionsRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteRolePermissionsRsp> __Marshaller_ressource_DeleteRolePermissionsRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteRolePermissionsRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllApplicationsInfoRqst> __Marshaller_ressource_GetAllApplicationsInfoRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllApplicationsInfoRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetAllApplicationsInfoRsp> __Marshaller_ressource_GetAllApplicationsInfoRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetAllApplicationsInfoRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteApplicationRqst> __Marshaller_ressource_DeleteApplicationRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteApplicationRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteApplicationRsp> __Marshaller_ressource_DeleteApplicationRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteApplicationRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.LogRqst> __Marshaller_ressource_LogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.LogRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.LogRsp> __Marshaller_ressource_LogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.LogRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetLogRqst> __Marshaller_ressource_GetLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetLogRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetLogRsp> __Marshaller_ressource_GetLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetLogRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteLogRqst> __Marshaller_ressource_DeleteLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteLogRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.DeleteLogRsp> __Marshaller_ressource_DeleteLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.DeleteLogRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ClearAllLogRqst> __Marshaller_ressource_ClearAllLogRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.ClearAllLogRsp> __Marshaller_ressource_ClearAllLogRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.ClearAllLogRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRqst> __Marshaller_ressource_GetRessourcesRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourcesRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRsp> __Marshaller_ressource_GetRessourcesRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetRessourcesRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourceRqst> __Marshaller_ressource_SetRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetRessourceRsp> __Marshaller_ressource_SetRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetRessourceRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRqst> __Marshaller_ressource_RemoveRessourceRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRsp> __Marshaller_ressource_RemoveRessourceRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveRessourceRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRqst> __Marshaller_ressource_SetActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetActionPermissionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRsp> __Marshaller_ressource_SetActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.SetActionPermissionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRqst> __Marshaller_ressource_RemoveActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveActionPermissionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRsp> __Marshaller_ressource_RemoveActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.RemoveActionPermissionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRqst> __Marshaller_ressource_GetActionPermissionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetActionPermissionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRsp> __Marshaller_ressource_GetActionPermissionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ressource.GetActionPermissionRsp.Parser.ParseFrom);
+    static void __Helper_SerializeMessage(global::Google.Protobuf.IMessage message, grpc::SerializationContext context)
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (message is global::Google.Protobuf.IBufferMessage)
+      {
+        context.SetPayloadLength(message.CalculateSize());
+        global::Google.Protobuf.MessageExtensions.WriteTo(message, context.GetBufferWriter());
+        context.Complete();
+        return;
+      }
+      #endif
+      context.Complete(global::Google.Protobuf.MessageExtensions.ToByteArray(message));
+    }
+
+    static class __Helper_MessageCache<T>
+    {
+      public static readonly bool IsBufferMessage = global::System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(global::Google.Protobuf.IBufferMessage)).IsAssignableFrom(typeof(T));
+    }
+
+    static T __Helper_DeserializeMessage<T>(grpc::DeserializationContext context, global::Google.Protobuf.MessageParser<T> parser) where T : global::Google.Protobuf.IMessage<T>
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (__Helper_MessageCache<T>.IsBufferMessage)
+      {
+        return parser.ParseFrom(context.PayloadAsReadOnlySequence());
+      }
+      #endif
+      return parser.ParseFrom(context.PayloadAsNewBuffer());
+    }
+
+    static readonly grpc::Marshaller<global::Ressource.RegisterAccountRqst> __Marshaller_ressource_RegisterAccountRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RegisterAccountRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RegisterAccountRsp> __Marshaller_ressource_RegisterAccountRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RegisterAccountRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteAccountRqst> __Marshaller_ressource_DeleteAccountRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteAccountRsp> __Marshaller_ressource_DeleteAccountRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AuthenticateRqst> __Marshaller_ressource_AuthenticateRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AuthenticateRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AuthenticateRsp> __Marshaller_ressource_AuthenticateRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AuthenticateRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SynchronizeLdapRqst> __Marshaller_ressource_SynchronizeLdapRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SynchronizeLdapRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SynchronizeLdapRsp> __Marshaller_ressource_SynchronizeLdapRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SynchronizeLdapRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RefreshTokenRqst> __Marshaller_ressource_RefreshTokenRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RefreshTokenRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RefreshTokenRsp> __Marshaller_ressource_RefreshTokenRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RefreshTokenRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddAccountRoleRqst> __Marshaller_ressource_AddAccountRoleRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddAccountRoleRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddAccountRoleRsp> __Marshaller_ressource_AddAccountRoleRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddAccountRoleRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveAccountRoleRqst> __Marshaller_ressource_RemoveAccountRoleRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveAccountRoleRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveAccountRoleRsp> __Marshaller_ressource_RemoveAccountRoleRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveAccountRoleRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.CreateRoleRqst> __Marshaller_ressource_CreateRoleRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateRoleRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.CreateRoleRsp> __Marshaller_ressource_CreateRoleRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateRoleRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRoleRqst> __Marshaller_ressource_DeleteRoleRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRoleRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRoleRsp> __Marshaller_ressource_DeleteRoleRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRoleRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddRoleActionRqst> __Marshaller_ressource_AddRoleActionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddRoleActionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddRoleActionRsp> __Marshaller_ressource_AddRoleActionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddRoleActionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveRoleActionRqst> __Marshaller_ressource_RemoveRoleActionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveRoleActionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveRoleActionRsp> __Marshaller_ressource_RemoveRoleActionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveRoleActionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddApplicationActionRqst> __Marshaller_ressource_AddApplicationActionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddApplicationActionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.AddApplicationActionRsp> __Marshaller_ressource_AddApplicationActionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.AddApplicationActionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveApplicationActionRqst> __Marshaller_ressource_RemoveApplicationActionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveApplicationActionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveApplicationActionRsp> __Marshaller_ressource_RemoveApplicationActionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveApplicationActionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllActionsRqst> __Marshaller_ressource_GetAllActionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllActionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllActionsRsp> __Marshaller_ressource_GetAllActionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllActionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetPermissionsRqst> __Marshaller_ressource_GetPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetPermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetPermissionsRsp> __Marshaller_ressource_GetPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetPermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetPermissionRqst> __Marshaller_ressource_SetPermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetPermissionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetPermissionRsp> __Marshaller_ressource_SetPermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetPermissionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeletePermissionsRqst> __Marshaller_ressource_DeletePermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeletePermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeletePermissionsRsp> __Marshaller_ressource_DeletePermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeletePermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceOwnerRqst> __Marshaller_ressource_SetRessourceOwnerRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetRessourceOwnerRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceOwnerRsp> __Marshaller_ressource_SetRessourceOwnerRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetRessourceOwnerRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetRessourceOwnersRqst> __Marshaller_ressource_GetRessourceOwnersRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetRessourceOwnersRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetRessourceOwnersRsp> __Marshaller_ressource_GetRessourceOwnersRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetRessourceOwnersRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnerRqst> __Marshaller_ressource_DeleteRessourceOwnerRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRessourceOwnerRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnerRsp> __Marshaller_ressource_DeleteRessourceOwnerRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRessourceOwnerRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnersRqst> __Marshaller_ressource_DeleteRessourceOwnersRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRessourceOwnersRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRessourceOwnersRsp> __Marshaller_ressource_DeleteRessourceOwnersRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRessourceOwnersRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRqst> __Marshaller_ressource_GetAllFilesInfoRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllFilesInfoRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllFilesInfoRsp> __Marshaller_ressource_GetAllFilesInfoRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllFilesInfoRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateTokenRqst> __Marshaller_ressource_ValidateTokenRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateTokenRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateTokenRsp> __Marshaller_ressource_ValidateTokenRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateTokenRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRqst> __Marshaller_ressource_ValidateUserRessourceAccessRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateUserRessourceAccessRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserRessourceAccessRsp> __Marshaller_ressource_ValidateUserRessourceAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateUserRessourceAccessRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRqst> __Marshaller_ressource_ValidateApplicationRessourceAccessRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationRessourceAccessRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationRessourceAccessRsp> __Marshaller_ressource_ValidateApplicationRessourceAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationRessourceAccessRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRqst> __Marshaller_ressource_ValidateUserAccessRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateUserAccessRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRsp> __Marshaller_ressource_ValidateUserAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateUserAccessRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRqst> __Marshaller_ressource_ValidateApplicationAccessRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationAccessRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRsp> __Marshaller_ressource_ValidateApplicationAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationAccessRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRqst> __Marshaller_ressource_CreateDirPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateDirPermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRsp> __Marshaller_ressource_CreateDirPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateDirPermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRqst> __Marshaller_ressource_RenameFilePermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RenameFilePermissionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRsp> __Marshaller_ressource_RenameFilePermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RenameFilePermissionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRqst> __Marshaller_ressource_DeleteDirPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteDirPermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRsp> __Marshaller_ressource_DeleteDirPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteDirPermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRqst> __Marshaller_ressource_DeleteFilePermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteFilePermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRsp> __Marshaller_ressource_DeleteFilePermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteFilePermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRqst> __Marshaller_ressource_DeleteAccountPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountPermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRsp> __Marshaller_ressource_DeleteAccountPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountPermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRolePermissionsRqst> __Marshaller_ressource_DeleteRolePermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRolePermissionsRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteRolePermissionsRsp> __Marshaller_ressource_DeleteRolePermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRolePermissionsRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllApplicationsInfoRqst> __Marshaller_ressource_GetAllApplicationsInfoRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllApplicationsInfoRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetAllApplicationsInfoRsp> __Marshaller_ressource_GetAllApplicationsInfoRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetAllApplicationsInfoRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteApplicationRqst> __Marshaller_ressource_DeleteApplicationRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteApplicationRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteApplicationRsp> __Marshaller_ressource_DeleteApplicationRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteApplicationRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.LogRqst> __Marshaller_ressource_LogRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.LogRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.LogRsp> __Marshaller_ressource_LogRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.LogRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetLogRqst> __Marshaller_ressource_GetLogRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetLogRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetLogRsp> __Marshaller_ressource_GetLogRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetLogRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteLogRqst> __Marshaller_ressource_DeleteLogRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteLogRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.DeleteLogRsp> __Marshaller_ressource_DeleteLogRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteLogRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ClearAllLogRqst> __Marshaller_ressource_ClearAllLogRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ClearAllLogRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.ClearAllLogRsp> __Marshaller_ressource_ClearAllLogRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ClearAllLogRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRqst> __Marshaller_ressource_GetRessourcesRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetRessourcesRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetRessourcesRsp> __Marshaller_ressource_GetRessourcesRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetRessourcesRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceRqst> __Marshaller_ressource_SetRessourceRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetRessourceRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetRessourceRsp> __Marshaller_ressource_SetRessourceRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetRessourceRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRqst> __Marshaller_ressource_RemoveRessourceRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveRessourceRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveRessourceRsp> __Marshaller_ressource_RemoveRessourceRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveRessourceRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRqst> __Marshaller_ressource_SetActionPermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetActionPermissionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.SetActionPermissionRsp> __Marshaller_ressource_SetActionPermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.SetActionPermissionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRqst> __Marshaller_ressource_RemoveActionPermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveActionPermissionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.RemoveActionPermissionRsp> __Marshaller_ressource_RemoveActionPermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RemoveActionPermissionRsp.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRqst> __Marshaller_ressource_GetActionPermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetActionPermissionRqst.Parser));
+    static readonly grpc::Marshaller<global::Ressource.GetActionPermissionRsp> __Marshaller_ressource_GetActionPermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.GetActionPermissionRsp.Parser));
 
     static readonly grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp> __Method_RegisterAccount = new grpc::Method<global::Ressource.RegisterAccountRqst, global::Ressource.RegisterAccountRsp>(
         grpc::MethodType.Unary,
@@ -263,6 +295,13 @@ namespace Ressource {
         "GetAllFilesInfo",
         __Marshaller_ressource_GetAllFilesInfoRqst,
         __Marshaller_ressource_GetAllFilesInfoRsp);
+
+    static readonly grpc::Method<global::Ressource.ValidateTokenRqst, global::Ressource.ValidateTokenRsp> __Method_ValidateToken = new grpc::Method<global::Ressource.ValidateTokenRqst, global::Ressource.ValidateTokenRsp>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ValidateToken",
+        __Marshaller_ressource_ValidateTokenRqst,
+        __Marshaller_ressource_ValidateTokenRsp);
 
     static readonly grpc::Method<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp> __Method_ValidateUserRessourceAccess = new grpc::Method<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp>(
         grpc::MethodType.Unary,
@@ -671,7 +710,18 @@ namespace Ressource {
       }
 
       /// <summary>
-      ///* Validate if user can access a given file. *
+      ///* Validate a token *
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateTokenRsp> ValidateToken(global::Ressource.ValidateTokenRqst request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      ///* Validate if user can access a given ressource. *
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
@@ -682,7 +732,7 @@ namespace Ressource {
       }
 
       /// <summary>
-      ///* Validate if application can access a given file. *
+      ///* Validate if application can access a given ressouce. *
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
@@ -1908,7 +1958,51 @@ namespace Ressource {
         return CallInvoker.AsyncUnaryCall(__Method_GetAllFilesInfo, null, options, request);
       }
       /// <summary>
-      ///* Validate if user can access a given file. *
+      ///* Validate a token *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.ValidateTokenRsp ValidateToken(global::Ressource.ValidateTokenRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ValidateToken(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Validate a token *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Ressource.ValidateTokenRsp ValidateToken(global::Ressource.ValidateTokenRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ValidateToken, null, options, request);
+      }
+      /// <summary>
+      ///* Validate a token *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateTokenRsp> ValidateTokenAsync(global::Ressource.ValidateTokenRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ValidateTokenAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      ///* Validate a token *
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateTokenRsp> ValidateTokenAsync(global::Ressource.ValidateTokenRqst request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ValidateToken, null, options, request);
+      }
+      /// <summary>
+      ///* Validate if user can access a given ressource. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1920,7 +2014,7 @@ namespace Ressource {
         return ValidateUserRessourceAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Validate if user can access a given file. *
+      ///* Validate if user can access a given ressource. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -1930,7 +2024,7 @@ namespace Ressource {
         return CallInvoker.BlockingUnaryCall(__Method_ValidateUserRessourceAccess, null, options, request);
       }
       /// <summary>
-      ///* Validate if user can access a given file. *
+      ///* Validate if user can access a given ressource. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1942,7 +2036,7 @@ namespace Ressource {
         return ValidateUserRessourceAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Validate if user can access a given file. *
+      ///* Validate if user can access a given ressource. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -1952,7 +2046,7 @@ namespace Ressource {
         return CallInvoker.AsyncUnaryCall(__Method_ValidateUserRessourceAccess, null, options, request);
       }
       /// <summary>
-      ///* Validate if application can access a given file. *
+      ///* Validate if application can access a given ressouce. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1964,7 +2058,7 @@ namespace Ressource {
         return ValidateApplicationRessourceAccess(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Validate if application can access a given file. *
+      ///* Validate if application can access a given ressouce. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -1974,7 +2068,7 @@ namespace Ressource {
         return CallInvoker.BlockingUnaryCall(__Method_ValidateApplicationRessourceAccess, null, options, request);
       }
       /// <summary>
-      ///* Validate if application can access a given file. *
+      ///* Validate if application can access a given ressouce. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1986,7 +2080,7 @@ namespace Ressource {
         return ValidateApplicationRessourceAccessAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Validate if application can access a given file. *
+      ///* Validate if application can access a given ressouce. *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -2865,6 +2959,7 @@ namespace Ressource {
           .AddMethod(__Method_DeleteRessourceOwner, serviceImpl.DeleteRessourceOwner)
           .AddMethod(__Method_DeleteRessourceOwners, serviceImpl.DeleteRessourceOwners)
           .AddMethod(__Method_GetAllFilesInfo, serviceImpl.GetAllFilesInfo)
+          .AddMethod(__Method_ValidateToken, serviceImpl.ValidateToken)
           .AddMethod(__Method_ValidateUserRessourceAccess, serviceImpl.ValidateUserRessourceAccess)
           .AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl.ValidateApplicationRessourceAccess)
           .AddMethod(__Method_ValidateUserAccess, serviceImpl.ValidateUserAccess)
@@ -2917,6 +3012,7 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_DeleteRessourceOwner, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteRessourceOwnerRqst, global::Ressource.DeleteRessourceOwnerRsp>(serviceImpl.DeleteRessourceOwner));
       serviceBinder.AddMethod(__Method_DeleteRessourceOwners, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteRessourceOwnersRqst, global::Ressource.DeleteRessourceOwnersRsp>(serviceImpl.DeleteRessourceOwners));
       serviceBinder.AddMethod(__Method_GetAllFilesInfo, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.GetAllFilesInfoRqst, global::Ressource.GetAllFilesInfoRsp>(serviceImpl.GetAllFilesInfo));
+      serviceBinder.AddMethod(__Method_ValidateToken, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateTokenRqst, global::Ressource.ValidateTokenRsp>(serviceImpl.ValidateToken));
       serviceBinder.AddMethod(__Method_ValidateUserRessourceAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserRessourceAccessRqst, global::Ressource.ValidateUserRessourceAccessRsp>(serviceImpl.ValidateUserRessourceAccess));
       serviceBinder.AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationRessourceAccessRqst, global::Ressource.ValidateApplicationRessourceAccessRsp>(serviceImpl.ValidateApplicationRessourceAccess));
       serviceBinder.AddMethod(__Method_ValidateUserAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserAccessRqst, global::Ressource.ValidateUserAccessRsp>(serviceImpl.ValidateUserAccess));

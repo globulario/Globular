@@ -21,15 +21,15 @@ namespace Echo
     {
         public string Value { get; set; }
 
-        public EchoServiceImpl()
+        public EchoServiceImpl(string id, string domain, uint port, uint proxy)
         {
             // Here I will set the default values.
-            this.Port = 10029; // The default port value
-            this.Proxy = 10030; // The reverse proxy port
-            this.Name = "echo_server"; // The service name
+            this.Port = port; // The default port value
+            this.Proxy = proxy; // The reverse proxy port
+            this.Name = "echo.EchoService"; // The service name
             this.Version = "0.0.1";
-            this.PublisherId = "localhost";
-            this.Domain = "localhost";
+            this.PublisherId = "localhost"; // must be the publisher id here...
+            this.Domain = domain;
             this.Protocol = "grpc";
             this.Version = "0.0.1";
             this.Value = "echo value!";

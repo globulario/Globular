@@ -18,7 +18,10 @@ namespace Globular
     /// </summary>
     public class GlobularService
     {
+    	public string Id { get; set; }
         public string Name { get; set; }
+        public string Path { get; set; }
+        public string Proto { get; set; }
         public int Port { get; set; }
         public int Proxy { get; set; }
         public string Protocol { get; set; }
@@ -33,7 +36,7 @@ namespace Globular
         public string PublisherId { get; set; }
         public bool KeepUpToDate { get; set; }
         public bool KeepAlive { get; set; }
-
+		
         private RessourceClient ressourceClient;
         public ServerUnaryInterceptor interceptor;
 

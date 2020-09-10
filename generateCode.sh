@@ -26,7 +26,7 @@ protoc -I plc/plcpb plc.proto --cpp_out=plc/plcpb/cpp
 protoc plc_link/plc_linkpb/plc_link.proto --go_out=plugins=grpc:.
 
 # C++ service.
-protoc --plugin="protoc-gen-grpc=E://msys64//mingw64//bin//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
 protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=plc/spcpb/cpp -I spc/spcpb spc.proto
 protoc -I spc/spcpb spc.proto --cpp_out=spc/spcpb/cpp
 protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.
@@ -76,9 +76,21 @@ protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
 protoc catalog/catalogpb/catalog.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
 
 # Now the CSharp Clients.
-protoc --grpc_out=event/event_client/csharp/GlobularEventClient --csharp_out=event/event_client/csharp/GlobularEventClient --csharp_opt=file_extension=.g.cs event/eventpb/event.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
-protoc --grpc_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
-protoc --grpc_out=ressource/csharp/GlobularRessourceClient --csharp_out=ressource/csharp/GlobularRessourceClient --csharp_opt=file_extension=.g.cs ressource/ressource.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
+protoc --grpc_out=event/event_client/csharp/GlobularEventClient --csharp_out=event/event_client/csharp/GlobularEventClient --csharp_opt=file_extension=.g.cs event/eventpb/event.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+protoc --grpc_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+protoc --grpc_out=ressource/csharp/GlobularRessourceClient --csharp_out=ressource/csharp/GlobularRessourceClient --csharp_opt=file_extension=.g.cs ressource/ressource.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+
+# The C++ clients
+# The ressource client.
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
+protoc --cpp_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
+
 
 # CSharp echo server (test) use the ts client.
 protoc --grpc_out=csharp/GlobularEchoServer --csharp_out=csharp/GlobularEchoServer --csharp_opt=file_extension=.g.cs echo/echopb/echo.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
+
+# Cpp echo server (test) use the ts client.
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=cpp/EchoServer echo/echopb/echo.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=cpp/EchoServer echo/echopb/echo.proto
+protoc --cpp_out=cpp/EchoServer echo/echopb/echo.proto

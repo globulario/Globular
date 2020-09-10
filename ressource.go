@@ -1721,7 +1721,7 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 	info.Method = service
 	info.Date = time.Now().Unix()
 	info.Message = message
-	info.Type = ressourcepb.LogType_ERROR // not necessarely errors..
+	info.Type = ressourcepb.LogType_ERROR_MESSAGE // not necessarely errors..
 	self.log(info)
 
 	return nil
@@ -1744,9 +1744,9 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = ressourcepb.LogType_ERROR
+		info.Type = ressourcepb.LogType_ERROR_MESSAGE
 	} else {
-		info.Type = ressourcepb.LogType_INFO
+		info.Type = ressourcepb.LogType_INFO_MESSAGE
 	}
 
 	self.log(info)
@@ -1922,7 +1922,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressourcepb.LogInfo) (string, stri
 	}
 
 	key := ""
-	if info.GetType() == ressourcepb.LogType_INFO {
+	if info.GetType() == ressourcepb.LogType_INFO_MESSAGE {
 		// Increnment prometheus counter,
 		self.methodsCounterLog.WithLabelValues("INFO", info.Method).Inc()
 
@@ -2119,7 +2119,7 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *ressourcepb.DeleteLogR
 func (self *Globule) ClearAllLog(ctx context.Context, rqst *ressourcepb.ClearAllLogRqst) (*ressourcepb.ClearAllLogRsp, error) {
 	var err error
 
-	if rqst.Type == ressourcepb.LogType_ERROR {
+	if rqst.Type == ressourcepb.LogType_ERROR_MESSAGE {
 		err = self.deleteLog("/errors/*")
 	} else {
 		err = self.deleteLog("/infos/*")

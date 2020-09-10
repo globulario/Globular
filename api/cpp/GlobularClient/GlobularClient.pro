@@ -3,7 +3,7 @@ QT -= gui
 TEMPLATE = lib
 CONFIG += staticlib
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -20,6 +20,8 @@ SOURCES += \
     globularclient.cpp
 
 HEADERS += \
+    Base64.h \
+    HTTPRequest.hpp \
     globularclient.h
 
 # Default rules for deployment.

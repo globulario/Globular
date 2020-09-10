@@ -622,9 +622,9 @@ func (self *Ressource_Client) Log(application string, user string, method string
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = ressourcepb.LogType_ERROR
+		info.Type = ressourcepb.LogType_ERROR_MESSAGE
 	} else {
-		info.Type = ressourcepb.LogType_INFO
+		info.Type = ressourcepb.LogType_INFO_MESSAGE
 	}
 	rqst.Info = info
 

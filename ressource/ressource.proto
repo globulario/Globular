@@ -390,8 +390,8 @@ message DeleteRolePermissionsRsp{
 }
 
 enum LogType{
-	INFO=0;
-	ERROR=1;
+	INFO_MESSAGE=0;
+	ERROR_MESSAGE=1;
 }
 
 message LogInfo{
