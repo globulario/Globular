@@ -10,8 +10,8 @@ namespace Globular
         /// <summary>
         /// The ressource client is use by the interceptor to validate user access.
         /// </summary>
-        /// <param name="domain"></param>
-        /// <param name="name"></param>
+        /// <param name="domain"></param> The domain of the services
+        /// <param name="name"></param> The name or the id of the services.
         /// <returns></returns>
         public RessourceClient(string domain, string name) : base(domain, name)
         {

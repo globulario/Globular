@@ -29,14 +29,4 @@ unix {
 }
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/release/ -lGlobularRessourceClient
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/debug/ -lGlobularRessourceClient
-else:unix:!macx: LIBS += -L$$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/ -lGlobularRessourceClient
-
-INCLUDEPATH += $$PWD/../../ressource/cpp/GlobularRessourceClient $$PWD/../../api/cpp/GlobularClient C:\Users\mm006819\grpc\include C:\Users\mm006819\grpc\third_party\protobuf\src C:\Users\mm006819\grpc\include
-
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/release/libGlobularRessourceClient.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/debug/libGlobularRessourceClient.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/release/GlobularRessourceClient.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/debug/GlobularRessourceClient.lib
-else:unix:!macx: PRE_TARGETDEPS += $$PWD/../../ressource/cpp/build-GlobularRessourceClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/libGlobularRessourceClient.a
+INCLUDEPATH += C:\Users\mm006819\grpc\third_party\protobuf\src C:\Users\mm006819\grpc\include $$PWD/../../ressource/cpp/GlobularRessourceClient $$PWD/../../api/cpp/GlobularClient ../../cpp

@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <bitset>         // std::bitset
 #include <math.h>       /* ceil */
-#include "json.hpp"
+#include "../json.hpp"
 #include <fstream>
 
 #ifdef WIN32

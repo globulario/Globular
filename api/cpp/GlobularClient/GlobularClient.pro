@@ -29,3 +29,5 @@ unix {
     target.path = $$[QT_INSTALL_PLUGINS]/generic
 }
 !isEmpty(target.path): INSTALLS += target
+
+INCLUDEPATH += $$PWD/../../../../../../../../grpc/.build C:\Users\mm006819\grpc\include ../../../cpp

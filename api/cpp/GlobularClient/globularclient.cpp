@@ -9,17 +9,34 @@
 #include <string>
 #include <array>
 #include <filesystem>
+
 //  https://github.com/nlohmann/json
 #include "json.hpp"
 #include "Base64.h"
+#include <grpc/grpc.h>
+#include <grpcpp/channel.h>
+#include <grpcpp/create_channel.h>
+#include <grpcpp/security/credentials.h>
 
 Globular::Client::Client(std::string name, std::string domain, unsigned int configurationPort)
 {
     this->config = new Globular::ServiceConfig();
     this->config->Name = name;
     this->config->Domain = domain;
+
     // init internal values.
     this->init(configurationPort);
+
+    std::stringstream ss;
+    ss << this->config->Domain << ":" << this->config->Port;
+
+    // Now I will create the grpc channel.
+    if(this->getTls()){
+
+    }else{
+        // Create insecure connection to the service.
+        this->channel = grpc::CreateChannel(ss.str(), grpc::InsecureChannelCredentials());
+    }
 
 }
 
@@ -202,6 +219,35 @@ void Globular::Client::close()
 {
 }
 
+ClientContext& Globular::Client::getClientContext(std::string token, std::string application, std::string domain, std::string path){
+
+    if(token.empty()){
+        std::stringstream ss;
+        ss << std::filesystem::temp_directory_path() << "/" << domain << "_token";
+        if(std::filesystem::exists(ss.str())){
+            token = readAllText(ss.str());
+            this->context.AddMetadata("token", token);
+        }
+    }else{
+        this->context.AddMetadata("token", token);
+    }
+
+    if(domain.empty()){
+        this->context.AddMetadata("domain", this->config->Domain);
+    }else{
+        this->context.AddMetadata("domain", domain);
+    }
+
+    if(!application.empty()){
+        this->context.AddMetadata("application", application);
+    }
+
+    if(!path.empty()){
+        this->context.AddMetadata("path", path);
+    }
+
+    return this->context;
+}
 
 std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
@@ -224,10 +270,6 @@ std::string Globular::Client::getCaCertificate(std::string domain, unsigned int 
     ss.flush();
     ss << std::string(response.body.begin(), response.body.end()) << '\n'; // print the result
     return ss.str();
-}
-
-std::string base64Encode(std::string plainText){
-
 }
 
 std::string Globular::Client::signCaCertificate(std::string domain, unsigned int configurationPort, std::string csr){
@@ -297,7 +339,7 @@ void Globular::Client::generateClientCertificateSigningRequest(std::string path,
     ss << " -out ";
     ss << " " << path << "/client.csr";
     ss << " -subj";
-    ss << " /CN=" << this->config->Domain;
+    ss << " /CN=" << domain;
 
     // run the command...
     std::system(ss.str().c_str());

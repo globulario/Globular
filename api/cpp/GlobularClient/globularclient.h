@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <grpcpp/client_context.h>
+
+using grpc::ClientContext;
+using grpc::Channel;
 
 namespace  Globular {
 
@@ -114,12 +118,20 @@ public:
     unsigned int getPort() const;
 
     // TLS functions.
+
+    // if set at true that means the connection is secure.
     bool getTls() const;
     void setTls(bool value);
+
+    // The CA certificate
     std::string getCaFile() const;
     void setCaFile(const std::string &value);
+
+    // The Key file.
     std::string getKeyFile() const;
     void setKeyFile(const std::string &value);
+
+    // The certificate file.
     std::string getCertFile() const;
     void setCertFile(const std::string &value);
 
@@ -129,6 +141,13 @@ public:
     // Close the connection.
     void close();
 
+    ClientContext& getClientContext(std::string token = "", std::string application  = "", std::string domain = "", std::string path = "");
+
+protected:
+    std::shared_ptr<Channel> channel;
+
+private:
+    ClientContext context;
 };
 
 };

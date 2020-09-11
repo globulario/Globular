@@ -60,7 +60,7 @@ namespace Globular
             if (this.ressourceClient == null)
             {
                 // there must be a globular server runing in order to validate ressources.
-                ressourceClient = new RessourceClient(domain, "ressource");
+                ressourceClient = new RessourceClient(domain, "ressource.RessourceService");
             }
             return this.ressourceClient;
         }
