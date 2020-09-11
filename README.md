@@ -17,8 +17,6 @@ What propertie must be define on a service to make it manageable? To be manageab
 
 * Reachable: Here tree properties are requires, the domain and the port/proxy pair. Those properties are used to get the instance network address.
 
-* Trustable: The publisher Id defines the identity of service creator. Globular can be used to authenticate and validate service publisher.
-
 * Securable: The TLS variable defines if the service must use a secure network or not.
 
 * Trustable: Https is here, and TLS is perfectly integrated in gRPC. Globular help you with the creation and the management of certificate. Easy and secure that's what Globular is all about. Not only you can secure the underlying data socket but also you can easly manage who can access ressource and execute method.
