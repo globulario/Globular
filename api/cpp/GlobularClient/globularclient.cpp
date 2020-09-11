@@ -78,6 +78,20 @@ std::string readAllText(std::string path){
     return str;
 }
 
+std::string getTempDir(){
+    // std::filesystem::temp_directory_path()
+    return "/tmp";
+}
+
+bool exists(std::string path){
+    // exists(path)
+    return false;
+}
+
+void createDir(std::string paht){
+    //std::filesystem::create_directory(path);
+}
+
 void Globular::Client::initServiceConfig(unsigned int configurationPort){
     std::stringstream ss;
     ss << "http://" << this->config->Domain << ":" << configurationPort << "/config";
@@ -109,19 +123,19 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
             if(this->config->TLS){
                 // The service is secure.
                 std::stringstream ss;
-                ss << std::filesystem::temp_directory_path() <<   "/" << this->config->Domain + "_token";
+                ss << getTempDir() <<   "/" << this->config->Domain + "_token";
                 auto path = ss.str();
-                if(std::filesystem::exists(path)){
+                if(exists(path)){
                     this->config->CertAuthorityTrust =  (*it)["CertAuthorityTrust"].get<std::string>();
                     this->config->CertFile =  (*it)["CertFile"].get<std::string>();
                     this->config->KeyFile =  (*it)["KeyFile"].get<std::string>();
                 }else{
                     ss.flush();
-                    ss << std::filesystem::temp_directory_path() <<   "/config/tls/" << this->config->Domain;
+                    ss << getTempDir() <<   "/config/tls/" << this->config->Domain;
                     auto path = ss.str();
                     // Here I will create a directory named
-                    if(!std::filesystem::exists(path)){
-                        std::filesystem::create_directory(path);
+                    if(!exists(path)){
+                        createDir(path);
                     }
 
                     // I will create a certificate request and make it sign by the server.
@@ -223,8 +237,8 @@ ClientContext& Globular::Client::getClientContext(std::string token, std::string
 
     if(token.empty()){
         std::stringstream ss;
-        ss << std::filesystem::temp_directory_path() << "/" << domain << "_token";
-        if(std::filesystem::exists(ss.str())){
+        ss << getTempDir() << "/" << domain << "_token";
+        if(exists(ss.str())){
             token = readAllText(ss.str());
             this->context.AddMetadata("token", token);
         }
@@ -288,7 +302,7 @@ void Globular::Client::generateClientPrivateKey(std::string path, std::string pw
     std::stringstream ss;
     ss << path <<   "/client.key";
     auto path_ = ss.str();
-    if(std::filesystem::exists(path)){
+    if(exists(path)){
         return;
     }
 
@@ -325,7 +339,7 @@ void Globular::Client::generateClientCertificateSigningRequest(std::string path,
     std::stringstream ss;
     ss << path <<   "/client.csr";
     auto path_ = ss.str();
-    if(std::filesystem::exists(path)){
+    if(exists(path)){
         return;
     }
 
@@ -349,7 +363,7 @@ void Globular::Client::keyToPem(std::string name, std::string path, std::string 
     std::stringstream ss;
     ss << path <<   "/" << name + ".pem";
     auto path_ = ss.str();
-    if(std::filesystem::exists(path)){
+    if(exists(path)){
         return;
     }
 

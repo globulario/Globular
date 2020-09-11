@@ -9,6 +9,7 @@
 #include <math.h>       /* ceil */
 #include "../json.hpp"
 #include <fstream>
+#include "globularressourceclient.h"
 
 #ifdef WIN32
 #include <windows.h>

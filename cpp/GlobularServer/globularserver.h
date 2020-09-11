@@ -3,10 +3,9 @@
 
 #include <string>
 #include <sstream>
-#include "globularressourceclient.h"
 
 namespace Globular {
-
+class RessourceClient;
 /**
  * @brief That class contain the base for globular service.
  * It take care to get the basic attribute to make the service manageable.
@@ -26,10 +25,10 @@ class GlobularService
     std::string proto;
 
     // The grpc port
-    unsigned port;
+    unsigned int port;
 
     // The reverse proxy.
-    unsigned proxy;
+    unsigned int proxy;
 
     // GRPC
     std::string protocol;
@@ -70,7 +69,7 @@ class GlobularService
     std::string cert_file;
 
     // The ressource client.
-    Globular::RessourceClient *ressourceClient;
+    RessourceClient *ressourceClient;
 
 public:
 
@@ -109,6 +108,6 @@ public:
     void save();
 };
 
-}
+} // namespace Globular.
 
 #endif // GLOBULARSERVER_H

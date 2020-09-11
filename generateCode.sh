@@ -86,7 +86,6 @@ protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plu
 protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
 protoc --cpp_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
 
-
 # CSharp echo server (test) use the ts client.
 protoc --grpc_out=csharp/GlobularEchoServer --csharp_out=csharp/GlobularEchoServer --csharp_opt=file_extension=.g.cs echo/echopb/echo.proto --plugin=protoc-gen-grpc=E:\grpc\.build\Release\grpc_csharp_plugin.exe
 

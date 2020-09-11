@@ -150,6 +150,6 @@ private:
     ClientContext context;
 };
 
-};
+}
 
 #endif // GLOBULARCLIENT_H

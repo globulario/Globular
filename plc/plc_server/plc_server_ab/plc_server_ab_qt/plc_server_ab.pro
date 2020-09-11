@@ -19,5 +19,4 @@ HEADERS += \
 INCLUDEPATH += ../../../plcpb/cpp
 
 
-unix:!macx: LIBS += -lgrpc++ -lprotobuf
-unix:!macx: LIBS += -lplctag
+LIBS += `pkg-config --libs libplctag grpc++ protobuf`
