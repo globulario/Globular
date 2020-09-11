@@ -1,0 +1,11 @@
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\bin\Debug\netcoreapp2.1\GlobularPersistenceClient.deps.json
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\bin\Debug\netcoreapp2.1\GlobularPersistenceClient.dll
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\bin\Debug\netcoreapp2.1\GlobularPersistenceClient.pdb
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\bin\Debug\netcoreapp2.1\GlobularClient.dll
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\bin\Debug\netcoreapp2.1\GlobularClient.pdb
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.csprojAssemblyReference.cache
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.AssemblyInfoInputs.cache
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.AssemblyInfo.cs
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.csproj.CopyComplete
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.dll
+E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\GlobularPersistenceClient\obj\Debug\netcoreapp2.1\GlobularPersistenceClient.pdb
