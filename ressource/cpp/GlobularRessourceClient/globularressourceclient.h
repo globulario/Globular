@@ -26,12 +26,11 @@ class RessourceClient : Client
 {
     // the underlying grpc ressource client.
     std::unique_ptr<ressource::RessourceService::Stub> stub_;
-    std::shared_ptr<Channel> channel;
 
 public:
 
     // The constructor.
-    RessourceClient(std::string name, std::string domain, unsigned int configurationPort=10000);
+    RessourceClient(std::string name, std::string domain="localhost", unsigned int configurationPort=10000);
 
     // Now the ressource client functionnalites.
 
@@ -108,12 +107,11 @@ public:
     /**
      * @brief Log
      * @param application The application name
-     * @param token The user token
      * @param method The gRpc method path. ex. /module/methodName/
      * @param message The message to log.
      * @param type can be 0 for INFO_MESSAGE and 1 for ERROR_MESSAGE.
      */
-    void Log(std::string application, std::string token, std::string method, std::string message, int type = 0);
+    void Log(std::string application, std::string method, std::string message, int type = 0);
 };
 
 }

@@ -1,5 +1,6 @@
 #include "globularserver.h"
 #include <string>
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -9,7 +10,12 @@
 #include <math.h>       /* ceil */
 #include "../json.hpp"
 #include <fstream>
-#include "globularressourceclient.h"
+
+
+using grpc::Server;
+using grpc::ServerBuilder;
+using grpc::ServerContext;
+using grpc::Status;
 
 #ifdef WIN32
 #include <windows.h>
@@ -99,10 +105,9 @@ Globular::GlobularService::GlobularService(std::string id,
 
         // can be a list of string
         this->allowed_origins = j["AllowedOrigins"];
+    }else{
+        this->save();
     }
-
-    // Now I will create the new ressource client.
-    this->ressourceClient = new RessourceClient("ressource.RessourceService", this->domain);
 }
 
 void Globular::GlobularService::save() {
@@ -135,8 +140,42 @@ void Globular::GlobularService::save() {
     std::size_t lastIndex = execPath.find_last_of("/");
     std::string configPath = execPath.substr(0, lastIndex) + "/config.json";
 #endif
+
     std::ofstream file;
     file.open(configPath);
     file << j.dump();
     file.close();
+}
+
+void Globular::GlobularService::run(Service* s) {
+    ServerBuilder builder;
+    ///std::string
+    std::stringstream ss;
+    ss << this->domain << ":" << this->port;
+
+    if(this->tls){
+
+    }else{
+        // Listen on the given address without any authentication mechanism.
+        builder.AddListeningPort(ss.str(), grpc::InsecureServerCredentials());
+    }
+
+
+    // Register "service" as the instance through which we'll communicate with
+    // clients. In this case it corresponds to an *synchronous* service.
+    builder.RegisterService(s);
+
+    // Set the interceptor creator.
+    std::vector<std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>> creators;
+    creators.push_back(std::unique_ptr<Globular::ServerInterceptorFactory>(new Globular::ServerInterceptorFactory()));
+    builder.experimental().SetInterceptorCreators(std::move(creators));
+
+    // Finally assemble the server.
+    std::unique_ptr<Server> server(builder.BuildAndStart());
+
+    std::cout << "Server listening on " << ss.str() << std::endl;
+
+    // Wait for the server to shutdown. Note that some other thread must be
+    // responsible for shutting down the server for this call to ever return.
+    server->Wait();
 }

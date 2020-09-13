@@ -2,7 +2,7 @@ TEMPLATE = app
 CONFIG += console c++
 CONFIG -= app_bundle
 CONFIG -= qt
-
+CONFIG += c++17
 SOURCES += \
         ../../api/cpp/GlobularClient/globularclient.cpp \
         ../../ressource/cpp/GlobularRessourceClient/globularressourceclient.cpp \

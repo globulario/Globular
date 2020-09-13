@@ -141,13 +141,10 @@ public:
     // Close the connection.
     void close();
 
-    ClientContext& getClientContext(std::string token = "", std::string application  = "", std::string domain = "", std::string path = "");
+   void getClientContext( ClientContext& , std::string token = "", std::string application  = "", std::string domain = "", std::string path = "");
 
 protected:
     std::shared_ptr<Channel> channel;
-
-private:
-    ClientContext context;
 };
 
 }

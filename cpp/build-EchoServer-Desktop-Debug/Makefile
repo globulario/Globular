@@ -16,7 +16,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_QML_DEBUG
 CFLAGS        = -pipe -g -Wall -W -fPIC $(DEFINES)
-CXXFLAGS      = -pipe -g -Wall -W -fPIC $(DEFINES)
+CXXFLAGS      = -pipe -g -std=gnu++1z -Wall -W -fPIC $(DEFINES)
 INCPATH       = -I../EchoServer -I. -IC:\Users\mm006819\grpc\third_party\protobuf\src -IC:\Users\mm006819\grpc\include -I../../ressource/cpp/GlobularRessourceClient -I../../api/cpp/GlobularClient -I../../cpp -I../GlobularServer -I../../api/cpp/GlobularClient -I../../ressource/cpp/GlobularRessourceClient -I../../ressource/cpp/GlobularRessourceClient -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++
 QMAKE         = /usr/lib/qt5/bin/qmake
 DEL_FILE      = rm -f
@@ -373,11 +373,11 @@ ressource.pb.o: ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ressource.pb.o ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.cc
 
 globularserver.o: ../GlobularServer/globularserver.cpp ../GlobularServer/globularserver.h \
-		../json.hpp \
 		../../ressource/cpp/GlobularRessourceClient/globularressourceclient.h \
 		../../api/cpp/GlobularClient/globularclient.h \
 		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.h \
-		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.h
+		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.h \
+		../json.hpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o globularserver.o ../GlobularServer/globularserver.cpp
 
 echo.grpc.pb.o: ../EchoServer/echo/echopb/echo.grpc.pb.cc ../EchoServer/echo/echopb/echo.pb.h \
@@ -390,10 +390,22 @@ echo.pb.o: ../EchoServer/echo/echopb/echo.pb.cc ../EchoServer/echo/echopb/echo.p
 echoserviceimpl.o: ../EchoServer/echoserviceimpl.cpp ../EchoServer/echoserviceimpl.h \
 		../EchoServer/echo/echopb/echo.grpc.pb.h \
 		../EchoServer/echo/echopb/echo.pb.h \
-		../GlobularServer/globularserver.h
+		../GlobularServer/globularserver.h \
+		../../ressource/cpp/GlobularRessourceClient/globularressourceclient.h \
+		../../api/cpp/GlobularClient/globularclient.h \
+		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.h \
+		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o echoserviceimpl.o ../EchoServer/echoserviceimpl.cpp
 
-main.o: ../EchoServer/main.cpp ../cxxopts.hpp
+main.o: ../EchoServer/main.cpp ../cxxopts.hpp \
+		../EchoServer/echoserviceimpl.h \
+		../EchoServer/echo/echopb/echo.grpc.pb.h \
+		../EchoServer/echo/echopb/echo.pb.h \
+		../GlobularServer/globularserver.h \
+		../../ressource/cpp/GlobularRessourceClient/globularressourceclient.h \
+		../../api/cpp/GlobularClient/globularclient.h \
+		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.h \
+		../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../EchoServer/main.cpp
 
 ####### Install

@@ -12,3 +12,9 @@ EchoServiceImpl::EchoServiceImpl(std::string id,
 {
 
 }
+
+Status EchoServiceImpl::Echo(ServerContext* context, const EchoRequest* request, EchoResponse* response) {
+    std::string prefix("Echo ");
+    response->set_message(prefix + request->message());
+    return Status::OK;
+}

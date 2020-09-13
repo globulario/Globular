@@ -251,6 +251,8 @@ func NewGlobule() *Globule {
 		start := Utility.ToInt(portsRange[0])
 		end := Utility.ToInt(portsRange[1])
 
+		log.Println("port range from ", start, " to ", end)
+
 		g.ports = make([]int, 0)
 
 		for i := start; i < end; i++ {
@@ -1111,6 +1113,7 @@ func (self *Globule) initServices() {
 						if s["Protocol"] != nil {
 							// If a configuration file exist It will be use to start services,
 							// otherwise the service configuration file will be use.
+
 							if s["Name"] == nil {
 								log.Println("---> no 'Name' attribute found in service configuration in file config ", path)
 							} else {

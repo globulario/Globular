@@ -188,6 +188,7 @@ func GetClientContext(client Client) context.Context {
 	token, err := ioutil.ReadFile(path)
 
 	if err == nil {
+		log.Println("------------> context found")
 		md := metadata.New(map[string]string{"token": string(token), "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx

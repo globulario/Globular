@@ -36,6 +36,10 @@ Globular::Client::Client(std::string name, std::string domain, unsigned int conf
     }else{
         // Create insecure connection to the service.
         this->channel = grpc::CreateChannel(ss.str(), grpc::InsecureChannelCredentials());
+        if(this->channel){
+             std::cout << "client channel is now initialysed!" << std::endl;
+              std::cout << this->channel->GetServiceConfigJSON()	<< std::endl;
+        }
     }
 
 }
@@ -80,16 +84,17 @@ std::string readAllText(std::string path){
 
 std::string getTempDir(){
     // std::filesystem::temp_directory_path()
-    return "/tmp";
+    return std::filesystem::temp_directory_path();
 }
 
 bool exists(std::string path){
-    // exists(path)
-    return false;
+    //
+    std::ifstream infile(path);
+    return infile.good();
 }
 
-void createDir(std::string paht){
-    //std::filesystem::create_directory(path);
+void createDir(std::string path){
+    std::filesystem::create_directory(path);
 }
 
 void Globular::Client::initServiceConfig(unsigned int configurationPort){
@@ -102,8 +107,6 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
     std::string jsonStr = ss.str();
     size_t index = jsonStr.find_first_of("{");
     jsonStr = jsonStr.substr(index, jsonStr.length() - index);
-    std::cout  << jsonStr << std::endl;
-    std::cout << index<< std::endl;
     auto j = nlohmann::json::parse(jsonStr);
 
     // Now I will initialyse the value from the configuration file.
@@ -113,13 +116,15 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
     for (auto it = services.begin(); it != services.end(); ++it)
     {
         if(it.key() == this->config->Name || (*it)["Id"].get<std::string>() == this->config->Name){
+
             this->config->Id = (*it)["Id"].get<std::string>();
             this->config->Name = (*it)["Name"].get<std::string>();
             this->config->Domain = (*it)["Domain"].get<std::string>();
             this->config->Port = (*it)["Port"].get<unsigned int>();
             this->config->Proxy = (*it)["Proxy"].get<unsigned int>();
-            this->config->Proxy = (*it)["TLS"].get<bool>();
-
+            this->config->TLS= (*it)["TLS"].get<bool>();
+            std::cout << "client domain " << this->config->Domain;
+             std::cout << "client Name " << this->config->Name;
             if(this->config->TLS){
                 // The service is secure.
                 std::stringstream ss;
@@ -167,8 +172,6 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
                     this->config->CertFile  = path + "/client.crt";
                 }
             }
-
-            std::cout << "configuration found!";
             break; // exit the loop
         }
     }
@@ -233,34 +236,32 @@ void Globular::Client::close()
 {
 }
 
-ClientContext& Globular::Client::getClientContext(std::string token, std::string application, std::string domain, std::string path){
+void Globular::Client::getClientContext(ClientContext& context, std::string token, std::string application, std::string domain, std::string path){
+    if(domain.empty()){
+        context.AddMetadata("domain", this->config->Domain);
+        domain = this->config->Domain;
+    }else{
+        context.AddMetadata("domain", domain);
+    }
 
     if(token.empty()){
         std::stringstream ss;
         ss << getTempDir() << "/" << domain << "_token";
         if(exists(ss.str())){
             token = readAllText(ss.str());
-            this->context.AddMetadata("token", token);
+            context.AddMetadata("token", token);
         }
     }else{
-        this->context.AddMetadata("token", token);
-    }
-
-    if(domain.empty()){
-        this->context.AddMetadata("domain", this->config->Domain);
-    }else{
-        this->context.AddMetadata("domain", domain);
+        context.AddMetadata("token", token);
     }
 
     if(!application.empty()){
-        this->context.AddMetadata("application", application);
+        context.AddMetadata("application", application);
     }
 
     if(!path.empty()){
-        this->context.AddMetadata("path", path);
+        context.AddMetadata("path", path);
     }
-
-    return this->context;
 }
 
 std::string exec(const char* cmd) {
