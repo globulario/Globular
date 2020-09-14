@@ -15,7 +15,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DUNICODE -D_UNICODE -DWIN32 -DMINGW_HAS_SECURE_API=1 -DQT_DEPRECATED_WARNINGS -DQT_NO_DEBUG -DQT_CORE_LIB
 CFLAGS        = -fno-keep-inline-dllexport -march=nocona -mtune=core2 -Wa,-mbig-obj -O2 -Wall -Wextra -Wextra -ffunction-sections -fdata-sections $(DEFINES)
-CXXFLAGS      = -fno-keep-inline-dllexport -O2 -std=gnu++11 -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads $(DEFINES)
+CXXFLAGS      = -fno-keep-inline-dllexport -O2 -std=gnu++1z -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads $(DEFINES)
 INCPATH       = -I../GlobularRessourceClient -I. -I../../../api/cpp/GlobularClient -IC:/Users/mm006819/grpc/include -IC:/Users/mm006819/grpc/third_party/protobuf/src -IC:/msys64/mingw64/qt5-static/include -IC:/msys64/mingw64/qt5-static/include/QtCore -Irelease -IC:/msys64/mingw64/qt5-static/share/qt5/mkspecs/win32-g++ 
 LIB        =        ar -rc
 QMAKE         = C:/msys64/mingw64/qt5-static/bin/qmake.exe
@@ -106,7 +106,7 @@ compiler_moc_predefs_make_all: release/moc_predefs.h
 compiler_moc_predefs_clean:
 	-$(DEL_FILE) release/moc_predefs.h
 release/moc_predefs.h: C:/msys64/mingw64/qt5-static/share/qt5/mkspecs/features/data/dummy.cpp
-	g++ -fno-keep-inline-dllexport -O2 -std=gnu++11 -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -dM -E -o release/moc_predefs.h C:/msys64/mingw64/qt5-static/share/qt5/mkspecs/features/data/dummy.cpp
+	g++ -fno-keep-inline-dllexport -O2 -std=gnu++1z -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -dM -E -o release/moc_predefs.h C:/msys64/mingw64/qt5-static/share/qt5/mkspecs/features/data/dummy.cpp
 
 compiler_moc_header_make_all:
 compiler_moc_header_clean:

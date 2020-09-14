@@ -84,7 +84,9 @@ std::string readAllText(std::string path){
 
 std::string getTempDir(){
     // std::filesystem::temp_directory_path()
-    return std::filesystem::temp_directory_path();
+    std::stringstream ss;
+    ss << std::filesystem::temp_directory_path();
+    return ss.str();
 }
 
 bool exists(std::string path){

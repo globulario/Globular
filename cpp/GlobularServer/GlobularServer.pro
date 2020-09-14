@@ -3,7 +3,7 @@ QT -= gui
 TEMPLATE = lib
 CONFIG += staticlib
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -17,9 +17,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ../../api/cpp/GlobularClient/globularclient.cpp \
+    ../../ressource/cpp/GlobularRessourceClient/globularressourceclient.cpp \
+    ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.cc \
+    ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.cc \
     globularserver.cpp
 
 HEADERS += \
+    ../../api/cpp/GlobularClient/globularclient.h \
+    ../../ressource/cpp/GlobularRessourceClient/globularressourceclient.h \
+    ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.grpc.pb.h \
+    ../../ressource/cpp/GlobularRessourceClient/ressource/ressource.pb.h \
     globularserver.h \
     json.hpp
 
@@ -29,4 +37,5 @@ unix {
 }
 !isEmpty(target.path): INSTALLS += target
 
-INCLUDEPATH += C:\Users\mm006819\grpc\third_party\protobuf\src C:\Users\mm006819\grpc\include $$PWD/../../ressource/cpp/GlobularRessourceClient $$PWD/../../api/cpp/GlobularClient ../../cpp
+INCLUDEPATH += $$PWD/../../ressource/cpp/GlobularRessourceClient $$PWD/../../api/cpp/GlobularClient ../../cpp
+

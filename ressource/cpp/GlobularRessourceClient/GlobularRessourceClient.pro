@@ -33,3 +33,4 @@ unix {
 !isEmpty(target.path): INSTALLS += target
 
 INCLUDEPATH += $$PWD/../../../api/cpp/GlobularClient C:\Users\mm006819\grpc\include C:\Users\mm006819\grpc\third_party\protobuf\src
+win32: LIBS += -L$$PWD/../../api/cpp/build-GlobularClient-Desktop_Qt_static_MinGW_w64_64bit_MSYS2/release -lGlobularClient
