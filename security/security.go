@@ -367,7 +367,7 @@ func GenerateAuthorityTrustCertificate(path string, pwd string, expiration_delay
 	args = append(args, "-out")
 	args = append(args, path+string(os.PathSeparator)+"ca.crt")
 	args = append(args, "-subj")
-	args = append(args, "/CN="+domain)
+	args = append(args, "/CN=Root CA")
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"ca.crt") {

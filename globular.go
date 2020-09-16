@@ -324,9 +324,6 @@ func (self *Globule) isPortAvailable(port int) bool {
 		}
 	}
 
-	// give time to process to start.
-	//time.Sleep(3 * time.Second)
-
 	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
 	if err == nil {
 		defer l.Close()
