@@ -12,7 +12,7 @@ import (
 func TestEcho(t *testing.T) {
 
 	// Connect to the plc client.
-	client, err := echo_client.NewEcho_Client("localhost", "echo.EchoService")
+	client, err := echo_client.NewEcho_Client("globular.io", "echo.EchoService")
 	if err != nil {
 		log.Println("17 ---> ", err)
 		return
@@ -20,6 +20,7 @@ func TestEcho(t *testing.T) {
 
 	val, err := client.Echo("Ceci est un test")
 	if err != nil {
+
 		log.Println("23 ---> ", err)
 	} else {
 		log.Println("25 ---> ", val)

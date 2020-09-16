@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     auto result = options.parse(argc, argv);
 
     // Instantiate a new server.
-    EchoServiceImpl service("", "echo.EchoService");
+    EchoServiceImpl service("test", "echo.EchoService");
 
     // Start the service.
     service.run(&service);

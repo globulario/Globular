@@ -110,6 +110,24 @@ Globular::GlobularService::GlobularService(std::string id,
     }
 }
 
+void
+read ( const std::string& filename, std::string& data )
+{
+        std::ifstream file ( filename.c_str (), std::ios::in );
+
+    if ( file.is_open () )
+    {
+        std::stringstream ss;
+        ss << file.rdbuf ();
+
+        file.close ();
+
+        data = ss.str ();
+    }
+
+    return;
+}
+
 void Globular::GlobularService::save() {
     nlohmann::json j;
     j["PublisherId"] = this->publisher_id;
@@ -151,9 +169,34 @@ void Globular::GlobularService::run(Service* s) {
     ServerBuilder builder;
     ///std::string
     std::stringstream ss;
-    ss << this->domain << ":" << this->port;
+    ss <<  "0.0.0.0" << ":" << this->port;
 
     if(this->tls){
+        std::string key;
+        std::string cert;
+        std::string ca;
+
+        read ( this->cert_file, cert );
+        read ( this->key_file , key );
+        read ( this->cert_authority_trust, ca );
+
+        /*
+        std::cout << this->cert_file << std::endl << cert << std::endl;
+        std::cout << this->key_file << std::endl << key << std::endl;
+        std::cout << this->cert_authority_trust << std::endl << ca << std::endl;
+        */
+
+        grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
+        {
+            key,
+            cert
+        };
+
+        grpc::SslServerCredentialsOptions sslOps;
+        sslOps.pem_root_certs = ca;
+        sslOps.pem_key_cert_pairs.push_back ( keycert );
+
+        builder.AddListeningPort(ss.str(), grpc::SslServerCredentials( sslOps ));
 
     }else{
         // Listen on the given address without any authentication mechanism.

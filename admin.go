@@ -144,14 +144,16 @@ func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	config, err := Utility.ToMap(self)
 	if err == nil {
+		services := make(map[string]interface{}, 0)
+		if config["Services"] != nil {
+			services = config["Services"].(map[string]interface{})
+		}
 
-		services := config["Services"].(map[string]interface{})
 		for _, service := range services {
 			// remove running information...
 			delete(service.(map[string]interface{}), "Process")
 			delete(service.(map[string]interface{}), "ProxyProcess")
 		}
-
 		str, err := Utility.ToJson(config)
 		if err == nil {
 			ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)

@@ -378,6 +378,7 @@ namespace Globular
                 // if the client is not local I will generate TLS certificates.
                 if (File.Exists(Path.GetTempPath() + "/" + this.domain + "_token"))
                 {
+                    /** TODO made correction here The cert file and keyFile are the one of the server and not the client **/
                     this.caFile = config.CertAuthorityTrust;
                     this.certFile = config.CertFile;
                     this.keyFile = config.KeyFile;

@@ -18,38 +18,6 @@
 #include <grpcpp/create_channel.h>
 #include <grpcpp/security/credentials.h>
 
-Globular::Client::Client(std::string name, std::string domain, unsigned int configurationPort)
-{
-    this->config = new Globular::ServiceConfig();
-    this->config->Name = name;
-    this->config->Domain = domain;
-
-    // init internal values.
-    this->init(configurationPort);
-
-    std::stringstream ss;
-    ss << this->config->Domain << ":" << this->config->Port;
-
-    // Now I will create the grpc channel.
-    if(this->getTls()){
-
-    }else{
-        // Create insecure connection to the service.
-        this->channel = grpc::CreateChannel(ss.str(), grpc::InsecureChannelCredentials());
-        if(this->channel){
-             std::cout << "client channel is now initialysed!" << std::endl;
-              std::cout << this->channel->GetServiceConfigJSON()	<< std::endl;
-        }
-    }
-
-}
-
-void Globular::Client::init(unsigned int configurationPort){
-
-    // Initialyse client stuff here.
-    this->initServiceConfig(configurationPort);
-
-}
 
 /**
  * @brief writeAllText Write a text file into a given path.
@@ -77,16 +45,14 @@ std::string readAllText(std::string path){
     t.seekg(0, std::ios::beg);
 
     str.assign((std::istreambuf_iterator<char>(t)),
-                std::istreambuf_iterator<char>());
+               std::istreambuf_iterator<char>());
 
     return str;
 }
 
 std::string getTempDir(){
     // std::filesystem::temp_directory_path()
-    std::stringstream ss;
-    ss << std::filesystem::temp_directory_path();
-    return ss.str();
+    return std::filesystem::temp_directory_path().string();
 }
 
 bool exists(std::string path){
@@ -97,6 +63,65 @@ bool exists(std::string path){
 
 void createDir(std::string path){
     std::filesystem::create_directory(path);
+}
+
+std::string getPathName(const std::string& s) {
+
+    char sep = '/';
+
+#ifdef _WIN32
+    sep = '\\';
+#endif
+
+    size_t i = s.rfind(sep, s.length());
+    if (i != std::string::npos) {
+        return(s.substr(0, i));
+    }
+
+    return("");
+}
+Globular::Client::Client(std::string name, std::string domain, unsigned int configurationPort)
+{
+    this->config = new Globular::ServiceConfig();
+    this->config->Name = name;
+    this->config->Domain = domain;
+
+    // init internal values.
+    this->init(configurationPort);
+
+    std::stringstream ss;
+    ss << this->config->Domain << ":" << this->config->Port;
+
+    // Now I will create the grpc channel.
+    if(this->getTls()){
+
+
+        grpc::SslCredentialsOptions opts =
+        {
+            readAllText( this->config->CertAuthorityTrust),
+            readAllText( this->config->KeyFile),
+            readAllText( this->config->CertFile)
+        };
+        std::cout << "try to open channel with address " << ss.str() << std::endl;
+
+        this->channel = grpc::CreateChannel(ss.str(), grpc::SslCredentials ( opts ) );
+
+    }else{
+        // Create insecure connection to the service.
+        this->channel = grpc::CreateChannel(ss.str(), grpc::InsecureChannelCredentials());
+        if(this->channel){
+            std::cout << "client channel is now initialysed!" << std::endl;
+            std::cout << this->channel->GetServiceConfigJSON()	<< std::endl;
+        }
+    }
+
+}
+
+void Globular::Client::init(unsigned int configurationPort){
+
+    // Initialyse client stuff here.
+    this->initServiceConfig(configurationPort);
+
 }
 
 void Globular::Client::initServiceConfig(unsigned int configurationPort){
@@ -125,17 +150,25 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
             this->config->Port = (*it)["Port"].get<unsigned int>();
             this->config->Proxy = (*it)["Proxy"].get<unsigned int>();
             this->config->TLS= (*it)["TLS"].get<bool>();
-            std::cout << "client domain " << this->config->Domain;
-             std::cout << "client Name " << this->config->Name;
+            std::cout << "client domain " << this->config->Domain << std::endl;
+            std::cout << "client Name " << this->config->Name << std::endl;
             if(this->config->TLS){
                 // The service is secure.
                 std::stringstream ss;
                 ss << getTempDir() <<   "/" << this->config->Domain + "_token";
                 auto path = ss.str();
+                std::cout << "read: " << path << std::endl;
                 if(exists(path)){
+                    // TODO make correction here the CertFile and KeyFile are the one of the server not the client.
                     this->config->CertAuthorityTrust =  (*it)["CertAuthorityTrust"].get<std::string>();
-                    this->config->CertFile =  (*it)["CertFile"].get<std::string>();
-                    this->config->KeyFile =  (*it)["KeyFile"].get<std::string>();
+                    std::string path = getPathName(this->config->CertAuthorityTrust);
+
+                    this->config->CertFile =  path + "/client.crt";
+                    this->config->KeyFile =   path + "/client.pem";;
+
+                    std::cout << this->config->KeyFile << std::endl;
+                    std::cout << this->config->CertFile << std::endl;
+                    std::cout << this->config->CertAuthorityTrust << std::endl;
                 }else{
                     ss.flush();
                     ss << getTempDir() <<   "/config/tls/" << this->config->Domain;

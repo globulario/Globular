@@ -131,7 +131,7 @@ public:
         // Check the method name and compare to the type
         const char* method = info->method();
         grpc::experimental::ServerRpcInfo::Type type = info->type();
-
+        ressourceClient = 0;
 
     }
 

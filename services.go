@@ -56,6 +56,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 		log.Println("Connect to discovery event hub ", self.Discoveries[i])
 		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event.EventService")
 		if err == nil {
+			log.Println("Connected with event service at ", self.Discoveries[i])
 			if subscribers[self.Discoveries[i]] == nil {
 				subscribers[self.Discoveries[i]] = make(map[string][]string)
 			}
@@ -126,8 +127,6 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 			}
 			// keep on memorie...
 			self.discorveriesEventHub[self.Discoveries[i]] = eventHub
-		} else {
-			fmt.Println("fail to connect with event service", self.Discoveries[i], err)
 		}
 
 	}

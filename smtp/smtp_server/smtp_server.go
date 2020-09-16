@@ -2,21 +2,17 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"errors"
+
+	"github.com/davecourtois/Globular/api"
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/smtp/smtp_client"
@@ -24,7 +20,6 @@ import (
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
 
@@ -78,51 +73,212 @@ type server struct {
 	KeepAlive          bool
 	Permissions        []interface{} // contains the action permission for the services.
 
+	// The grpc server.
+	grpcServer *grpc.Server
+
 	// The map of connection...
 	Connections map[string]connection
 }
 
-func (self *server) init() {
+// Globular services implementation...
+// The id of a particular service instance.
+func (self *server) GetId() string {
+	return self.Id
+}
+func (self *server) SetId(id string) {
+	self.Id = id
+}
+
+// The name of a service, must be the gRpc Service name.
+func (self *server) GetName() string {
+	return self.Name
+}
+func (self *server) SetName(name string) {
+	self.Name = name
+}
+
+// The path of the executable.
+func (self *server) GetPath() string {
+	return self.Path
+}
+func (self *server) SetPath(path string) {
+	self.Path = path
+}
+
+// The path of the .proto file.
+func (self *server) GetProto() string {
+	return self.Proto
+}
+func (self *server) SetProto(proto string) {
+	self.Proto = proto
+}
+
+// The gRpc port.
+func (self *server) GetPort() int {
+	return self.Port
+}
+func (self *server) SetPort(port int) {
+	self.Port = port
+}
+
+// The reverse proxy port (use by gRpc Web)
+func (self *server) GetProxy() int {
+	return self.Proxy
+}
+func (self *server) SetProxy(proxy int) {
+	self.Proxy = proxy
+}
+
+// Can be one of http/https/tls
+func (self *server) GetProtocol() string {
+	return self.Protocol
+}
+func (self *server) SetProtocol(protocol string) {
+	self.Protocol = protocol
+}
+
+// Return true if all Origins are allowed to access the mircoservice.
+func (self *server) GetAllowAllOrigins() bool {
+	return self.AllowAllOrigins
+}
+func (self *server) SetAllowAllOrigins(allowAllOrigins bool) {
+	self.AllowAllOrigins = allowAllOrigins
+}
+
+// If AllowAllOrigins is false then AllowedOrigins will contain the
+// list of address that can reach the services.
+func (self *server) GetAllowedOrigins() string {
+	return self.AllowedOrigins
+}
+
+func (self *server) SetAllowedOrigins(allowedOrigins string) {
+	self.AllowedOrigins = allowedOrigins
+}
+
+// Can be a ip address or domain name.
+func (self *server) GetDomain() string {
+	return self.Domain
+}
+func (self *server) SetDomain(domain string) {
+	self.Domain = domain
+}
+
+// TLS section
+
+// If true the service run with TLS. The
+func (self *server) GetTls() bool {
+	return self.TLS
+}
+func (self *server) SetTls(hasTls bool) {
+	self.TLS = hasTls
+}
+
+// The certificate authority file
+func (self *server) GetCertAuthorityTrust() string {
+	return self.CertAuthorityTrust
+}
+func (self *server) SetCertAuthorityTrust(ca string) {
+	self.CertAuthorityTrust = ca
+}
+
+// The certificate file.
+func (self *server) GetCertFile() string {
+	return self.CertFile
+}
+func (self *server) SetCertFile(certFile string) {
+	self.CertFile = certFile
+}
+
+// The key file.
+func (self *server) GetKeyFile() string {
+	return self.KeyFile
+}
+func (self *server) SetKeyFile(keyFile string) {
+	self.KeyFile = keyFile
+}
+
+// The service version
+func (self *server) GetVersion() string {
+	return self.Version
+}
+func (self *server) SetVersion(version string) {
+	self.Version = version
+}
+
+// The publisher id.
+func (self *server) GetPublisherId() string {
+	return self.PublisherId
+}
+func (self *server) SetPublisherId(publisherId string) {
+	self.PublisherId = publisherId
+}
+
+func (self *server) GetKeepUpToDate() bool {
+	return self.KeepUpToDate
+}
+func (self *server) SetKeepUptoDate(val bool) {
+	self.KeepUpToDate = val
+}
+
+func (self *server) GetKeepAlive() bool {
+	return self.KeepAlive
+}
+func (self *server) SetKeepAlive(val bool) {
+	self.KeepAlive = val
+}
+
+func (self *server) GetPermissions() []interface{} {
+	return self.Permissions
+}
+func (self *server) SetPermissions(permissions []interface{}) {
+	self.Permissions = permissions
+}
+
+// Create the configuration file if is not already exist.
+func (self *server) Init() error {
 
 	// That function is use to get access to other server.
 	Utility.RegisterFunction("NewSmtp_Client", smtp_client.NewSmtp_Client)
 
-	// Here I will retreive the list of connections from file if there are some...
+	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-	file, err := ioutil.ReadFile(dir + "/config.json")
-	if err == nil {
-		json.Unmarshal([]byte(file), self)
-	} else {
-		if len(self.Id) == 0 {
-			// Generate random id for the server instance.
-			self.Id = Utility.RandomUUID()
-		}
-		self.save()
-	}
-}
-
-func (self *server) save() error {
-	// Create the file...
-	str, err := Utility.ToJson(self)
+	err := api.InitService(dir+"/config.json", self)
 	if err != nil {
 		return err
 	}
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	// Initialyse GRPC server.
+	self.grpcServer, err = api.InitGrpcServer(self, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err != nil {
 		return err
 	}
 
-	ioutil.WriteFile(dir+"/config.json", []byte(str), 0644)
 	return nil
+
 }
 
-// Create a new SQL connection and store it for futur use. If the connection already
+// Save the configuration values.
+func (self *server) Save() error {
+	// Create the file...
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	return api.SaveService(dir+"/config.json", self)
+}
+
+func (self *server) Start() error {
+	return api.StartService(self, self.grpcServer)
+}
+
+func (self *server) Stop() error {
+	return api.StopService(self)
+}
+
+//////////////////////////// SMPT specific functions ///////////////////////////
+
+// Create a new connection and store it for futur use. If the connection already
 // exist it will be replace by the new one.
 func (self *server) CreateConnection(ctx context.Context, rsqt *smtppb.CreateConnectionRqst) (*smtppb.CreateConnectionRsp, error) {
-	fmt.Println("Try to create a new connection")
-	// sqlpb
+
 	fmt.Println("Try to create a new connection")
 	var c connection
 	var err error
@@ -138,7 +294,7 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *smtppb.CreateCon
 	self.Connections[c.Id] = c
 
 	// In that case I will save it in file.
-	err = self.save()
+	err = self.Save()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -171,7 +327,7 @@ func (self *server) DeleteConnection(ctx context.Context, rqst *smtppb.DeleteCon
 	delete(self.Connections, id)
 
 	// In that case I will save it in file.
-	err := self.save()
+	err := self.Save()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -390,75 +546,15 @@ func main() {
 	s_impl.Permissions = make([]interface{}, 0)
 
 	// Here I will retreive the list of connections from file if there are some...
-	s_impl.init()
-
-	// First of all I will creat a listener.
-	// Create the channel to listen on
-	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
+	err := s_impl.Init()
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
-		return
+		log.Fatalf("Fail to initialyse service %s: %s", s_impl.Name, s_impl.Id, err)
 	}
 
-	var grpcServer *grpc.Server
-	if s_impl.TLS {
-		// Load the certificates from disk
-		certificate, err := tls.LoadX509KeyPair(s_impl.CertFile, s_impl.KeyFile)
-		if err != nil {
-			log.Fatalf("could not load server key pair: %s", err)
-			return
-		}
+	// Register the echo services
+	smtppb.RegisterSmtpServiceServer(s_impl.grpcServer, s_impl)
+	reflection.Register(s_impl.grpcServer)
 
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
-		if err != nil {
-			log.Fatalf("could not read ca certificate: %s", err)
-			return
-		}
-
-		// Append the client certificates from the CA
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			log.Fatalf("failed to append client certs")
-			return
-		}
-
-		// Create the TLS credentials
-		creds := credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{certificate},
-			ClientCAs:    certPool,
-		})
-
-		// Create the gRPC server with the credentials
-		opts := []grpc.ServerOption{grpc.Creds(creds), grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor)}
-		grpcServer = grpc.NewServer(opts...)
-
-	} else {
-		grpcServer = grpc.NewServer([]grpc.ServerOption{grpc.UnaryInterceptor(Interceptors.ServerUnaryInterceptor), grpc.StreamInterceptor(Interceptors.ServerStreamInterceptor)}...)
-	}
-
-	// Register the smtp service.
-	smtppb.RegisterSmtpServiceServer(grpcServer, s_impl)
-	reflection.Register(grpcServer)
-
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	go func() {
-
-		// no web-rpc server.
-		fmt.Println(s_impl.Name + " grpc service is starting")
-		if err := grpcServer.Serve(lis); err != nil {
-
-			if err.Error() == "signal: killed" {
-				fmt.Println("service ", s_impl.Name, " was stop!")
-			}
-		}
-
-	}()
-
-	// Wait for signal to stop.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	<-ch
-
+	// Start the service.
+	s_impl.Start()
 }
