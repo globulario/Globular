@@ -19,16 +19,46 @@ namespace Event {
   {
     static readonly string __ServiceName = "event.EventService";
 
-    static readonly grpc::Marshaller<global::Event.OnEventRequest> __Marshaller_event_OnEventRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.OnEventRequest.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.OnEventResponse> __Marshaller_event_OnEventResponse = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.OnEventResponse.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.QuitRequest> __Marshaller_event_QuitRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.QuitRequest.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.QuitResponse> __Marshaller_event_QuitResponse = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.QuitResponse.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.SubscribeRequest> __Marshaller_event_SubscribeRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.SubscribeRequest.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.SubscribeResponse> __Marshaller_event_SubscribeResponse = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.SubscribeResponse.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.UnSubscribeRequest> __Marshaller_event_UnSubscribeRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.UnSubscribeRequest.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.UnSubscribeResponse> __Marshaller_event_UnSubscribeResponse = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.UnSubscribeResponse.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.PublishRequest> __Marshaller_event_PublishRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.PublishRequest.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Event.PublishResponse> __Marshaller_event_PublishResponse = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Event.PublishResponse.Parser.ParseFrom);
+    static void __Helper_SerializeMessage(global::Google.Protobuf.IMessage message, grpc::SerializationContext context)
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (message is global::Google.Protobuf.IBufferMessage)
+      {
+        context.SetPayloadLength(message.CalculateSize());
+        global::Google.Protobuf.MessageExtensions.WriteTo(message, context.GetBufferWriter());
+        context.Complete();
+        return;
+      }
+      #endif
+      context.Complete(global::Google.Protobuf.MessageExtensions.ToByteArray(message));
+    }
+
+    static class __Helper_MessageCache<T>
+    {
+      public static readonly bool IsBufferMessage = global::System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(global::Google.Protobuf.IBufferMessage)).IsAssignableFrom(typeof(T));
+    }
+
+    static T __Helper_DeserializeMessage<T>(grpc::DeserializationContext context, global::Google.Protobuf.MessageParser<T> parser) where T : global::Google.Protobuf.IMessage<T>
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (__Helper_MessageCache<T>.IsBufferMessage)
+      {
+        return parser.ParseFrom(context.PayloadAsReadOnlySequence());
+      }
+      #endif
+      return parser.ParseFrom(context.PayloadAsNewBuffer());
+    }
+
+    static readonly grpc::Marshaller<global::Event.OnEventRequest> __Marshaller_event_OnEventRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.OnEventRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.OnEventResponse> __Marshaller_event_OnEventResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.OnEventResponse.Parser));
+    static readonly grpc::Marshaller<global::Event.QuitRequest> __Marshaller_event_QuitRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.QuitRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.QuitResponse> __Marshaller_event_QuitResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.QuitResponse.Parser));
+    static readonly grpc::Marshaller<global::Event.SubscribeRequest> __Marshaller_event_SubscribeRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.SubscribeRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.SubscribeResponse> __Marshaller_event_SubscribeResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.SubscribeResponse.Parser));
+    static readonly grpc::Marshaller<global::Event.UnSubscribeRequest> __Marshaller_event_UnSubscribeRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.UnSubscribeRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.UnSubscribeResponse> __Marshaller_event_UnSubscribeResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.UnSubscribeResponse.Parser));
+    static readonly grpc::Marshaller<global::Event.PublishRequest> __Marshaller_event_PublishRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.PublishRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.PublishResponse> __Marshaller_event_PublishResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.PublishResponse.Parser));
 
     static readonly grpc::Method<global::Event.OnEventRequest, global::Event.OnEventResponse> __Method_OnEvent = new grpc::Method<global::Event.OnEventRequest, global::Event.OnEventResponse>(
         grpc::MethodType.ServerStreaming,

@@ -18,48 +18,78 @@ namespace Persistence {
   {
     static readonly string __ServiceName = "persistence.PersistenceService";
 
-    static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRqst> __Marshaller_persistence_CreateDatabaseRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateDatabaseRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRsp> __Marshaller_persistence_CreateDatabaseRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateDatabaseRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.ConnectRqst> __Marshaller_persistence_ConnectRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.ConnectRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.ConnectRsp> __Marshaller_persistence_ConnectRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.ConnectRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DisconnectRqst> __Marshaller_persistence_DisconnectRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DisconnectRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DisconnectRsp> __Marshaller_persistence_DisconnectRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DisconnectRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteDatabaseRqst> __Marshaller_persistence_DeleteDatabaseRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteDatabaseRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteDatabaseRsp> __Marshaller_persistence_DeleteDatabaseRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteDatabaseRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CreateCollectionRqst> __Marshaller_persistence_CreateCollectionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateCollectionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CreateCollectionRsp> __Marshaller_persistence_CreateCollectionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateCollectionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteCollectionRqst> __Marshaller_persistence_DeleteCollectionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteCollectionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteCollectionRsp> __Marshaller_persistence_DeleteCollectionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteCollectionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CreateConnectionRqst> __Marshaller_persistence_CreateConnectionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateConnectionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CreateConnectionRsp> __Marshaller_persistence_CreateConnectionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CreateConnectionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteConnectionRqst> __Marshaller_persistence_DeleteConnectionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteConnectionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteConnectionRsp> __Marshaller_persistence_DeleteConnectionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteConnectionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.PingConnectionRqst> __Marshaller_persistence_PingConnectionRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.PingConnectionRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.PingConnectionRsp> __Marshaller_persistence_PingConnectionRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.PingConnectionRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CountRqst> __Marshaller_persistence_CountRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CountRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.CountRsp> __Marshaller_persistence_CountRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.CountRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.InsertOneRqst> __Marshaller_persistence_InsertOneRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.InsertOneRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.InsertOneRsp> __Marshaller_persistence_InsertOneRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.InsertOneRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.InsertManyRqst> __Marshaller_persistence_InsertManyRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.InsertManyRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.InsertManyRsp> __Marshaller_persistence_InsertManyRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.InsertManyRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.FindRqst> __Marshaller_persistence_FindRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.FindRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.FindResp> __Marshaller_persistence_FindResp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.FindResp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.FindOneRqst> __Marshaller_persistence_FindOneRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.FindOneRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.FindOneResp> __Marshaller_persistence_FindOneResp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.FindOneResp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.AggregateRqst> __Marshaller_persistence_AggregateRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.AggregateRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.AggregateResp> __Marshaller_persistence_AggregateResp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.AggregateResp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.UpdateRqst> __Marshaller_persistence_UpdateRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.UpdateRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.UpdateRsp> __Marshaller_persistence_UpdateRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.UpdateRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.UpdateOneRqst> __Marshaller_persistence_UpdateOneRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.UpdateOneRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.UpdateOneRsp> __Marshaller_persistence_UpdateOneRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.UpdateOneRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.ReplaceOneRqst> __Marshaller_persistence_ReplaceOneRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.ReplaceOneRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.ReplaceOneRsp> __Marshaller_persistence_ReplaceOneRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.ReplaceOneRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteRqst> __Marshaller_persistence_DeleteRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteRsp> __Marshaller_persistence_DeleteRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteOneRqst> __Marshaller_persistence_DeleteOneRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteOneRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.DeleteOneRsp> __Marshaller_persistence_DeleteOneRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.DeleteOneRsp.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRqst> __Marshaller_persistence_RunAdminCmdRqst = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.RunAdminCmdRqst.Parser.ParseFrom);
-    static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRsp> __Marshaller_persistence_RunAdminCmdRsp = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Persistence.RunAdminCmdRsp.Parser.ParseFrom);
+    static void __Helper_SerializeMessage(global::Google.Protobuf.IMessage message, grpc::SerializationContext context)
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (message is global::Google.Protobuf.IBufferMessage)
+      {
+        context.SetPayloadLength(message.CalculateSize());
+        global::Google.Protobuf.MessageExtensions.WriteTo(message, context.GetBufferWriter());
+        context.Complete();
+        return;
+      }
+      #endif
+      context.Complete(global::Google.Protobuf.MessageExtensions.ToByteArray(message));
+    }
+
+    static class __Helper_MessageCache<T>
+    {
+      public static readonly bool IsBufferMessage = global::System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(global::Google.Protobuf.IBufferMessage)).IsAssignableFrom(typeof(T));
+    }
+
+    static T __Helper_DeserializeMessage<T>(grpc::DeserializationContext context, global::Google.Protobuf.MessageParser<T> parser) where T : global::Google.Protobuf.IMessage<T>
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (__Helper_MessageCache<T>.IsBufferMessage)
+      {
+        return parser.ParseFrom(context.PayloadAsReadOnlySequence());
+      }
+      #endif
+      return parser.ParseFrom(context.PayloadAsNewBuffer());
+    }
+
+    static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRqst> __Marshaller_persistence_CreateDatabaseRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateDatabaseRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRsp> __Marshaller_persistence_CreateDatabaseRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateDatabaseRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.ConnectRqst> __Marshaller_persistence_ConnectRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.ConnectRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.ConnectRsp> __Marshaller_persistence_ConnectRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.ConnectRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DisconnectRqst> __Marshaller_persistence_DisconnectRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DisconnectRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DisconnectRsp> __Marshaller_persistence_DisconnectRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DisconnectRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteDatabaseRqst> __Marshaller_persistence_DeleteDatabaseRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteDatabaseRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteDatabaseRsp> __Marshaller_persistence_DeleteDatabaseRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteDatabaseRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CreateCollectionRqst> __Marshaller_persistence_CreateCollectionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateCollectionRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CreateCollectionRsp> __Marshaller_persistence_CreateCollectionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateCollectionRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteCollectionRqst> __Marshaller_persistence_DeleteCollectionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteCollectionRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteCollectionRsp> __Marshaller_persistence_DeleteCollectionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteCollectionRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CreateConnectionRqst> __Marshaller_persistence_CreateConnectionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateConnectionRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CreateConnectionRsp> __Marshaller_persistence_CreateConnectionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateConnectionRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteConnectionRqst> __Marshaller_persistence_DeleteConnectionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteConnectionRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteConnectionRsp> __Marshaller_persistence_DeleteConnectionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteConnectionRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.PingConnectionRqst> __Marshaller_persistence_PingConnectionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.PingConnectionRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.PingConnectionRsp> __Marshaller_persistence_PingConnectionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.PingConnectionRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CountRqst> __Marshaller_persistence_CountRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CountRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.CountRsp> __Marshaller_persistence_CountRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CountRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.InsertOneRqst> __Marshaller_persistence_InsertOneRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.InsertOneRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.InsertOneRsp> __Marshaller_persistence_InsertOneRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.InsertOneRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.InsertManyRqst> __Marshaller_persistence_InsertManyRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.InsertManyRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.InsertManyRsp> __Marshaller_persistence_InsertManyRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.InsertManyRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.FindRqst> __Marshaller_persistence_FindRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.FindRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.FindResp> __Marshaller_persistence_FindResp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.FindResp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.FindOneRqst> __Marshaller_persistence_FindOneRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.FindOneRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.FindOneResp> __Marshaller_persistence_FindOneResp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.FindOneResp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.AggregateRqst> __Marshaller_persistence_AggregateRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.AggregateRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.AggregateResp> __Marshaller_persistence_AggregateResp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.AggregateResp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.UpdateRqst> __Marshaller_persistence_UpdateRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.UpdateRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.UpdateRsp> __Marshaller_persistence_UpdateRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.UpdateRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.UpdateOneRqst> __Marshaller_persistence_UpdateOneRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.UpdateOneRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.UpdateOneRsp> __Marshaller_persistence_UpdateOneRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.UpdateOneRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.ReplaceOneRqst> __Marshaller_persistence_ReplaceOneRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.ReplaceOneRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.ReplaceOneRsp> __Marshaller_persistence_ReplaceOneRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.ReplaceOneRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteRqst> __Marshaller_persistence_DeleteRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteRsp> __Marshaller_persistence_DeleteRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteOneRqst> __Marshaller_persistence_DeleteOneRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteOneRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.DeleteOneRsp> __Marshaller_persistence_DeleteOneRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteOneRsp.Parser));
+    static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRqst> __Marshaller_persistence_RunAdminCmdRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.RunAdminCmdRqst.Parser));
+    static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRsp> __Marshaller_persistence_RunAdminCmdRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.RunAdminCmdRsp.Parser));
 
     static readonly grpc::Method<global::Persistence.CreateDatabaseRqst, global::Persistence.CreateDatabaseRsp> __Method_CreateDatabase = new grpc::Method<global::Persistence.CreateDatabaseRqst, global::Persistence.CreateDatabaseRsp>(
         grpc::MethodType.Unary,

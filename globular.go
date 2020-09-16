@@ -209,6 +209,8 @@ func NewGlobule() *Globule {
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
+	g.Services = make(map[string]interface{}, 0)
+
 	// Contain the list of ldap syncronization info.
 	g.LdapSyncInfos = make(map[string]interface{}, 0)
 
@@ -228,7 +230,12 @@ func NewGlobule() *Globule {
 	// Init the service with the default port address
 	if err == nil {
 		// get the existing configuration.
-		json.Unmarshal(file, &g)
+		err := json.Unmarshal(file, &g)
+		if err != nil {
+			log.Println("fail to initialyse the globule configuration")
+		} else {
+			log.Println(g.Services)
+		}
 
 	} else {
 		// save the configuration to set the port number.
@@ -294,18 +301,38 @@ func (self *Globule) getNextAvailablePort() (int, error) {
  */
 func (self *Globule) isPortAvailable(port int) bool {
 	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 12 // The first 12 addresse are reserver by internal service...
+	start := Utility.ToInt(portRange[0]) + 13 // The first 12 addresse are reserver by internal service...
 	end := Utility.ToInt(portRange[1])
 
 	if port < start || port > end {
 		return false
 	}
 
+	// I will test if the port is already taken by e services.
+	for _, s := range self.Services {
+
+		s_ := s.(map[string]interface{})
+		if s_["Process"] != nil {
+			if port == Utility.ToInt(s_["Port"]) {
+				return false // port is already in use.
+			}
+		}
+		if s_["ProxyProcess"] != nil {
+			if port == Utility.ToInt(s_["Proxy"]) {
+				return false // port is already in use.
+			}
+		}
+	}
+
+	// give time to process to start.
+	//time.Sleep(3 * time.Second)
+
 	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
 	if err == nil {
 		defer l.Close()
 		return true
 	}
+
 	return false
 }
 
@@ -761,6 +788,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				return -1, -1, err
 			}
 		}
+		s["Port"] = port
 
 		// File service need root...
 		if s["Name"].(string) == "file.FileService" {
@@ -783,8 +811,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			log.Println("Fail to start service: ", s["Name"].(string), " at port ", port, " with error ", err)
 			return -1, -1, err
 		}
-
-		time.Sleep(500 * time.Millisecond)
 
 		go func() {
 
@@ -856,6 +882,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// get another port.
 		proxy := port + 1
 		if !self.isPortAvailable(proxy) {
+			log.Println("----> port is already take for proxy ", proxy)
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
@@ -863,14 +890,15 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// Start the proxy.
+		log.Println("----------> port ", port, " proxy ", proxy)
 		err = self.startProxy(s["Id"].(string), port, proxy)
 		if err != nil {
 			return -1, -1, err
 		}
-		time.Sleep(500 * time.Millisecond)
+
+		time.Sleep(5 * time.Second)
+
 		// Save configuration stuff.
-		log.Println("port ", port, " proxy ", proxy)
-		s["Port"] = port
 		s["Proxy"] = proxy
 
 		self.Services[s["Id"].(string)] = s
@@ -1031,7 +1059,6 @@ func (self *Globule) initServices() {
 				return
 			}
 
-			//self.initServices() // must restart the services with new certificates.
 			err = self.obtainCertificateForCsr()
 			if err != nil {
 				log.Println(err)
@@ -1057,6 +1084,7 @@ func (self *Globule) initServices() {
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
+
 	if !Utility.Exists(configPath) {
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
@@ -1117,7 +1145,7 @@ func (self *Globule) initServices() {
 	for _, s := range self.Services {
 		if s.(map[string]interface{})["Path"] != nil {
 			name := s.(map[string]interface{})["Path"].(string)
-			name = name[strings.LastIndex(name, "/")+1:]
+			name = name[strings.LastIndex(name, string(os.PathSeparator))+1:]
 			err := Utility.KillProcessByName(name)
 			if err != nil {
 				log.Println(err)
