@@ -178,6 +178,7 @@ public:
             }
 
             if(!hasAccess){
+                std::cout << method << token << std::endl;
                 hasAccess = ressourceClient->validateUserAccess(token, method);
             }
 

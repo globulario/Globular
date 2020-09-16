@@ -5,10 +5,6 @@ Globular::RessourceClient::RessourceClient(std::string name, std::string domain,
     Globular::Client(name,domain, configurationPort),
     stub_(ressource::RessourceService::NewStub(this->channel))
 {
-    if(!this->channel){
-        std::cout << "hostie!" << std::endl;
-    }
-
     std::cout << "init the ressource client!" << std::endl;
 }
 
