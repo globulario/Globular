@@ -263,18 +263,18 @@ func (self *Globule) registerMethods() error {
 		guest["name"] = "guest"
 		guest["actions"] = []string{
 			"/admin.AdminService/GetConfig",
-			"/ressourcepb.RessourceService/RegisterAccount",
-			"/ressourcepb.RessourceService/AccountExist",
-			"/ressourcepb.RessourceService/Authenticate",
-			"/ressourcepb.RessourceService/RefreshToken",
-			"/ressourcepb.RessourceService/GetPermissions",
-			"/ressourcepb.RessourceService/GetAllFilesInfo",
-			"/ressourcepb.RessourceService/GetAllApplicationsInfo",
-			"/ressourcepb.RessourceService/GetRessourceOwners",
-			"/ressourcepb.RessourceService/ValidateUserRessourceAccess",
-			"/ressourcepb.RessourceService/ValidateApplicationRessourceAccess",
-			"/ressourcepb.RessourceService/ValidateUserRessourceAccess",
-			"/ressourcepb.RessourceService/ValidateApplicationAccess",
+			"/ressource.RessourceService/RegisterAccount",
+			"/ressource.RessourceService/AccountExist",
+			"/ressource.RessourceService/Authenticate",
+			"/ressource.RessourceService/RefreshToken",
+			"/ressource.RessourceService/GetPermissions",
+			"/ressource.RessourceService/GetAllFilesInfo",
+			"/ressource.RessourceService/GetAllApplicationsInfo",
+			"/ressource.RessourceService/GetRessourceOwners",
+			"/ressource.RessourceService/ValidateUserRessourceAccess",
+			"/ressource.RessourceService/ValidateApplicationRessourceAccess",
+			"/ressource.RessourceService/ValidateUserRessourceAccess",
+			"/ressource.RessourceService/ValidateApplicationAccess",
 			"/event.EventService/Subscribe",
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
 			"/event.EventService/Quit",
@@ -286,7 +286,7 @@ func (self *Globule) registerMethods() error {
 			"/persistence.PersistenceService/Find",
 			"/persistence.PersistenceService/FindOne",
 			"/persistence.PersistenceService/Count",
-			"/ressourcepb.RessourceService/GetAllActions"}
+			"/ressource.RessourceService/GetAllActions"}
 
 		_, err := p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Roles", guest, "")
 		if err != nil {
@@ -1731,7 +1731,7 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
 
 	// Remove cyclic calls
-	if method == "/ressourcepb.RessourceService/Log" {
+	if method == "/ressource.RessourceService/Log" {
 		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itself!")
 	}
 
@@ -1772,27 +1772,28 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	var err error
 
 	// Here some method are accessible by default.
-	if method == "/ressourcepb.RessourceService/GetAllActions" ||
-		method == "/ressourcepb.RessourceService/RegisterAccount" ||
-		method == "/ressourcepb.RessourceService/AccountExist" ||
-		method == "/ressourcepb.RessourceService/Authenticate" ||
-		method == "/ressourcepb.RessourceService/RefreshToken" ||
-		method == "/ressourcepb.RessourceService/GetPermissions" ||
-		method == "/ressourcepb.RessourceService/GetRessourceOwners" ||
-		method == "/ressourcepb.RessourceService/GetAllFilesInfo" ||
-		method == "/ressourcepb.RessourceService/GetAllApplicationsInfo" ||
-		method == "/ressourcepb.RessourceService/GetRessourceOwners" ||
-		method == "/ressourcepb.RessourceService/ValidateToken" ||
-		method == "/ressourcepb.RessourceService/ValidateUserRessourceAccess" ||
-		method == "/ressourcepb.RessourceService/ValidateApplicationRessourceAccess" ||
-		method == "/ressourcepb.RessourceService/ValidateUserRessourceAccess" ||
-		method == "/ressourcepb.RessourceService/ValidateApplicationAccess" ||
-		method == "/ressourcepb.RessourceService/GetActionPermission" ||
-		method == "/ressourcepb.RessourceService/Log" ||
-		method == "/ressourcepb.RessourceService/GetLog" {
+	if method == "/ressource.RessourceService/GetAllActions" ||
+		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/AccountExist" ||
+		method == "/ressource.RessourceService/Authenticate" ||
+		method == "/ressource.RessourceService/RefreshToken" ||
+		method == "/ressource.RessourceService/GetPermissions" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/GetAllFilesInfo" ||
+		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
+		method == "/ressource.RessourceService/GetRessourceOwners" ||
+		method == "/ressource.RessourceService/ValidateToken" ||
+		method == "/ressource.RessourceService/ValidateUserAccess" ||
+		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
+		method == "/ressource.RessourceService/ValidateApplicationRessourceAccess" ||
+		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
+		method == "/ressource.RessourceService/GetActionPermission" ||
+		method == "/ressource.RessourceService/Log" ||
+		method == "/ressource.RessourceService/GetLog" {
 		hasAccess = true
 	}
-
+	log.Println("-------------> 1795 has access:", method, hasAccess)
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		var expiredAt int64
@@ -1809,27 +1810,27 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 			hasAccess = true
 		} else {
 			// special case that need ownership of the ressource or be sa
-			if method == "/ressourcepb.RessourceService/SetPermission" || method == "/ressourcepb.RessourceService/DeletePermissions" ||
-				method == "/ressourcepb.RessourceService/SetRessourceOwner" || method == "/ressourcepb.RessourceService/DeleteRessourceOwner" ||
-				method == "/ressourcepb.RessourceService/CreateDirPermissions" {
+			if method == "/ressource.RessourceService/SetPermission" || method == "/ressource.RessourceService/DeletePermissions" ||
+				method == "/ressource.RessourceService/SetRessourceOwner" || method == "/ressource.RessourceService/DeleteRessourceOwner" ||
+				method == "/ressource.RessourceService/CreateDirPermissions" {
 				var path string
-				if method == "/ressourcepb.RessourceService/SetPermission" {
+				if method == "/ressource.RessourceService/SetPermission" {
 					rqst := req.(*ressourcepb.SetPermissionRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Permission.GetPath()
-				} else if method == "/ressourcepb.RessourceService/DeletePermissions" {
+				} else if method == "/ressource.RessourceService/DeletePermissions" {
 					rqst := req.(*ressourcepb.DeletePermissionsRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressourcepb.RessourceService/SetRessourceOwner" {
+				} else if method == "/ressource.RessourceService/SetRessourceOwner" {
 					rqst := req.(*ressourcepb.SetRessourceOwnerRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressourcepb.RessourceService/DeleteRessourceOwner" {
+				} else if method == "/ressource.RessourceService/DeleteRessourceOwner" {
 					rqst := req.(*ressourcepb.DeleteRessourceOwnerRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
-				} else if method == "/ressourcepb.RessourceService/CreateDirPermissions" {
+				} else if method == "/ressource.RessourceService/CreateDirPermissions" {
 					rqst := req.(*ressourcepb.CreateDirPermissionsRqst)
 					// Here I will validate that the user is the owner.
 					path = rqst.Path
@@ -1868,25 +1869,25 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 
 	if err == nil {
 		// Set permissions in case one of those methode is called.
-		if method == "/ressourcepb.RessourceService/DeleteApplication" {
+		if method == "/ressource.RessourceService/DeleteApplication" {
 			rqst := req.(*ressourcepb.DeleteApplicationRqst)
 			err := self.deleteDirPermissions("/" + rqst.ApplicationId)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressourcepb.RessourceService/DeleteRole" {
+		} else if method == "/ressource.RessourceService/DeleteRole" {
 			rqst := req.(*ressourcepb.DeleteRoleRqst)
 			err := self.deleteRolePermissions("/" + rqst.RoleId)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressourcepb.RessourceService/DeleteAccount" {
+		} else if method == "/ressource.RessourceService/DeleteAccount" {
 			rqst := req.(*ressourcepb.DeleteAccountRqst)
 			err := self.deleteAccountPermissions("/" + rqst.Id)
 			if err != nil {
 				return nil, err
 			}
-		} else if method == "/ressourcepb.RessourceService/SetRessource" {
+		} else if method == "/ressource.RessourceService/SetRessource" {
 			if clientId != "sa" {
 				rqst := req.(*ressourcepb.SetRessourceRqst)
 
