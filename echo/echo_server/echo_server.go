@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/api"
@@ -304,9 +303,6 @@ func main() {
 	// Initialyse service with default values.
 	s_impl := new(server)
 	s_impl.Name = string(echopb.File_echo_echopb_echo_proto.Services().Get(0).FullName())
-	s_impl.Path, _ = os.Executable()
-	package_ := string(echopb.File_echo_echopb_echo_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proto = echopb.File_echo_echopb_echo_proto.Path()
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy

@@ -941,9 +941,6 @@ func main() {
 	s_impl.Name = string(searchpb.File_search_searchpb_search_proto.Services().Get(0).FullName())
 	s_impl.Proto = searchpb.File_search_searchpb_search_proto.Path()
 	s_impl.Port = port
-	s_impl.Path, _ = os.Executable()
-	package_ := string(searchpb.File_search_searchpb_search_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain

@@ -11,7 +11,6 @@ import (
 
 	"os"
 	"strconv"
-	"strings"
 
 	//"strings"
 	"time"
@@ -752,9 +751,6 @@ func main() {
 	s_impl.Connections = make(map[string]connection)
 	s_impl.Name = string(sqlpb.File_sql_sqlpb_sql_proto.Services().Get(0).FullName())
 	s_impl.Proto = sqlpb.File_sql_sqlpb_sql_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(sqlpb.File_sql_sqlpb_sql_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

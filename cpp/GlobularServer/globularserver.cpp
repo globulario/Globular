@@ -50,6 +50,7 @@ Globular::GlobularService::GlobularService(std::string id,
                                            std::string publisher_id,
                                            bool allow_all_origins,
                                            std::string allowed_origins,
+                                           std::string version,
                                            bool tls,
                                            unsigned int defaultPort,
                                            unsigned int defaultProxy):
@@ -61,6 +62,7 @@ Globular::GlobularService::GlobularService(std::string id,
     port(defaultPort),
     proxy(defaultProxy),
     allowed_origins(allowed_origins),
+    version(version),
     tls(tls)
 {
 
@@ -128,6 +130,16 @@ read ( const std::string& filename, std::string& data )
     return;
 }
 
+
+std::string replaceAll(std::string str, const std::string& from, const std::string& to) {
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
 void Globular::GlobularService::save() {
     nlohmann::json j;
     j["PublisherId"] = this->publisher_id;
@@ -148,7 +160,7 @@ void Globular::GlobularService::save() {
     j["Proxy"] = this->proxy;
     j["TLS"] = this->tls;
 
-    std::string execPath = getexepath();
+    std::string execPath = replaceAll(getexepath(), "\\", "/");
     j["Path"] = execPath;
 
 #ifdef WIN32
@@ -179,12 +191,6 @@ void Globular::GlobularService::run(Service* s) {
         read ( this->cert_file, cert );
         read ( this->key_file , key );
         read ( this->cert_authority_trust, ca );
-
-        /*
-        std::cout << this->cert_file << std::endl << cert << std::endl;
-        std::cout << this->key_file << std::endl << key << std::endl;
-        std::cout << this->cert_authority_trust << std::endl << ca << std::endl;
-        */
 
         grpc::SslServerCredentialsOptions::PemKeyCertPair keycert =
         {

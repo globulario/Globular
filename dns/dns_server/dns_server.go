@@ -1673,9 +1673,6 @@ func main() {
 	Utility.RegisterType(s_impl) // must be call dynamically
 	s_impl.Name = string(dnspb.File_dns_dnspb_dns_proto.Services().Get(0).FullName())
 	s_impl.Proto = dnspb.File_dns_dnspb_dns_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(dnspb.File_dns_dnspb_dns_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

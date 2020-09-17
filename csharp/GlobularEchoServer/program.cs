@@ -20,7 +20,7 @@ namespace Echo
             Task.Factory.StartNew(() =>
             {
                 // Create a new echo server instance.
-                var echoServer = new EchoServiceImpl();
+                var echoServer = new EchoServiceImpl("toto");
                 // init values from the configuration file.
                 echoServer = echoServer.init();
                 if (echoServer.TLS == true)

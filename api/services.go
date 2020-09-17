@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strconv"
+	"strings"
 
 	"log"
 	"os"
@@ -134,6 +135,14 @@ func InitService(path string, s Service) error {
 			s.SetId(Utility.RandomUUID())
 		}
 
+		execPath, _ := os.Executable()
+		execPath = strings.ReplaceAll(execPath, "\\", "/")
+		s.SetPath(execPath)
+
+		package_ := strings.Split(s.GetProto(), "/")[0]
+		path_ := execPath[0:strings.Index(execPath, package_)]
+		s.SetProto(path_ + s.GetProto())
+
 		// save the service configuation.
 		return SaveService(path, s)
 	}
@@ -224,6 +233,7 @@ func InitGrpcServer(s Service, unaryInterceptor grpc.UnaryServerInterceptor, str
  * Save a globular service.
  */
 func SaveService(path string, s Service) error {
+
 	// Create the file...
 	str, err := Utility.ToJson(s)
 	if err != nil {

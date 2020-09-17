@@ -757,9 +757,6 @@ func main() {
 	s_impl.Name = string(monitoringpb.File_monitoring_monitoringpb_monitoring_proto.Services().Get(0).FullName())
 	s_impl.Proto = monitoringpb.File_monitoring_monitoringpb_monitoring_proto.Path()
 	s_impl.Port = port
-	s_impl.Path, _ = os.Executable()
-	package_ := string(monitoringpb.File_monitoring_monitoringpb_monitoring_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain

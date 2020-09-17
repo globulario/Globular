@@ -38,6 +38,9 @@ var (
 
 	// The default domain
 	domain string = "localhost"
+
+	// The grpc server.
+	grpcServer *grpc.Server
 )
 
 // This is the connction to a datastore.
@@ -988,9 +991,6 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Name = string(persistencepb.File_persistence_persistencepb_persistence_proto.Services().Get(0).FullName())
-	s_impl.Path, _ = os.Executable()
-	package_ := string(persistencepb.File_persistence_persistencepb_persistence_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proto = persistencepb.File_persistence_persistencepb_persistence_proto.Path()
 	s_impl.Proxy = defaultProxy

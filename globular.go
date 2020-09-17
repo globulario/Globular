@@ -233,8 +233,6 @@ func NewGlobule() *Globule {
 		err := json.Unmarshal(file, &g)
 		if err != nil {
 			log.Println("fail to initialyse the globule configuration")
-		} else {
-			log.Println(g.Services)
 		}
 
 	} else {
@@ -757,7 +755,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 	}
 
-	servicePath := self.path + string(os.PathSeparator) + s["Path"].(string)
+	servicePath := s["Path"].(string)
 	if s["Protocol"].(string) == "grpc" {
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {
@@ -776,6 +774,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		if string(os.PathSeparator) == "\\" && !strings.HasSuffix(servicePath, ".exe") {
 			servicePath += ".exe" // in case of windows.
 		}
+
+		servicePath = strings.ReplaceAll(servicePath, "\\", "/")
 
 		// Get the next available port.
 		port := Utility.ToInt(s["Port"])
@@ -800,7 +800,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s["Process"].(*exec.Cmd).Stderr = &errb
 
 		// Here I will set the command dir.
-		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
+
+		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 
 		err = s["Process"].(*exec.Cmd).Start()
 		if err != nil {
@@ -829,7 +830,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				self.lb_load_info_channel <- load_info
 			}
 			s["State"] = "running"
-			log.Println("Service " + s["Name"].(string) + ":" + s["Id"].(string) + " is up and running!")
 
 			self.keepServiceAlive(s)
 
@@ -879,7 +879,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// get another port.
 		proxy := port + 1
 		if !self.isPortAvailable(proxy) {
-			log.Println("----> port is already take for proxy ", proxy)
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
@@ -887,7 +886,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// Start the proxy.
-		log.Println("----------> port ", port, " proxy ", proxy)
 		err = self.startProxy(s["Id"].(string), port, proxy)
 		if err != nil {
 			return -1, -1, err
@@ -905,6 +903,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		// save it to the config.
 		self.saveConfig()
+		log.Println("Service "+s["Name"].(string)+":"+s["Id"].(string)+" is up and running at port ", port, " and proxy ", proxy)
 
 	} else if s["Protocol"].(string) == "http" {
 		// any other http server except this one...
@@ -1111,7 +1110,7 @@ func (self *Globule) initServices() {
 								}
 								self.Services[s["Id"].(string)] = s
 								// here I will keep the configuration path in the global configuration.
-								s["configPath"] = strings.ReplaceAll(path, self.path, "")[1:]
+								s["configPath"] = strings.ReplaceAll(path, "\\", "/")
 							}
 						}
 					} else {
@@ -1142,7 +1141,7 @@ func (self *Globule) initServices() {
 	for _, s := range self.Services {
 		if s.(map[string]interface{})["Path"] != nil {
 			name := s.(map[string]interface{})["Path"].(string)
-			name = name[strings.LastIndex(name, string(os.PathSeparator))+1:]
+			name = name[strings.LastIndex(name, "/")+1:]
 			err := Utility.KillProcessByName(name)
 			if err != nil {
 				log.Println(err)

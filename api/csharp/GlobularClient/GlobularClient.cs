@@ -178,7 +178,7 @@ namespace Globular
         }
 
         // Get the CA public certificate.
-        private string getCaCertificate(string domain, uint ConfigurationPort)
+        private string getCaCertificate(string domain, int ConfigurationPort)
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
@@ -201,7 +201,7 @@ namespace Globular
         }
 
         // ask globular CA to sign the cerificate.
-        private string signCaCertificate(string domain, uint ConfigurationPort, string csr)
+        private string signCaCertificate(string domain, int ConfigurationPort, string csr)
         {
             var client = new HttpClient();
 
@@ -340,7 +340,7 @@ namespace Globular
             return true;
         }
 
-        private void init(string domain, string name, uint configurationPort)
+        private void init(string id , string domain,  int configurationPort)
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
@@ -355,16 +355,18 @@ namespace Globular
 
             // Here I will parse the JSON object and initialyse values from it...
             var serverConfig = JsonSerializer.Deserialize<ServerConfig>(rsp.Content.ReadAsStringAsync().Result);
-            if (!serverConfig.Services.ContainsKey(name))
+            if (!serverConfig.Services.ContainsKey(id))
             {
-                throw new System.InvalidOperationException("No serivce found with name " + name + "!");
+                throw new System.InvalidOperationException("No serivce found with id " + id + "!");
             }
 
             // get the service config.
-            var config = serverConfig.Services[name];
+            var config = serverConfig.Services[id];
             this.port = config.Port;
             this.hasTls = config.TLS;
             this.domain = config.Domain;
+            this.id = config.Id;
+            this.name = config.Name;
 
 
             // Here I will create grpc connection with the service...
@@ -394,7 +396,7 @@ namespace Globular
                     }
 
                     // Now I will create the certificates.
-                    var ca_crt = getCaCertificate(this.domain);
+                    var ca_crt = getCaCertificate(this.domain,  configurationPort);
                     File.WriteAllText(path + "/ca.crt", ca_crt);
 
                     var pwd = "1111"; // Set in the configuration...
@@ -474,13 +476,13 @@ namespace Globular
             return metadata;
         }
 
-        public Client(string domain, uint configurationPort, string name)
+        public Client(string id, string domain, int configurationPort)
         {
-            this.name = name;
+            this.id = id;
             this.domain = domain;
         
             // Now I will get the client configuration.
-            this.init(domain, name, configurationPort);
+            this.init(id, domain, configurationPort);
         }
     }
 }

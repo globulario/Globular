@@ -28,18 +28,14 @@ namespace Globular
         private Channel<Subscriber> subscribe_channel;
         private Channel<Subscriber> unsubscribe_channel;
 
-        public struct Action
-        {
-            string name;
-        }
-
         /// <summary>
         /// gRPC client for event service.
         /// </summary>
-        /// <param name="address">Can be a domain or a IP address ex: localhost or 127.0.0.1</param>
-        /// <param name="name">The name of the service on the server. ex: persistence_server</param>
+        /// <param name="id"></param> The name or the id of the services.
+        /// <param name="domain"></param> The domain of the services
+        /// <param name="configurationPort"></param> The domain of the services
         /// <returns>Return the instance of the client with it connection ready to be use.</returns>
-        public GlobularEventClient(string address, string name) : base(address, name)
+        public GlobularEventClient( string id, string domain, int configurationPort) : base(id, domain, configurationPort)
         {
             // Here I will create grpc connection with the service...
             this.client = new Event.EventService.EventServiceClient(this.channel);
@@ -81,7 +77,7 @@ namespace Globular
             });
 
             // Now On subscribe processing loop.
-            var subscribe_channel = Channel.CreateUnbounded<Subscriber>();
+            this.subscribe_channel = Channel.CreateUnbounded<Subscriber>();
             Task.Run(async () =>
             {
                 while (await subscribe_channel.Reader.WaitToReadAsync())
@@ -96,7 +92,7 @@ namespace Globular
             });
 
             // Unsbuscribe from an event.
-            var unsubscribe_channel = Channel.CreateUnbounded<Subscriber>();
+            this.unsubscribe_channel = Channel.CreateUnbounded<Subscriber>();
             Task.Run(async () =>
             {
                 while (await unsubscribe_channel.Reader.WaitToReadAsync())
@@ -171,7 +167,7 @@ namespace Globular
             subscriber.Name = name;
 
             // Register the uuid in local subscribers
-            subscribe_channel.Writer.WriteAsync(subscriber);
+            this.subscribe_channel.Writer.WriteAsync(subscriber);
         }
 
         public void UnSubscribe(string name, string uuid)
@@ -189,7 +185,7 @@ namespace Globular
             subscriber.Name = name;
 
             // Uregister the uuid in local subscribers
-            subscribe_channel.Writer.WriteAsync(subscriber);
+            this.subscribe_channel.Writer.WriteAsync(subscriber);
         }
     }
 }

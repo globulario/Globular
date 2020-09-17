@@ -1793,7 +1793,7 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/GetLog" {
 		hasAccess = true
 	}
-	log.Println("-------------> 1795 has access:", method, hasAccess)
+
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		var expiredAt int64

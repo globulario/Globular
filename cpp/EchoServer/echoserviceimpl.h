@@ -20,6 +20,7 @@ public:
                     std::string publisher_id = "localhost",
                     bool allow_all_origins = false,
                     std::string allowed_origins = "",
+                    std::string version = "0.0.1",
                     bool tls = false,
                     unsigned int defaultPort = 10023, unsigned int defaultProxy = 10024);
 

@@ -25,6 +25,7 @@ namespace Globular
         public int Port { get; set; }
         public int Proxy { get; set; }
         public string Protocol { get; set; }
+        public int ConfigurationPort {get; set;}
         public bool AllowAllOrigins { get; set; }
         public string AllowedOrigins { get; set; }
         public string Domain { get; set; }
@@ -36,6 +37,7 @@ namespace Globular
         public string PublisherId { get; set; }
         public bool KeepUpToDate { get; set; }
         public bool KeepAlive { get; set; }
+
 		
         private RessourceClient ressourceClient;
         public ServerUnaryInterceptor interceptor;
@@ -60,7 +62,8 @@ namespace Globular
             if (this.ressourceClient == null)
             {
                 // there must be a globular server runing in order to validate ressources.
-                ressourceClient = new RessourceClient(domain, "ressource.RessourceService");
+                // TODO set the configuration port in a configuration file.
+                ressourceClient = new RessourceClient("ressource.RessourceService", domain,  this.ConfigurationPort );
             }
             return this.ressourceClient;
         }
@@ -75,7 +78,8 @@ namespace Globular
         /// </summary>
         public object init(object server)
         {
-            var configPath = this.getPath() + Path.DirectorySeparatorChar + "config.json";
+            var configPath = this.getPath() + "/config.json";
+
             // Here I will read the file that contain the object.
             if (File.Exists(configPath))
             {
@@ -92,7 +96,7 @@ namespace Globular
         /// </summary>
         public void save(object server)
         {
-            var configPath = getPath() + Path.DirectorySeparatorChar + "config.json";
+            var configPath = getPath()  + "/config.json";
             string jsonStr;
             jsonStr = JsonSerializer.Serialize(server);
             File.WriteAllText(configPath, jsonStr);

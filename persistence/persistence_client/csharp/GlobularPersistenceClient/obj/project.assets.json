@@ -2,10 +2,11 @@
   "version": 3,
   "targets": {
     ".NETCoreApp,Version=v3.1": {
-      "Google.Protobuf/3.11.4": {
+      "Google.Protobuf/3.13.0": {
         "type": "package",
         "dependencies": {
-          "System.Memory": "4.5.2"
+          "System.Memory": "4.5.2",
+          "System.Runtime.CompilerServices.Unsafe": "4.5.2"
         },
         "compile": {
           "lib/netstandard2.0/Google.Protobuf.dll": {}
@@ -14,16 +15,16 @@
           "lib/netstandard2.0/Google.Protobuf.dll": {}
         }
       },
-      "Grpc/2.28.1": {
+      "Grpc/2.32.0": {
         "type": "package",
         "dependencies": {
-          "Grpc.Core": "2.28.1"
+          "Grpc.Core": "2.32.0"
         }
       },
-      "Grpc.Core/2.28.1": {
+      "Grpc.Core/2.32.0": {
         "type": "package",
         "dependencies": {
-          "Grpc.Core.Api": "2.28.1",
+          "Grpc.Core.Api": "2.32.0",
           "System.Memory": "4.5.3"
         },
         "compile": {
@@ -59,7 +60,7 @@
           }
         }
       },
-      "Grpc.Core.Api/2.28.1": {
+      "Grpc.Core.Api/2.32.0": {
         "type": "package",
         "dependencies": {
           "System.Memory": "4.5.3"
@@ -80,6 +81,15 @@
           "lib/netcoreapp2.1/_._": {}
         }
       },
+      "System.Runtime.CompilerServices.Unsafe/4.5.2": {
+        "type": "package",
+        "compile": {
+          "ref/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll": {}
+        },
+        "runtime": {
+          "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll": {}
+        }
+      },
       "System.Text.Json/4.7.1": {
         "type": "package",
         "compile": {
@@ -93,8 +103,8 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v3.1",
         "dependencies": {
-          "Grpc": "2.28.1",
-          "Grpc.Core": "2.28.1",
+          "Grpc": "2.32.0",
+          "Grpc.Core": "2.32.0",
           "System.Text.Json": "4.7.1"
         },
         "compile": {
@@ -107,48 +117,48 @@
     }
   },
   "libraries": {
-    "Google.Protobuf/3.11.4": {
-      "sha512": "dajCxjDCiPyZuqwZCkFJTwhn/0TJ5VesIs4fXvs56ez1VUi68JjhYMMsPjnJ9gcPqJwTMtXMU1WqUdXYiG1x4w==",
+    "Google.Protobuf/3.13.0": {
+      "sha512": "/6VgKCh0P59x/rYsBkCvkUanF0TeUYzwV9hzLIWgt23QRBaKHoxaaMkidEWhKibLR88c3PVCXyyrx9Xlb+Ne6w==",
       "type": "package",
-      "path": "google.protobuf/3.11.4",
+      "path": "google.protobuf/3.13.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "google.protobuf.3.11.4.nupkg.sha512",
+        "google.protobuf.3.13.0.nupkg.sha512",
         "google.protobuf.nuspec",
         "lib/net45/Google.Protobuf.dll",
         "lib/net45/Google.Protobuf.pdb",
         "lib/net45/Google.Protobuf.xml",
-        "lib/netstandard1.0/Google.Protobuf.dll",
-        "lib/netstandard1.0/Google.Protobuf.pdb",
-        "lib/netstandard1.0/Google.Protobuf.xml",
+        "lib/netstandard1.1/Google.Protobuf.dll",
+        "lib/netstandard1.1/Google.Protobuf.pdb",
+        "lib/netstandard1.1/Google.Protobuf.xml",
         "lib/netstandard2.0/Google.Protobuf.dll",
         "lib/netstandard2.0/Google.Protobuf.pdb",
         "lib/netstandard2.0/Google.Protobuf.xml"
       ]
     },
-    "Grpc/2.28.1": {
-      "sha512": "tvRfP8t1Xfg2QNFipT2LmiOlcVLFTYlP/5eEVjGKOzmF794T76RLIJYBPu/Fx1KwWu5GmiXHINKG+QWC3nHNlg==",
+    "Grpc/2.32.0": {
+      "sha512": "K0Tx2OGhtHKqVbKOwYfBk3noqgJOVeI7k5Js6reU4RL8IBfSWhRYqr8sDkd9hjjpcJpFqBknlfIRBmP/hzMaoQ==",
       "type": "package",
-      "path": "grpc/2.28.1",
+      "path": "grpc/2.32.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "grpc.2.28.1.nupkg.sha512",
+        "grpc.2.32.0.nupkg.sha512",
         "grpc.nuspec"
       ]
     },
-    "Grpc.Core/2.28.1": {
-      "sha512": "UrNi6xxK6eaTtXsQqm0WpR70ivT+O2LOis6SCLgyok1BTSs/mgZy/fGjABguNT2WB1G4bE46uqAKmXoSBt7jSw==",
+    "Grpc.Core/2.32.0": {
+      "sha512": "JDjz3zcOq9QTgC/xg6JnynSbe2CpyzVHWBqIOMYbbe/FmW+TCfkrwAw1mgO928Sa605dVmJOm0ByGgNd5YvX8Q==",
       "type": "package",
-      "path": "grpc.core/2.28.1",
+      "path": "grpc.core/2.32.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "build/MonoAndroid10/Grpc.Core.targets",
         "build/Xamarin.iOS10/Grpc.Core.targets",
         "build/net45/Grpc.Core.targets",
-        "grpc.core.2.28.1.nupkg.sha512",
+        "grpc.core.2.32.0.nupkg.sha512",
         "grpc.core.nuspec",
         "lib/net45/Grpc.Core.dll",
         "lib/net45/Grpc.Core.pdb",
@@ -172,14 +182,14 @@
         "runtimes/win/native/grpc_csharp_ext.x86.dll"
       ]
     },
-    "Grpc.Core.Api/2.28.1": {
-      "sha512": "ho/QAdmZFwxhl0pKVfKuACMHjC/X1/p2r20lv7M58/GD/oU/O8frrzbNjUTg7ZCJoyjHVrF5uW/uVSZVXMjq9w==",
+    "Grpc.Core.Api/2.32.0": {
+      "sha512": "t9H6P/oYA4ZQI4fWq4eEwq2GmMNqmOSRfz5+YIat7pQuFmz1hRC2Vq/fL9ZVV1mjd5kHqBlhupMdlsBOsaxeEw==",
       "type": "package",
-      "path": "grpc.core.api/2.28.1",
+      "path": "grpc.core.api/2.32.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "grpc.core.api.2.28.1.nupkg.sha512",
+        "grpc.core.api.2.32.0.nupkg.sha512",
         "grpc.core.api.nuspec",
         "lib/net45/Grpc.Core.Api.dll",
         "lib/net45/Grpc.Core.Api.pdb",
@@ -209,6 +219,31 @@
         "ref/netcoreapp2.1/_._",
         "system.memory.4.5.3.nupkg.sha512",
         "system.memory.nuspec",
+        "useSharedDesignerContext.txt",
+        "version.txt"
+      ]
+    },
+    "System.Runtime.CompilerServices.Unsafe/4.5.2": {
+      "sha512": "wprSFgext8cwqymChhrBLu62LMg/1u92bU+VOwyfBimSPVFXtsNqEWC92Pf9ofzJFlk4IHmJA75EDJn1b2goAQ==",
+      "type": "package",
+      "path": "system.runtime.compilerservices.unsafe/4.5.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "lib/netstandard1.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/netstandard1.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "ref/netstandard1.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "ref/netstandard1.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "ref/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "ref/netstandard2.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "system.runtime.compilerservices.unsafe.4.5.2.nupkg.sha512",
+        "system.runtime.compilerservices.unsafe.nuspec",
         "useSharedDesignerContext.txt",
         "version.txt"
       ]
@@ -244,29 +279,29 @@
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v3.1": [
       "GlobularClient >= 1.0.2",
-      "Google.Protobuf >= 3.11.4",
-      "Grpc >= 2.28.1",
-      "Grpc.Core >= 2.28.1"
+      "Google.Protobuf >= 3.13.0",
+      "Grpc >= 2.32.0",
+      "Grpc.Core >= 2.32.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\davec\\.nuget\\packages\\": {},
+    "C:\\Users\\mm006819\\.nuget\\packages\\": {},
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.3",
     "restore": {
-      "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
+      "projectUniqueName": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
       "projectName": "GlobularPersistenceClient",
-      "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
-      "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
-      "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\obj\\",
+      "projectPath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
+      "packagesPath": "C:\\Users\\mm006819\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\mm006819\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -279,8 +314,8 @@
       "frameworks": {
         "netcoreapp3.1": {
           "projectReferences": {
-            "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
-              "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj"
+            "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
+              "projectPath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj"
             }
           }
         }
@@ -296,15 +331,15 @@
         "dependencies": {
           "Google.Protobuf": {
             "target": "Package",
-            "version": "[3.11.4, )"
+            "version": "[3.13.0, )"
           },
           "Grpc": {
             "target": "Package",
-            "version": "[2.28.1, )"
+            "version": "[2.32.0, )"
           },
           "Grpc.Core": {
             "target": "Package",
-            "version": "[2.28.1, )"
+            "version": "[2.32.0, )"
           }
         },
         "imports": [
@@ -322,7 +357,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.402\\RuntimeIdentifierGraph.json"
       }
     }
   }

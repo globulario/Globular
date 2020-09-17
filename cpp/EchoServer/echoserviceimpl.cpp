@@ -6,9 +6,10 @@ EchoServiceImpl::EchoServiceImpl(std::string id,
                                  std::string publisher_id,
                                  bool allow_all_origins,
                                  std::string allowed_origins,
+                                 std::string version,
                                  bool tls,
                                  unsigned int defaultPort, unsigned int defaultProxy):
-    Globular::GlobularService(id, name, domain, publisher_id, allow_all_origins, allowed_origins, tls, defaultPort, defaultProxy )
+    Globular::GlobularService(id, name, domain, publisher_id, allow_all_origins, allowed_origins, version, tls, defaultPort, defaultProxy )
 {
 
 }

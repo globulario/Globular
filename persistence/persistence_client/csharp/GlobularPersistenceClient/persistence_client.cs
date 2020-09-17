@@ -13,10 +13,11 @@ namespace Globular
         /// <summary>
         /// gRPC client for persistence service.
         /// </summary>
-        /// <param name="address">Can be a domain or a IP address ex: localhos or 127.0.0.1</param>
-        /// <param name="name">The name of the service on the server. ex: persistence_server</param>
+        /// <param name="id"></param> The name or the id of the services.
+        /// <param name="domain"></param> The domain of the services
+        /// <param name="configurationPort"></param> The domain of the services
         /// <returns>Return the instance of the client with it connection ready to be use.</returns>
-        public PersistenceClient(string address, string name) : base(address, name)
+        public PersistenceClient( string id, string domain, int configurationPort) : base(id, domain, configurationPort)
         {
             // Here I will create grpc connection with the service...
             this.client = new Persistence.PersistenceService.PersistenceServiceClient(this.channel);

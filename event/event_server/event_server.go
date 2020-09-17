@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"fmt"
 
@@ -446,9 +445,6 @@ func main() {
 	s_impl := new(server)
 	s_impl.Name = string(eventpb.File_event_eventpb_event_proto.Services().Get(0).FullName())
 	s_impl.Proto = eventpb.File_event_eventpb_event_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(eventpb.File_event_eventpb_event_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

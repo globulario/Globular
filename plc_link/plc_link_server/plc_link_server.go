@@ -515,9 +515,6 @@ func main() {
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Name = string(plc_link_pb.File_plc_link_plc_linkpb_plc_link_proto.Services().Get(0).FullName())
-	s_impl.Path, _ = os.Executable()
-	package_ := string(plc_link_pb.File_plc_link_plc_linkpb_plc_link_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proto = plc_link_pb.File_plc_link_plc_linkpb_plc_link_proto.Path()
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy

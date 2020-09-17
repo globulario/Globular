@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/davecourtois/Globular/api"
@@ -467,9 +466,6 @@ func main() {
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
 	s_impl.Name = string(ldappb.File_ldap_ldappb_ldap_proto.Services().Get(0).FullName())
-	s_impl.Path, _ = os.Executable()
-	package_ := string(ldappb.File_ldap_ldappb_ldap_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Proto = ldappb.File_ldap_ldappb_ldap_proto.Path()
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy

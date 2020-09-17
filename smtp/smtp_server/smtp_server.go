@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"errors"
 
@@ -532,9 +531,6 @@ func main() {
 	s_impl.Connections = make(map[string]connection)
 	s_impl.Name = string(smtppb.File_smtp_smtppb_smtp_proto.Services().Get(0).FullName())
 	s_impl.Proto = smtppb.File_smtp_smtppb_smtp_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(smtppb.File_smtp_smtppb_smtp_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Domain = domain
 	s_impl.Proxy = defaultProxy

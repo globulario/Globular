@@ -359,44 +359,44 @@ COPY services /globular/services
 
 	// Here I will copy the proxy.
 	globularExec := os.Args[0]
-	if string(os.PathSeparator) == "\\" && !strings.HasSuffix(globularExec, ".exe") {
+	if "/" == "\\" && !strings.HasSuffix(globularExec, ".exe") {
 		globularExec += ".exe" // in case of windows
 	}
 
-	err := Utility.Copy(dir+string(os.PathSeparator)+globularExec, path+string(os.PathSeparator)+globularExec)
+	err := Utility.Copy(dir+"/"+globularExec, path+"/"+globularExec)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = os.Chmod(path+string(os.PathSeparator)+globularExec, 0755)
+	err = os.Chmod(path+"/"+globularExec, 0755)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	// Copy the bin file from globular
-	Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "bin")
-	err = Utility.CopyDir(dir+string(os.PathSeparator)+"bin", path+string(os.PathSeparator)+"bin")
+	Utility.CreateDirIfNotExist(path + "/" + "bin")
+	err = Utility.CopyDir(dir+"/"+"bin", path+"/"+"bin")
 	if err != nil {
 		log.Panicln("--> fail to copy bin ", err)
 	}
 
 	// Change the files permission to add execute write.
-	files, err := ioutil.ReadDir(path + string(os.PathSeparator) + "bin")
+	files, err := ioutil.ReadDir(path + "/" + "bin")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Now I will copy the prototype files of the internal gRPC service
 	// admin, ressource, ca and services.
-	Utility.CreateDirIfNotExist(path + string(os.PathSeparator) + "proto")
-	Utility.CopyFile(dir+string(os.PathSeparator)+"admin"+string(os.PathSeparator)+"admin.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"admin.proto")
-	Utility.CopyFile(dir+string(os.PathSeparator)+"ca"+string(os.PathSeparator)+"ca.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"ca.proto")
-	Utility.CopyFile(dir+string(os.PathSeparator)+"ressource"+string(os.PathSeparator)+"ressource.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"ressource.proto")
-	Utility.CopyFile(dir+string(os.PathSeparator)+"services"+string(os.PathSeparator)+"services.proto", path+string(os.PathSeparator)+"proto"+string(os.PathSeparator)+"services.proto")
+	Utility.CreateDirIfNotExist(path + "/" + "proto")
+	Utility.CopyFile(dir+"/"+"admin"+"/"+"admin.proto", path+"/"+"proto"+"/"+"admin.proto")
+	Utility.CopyFile(dir+"/"+"ca"+"/"+"ca.proto", path+"/"+"proto"+"/"+"ca.proto")
+	Utility.CopyFile(dir+"/"+"ressource"+"/"+"ressource.proto", path+"/"+"proto"+"/"+"ressource.proto")
+	Utility.CopyFile(dir+"/"+"services"+"/"+"services.proto", path+"/"+"proto"+"/"+"services.proto")
 
 	for _, f := range files {
 		if !f.IsDir() {
-			err = os.Chmod(path+string(os.PathSeparator)+"bin"+string(os.PathSeparator)+f.Name(), 0755)
+			err = os.Chmod(path+"/"+"bin"+"/"+f.Name(), 0755)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -411,7 +411,8 @@ COPY services /globular/services
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
 			if s["configPath"] != nil {
-				configPath := dir + s["configPath"].(string)
+				configPath := s["configPath"].(string)
+
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
@@ -421,29 +422,29 @@ COPY services /globular/services
 					if err == nil {
 
 						// set the name.
-						if config["PublisherId"] != nil && config["Version"] != nil && s["protoPath"] != nil && s["Path"] != nil {
+						if config["PublisherId"] != nil && config["Version"] != nil && s["Proto"] != nil && s["Path"] != nil {
 
-							execPath := dir + s["Path"].(string)
-							protoPath := dir + s["protoPath"].(string)
-							if string(os.PathSeparator) == "\\" {
-								execPath += ".exe" // in case of windows
-							}
+							execPath := s["Path"].(string)
+							protoPath := s["Proto"].(string)
 
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
-								var serviceDir = path + string(os.PathSeparator) + "services"
+								var serviceDir = "services" + "/"
 								if len(config["PublisherId"].(string)) == 0 {
-									serviceDir += string(os.PathSeparator) + config["Domain"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+									serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string) + id + "/"
 								} else {
-									serviceDir += string(os.PathSeparator) + config["PublisherId"].(string) + string(os.PathSeparator) + id + string(os.PathSeparator) + config["Version"].(string)
+									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string) + "/" + id
 								}
 
-								destPath := serviceDir + string(os.PathSeparator) + name
-								if string(os.PathSeparator) == "\\" {
-									destPath += ".exe"
+								lastIndex := strings.LastIndex(execPath, "/")
+								if lastIndex == -1 {
+									lastIndex = strings.LastIndex(execPath, "/")
 								}
+
+								execName := execPath[lastIndex+1:]
+								destPath := path + "/" + serviceDir + "/" + execName
 
 								if Utility.Exists(execPath) {
-									Utility.CreateDirIfNotExist(serviceDir)
+									Utility.CreateDirIfNotExist(path + "/" + serviceDir)
 
 									err := Utility.Copy(execPath, destPath)
 									if err != nil {
@@ -456,14 +457,15 @@ COPY services /globular/services
 										fmt.Println(err)
 									}
 
-									// Copy the service config file.
-									if Utility.Exists(configPath) {
-										Utility.Copy(configPath, serviceDir+string(os.PathSeparator)+"config.json")
-									}
+									config["Path"] = destPath
+									config["Proto"] = path + config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string) + "/" + name + ".proto"
+
+									str, _ := Utility.ToJson(&config)
+									ioutil.WriteFile(path+"/"+serviceDir+"/"+"config.json", []byte(str), 0644)
 
 									// Copy the proto file.
 									if Utility.Exists(protoPath) {
-										Utility.Copy(protoPath, serviceDir+string(os.PathSeparator)+protoPath[strings.LastIndex(protoPath, "/"):])
+										Utility.Copy(protoPath, config["Proto"].(string))
 									}
 								} else {
 									fmt.Println("executable not exist ", execPath)
@@ -477,7 +479,7 @@ COPY services /globular/services
 							fmt.Println("no publisher was define!")
 						} else if config["Version"] == nil {
 							fmt.Println("no version was define!")
-						} else if s["protoPath"] == nil {
+						} else if s["Proto"] == nil {
 							fmt.Println(" no proto file was found!")
 						} else if s["Path"] != nil {
 							fmt.Println("no executable was found!")
@@ -486,19 +488,19 @@ COPY services /globular/services
 						fmt.Println(err)
 					}
 				} else {
-					fmt.Println("service", id, "configuration is incomplete!")
+					fmt.Println("service", name, ":", id, "configuration is incomplete!")
 				}
 			} else {
-				fmt.Println("service", id, "has no configuration!")
+				fmt.Println("service", name, ":", id, "has no configuration!")
 			}
 		} else {
-			fmt.Println("service Name for ", id, " is missing")
+			fmt.Println("service Name for", id, " is missing")
 		}
 	}
 
 	dockerfile += "CMD /globular/Globular\n"
 	// save docker.
-	err = ioutil.WriteFile(path+string(os.PathSeparator)+"Dockerfile", []byte(dockerfile), 0644)
+	err = ioutil.WriteFile(path+"/"+"Dockerfile", []byte(dockerfile), 0644)
 	if err != nil {
 		log.Println(err)
 	}

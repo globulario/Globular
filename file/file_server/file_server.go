@@ -860,9 +860,6 @@ func main() {
 	// The name must the same as the grpc service name.
 	s_impl.Name = string(filepb.File_file_filepb_file_proto.Services().Get(0).FullName())
 	s_impl.Proto = filepb.File_file_filepb_file_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(filepb.File_file_filepb_file_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

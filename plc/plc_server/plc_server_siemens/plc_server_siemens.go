@@ -843,9 +843,6 @@ func main() {
 	s_impl := new(server)
 	s_impl.Name = string(plcpb.File_plc_plcpb_plc_proto.Services().Get(0).FullName())
 	s_impl.Proto = plcpb.File_plc_plcpb_plc_proto.Path()
-	s_impl.Path, _ = os.Executable()
-	package_ := string(plcpb.File_plc_plcpb_plc_proto.Package().Name())
-	s_impl.Path = s_impl.Path[strings.Index(s_impl.Path, package_):]
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"

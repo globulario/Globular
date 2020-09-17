@@ -10,10 +10,11 @@ namespace Globular
         /// <summary>
         /// The ressource client is use by the interceptor to validate user access.
         /// </summary>
+        /// <param name="id"></param> The name or the id of the services.
         /// <param name="domain"></param> The domain of the services
-        /// <param name="name"></param> The name or the id of the services.
+        /// <param name="configurationPort"></param> The domain of the services
         /// <returns></returns>
-        public RessourceClient(string domain, string name) : base(domain, name)
+        public RessourceClient( string id, string domain, int configurationPort) : base(id, domain, configurationPort)
         {
             // Here I will create grpc connection with the service...
             this.client = new Ressource.RessourceService.RessourceServiceClient(this.channel);
@@ -151,9 +152,9 @@ namespace Globular
             info.UserId = token; // can be a token or the user id...
             info.Method = method;
             if(type == 0){
-                 info.Type = Ressource.LogType.Info;
+                 info.Type = Ressource.LogType.InfoMessage;
             }else{
-                info.Type = Ressource.LogType.Error;
+                info.Type = Ressource.LogType.ErrorMessage;
             }
             info.Message = message;
             rqst.Info = info;
