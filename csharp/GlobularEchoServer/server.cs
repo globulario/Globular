@@ -4,6 +4,7 @@ using Globular;
 using grpc = global::Grpc.Core;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.IO;
 
 // The first thing to do is derived the service base class with GlobularService class.
 namespace Echo
@@ -34,6 +35,9 @@ namespace Echo
             this.Protocol = "grpc";
             this.Version = "0.0.1";            
             this.Value = "echo value!";
+                
+            // Retreive the prototype file path relative to where it was generated.
+            this.Proto = global::Echo.EchoReflection.Descriptor.Name;
 
         }
 

@@ -1503,7 +1503,6 @@ func (self *Globule) GetAbsolutePath(path string) string {
 func (self *Globule) Listen() error {
 
 	// Here I will subscribe to event service to keep then up to date.
-
 	subscribers := self.keepServicesUpToDate()
 
 	// Catch the Ctrl-C and SIGTERM from kill command

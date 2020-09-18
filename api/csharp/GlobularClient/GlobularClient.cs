@@ -334,7 +334,7 @@ namespace Globular
             return true;
         }
 
-        private void init(string id , string domain,  int configurationPort)
+        private void init(string id , string domain="localhost",  int configurationPort=10000)
         {
             // Get the configuration from the globular server.
             var client = new HttpClient();
@@ -349,19 +349,29 @@ namespace Globular
 
             // Here I will parse the JSON object and initialyse values from it...
             var serverConfig = JsonSerializer.Deserialize<ServerConfig>(rsp.Content.ReadAsStringAsync().Result);
+            ServiceConfig config = null;
             if (!serverConfig.Services.ContainsKey(id))
             {
-                throw new System.InvalidOperationException("No serivce found with id " + id + "!");
+                foreach(var s in serverConfig.Services.Values)
+                {
+                    if(s.Name == id){
+                        config = s;
+                        break;
+                    }
+                }
+                if(config == null){
+                    throw new System.InvalidOperationException("No serivce found with id " + id + "!");
+                }
+            }else{
+                config = serverConfig.Services[id];
             }
 
             // get the service config.
-            var config = serverConfig.Services[id];
             this.port = config.Port;
             this.hasTls = config.TLS;
             this.domain = config.Domain;
             this.id = config.Id;
             this.name = config.Name;
-
 
             // Here I will create grpc connection with the service...
             if (!this.HasTLS())
@@ -374,10 +384,12 @@ namespace Globular
                 // if the client is not local I will generate TLS certificates.
                 if (File.Exists(Path.GetTempPath() + "/" + this.domain + "_token"))
                 {
-                    /** TODO made correction here The cert file and keyFile are the one of the server and not the client **/
+                    // The ca certificate.
                     this.caFile = config.CertAuthorityTrust;
-                    this.certFile = config.CertFile;
-                    this.keyFile = config.KeyFile;
+
+                    // get the client certificate and key here.
+                    this.certFile = config.CertFile.Replace("server", "client");
+                    this.keyFile = config.KeyFile.Replace("server", "client");
                 }
                 else
                 {

@@ -5,6 +5,7 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using System.Threading.Tasks;
 
+
 // TODO for the validation, use a map to store valid method/token/ressource/access
 // the validation will be renew only if the token expire. And when a token expire
 // the value in the map will be discard. That way it will put less charge on the server
@@ -25,7 +26,6 @@ namespace Globular
         public int Port { get; set; }
         public int Proxy { get; set; }
         public string Protocol { get; set; }
-        public int ConfigurationPort {get; set;}
         public bool AllowAllOrigins { get; set; }
         public string AllowedOrigins { get; set; }
         public string Domain { get; set; }
@@ -38,6 +38,10 @@ namespace Globular
         public bool KeepUpToDate { get; set; }
         public bool KeepAlive { get; set; }
 
+        // globular specific variable.
+        public int ConfigurationPort; // The configuration port of globular.
+        public string Root; // The globular root.
+
 		
         private RessourceClient ressourceClient;
         public ServerUnaryInterceptor interceptor;
@@ -45,14 +49,13 @@ namespace Globular
         /// <summary>
         /// The default constructor.
         /// </summary>
-        public GlobularService(string address = "localhost")
+        public GlobularService(string domain = "localhost")
         {
             // set default values.
-            this.Domain = address;
+            this.Domain = domain;
             this.Protocol = "grpc";
             this.Version = "0.0.1";
             this.PublisherId = "localhost";
-            this.ConfigurationPort = 10000;
             this.CertFile = "";
             this.KeyFile = "";
             this.CertAuthorityTrust = "";
@@ -61,6 +64,14 @@ namespace Globular
                         
             // Create the interceptor.
             this.interceptor = new Globular.ServerUnaryInterceptor(this);
+
+            // Get the local globular server infomation.
+            string path = System.IO.Path.GetTempPath() +  "GLOBULAR_ROOT";
+            
+            string text = System.IO.File.ReadAllText(  path );
+            
+            this.Root = text.Substring(0, text.LastIndexOf(":")).Replace("\\", "/");
+            this.ConfigurationPort = Int32.Parse( text.Substring(text.LastIndexOf(":") + 1));
         }
 
         private RessourceClient getRessourceClient(string domain)
@@ -69,7 +80,7 @@ namespace Globular
             {
                 // there must be a globular server runing in order to validate ressources.
                 // TODO set the configuration port in a configuration file.
-                ressourceClient = new RessourceClient("ressource.RessourceService", domain,  this.ConfigurationPort );
+                ressourceClient = new RessourceClient("ressource.RessourceService", domain, this.ConfigurationPort );
             }
             return this.ressourceClient;
         }
@@ -93,6 +104,10 @@ namespace Globular
                 var jsonStr = File.ReadAllText(configPath);
                 var s = JsonSerializer.Deserialize(jsonStr, server.GetType());
                 return s;
+            }else{
+
+                // Here I will complete the filepath with the Root value of the server.
+                this.Proto = this.Root + "/" + this.Proto;
             }
             this.save(server);
             return server;
