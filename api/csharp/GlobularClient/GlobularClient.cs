@@ -17,25 +17,19 @@ namespace Globular
         public string Protocol { get; set; }
         public string CertStableURL { get; set; }
         public string CertURL { get; set; }
-        public uint ConfigurationPort { get; set; }
-        public uint PortHttp { get; set; }
-        public uint PortHttps { get; set; }
-        public uint AdminPort { get; set; }
-        public uint AdminProxy { get; set; }
+        public int ConfigurationPort { get; set; }
+        public int PortHttp { get; set; }
+        public int PortHttps { get; set; }
+        public int AdminPort { get; set; }
         public string AdminEmail { get; set; }
-        public uint RessourcePort { get; set; }
-        public uint RessourceProxy { get; set; }
-        public uint ServicesDiscoveryPort { get; set; }
-        public uint ServicesDiscoveryProxy { get; set; }
-        public uint ServicesRepositoryPort { get; set; }
-        public uint ServicesRepositoryProxy { get; set; }
-        public uint CertificateAuthorityPort { get; set; }
-        public uint CertificateAuthorityProxy { get; set; }
-        public uint LoadBalancingServicePort { get; set; }
-        public uint LoadBalancingServiceProxy { get; set; }
-        public uint SessionTimeout { get; set; }
-        public uint CertExpirationDelay { get; set; }
-        public uint IdleTimeout { get; set; }
+        public int RessourcePort { get; set; }
+        public int ServicesDiscoveryPort { get; set; }
+        public int ServicesRepositoryPort { get; set; }
+        public int CertificateAuthorityPort { get; set; }
+        public int LoadBalancingServicePort { get; set; }
+        public int SessionTimeout { get; set; }
+        public int CertExpirationDelay { get; set; }
+        public int IdleTimeout { get; set; }
 
         public string[] Discoveries { get; set; }
         public string[] DNS { get; set; }

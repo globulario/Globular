@@ -52,7 +52,13 @@ namespace Globular
             this.Protocol = "grpc";
             this.Version = "0.0.1";
             this.PublisherId = "localhost";
-
+            this.ConfigurationPort = 10000;
+            this.CertFile = "";
+            this.KeyFile = "";
+            this.CertAuthorityTrust = "";
+            this.AllowAllOrigins = true;
+            this.AllowedOrigins = "";
+                        
             // Create the interceptor.
             this.interceptor = new Globular.ServerUnaryInterceptor(this);
         }
@@ -79,7 +85,8 @@ namespace Globular
         public object init(object server)
         {
             var configPath = this.getPath() + "/config.json";
-
+            this.Path =System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            this.Path = this.Path.Replace("\\", "/");
             // Here I will read the file that contain the object.
             if (File.Exists(configPath))
             {
@@ -171,7 +178,7 @@ namespace Globular
             string domain = "";
             string method = context.Method;
             bool hasAccess = false;
-            // Console.Write("----> validate method: " + method);
+            
             // Get the metadata from the header.
             for (var i = 0; i < metadatas.Count; i++)
             {

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "7PO9ToB2yhz7Z0RmlD8blPGOjl1TClgcS8ip0y6MMkadeKF0LHC/EEbBkNtczQKRwJMcRSM16AZXAkwRHRG8Ww==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\mm006819\\.nuget\\packages\\google.protobuf\\3.13.0\\google.protobuf.3.13.0.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\grpc\\2.32.0\\grpc.2.32.0.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\grpc.core\\2.32.0\\grpc.core.2.32.0.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\grpc.core.api\\2.32.0\\grpc.core.api.2.32.0.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\4.5.2\\system.runtime.compilerservices.unsafe.4.5.2.nupkg.sha512",
+    "C:\\Users\\mm006819\\.nuget\\packages\\system.text.json\\4.7.1\\system.text.json.4.7.1.nupkg.sha512"
+  ],
+  "logs": []
+}

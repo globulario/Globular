@@ -1,0 +1,12 @@
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.csprojAssemblyReference.cache
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.AssemblyInfoInputs.cache
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.AssemblyInfo.cs
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.csproj.CoreCompileInputs.cache
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.1\GlobularEventClient.deps.json
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.1\GlobularEventClient.dll
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.1\GlobularEventClient.pdb
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.1\GlobularClient.dll
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\bin\Debug\netcoreapp3.1\GlobularClient.pdb
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.csproj.CopyComplete
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.dll
+C:\Users\mm006819\go\src\github.com\davecourtois\Globular\event\event_client\csharp\GlobularEventClient\obj\Debug\netcoreapp3.1\GlobularEventClient.pdb

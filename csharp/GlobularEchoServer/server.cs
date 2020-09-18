@@ -21,19 +21,20 @@ namespace Echo
     {
         public string Value { get; set; }
 
-        public EchoServiceImpl(string id, string domain="localhost", int port=10020, int proxy=10021)
+        public EchoServiceImpl()
         {
             // Here I will set the default values.
-            this.Port = port; // The default port value
-            this.Proxy = proxy; // The reverse proxy port
-            this.Id = id; // The service instance id.
+            this.Port = 10029; // The default port value
+            this.Proxy = 10030; // The reverse proxy port
+            this.Id =  Guid.NewGuid().ToString(); // The service instance id.
             this.Name = "echo.EchoService"; // The service name
             this.Version = "0.0.1";
             this.PublisherId = "localhost"; // must be the publisher id here...
-            this.Domain = domain;
+            this.Domain = "localhost";
             this.Protocol = "grpc";
             this.Version = "0.0.1";            
             this.Value = "echo value!";
+
         }
 
         // Overide method of the service to implement in C#
