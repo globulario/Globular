@@ -245,8 +245,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	delete(config, "ProxyProcess")
 
 	// so here I will get the previous information...
-	f, err := os.Open(self.path + string(os.PathSeparator) + config["configPath"].(string))
-
+	f, err := os.Open(config["configPath"].(string))
 	if err == nil {
 		b, err := ioutil.ReadAll(f)
 		if err == nil {
@@ -271,7 +270,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	jsonStr, _ := Utility.ToJson(config)
 
 	// here I will write the file
-	err = ioutil.WriteFile(self.path+string(os.PathSeparator)+config["configPath"].(string), []byte(jsonStr), 0644)
+	err = ioutil.WriteFile(config["configPath"].(string), []byte(jsonStr), 0644)
 	if err != nil {
 		return false
 	}

@@ -430,9 +430,9 @@ COPY services /globular/services
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 								var serviceDir = "services" + "/"
 								if len(config["PublisherId"].(string)) == 0 {
-									serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string) + id + "/"
+									serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string)
 								} else {
-									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string) + "/" + id
+									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
 								}
 
 								lastIndex := strings.LastIndex(execPath, "/")
@@ -441,10 +441,10 @@ COPY services /globular/services
 								}
 
 								execName := execPath[lastIndex+1:]
-								destPath := path + "/" + serviceDir + "/" + execName
+								destPath := path + "/" + serviceDir + "/" + id + "/" + execName
 
 								if Utility.Exists(execPath) {
-									Utility.CreateDirIfNotExist(path + "/" + serviceDir)
+									Utility.CreateDirIfNotExist(path + "/" + serviceDir + "/" + id)
 
 									err := Utility.Copy(execPath, destPath)
 									if err != nil {
@@ -458,10 +458,10 @@ COPY services /globular/services
 									}
 
 									config["Path"] = destPath
-									config["Proto"] = path + config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string) + "/" + name + ".proto"
+									config["Proto"] = path + "/" + serviceDir + "/" + name + ".proto"
 
 									str, _ := Utility.ToJson(&config)
-									ioutil.WriteFile(path+"/"+serviceDir+"/"+"config.json", []byte(str), 0644)
+									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/"+"config.json", []byte(str), 0644)
 
 									// Copy the proto file.
 									if Utility.Exists(protoPath) {

@@ -17,6 +17,8 @@ namespace Globular {
  */
 class GlobularService
 {
+protected:
+
     // The id of the service instance, must be unique on the globular server.
     std::string id;
 
@@ -72,6 +74,12 @@ class GlobularService
 
     // The server certificate.
     std::string cert_file;
+
+    // The configuration port.
+    int configurationPort;
+
+    // The root path
+    std::string root;
 
 public:
 

@@ -891,8 +891,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			return -1, -1, err
 		}
 
-		time.Sleep(5 * time.Second)
-
 		// Save configuration stuff.
 		s["Proxy"] = proxy
 

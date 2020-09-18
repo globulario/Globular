@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash Run that command from inside your globular server.
 protoc admin/admin.proto --go_out=plugins=grpc:.
 protoc ressource/ressource.proto --go_out=plugins=grpc:.
 protoc ca/ca.proto --go_out=plugins=grpc:.

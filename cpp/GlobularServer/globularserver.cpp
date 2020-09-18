@@ -10,12 +10,23 @@
 #include <math.h>       /* ceil */
 #include "../json.hpp"
 #include <fstream>
+#include <filesystem>
 
 
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
+
+std::string replaceAll(std::string str, const std::string& from, const std::string& to) {
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
 
 #ifdef WIN32
 #include <windows.h>
@@ -105,11 +116,25 @@ Globular::GlobularService::GlobularService(std::string id,
         this->tls = j["TLS"];
         this->protocol = j["Protocol"];
 
+
         // can be a list of string
         this->allowed_origins = j["AllowedOrigins"];
-    }else{
+    }else {
+        // Set the application path.
+        this->path = replaceAll(getexepath(), "\\", "/");
         this->save();
     }
+
+    // Set the root path and configuration port from the local server configuration...
+
+    auto path = std::filesystem::temp_directory_path().string() + "GLOBULAR_ROOT";
+    std::ifstream input(path);
+    std::stringstream sstr;
+
+    while(input >> sstr.rdbuf());
+    this->root = replaceAll(sstr.str().substr(0, sstr.str().find_last_of(":")), "\\", "/");
+    this->port = atoi(sstr.str().substr(sstr.str().find_last_of(":")+ 1).c_str());
+
 }
 
 void
@@ -131,14 +156,6 @@ read ( const std::string& filename, std::string& data )
 }
 
 
-std::string replaceAll(std::string str, const std::string& from, const std::string& to) {
-    size_t start_pos = 0;
-    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-    }
-    return str;
-}
 
 void Globular::GlobularService::save() {
     nlohmann::json j;
@@ -159,16 +176,14 @@ void Globular::GlobularService::save() {
     j["Proto"] = this->proto;
     j["Proxy"] = this->proxy;
     j["TLS"] = this->tls;
-
-    std::string execPath = replaceAll(getexepath(), "\\", "/");
-    j["Path"] = execPath;
+    j["Path"] = this->path;
 
 #ifdef WIN32
-    std::size_t lastIndex = execPath.find_last_of("/\\");
-    std::string configPath = execPath.substr(0, lastIndex) + "\\config.json";
+    std::size_t lastIndex = this->path.find_last_of("/\\");
+    std::string configPath = this->path.substr(0, lastIndex) + "\\config.json";
 #else
-    std::size_t lastIndex = execPath.find_last_of("/");
-    std::string configPath = execPath.substr(0, lastIndex) + "/config.json";
+    std::size_t lastIndex = this->path.find_last_of("/");
+    std::string configPath = this->path.substr(0, lastIndex) + "/config.json";
 #endif
 
     std::ofstream file;
@@ -179,7 +194,6 @@ void Globular::GlobularService::save() {
 
 void Globular::GlobularService::run(Service* s) {
     ServerBuilder builder;
-    ///std::string
     std::stringstream ss;
     ss <<  "0.0.0.0" << ":" << this->port;
 

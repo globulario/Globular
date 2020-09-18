@@ -11,7 +11,12 @@ EchoServiceImpl::EchoServiceImpl(std::string id,
                                  unsigned int defaultPort, unsigned int defaultProxy):
     Globular::GlobularService(id, name, domain, publisher_id, allow_all_origins, allowed_origins, version, tls, defaultPort, defaultProxy )
 {
-
+    // Set the proto path if is not already set.
+    if(this->proto.length() == 0){
+        EchoRequest request;
+        this->proto = this->root + "/" + request.GetDescriptor()->file()->name();
+        this->save();
+    }
 }
 
 Status EchoServiceImpl::Echo(ServerContext* context, const EchoRequest* request, EchoResponse* response) {
