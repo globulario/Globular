@@ -76,9 +76,9 @@ func (self *Globule) signCertificate(client_csr string) (string, error) {
 	args = append(args, "-in")
 	args = append(args, client_csr_path)
 	args = append(args, "-CA")
-	args = append(args, self.creds+string(os.PathSeparator)+"capb.crt") // use certificate
+	args = append(args, self.creds+string(os.PathSeparator)+"ca.crt") // use certificate
 	args = append(args, "-CAkey")
-	args = append(args, self.creds+string(os.PathSeparator)+"capb.key") // and private key to sign the incommin csr
+	args = append(args, self.creds+string(os.PathSeparator)+"ca.key") // and private key to sign the incommin csr
 	args = append(args, "-set_serial")
 	args = append(args, "01")
 	args = append(args, "-out")
@@ -123,10 +123,10 @@ func (self *Globule) SignCertificate(ctx context.Context, rqst *capb.SignCertifi
 	}, nil
 }
 
-// Return the Authority Trust Certificate. (capb.crt)
+// Return the Authority Trust Certificate. (ca.crt)
 func (self *Globule) GetCaCertificate(ctx context.Context, rqst *capb.GetCaCertificateRequest) (*capb.GetCaCertificateResponse, error) {
 
-	ca_crt, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "capb.crt")
+	ca_crt, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "ca.crt")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

@@ -254,7 +254,6 @@ func NewGlobule() *Globule {
 		g.CertificateAuthorityProxy = start + 10
 		g.LoadBalancingServicePort = start + 11
 		g.LoadBalancingServiceProxy = start + 12
-		g.saveConfig()
 	}
 
 	// Prometheus logging informations.
@@ -770,12 +769,68 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			s["KeyFile"] = ""
 		}
 
-		// Start the service process.
-		if string(os.PathSeparator) == "\\" && !strings.HasSuffix(servicePath, ".exe") {
-			servicePath += ".exe" // in case of windows.
-		}
+		if !Utility.Exists(servicePath) {
+			log.Println("Fail to retreive exe path ", servicePath)
+			// Here the service was not retreive so I will try to fix the path...
+			if strings.Index(servicePath, "services") != -1 {
+				// set the service path
+				servicePath = self.path + servicePath[strings.Index(servicePath, "/services"):]
+				s["Path"] = servicePath
 
-		servicePath = strings.ReplaceAll(servicePath, "\\", "/")
+				// set the proto path
+				protoPath := s["Proto"].(string)
+				protoPath = self.path + protoPath[strings.Index(protoPath, "/services"):]
+				s["Proto"] = protoPath
+
+				// set the key path
+				if s["KeyFile"] != nil {
+					if len(s["KeyFile"].(string)) > 0 {
+						path := s["KeyFile"].(string)
+						if !Utility.Exists(path) {
+							path = self.path + path[strings.Index(path, "/services"):]
+							s["KeyFile"] = path
+						}
+					}
+				}
+
+				// set the certificate path
+				if s["CertFile"] != nil {
+					if len(s["CertFile"].(string)) > 0 {
+						path := s["CertFile"].(string)
+						if !Utility.Exists(path) {
+							path = self.path + path[strings.Index(path, "/services"):]
+							s["CertFile"] = path
+						}
+					}
+				}
+
+				// set the ca path
+				if s["CertAuthorityTrust"] != nil {
+					if len(s["CertAuthorityTrust"].(string)) > 0 {
+						path := s["CertAuthorityTrust"].(string)
+						if !Utility.Exists(path) {
+							path = self.path + path[strings.Index(path, "/services"):]
+							s["CertAuthorityTrust"] = path
+						}
+					}
+				}
+
+				// here I will keep the configuration path in the global configuration.
+				if s["configPath"] != nil {
+					if len(s["configPath"].(string)) > 0 {
+						configPath := s["configPath"].(string)
+						if !Utility.Exists(configPath) {
+							configPath = self.path + configPath[strings.Index(configPath, "/services"):]
+							s["configPath"] = configPath
+						}
+					}
+				}
+				self.saveServiceConfig(s)
+
+			} else {
+				return -1, -1, errors.New("no service found at path " + servicePath)
+			}
+		}
 
 		// Get the next available port.
 		port := Utility.ToInt(s["Port"])
@@ -1078,8 +1133,9 @@ func (self *Globule) initServices() {
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
-
+	log.Println("----------> config Path ", configPath, " exist ", Utility.Exists(configPath))
 	if !Utility.Exists(configPath) {
+		log.Println("-----> configuration not exist!")
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -1088,6 +1144,7 @@ func (self *Globule) initServices() {
 				return nil
 			}
 			if err == nil && info.Name() == "config.json" {
+				log.Println("------------> configuaration file found ", path)
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
@@ -1098,7 +1155,6 @@ func (self *Globule) initServices() {
 						if s["Protocol"] != nil {
 							// If a configuration file exist It will be use to start services,
 							// otherwise the service configuration file will be use.
-
 							if s["Name"] == nil {
 								log.Println("---> no 'Name' attribute found in service configuration in file config ", path)
 							} else {
@@ -1107,8 +1163,7 @@ func (self *Globule) initServices() {
 									s["Id"] = Utility.RandomUUID()
 								}
 								self.Services[s["Id"].(string)] = s
-								// here I will keep the configuration path in the global configuration.
-								s["configPath"] = strings.ReplaceAll(path, "\\", "/")
+								s["configPath"] = path
 							}
 						}
 					} else {
@@ -1616,12 +1671,13 @@ func (self *Globule) Listen() error {
 		}
 
 		log.Println("Globular is running!")
+
 		// get the value from the configuration files.
 		err = server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
 
 	} else {
-		log.Println("start http server")
 		log.Println("Globular is running!")
+		Utility.OpenBrowser("http://" + self.Domain + ":" + Utility.ToString(self.PortHttp))
 		// local - non secure connection.
 		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}

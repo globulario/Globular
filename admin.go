@@ -498,6 +498,14 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
+	// Here I will test if mongo db exist on the server.
+	existMongo := exec.Command("mongod", "--version")
+	err := existMongo.Run()
+	if err != nil {
+		log.Println("fail to start mongo db!", err)
+		return err
+	}
+
 	// Here I will create super admin if it not already exist.
 	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
 
@@ -536,7 +544,7 @@ func (self *Globule) registerSa() error {
 
 	// Now I will start mongod with auth available.
 	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--bind_ip", "0.0.0.0", "--dbpath", dataPath)
-	err := mongod.Start()
+	err = mongod.Start()
 	if err != nil {
 		return err
 	}

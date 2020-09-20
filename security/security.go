@@ -118,7 +118,9 @@ func getRemoteConfig(address string, port int) (map[string]interface{}, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":" + Utility.ToString(port) + "/config")
+	var configAddress = "http://" + address + ":" + Utility.ToString(port) + "/config"
+	log.Println("Get configuration at adress ", configAddress)
+	resp, err = http.Get(configAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +147,9 @@ func getCaCertificate(address string, port int) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":" + Utility.ToString(port) + "/get_ca_certificate")
+	var caAddress = "http://" + address + ":" + Utility.ToString(port) + "/get_ca_certificate"
+	log.Println("get ca certificate from ", caAddress)
+	resp, err = http.Get(caAddress)
 
 	if err != nil {
 		return "", err
@@ -174,7 +178,8 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
-	resp, err = http.Get("http://" + address + ":" + string(port) + "/sign_ca_certificate?csr=" + csr_str)
+	var signCertificateAddress = "http://" + address + ":" + Utility.ToString(port) + "/sign_ca_certificate"
+	resp, err = http.Get(signCertificateAddress + "?csr=" + csr_str)
 	if err != nil {
 		return "", err
 	}
@@ -186,6 +191,7 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println("certificate are now signed!")
 		return string(bodyBytes), nil
 	}
 
@@ -572,7 +578,7 @@ func KeyToPem(name string, path string, pwd string) error {
 	if Utility.Exists(path + string(os.PathSeparator) + name + ".pem") {
 		return nil
 	}
-
+	log.Println("---------> 578")
 	cmd := "openssl"
 	args := make([]string, 0)
 	args = append(args, "pkcs8")
@@ -586,8 +592,8 @@ func KeyToPem(name string, path string, pwd string) error {
 	args = append(args, path+string(os.PathSeparator)+name+".pem")
 
 	err := exec.Command(cmd, args...).Run()
-	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"server.key") {
-		return errors.New("Fail to generate server.pem key from server.key")
+	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+name+".key") {
+		return errors.New("Fail to generate " + name + ".pem key from " + name + ".key")
 	}
 
 	return nil

@@ -105,7 +105,6 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 								}
 							}
 						}
-
 					}
 
 					// So here I will subscribe to service update event.
@@ -120,7 +119,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 						} else {
 							log.Println("fail to subscribe to ", id)
 							nbTry--
-							time.Sleep(5 * time.Second)
+							time.Sleep(1 * time.Second)
 						}
 					}
 				}

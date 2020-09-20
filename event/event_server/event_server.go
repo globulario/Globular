@@ -19,8 +19,8 @@ import (
 
 // TODO take care of TLS/https
 var (
-	defaultPort  = 10016
-	defaultProxy = 10017
+	defaultPort  = 10050
+	defaultProxy = 10051
 
 	// By default all origins are allowed.
 	allow_all_origins = true
