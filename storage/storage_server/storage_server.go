@@ -14,7 +14,7 @@ import (
 	"github.com/davecourtois/Globular/api"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/storage/storage_client"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Globular/storage/storagepb"
 	"github.com/davecourtois/Utility"
@@ -239,8 +239,10 @@ func (self *server) SetPermissions(permissions []interface{}) {
 // Create the configuration file if is not already exist.
 func (self *server) Init() error {
 
+	self.stores = make(map[string]storage_store.Store)
+
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
+	Utility.RegisterFunction("NewStorage_Client", client.NewStorage_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -312,6 +314,8 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *storagepb.Create
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	api.UpdateServiceConfig(self)
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -603,7 +607,7 @@ func main() {
 	// Register the echo services
 	storagepb.RegisterStorageServiceServer(s_impl.grpcServer, s_impl)
 	reflection.Register(s_impl.grpcServer)
-
 	// Start the service.
 	s_impl.Start()
+
 }

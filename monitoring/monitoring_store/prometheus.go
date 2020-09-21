@@ -118,8 +118,10 @@ func (self *PrometheusStore) LabelNames(ctx context.Context) ([]string, string, 
 }
 
 // LabelValues performs a query for the values of the given label.
-func (self *PrometheusStore) LabelValues(ctx context.Context, label string) (string, string, error) {
-	results, warnings, err := self.c.LabelValues(ctx, label)
+func (self *PrometheusStore) LabelValues(ctx context.Context, label string, startTime int64, endTime int64) (string, string, error) {
+	startTime_ := time.Unix(startTime, 0)
+	endTime_ := time.Unix(endTime, 0)
+	results, warnings, err := self.c.LabelValues(ctx, label, startTime_, endTime_)
 	if err != nil {
 		return "", "", err
 	}

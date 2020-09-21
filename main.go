@@ -10,8 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davecourtois/Globular/admin"
-	"github.com/davecourtois/Globular/ressource"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Utility"
 )
 
@@ -197,7 +196,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client, err := client.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Println("fail to access ressource service at "+address+" with error ", err)
 		return err
@@ -211,7 +210,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := admin.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
+	admin_client, err := client.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
 	if err != nil {
 		return err
 	}
@@ -243,7 +242,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client, err := client.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -257,7 +256,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := admin.NewAdmin_Client(address, "admin.AdminService")
+	admin_client, err := client.NewAdmin_Client(address, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err

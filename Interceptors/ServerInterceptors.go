@@ -12,12 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/file/filepb"
-	"github.com/davecourtois/Globular/lb"
-
-	"github.com/davecourtois/Globular/api"
 	"github.com/davecourtois/Globular/lb/lbpb"
-	"github.com/davecourtois/Globular/ressource"
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Utility"
 
@@ -28,14 +25,14 @@ import (
 
 var (
 	// The ressource client
-	ressource_client *ressource.Ressource_Client
+	ressource_client *client.Ressource_Client
 
 	// The load balancer client.
-	lb_client *lb.Lb_Client
+	lb_client *client.Lb_Client
 
 	// The map will contain connection with other server of same kind to load
 	// balance the server charge.
-	clients map[string]api.Client
+	clients map[string]client.Client
 
 	// That will contain the permission in memory to limit the number
 	// of ressource request...
@@ -45,11 +42,11 @@ var (
 /**
  * Get a the local ressource client.
  */
-func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*lb.Lb_Client, error) {
+func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*client.Lb_Client, error) {
 
 	var err error
 	if lb_client == nil {
-		lb_client, err = lb.NewLb_Client(domain, "lb.LoadBalancingService")
+		lb_client, err = client.NewLb_Client(domain, "lb.LoadBalancingService")
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +54,7 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 		fmt.Println("----> start load balancing for ", serviceName)
 
 		// Here I will create the client map.
-		clients = make(map[string]api.Client)
+		clients = make(map[string]client.Client)
 
 		// Now I will start reporting load at each minutes.
 		ticker := time.NewTicker(1 * time.Minute)
@@ -93,10 +90,10 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 /**
  * Get a the local ressource client.
  */
-func getRessourceClient(domain string) (*ressource.Ressource_Client, error) {
+func getRessourceClient(domain string) (*client.Ressource_Client, error) {
 	var err error
 	if ressource_client == nil {
-		ressource_client, err = ressource.NewRessource_Client(domain, "ressource.RessourceService")
+		ressource_client, err = client.NewRessource_Client(domain, "ressource.RessourceService")
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +398,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 						continue // skip to the next client.
 					}
 					// So here I will keep the client inside the map.
-					clients[candidate.GetId()] = results[0].Interface().(api.Client)
+					clients[candidate.GetId()] = results[0].Interface().(client.Client)
 				}
 				fmt.Println("416 redirect rqst from ", serverId, " to ", candidate.GetId())
 				// Here I will invoke the request on the server whit the same context, so permission and token etc will be kept the save.

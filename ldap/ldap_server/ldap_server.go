@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	//"google.golang.org/grpc/grpclog"
-	"github.com/davecourtois/Globular/ldap/ldap_client"
+	"github.com/davecourtois/Globular/api/client"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	LDAP "gopkg.in/ldap.v3"
@@ -238,7 +238,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
+	Utility.RegisterFunction("NewLdap_Client", client.NewLdap_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -383,8 +383,7 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *ldappb.CreateCon
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// test if the connection is reacheable.
-	//_, err = self.ping(ctx, c.Id)
+	api.UpdateServiceConfig(self)
 
 	if err != nil {
 		return nil, status.Errorf(

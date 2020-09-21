@@ -13,7 +13,7 @@ import (
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/api"
-	"github.com/davecourtois/Globular/plc/plc_client"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/plc/plcpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
@@ -119,7 +119,7 @@ type server struct {
 func (self *server) init() {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
+	Utility.RegisterFunction("NewPlc_Client", client.NewPlc_Client)
 
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -314,7 +314,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
+	Utility.RegisterFunction("NewPlc_Client", client.NewPlc_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))

@@ -22,7 +22,7 @@ import (
 
 	//"google.golang.org/grpc/codes"
 	//"google.golang.org/grpc/grpclog"
-	"github.com/davecourtois/Globular/dns/dns_client"
+	"github.com/davecourtois/Globular/api/client"
 	"google.golang.org/grpc/reflection"
 
 	//"google.golang.org/grpc/status"
@@ -253,7 +253,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewDns_Client", dns_client.NewDns_Client)
+	Utility.RegisterFunction("NewDns_Client", client.NewDns_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))

@@ -1,37 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/gob"
-
 	"errors"
-
-	"io/ioutil"
-
-	"os"
-
-	"sort"
-
-	"strings"
-
-	"bytes"
-
+	"fmt"
 	"io"
-
-	"time"
-
+	"io/ioutil"
 	"log"
 	"net"
-	"strconv"
-
+	"os"
 	"os/signal"
-
-	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/event/event_client"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/event/eventpb"
-	"github.com/davecourtois/Globular/services"
 	"github.com/davecourtois/Globular/services/servicespb"
 	"github.com/davecourtois/Utility"
 	"github.com/golang/protobuf/jsonpb"
@@ -54,7 +42,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		log.Println("Connect to discovery event hub ", self.Discoveries[i])
-		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event.EventService")
+		eventHub, err := client.NewEvent_Client(self.Discoveries[i], "event.EventService")
 		if err == nil {
 			log.Println("Connected with event service at ", self.Discoveries[i])
 			if subscribers[self.Discoveries[i]] == nil {
@@ -639,7 +627,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService, err := services.NewServicesDiscovery_Client(discoveryId, "services_discovery")
+			discoveryService, err := client.NewServicesDiscovery_Client(discoveryId, "services_discovery")
 			if err != nil {
 				return err
 			}

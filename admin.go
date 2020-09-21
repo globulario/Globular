@@ -19,10 +19,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/davecourtois/Globular/services"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"encoding/json"
@@ -225,6 +224,14 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	}
 
 	if config["configPath"] == nil {
+		if self.Services[config["Id"].(string)] != nil {
+			config_ := self.Services[config["Id"].(string)].(map[string]interface{})
+			for k, v := range config {
+				config_[k] = v
+			}
+			// save the globule configuration.
+			self.saveConfig()
+		}
 		return false
 	}
 
@@ -244,12 +251,20 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	delete(config, "Process")
 	delete(config, "ProxyProcess")
 
+	// format the path's
+	config["Path"] = strings.ReplaceAll(config["Path"].(string), "\\", "/")
+	config["Proto"] = strings.ReplaceAll(config["Proto"].(string), "\\", "/")
+	if config["configPath"] != nil {
+		config["configPath"] = strings.ReplaceAll(config["configPath"].(string), "\\", "/")
+	}
+
 	// so here I will get the previous information...
 	f, err := os.Open(config["configPath"].(string))
 	if err == nil {
 		b, err := ioutil.ReadAll(f)
 		if err == nil {
 			config_ := make(map[string]interface{})
+
 			json.Unmarshal(b, &config_)
 			if reflect.DeepEqual(config_, config) {
 				f.Close()
@@ -288,6 +303,7 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 
 // Save a service configuration
 func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
+	// Save service...
 
 	config := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(rqst.Config), &config)
@@ -306,6 +322,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 			config["ProxyProcess"] = srv.(map[string]interface{})["ProxyProcess"]
 			self.initService(config)
 		}
+
 	} else if config["Services"] != nil {
 		// Here I will save the configuration
 		self.Name = config["Name"].(string)
@@ -498,7 +515,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
-	configs := self.getServiceConfigByName("persistence.Persistence")
+	configs := self.getServiceConfigByName("persistence.PersistenceService")
 	if len(configs) == 0 {
 		return errors.New("No persistence service was configure on that globule!")
 	}
@@ -837,7 +854,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery, err := services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err := client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -845,7 +862,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := services.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
+	services_repository, err := client.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -950,7 +967,7 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 	}
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		services_repository, err := services.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
+		services_repository, err := client.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
 		if err != nil {
 			return err
 		}
@@ -1052,9 +1069,9 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
 
 	// Connect to the dicovery services
-	var services_discovery *services.ServicesDiscovery_Client
+	var services_discovery *client.ServicesDiscovery_Client
 	var err error
-	services_discovery, err = services.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err = client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(

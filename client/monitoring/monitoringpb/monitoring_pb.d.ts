@@ -383,6 +383,12 @@ export class LabelValuesRequest extends jspb.Message {
   getLabel(): string;
   setLabel(value: string): LabelValuesRequest;
 
+  getStarttime(): number;
+  setStarttime(value: number): LabelValuesRequest;
+
+  getEndtime(): number;
+  setEndtime(value: number): LabelValuesRequest;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): LabelValuesRequest.AsObject;
   static toObject(includeInstance: boolean, msg: LabelValuesRequest): LabelValuesRequest.AsObject;
@@ -395,6 +401,8 @@ export namespace LabelValuesRequest {
   export type AsObject = {
     connectionid: string,
     label: string,
+    starttime: number,
+    endtime: number,
   }
 }
 

@@ -133,7 +133,7 @@ Globular::GlobularService::GlobularService(std::string id,
 
     while(input >> sstr.rdbuf());
     this->root = replaceAll(sstr.str().substr(0, sstr.str().find_last_of(":")), "\\", "/");
-    this->port = atoi(sstr.str().substr(sstr.str().find_last_of(":")+ 1).c_str());
+    this->configurationPort = atoi(sstr.str().substr(sstr.str().find_last_of(":")+ 1).c_str());
 
 }
 

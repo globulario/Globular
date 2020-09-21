@@ -14,9 +14,8 @@ import (
 
 	"github.com/davecourtois/Globular/api"
 
-	"github.com/davecourtois/Globular/plc/plc_client"
-	"github.com/davecourtois/Globular/plc_link/plc_link_client"
-	"github.com/davecourtois/Globular/plc_link/plc_linkpb"
+	clientApi "github.com/davecourtois/Globular/api/client"
+	"github.com/davecourtois/Globular/plc_link/plc_link_pb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 
@@ -264,7 +263,7 @@ func (self *server) Init() error {
 	self.clients = new(sync.Map)
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlcLink_Client", plc_link_client.NewPlcLink_Client)
+	Utility.RegisterFunction("NewPlcLink_Client", clientApi.NewPlcLink_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -302,18 +301,18 @@ func (self *server) Stop() error {
 ///////////////////// API //////////////////////////////
 
 // Test a connection exist for a given tag.
-func (self *server) setTagConnection(tag *Tag) (*plc_client.Plc_Client, error) {
+func (self *server) setTagConnection(tag *Tag) (*clientApi.Plc_Client, error) {
 	client, ok := self.clients.Load(tag.ConnectionId)
 	if !ok {
 		// Open connection with the client.
 		var err error
-		client, err = plc_client.NewPlc_Client(tag.Domain, tag.ServiceId)
+		client, err = clientApi.NewPlc_Client(tag.Domain, tag.ServiceId)
 		if err != nil {
 			return nil, err
 		}
 		self.clients.Store(tag.ConnectionId, client)
 	}
-	return client.(*plc_client.Plc_Client), nil
+	return client.(*clientApi.Plc_Client), nil
 }
 
 func (self *server) stopSynchronize(lnk *Link) {

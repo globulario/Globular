@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	//"google.golang.org/grpc/grpclog"
-	"github.com/davecourtois/Globular/echo/echo_client"
+	"github.com/davecourtois/Globular/api/client"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -229,7 +229,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewEcho_Client", echo_client.NewEcho_Client)
+	Utility.RegisterFunction("NewEcho_Client", client.NewEcho_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))

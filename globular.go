@@ -38,11 +38,6 @@ import (
 	// Client services.
 	"crypto"
 
-	"github.com/davecourtois/Globular/dns/dns_client"
-	"github.com/davecourtois/Globular/event/event_client"
-	"github.com/davecourtois/Globular/ldap/ldap_client"
-	"github.com/davecourtois/Globular/monitoring/monitoring_client"
-
 	"github.com/davecourtois/Globular/storage/storage_store"
 	"github.com/davecourtois/Utility"
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -52,8 +47,8 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 
 	"github.com/davecourtois/Globular/api"
+	"github.com/davecourtois/Globular/api/client"
 
-	"github.com/davecourtois/Globular/persistence/persistence_client"
 	"github.com/davecourtois/Globular/persistence/persistence_store"
 	"github.com/davecourtois/Globular/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -136,7 +131,7 @@ type Globule struct {
 	DnsKey     string
 	DnsSecrect string
 
-	discorveriesEventHub map[string]*event_client.Event_Client
+	discorveriesEventHub map[string]*client.Event_Client
 
 	// The list of method supported by this server.
 	methods []string
@@ -167,9 +162,9 @@ type Globule struct {
 	store persistence_store.Store
 
 	// client reference...
-	persistence_client_ *persistence_client.Persistence_Client
-	ldap_client_        *ldap_client.LDAP_Client
-	event_client_       *event_client.Event_Client
+	persistence_client_ *client.Persistence_Client
+	ldap_client_        *client.LDAP_Client
+	event_client_       *client.Event_Client
 
 	// ACME protocol registration
 	registration *registration.Resource
@@ -339,7 +334,7 @@ func (self *Globule) initDirectories() {
 
 	// Set the list of discorvery service avalaible...
 	self.Discoveries = make([]string, 0)
-	self.discorveriesEventHub = make(map[string]*event_client.Event_Client, 0)
+	self.discorveriesEventHub = make(map[string]*client.Event_Client, 0)
 
 	// Set the share service info...
 	self.Services = make(map[string]interface{}, 0)
@@ -510,7 +505,7 @@ func (self *Globule) registerIpToDns() error {
 	if self.DNS != nil {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
-				dns_client, err := dns_client.NewDns_Client(self.DNS[i], "dns.DnsService")
+				dns_client, err := client.NewDns_Client(self.DNS[i], "dns.DnsService")
 				if err != nil {
 					return err
 				}
@@ -772,14 +767,15 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		if !Utility.Exists(servicePath) {
 			log.Println("Fail to retreive exe path ", servicePath)
 			// Here the service was not retreive so I will try to fix the path...
+			root := strings.ReplaceAll(self.path, "\\", "/")
 			if strings.Index(servicePath, "services") != -1 {
 				// set the service path
-				servicePath = self.path + servicePath[strings.Index(servicePath, "/services"):]
+				servicePath = root + servicePath[strings.Index(servicePath, "/services"):]
 				s["Path"] = servicePath
 
 				// set the proto path
 				protoPath := s["Proto"].(string)
-				protoPath = self.path + protoPath[strings.Index(protoPath, "/services"):]
+				protoPath = root + protoPath[strings.Index(protoPath, "/services"):]
 				s["Proto"] = protoPath
 
 				// set the key path
@@ -787,7 +783,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 					if len(s["KeyFile"].(string)) > 0 {
 						path := s["KeyFile"].(string)
 						if !Utility.Exists(path) {
-							path = self.path + path[strings.Index(path, "/services"):]
+							path = root + path[strings.Index(path, "/services"):]
 							s["KeyFile"] = path
 						}
 					}
@@ -798,7 +794,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 					if len(s["CertFile"].(string)) > 0 {
 						path := s["CertFile"].(string)
 						if !Utility.Exists(path) {
-							path = self.path + path[strings.Index(path, "/services"):]
+							path = root + path[strings.Index(path, "/services"):]
 							s["CertFile"] = path
 						}
 					}
@@ -809,7 +805,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 					if len(s["CertAuthorityTrust"].(string)) > 0 {
 						path := s["CertAuthorityTrust"].(string)
 						if !Utility.Exists(path) {
-							path = self.path + path[strings.Index(path, "/services"):]
+							path = root + path[strings.Index(path, "/services"):]
 							s["CertAuthorityTrust"] = path
 						}
 					}
@@ -820,7 +816,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 					if len(s["configPath"].(string)) > 0 {
 						configPath := s["configPath"].(string)
 						if !Utility.Exists(configPath) {
-							configPath = self.path + configPath[strings.Index(configPath, "/services"):]
+							configPath = root + configPath[strings.Index(configPath, "/services"):]
 							s["configPath"] = configPath
 						}
 					}
@@ -1067,7 +1063,6 @@ func (self *Globule) initService(s map[string]interface{}) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(s["Name"].(string), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-
 		// Kill previous instance of the program.
 		if hasChange || s["Process"] == nil {
 			self.Services[s["Id"].(string)] = s
@@ -1140,6 +1135,7 @@ func (self *Globule) initServices() {
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+			path = strings.ReplaceAll(path, "\\", "/")
 			if info == nil {
 				return nil
 			}
@@ -1179,6 +1175,7 @@ func (self *Globule) initServices() {
 	// Rescan the proto file and update the role after.
 	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		path = strings.ReplaceAll(path, "\\", "/")
 		if info == nil {
 			return nil
 		}
@@ -1228,10 +1225,11 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 	filepath.Walk(root+path[0:strings.Index(path, "/")],
 		func(path string, info os.FileInfo, err error) error {
+			path = strings.ReplaceAll(path, "\\", "/")
 			if err != nil {
 				return err
 			}
-			path = strings.Replace(path, "\\", "/", -1) // Windows back slash replacement here...
+
 			if strings.HasSuffix(path, importPath_) {
 				importPath_ = path
 				return io.EOF
@@ -1285,7 +1283,7 @@ func (self *Globule) startMonitoring() error {
 	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
 
 	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoring_Client(s["Domain"].(string), "monitoring.MonitoringService")
+	m, err := client.NewMonitoring_Client(s["Domain"].(string), "monitoring.MonitoringService")
 	if err != nil {
 		return err
 	}
@@ -1404,7 +1402,7 @@ inhibit_rules:
 /**
  * Connection with local persistence grpc service
  */
-func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
+func (self *Globule) getPersistenceSaConnection() (*client.Persistence_Client, error) {
 	// That service made user of persistence service.
 	if self.persistence_client_ != nil {
 		return self.persistence_client_, nil
@@ -1422,7 +1420,7 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	s := configs[0]
 
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistence_Client(s["Domain"].(string), s["Id"].(string))
+	self.persistence_client_, err = client.NewPersistence_Client(s["Domain"].(string), s["Id"].(string))
 	if err != nil {
 		return nil, err
 	}
@@ -1462,7 +1460,7 @@ func (self *Globule) stopMongod() error {
 }
 
 func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
-	
+
 	time.Sleep(1 * time.Second)
 	args := make([]string, 0)
 	if withAuth == true {
@@ -1490,7 +1488,7 @@ func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 	return nil
 }
 
-func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
+func (self *Globule) getLdapClient() (*client.LDAP_Client, error) {
 
 	if self.getConfig()["Services"].(map[string]interface{})["ldap.LdapService"] == nil {
 		return nil, errors.New("No ldap service configuration was found on that server!")
@@ -1501,7 +1499,7 @@ func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 	s := self.getConfig()["Services"].(map[string]interface{})["ldap.LdapService"].(map[string]interface{})
 
 	if self.ldap_client_ == nil {
-		self.ldap_client_, err = ldap_client.NewLdap_Client(s["Domain"].(string), "ldap.LdapService")
+		self.ldap_client_, err = client.NewLdap_Client(s["Domain"].(string), "ldap.LdapService")
 	}
 
 	return self.ldap_client_, err
@@ -1510,7 +1508,7 @@ func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 /**
  * Get access to the event services.
  */
-func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
+func (self *Globule) getEventHub() (*client.Event_Client, error) {
 
 	configs := self.getServiceConfigByName("event.EventService")
 	if len(configs) == 0 {
@@ -1522,7 +1520,7 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
-		self.event_client_, err = event_client.NewEvent_Client(s["Domain"].(string), s["Id"].(string))
+		self.event_client_, err = client.NewEvent_Client(s["Domain"].(string), s["Id"].(string))
 	}
 
 	return self.event_client_, err
@@ -1676,7 +1674,7 @@ func (self *Globule) Listen() error {
 
 	} else {
 		log.Println("Globular is running!")
-		Utility.OpenBrowser("http://" + self.Domain + ":" + Utility.ToString(self.PortHttp))
+		//Utility.OpenBrowser("http://" + self.Domain + ":" + Utility.ToString(self.PortHttp))
 		// local - non secure connection.
 		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}

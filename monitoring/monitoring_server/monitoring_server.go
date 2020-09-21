@@ -11,7 +11,7 @@ import (
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/api"
-	"github.com/davecourtois/Globular/monitoring/monitoring_client"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Globular/monitoring/monitoring_store"
 	"github.com/davecourtois/Globular/monitoring/monitoringpb"
 
@@ -237,7 +237,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewMonitoring_Client", monitoring_client.NewMonitoring_Client)
+	Utility.RegisterFunction("NewMonitoring_Client", client.NewMonitoring_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -321,6 +321,8 @@ func (self *server) CreateConnection(ctx context.Context, rqst *monitoringpb.Cre
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	api.UpdateServiceConfig(self)
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -536,7 +538,7 @@ func (self *server) LabelValues(ctx context.Context, rqst *monitoringpb.LabelVal
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	resultStr, warnings, err := store.LabelValues(ctx, rqst.Label)
+	resultStr, warnings, err := store.LabelValues(ctx, rqst.Label, rqst.StartTime, rqst.EndTime)
 
 	if err != nil {
 		return nil, status.Errorf(

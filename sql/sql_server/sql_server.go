@@ -20,7 +20,7 @@ import (
 	"runtime"
 
 	"github.com/davecourtois/Globular/api"
-	"github.com/davecourtois/Globular/sql/sql_client"
+	"github.com/davecourtois/Globular/api/client"
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/sql/sqlpb"
@@ -310,7 +310,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewSql_Client", sql_client.NewSql_Client)
+	Utility.RegisterFunction("NewSql_Client", client.NewSql_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -386,6 +386,9 @@ func (self *server) CreateConnection(ctx context.Context, rsqt *sqlpb.CreateConn
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
+	// Update the globule configuration.
+	api.UpdateServiceConfig(self)
 
 	// test if the connection is reacheable.
 	_, err = self.ping(ctx, c.Id)

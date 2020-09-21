@@ -18,17 +18,17 @@ protoc monitoring/monitoringpb/monitoring.proto --go_out=plugins=grpc:.
 
 #plc service.
 protoc plc/plcpb/plc.proto --go_out=plugins=grpc:.
-protoc --plugin="protoc-gen-grpc=E:\grpc\.build\Release\grpc_cpp_plugin.exe" --grpc_out=plc/plcpb/cpp -I plc/plcpb plc.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=plc/plcpb/cpp -I plc/plcpb plc.proto
-protoc -I plc/plcpb plc.proto --cpp_out=plc/plcpb/cpp
+protoc --plugin="protoc-gen-grpc=E:\grpc\.build\Release\grpc_cpp_plugin.exe" --grpc_out=./cpp plc/plcpb/plc.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./cpp plc/plcpb/plc.proto
+protoc plc/plcpb/plc.proto --cpp_out=./cpp
 
 #plc_link service
 protoc plc_link/plc_linkpb/plc_link.proto --go_out=plugins=grpc:.
 
 # C++ service.
-protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=spc/spcpb/cpp -I spc/spcpb spc.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=plc/spcpb/cpp -I spc/spcpb spc.proto
-protoc -I spc/spcpb spc.proto --cpp_out=spc/spcpb/cpp
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./cpp spc/spcpb/spc.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./cpp spc/spcpb/spc.proto
+protoc spc/spcpb/spc.proto --cpp_out=./cpp
 protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.
 
 

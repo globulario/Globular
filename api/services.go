@@ -15,15 +15,31 @@ import (
 	"os/signal"
 	"time"
 
-	//"github.com/davecourtois/Globular/Interceptors"
+	"github.com/davecourtois/Globular/api/client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
-
 	"errors"
 )
+
+// The admin client to save configuration in globular configuration.
+var admin_client *client.Admin_Client
+
+/**
+ * Each client must have access to the admin to save their configuration in their globule
+ */
+func getAdminClient(domain string) (*client.Admin_Client, error) {
+	var err error
+	if admin_client == nil {
+		admin_client, err = client.NewAdmin_Client(domain, "admin.AdminService")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return admin_client, nil
+}
 
 // The client service interface.
 type Service interface {
@@ -229,6 +245,18 @@ func InitGrpcServer(s Service, unaryInterceptor grpc.UnaryServerInterceptor, str
 	return server, nil
 }
 
+func UpdateServiceConfig(s Service) error {
+	admin, err := getAdminClient(s.GetDomain())
+	if err != nil {
+		return err
+	}
+	str, err := Utility.ToJson(s)
+	if err != nil {
+		return err
+	}
+	return admin.SaveConfig(str)
+}
+
 /**
  * Save a globular service.
  */
@@ -241,6 +269,7 @@ func SaveService(path string, s Service) error {
 	}
 
 	ioutil.WriteFile(path, []byte(str), 0644)
+
 	return nil
 }
 
@@ -249,6 +278,7 @@ func StartService(s Service, server *grpc.Server) error {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(s.GetPort()))
 	if err != nil {
+		log.Println(err)
 		return errors.New("could not list at domain " + s.GetDomain() + err.Error())
 	}
 
