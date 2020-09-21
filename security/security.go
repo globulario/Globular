@@ -92,8 +92,13 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
  * Return the server local configuration if one exist.
  */
 func getLocalConfig() (map[string]interface{}, error) {
+	if !Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
+		return nil, errors.New("No local Globular instance found!")
+	}
+
 	config := make(map[string]interface{}, 0)
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
 	data, err := ioutil.ReadFile(root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
@@ -202,12 +207,15 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
  * Return the credential configuration.
  */
 func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
+	var path string
+	port := 10000
+	if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
+		root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+		root_ := string(root)[0:strings.Index(string(root), ":")]
+		port = Utility.ToInt(string(root)[strings.Index(string(root), ":")+1:])
 
-	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
-	root_ := string(root)[0:strings.Index(string(root), ":")]
-	port := string(root)[strings.Index(string(root), ":")+1:]
-
-	path := root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
+		path = root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
+	}
 
 	// TODO Clarify the use of the password here.
 	pwd := "1111"
@@ -271,7 +279,7 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	// be deployed. Certificate autority run wihtout tls.
 
 	// Get the ca.crt certificate.
-	ca_crt, err := getCaCertificate(address, Utility.ToInt(port))
+	ca_crt, err := getCaCertificate(address, port)
 	if err != nil {
 		return "", "", "", err
 	}

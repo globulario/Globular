@@ -498,6 +498,11 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
+	configs := self.getServiceConfigByName("persistence.Persistence")
+	if len(configs) == 0 {
+		return errors.New("No persistence service was configure on that globule!")
+	}
+
 	// Here I will test if mongo db exist on the server.
 	existMongo := exec.Command("mongod", "--version")
 	err := existMongo.Run()

@@ -1096,6 +1096,8 @@ func (self *Globule) initServices() {
 	if self.Protocol == "https" {
 		// security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
 		if len(self.Certificate) == 0 {
+			self.registerIpToDns()
+
 			log.Println(" Now let's encrypts!")
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
@@ -1133,9 +1135,7 @@ func (self *Globule) initServices() {
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
-	log.Println("----------> config Path ", configPath, " exist ", Utility.Exists(configPath))
 	if !Utility.Exists(configPath) {
-		log.Println("-----> configuration not exist!")
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -1144,7 +1144,6 @@ func (self *Globule) initServices() {
 				return nil
 			}
 			if err == nil && info.Name() == "config.json" {
-				log.Println("------------> configuaration file found ", path)
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
@@ -1463,7 +1462,7 @@ func (self *Globule) stopMongod() error {
 }
 
 func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
-
+	
 	time.Sleep(1 * time.Second)
 	args := make([]string, 0)
 	if withAuth == true {
