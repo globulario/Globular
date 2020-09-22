@@ -27,7 +27,7 @@ import (
 	"os/signal"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/ressource/ressourcepb"
+	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
 	"github.com/golang/protobuf/jsonpb"
@@ -39,7 +39,7 @@ import (
 )
 
 func (self *Globule) startRessourceService() error {
-	ressource_server, err := self.startInternalService(string(ressourcepb.File_ressource_ressource_proto.Services().Get(0).FullName()), ressourcepb.File_ressource_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
+	ressource_server, err := self.startInternalService(string(ressourcepb.File_services_proto_ressource_proto.Services().Get(0).FullName()), ressourcepb.File_services_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 
 		// Create the channel to listen on ressource port.

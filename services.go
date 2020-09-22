@@ -18,9 +18,10 @@ import (
 	"time"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/api/client"
-	"github.com/davecourtois/Globular/event/eventpb"
-	"github.com/davecourtois/Globular/services/servicespb"
+	"github.com/davecourtois/Globular/services/golang/event/event_client"
+	"github.com/davecourtois/Globular/services/golang/event/eventpb"
+	"github.com/davecourtois/Globular/services/golang/services/service_client"
+	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/davecourtois/Utility"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -42,7 +43,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		log.Println("Connect to discovery event hub ", self.Discoveries[i])
-		eventHub, err := client.NewEvent_Client(self.Discoveries[i], "event.EventService")
+		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event.EventService")
 		if err == nil {
 			log.Println("Connected with event service at ", self.Discoveries[i])
 			if subscribers[self.Discoveries[i]] == nil {
@@ -124,7 +125,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 // Start service discovery
 func (self *Globule) startDiscoveryService() error {
 	// The service discovery.
-	services_discovery_server, err := self.startInternalService(string(servicespb.File_services_services_proto.Services().Get(0).FullName()), servicespb.File_services_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	services_discovery_server, err := self.startInternalService(string(servicespb.File_services_proto_services_proto.Services().Get(0).FullName()), servicespb.File_services_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
@@ -154,7 +155,7 @@ func (self *Globule) startDiscoveryService() error {
 
 // Start service repository
 func (self *Globule) startRepositoryService() error {
-	services_repository_server, err := self.startInternalService(string(servicespb.File_services_services_proto.Services().Get(1).FullName()), servicespb.File_services_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
+	services_repository_server, err := self.startInternalService(string(servicespb.File_services_proto_services_proto.Services().Get(1).FullName()), servicespb.File_services_proto_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -627,7 +628,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService, err := client.NewServicesDiscovery_Client(discoveryId, "services_discovery")
+			discoveryService, err := service_client.NewServicesDiscovery_Client(discoveryId, "services_discovery")
 			if err != nil {
 				return err
 			}

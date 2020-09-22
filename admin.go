@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/davecourtois/Globular/api/client"
-	"github.com/davecourtois/Globular/services/servicespb"
+	//globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -29,7 +29,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/davecourtois/Globular/lb/lbpb"
+	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 
 	"strconv"
 
@@ -38,8 +38,9 @@ import (
 	"os/signal"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/admin/adminpb"
-	"github.com/davecourtois/Globular/ressource/ressourcepb"
+	"github.com/davecourtois/Globular/services/golang/admin/adminpb"
+	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
+	"github.com/davecourtois/Globular/services/golang/services/service_client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -47,7 +48,7 @@ import (
 )
 
 func (self *Globule) startAdminService() error {
-	admin_server, err := self.startInternalService(string(adminpb.File_admin_admin_proto.Services().Get(0).FullName()), adminpb.File_admin_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	admin_server, err := self.startInternalService(string(adminpb.File_services_proto_admin_proto.Services().Get(0).FullName()), adminpb.File_services_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -854,7 +855,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery, err := client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err := service_client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -862,7 +863,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := client.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
+	services_repository, err := service_client.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -967,7 +968,7 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 	}
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		services_repository, err := client.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
+		services_repository, err := service_client.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
 		if err != nil {
 			return err
 		}
@@ -1069,9 +1070,9 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
 
 	// Connect to the dicovery services
-	var services_discovery *client.ServicesDiscovery_Client
+	var services_discovery *service_client.ServicesDiscovery_Client
 	var err error
-	services_discovery, err = client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err = service_client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(

@@ -1,9 +1,0 @@
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netstandard2.0\GlobularRessourceClient.deps.json
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netstandard2.0\GlobularRessourceClient.dll
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\bin\Debug\netstandard2.0\GlobularRessourceClient.pdb
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.csprojAssemblyReference.cache
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.csproj.CoreCompileInputs.cache
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.AssemblyInfoInputs.cache
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.AssemblyInfo.cs
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.dll
-E:\Project\src\github.com\davecourtois\Globular\ressource\csharp\GlobularRessourceClient\obj\Debug\netstandard2.0\GlobularRessourceClient.pdb

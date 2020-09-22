@@ -14,14 +14,14 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/lb/lbpb"
+	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 )
 
 /**
  * Start the load balancing service.
  */
 func (self *Globule) startLoadBalancingService() error {
-	load_balancer, err := self.startInternalService(string(lbpb.File_lb_lb_proto.Services().Get(0).FullName()), lbpb.File_lb_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	load_balancer, err := self.startInternalService(string(lbpb.File_services_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_services_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil && load_balancer != nil {
 
 		// First of all I will creat a listener.

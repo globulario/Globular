@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davecourtois/Globular/api/client"
+	//globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
+	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
 )
 
@@ -196,7 +198,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := client.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client, err := ressource_client.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Println("fail to access ressource service at "+address+" with error ", err)
 		return err
@@ -210,12 +212,12 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := client.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
+	admin_client_, err := admin_client.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
 	if err != nil {
 		return err
 	}
 
-	_, err = admin_client.DeployApplication(user, name, path, token, address)
+	_, err = admin_client_.DeployApplication(user, name, path, token, address)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
 		return err
@@ -242,13 +244,13 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := client.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client_, err := ressource_client.NewRessource_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := ressource_client.Authenticate(user, pwd)
+	token, err := ressource_client_.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -256,20 +258,20 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client, err := client.NewAdmin_Client(address, "admin.AdminService")
+	admin_client_, err := admin_client.NewAdmin_Client(address, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, _, err := admin_client.UploadServicePackage(path, publisherId, serviceId, version, token, address)
+	path_, _, err := admin_client_.UploadServicePackage(path, publisherId, serviceId, version, token, address)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = admin_client.PublishService(user, path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
+	err = admin_client_.PublishService(user, path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
 		return err
 	}

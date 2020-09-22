@@ -1,95 +1,112 @@
 #!/bin/bash Run that command from inside your globular server.
-protoc admin/admin.proto --go_out=plugins=grpc:.
-protoc ressource/ressource.proto --go_out=plugins=grpc:.
-protoc ca/ca.proto --go_out=plugins=grpc:.
-protoc lb/lb.proto --go_out=plugins=grpc:.
-protoc services/services.proto --go_out=plugins=grpc:.
-protoc dns/dnspb/dns.proto --go_out=plugins=grpc:.
-protoc echo/echopb/echo.proto --go_out=plugins=grpc:.
-protoc search/searchpb/search.proto --go_out=plugins=grpc:.
-protoc event/eventpb/event.proto --go_out=plugins=grpc:.
-protoc storage/storagepb/storage.proto --go_out=plugins=grpc:.
-protoc file/filepb/file.proto --go_out=plugins=grpc:.
-protoc sql/sqlpb/sql.proto --go_out=plugins=grpc:.
-protoc ldap/ldappb/ldap.proto --go_out=plugins=grpc:.
-protoc smtp/smtppb/smtp.proto --go_out=plugins=grpc:.
-protoc persistence/persistencepb/persistence.proto --go_out=plugins=grpc:.
-protoc monitoring/monitoringpb/monitoring.proto --go_out=plugins=grpc:.
 
-#plc service.
-protoc plc/plcpb/plc.proto --go_out=plugins=grpc:.
-protoc --plugin="protoc-gen-grpc=E:\grpc\.build\Release\grpc_cpp_plugin.exe" --grpc_out=./cpp plc/plcpb/plc.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./cpp plc/plcpb/plc.proto
-protoc plc/plcpb/plc.proto --cpp_out=./cpp
+# GO grpc file generation
+protoc services/proto/admin.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/ressource.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/ca.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/lb.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/services.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/dns.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/echo.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/search.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/event.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/storage.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/file.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/sql.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/ldap.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/smtp.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/persistence.proto --go_out=plugins=grpc:./services/go
+protocs services/proto/monitoring.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/plc.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/spc.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/catalog.proto --go_out=plugins=grpc:./services/go
+protoc services/proto/plc_link.proto --go_out=plugins=grpc:./services/go
 
-#plc_link service
-protoc plc_link/plc_linkpb/plc_link.proto --go_out=plugins=grpc:.
+# TypeScript grpc files generation.
+mkdir services\typescript\admin
+protoc --js_out=import_style=commonjs:services/typescript/admin  -I ./services/proto/ admin.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/admin -I ./services/proto/ admin.proto
+mkdir services\typescript\lb
+protoc --js_out=import_style=commonjs:services/typescript/lb  -I ./services/proto/ lb.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/lb -I ./services/proto/ lb.proto
+mkdir services\typescript\ressource
+protoc --js_out=import_style=commonjs:services/typescript/ressource  -I ./services/proto/ ressource.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/ressource -I ./services/proto/ ressource.proto
+mkdir services\typescript\ca
+protoc --js_out=import_style=commonjs:services/typescript/ca  -I ./services/proto/ ca.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/ca -I ./services/proto/ ca.proto
+mkdir services\typescript\services
+protoc --js_out=import_style=commonjs:services/typescript/services  -I ./services/proto/ services.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/services -I ./services/proto/ services.proto
+mkdir services\typescript\echo
+protoc --js_out=import_style=commonjs:services/typescript/echo  -I ./services/proto/ echo.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/echo -I ./services/proto/ echo.proto
+mkdir services\typescript\search
+protoc --js_out=import_style=commonjs:services/typescript/search  -I ./services/proto/ search.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/search -I ./services/proto/ search.proto
+mkdir services\typescript\event
+protoc --js_out=import_style=commonjs:services/typescript/event  -I ./services/proto/ event.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/event -I ./services/proto/ event.proto
+mkdir services\typescript\storage
+protoc --js_out=import_style=commonjs:services/typescript/storage  -I ./services/proto/ storage.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/storage -I ./services/proto/ storage.proto
+mkdir services\typescript\file
+protoc --js_out=import_style=commonjs:services/typescript/file  -I ./services/proto/ file.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/file -I ./services/proto/ file.proto
+mkdir services\typescript\sql
+protoc --js_out=import_style=commonjs:services/typescript/sql  -I ./services/proto/ sql.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/sql -I ./services/proto/ sql.proto
+mkdir services\typescript\ldap
+protoc --js_out=import_style=commonjs:services/typescript/ldap  -I ./services/proto/ ldap.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/ldap -I ./services/proto/ ldap.proto
+mkdir services\typescript\smtp
+protoc --js_out=import_style=commonjs:services/typescript/smtp  -I ./services/proto/ smtp.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/smtp -I ./services/proto/ smtp.proto
+mkdir services\typescript\persistence
+protoc --js_out=import_style=commonjs:services/typescript/persistence  -I ./services/proto/ persistence.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/persistence -I ./services/proto/ persistence.proto
+mkdir services\typescript\spc
+protoc --js_out=import_style=commonjs:services/typescript/spc  -I ./services/proto/ spc.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/spc -I ./services/proto/ spc.proto
+mkdir services\typescript\monitoring
+protoc --js_out=import_style=commonjs:services/typescript/monitoring  -I ./services/proto/ monitoring.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/monitoring -I ./services/proto/ monitoring.proto
+mkdir services\typescript\plc
+protoc --js_out=import_style=commonjs:services/typescript/plc  -I ./services/proto/ plc.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/plc -I ./services/proto/ plc.proto
+mkdir services\typescript\plc_link
+protoc --js_out=import_style=commonjs:services/typescript/plc_link  -I ./services/proto/ plc_link.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/plc_link -I ./services/proto/ plc_link.proto
+mkdir services\typescript\catalog
+protoc --js_out=import_style=commonjs:services/typescript/catalog  -I ./services/proto/ catalog.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/catalog -I ./services/proto/ catalog.proto
 
-# C++ service.
-protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./cpp spc/spcpb/spc.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./cpp spc/spcpb/spc.proto
-protoc spc/spcpb/spc.proto --cpp_out=./cpp
-protoc spc/spcpb/spc.proto --go_out=plugins=grpc:.
 
+# CSharp grpc files generation
+mkdir services\csharp\event\eventpb
+protoc --grpc_out=./services/csharp/event/eventpb --csharp_out=./services/csharp/event/eventpb --csharp_opt=file_extension=.g.cs services/proto/event.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+mkdir services\csharp\persistence\persistencepb
+protoc --grpc_out=./services/csharp/persistence/persistencepb --csharp_out=./services/csharp/persistence/persistencepb --csharp_opt=file_extension=.g.cs services/proto/persistence.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+mkdir services\csharp\ressource\ressourcepb
+protoc --grpc_out=./services/csharp/ressource/ressourcepb --csharp_out=./services/csharp/ressource/ressourcepb --csharp_opt=file_extension=.g.cs services/proto/ressource.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
+mkdir services\csharp\echo\echopb
+protoc --grpc_out=./services/csharp/echo/echopb --csharp_out=./services/csharp/echo/echopb --csharp_opt=file_extension=.g.cs services/proto/echo.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
 
-# Javascript files generation.
-protoc admin/admin.proto --js_out=import_style=commonjs:client
-protoc admin/admin.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc lb/lb.proto --js_out=import_style=commonjs:client
-protoc lb/lb.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc ressource/ressource.proto --js_out=import_style=commonjs:client
-protoc ressource/ressource.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc ca/ca.proto --js_out=import_style=commonjs:client
-protoc ca/ca.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc services/services.proto --js_out=import_style=commonjs:client
-protoc services/services.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc echo/echopb/echo.proto --js_out=import_style=commonjs:client
-protoc echo/echopb/echo.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc search/searchpb/search.proto --js_out=import_style=commonjs:client
-protoc search/searchpb/search.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc event/eventpb/event.proto --js_out=import_style=commonjs:client
-protoc event/eventpb/event.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc storage/storagepb/storage.proto --js_out=import_style=commonjs:client
-protoc storage/storagepb/storage.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc file/filepb/file.proto --js_out=import_style=commonjs:client
-protoc file/filepb/file.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc sql/sqlpb/sql.proto --js_out=import_style=commonjs:client
-protoc sql/sqlpb/sql.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc ldap/ldappb/ldap.proto --js_out=import_style=commonjs:client
-protoc ldap/ldappb/ldap.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc smtp/smtppb/smtp.proto --js_out=import_style=commonjs:client
-protoc smtp/smtppb/smtp.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc persistence/persistencepb/persistence.proto --js_out=import_style=commonjs:client
-protoc persistence/persistencepb/persistence.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc spc/spcpb/spc.proto --js_out=import_style=commonjs:client
-protoc spc/spcpb/spc.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc monitoring/monitoringpb/monitoring.proto --js_out=import_style=commonjs:client
-protoc monitoring/monitoringpb/monitoring.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc plc/plcpb/plc.proto --js_out=import_style=commonjs:client
-protoc plc/plcpb/plc.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-protoc plc_link/plc_linkpb/plc_link.proto --js_out=import_style=commonjs:client
-protoc plc_link/plc_linkpb/plc_link.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
+# C++ grpc files generation.
+mkdir services\cpp\ressource\ressourcepb
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./services/cpp/ressource/ressourcepb -I services/proto ressource.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./services/cpp/ressource/ressourcepb  -I services/proto ressource.proto
+protoc --cpp_out=./services/cpp/ressource/ressourcepb -I services/proto ressource.proto
+mkdir services\cpp\echo\echopb
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./services/cpp/echo/echopb -I services/proto/ echo.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./services/cpp/echo/echopb -I services/proto/ echo.proto
+protoc --cpp_out=./services/cpp/echo/echopb  -I services/proto/ echo.proto
+mkdir services\cpp\plc\plcpb
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./services/cpp/plc/plcpb -I services/proto/ plc.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./services/cpp/plc/plcpb -I services/proto/ plc.proto
+protoc --cpp_out=./services/cpp/plc/plcpb  -I services/proto/ plc.proto
+mkdir services\cpp\spc\spcpb
+protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=./services/cpp/spc/spcpb -I services/proto/ spc.proto
+protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=./services/cpp/spc/spcpb -I services/proto/ spc.proto
+protoc --cpp_out=./services/cpp/spc/spcpb  -I services/proto/ spc.proto
 
-# in the client folder ex: in /WebRoot/js/echo_client do command: npx webpack client.js to generate the dist/main.js file use in client application.
-protoc catalog/catalogpb/catalog.proto --go_out=plugins=grpc:.
-protoc catalog/catalogpb/catalog.proto --js_out=import_style=commonjs:client
-protoc catalog/catalogpb/catalog.proto --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:client
-
-# Now the CSharp Clients.
-protoc --grpc_out=event/event_client/csharp/GlobularEventClient --csharp_out=event/event_client/csharp/GlobularEventClient --csharp_opt=file_extension=.g.cs event/eventpb/event.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
-protoc --grpc_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_out=persistence/persistence_client/csharp/GlobularPersistenceClient --csharp_opt=file_extension=.g.cs persistence/persistencepb/persistence.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
-protoc --grpc_out=ressource/csharp/GlobularRessourceClient --csharp_out=ressource/csharp/GlobularRessourceClient --csharp_opt=file_extension=.g.cs ressource/ressource.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
-
-# The C++ clients
-# The ressource client.
-protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
-protoc --cpp_out=ressource/cpp/GlobularRessourceClient ressource/ressource.proto
-
-# CSharp echo server (test) use the ts client.
-protoc --grpc_out=csharp/GlobularEchoServer --csharp_out=csharp/GlobularEchoServer --csharp_opt=file_extension=.g.cs echo/echopb/echo.proto --plugin="protoc-gen-grpc=C:\Users\mm006819\grpc\.build\grpc_csharp_plugin.exe"
-
-# Cpp echo server (test) use the ts client.
-protoc --plugin="protoc-gen-grpc=C://Users//mm006819//grpc//.build//grpc_cpp_plugin.exe" --grpc_out=cpp/EchoServer echo/echopb/echo.proto
-protoc --plugin="protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin" --grpc_out=cpp/EchoServer echo/echopb/echo.proto
-protoc --cpp_out=cpp/EchoServer echo/echopb/echo.proto

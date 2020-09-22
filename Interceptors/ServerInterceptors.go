@@ -12,10 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Globular/api/client"
-	"github.com/davecourtois/Globular/file/filepb"
-	"github.com/davecourtois/Globular/lb/lbpb"
-	"github.com/davecourtois/Globular/storage/storage_store"
+	"github.com/davecourtois/Globular/services/golang/file/filepb"
+	globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
+	"github.com/davecourtois/Globular/services/golang/lb/load_balancing_client"
+	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
+	"github.com/davecourtois/Globular/services/golang/storage/storage_store"
 	"github.com/davecourtois/Utility"
 
 	"github.com/shirou/gopsutil/load"
@@ -25,14 +27,14 @@ import (
 
 var (
 	// The ressource client
-	ressource_client *client.Ressource_Client
+	ressource_client_ *ressource_client.Ressource_Client
 
 	// The load balancer client.
-	lb_client *client.Lb_Client
+	lb_client *load_balancing_client.Lb_Client
 
 	// The map will contain connection with other server of same kind to load
 	// balance the server charge.
-	clients map[string]client.Client
+	clients map[string]globular.Client
 
 	// That will contain the permission in memory to limit the number
 	// of ressource request...
@@ -42,11 +44,11 @@ var (
 /**
  * Get a the local ressource client.
  */
-func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*client.Lb_Client, error) {
+func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*load_balancing_client.Lb_Client, error) {
 
 	var err error
 	if lb_client == nil {
-		lb_client, err = client.NewLb_Client(domain, "lb.LoadBalancingService")
+		lb_client, err = load_balancing_client.NewLb_Client(domain, "lb.LoadBalancingService")
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +56,7 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 		fmt.Println("----> start load balancing for ", serviceName)
 
 		// Here I will create the client map.
-		clients = make(map[string]client.Client)
+		clients = make(map[string]globular.Client)
 
 		// Now I will start reporting load at each minutes.
 		ticker := time.NewTicker(1 * time.Minute)
@@ -90,16 +92,16 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 /**
  * Get a the local ressource client.
  */
-func getRessourceClient(domain string) (*client.Ressource_Client, error) {
+func getRessourceClient(domain string) (*ressource_client.Ressource_Client, error) {
 	var err error
-	if ressource_client == nil {
-		ressource_client, err = client.NewRessource_Client(domain, "ressource.RessourceService")
+	if ressource_client_ == nil {
+		ressource_client_, err = ressource_client.NewRessource_Client(domain, "ressource.RessourceService")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return ressource_client, nil
+	return ressource_client_, nil
 }
 
 /**
@@ -398,7 +400,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 						continue // skip to the next client.
 					}
 					// So here I will keep the client inside the map.
-					clients[candidate.GetId()] = results[0].Interface().(client.Client)
+					clients[candidate.GetId()] = results[0].Interface().(globular.Client)
 				}
 				fmt.Println("416 redirect rqst from ", serverId, " to ", candidate.GetId())
 				// Here I will invoke the request on the server whit the same context, so permission and token etc will be kept the save.

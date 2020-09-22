@@ -15,7 +15,7 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/ca/capb"
+	"github.com/davecourtois/Globular/services/golang/ca/capb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,7 +23,8 @@ import (
 
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
-	certificate_authority_server, err := self.startInternalService(string(capb.File_ca_ca_proto.Services().Get(0).FullName()), capb.File_ca_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	certificate_authority_server, err := self.startInternalService(string(capb.File_services_proto_ca_proto.Services().Get(0).FullName()),
+		capb.File_services_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
