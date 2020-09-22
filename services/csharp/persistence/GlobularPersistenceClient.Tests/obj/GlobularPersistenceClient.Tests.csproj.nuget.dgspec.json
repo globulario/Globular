@@ -1,0 +1,317 @@
+{
+  "format": 1,
+  "restore": {
+    "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient.Tests\\GlobularPersistenceClient.Tests.csproj": {}
+  },
+  "projects": {
+    "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
+      "version": "1.0.2",
+      "restore": {
+        "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj",
+        "projectName": "GlobularClient",
+        "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj",
+        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Grpc": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            },
+            "Grpc.Core": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            },
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[4.7.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient.Tests\\GlobularPersistenceClient.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient.Tests\\GlobularPersistenceClient.Tests.csproj",
+        "projectName": "GlobularPersistenceClient.Tests",
+        "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient.Tests\\GlobularPersistenceClient.Tests.csproj",
+        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient.Tests\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {
+              "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj": {
+                "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj"
+              },
+              "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj": {
+                "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Grpc": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            },
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[16.2.0, )"
+            },
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[4.7.1, )"
+            },
+            "coverlet.collector": {
+              "target": "Package",
+              "version": "[1.0.1, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.4.0, )"
+            },
+            "xunit.runner.console": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.4.1, )"
+            },
+            "xunit.runner.visualstudio": {
+              "target": "Package",
+              "version": "[2.4.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj": {
+      "version": "1.0.3",
+      "restore": {
+        "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
+        "projectName": "GlobularPersistenceClient",
+        "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\GlobularPersistenceClient.csproj",
+        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\persistence\\persistence_client\\csharp\\GlobularPersistenceClient\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {
+              "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
+                "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.11.4, )"
+            },
+            "Grpc": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            },
+            "Grpc.Core": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
+        "projectName": "GlobularRessourceClient",
+        "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
+        "packagesPath": "C:\\Users\\davec\\.nuget\\packages\\",
+        "outputPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\davec\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {
+              "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj": {
+                "projectPath": "E:\\Project\\src\\github.com\\davecourtois\\Globular\\api\\csharp\\GlobularClient\\GlobularClient.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.11.4, )"
+            },
+            "Grpc": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            },
+            "Grpc.Core": {
+              "target": "Package",
+              "version": "[2.28.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.102\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

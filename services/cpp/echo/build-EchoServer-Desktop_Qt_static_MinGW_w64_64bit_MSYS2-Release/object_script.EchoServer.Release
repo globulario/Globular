@@ -1,0 +1,11 @@
+release/globularclient.o
+release/globularserver.o
+release/globularressourceclient.o
+release/ressource.grpc.pb.o
+release/ressource.pb.o
+release/echo.grpc.pb.o
+release/echo.pb.o
+release/echo.grpc.pb.o
+release/echo.pb.o
+release/echoserviceimpl.o
+release/main.o

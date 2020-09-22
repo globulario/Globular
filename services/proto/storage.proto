@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package storage;
+
+option go_package="storage/storagepb";
+
+enum StoreType{
+	LEVEL_DB = 0; // persistent storage
+	BIG_CACHE = 1; // in memory storage
+}
+
+message Connection {
+	string id = 1; // The connection id
+	string name = 2; // The name of the store
+	StoreType type = 3; // Specifey the implementation to be use.
+}
+
+// open data store request
+message OpenRqst {
+	string id = 1;
+	string options = 2;
+}
+
+message OpenRsp {
+	bool result = 1;
+}
+
+// Close data
+message CloseRqst {
+	string id = 1;
+}
+
+message CloseRsp {
+	bool result = 1;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+// Save an item in the kv store
+message SetItemRequest {
+	string id = 1; // connection id
+	string key = 2; // the key
+	bytes value = 3; // The data to store.
+}
+
+message SetItemResponse {
+	bool result = 1;
+}
+
+// Retreive a value with a given key
+message GetItemRequest {
+	string id = 1; // connection id
+	string key = 2; // the key
+}
+
+message GetItemResponse {
+	bytes result = 1;
+}
+
+// Remove an item from the store.
+message RemoveItemRequest {
+	string id = 1; // connection id
+	string key = 2; // the key
+}
+
+message RemoveItemResponse {
+	bool result = 1;
+}
+
+// Remove all item from a stroe.
+message ClearRequest {
+	string id = 1; // connection id
+}
+
+message ClearResponse {
+	bool result = 1;
+}
+
+// Delte a data store
+message DropRequest {
+	string id = 1; // connection id
+}
+
+message DropResponse {
+	bool result = 1;
+}
+
+// TODO support TLS conncetion.
+service StorageService {
+	// Open the store and set options...
+	rpc Open(OpenRqst) returns (OpenRsp){};
+	
+	// Close the data store.
+	rpc Close(CloseRqst) returns (CloseRsp){};
+	
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+
+	// Save an item in the kv store
+	rpc SetItem(SetItemRequest) returns (SetItemResponse) {};
+	
+	// Retreive a value with a given key 
+	rpc GetItem(GetItemRequest) returns (GetItemResponse) {};
+	
+	// Remove an item with a given key 
+	rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse) {};
+	
+	// Remove all items 
+	rpc Clear(ClearRequest) returns (ClearResponse) {};
+	
+	// Drop a store 
+	rpc Drop(DropRequest) returns (DropResponse) {};
+}
+
