@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	defaultPort  = 10037
-	defaultProxy = 10038
+	defaultPort  = 10067
+	defaultProxy = 10068
 
 	// By default all origins are allowed.
 	allow_all_origins = true

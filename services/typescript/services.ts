@@ -1,23 +1,23 @@
 // Here is the list of services from the backend.
-import { EventServicePromiseClient } from './event/eventpb/event_grpc_web_pb';
-import { EchoServicePromiseClient } from './echo/echopb/echo_grpc_web_pb';
-import { CatalogServicePromiseClient } from './catalog/catalogpb/catalog_grpc_web_pb';
-import { FileServicePromiseClient } from './file/filepb/file_grpc_web_pb';
-import { LdapServicePromiseClient } from './ldap/ldappb/ldap_grpc_web_pb';
-import { PersistenceServicePromiseClient } from './persistence/persistencepb/persistence_grpc_web_pb';
-import { PlcLinkServicePromiseClient } from './plc_link/plc_link_pb/plc_link_grpc_web_pb';
-import { SmtpServicePromiseClient } from './smtp/smtppb/smtp_grpc_web_pb';
-import { SpcServicePromiseClient } from './spc/spcpb/spc_grpc_web_pb';
-import { SqlServicePromiseClient } from './sql/sqlpb/sql_grpc_web_pb';
-import { StorageServicePromiseClient } from './storage/storagepb/storage_grpc_web_pb';
-import { MonitoringServicePromiseClient } from './monitoring/monitoringpb/monitoring_grpc_web_pb';
-import { PlcServicePromiseClient } from './plc/plcpb/plc_grpc_web_pb';
+import { EventServicePromiseClient } from './event/event_grpc_web_pb';
+import { EchoServicePromiseClient } from './echo/echo_grpc_web_pb';
+import { CatalogServicePromiseClient } from './catalog/catalog_grpc_web_pb';
+import { FileServicePromiseClient } from './file/file_grpc_web_pb';
+import { LdapServicePromiseClient } from './ldap/ldap_grpc_web_pb';
+import { PersistenceServicePromiseClient } from './persistence/persistence_grpc_web_pb';
+import { PlcLinkServicePromiseClient } from './plc_link/plc_link_grpc_web_pb';
+import { SmtpServicePromiseClient } from './smtp/smtp_grpc_web_pb';
+import { SpcServicePromiseClient } from './spc/spc_grpc_web_pb';
+import { SqlServicePromiseClient } from './sql/sql_grpc_web_pb';
+import { StorageServicePromiseClient } from './storage/storage_grpc_web_pb';
+import { MonitoringServicePromiseClient } from './monitoring/monitoring_grpc_web_pb';
+import { PlcServicePromiseClient } from './plc/plc_grpc_web_pb';
 import { AdminServicePromiseClient } from './admin/admin_grpc_web_pb';
 import { RessourceServicePromiseClient } from './ressource/ressource_grpc_web_pb';
 import { ServiceDiscoveryPromiseClient, ServiceRepositoryPromiseClient } from './services/services_grpc_web_pb';
 import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
-import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event, OnEventRequest, SubscribeResponse } from './event/eventpb/event_pb';
-import { SearchServiceClient, SearchServicePromiseClient } from './search/searchpb/search_grpc_web_pb';
+import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event, OnEventRequest, SubscribeResponse } from './event/event_pb';
+import { SearchServiceClient, SearchServicePromiseClient } from './search/search_grpc_web_pb';
 import { LoadBalancingServiceClient, LoadBalancingServicePromiseClient } from './lb/lb_grpc_web_pb';
 
 /**

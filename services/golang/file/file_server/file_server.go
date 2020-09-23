@@ -48,7 +48,7 @@ var (
 	// The default domain.
 	domain string = "localhost"
 
-	s *server
+	//s *server
 )
 
 // Value need by Globular to start the services...
@@ -347,7 +347,7 @@ type fileInfo struct {
 	Files     []*fileInfo
 }
 
-func getFileInfo(path string) (*fileInfo, error) {
+func getFileInfo(s *server, path string) (*fileInfo, error) {
 	fileStat, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -395,10 +395,10 @@ func getThumbnails(info *fileInfo) []interface{} {
 /**
  * Read the directory and return the file info.
  */
-func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxHeight int32) (*fileInfo, error) {
+func readDir(s *server, path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxHeight int32) (*fileInfo, error) {
 
 	// get the file info
-	info, err := getFileInfo(path)
+	info, err := getFileInfo(s, path)
 	if err != nil {
 		return nil, err
 	}
@@ -415,14 +415,14 @@ func readDir(path string, recursive bool, thumbnailMaxWidth int32, thumbnailMaxH
 
 		if f.IsDir() {
 			if recursive {
-				info_, err := readDir(path+string(os.PathSeparator)+f.Name(), recursive, thumbnailMaxWidth, thumbnailMaxHeight)
+				info_, err := readDir(s, path+string(os.PathSeparator)+f.Name(), recursive, thumbnailMaxWidth, thumbnailMaxHeight)
 				if err != nil {
 					return nil, err
 				}
 				info.Files = append(info.Files, info_)
 			}
 		} else {
-			info_, err := getFileInfo(path + string(os.PathSeparator) + f.Name())
+			info_, err := getFileInfo(s, path+string(os.PathSeparator)+f.Name())
 
 			f_, err := os.Open(path + string(os.PathSeparator) + f.Name())
 			defer f_.Close()
@@ -472,7 +472,7 @@ func (self *server) ReadDir(rqst *filepb.ReadDirRequest, stream filepb.FileServi
 		}
 	}
 
-	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
+	info, err := readDir(self, path, rqst.GetRecursive(), rqst.GetThumnailWidth(), rqst.GetThumnailHeight())
 	if err != nil {
 		return err
 	}
@@ -675,7 +675,7 @@ func (self *server) GetFileInfo(ctx context.Context, rqst *filepb.GetFileInfoReq
 		}
 	}
 
-	info, err := getFileInfo(path)
+	info, err := getFileInfo(self, path)
 
 	// the file
 	f_, err := os.Open(path)
@@ -923,7 +923,7 @@ func (self *server) GetThumbnails(rqst *filepb.GetThumbnailsRequest, stream file
 		path = strings.Replace(path, "/", string(os.PathSeparator), -1)
 	}
 
-	info, err := readDir(path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
+	info, err := readDir(self, path, rqst.GetRecursive(), rqst.GetThumnailHeight(), rqst.GetThumnailWidth())
 	if err != nil {
 		return err
 	}

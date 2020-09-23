@@ -258,6 +258,10 @@ func UpdateServiceConfig(s Service) error {
 	if err != nil {
 		return err
 	}
+	admin_client_, err := getAdminClient(s.GetDomain())
+	if err != nil {
+		return err
+	}
 
 	return admin_client_.SaveConfig(str)
 }

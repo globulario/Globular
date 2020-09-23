@@ -21,7 +21,7 @@ import {
 import {
     QueryRangeRequest,
     QueryRequest
-} from "./monitoring/monitoringpb/monitoring_pb";
+} from "./monitoring/monitoring_pb";
 
 import {
     RegisterAccountRqst,
@@ -89,7 +89,7 @@ import {
     PingConnectionRsp,
     ReplaceOneRqst,
     ReplaceOneRsp
-} from "./persistence/persistencepb/persistence_pb";
+} from "./persistence/persistence_pb";
 
 import {
     FindServicesDescriptorRequest,
@@ -111,12 +111,12 @@ import {
     CreateArchiveResponse,
     CreateDirRequest,
     ReadDirRequest,
-} from "./file/filepb/file_pb";
+} from "./file/file_pb";
 
-import { TagType, ReadTagRqst } from "./plc/plcpb/plc_pb";
+import { TagType, ReadTagRqst } from "./plc/plc_pb";
 import { Globular, EventHub } from './services';
 import { IConfig, IServiceConfig } from './services';
-import { SearchDocumentsRequest, SearchDocumentsResponse, SearchResult } from "./search/searchpb/search_pb";
+import { SearchDocumentsRequest, SearchDocumentsResponse, SearchResult } from "./search/search_pb";
 
 // Here I will get the authentication information.
 const domain = window.location.hostname

@@ -511,7 +511,7 @@ func (self *Globule) getDomain() string {
  * Set the ip for a given domain or sub-domain
  */
 func (self *Globule) registerIpToDns() error {
-	log.Println("------> registerIpToDns")
+
 	// Globular DNS is use to create sub-domain.
 	// ex: globular1.globular.io here globular.io is the domain and globular1 is
 	// the sub-domain. Domain must be manage by dns provider directly, by using
@@ -1103,7 +1103,6 @@ func (self *Globule) initServices() {
 
 	log.Println("local ip ", Utility.MyLocalIP())
 	log.Println("external ip ", Utility.MyIP())
-	self.registerIpToDns()
 
 	// If the protocol is https I will generate the TLS certificate.
 	if self.Protocol == "https" {

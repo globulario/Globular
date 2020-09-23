@@ -104,9 +104,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	hasPermission := false
 	user := ""
 
-	log.Println("-------> validate path '", path, "' for ", application)
 	if len(application) != 0 {
-
 		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
 		if err == nil {
 			hasPermission = true
@@ -127,31 +125,45 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !hasPermission {
+		log.Println("130 Unable to create the file for writing. Check your write access privilege! ", path)
 		http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 		return
 	}
 
+	// Here the path dosent exist.
 	if !Utility.Exists(globule.webRoot + path) {
-		hasPermission := false
-
-		if len(token) != 0 && !hasPermission {
+		if len(token) != 0 {
 			err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
 			if err != nil {
+				log.Println("142 Unable to create the file for writing. Check your write access privilege! ", path)
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 			user, _, _, _ = Interceptors.ValidateToken(token)
 			hasPermission = true
+		} else if len(application) > 0 {
+			err := Interceptors.ValidateApplicationRessourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
+			if err != nil {
+				log.Println("148 Unable to create the file for writing. Check your write access privilege! ", path)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			hasPermission = true
 		}
 
 		if !hasPermission {
+			log.Println("149 Unable to create the file for writing. Check your write access privilege! ", path)
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
 
+		// Give the user or application the owner privilege on the created dir.
 		if len(user) > 0 {
 			globule.setRessourceOwner(user, path)
+		} else if len(application) > 0 {
+			globule.setRessourceOwner(application, path)
 		}
+
 		Utility.CreateDirIfNotExist(globule.webRoot + path)
 	}
 
@@ -162,14 +174,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(w, err)
 			return
 		}
+
 		// set the file owner if the length of the user if greather than 0
 		if len(user) > 0 {
-
-			log.Println("--------> path ", path)
-			log.Println("--------> file name ", files[i].Filename)
-
 			globule.setRessourceOwner(user, path+"/"+files[i].Filename)
+		} else if len(application) > 0 {
+			globule.setRessourceOwner(application, path+"/"+files[i].Filename)
 		}
+
 		// Create the file.
 		out, err := os.Create(globule.webRoot + path + "/" + files[i].Filename)
 

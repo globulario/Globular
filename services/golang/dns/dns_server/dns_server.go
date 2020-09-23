@@ -273,6 +273,8 @@ func (self *server) Init() error {
 		fmt.Println("The value StorageDataPath in the configuration must be given. You can use /tmp (on linux) if you don't want to keep values indefilnely on the storage server.")
 	}
 
+	s = self
+
 	return nil
 
 }
