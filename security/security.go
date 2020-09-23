@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -476,6 +477,9 @@ func GenerateClientCertificateSigningRequest(path string, pwd string, domain str
 	args = append(args, path+string(os.PathSeparator)+"client.csr")
 	args = append(args, "-subj")
 	args = append(args, "/CN="+domain)
+	args = append(args, "-config")
+	args = append(args, path+string(os.PathSeparator)+"san.conf")
+
 	err := exec.Command(cmd, args...).Run()
 
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"client.csr") {
@@ -519,6 +523,46 @@ func GenerateSignedClientCertificate(path string, pwd string, expiration_delay i
 	return nil
 }
 
+func GenerateSanConfig(path string, country string, state string, city string, organization string, domains []string) error {
+	config := fmt.Sprintf(`
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+countryName = %s
+stateOrProvinceName =  %s
+localityName =  %s
+organizationalUnitName	=  %s
+commonName =  %s
+commonName_max	= 64
+
+[ v3_req ]
+# Extensions to add to a certificate request
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+`, country, state, city, organization, domains[0])
+
+	domains = append(domains, "cargowebserver.com")
+	// set alternate domain
+	for i := 1; i < len(domains); i++ {
+		config += fmt.Sprintf("DNS.%d = %s \n", i+1, domains[i])
+	}
+
+	f, err := os.Create(path + "/san.conf")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(config)
+
+	return err
+}
+
 // Server certificate signing request (this should be shared with the CA owner)
 func GenerateServerCertificateSigningRequest(path string, pwd string, domain string) error {
 
@@ -538,7 +582,9 @@ func GenerateServerCertificateSigningRequest(path string, pwd string, domain str
 	args = append(args, path+string(os.PathSeparator)+"server.csr")
 	args = append(args, "-subj")
 	args = append(args, "/CN="+domain)
-
+	args = append(args, "-config")
+	args = append(args, path+string(os.PathSeparator)+"san.conf")
+	log.Println("------> ", args)
 	err := exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"server.csr") {
 		return errors.New("Fail to generate server certificate signing request.")
@@ -586,7 +632,7 @@ func KeyToPem(name string, path string, pwd string) error {
 	if Utility.Exists(path + string(os.PathSeparator) + name + ".pem") {
 		return nil
 	}
-	log.Println("---------> 578")
+
 	cmd := "openssl"
 	args := make([]string, 0)
 	args = append(args, "pkcs8")
@@ -628,6 +674,9 @@ func GenerateServicesCertificates(pwd string, expiration_delay int, domain strin
 
 		return err
 	}
+
+	// Generate the SAN configuration.
+	err = GenerateSanConfig(path, "", "", "", "", []string{domain})
 
 	log.Println("Setp 2: Generate the server Private Key (server.key)")
 	err = GenerateSeverPrivateKey(path, pwd)

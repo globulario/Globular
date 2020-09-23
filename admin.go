@@ -3,21 +3,16 @@ package main
 import (
 	"context"
 
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
-
-	"bytes"
-
-	"time"
-
-	"io"
-
-	"strings"
-
-	"errors"
-	"fmt"
 	"regexp"
+	"strings"
+	"time"
 
 	//globular "github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/services/servicespb"

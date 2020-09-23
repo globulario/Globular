@@ -110,16 +110,27 @@ type Globule struct {
 	// List of application need to be start by the server.
 	ExternalApplications map[string]ExternalApplication
 
-	Domain                     string // The domain of the globule.
-	CertExpirationDelay        int
-	CertPassword               string
+	Domain           string   // The principale domain
+	AlternateDomains []string // Alternate domain for multiple domains
+
+	// Certificate generation variables.
+	CertExpirationDelay int
+	CertPassword        string
+	Country             string // tow letter.
+	State               string // Full state name
+	City                string
+	Organisation        string
+	CommonName          string
+
+	// https certificate info.
 	Certificate                string
 	CertificateAuthorityBundle string
 	CertURL                    string
 	CertStableURL              string
-	Version                    string
-	Platform                   string
-	SessionTimeout             time.Duration
+
+	Version        string
+	Platform       string
+	SessionTimeout time.Duration
 
 	// Service discoveries.
 	Discoveries []string // Contain the list of discovery service use to keep service up to date.
@@ -183,6 +194,7 @@ type Globule struct {
  * Globule constructor.
  */
 func NewGlobule() *Globule {
+
 	// Here I will initialyse configuration.
 	g := new(Globule)
 
@@ -499,7 +511,7 @@ func (self *Globule) getDomain() string {
  * Set the ip for a given domain or sub-domain
  */
 func (self *Globule) registerIpToDns() error {
-
+	log.Println("------> registerIpToDns")
 	// Globular DNS is use to create sub-domain.
 	// ex: globular1.globular.io here globular.io is the domain and globular1 is
 	// the sub-domain. Domain must be manage by dns provider directly, by using
@@ -529,6 +541,7 @@ func (self *Globule) registerIpToDns() error {
 	// Here If the DNS provides has api to update the ip address I will use it.
 	// TODO test it for different internet provider's
 	if len(self.DnsSetA) > 0 {
+
 		// set the data to the actual ip address.
 		data := `[{"data":"` + Utility.MyIP() + `"}]`
 
@@ -538,6 +551,7 @@ func (self *Globule) registerIpToDns() error {
 		// set the HTTP method, url, and request body
 		req, err := http.NewRequest(http.MethodPut, self.DnsSetA, bytes.NewBuffer([]byte(data)))
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 
@@ -1089,12 +1103,12 @@ func (self *Globule) initServices() {
 
 	log.Println("local ip ", Utility.MyLocalIP())
 	log.Println("external ip ", Utility.MyIP())
+	self.registerIpToDns()
 
 	// If the protocol is https I will generate the TLS certificate.
 	if self.Protocol == "https" {
 		// security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
 		if len(self.Certificate) == 0 {
-			self.registerIpToDns()
 
 			log.Println(" Now let's encrypts!")
 			// Here is the command to be execute in order to ge the certificates.
@@ -1134,6 +1148,7 @@ func (self *Globule) initServices() {
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
 	if !Utility.Exists(configPath) {
+		log.Println("--->  create new globular configuration")
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -1143,6 +1158,7 @@ func (self *Globule) initServices() {
 				return nil
 			}
 			if err == nil && info.Name() == "config.json" {
+				log.Println("--->  import new service configuration ", path)
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
