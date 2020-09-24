@@ -566,6 +566,9 @@ export class DeployApplicationRequest extends jspb.Message {
   getName(): string;
   setName(value: string): DeployApplicationRequest;
 
+  getDomain(): string;
+  setDomain(value: string): DeployApplicationRequest;
+
   getData(): Uint8Array | string;
   getData_asU8(): Uint8Array;
   getData_asB64(): string;
@@ -582,6 +585,7 @@ export class DeployApplicationRequest extends jspb.Message {
 export namespace DeployApplicationRequest {
   export type AsObject = {
     name: string,
+    domain: string,
     data: Uint8Array | string,
   }
 }
