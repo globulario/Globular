@@ -54,6 +54,7 @@ func (self *Globule) startCertificateAuthorityService() error {
 	return err
 
 }
+
 func (self *Globule) signCertificate(client_csr string) (string, error) {
 
 	// first of all I will save the incomming file into a temporary file...
@@ -84,10 +85,12 @@ func (self *Globule) signCertificate(client_csr string) (string, error) {
 	args = append(args, "01")
 	args = append(args, "-out")
 	args = append(args, client_crt_path)
-
+	args = append(args, "-extfile")
+	args = append(args, self.creds+string(os.PathSeparator)+"san.conf")
+	args = append(args, "-extensions")
+	args = append(args, "v3_req")
 	err = exec.Command(cmd, args...).Run()
 	if err != nil {
-
 		return "", err
 	}
 

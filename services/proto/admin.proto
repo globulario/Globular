@@ -147,7 +147,8 @@ message UninstallServiceResponse{
 
 message DeployApplicationRequest{
 	string name = 1;
-	bytes data = 2;
+	string domain = 2;
+	bytes data = 3;
 }
 
 message DeployApplicationResponse{

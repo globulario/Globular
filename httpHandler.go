@@ -47,6 +47,23 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+ * Return the server SAN configuration file.
+ */
+func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/text")
+	w.WriteHeader(http.StatusCreated)
+
+	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "san.conf")
+	if err != nil {
+		http.Error(w, "Client Subject Alernate Name configuration found!", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, string(crt))
+}
+
+/**
  * Sign ca certificate request and return a certificate.
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
@@ -202,9 +219,17 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//if empty, set current directory
-	dir := string(root)
+	dir := string(webRoot)
 	if dir == "" {
 		dir = "."
+	}
+
+	// If a directory with the same name as the host in the request exist
+	// it will be taken as root. Permission will be manage by the ressource
+	// manager and not simply the name of the directory. If you want to protect
+	// a given you need to set permission on it.
+	if Utility.Exists(dir + "/" + r.Host) {
+		dir += "/" + r.Host
 	}
 
 	//add prefix and clean

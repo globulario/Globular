@@ -373,11 +373,12 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 // Deloyed a web application to a globular node.
 func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
-
+	log.Println("-----------> 376")
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
 
 	var name string
+	var domain string
 	for {
 		msg, err := stream.Recv()
 		if err == io.EOF {
@@ -390,6 +391,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 			return err
 		} else {
 			name = msg.Name
+			domain = msg.Domain
 			buffer.Write(msg.Data)
 		}
 	}
@@ -412,7 +414,16 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	Utility.ExtractTarGz(r)
 
 	// Copy the files to it final destination
-	abosolutePath := self.webRoot + string(os.PathSeparator) + name
+	abosolutePath := self.webRoot
+	log.Println("----------> deploy to domain ", domain)
+	if len(domain) > 0 {
+		if Utility.Exists(abosolutePath + "/" + domain) {
+			abosolutePath += "/" + domain
+		}
+	}
+
+	// set the absolute application domain.
+	abosolutePath += "/" + name
 
 	// Remove the existing files.
 	if Utility.Exists(abosolutePath) {
@@ -438,7 +449,12 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	application := make(map[string]interface{})
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
-	application["path"] = "/" + name                 // The path must be the same as the application name.
+	application["path"] = "/" + name // The path must be the same as the application name.
+	if len(domain) > 0 {
+		if Utility.Exists(self.webRoot + "/" + domain) {
+			application["path"] = "/" + domain + "/" + application["path"].(string)
+		}
+	}
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
 	// Here I will set the ressource to manage the applicaiton access permission.

@@ -8,6 +8,8 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+
+	//	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -469,6 +471,7 @@ func (self *Admin_Client) DeployApplication(user string, name string, path strin
 
 	rqst := new(adminpb.DeployApplicationRequest)
 	rqst.Name = name
+	rqst.Domain = domain
 
 	Utility.CreateDirIfNotExist(Utility.GenerateUUID(name))
 	Utility.CopyDirContent(path, Utility.GenerateUUID(name))
@@ -501,8 +504,9 @@ func (self *Admin_Client) DeployApplication(user string, name string, path strin
 		bytesread, err := buffer.Read(data[0:BufferSize])
 		if bytesread > 0 {
 			rqst := &adminpb.DeployApplicationRequest{
-				Data: data[0:bytesread],
-				Name: name,
+				Data:   data[0:bytesread],
+				Name:   name,
+				Domain: domain,
 			}
 			// send the data to the server.
 			err = stream.Send(rqst)

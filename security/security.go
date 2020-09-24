@@ -76,7 +76,7 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 		config["CertAuthorityTrust"] = ""
 	} else {
 		// Here I will retreive the credential or create it if not exist.
-		keyPath, certPath, caPath, err := getCredentialConfig(address)
+		keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), serverConfig["Country"].(string), serverConfig["State"].(string), serverConfig["City"].(string), serverConfig["Organization"].(string), serverConfig["AlternateDomains"].([]interface{}))
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +207,7 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 /**
  * Return the credential configuration.
  */
-func getCredentialConfig(address string) (keyPath string, certPath string, caPath string, err error) {
+func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}) (keyPath string, certPath string, caPath string, err error) {
 	var path string
 	port := 10000
 	if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
@@ -227,7 +227,16 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	isLocal := true
 	if err == nil {
 		if config["Domain"] != address {
-			isLocal = false
+			if config["AlternateDomains"] != nil {
+				isLocal = false
+				alternateDomains := config["AlternateDomains"].([]interface{})
+				for i := 0; i < len(alternateDomains); i++ {
+					if alternateDomains[i].(string) == address {
+						isLocal = true
+						break
+					}
+				}
+			}
 		}
 	} else {
 		isLocal = false
@@ -297,6 +306,15 @@ func getCredentialConfig(address string) (keyPath string, certPath string, caPat
 	if err != nil {
 		return "", "", "", err
 	}
+
+	alternateDomains_ := make([]string, 0)
+	alternateDomains_ = append(alternateDomains_, address)
+	for i := 0; i < len(alternateDomains); i++ {
+		alternateDomains_ = append(alternateDomains_, alternateDomains[i].(string))
+	}
+
+	// generate the SAN file
+	err = GenerateSanConfig(path, country, state, city, organization, alternateDomains_)
 
 	// Step 2: Generate the client signing request.
 	err = GenerateClientCertificateSigningRequest(creds, pwd, address)
@@ -368,6 +386,7 @@ func GenerateAuthorityTrustCertificate(path string, pwd string, expiration_delay
 	if Utility.Exists(path + string(os.PathSeparator) + "ca.crt") {
 		return nil
 	}
+
 	cmd := "openssl"
 	args := make([]string, 0)
 	args = append(args, "req")
@@ -514,6 +533,10 @@ func GenerateSignedClientCertificate(path string, pwd string, expiration_delay i
 	args = append(args, "01")
 	args = append(args, "-out")
 	args = append(args, path+string(os.PathSeparator)+"client.crt")
+	args = append(args, "-extfile")
+	args = append(args, path+string(os.PathSeparator)+"san.conf")
+	args = append(args, "-extensions")
+	args = append(args, "v3_req")
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"client.crt") {
@@ -528,16 +551,16 @@ func GenerateSanConfig(path string, country string, state string, city string, o
 [req]
 distinguished_name = req_distinguished_name
 req_extensions = v3_req
+prompt = no
 
 [req_distinguished_name]
-countryName = %s
-stateOrProvinceName =  %s
-localityName =  %s
-organizationalUnitName	=  %s
-commonName =  %s
-commonName_max	= 64
+C = %s
+ST =  %s
+L =  %s
+O	=  %s
+CN =  %s
 
-[ v3_req ]
+[v3_req]
 # Extensions to add to a certificate request
 basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
@@ -546,10 +569,13 @@ subjectAltName = @alt_names
 [alt_names]
 `, country, state, city, organization, domains[0])
 
-	domains = append(domains, "cargowebserver.com")
 	// set alternate domain
-	for i := 1; i < len(domains); i++ {
-		config += fmt.Sprintf("DNS.%d = %s \n", i+1, domains[i])
+	for i := 0; i < len(domains); i++ {
+		config += fmt.Sprintf("DNS.%d = %s \n", i, domains[i])
+	}
+
+	if Utility.Exists(path + "/san.conf") {
+		return nil
 	}
 
 	f, err := os.Create(path + "/san.conf")
@@ -569,6 +595,11 @@ func GenerateServerCertificateSigningRequest(path string, pwd string, domain str
 	if Utility.Exists(path + string(os.PathSeparator) + "server.crs") {
 		return nil
 	}
+	// Generate the SAN configuration.
+	err := GenerateSanConfig(path, "", "", "", "", []string{domain, "cargowebserver.com"})
+	if err != nil {
+		return err
+	}
 
 	cmd := "openssl"
 	args := make([]string, 0)
@@ -584,8 +615,8 @@ func GenerateServerCertificateSigningRequest(path string, pwd string, domain str
 	args = append(args, "/CN="+domain)
 	args = append(args, "-config")
 	args = append(args, path+string(os.PathSeparator)+"san.conf")
-	log.Println("------> ", args)
-	err := exec.Command(cmd, args...).Run()
+
+	err = exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"server.csr") {
 		return errors.New("Fail to generate server certificate signing request.")
 	}
@@ -618,10 +649,16 @@ func GenerateSignedServerCertificate(path string, pwd string, expiration_delay i
 	args = append(args, "01")
 	args = append(args, "-out")
 	args = append(args, path+string(os.PathSeparator)+"server.crt")
+	args = append(args, "-extfile")
+	args = append(args, path+string(os.PathSeparator)+"san.conf")
+	args = append(args, "-extensions")
+	args = append(args, "v3_req")
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"server.crt") {
+		log.Println(args)
 		log.Println("fail to get the signed server certificate")
+
 	}
 
 	return nil
@@ -674,9 +711,6 @@ func GenerateServicesCertificates(pwd string, expiration_delay int, domain strin
 
 		return err
 	}
-
-	// Generate the SAN configuration.
-	err = GenerateSanConfig(path, "", "", "", "", []string{domain})
 
 	log.Println("Setp 2: Generate the server Private Key (server.key)")
 	err = GenerateSeverPrivateKey(path, pwd)

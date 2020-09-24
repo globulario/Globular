@@ -59,7 +59,7 @@ import (
 
 // Global variable.
 var (
-	root    string
+	webRoot string
 	globule *Globule
 )
 
@@ -119,8 +119,7 @@ type Globule struct {
 	Country             string // tow letter.
 	State               string // Full state name
 	City                string
-	Organisation        string
-	CommonName          string
+	Organization        string
 
 	// https certificate info.
 	Certificate                string
@@ -138,12 +137,7 @@ type Globule struct {
 	// DNS stuff.
 	DNS []string // Domain name server use to located the server.
 
-	// the api call "https://globular.godaddy.com/v1/domains/globular.io/records/A/@"
-	DnsSetA string
-
-	// see https://developer.godaddy.com for more detail.
-	DnsKey     string
-	DnsSecrect string
+	DnsUpdateIpInfos []map[string]interface{} // The internet provader SetA info to keep ip up to date.
 
 	discorveriesEventHub map[string]*event_client.Event_Client
 
@@ -344,8 +338,10 @@ func (self *Globule) isPortAvailable(port int) bool {
  * Initialize the server directories config, data, webroot...
  */
 func (self *Globule) initDirectories() {
-	// Intialise directories
+
+	// DNS info.
 	self.DNS = make([]string, 0)
+	self.DnsUpdateIpInfos = make([]map[string]interface{}, 0)
 
 	// Set the list of discorvery service avalaible...
 	self.Discoveries = make([]string, 0)
@@ -364,7 +360,7 @@ func (self *Globule) initDirectories() {
 	self.webRoot = dir + string(os.PathSeparator) + "webroot" // The default directory to server.
 
 	// keep the root in global variable for the file handler.
-	root = self.webRoot
+	webRoot = self.webRoot
 	Utility.CreateDirIfNotExist(self.webRoot) // Create the directory if it not exist.
 
 	if !Utility.Exists(self.webRoot + string(os.PathSeparator) + "index.html") {
@@ -427,6 +423,9 @@ func (self *Globule) Serve() {
 
 	// Handle the get ca certificate function
 	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+
+	// Return the san server configuration.
+	http.HandleFunc("/get_san_conf", getSanConfigurationHandler)
 
 	// Handle the signing certificate function.
 	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
@@ -540,7 +539,12 @@ func (self *Globule) registerIpToDns() error {
 
 	// Here If the DNS provides has api to update the ip address I will use it.
 	// TODO test it for different internet provider's
-	if len(self.DnsSetA) > 0 {
+
+	for i := 0; i < len(self.DnsUpdateIpInfos); i++ {
+		// the api call "https://globular.godaddy.com/v1/domains/globular.io/records/A/@"
+		setA := self.DnsUpdateIpInfos[i]["SetA"].(string)
+		key := self.DnsUpdateIpInfos[i]["Key"].(string)
+		secret := self.DnsUpdateIpInfos[i]["Secret"].(string)
 
 		// set the data to the actual ip address.
 		data := `[{"data":"` + Utility.MyIP() + `"}]`
@@ -549,7 +553,7 @@ func (self *Globule) registerIpToDns() error {
 		client := &http.Client{}
 
 		// set the HTTP method, url, and request body
-		req, err := http.NewRequest(http.MethodPut, self.DnsSetA, bytes.NewBuffer([]byte(data)))
+		req, err := http.NewRequest(http.MethodPut, setA, bytes.NewBuffer([]byte(data)))
 		if err != nil {
 			log.Println(err)
 			return err
@@ -557,7 +561,7 @@ func (self *Globule) registerIpToDns() error {
 
 		// set the request header Content-Type for json
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
-		req.Header.Set("Authorization", "sso-key "+self.DnsKey+":"+self.DnsSecrect)
+		req.Header.Set("Authorization", "sso-key "+key+":"+secret)
 
 		// execute the request.
 		_, err = client.Do(req)
@@ -1241,7 +1245,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	endIndex := strings.LastIndex(importPath, `'`)
 	importPath_ := importPath[startIndex:endIndex]
 
-	filepath.Walk(root+path[0:strings.Index(path, "/")],
+	filepath.Walk(webRoot+path[0:strings.Index(path, "/")],
 		func(path string, info os.FileInfo, err error) error {
 			path = strings.ReplaceAll(path, "\\", "/")
 			if err != nil {
@@ -1256,7 +1260,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 			return nil
 		})
 
-	importPath_ = strings.Replace(importPath_, strings.Replace(root, "\\", "/", -1), "", -1)
+	importPath_ = strings.Replace(importPath_, strings.Replace(webRoot, "\\", "/", -1), "", -1)
 
 	// Now i will make the path relative.
 	importPath__ := strings.Split(importPath_, "/")
@@ -1282,7 +1286,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	}
 
 	// remove the
-	importPath_ = strings.Replace(importPath_, root, "", 1)
+	importPath_ = strings.Replace(importPath_, webRoot, "", 1)
 
 	// remove the root path part and the leading / caracter.
 	return importPath_, nil

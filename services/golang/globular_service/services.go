@@ -168,7 +168,6 @@ func GetTLSConfig(key string, cert string, ca string) *tls.Config {
 		Certificates: []tls.Certificate{tlsCer},
 		ClientAuth:   tls.RequireAnyClientCert,
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			log.Print("Verifying peer certificate")
 			opts := x509.VerifyOptions{
 				Roots:         certPool,
 				CurrentTime:   time.Now(),

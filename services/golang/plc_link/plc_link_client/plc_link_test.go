@@ -49,6 +49,6 @@ func TestLinkTag(t *testing.T) {
 	err := client.Link(id, frequency, src_domain, src_address, src_connectionId, src_tag_name, src_tag_label, src_tag_typeName, src_offset, trg_domain, trg_address, trg_connectionId, trg_tag_name, trg_tag_label, trg_tag_typeName, trg_offset)
 
 	if err != nil {
-		log.Println("---------> error found ", err)
+		log.Println("error found ", err)
 	}
 }
