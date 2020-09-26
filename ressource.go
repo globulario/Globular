@@ -1571,6 +1571,8 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 					ressourceOwner := make(map[string]interface{})
 					ressourceOwner["owner"] = owner
 					ressourceOwner["path"] = path_
+					// force the id to be the same for ressource with the same owner and path.
+					ressourceOwner["_id"] = Utility.GenerateUUID(owner + path_)
 
 					// Here if the
 					jsonStr, err := Utility.ToJson(&ressourceOwner)
@@ -1598,6 +1600,7 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 	ressourceOwner := make(map[string]interface{})
 	ressourceOwner["owner"] = owner
 	ressourceOwner["path"] = path
+	ressourceOwner["_id"] = Utility.GenerateUUID(owner + path)
 
 	// Here if the
 	jsonStr, err := Utility.ToJson(&ressourceOwner)

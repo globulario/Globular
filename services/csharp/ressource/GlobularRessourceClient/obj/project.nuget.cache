@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "77u8Rb62n8Yn8GbB5He1khcD541STa1/TKtbnsPTdRDoGvAMzQ+2YcuFEiN8SDB9dJos0tWecZ2v4xv6N3pS1w==",
+  "dgSpecHash": "B+xiyTADYd42RU/gEjWC+SfweQ6drkakUGImEuIz1jx4/SyNX/rL3Ybo/okgtIcbZARC8ERReW200FfPAaysCw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\ressource\\csharp\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
+  "projectFilePath": "C:\\Users\\mm006819\\go\\src\\github.com\\davecourtois\\Globular\\services\\csharp\\ressource\\GlobularRessourceClient\\GlobularRessourceClient.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mm006819\\.nuget\\packages\\google.protobuf\\3.13.0\\google.protobuf.3.13.0.nupkg.sha512",
     "C:\\Users\\mm006819\\.nuget\\packages\\grpc\\2.32.0\\grpc.2.32.0.nupkg.sha512",

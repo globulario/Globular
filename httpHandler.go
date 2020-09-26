@@ -22,9 +22,13 @@ import (
  * Return the service configuration
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+
 	//add prefix and clean
 	config := globule.getConfig()
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(config)
 }

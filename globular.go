@@ -1508,13 +1508,14 @@ func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 
 func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 
-	if self.getConfig()["Services"].(map[string]interface{})["ldap.LdapService"] == nil {
-		return nil, errors.New("No ldap service configuration was found on that server!")
+	configs := self.getServiceConfigByName("ldap.LdapService")
+	if len(configs) == 0 {
+		return nil, errors.New("No event service was configure on that globule!")
 	}
 
 	var err error
 
-	s := self.getConfig()["Services"].(map[string]interface{})["ldap.LdapService"].(map[string]interface{})
+	s := configs[0]
 
 	if self.ldap_client_ == nil {
 		self.ldap_client_, err = ldap_client.NewLdap_Client(s["Domain"].(string), "ldap.LdapService")
