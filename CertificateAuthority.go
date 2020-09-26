@@ -29,7 +29,7 @@ func (self *Globule) startCertificateAuthorityService() error {
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
 		if err != nil {
-			log.Fatalf("could not certificate authority signing  service %s: %s", self.getDomain(), err)
+			log.Fatalf("could not certificate authority signing  service %s: %s", self.Name, err)
 		}
 
 		capb.RegisterCertificateAuthorityServer(certificate_authority_server, self)

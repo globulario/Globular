@@ -595,11 +595,6 @@ func GenerateServerCertificateSigningRequest(path string, pwd string, domain str
 	if Utility.Exists(path + string(os.PathSeparator) + "server.crs") {
 		return nil
 	}
-	// Generate the SAN configuration.
-	err := GenerateSanConfig(path, "", "", "", "", []string{domain, "cargowebserver.com"})
-	if err != nil {
-		return err
-	}
 
 	cmd := "openssl"
 	args := make([]string, 0)
@@ -616,7 +611,7 @@ func GenerateServerCertificateSigningRequest(path string, pwd string, domain str
 	args = append(args, "-config")
 	args = append(args, path+string(os.PathSeparator)+"san.conf")
 
-	err = exec.Command(cmd, args...).Run()
+	err := exec.Command(cmd, args...).Run()
 	if err != nil || !Utility.Exists(path+string(os.PathSeparator)+"server.csr") {
 		return errors.New("Fail to generate server certificate signing request.")
 	}
@@ -695,12 +690,24 @@ func KeyToPem(name string, path string, pwd string) error {
  * Private ca.key, server.key, server.pem, server.crt
  * Share ca.crt (needed by the client), server.csr (needed by the CA)
  */
-func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string) error {
+func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string, country string, state string, city string, organization string, alternateDomains []string) error {
 	if Utility.Exists(path + string(os.PathSeparator) + "client.crt") {
 		return nil // certificate are already created.
 	}
+
+	// Alternate domain must contain the domain (CN=domain)...
+	if !Utility.Contains(alternateDomains, domain) {
+		alternateDomains = append(alternateDomains, domain)
+	}
+
+	// Generate the SAN configuration.
+	err := GenerateSanConfig(path, country, state, city, organization, alternateDomains)
+	if err != nil {
+		return err
+	}
+
 	log.Println("Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)")
-	err := GenerateAuthorityPrivateKey(path, pwd)
+	err = GenerateAuthorityPrivateKey(path, pwd)
 	if err != nil {
 
 		return err

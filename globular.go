@@ -541,7 +541,7 @@ func (self *Globule) registerIpToDns() error {
 	// TODO test it for different internet provider's
 
 	for i := 0; i < len(self.DnsUpdateIpInfos); i++ {
-		// the api call "https://globular.godaddy.com/v1/domains/globular.io/records/A/@"
+		// the api call "https://api.godaddy.com/v1/domains/globular.io/records/A/@"
 		setA := self.DnsUpdateIpInfos[i]["SetA"].(string)
 		key := self.DnsUpdateIpInfos[i]["Key"].(string)
 		secret := self.DnsUpdateIpInfos[i]["Secret"].(string)
@@ -568,8 +568,6 @@ func (self *Globule) registerIpToDns() error {
 		if err != nil {
 			return (err)
 		}
-
-		fmt.Println("ip address for domain", self.getDomain(), "was set to", Utility.MyIP())
 	}
 
 	return nil
@@ -582,7 +580,6 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	srv := self.Services[id]
 	if srv.(map[string]interface{})["ProxyProcess"] != nil {
 		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
-		// time.Sleep(time.Second * 1)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -664,7 +661,6 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 
 	s["Process"].(*exec.Cmd).Wait()
 
-	//time.Sleep(time.Second * 5)
 	_, _, err := self.startService(s)
 	if err != nil {
 		return
@@ -983,7 +979,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			if s["Process"] != nil {
 				if s["Process"].(*exec.Cmd).Process != nil {
 					s["Process"].(*exec.Cmd).Process.Kill()
-					//time.Sleep(time.Second * 5)
 				}
 			}
 
@@ -1112,6 +1107,7 @@ func (self *Globule) initServices() {
 	if self.Protocol == "https" {
 		// security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
 		if len(self.Certificate) == 0 {
+			self.registerIpToDns()
 
 			log.Println(" Now let's encrypts!")
 			// Here is the command to be execute in order to ge the certificates.
@@ -1119,7 +1115,7 @@ func (self *Globule) initServices() {
 			// I need to remove the gRPC certificate and recreate it.
 			Utility.RemoveDirContents(self.creds)
 			// recreate the certificates.
-			err := security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
+			err := security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds, self.Country, self.State, self.City, self.Organization, self.AlternateDomains)
 			if err != nil {
 				log.Println(err)
 				return
@@ -1131,7 +1127,7 @@ func (self *Globule) initServices() {
 				return
 			}
 		} else {
-			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
+			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds, self.Country, self.State, self.City, self.Organization, self.AlternateDomains)
 		}
 	}
 
@@ -1596,7 +1592,6 @@ func (self *Globule) Listen() error {
 				if reflect.TypeOf(p).String() == "*exec.Cmd" {
 					if p.(*exec.Cmd).Process != nil {
 						p.(*exec.Cmd).Process.Kill()
-						//time.Sleep(5 * time.Second)
 					}
 				}
 			}
