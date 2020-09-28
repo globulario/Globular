@@ -76,7 +76,32 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 		config["CertAuthorityTrust"] = ""
 	} else {
 		// Here I will retreive the credential or create it if not exist.
-		keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), serverConfig["Country"].(string), serverConfig["State"].(string), serverConfig["City"].(string), serverConfig["Organization"].(string), serverConfig["AlternateDomains"].([]interface{}))
+		var country string
+		if serverConfig["Country"] != nil {
+			country = serverConfig["Country"].(string)
+		}
+
+		var state string
+		if serverConfig["State"] != nil {
+			state = serverConfig["State"].(string)
+		}
+
+		var city string
+		if serverConfig["City"] != nil {
+			city = serverConfig["City"].(string)
+		}
+
+		var organization string
+		if serverConfig["Organization"] != nil {
+			state = serverConfig["Organization"].(string)
+		}
+
+		var alternateDomains []interface{}
+		if serverConfig["AlternateDomains"] != nil {
+			alternateDomains = serverConfig["AlternateDomains"].([]interface{})
+		}
+
+		keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), country, state, city, organization, alternateDomains)
 		if err != nil {
 			return nil, err
 		}
