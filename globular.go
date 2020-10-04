@@ -765,8 +765,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 		}
 	}
-
 	servicePath := s["Path"].(string)
+
 	if s["Protocol"].(string) == "grpc" {
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {
@@ -868,7 +868,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s["Process"].(*exec.Cmd).Stderr = &errb
 
 		// Here I will set the command dir.
-
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 
 		err = s["Process"].(*exec.Cmd).Start()

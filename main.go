@@ -409,6 +409,7 @@ COPY services /globular/services
 		s := service.(map[string]interface{})
 		if s["Name"] != nil {
 			name := s["Name"].(string)
+			log.Println("------> 412 ", name)
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
 			if s["configPath"] != nil {
@@ -460,6 +461,13 @@ COPY services /globular/services
 
 									config["Path"] = destPath
 									config["Proto"] = path + "/" + serviceDir + "/" + name + ".proto"
+
+									// set the security values to nothing...
+									config["CertAuthorityTrust"] = ""
+									config["CertFile"] = ""
+									config["KeyFile"] = ""
+									config["TLS"] = false
+									delete(config, "configPath")
 
 									str, _ := Utility.ToJson(&config)
 									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/"+"config.json", []byte(str), 0644)
