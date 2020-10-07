@@ -22,8 +22,11 @@ import (
 
 	//"google.golang.org/grpc/grpclog"
 
+	"github.com/davecourtois/Globular/services/golang/mail/mail_server/imap"
+	"github.com/davecourtois/Globular/services/golang/mail/mail_server/smtp"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
+
 	gomail "gopkg.in/gomail.v1"
 )
 
@@ -79,10 +82,14 @@ type server struct {
 	Connections map[string]connection
 
 	// The smtp server port
-	SMTP_Port int
+	SMTP_Port     int
+	SMTPS_Port    int // ssl port
+	SMTP_ALT_Port int // alternate port
 
 	// The imap server port
-	IMAP_Port int
+	IMAP_Port     int
+	IMAPS_Port    int // ssl port
+	IMAP_ALT_Port int // alternate port
 
 	// The backend admin password necessary to validate email address and
 	// store incomming message.
@@ -379,7 +386,6 @@ func (self *server) sendEmail(id string, from string, to []string, cc []*CarbonC
 
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", from)
-
 	msg.SetHeader("To", to...)
 
 	// Attach the multiple carbon copy...
@@ -560,7 +566,13 @@ func main() {
 	s_impl.AllowedOrigins = allowed_origins
 	s_impl.PublisherId = domain
 	s_impl.Permissions = make([]interface{}, 0)
-	s_impl.SMTP_Port = 587         // This is the default smtp port (25 is almost alway's blocked by isp).
+	s_impl.SMTP_Port = 25      // non encrypted
+	s_impl.SMTPS_Port = 465    // encrypted
+	s_impl.SMTP_ALT_Port = 587 // This is the default smtp port (25 is almost alway's blocked by isp).
+	s_impl.IMAP_Port = 143     // non
+	s_impl.IMAPS_Port = 993
+	s_impl.IMAP_ALT_Port = 1043 // non official
+
 	s_impl.Password = "adminadmin" // The default password for the admin.
 
 	// Here I will retreive the list of connections from file if there are some...
@@ -575,26 +587,18 @@ func main() {
 
 	// Here I will start the local smtp server.
 	go func() {
+		certFile := s_impl.CertFile
 
 		// Here in case of tls connection I will use the domain certificate instead of the server certificate.
 		if s_impl.TLS == true {
-
-			certFile := s_impl.CertFile
 			certFile = certFile[0:strings.Index(certFile, "server.crt")] + s_impl.Domain + ".crt"
-
-			// start imap server.
-			startImap(s_impl.Password, s_impl.KeyFile, certFile, s_impl.IMAP_Port)
-
-			// start smtp server
-			startSmtp(s_impl.Password, s_impl.Domain, s_impl.KeyFile, certFile, s_impl.SMTP_Port)
-
-		} else {
-			// start imap server.
-			startImap(s_impl.Password, "", "", s_impl.IMAP_Port)
-
-			// start smtp server
-			startSmtp(s_impl.Password, s_impl.Domain, "", "", s_impl.SMTP_Port)
 		}
+
+		// start imap server.
+		imap.StartImap(s_impl.Password, s_impl.KeyFile, certFile, s_impl.IMAP_Port, s_impl.IMAPS_Port, s_impl.IMAP_ALT_Port)
+
+		// start smtp server
+		smtp.StartSmtp(s_impl.Password, s_impl.Domain, s_impl.KeyFile, certFile, s_impl.SMTP_Port, s_impl.SMTPS_Port, s_impl.SMTP_ALT_Port)
 
 	}()
 

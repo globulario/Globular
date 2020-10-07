@@ -165,7 +165,7 @@ func (self *MongoStore) CreateCollection(ctx context.Context, connectionId strin
  * Delete collection
  */
 func (self *MongoStore) DeleteCollection(ctx context.Context, connectionId string, database string, name string) error {
-	err := self.clients[connectionId].Database(name).Collection(name).Drop(ctx)
+	err := self.clients[connectionId].Database(database).Collection(name).Drop(ctx)
 	return err
 }
 
