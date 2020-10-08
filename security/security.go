@@ -150,7 +150,6 @@ func getRemoteConfig(address string, port int) (map[string]interface{}, error) {
 	var resp *http.Response
 	var err error
 	var configAddress = "http://" + address + ":" + Utility.ToString(port) + "/config"
-	log.Println("Get configuration at adress ", configAddress)
 	resp, err = http.Get(configAddress)
 	if err != nil {
 		return nil, err

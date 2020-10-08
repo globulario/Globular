@@ -44,7 +44,7 @@ type Storage_Client struct {
 }
 
 // Create a connection to the service.
-func NewStorage_Client(address string, id string) (*Storage_Client, error) {
+func NewStorageService_Client(address string, id string) (*Storage_Client, error) {
 	client := new(Storage_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -154,6 +154,12 @@ func (self *Storage_Client) SetCaFile(caFile string) {
 }
 
 ////////////////// Service functionnality //////////////////////
+
+// Stop the service.
+func (self *Storage_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &storagepb.StopRequest{})
+}
+
 func (self *Storage_Client) CreateConnection(id string, name string, connectionType float64) error {
 
 	rqst := &storagepb.CreateConnectionRqst{

@@ -45,7 +45,7 @@ type SQL_Client struct {
 }
 
 // Create a connection to the service.
-func NewSql_Client(address string, id string) (*SQL_Client, error) {
+func NewSqlService_Client(address string, id string) (*SQL_Client, error) {
 	client := new(SQL_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -155,6 +155,11 @@ func (self *SQL_Client) SetCaFile(caFile string) {
 }
 
 ////////////////////////// API ////////////////////////////
+// Stop the service.
+func (self *SQL_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &sqlpb.StopRequest{})
+}
+
 func (self *SQL_Client) CreateConnection(connectionId string, name string, driver string, user string, password string, host string, port int32, charset string) error {
 	// Create a new connection
 	rqst := &sqlpb.CreateConnectionRqst{

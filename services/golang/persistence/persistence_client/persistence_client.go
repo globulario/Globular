@@ -46,7 +46,7 @@ type Persistence_Client struct {
 }
 
 // Create a connection to the service.
-func NewPersistence_Client(address string, id string) (*Persistence_Client, error) {
+func NewPersistenceService_Client(address string, id string) (*Persistence_Client, error) {
 	client := new(Persistence_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -158,6 +158,11 @@ func (self *Persistence_Client) SetCaFile(caFile string) {
 }
 
 ///////////////////////// API /////////////////////
+
+// Stop the service.
+func (self *Persistence_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &persistencepb.StopRequest{})
+}
 
 // Create a new datastore connection.
 func (self *Persistence_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string, save bool) error {

@@ -46,7 +46,7 @@ type Search_Client struct {
 }
 
 // Create a connection to the service.
-func NewSearch_Client(address string, id string) (*Search_Client, error) {
+func NewSearchService_Client(address string, id string) (*Search_Client, error) {
 	client := new(Search_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -156,6 +156,10 @@ func (self *Search_Client) SetCaFile(caFile string) {
 }
 
 ////////////////// Api //////////////////////
+// Stop the service.
+func (self *Search_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &searchpb.StopRequest{})
+}
 
 /**
  * Return the version of the underlying search engine.

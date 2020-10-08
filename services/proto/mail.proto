@@ -76,7 +76,6 @@ message SendEmailWithAttachementsRsp {
 	bool result = 1;
 }
 
-<<<<<<< HEAD:services/proto/smtp.proto
 message StopRequest {
 	
 }
@@ -85,13 +84,10 @@ message StopResponse {
 	
 }
 
-service SmtpService {
+service MailService {
   	// Stop the server.
  	rpc Stop(StopRequest) returns (StopResponse);
-	
-=======
-service MailService {
->>>>>>> 0fda91d0884d79e4ca77c586a12b2e4d8bff7edb:services/proto/mail.proto
+
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	

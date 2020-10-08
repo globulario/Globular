@@ -43,7 +43,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		log.Println("Connect to discovery event hub ", self.Discoveries[i])
-		eventHub, err := event_client.NewEvent_Client(self.Discoveries[i], "event.EventService")
+		eventHub, err := event_client.NewEventService_Client(self.Discoveries[i], "event.EventService")
 		if err == nil {
 			log.Println("Connected with event service at ", self.Discoveries[i])
 			if subscribers[self.Discoveries[i]] == nil {
@@ -628,7 +628,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService, err := service_client.NewServicesDiscovery_Client(discoveryId, "services_discovery")
+			discoveryService, err := service_client.NewServicesDiscoveryService_Client(discoveryId, "services_discovery")
 			if err != nil {
 				return err
 			}

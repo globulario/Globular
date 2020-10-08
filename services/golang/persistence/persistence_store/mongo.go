@@ -7,7 +7,6 @@ import (
 	//	"time"
 	"encoding/json"
 	"errors"
-	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -37,7 +36,7 @@ func (self *MongoStore) Connect(connectionId string, host string, port int32, us
 
 	ctx := context.Background()
 	//ctx, _ := context.WithTimeout(api.GetClientContext(self), time.Duration(timeout)*time.Second)
-	log.Println(self.clients)
+
 	if self.clients == nil {
 		self.clients = make(map[string]*mongo.Client, 0)
 	} else {

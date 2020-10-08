@@ -48,7 +48,7 @@ type File_Client struct {
 }
 
 // Create a connection to the service.
-func NewFile_Client(address string, id string) (*File_Client, error) {
+func NewFileService_Client(address string, id string) (*File_Client, error) {
 	client := new(File_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -158,6 +158,12 @@ func (self *File_Client) SetCaFile(caFile string) {
 }
 
 ///////////////////// API //////////////////////
+
+// Stop the service.
+func (self *File_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &filepb.StopRequest{})
+}
+
 // Read the content of a dir and return it info.
 func (self *File_Client) ReadDir(path interface{}, recursive interface{}, thumbnailHeight interface{}, thumbnailWidth interface{}) (string, error) {
 

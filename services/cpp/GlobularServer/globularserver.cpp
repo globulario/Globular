@@ -64,7 +64,10 @@ Globular::GlobularService::GlobularService(std::string id,
                                            std::string version,
                                            bool tls,
                                            unsigned int defaultPort,
-                                           unsigned int defaultProxy):
+                                           unsigned int defaultProxy,
+                                           bool keep_alive,
+                                           bool keep_up_to_date
+                                           ):
     id(id),
     name(name),
     domain(domain),
@@ -74,7 +77,9 @@ Globular::GlobularService::GlobularService(std::string id,
     proxy(defaultProxy),
     allowed_origins(allowed_origins),
     version(version),
-    tls(tls)
+    tls(tls),
+    keep_alive(keep_alive),
+    keep_up_to_date(keep_up_to_date)
 {
 
     // first of all I will try to open the configuration from the file.
@@ -191,6 +196,15 @@ void Globular::GlobularService::save() {
     file.close();
 }
 
+// use it for shutdown only...
+extern  std::unique_ptr<grpc::Server> server;
+
+void Globular::GlobularService::stop(){
+
+    server->Shutdown();
+}
+
+
 void Globular::GlobularService::run(Service* s) {
     ServerBuilder builder;
     std::stringstream ss;
@@ -233,7 +247,8 @@ void Globular::GlobularService::run(Service* s) {
     builder.experimental().SetInterceptorCreators(std::move(creators));
 
     // Finally assemble the server.
-    std::unique_ptr<Server> server(builder.BuildAndStart());
+    // std::unique_ptr<Server> server(builder.BuildAndStart());
+    server = builder.BuildAndStart();
 
     std::cout << "Server listening on " << ss.str() << std::endl;
 

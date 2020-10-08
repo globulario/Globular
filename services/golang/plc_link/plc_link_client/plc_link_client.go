@@ -5,7 +5,7 @@ import (
 	//	"log"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang"
+	globular "github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/plc_link/plc_link_pb"
 
 	//	"github.com/davecourtois/Utility"
@@ -159,6 +159,11 @@ func (self *PlcLink_Client) SetDomain(domain string) {
 }
 
 ////////////////// API ///////////////////
+
+// Stop the service.
+func (self *PlcLink_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &plc_link_pb.StopRequest{})
+}
 
 /**
  * Link tow tag together.

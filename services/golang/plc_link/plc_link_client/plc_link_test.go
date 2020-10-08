@@ -3,8 +3,6 @@ package plc_link_client
 import (
 	"log"
 	"testing"
-
-	"github.com/davecourtois/Globular/plc_link/plc_link_client"
 )
 
 var (

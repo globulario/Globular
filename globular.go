@@ -16,21 +16,32 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
+
+	//	"os/signal"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
+
+	//	"syscall"
 	"time"
 
-	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
-	"github.com/davecourtois/Globular/services/golang/event/event_client"
+	//	"github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
+
+	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
+	"github.com/davecourtois/Globular/services/golang/echo/echo_client"
+	"github.com/davecourtois/Globular/services/golang/event/event_client"
+	"github.com/davecourtois/Globular/services/golang/file/file_client"
 	"github.com/davecourtois/Globular/services/golang/ldap/ldap_client"
+	"github.com/davecourtois/Globular/services/golang/mail/mail_client"
 	"github.com/davecourtois/Globular/services/golang/monitoring/monitoring_client"
 	"github.com/davecourtois/Globular/services/golang/persistence/persistence_client"
+	"github.com/davecourtois/Globular/services/golang/spc/spc_client"
+	"github.com/davecourtois/Globular/services/golang/sql/sql_client"
+	"github.com/davecourtois/Globular/services/golang/storage/storage_client"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -184,13 +195,31 @@ type Globule struct {
 	lb_stop_channel                  chan bool
 
 	// exit channel.
-	exit chan struct{}
+	exit            chan struct{}
+	exit_           bool
+	inernalServices []*grpc.Server
+	subscribers     map[string]map[string][]string
 }
 
 /**
  * Globule constructor.
  */
 func NewGlobule() *Globule {
+
+	// Register services client constructor functions here.
+	Utility.RegisterFunction("NewMonitoringService_Client", monitoring_client.NewMonitoringService_Client)
+	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
+	Utility.RegisterFunction("NewDnsService_Client", dns_client.NewDnsService_Client)
+	Utility.RegisterFunction("NewStorageService_Client", storage_client.NewStorageService_Client)
+	Utility.RegisterFunction("NewFileService_Client", file_client.NewFileService_Client)
+	Utility.RegisterFunction("NewLdapService_Client", ldap_client.NewLdapService_Client)
+	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
+	Utility.RegisterFunction("NewEchoService_Client", echo_client.NewEchoService_Client)
+	Utility.RegisterFunction("NewSpcService_Client", spc_client.NewSpcService_Client)
+	Utility.RegisterFunction("NewSqlService_Client", sql_client.NewSqlService_Client)
+	Utility.RegisterFunction("NewMailService_Client", mail_client.NewMailService_Client)
+
+	// TODO add catalog, plc, seach, plc_link etc here as needed.
 
 	// Here I will initialyse configuration.
 	g := new(Globule)
@@ -217,6 +246,7 @@ func NewGlobule() *Globule {
 	g.CertPassword = "1111"
 
 	g.Services = make(map[string]interface{}, 0)
+	g.inernalServices = make([]*grpc.Server, 0)
 
 	// Contain the list of ldap syncronization info.
 	g.LdapSyncInfos = make(map[string]interface{}, 0)
@@ -538,7 +568,7 @@ func (self *Globule) registerIpToDns() error {
 	if self.DNS != nil {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
-				dns_client_, err := dns_client.NewDns_Client(self.DNS[i], "dns.DnsService")
+				dns_client_, err := dns_client.NewDnsService_Client(self.DNS[i], "dns.DnsService")
 				if err != nil {
 					return err
 				}
@@ -669,6 +699,10 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
  * That function will
  */
 func (self *Globule) keepServiceAlive(s map[string]interface{}) {
+	if self.exit_ {
+		return
+	}
+
 	if s["KeepAlive"] == nil {
 		return
 	}
@@ -754,7 +788,54 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 		return nil, err
 	}
 
+	self.inernalServices = append(self.inernalServices, grpcServer)
+
 	return grpcServer, nil
+}
+
+/**
+ * Stop internal services ressource admin lb...
+ */
+func (self *Globule) stopInternalServices() {
+	for i := 0; i < len(self.inernalServices); i++ {
+		self.inernalServices[i].GracefulStop()
+	}
+}
+
+/**
+ * Stop external services.
+ */
+func (self *Globule) stopServices() {
+	// not keep services alive because the server must exist.
+	self.exit_ = true
+
+	// Here I will disconnect service update event.
+	for id, subscriber := range self.subscribers {
+		eventHub := self.discorveriesEventHub[id]
+		for channelId, uuids := range subscriber {
+			for i := 0; i < len(uuids); i++ {
+				eventHub.UnSubscribe(channelId, uuids[i])
+			}
+		}
+
+		eventHub.Close()
+	}
+
+	// stop external service.
+	for externalServiceId, _ := range self.ExternalApplications {
+		self.stopExternalApplication(externalServiceId)
+	}
+
+	// Stop proxy process...
+	for _, srv := range self.Services {
+		if srv != nil {
+			s := srv.(map[string]interface{})
+
+			// I will also try to keep a client connection in to communicate with the service.
+			self.stopService(s["Id"].(string))
+		}
+	}
+
 }
 
 /**
@@ -784,8 +865,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 		}
 	}
-	servicePath := s["Path"].(string)
 
+	servicePath := s["Path"].(string)
 	if s["Protocol"].(string) == "grpc" {
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {
@@ -946,12 +1027,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				fmt.Println("service", s["Name"].(string), "err:", errb.String())
 			}
 
-			// I will stop it proxy if it's running.
-			if s["ProxyProcess"] != nil {
-				if s["ProxyProcess"].(*exec.Cmd).Process != nil {
-					s["ProxyProcess"].(*exec.Cmd).Process.Kill()
-				}
-			}
 			// I will remove the service from the load balancer.
 			self.lb_remove_candidate_info_channel <- &lbpb.ServerInfo{
 				Id:     s["Id"].(string),
@@ -992,13 +1067,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	} else if s["Protocol"].(string) == "http" {
 		// any other http server except this one...
 		if !strings.HasPrefix(s["Name"].(string), "Globular") {
-
-			// Kill previous instance of the program...
-			if s["Process"] != nil {
-				if s["Process"].(*exec.Cmd).Process != nil {
-					s["Process"].(*exec.Cmd).Process.Kill()
-				}
-			}
 
 			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
 
@@ -1044,9 +1112,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 						// I will log the program error into the admin logger.
 						self.logServiceInfo(s["Name"].(string), errb.String())
 					}
-					// Print the
-					fmt.Println("service", s["Name"].(string), "err:", errb.String())
-
 				}()
 			}
 
@@ -1097,7 +1162,6 @@ func (self *Globule) initService(s map[string]interface{}) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(s["Name"].(string), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-		// Kill previous instance of the program.
 		if hasChange || s["Process"] == nil {
 			self.Services[s["Id"].(string)] = s
 			_, _, err := self.startService(s)
@@ -1309,7 +1373,7 @@ func (self *Globule) startMonitoring() error {
 	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
 
 	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoring_Client(s["Domain"].(string), "monitoring.MonitoringService")
+	m, err := monitoring_client.NewMonitoringService_Client(s["Domain"].(string), "monitoring.MonitoringService")
 	if err != nil {
 		return err
 	}
@@ -1446,7 +1510,7 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	s := configs[0]
 
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistence_Client(s["Domain"].(string), s["Id"].(string))
+	self.persistence_client_, err = persistence_client.NewPersistenceService_Client(s["Domain"].(string), s["Id"].(string))
 	if err != nil {
 		return nil, err
 	}
@@ -1526,7 +1590,7 @@ func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 	s := configs[0]
 
 	if self.ldap_client_ == nil {
-		self.ldap_client_, err = ldap_client.NewLdap_Client(s["Domain"].(string), "ldap.LdapService")
+		self.ldap_client_, err = ldap_client.NewLdapService_Client(s["Domain"].(string), "ldap.LdapService")
 	}
 
 	return self.ldap_client_, err
@@ -1547,7 +1611,7 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
-		self.event_client_, err = event_client.NewEvent_Client(s["Domain"].(string), s["Id"].(string))
+		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
 	}
 
 	return self.event_client_, err
@@ -1580,60 +1644,7 @@ func (self *Globule) GetAbsolutePath(path string) string {
 func (self *Globule) Listen() error {
 
 	// Here I will subscribe to event service to keep then up to date.
-	subscribers := self.keepServicesUpToDate()
-
-	// Catch the Ctrl-C and SIGTERM from kill command
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, os.Kill, syscall.SIGTERM)
-
-	go func() {
-		<-ch
-		signal.Stop(ch)
-
-		// Stop load balancer
-		self.lb_stop_channel <- true
-
-		// Here the server stop running,
-		// so I will close the services.
-		for _, value := range self.Services {
-			if value.(map[string]interface{})["Process"] != nil {
-				p := value.(map[string]interface{})["Process"]
-				if reflect.TypeOf(p).String() == "*exec.Cmd" {
-					if p.(*exec.Cmd).Process != nil {
-						p.(*exec.Cmd).Process.Kill()
-					}
-				}
-			}
-
-			if value.(map[string]interface{})["ProxyProcess"] != nil {
-				p := value.(map[string]interface{})["ProxyProcess"]
-				if reflect.TypeOf(p).String() == "*exec.Cmd" {
-					if p.(*exec.Cmd).Process != nil {
-						p.(*exec.Cmd).Process.Kill()
-					}
-				}
-			}
-		}
-
-		// Here I will disconnect service update event.
-		for id, subscriber := range subscribers {
-			eventHub := self.discorveriesEventHub[id]
-			for channelId, uuids := range subscriber {
-				for i := 0; i < len(uuids); i++ {
-					eventHub.UnSubscribe(channelId, uuids[i])
-				}
-			}
-		}
-
-		// stop external service.
-		for externalServiceId, _ := range self.ExternalApplications {
-			self.stopExternalApplication(externalServiceId)
-		}
-
-		// exit cleanly
-		os.Exit(0)
-
-	}()
+	self.subscribers = self.keepServicesUpToDate()
 
 	// Start internal services.
 

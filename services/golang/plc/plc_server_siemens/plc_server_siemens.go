@@ -120,7 +120,7 @@ type server struct {
 func (self *server) init() {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
+	Utility.RegisterFunction("NewPlcService_Client", plc_client.NewPlcService_Client)
 
 	// Here I will retreive the list of connections from file if there are some...
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -315,7 +315,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlc_Client", plc_client.NewPlc_Client)
+	Utility.RegisterFunction("NewPlcService_Client", plc_client.NewPlcService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -363,7 +363,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *plcpb.StopRequest) (*plcpb.StopResponse, error) {

@@ -50,7 +50,7 @@ type Plc_Client struct {
 // the http(s) port where configuration can be reach.
 // After the configuration is set the port will be change to
 // the actual service port.
-func NewPlc_Client(address string, id string) (*Plc_Client, error) {
+func NewPlcService_Client(address string, id string) (*Plc_Client, error) {
 	client := new(Plc_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -160,6 +160,11 @@ func (self *Plc_Client) SetCaFile(caFile string) {
 }
 
 /////////////////// Services functions /////////////////////////
+
+// Stop the service.
+func (self *Plc_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &plcpb.StopRequest{})
+}
 
 // Create a new datastore connection.
 func (self *Plc_Client) CreateConnection(connectionId string, ip string, cpuType float64, protocolType float64, portType float64, slot float64, timeout float64, save bool) error {

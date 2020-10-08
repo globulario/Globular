@@ -2,7 +2,6 @@ package spc_client
 
 import (
 	"context"
-	// "log"
 	"strconv"
 
 	globular "github.com/davecourtois/Globular/services/golang/globular_client"
@@ -43,7 +42,7 @@ type SPC_Client struct {
 }
 
 // Create a connection to the service.
-func NewSpc_Client(address string, id string) (*SPC_Client, error) {
+func NewSpcService_Client(address string, id string) (*SPC_Client, error) {
 	client := new(SPC_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -150,4 +149,9 @@ func (self *SPC_Client) SetKeyFile(keyFile string) {
 // Set TLS authority trust certificate file path
 func (self *SPC_Client) SetCaFile(caFile string) {
 	self.caFile = caFile
+}
+
+// Stop the service.
+func (self *SPC_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &spcpb.StopRequest{})
 }

@@ -250,7 +250,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPersistence_Client", persistence_client.NewPersistence_Client)
+	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -305,7 +305,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 ////////////////////////// Persistence specific functions //////////////////////
@@ -970,6 +970,10 @@ func (self *server) RunAdminCmd(ctx context.Context, rqst *persistencepb.RunAdmi
 	}, nil
 }
 
+func (self *server) Stop(context.Context, *persistencepb.StopRequest) (*persistencepb.StopResponse, error) {
+	return &persistencepb.StopResponse{}, self.StopService()
+}
+
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
@@ -978,7 +982,7 @@ func main() {
 	//grpclog.SetLogger(log.New(os.Stdout, "persistence_service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	//log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// The first argument must be the port number to listen to.
 	port := defaultPort // the default value.
@@ -986,8 +990,6 @@ func main() {
 	if len(os.Args) > 1 {
 		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
 	}
-
-	log.Println()
 
 	// The actual server implementation.
 	s_impl := new(server)
@@ -1014,6 +1016,6 @@ func main() {
 	reflection.Register(s_impl.grpcServer)
 
 	// Start the service.
-	s_impl.Start()
+	s_impl.StartService()
 
 }

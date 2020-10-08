@@ -47,7 +47,7 @@ type Mail_Client struct {
 }
 
 // Create a connection to the service.
-func NewMail_Client(address string, id string) (*Mail_Client, error) {
+func NewMailService_Client(address string, id string) (*Mail_Client, error) {
 	client := new(Mail_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -157,6 +157,11 @@ func (self *Mail_Client) SetCaFile(caFile string) {
 }
 
 //////////////////////////////// Api ////////////////////////////////
+
+// Stop the service.
+func (self *Mail_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &mailpb.StopRequest{})
+}
 
 /**
  * Create a connection with a mail server.

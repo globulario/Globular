@@ -242,7 +242,7 @@ func (self *server) Init() error {
 	self.stores = make(map[string]storage_store.Store)
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewStorage_Client", storage_client.NewStorage_Client)
+	Utility.RegisterFunction("NewStorageService_Client", storage_client.NewStorageService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -274,7 +274,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *storagepb.StopRequest) (*storagepb.StopResponse, error) {

@@ -44,7 +44,7 @@ type DNS_Client struct {
 }
 
 // Create a connection to the service.
-func NewDns_Client(address string, id string) (*DNS_Client, error) {
+func NewDnsService_Client(address string, id string) (*DNS_Client, error) {
 	client := new(DNS_Client)
 	err := globular.InitClient(client, address, id)
 
@@ -166,6 +166,11 @@ func (self *DNS_Client) getDomainContext(domain string) context.Context {
 }
 
 ///////////////// API ////////////////////
+// Stop the service.
+func (self *DNS_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &dnspb.StopRequest{})
+}
+
 func (self *DNS_Client) GetA(domain string) (string, error) {
 
 	// I will execute a simple ldap search here...

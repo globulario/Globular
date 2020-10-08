@@ -55,7 +55,7 @@ type Event_Client struct {
 }
 
 // Create a connection to the service.
-func NewEvent_Client(address string, id string) (*Event_Client, error) {
+func NewEventService_Client(address string, id string) (*Event_Client, error) {
 	client := new(Event_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -242,6 +242,11 @@ func (self *Event_Client) SetCaFile(caFile string) {
 }
 
 ///////////////////// API ///////////////////////
+// Stop the service.
+func (self *Event_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &eventpb.StopRequest{})
+}
+
 // Publish and event over the network
 func (self *Event_Client) Publish(name string, data interface{}) error {
 	rqst := &eventpb.PublishRequest{
@@ -284,7 +289,6 @@ func (self *Event_Client) onEvent(uuid string, data_channel chan *eventpb.Event)
 
 			// Get the result...
 			data_channel <- msg.Evt
-
 		}
 	}()
 

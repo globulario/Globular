@@ -4,7 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
+
+	//	"fmt"
 	"io/ioutil"
 	"net"
 	"strconv"
@@ -12,7 +13,8 @@ import (
 
 	"log"
 	"os"
-	"os/signal"
+
+	//	"os/signal"
 	"time"
 
 	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
@@ -238,7 +240,7 @@ var (
 func getAdminClient(domain string) (*admin_client.Admin_Client, error) {
 	var err error
 	if admin_client_ == nil {
-		admin_client_, err = admin_client.NewAdmin_Client(domain, "admin.AdminService")
+		admin_client_, err = admin_client.NewAdminService_Client(domain, "admin.AdminService")
 		if err != nil {
 			return nil, err
 		}
@@ -288,25 +290,11 @@ func StartService(s Service, server *grpc.Server) error {
 		return errors.New("could not list at domain " + s.GetDomain() + err.Error())
 	}
 
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	go func() {
-		// no web-rpc server.
-		fmt.Println(s.GetName() + " grpc service is starting")
-		if err := server.Serve(lis); err != nil {
-			if err.Error() == "signal: killed" {
-				fmt.Println("service ", s.GetId(), s.GetName(), " was stop!")
-			}
-		}
-	}()
-
-	// Wait for signal to stop.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	<-ch
-	return nil
+	return server.Serve(lis)
 }
 
-func StopService(s Service) error {
-
+func StopService(s Service, server *grpc.Server) error {
+	// Stop the service.
+	server.GracefulStop()
 	return nil
 }

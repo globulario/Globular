@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	//globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -373,7 +373,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 // Deloyed a web application to a globular node.
 func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
-	log.Println("-----------> 376")
+
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
 
@@ -866,7 +866,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery, err := service_client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err := service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services_discovery")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -874,7 +874,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := service_client.NewServicesRepository_Client(rqst.RepositoryId, "services_repository")
+	services_repository, err := service_client.NewServicesRepositoryService_Client(rqst.RepositoryId, "services_repository")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -979,7 +979,7 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 	}
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		services_repository, err := service_client.NewServicesRepository_Client(descriptor.Repositories[i], "services_repository")
+		services_repository, err := service_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "services_repository")
 		if err != nil {
 			return err
 		}
@@ -1083,7 +1083,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 	// Connect to the dicovery services
 	var services_discovery *service_client.ServicesDiscovery_Client
 	var err error
-	services_discovery, err = service_client.NewServicesDiscovery_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err = service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services_discovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -1210,8 +1210,18 @@ func (self *Globule) stopService(serviceId string) error {
 		return errors.New("No process running")
 	}
 
-	err := s["Process"].(*exec.Cmd).Process.Kill()
-	// time.Sleep(time.Second * 1)
+	//err := s["Process"].(*exec.Cmd).Process.Kill()
+
+	newClientFct := "New" + s["Name"].(string)[strings.Index(s["Name"].(string), ".")+1:] + "_Client"
+	results, err := Utility.CallFunction(newClientFct, s["Domain"].(string), s["Id"].(string))
+	if err == nil {
+		logger.Info("wait to stop service instance ", s["Name"].(string)+":"+s["Id"].(string))
+		c := results[0].Interface().(globular_client.Client)
+		Utility.CallMethod(c, "StopService", []interface{}{})
+		c.Close()
+		logger.Info("service instance ", s["Name"].(string)+":"+s["Id"].(string), " is stop")
+
+	}
 
 	if err != nil {
 		return err
@@ -1234,7 +1244,7 @@ func (self *Globule) stopService(serviceId string) error {
 		Id:     s["Id"].(string),
 		Name:   s["Name"].(string),
 		Domain: s["Domain"].(string),
-		Port:   int32(s["Port"].(float64)),
+		Port:   int32(Utility.ToInt(s["Port"])),
 	}
 
 	return nil

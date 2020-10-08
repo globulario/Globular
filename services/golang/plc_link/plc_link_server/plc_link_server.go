@@ -262,7 +262,7 @@ func (self *server) Init() error {
 	self.clients = new(sync.Map)
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewPlcLink_Client", plc_client.NewPlc_Client)
+	Utility.RegisterFunction("NewPlcLinkService_Client", plc_client.NewPlcService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -294,7 +294,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *plc_link_pb.StopRequest) (*plc_link_pb.StopResponse, error) {
@@ -309,7 +309,7 @@ func (self *server) setTagConnection(tag *Tag) (*plc_client.Plc_Client, error) {
 	if !ok {
 		// Open connection with the client.
 		var err error
-		client, err = plc_client.NewPlc_Client(tag.Domain, tag.ServiceId)
+		client, err = plc_client.NewPlcService_Client(tag.Domain, tag.ServiceId)
 		if err != nil {
 			return nil, err
 		}

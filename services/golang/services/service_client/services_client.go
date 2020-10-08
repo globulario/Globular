@@ -48,7 +48,7 @@ type ServicesDiscovery_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesDiscovery_Client(address string, id string) (*ServicesDiscovery_Client, error) {
+func NewServicesDiscoveryService_Client(address string, id string) (*ServicesDiscovery_Client, error) {
 	client := new(ServicesDiscovery_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -269,7 +269,7 @@ type ServicesRepository_Client struct {
 }
 
 // Create a connection to the service.
-func NewServicesRepository_Client(address string, id string) (*ServicesRepository_Client, error) {
+func NewServicesRepositoryService_Client(address string, id string) (*ServicesRepository_Client, error) {
 	client := new(ServicesRepository_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -435,7 +435,7 @@ func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceI
 	bundle.Plaform = servicespb.Platform(platform)
 
 	// Here I will find the service descriptor from the given information.
-	discoveryService, err := NewServicesDiscovery_Client(discoveryId, "services_discovery")
+	discoveryService, err := NewServicesDiscoveryService_Client(discoveryId, "services_discovery")
 	if err != nil {
 		return err
 	}

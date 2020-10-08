@@ -46,7 +46,7 @@ type Catalog_Client struct {
 }
 
 // Create a connection to the service.
-func NewCatalog_Client(address string, id string) (*Catalog_Client, error) {
+func NewCatalogService_Client(address string, id string) (*Catalog_Client, error) {
 	client := new(Catalog_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -156,6 +156,11 @@ func (self *Catalog_Client) SetCaFile(caFile string) {
 }
 
 ////////////////////////// API ////////////////////////
+// Stop the service.
+func (self *Catalog_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &catalogpb.StopRequest{})
+}
+
 // Create a new datastore connection.
 func (self *Catalog_Client) CreateConnection(connectionId string, name string, host string, port float64, storeType float64, user string, pwd string, timeout float64, options string) error {
 	rqst := &catalogpb.CreateConnectionRqst{

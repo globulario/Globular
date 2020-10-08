@@ -45,7 +45,7 @@ type Echo_Client struct {
 }
 
 // Create a connection to the service.
-func NewEcho_Client(address string, id string) (*Echo_Client, error) {
+func NewEchoService_Client(address string, id string) (*Echo_Client, error) {
 	client := new(Echo_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -155,6 +155,11 @@ func (self *Echo_Client) SetCaFile(caFile string) {
 }
 
 ////////////////// Api //////////////////////
+// Stop the service.
+func (self *Echo_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &echopb.StopRequest{})
+}
+
 func (self *Echo_Client) Echo(msg interface{}) (string, error) {
 
 	rqst := &echopb.EchoRequest{

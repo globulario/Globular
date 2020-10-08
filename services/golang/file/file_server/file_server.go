@@ -239,7 +239,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewFile_Client", file_client.NewFile_Client)
+	Utility.RegisterFunction("NewFileService_Client", file_client.NewFileService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -271,7 +271,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *filepb.StopRequest) (*filepb.StopResponse, error) {

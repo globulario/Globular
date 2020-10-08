@@ -48,7 +48,7 @@ type Ressource_Client struct {
 }
 
 // Create a connection to the service.
-func NewRessource_Client(address string, id string) (*Ressource_Client, error) {
+func NewRessourceService_Client(address string, id string) (*Ressource_Client, error) {
 	client := new(Ressource_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {

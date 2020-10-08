@@ -254,7 +254,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewSmtp_Client", mail_client.NewMail_Client)
+	Utility.RegisterFunction("NewSmtpService_Client", mail_client.NewMailService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -286,11 +286,11 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
-func (self *server) Stop(context.Context, *smtppb.StopRequest) (*smtppb.StopResponse, error) {
-	return &smtppb.StopResponse{}, self.StopService()
+func (self *server) Stop(context.Context, *mailpb.StopRequest) (*mailpb.StopResponse, error) {
+	return &mailpb.StopResponse{}, self.StopService()
 }
 
 //////////////////////////// SMPT specific functions ///////////////////////////

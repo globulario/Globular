@@ -44,9 +44,6 @@ func (g *Globule) run() error {
 	for {
 		select {
 		case <-g.exit:
-
-			logger.Infof("Globular has been stopped!")
-
 			return nil
 		}
 	}
@@ -55,6 +52,15 @@ func (g *Globule) run() error {
 func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	logger.Info("Globular is stopping!")
+
+	// Stop external services.
+	g.stopServices()
+
+	// Stop internal services
+	g.stopInternalServices()
+
+	logger.Infof("Globular has been stopped!")
+
 	close(g.exit)
 	return nil
 }
@@ -328,7 +334,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource_client.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client, err := ressource_client.NewRessourceService_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Println("fail to access ressource service at "+address+" with error ", err)
 		return err
@@ -342,7 +348,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdmin_Client(address, "admin.AdminService") // create the ressource server.
+	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService") // create the ressource server.
 	if err != nil {
 		return err
 	}
@@ -374,7 +380,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client_, err := ressource_client.NewRessource_Client(address, "ressource.RessourceService")
+	ressource_client_, err := ressource_client.NewRessourceService_Client(address, "ressource.RessourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -388,7 +394,7 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdmin_Client(address, "admin.AdminService")
+	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err
@@ -539,7 +545,6 @@ COPY services /globular/services
 		s := service.(map[string]interface{})
 		if s["Name"] != nil {
 			name := s["Name"].(string)
-			log.Println("------> 412 ", name)
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
 			if s["configPath"] != nil {

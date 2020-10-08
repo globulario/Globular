@@ -46,6 +46,8 @@ public:
 
     }
 
+
+
     /**
     *   There is where the analsyse is done.
     */
@@ -153,6 +155,12 @@ public:
 
         return ::grpc::Status::OK;
     }
+
+    ::grpc::Status Stop(::grpc::ServerContext* /*context*/, const ::spc::StopRequest* /*request*/, ::spc::StopResponse* /*response*/) override {
+        this->stop();
+        return ::grpc::Status::OK;
+    }
+
 };
 
 int main(int argc, char** argv)

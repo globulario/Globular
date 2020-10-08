@@ -46,7 +46,7 @@ type Monitoring_Client struct {
 }
 
 // Create a connection to the service.
-func NewMonitoring_Client(address string, id string) (*Monitoring_Client, error) {
+func NewMonitoringService_Client(address string, id string) (*Monitoring_Client, error) {
 	client := new(Monitoring_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -156,6 +156,11 @@ func (self *Monitoring_Client) SetCaFile(caFile string) {
 }
 
 ////////////////// Connections management functions //////////////////////////
+
+// Stop the service.
+func (self *Monitoring_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &monitoringpb.StopRequest{})
+}
 
 // Create a new connection.
 func (self *Monitoring_Client) CreateConnection(id string, host string, storeType float64, port float64) error {

@@ -253,7 +253,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewDns_Client", dns_client.NewDns_Client)
+	Utility.RegisterFunction("NewDnsService_Client", dns_client.NewDnsService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -291,7 +291,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *dnspb.StopRequest) (*dnspb.StopResponse, error) {

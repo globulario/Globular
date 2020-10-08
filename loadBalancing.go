@@ -172,7 +172,7 @@ func (self *Globule) startLoadBalancing() {
 
 			// Remove the server from the list of candidate.
 			case server_info := <-self.lb_remove_candidate_info_channel:
-				log.Println("----> remove server from canditate list ", server_info)
+				//log.Println("----> remove server from canditate list ", server_info)
 				lst := make([]*lbpb.LoadInfo, 0)
 
 				// Here I will append all existing load info except the new one.

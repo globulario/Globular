@@ -48,7 +48,7 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 
 	var err error
 	if lb_client == nil {
-		lb_client, err = load_balancing_client.NewLb_Client(domain, "lb.LoadBalancingService")
+		lb_client, err = load_balancing_client.NewLbService_Client(domain, "lb.LoadBalancingService")
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 func getRessourceClient(domain string) (*ressource_client.Ressource_Client, error) {
 	var err error
 	if ressource_client_ == nil {
-		ressource_client_, err = ressource_client.NewRessource_Client(domain, "ressource.RessourceService")
+		ressource_client_, err = ressource_client.NewRessourceService_Client(domain, "ressource.RessourceService")
 		if err != nil {
 			return nil, err
 		}
@@ -390,9 +390,10 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 				// Here the canditade is the actual server so I will dispatch the request to the candidate.
 				if clients[candidate.GetId()] == nil {
 					// Here I will create an instance of the client.
-					newClientFct := method[1:strings.Index(method, ".")]
-					newClientFct = "New" + strings.ToUpper(newClientFct[0:1]) + newClientFct[1:] + "_Client"
-					fmt.Println(newClientFct)
+					newClientFct := method[1:strings.Index(method, "/")]
+					newClientFct = method[strings.Index(newClientFct, ".")+1:]
+					newClientFct = "New" + newClientFct + "_Client"
+
 					// Here I will create a connection with the other server in order to be able to dispatch the request.
 					results, err := Utility.CallFunction(newClientFct, candidate.GetDomain(), candidate.GetId())
 					if err != nil {
@@ -402,7 +403,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 					// So here I will keep the client inside the map.
 					clients[candidate.GetId()] = results[0].Interface().(globular.Client)
 				}
-				fmt.Println("416 redirect rqst from ", serverId, " to ", candidate.GetId())
+
 				// Here I will invoke the request on the server whit the same context, so permission and token etc will be kept the save.
 				result, err = clients[candidate.GetId()].Invoke(method, rqst, metadata.AppendToOutgoingContext(ctx, "load_balanced", "true", "domain", Utility.GetProperty(info.Server, "Domain").(string), "path", path, "application", application, "token", token))
 				if err != nil {

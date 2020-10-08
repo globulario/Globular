@@ -56,7 +56,7 @@ type Admin_Client struct {
 }
 
 // Create a connection to the service.
-func NewAdmin_Client(address string, id string) (*Admin_Client, error) {
+func NewAdminService_Client(address string, id string) (*Admin_Client, error) {
 	client := new(Admin_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {

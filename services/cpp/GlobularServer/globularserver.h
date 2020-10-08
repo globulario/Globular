@@ -9,6 +9,7 @@
 #include <grpcpp/support/server_interceptor.h>
 #include "globularressourceclient.h"
 using grpc::Service;
+using grpc::Server;
 
 namespace Globular {
 /**
@@ -81,6 +82,8 @@ protected:
     // The root path
     std::string root;
 
+    std::unique_ptr<Server> server;
+
 public:
 
     // The default constructor.
@@ -93,7 +96,10 @@ public:
                     std::string version = "0.0.1",
                     bool tls = true,
                     unsigned int defaultPort = 10023,
-                    unsigned int defaultProxy = 10024);
+                    unsigned int defaultProxy = 10024,
+                    bool keep_alive = false,
+                    bool keep_up_to_date = false
+            );
 
     // Getter/Setter
     const std::string& getName() {
@@ -124,6 +130,11 @@ public:
      * @brief run Start listen and processing request.
      */
     void run(Service*);
+
+    /**
+     * Stop the server.
+     */
+    void stop();
 };
 
 

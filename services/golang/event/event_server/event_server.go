@@ -63,6 +63,9 @@ type server struct {
 
 	// Use to sync event channel manipulation.
 	actions chan map[string]interface{}
+
+	// stop the processing loop.
+	exit chan bool
 }
 
 // Globular services implementation...
@@ -223,7 +226,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewEvent_Client", event_client.NewEvent_Client)
+	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -238,6 +241,8 @@ func (self *server) Init() error {
 	if err != nil {
 		return err
 	}
+
+	self.exit = make(chan bool)
 
 	return nil
 
@@ -255,10 +260,13 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	self.grpcServer.Stop()
+	return nil //globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *eventpb.StopRequest) (*eventpb.StopResponse, error) {
+	//self.exit <- true
+	fmt.Println(`Stop event server was called.`)
 	return &eventpb.StopResponse{}, self.StopService()
 }
 
@@ -278,6 +286,9 @@ func (self *server) run() {
 
 	for {
 		select {
+		case <-self.exit:
+			fmt.Println("--------> exit from the run loop.")
+			break
 		case a := <-self.actions:
 			action := a["action"].(string)
 			if action == "onevent" {
@@ -476,9 +487,11 @@ func main() {
 	go s_impl.run()
 
 	// Start the service.
-	err = s_impl.Start()
+	err = s_impl.StartService()
+
 	if err != nil {
 		fmt.Println("Fail to start service %s: %s", s_impl.Name, s_impl.Id, err)
 		return
 	}
+
 }

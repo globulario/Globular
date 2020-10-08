@@ -50,7 +50,7 @@ type Lb_Client struct {
 }
 
 // Create a connection to the service.
-func NewLb_Client(address string, id string) (*Lb_Client, error) {
+func NewLbService_Client(address string, id string) (*Lb_Client, error) {
 	client := new(Lb_Client)
 
 	err := globular.InitClient(client, address, id)

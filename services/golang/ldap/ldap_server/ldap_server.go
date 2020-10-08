@@ -237,7 +237,7 @@ func (self *server) SetPermissions(permissions []interface{}) {
 func (self *server) Init() error {
 
 	// That function is use to get access to other server.
-	Utility.RegisterFunction("NewLdap_Client", ldap_client.NewLdap_Client)
+	Utility.RegisterFunction("NewLdapService_Client", ldap_client.NewLdapService_Client)
 
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -269,7 +269,7 @@ func (self *server) StartService() error {
 }
 
 func (self *server) StopService() error {
-	return globular.StopService(self)
+	return globular.StopService(self, self.grpcServer)
 }
 
 func (self *server) Stop(context.Context, *ldappb.StopRequest) (*ldappb.StopResponse, error) {

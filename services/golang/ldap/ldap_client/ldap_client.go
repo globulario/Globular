@@ -51,7 +51,7 @@ type LDAP_Client struct {
 }
 
 // Create a connection to the service.
-func NewLdap_Client(address string, id string) (*LDAP_Client, error) {
+func NewLdapService_Client(address string, id string) (*LDAP_Client, error) {
 	client := new(LDAP_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
@@ -160,6 +160,11 @@ func (self *LDAP_Client) SetCaFile(caFile string) {
 }
 
 ////////////////////////// LDAP ////////////////////////////////////////////////
+// Stop the service.
+func (self *LDAP_Client) StopService() {
+	self.c.Stop(globular.GetClientContext(self), &ldappb.StopRequest{})
+}
+
 func (self *LDAP_Client) CreateConnection(connectionId string, user string, password string, host string, port int32) error {
 	// Create a new connection
 	rqst := &ldappb.CreateConnectionRqst{

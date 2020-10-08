@@ -44,7 +44,7 @@ type Ca_Client struct {
 }
 
 // Create a connection to the service.
-func NewCa_Client(address string, id string) (*Ca_Client, error) {
+func NewCaService_Client(address string, id string) (*Ca_Client, error) {
 	client := new(Ca_Client)
 
 	err := globular.InitClient(client, address, id)
