@@ -784,8 +784,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 		}
 	}
-
 	servicePath := s["Path"].(string)
+
 	if s["Protocol"].(string) == "grpc" {
 		hasTls := Utility.ToBool(s["TLS"])
 		if hasTls {

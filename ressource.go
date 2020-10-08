@@ -1783,13 +1783,11 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 		method == "/ressource.RessourceService/Authenticate" ||
 		method == "/ressource.RessourceService/RefreshToken" ||
 		method == "/ressource.RessourceService/GetPermissions" ||
-		method == "/ressource.RessourceService/GetRessourceOwners" ||
 		method == "/ressource.RessourceService/GetAllFilesInfo" ||
 		method == "/ressource.RessourceService/GetAllApplicationsInfo" ||
 		method == "/ressource.RessourceService/GetRessourceOwners" ||
 		method == "/ressource.RessourceService/ValidateToken" ||
 		method == "/ressource.RessourceService/ValidateUserAccess" ||
-		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationAccess" ||
 		method == "/ressource.RessourceService/ValidateApplicationRessourceAccess" ||
 		method == "/ressource.RessourceService/ValidateUserRessourceAccess" ||

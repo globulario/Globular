@@ -339,7 +339,7 @@ func getCredentialConfig(address string, country string, state string, city stri
 	}
 
 	// generate the SAN file
-	err = GenerateSanConfig(path, country, state, city, organization, alternateDomains_)
+	err = GenerateSanConfig(creds, country, state, city, organization, alternateDomains_)
 
 	// Step 2: Generate the client signing request.
 	err = GenerateClientCertificateSigningRequest(creds, pwd, address)
@@ -572,6 +572,7 @@ func GenerateSignedClientCertificate(path string, pwd string, expiration_delay i
 }
 
 func GenerateSanConfig(path string, country string, state string, city string, organization string, domains []string) error {
+	log.Println("-------------> osti ", path)
 	config := fmt.Sprintf(`
 [req]
 distinguished_name = req_distinguished_name

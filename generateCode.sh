@@ -14,7 +14,7 @@ protoc services/proto/storage.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/file.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/sql.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/ldap.proto --go_out=plugins=grpc:./services/golang
-protoc services/proto/smtp.proto --go_out=plugins=grpc:./services/golang
+protoc services/proto/mail.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/persistence.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/monitoring.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/plc.proto --go_out=plugins=grpc:./services/golang
@@ -59,9 +59,9 @@ protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typesc
 mkdir services/typescript/ldap
 protoc --js_out=import_style=commonjs:services/typescript/ldap  -I ./services/proto/ ldap.proto
 protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/ldap -I ./services/proto/ ldap.proto
-mkdir services/typescript/smtp
-protoc --js_out=import_style=commonjs:services/typescript/smtp  -I ./services/proto/ smtp.proto
-protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/smtp -I ./services/proto/ smtp.proto
+mkdir services/typescript/mail
+protoc --js_out=import_style=commonjs:services/typescript/mail  -I ./services/proto/ mail.proto
+protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/mail -I ./services/proto/ mail.proto
 mkdir services/typescript/persistence
 protoc --js_out=import_style=commonjs:services/typescript/persistence  -I ./services/proto/ persistence.proto
 protoc --grpc-web_out=import_style=commonjs+dts,mode=grpcwebtext:services/typescript/persistence -I ./services/proto/ persistence.proto
