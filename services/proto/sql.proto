@@ -83,6 +83,14 @@ message ExecContextRsp {
 	int64 lastId = 2;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 // Sql service.
 // The first step is to create a connection.
 // With that connection you can,
@@ -91,6 +99,9 @@ message ExecContextRsp {
 // - Execute sql SELECT operation with QueryContext
 // You can also delete the create connection with DeleteConnection.
 service SqlService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	

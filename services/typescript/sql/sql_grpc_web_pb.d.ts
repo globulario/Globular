@@ -10,12 +10,21 @@ import {
   PingConnectionRqst,
   PingConnectionRsp,
   QueryContextRqst,
-  QueryContextRsp} from './sql_pb';
+  QueryContextRsp,
+  StopRequest,
+  StopResponse} from './sql_pb';
 
 export class SqlServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -56,6 +65,11 @@ export class SqlServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

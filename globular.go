@@ -182,6 +182,9 @@ type Globule struct {
 	lb_remove_candidate_info_channel chan *lbpb.ServerInfo
 	lb_get_candidates_info_channel   chan map[string]interface{}
 	lb_stop_channel                  chan bool
+
+	// exit channel.
+	exit chan struct{}
 }
 
 /**
@@ -404,6 +407,26 @@ func (self *Globule) initDirectories() {
 }
 
 /**
+ * Close the server.
+ */
+func (self *Globule) KillProcess() {
+	// Here I will kill proxies if there are running.
+	Utility.KillProcessByName("grpcwebproxy")
+
+	// Kill previous instance of the program...
+	for _, s := range self.Services {
+		if s.(map[string]interface{})["Path"] != nil {
+			name := s.(map[string]interface{})["Path"].(string)
+			name = name[strings.LastIndex(name, "/")+1:]
+			err := Utility.KillProcessByName(name)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+}
+
+/**
  * Start serving the content.
  */
 func (self *Globule) Serve() {
@@ -429,9 +452,6 @@ func (self *Globule) Serve() {
 
 	// Handle the signing certificate function.
 	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
-
-	// Here I will kill proxies if there are running.
-	Utility.KillProcessByName("grpcwebproxy")
 
 	// Here it suppose to be only one server instance per computer.
 	self.jwtKey = []byte(Utility.RandomUUID())
@@ -502,7 +522,6 @@ func (self *Globule) getDomain() string {
 	if len(self.Name) > 0 && domain != "localhost" {
 		domain = /*self.Name + "." +*/ domain
 	}
-	domain = strings.ToLower(domain)
 	return domain
 }
 
@@ -868,7 +887,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		s["Process"].(*exec.Cmd).Stderr = &errb
 
 		// Here I will set the command dir.
-
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 
 		err = s["Process"].(*exec.Cmd).Start()
@@ -1157,7 +1175,6 @@ func (self *Globule) initServices() {
 				return nil
 			}
 			if err == nil && info.Name() == "config.json" {
-				log.Println("--->  import new service configuration ", path)
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
@@ -1205,16 +1222,7 @@ func (self *Globule) initServices() {
 	})
 
 	// Kill previous instance of the program...
-	for _, s := range self.Services {
-		if s.(map[string]interface{})["Path"] != nil {
-			name := s.(map[string]interface{})["Path"].(string)
-			name = name[strings.LastIndex(name, "/")+1:]
-			err := Utility.KillProcessByName(name)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
+	self.KillProcess()
 
 	// Start the load balancer.
 	err := self.startLoadBalancingService()

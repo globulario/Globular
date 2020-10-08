@@ -48,6 +48,8 @@ namespace Persistence {
       return parser.ParseFrom(context.PayloadAsNewBuffer());
     }
 
+    static readonly grpc::Marshaller<global::Persistence.StopRequest> __Marshaller_persistence_StopRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.StopRequest.Parser));
+    static readonly grpc::Marshaller<global::Persistence.StopResponse> __Marshaller_persistence_StopResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.StopResponse.Parser));
     static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRqst> __Marshaller_persistence_CreateDatabaseRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateDatabaseRqst.Parser));
     static readonly grpc::Marshaller<global::Persistence.CreateDatabaseRsp> __Marshaller_persistence_CreateDatabaseRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.CreateDatabaseRsp.Parser));
     static readonly grpc::Marshaller<global::Persistence.ConnectRqst> __Marshaller_persistence_ConnectRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.ConnectRqst.Parser));
@@ -90,6 +92,13 @@ namespace Persistence {
     static readonly grpc::Marshaller<global::Persistence.DeleteOneRsp> __Marshaller_persistence_DeleteOneRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.DeleteOneRsp.Parser));
     static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRqst> __Marshaller_persistence_RunAdminCmdRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.RunAdminCmdRqst.Parser));
     static readonly grpc::Marshaller<global::Persistence.RunAdminCmdRsp> __Marshaller_persistence_RunAdminCmdRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Persistence.RunAdminCmdRsp.Parser));
+
+    static readonly grpc::Method<global::Persistence.StopRequest, global::Persistence.StopResponse> __Method_Stop = new grpc::Method<global::Persistence.StopRequest, global::Persistence.StopResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Stop",
+        __Marshaller_persistence_StopRequest,
+        __Marshaller_persistence_StopResponse);
 
     static readonly grpc::Method<global::Persistence.CreateDatabaseRqst, global::Persistence.CreateDatabaseRsp> __Method_CreateDatabase = new grpc::Method<global::Persistence.CreateDatabaseRqst, global::Persistence.CreateDatabaseRsp>(
         grpc::MethodType.Unary,
@@ -248,6 +257,17 @@ namespace Persistence {
     [grpc::BindServiceMethod(typeof(PersistenceService), "BindService")]
     public abstract partial class PersistenceServiceBase
     {
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Persistence.StopResponse> Stop(global::Persistence.StopRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
       /// <summary>
       /// Create a database
       /// </summary>
@@ -506,6 +526,50 @@ namespace Persistence {
       {
       }
 
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Persistence.StopResponse Stop(global::Persistence.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Stop(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Persistence.StopResponse Stop(global::Persistence.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Stop, null, options, request);
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Persistence.StopResponse> StopAsync(global::Persistence.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return StopAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Persistence.StopResponse> StopAsync(global::Persistence.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Stop, null, options, request);
+      }
       /// <summary>
       /// Create a database
       /// </summary>
@@ -1374,6 +1438,7 @@ namespace Persistence {
     public static grpc::ServerServiceDefinition BindService(PersistenceServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_Stop, serviceImpl.Stop)
           .AddMethod(__Method_CreateDatabase, serviceImpl.CreateDatabase)
           .AddMethod(__Method_Connect, serviceImpl.Connect)
           .AddMethod(__Method_Disconnect, serviceImpl.Disconnect)
@@ -1403,6 +1468,7 @@ namespace Persistence {
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     public static void BindService(grpc::ServiceBinderBase serviceBinder, PersistenceServiceBase serviceImpl)
     {
+      serviceBinder.AddMethod(__Method_Stop, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Persistence.StopRequest, global::Persistence.StopResponse>(serviceImpl.Stop));
       serviceBinder.AddMethod(__Method_CreateDatabase, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Persistence.CreateDatabaseRqst, global::Persistence.CreateDatabaseRsp>(serviceImpl.CreateDatabase));
       serviceBinder.AddMethod(__Method_Connect, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Persistence.ConnectRqst, global::Persistence.ConnectRsp>(serviceImpl.Connect));
       serviceBinder.AddMethod(__Method_Disconnect, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Persistence.DisconnectRqst, global::Persistence.DisconnectRsp>(serviceImpl.Disconnect));

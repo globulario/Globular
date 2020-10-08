@@ -15,7 +15,19 @@ message EchoResponse {
   int32 message_count = 2;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service EchoService {
+	
+  // Stop the server.
+  rpc Stop(StopRequest) returns (StopResponse);
+	
   // One request followed by one response
   // The server returns the client message as-is.
   rpc Echo(EchoRequest) returns (EchoResponse);

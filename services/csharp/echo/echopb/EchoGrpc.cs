@@ -45,8 +45,17 @@ namespace Echo {
       return parser.ParseFrom(context.PayloadAsNewBuffer());
     }
 
+    static readonly grpc::Marshaller<global::Echo.StopRequest> __Marshaller_echo_StopRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Echo.StopRequest.Parser));
+    static readonly grpc::Marshaller<global::Echo.StopResponse> __Marshaller_echo_StopResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Echo.StopResponse.Parser));
     static readonly grpc::Marshaller<global::Echo.EchoRequest> __Marshaller_echo_EchoRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Echo.EchoRequest.Parser));
     static readonly grpc::Marshaller<global::Echo.EchoResponse> __Marshaller_echo_EchoResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Echo.EchoResponse.Parser));
+
+    static readonly grpc::Method<global::Echo.StopRequest, global::Echo.StopResponse> __Method_Stop = new grpc::Method<global::Echo.StopRequest, global::Echo.StopResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Stop",
+        __Marshaller_echo_StopRequest,
+        __Marshaller_echo_StopResponse);
 
     static readonly grpc::Method<global::Echo.EchoRequest, global::Echo.EchoResponse> __Method_Echo = new grpc::Method<global::Echo.EchoRequest, global::Echo.EchoResponse>(
         grpc::MethodType.Unary,
@@ -65,6 +74,17 @@ namespace Echo {
     [grpc::BindServiceMethod(typeof(EchoService), "BindService")]
     public abstract partial class EchoServiceBase
     {
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Echo.StopResponse> Stop(global::Echo.StopRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
       /// <summary>
       /// One request followed by one response
       /// The server returns the client message as-is.
@@ -102,6 +122,50 @@ namespace Echo {
       {
       }
 
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Echo.StopResponse Stop(global::Echo.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Stop(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Echo.StopResponse Stop(global::Echo.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Stop, null, options, request);
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Echo.StopResponse> StopAsync(global::Echo.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return StopAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Echo.StopResponse> StopAsync(global::Echo.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Stop, null, options, request);
+      }
       /// <summary>
       /// One request followed by one response
       /// The server returns the client message as-is.
@@ -162,6 +226,7 @@ namespace Echo {
     public static grpc::ServerServiceDefinition BindService(EchoServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_Stop, serviceImpl.Stop)
           .AddMethod(__Method_Echo, serviceImpl.Echo).Build();
     }
 
@@ -171,6 +236,7 @@ namespace Echo {
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     public static void BindService(grpc::ServiceBinderBase serviceBinder, EchoServiceBase serviceImpl)
     {
+      serviceBinder.AddMethod(__Method_Stop, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Echo.StopRequest, global::Echo.StopResponse>(serviceImpl.Stop));
       serviceBinder.AddMethod(__Method_Echo, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Echo.EchoRequest, global::Echo.EchoResponse>(serviceImpl.Echo));
     }
 

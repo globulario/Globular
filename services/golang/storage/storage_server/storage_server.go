@@ -269,12 +269,16 @@ func (self *server) Save() error {
 	return globular.SaveService(dir+"/config.json", self)
 }
 
-func (self *server) Start() error {
+func (self *server) StartService() error {
 	return globular.StartService(self, self.grpcServer)
 }
 
-func (self *server) Stop() error {
+func (self *server) StopService() error {
 	return globular.StopService(self)
+}
+
+func (self *server) Stop(context.Context, *storagepb.StopRequest) (*storagepb.StopResponse, error) {
+	return &storagepb.StopResponse{}, self.StopService()
 }
 
 //////////////////////// Storage specific functions ////////////////////////////
@@ -608,6 +612,6 @@ func main() {
 	storagepb.RegisterStorageServiceServer(s_impl.grpcServer, s_impl)
 	reflection.Register(s_impl.grpcServer)
 	// Start the service.
-	s_impl.Start()
+	s_impl.StartService()
 
 }

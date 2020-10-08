@@ -182,8 +182,18 @@ message TargetsMetadataResponse{
 	string result = 1; // a json array containning metric metadata.
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
 
 service MonitoringService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	

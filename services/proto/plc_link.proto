@@ -65,8 +65,18 @@ message ResumeRsp {
 	bool result = 1;
 }
 
-service PlcLinkService {
+message StopRequest {
+	
+}
 
+message StopResponse {
+	
+}
+
+service PlcLinkService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Link Tow tag together and make it refresh at a given frequency in milisecond.
 	rpc Link(LinkRqst) returns (LinkRsp){};
 	

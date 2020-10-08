@@ -65,8 +65,19 @@ message AuthenticateRsp {
 	bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 // TODO support TLS conncetion.
 service LdapService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	

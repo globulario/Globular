@@ -119,8 +119,18 @@ message WriteExcelFileResponse{
 	bool result = 1; // return true by default.
 }
 
-service FileService {
+message StopRequest {
 	
+}
+
+message StopResponse {
+	
+}
+
+service FileService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+
 	// Return a JOSN string containing the directories informations.
 	// In case of image I will return a thumnail of the image so 
 	// so the response string can became large.

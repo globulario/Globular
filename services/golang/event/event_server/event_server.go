@@ -250,12 +250,16 @@ func (self *server) Save() error {
 	return globular.SaveService(dir+"/config.json", self)
 }
 
-func (self *server) Start() error {
+func (self *server) StartService() error {
 	return globular.StartService(self, self.grpcServer)
 }
 
-func (self *server) Stop() error {
+func (self *server) StopService() error {
 	return globular.StopService(self)
+}
+
+func (self *server) Stop(context.Context, *eventpb.StopRequest) (*eventpb.StopResponse, error) {
+	return &eventpb.StopResponse{}, self.StopService()
 }
 
 //////////////////////////////////////////////////////////////////////////////

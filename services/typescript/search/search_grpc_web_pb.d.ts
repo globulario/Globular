@@ -14,12 +14,21 @@ import {
   IndexJsonObjectRequest,
   IndexJsonObjectResponse,
   SearchDocumentsRequest,
-  SearchDocumentsResponse} from './search_pb';
+  SearchDocumentsResponse,
+  StopRequest,
+  StopResponse} from './search_pb';
 
 export class SearchServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   getVersion(
     request: GetVersionRequest,
@@ -76,6 +85,11 @@ export class SearchServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   getVersion(
     request: GetVersionRequest,

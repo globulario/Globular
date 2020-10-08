@@ -90,12 +90,21 @@ import {
   SaveSupplierRequest,
   SaveSupplierResponse,
   SaveUnitOfMeasureRequest,
-  SaveUnitOfMeasureResponse} from './catalog_pb';
+  SaveUnitOfMeasureResponse,
+  StopRequest,
+  StopResponse} from './catalog_pb';
 
 export class CatalogServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -418,6 +427,11 @@ export class CatalogServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

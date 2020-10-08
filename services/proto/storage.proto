@@ -101,8 +101,19 @@ message DropResponse {
 	bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 // TODO support TLS conncetion.
 service StorageService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Open the store and set options...
 	rpc Open(OpenRqst) returns (OpenRsp){};
 	
@@ -129,5 +140,6 @@ service StorageService {
 	
 	// Drop a store 
 	rpc Drop(DropRequest) returns (DropResponse) {};
+	
 }
 

@@ -113,10 +113,10 @@ type Service interface {
 	Save() error
 
 	/** Stop the service **/
-	Stop() error
+	StopService() error
 
 	/** Start the service **/
-	Start() error
+	StartService() error
 }
 
 /**

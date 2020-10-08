@@ -5,6 +5,8 @@ import {
   LinkRsp,
   ResumeRqst,
   ResumeRsp,
+  StopRequest,
+  StopResponse,
   SuspendRqst,
   SuspendRsp,
   UnLinkRqst,
@@ -14,6 +16,13 @@ export class PlcLinkServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   link(
     request: LinkRqst,
@@ -49,6 +58,11 @@ export class PlcLinkServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   link(
     request: LinkRqst,

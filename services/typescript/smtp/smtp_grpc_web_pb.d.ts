@@ -8,12 +8,21 @@ import {
   SendEmailRqst,
   SendEmailRsp,
   SendEmailWithAttachementsRqst,
-  SendEmailWithAttachementsRsp} from './smtp_pb';
+  SendEmailWithAttachementsRsp,
+  StopRequest,
+  StopResponse} from './smtp_pb';
 
 export class SmtpServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -42,6 +51,11 @@ export class SmtpServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

@@ -10,12 +10,21 @@ import {
   DeleteConnectionRqst,
   DeleteConnectionRsp,
   SearchResp,
-  SearchRqst} from './ldap_pb';
+  SearchRqst,
+  StopRequest,
+  StopResponse} from './ldap_pb';
 
 export class LdapServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -58,6 +67,11 @@ export class LdapServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

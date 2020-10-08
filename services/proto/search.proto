@@ -98,7 +98,18 @@ message SearchDocumentsResponse{
 	repeated SearchResult results=1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service SearchService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	/**
 	 * Return the version number of the search engine.
 	 */

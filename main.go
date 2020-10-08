@@ -14,17 +14,85 @@ import (
 	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
+	"github.com/kardianos/service"
 )
 
+// This is use to display information to external service manager.
+var logger service.Logger
+
+func (g *Globule) Start(s service.Service) error {
+	if service.Interactive() {
+		logger.Info("Running in terminal.")
+	} else {
+		logger.Info("Running under service manager.")
+	}
+	g.exit = make(chan struct{})
+
+	// Start should not block. Do the actual work async.
+	go g.run()
+	return nil
+}
+
+func (g *Globule) run() error {
+	logger.Infof("Starting Globular as %v.", service.Platform())
+
+	// start globular and wait on exit chan...
+	go func() {
+		g.Serve()
+	}()
+
+	for {
+		select {
+		case <-g.exit:
+
+			logger.Infof("Globular has been stopped!")
+
+			return nil
+		}
+	}
+}
+
+func (g *Globule) Stop(s service.Service) error {
+	// Any work in Stop should be quick, usually a few seconds at most.
+	logger.Info("Globular is stopping!")
+	close(g.exit)
+	return nil
+}
+
 func main() {
+
 	g := NewGlobule()
+	svcFlag := flag.String("service", "", "Control the system service.")
+	flag.Parse()
+
+	options := make(service.KeyValue)
+	options["Restart"] = "on-success"
+	options["SuccessExitStatus"] = "1 2 8 SIGKILL"
+
+	svcConfig := &service.Config{
+		Name:         "Globular",
+		DisplayName:  "Globular",
+		Description:  "gRPC service managers",
+		Dependencies: []string{},
+		Option:       options,
+	}
+
+	s, err := service.New(g, svcConfig)
+
 	if len(os.Args) > 1 {
 
 		// Subcommands
 
-		// Intall command
+		// Intall globular as service/demon
 		installCommand := flag.NewFlagSet("install", flag.ExitOnError)
-		installCommand_path := installCommand.String("path", "", "You must specefied the intallation path. (Required)")
+		installCommand_name := installCommand.String("name", "", "The display name of globular service.")
+
+		// Uninstall globular as service.
+		unstallCommand := flag.NewFlagSet("uninstall", flag.ExitOnError)
+
+		// Package development environnement into a given
+		distCommand := flag.NewFlagSet("dist", flag.ExitOnError)
+		distCommand_path := distCommand.String("path", "", "You must specify the dist path. (Required)")
 
 		// Deploy command
 		deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
@@ -50,12 +118,16 @@ func main() {
 		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32, linux64, win32, win64 (Required)")
 
 		switch os.Args[1] {
-		case "install":
-			installCommand.Parse(os.Args[2:])
+		case "package":
+			distCommand.Parse(os.Args[2:])
 		case "deploy":
 			deployCommand.Parse(os.Args[2:])
 		case "publish":
 			publishCommand.Parse(os.Args[2:])
+		case "install":
+			installCommand.Parse(os.Args[2:])
+		case "uninstall":
+			unstallCommand.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
@@ -63,13 +135,37 @@ func main() {
 
 		// Check if the command was parsed
 		if installCommand.Parsed() {
+			if *installCommand_name != "" {
+				svcConfig.DisplayName = *installCommand_name
+				s, _ = service.New(g, svcConfig)
+			}
 			// Required Flags
-			if *installCommand_path == "" {
-				installCommand.PrintDefaults()
+			err := s.Install()
+			if err == nil {
+				log.Println("Globular service is now installed!")
+			} else {
+				log.Println(err)
+			}
+		}
+
+		if unstallCommand.Parsed() {
+			// Required Flags
+			err := s.Uninstall()
+			if err == nil {
+				log.Println("Globular service is now removed!")
+			} else {
+				log.Println(err)
+			}
+		}
+
+		if distCommand.Parsed() {
+			// Required Flags
+			if *distCommand_path == "" {
+				distCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			install(g, *installCommand_path)
+			install(g, *distCommand_path)
 		}
 
 		if deployCommand.Parsed() {
@@ -186,9 +282,43 @@ func main() {
 		}
 
 	} else {
-		g.Serve()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		errs := make(chan error, 5)
+		logger, err = s.Logger(errs)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		go func() {
+			for {
+				err := <-errs
+				if err != nil {
+					log.Print(err)
+				}
+			}
+		}()
+
+		if len(*svcFlag) != 0 {
+			err := service.Control(s, *svcFlag)
+			if err != nil {
+				log.Printf("Valid actions: %q\n", service.ControlAction)
+				log.Fatal(err)
+			}
+			return
+		}
+		err = s.Run()
+		if err != nil {
+			logger.Error(err)
+		}
 	}
 }
+
+/**
+ * Service interface use to run as Windows Service or Linux deamon...
+ */
 
 /**
  * That function can be use to deploy an application on the server...

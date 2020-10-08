@@ -259,8 +259,19 @@ message DisconnectRsp{
 	bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 // Persistence nothing can take place of persistence..!-)
 service PersistenceService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+
 	//////////////////////////////////////////////////////////////////////////////
 	// admin operations
 	//////////////////////////////////////////////////////////////////////////////

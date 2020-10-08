@@ -11,6 +11,8 @@ import {
   GetConnectionRsp,
   ReadTagRqst,
   ReadTagRsp,
+  StopRequest,
+  StopResponse,
   WriteTagRqst,
   WriteTagRsp} from './plc_pb';
 
@@ -18,6 +20,13 @@ export class PlcServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -67,6 +76,11 @@ export class PlcServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

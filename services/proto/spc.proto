@@ -21,7 +21,18 @@ message CreateAnalyseRsp {
 	string result = 1; // The result.
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service SpcService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Send analyse results message.
 	rpc CreateAnalyse(CreateAnalyseRqst) returns (CreateAnalyseRsp){};
 }

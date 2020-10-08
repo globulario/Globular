@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.12.4, 2020-09-22T16:26:48. -->
+<!-- Written by QtCreator 4.12.4, 2020-10-08T08:33:48. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -81,7 +81,7 @@
    <value type="int" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
-    <value type="bool">true</value>
+    <value type="bool">false</value>
     <value type="int" key="EnableQmlDebugging">0</value>
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">C:\Users\mm006819\go\src\github.com\davecourtois\Globular\services\cpp\spc\spc_server</value>
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">C:/Users/mm006819/go/src/github.com/davecourtois/Globular/services/cpp/spc/spc_server</value>
@@ -132,7 +132,7 @@
     <value type="int" key="SeparateDebugInfo">2</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.1">
-    <value type="bool">true</value>
+    <value type="bool">false</value>
     <value type="int" key="EnableQmlDebugging">2</value>
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">C:\Users\mm006819\go\src\github.com\davecourtois\Globular\services\cpp\spc\spc_server</value>
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory.shadowDir">C:/Users/mm006819/go/src/github.com/davecourtois/Globular/services/cpp/spc/spc_server</value>

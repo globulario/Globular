@@ -21,6 +21,8 @@ import {
   RenameResponse,
   SaveFileRequest,
   SaveFileResponse,
+  StopRequest,
+  StopResponse,
   WriteExcelFileRequest,
   WriteExcelFileResponse} from './file_pb';
 
@@ -28,6 +30,13 @@ export class FileServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   readDir(
     request: ReadDirRequest,
@@ -99,6 +108,11 @@ export class FileServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   readDir(
     request: ReadDirRequest,

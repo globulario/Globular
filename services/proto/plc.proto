@@ -134,11 +134,22 @@ message  ReadTagRsp {
 	string values = 1; // return the value as string
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 /**
  * That service is use to give access to a PLC on a network via Ethenet/ip
  * https://github.com/kyle-github/libplctag
  */
 service PlcService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	/** Connection functions **/
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};

@@ -39,6 +39,8 @@ import {
   ReplaceOneRsp,
   RunAdminCmdRqst,
   RunAdminCmdRsp,
+  StopRequest,
+  StopResponse,
   UpdateOneRqst,
   UpdateOneRsp,
   UpdateRqst,
@@ -48,6 +50,13 @@ export class PersistenceServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createDatabase(
     request: CreateDatabaseRqst,
@@ -191,6 +200,11 @@ export class PersistenceServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createDatabase(
     request: CreateDatabaseRqst,

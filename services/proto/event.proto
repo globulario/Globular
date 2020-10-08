@@ -53,10 +53,21 @@ message PublishResponse{
 	bool result = 1; // must return true
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 /**
  * A gRpc event bus.
  */
 service EventService {
+  // Stop the server.
+  rpc Stop(StopRequest) returns (StopResponse);
+
   // One stream by client.
   rpc OnEvent(OnEventRequest) returns (stream OnEventResponse) {};
 

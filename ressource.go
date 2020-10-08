@@ -1748,8 +1748,10 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	if err_ != nil {
 		info.Message = err_.Error()
 		info.Type = ressourcepb.LogType_ERROR_MESSAGE
+		logger.Error(info.Message)
 	} else {
 		info.Type = ressourcepb.LogType_INFO_MESSAGE
+		logger.Info(info.Message)
 	}
 
 	self.log(info)
@@ -3172,8 +3174,6 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 		return err
 	}
 
-	// Now I will get the user roles and validate if the user can execute the
-	// method.
 	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Applications", `{"path":"/`+name+`"}`, ``)
 	if err != nil {
 		return err
@@ -3193,10 +3193,10 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 
 	for i := 0; i < len(actions); i++ {
 		if actions[i].(string) == method {
+			log.Println("Application", name, "can run "+method)
 			return nil
 		}
 	}
-
 	return err
 }
 
@@ -3523,6 +3523,7 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressourcepb.V
 
 //* Validate if application can access a given method. *
 func (self *Globule) ValidateApplicationAccess(ctx context.Context, rqst *ressourcepb.ValidateApplicationAccessRqst) (*ressourcepb.ValidateApplicationAccessRsp, error) {
+	log.Println("-------> validate application access ", rqst.GetName(), rqst.Method)
 	err := self.validateApplicationAccess(rqst.GetName(), rqst.Method)
 	if err != nil {
 		return nil, status.Errorf(

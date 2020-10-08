@@ -31,6 +31,8 @@ import {
   SeriesResponse,
   SnapshotRequest,
   SnapshotResponse,
+  StopRequest,
+  StopResponse,
   TargetsMetadataRequest,
   TargetsMetadataResponse,
   TargetsRequest,
@@ -40,6 +42,13 @@ export class MonitoringServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,
@@ -164,6 +173,11 @@ export class MonitoringServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   createConnection(
     request: CreateConnectionRqst,

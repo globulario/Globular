@@ -49,6 +49,8 @@ namespace Event {
       return parser.ParseFrom(context.PayloadAsNewBuffer());
     }
 
+    static readonly grpc::Marshaller<global::Event.StopRequest> __Marshaller_event_StopRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.StopRequest.Parser));
+    static readonly grpc::Marshaller<global::Event.StopResponse> __Marshaller_event_StopResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.StopResponse.Parser));
     static readonly grpc::Marshaller<global::Event.OnEventRequest> __Marshaller_event_OnEventRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.OnEventRequest.Parser));
     static readonly grpc::Marshaller<global::Event.OnEventResponse> __Marshaller_event_OnEventResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.OnEventResponse.Parser));
     static readonly grpc::Marshaller<global::Event.QuitRequest> __Marshaller_event_QuitRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.QuitRequest.Parser));
@@ -59,6 +61,13 @@ namespace Event {
     static readonly grpc::Marshaller<global::Event.UnSubscribeResponse> __Marshaller_event_UnSubscribeResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.UnSubscribeResponse.Parser));
     static readonly grpc::Marshaller<global::Event.PublishRequest> __Marshaller_event_PublishRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.PublishRequest.Parser));
     static readonly grpc::Marshaller<global::Event.PublishResponse> __Marshaller_event_PublishResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Event.PublishResponse.Parser));
+
+    static readonly grpc::Method<global::Event.StopRequest, global::Event.StopResponse> __Method_Stop = new grpc::Method<global::Event.StopRequest, global::Event.StopResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Stop",
+        __Marshaller_event_StopRequest,
+        __Marshaller_event_StopResponse);
 
     static readonly grpc::Method<global::Event.OnEventRequest, global::Event.OnEventResponse> __Method_OnEvent = new grpc::Method<global::Event.OnEventRequest, global::Event.OnEventResponse>(
         grpc::MethodType.ServerStreaming,
@@ -105,6 +114,17 @@ namespace Event {
     [grpc::BindServiceMethod(typeof(EventService), "BindService")]
     public abstract partial class EventServiceBase
     {
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      public virtual global::System.Threading.Tasks.Task<global::Event.StopResponse> Stop(global::Event.StopRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
       /// <summary>
       /// One stream by client.
       /// </summary>
@@ -187,6 +207,50 @@ namespace Event {
       {
       }
 
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Event.StopResponse Stop(global::Event.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Stop(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      public virtual global::Event.StopResponse Stop(global::Event.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Stop, null, options, request);
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Event.StopResponse> StopAsync(global::Event.StopRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return StopAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Stop the server.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      public virtual grpc::AsyncUnaryCall<global::Event.StopResponse> StopAsync(global::Event.StopRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Stop, null, options, request);
+      }
       /// <summary>
       /// One stream by client.
       /// </summary>
@@ -401,6 +465,7 @@ namespace Event {
     public static grpc::ServerServiceDefinition BindService(EventServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_Stop, serviceImpl.Stop)
           .AddMethod(__Method_OnEvent, serviceImpl.OnEvent)
           .AddMethod(__Method_Quit, serviceImpl.Quit)
           .AddMethod(__Method_Subscribe, serviceImpl.Subscribe)
@@ -414,6 +479,7 @@ namespace Event {
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     public static void BindService(grpc::ServiceBinderBase serviceBinder, EventServiceBase serviceImpl)
     {
+      serviceBinder.AddMethod(__Method_Stop, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Event.StopRequest, global::Event.StopResponse>(serviceImpl.Stop));
       serviceBinder.AddMethod(__Method_OnEvent, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Event.OnEventRequest, global::Event.OnEventResponse>(serviceImpl.OnEvent));
       serviceBinder.AddMethod(__Method_Quit, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Event.QuitRequest, global::Event.QuitResponse>(serviceImpl.Quit));
       serviceBinder.AddMethod(__Method_Subscribe, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Event.SubscribeRequest, global::Event.SubscribeResponse>(serviceImpl.Subscribe));

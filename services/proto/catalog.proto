@@ -716,7 +716,19 @@ message DeleteInventoryResponse{
 	bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service CatalogService {
+	
+	// Stop the server.
+  	rpc Stop(StopRequest) returns (StopResponse);
+	
   	// Save function.
 	
 	// Save a connection.

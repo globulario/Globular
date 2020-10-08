@@ -76,7 +76,18 @@ message SendEmailWithAttachementsRsp {
 	bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service SmtpService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
 	// Create a connection.
 	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
 	

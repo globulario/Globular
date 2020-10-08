@@ -269,7 +269,6 @@ message RemoveUriResponse {
   bool result = 1;
 }
 
-
 message CAA {
 	uint32 flag = 1;
 	string tag = 2;
@@ -302,7 +301,17 @@ message RemoveCaaResponse {
   bool result = 1;
 }
 
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
 service DnsService {
+  // Stop the server.
+  rpc Stop(StopRequest) returns (StopResponse);
 	
   // Set a dns entry.
   rpc SetA(SetARequest) returns (SetAResponse);

@@ -7,6 +7,8 @@ import {
   PublishResponse,
   QuitRequest,
   QuitResponse,
+  StopRequest,
+  StopResponse,
   SubscribeRequest,
   SubscribeResponse,
   UnSubscribeRequest,
@@ -16,6 +18,13 @@ export class EventServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: StopResponse) => void
+  ): grpcWeb.ClientReadableStream<StopResponse>;
 
   onEvent(
     request: OnEventRequest,
@@ -56,6 +65,11 @@ export class EventServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: string; });
+
+  stop(
+    request: StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<StopResponse>;
 
   onEvent(
     request: OnEventRequest,

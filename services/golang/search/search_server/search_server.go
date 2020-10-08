@@ -269,12 +269,16 @@ func (self *server) Save() error {
 	return globular.SaveService(dir+"/config.json", self)
 }
 
-func (self *server) Start() error {
+func (self *server) StartService() error {
 	return globular.StartService(self, self.grpcServer)
 }
 
-func (self *server) Stop() error {
+func (self *server) StopService() error {
 	return globular.StopService(self)
+}
+
+func (self *server) Stop(context.Context, *searchpb.StopRequest) (*searchpb.StopResponse, error) {
+	return &searchpb.StopResponse{}, self.StopService()
 }
 
 /**
@@ -972,5 +976,5 @@ func main() {
 	reflection.Register(s_impl.grpcServer)
 
 	// Start the service.
-	s_impl.Start()
+	s_impl.StartService()
 }
