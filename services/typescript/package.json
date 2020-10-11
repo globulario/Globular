@@ -1,14 +1,13 @@
 {
   "name": "globular-web-client",
-  "version": "1.1.42",
+  "version": "1.1.49",
   "description": "Globular client side",
-  "main": "lib/services.js",
-  "types": "lib/services.d.ts",
+  "main": "./services.js",
+  "types": "./services.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "pack": "webpack --env production",
-    "copy": "cp -r ca lib/ && cp -r ressource lib/ && cp -r services lib/ && cp -r lb lib/ && cp -r admin lib/ && cp -r search lib/ && cp  -r catalog lib/ && cp -r echo lib/ && cp -r event lib/ && cp -r file lib/ && cp -r ldap lib/ && cp -r monitoring lib/ && cp -r persistence lib/ && cp -r plc lib/ && cp -r plc_link lib/ && cp -r smtp lib/ && cp -r spc lib/ && cp -r sql lib/ && cp -r storage lib/",
+    "build_": "tsc  &&  cp package.json dist/ &&  cp -r ca dist/ && cp -r ressource dist/ && cp -r services dist/ && cp -r lb dist/ && cp -r admin dist/ && cp -r search dist/ && cp  -r catalog dist/ && cp -r echo dist/ && cp -r event dist/ && cp -r file dist/ && cp -r ldap dist/ && cp -r monitoring dist/ && cp -r persistence dist/ && cp -r plc dist/ && cp -r plc_link dist/ && cp -r smtp dist/ && cp -r spc dist/ && cp -r sql dist/ && cp -r storage dist/",
+    "build":"",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build",
@@ -29,8 +28,5 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.6.2",
     "jwt-decode": "^2.2.0"
-  },
-  "files": [
-    "lib/**/*"
-  ]
+  }
 }

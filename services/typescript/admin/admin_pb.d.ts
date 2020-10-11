@@ -360,37 +360,37 @@ export namespace SetEmailResponse {
   }
 }
 
-export class HasRuningProcessRequest extends jspb.Message {
+export class HasRunningProcessRequest extends jspb.Message {
   getName(): string;
-  setName(value: string): HasRuningProcessRequest;
+  setName(value: string): HasRunningProcessRequest;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): HasRuningProcessRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: HasRuningProcessRequest): HasRuningProcessRequest.AsObject;
-  static serializeBinaryToWriter(message: HasRuningProcessRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): HasRuningProcessRequest;
-  static deserializeBinaryFromReader(message: HasRuningProcessRequest, reader: jspb.BinaryReader): HasRuningProcessRequest;
+  toObject(includeInstance?: boolean): HasRunningProcessRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: HasRunningProcessRequest): HasRunningProcessRequest.AsObject;
+  static serializeBinaryToWriter(message: HasRunningProcessRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): HasRunningProcessRequest;
+  static deserializeBinaryFromReader(message: HasRunningProcessRequest, reader: jspb.BinaryReader): HasRunningProcessRequest;
 }
 
-export namespace HasRuningProcessRequest {
+export namespace HasRunningProcessRequest {
   export type AsObject = {
     name: string,
   }
 }
 
-export class HasRuningProcessResponse extends jspb.Message {
+export class HasRunningProcessResponse extends jspb.Message {
   getResult(): boolean;
-  setResult(value: boolean): HasRuningProcessResponse;
+  setResult(value: boolean): HasRunningProcessResponse;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): HasRuningProcessResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: HasRuningProcessResponse): HasRuningProcessResponse.AsObject;
-  static serializeBinaryToWriter(message: HasRuningProcessResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): HasRuningProcessResponse;
-  static deserializeBinaryFromReader(message: HasRuningProcessResponse, reader: jspb.BinaryReader): HasRuningProcessResponse;
+  toObject(includeInstance?: boolean): HasRunningProcessResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: HasRunningProcessResponse): HasRunningProcessResponse.AsObject;
+  static serializeBinaryToWriter(message: HasRunningProcessResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): HasRunningProcessResponse;
+  static deserializeBinaryFromReader(message: HasRunningProcessResponse, reader: jspb.BinaryReader): HasRunningProcessResponse;
 }
 
-export namespace HasRuningProcessResponse {
+export namespace HasRunningProcessResponse {
   export type AsObject = {
     result: boolean,
   }

@@ -99,12 +99,12 @@ export class AdminServiceClient {
                response: admin_pb.RegisterExternalApplicationResponse) => void
   ): grpcWeb.ClientReadableStream<admin_pb.RegisterExternalApplicationResponse>;
 
-  hasRuningProcess(
-    request: admin_pb.HasRuningProcessRequest,
+  hasRunningProcess(
+    request: admin_pb.HasRunningProcessRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: admin_pb.HasRuningProcessResponse) => void
-  ): grpcWeb.ClientReadableStream<admin_pb.HasRuningProcessResponse>;
+               response: admin_pb.HasRunningProcessResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.HasRunningProcessResponse>;
 
 }
 
@@ -178,10 +178,10 @@ export class AdminServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<admin_pb.RegisterExternalApplicationResponse>;
 
-  hasRuningProcess(
-    request: admin_pb.HasRuningProcessRequest,
+  hasRunningProcess(
+    request: admin_pb.HasRunningProcessRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<admin_pb.HasRuningProcessResponse>;
+  ): Promise<admin_pb.HasRunningProcessResponse>;
 
 }
 

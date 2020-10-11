@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "lib": ["es6", "dom"],
     "module": "commonjs",
     "declaration": true,
+    "allowJs": true,
     "rootDir": "./",
-    "outDir": "./lib",
+    "outDir": "./dist",
     "strict": false
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "**/__tests__/*", "lib"]
+  "exclude": ["node_modules", "**/__tests__/*", "dist"]
 }

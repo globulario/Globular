@@ -15,7 +15,7 @@ import {
     SetPasswordRequest,
 
     UninstallServiceRequest,
-    UninstallServiceResponse
+    UninstallServiceResponse, HasRunningProcessRequest, HasRunningProcessResponse
 } from "./admin/admin_pb";
 
 import {
@@ -188,6 +188,26 @@ export function saveConfig(
                 errorCallback(err);
             });
     }
+}
+
+/**
+ * Test if a process with a given name is running on the server.
+ * @param globular 
+ * @param name 
+ * @param callback 
+ */
+function hasRunningProcess(globular: Globular, name: string, callback:(result: boolean)=>void){
+    let rqst: HasRunningProcessRequest
+    rqst.setName(name)
+
+    globular.adminService.hasRunningProcess(rqst)
+    .then((rsp:HasRunningProcessResponse)=>{
+        callback(rsp.getResult())
+    })
+    .catch((err:any)=>{
+        console.log(err)
+        callback(false)
+    })
 }
 
 ///////////////////////////////////// Ressource & Permissions operations /////////////////////////////////
