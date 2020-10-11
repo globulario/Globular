@@ -31,16 +31,10 @@ import (
 	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 
 	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
-	"github.com/davecourtois/Globular/services/golang/echo/echo_client"
 	"github.com/davecourtois/Globular/services/golang/event/event_client"
-	"github.com/davecourtois/Globular/services/golang/file/file_client"
 	"github.com/davecourtois/Globular/services/golang/ldap/ldap_client"
-	"github.com/davecourtois/Globular/services/golang/mail/mail_client"
 	"github.com/davecourtois/Globular/services/golang/monitoring/monitoring_client"
 	"github.com/davecourtois/Globular/services/golang/persistence/persistence_client"
-	"github.com/davecourtois/Globular/services/golang/spc/spc_client"
-	"github.com/davecourtois/Globular/services/golang/sql/sql_client"
-	"github.com/davecourtois/Globular/services/golang/storage/storage_client"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -206,21 +200,6 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
-	// Register services client constructor functions here.
-	Utility.RegisterFunction("NewMonitoringService_Client", monitoring_client.NewMonitoringService_Client)
-	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
-	Utility.RegisterFunction("NewDnsService_Client", dns_client.NewDnsService_Client)
-	Utility.RegisterFunction("NewStorageService_Client", storage_client.NewStorageService_Client)
-	Utility.RegisterFunction("NewFileService_Client", file_client.NewFileService_Client)
-	Utility.RegisterFunction("NewLdapService_Client", ldap_client.NewLdapService_Client)
-	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
-	Utility.RegisterFunction("NewEchoService_Client", echo_client.NewEchoService_Client)
-	Utility.RegisterFunction("NewSpcService_Client", spc_client.NewSpcService_Client)
-	Utility.RegisterFunction("NewSqlService_Client", sql_client.NewSqlService_Client)
-	Utility.RegisterFunction("NewMailService_Client", mail_client.NewMailService_Client)
-
-	// TODO add catalog, plc, seach, plc_link etc here as needed.
-
 	// Here I will initialyse configuration.
 	g := new(Globule)
 
@@ -228,9 +207,8 @@ func NewGlobule() *Globule {
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.RootPassword = "adminadmin"
 
-	g.PortHttp = 8080           // The default http port
-	g.PortHttps = 8181          // The default https port number
-	g.ConfigurationPort = 10000 // The default configuration port.
+	g.PortHttp = 8080  // The default http port
+	g.PortHttps = 8181 // The default https port number
 
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
@@ -238,7 +216,7 @@ func NewGlobule() *Globule {
 	g.Domain = "localhost"
 
 	// Set default values.
-	g.PortsRange = "10001-10100"
+	g.PortsRange = "10000-10100"
 
 	// set default values.
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
@@ -276,6 +254,7 @@ func NewGlobule() *Globule {
 		// save the configuration to set the port number.
 		portRange := strings.Split(g.PortsRange, "-")
 		start := Utility.ToInt(portRange[0])
+		g.ConfigurationPort = start
 		g.AdminPort = start + 1
 		g.AdminProxy = start + 2
 		g.AdminEmail = "admin@globular.app"
@@ -628,7 +607,7 @@ func (self *Globule) registerIpToDns() error {
 func (self *Globule) startProxy(id string, port int, proxy int) error {
 	srv := self.Services[id]
 	if srv.(map[string]interface{})["ProxyProcess"] != nil {
-		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Signal(os.Interrupt)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -860,7 +839,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		if srv.(map[string]interface{})["Process"] != nil {
 			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
 				if srv.(map[string]interface{})["Process"].(*exec.Cmd).Process != nil {
-					srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Kill()
+					srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Signal(os.Interrupt)
 				}
 			}
 		}

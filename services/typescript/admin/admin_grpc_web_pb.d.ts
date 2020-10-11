@@ -1,202 +1,187 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  DeployApplicationRequest,
-  DeployApplicationResponse,
-  GetConfigRequest,
-  GetConfigResponse,
-  InstallServiceRequest,
-  InstallServiceResponse,
-  PublishServiceRequest,
-  PublishServiceResponse,
-  RegisterExternalApplicationRequest,
-  RegisterExternalApplicationResponse,
-  SaveConfigRequest,
-  SaveConfigResponse,
-  SetEmailRequest,
-  SetEmailResponse,
-  SetPasswordRequest,
-  SetPasswordResponse,
-  SetRootEmailRequest,
-  SetRootEmailResponse,
-  SetRootPasswordRequest,
-  SetRootPasswordResponse,
-  StartServiceRequest,
-  StartServiceResponse,
-  StopServiceRequest,
-  StopServiceResponse,
-  UninstallServiceRequest,
-  UninstallServiceResponse,
-  UploadServicePackageRequest,
-  UploadServicePackageResponse} from './admin_pb';
+import * as admin_pb from './admin_pb';
+
 
 export class AdminServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   setRootPassword(
-    request: SetRootPasswordRequest,
+    request: admin_pb.SetRootPasswordRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetRootPasswordResponse) => void
-  ): grpcWeb.ClientReadableStream<SetRootPasswordResponse>;
+               response: admin_pb.SetRootPasswordResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.SetRootPasswordResponse>;
 
   setRootEmail(
-    request: SetRootEmailRequest,
+    request: admin_pb.SetRootEmailRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetRootEmailResponse) => void
-  ): grpcWeb.ClientReadableStream<SetRootEmailResponse>;
+               response: admin_pb.SetRootEmailResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.SetRootEmailResponse>;
 
   setPassword(
-    request: SetPasswordRequest,
+    request: admin_pb.SetPasswordRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetPasswordResponse) => void
-  ): grpcWeb.ClientReadableStream<SetPasswordResponse>;
+               response: admin_pb.SetPasswordResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.SetPasswordResponse>;
 
   setEmail(
-    request: SetEmailRequest,
+    request: admin_pb.SetEmailRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetEmailResponse) => void
-  ): grpcWeb.ClientReadableStream<SetEmailResponse>;
+               response: admin_pb.SetEmailResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.SetEmailResponse>;
 
   getConfig(
-    request: GetConfigRequest,
+    request: admin_pb.GetConfigRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetConfigResponse) => void
-  ): grpcWeb.ClientReadableStream<GetConfigResponse>;
+               response: admin_pb.GetConfigResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.GetConfigResponse>;
 
   getFullConfig(
-    request: GetConfigRequest,
+    request: admin_pb.GetConfigRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetConfigResponse) => void
-  ): grpcWeb.ClientReadableStream<GetConfigResponse>;
+               response: admin_pb.GetConfigResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.GetConfigResponse>;
 
   saveConfig(
-    request: SaveConfigRequest,
+    request: admin_pb.SaveConfigRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveConfigResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveConfigResponse>;
+               response: admin_pb.SaveConfigResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.SaveConfigResponse>;
 
   stopService(
-    request: StopServiceRequest,
+    request: admin_pb.StopServiceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<StopServiceResponse>;
+               response: admin_pb.StopServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.StopServiceResponse>;
 
   startService(
-    request: StartServiceRequest,
+    request: admin_pb.StartServiceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StartServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<StartServiceResponse>;
+               response: admin_pb.StartServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.StartServiceResponse>;
 
   publishService(
-    request: PublishServiceRequest,
+    request: admin_pb.PublishServiceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: PublishServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<PublishServiceResponse>;
+               response: admin_pb.PublishServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.PublishServiceResponse>;
 
   installService(
-    request: InstallServiceRequest,
+    request: admin_pb.InstallServiceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: InstallServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<InstallServiceResponse>;
+               response: admin_pb.InstallServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.InstallServiceResponse>;
 
   uninstallService(
-    request: UninstallServiceRequest,
+    request: admin_pb.UninstallServiceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: UninstallServiceResponse) => void
-  ): grpcWeb.ClientReadableStream<UninstallServiceResponse>;
+               response: admin_pb.UninstallServiceResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.UninstallServiceResponse>;
 
   registerExternalApplication(
-    request: RegisterExternalApplicationRequest,
+    request: admin_pb.RegisterExternalApplicationRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RegisterExternalApplicationResponse) => void
-  ): grpcWeb.ClientReadableStream<RegisterExternalApplicationResponse>;
+               response: admin_pb.RegisterExternalApplicationResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.RegisterExternalApplicationResponse>;
+
+  hasRuningProcess(
+    request: admin_pb.HasRuningProcessRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: admin_pb.HasRuningProcessResponse) => void
+  ): grpcWeb.ClientReadableStream<admin_pb.HasRuningProcessResponse>;
 
 }
 
 export class AdminServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   setRootPassword(
-    request: SetRootPasswordRequest,
+    request: admin_pb.SetRootPasswordRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetRootPasswordResponse>;
+  ): Promise<admin_pb.SetRootPasswordResponse>;
 
   setRootEmail(
-    request: SetRootEmailRequest,
+    request: admin_pb.SetRootEmailRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetRootEmailResponse>;
+  ): Promise<admin_pb.SetRootEmailResponse>;
 
   setPassword(
-    request: SetPasswordRequest,
+    request: admin_pb.SetPasswordRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetPasswordResponse>;
+  ): Promise<admin_pb.SetPasswordResponse>;
 
   setEmail(
-    request: SetEmailRequest,
+    request: admin_pb.SetEmailRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetEmailResponse>;
+  ): Promise<admin_pb.SetEmailResponse>;
 
   getConfig(
-    request: GetConfigRequest,
+    request: admin_pb.GetConfigRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetConfigResponse>;
+  ): Promise<admin_pb.GetConfigResponse>;
 
   getFullConfig(
-    request: GetConfigRequest,
+    request: admin_pb.GetConfigRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetConfigResponse>;
+  ): Promise<admin_pb.GetConfigResponse>;
 
   saveConfig(
-    request: SaveConfigRequest,
+    request: admin_pb.SaveConfigRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveConfigResponse>;
+  ): Promise<admin_pb.SaveConfigResponse>;
 
   stopService(
-    request: StopServiceRequest,
+    request: admin_pb.StopServiceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopServiceResponse>;
+  ): Promise<admin_pb.StopServiceResponse>;
 
   startService(
-    request: StartServiceRequest,
+    request: admin_pb.StartServiceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StartServiceResponse>;
+  ): Promise<admin_pb.StartServiceResponse>;
 
   publishService(
-    request: PublishServiceRequest,
+    request: admin_pb.PublishServiceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<PublishServiceResponse>;
+  ): Promise<admin_pb.PublishServiceResponse>;
 
   installService(
-    request: InstallServiceRequest,
+    request: admin_pb.InstallServiceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<InstallServiceResponse>;
+  ): Promise<admin_pb.InstallServiceResponse>;
 
   uninstallService(
-    request: UninstallServiceRequest,
+    request: admin_pb.UninstallServiceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<UninstallServiceResponse>;
+  ): Promise<admin_pb.UninstallServiceResponse>;
 
   registerExternalApplication(
-    request: RegisterExternalApplicationRequest,
+    request: admin_pb.RegisterExternalApplicationRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RegisterExternalApplicationResponse>;
+  ): Promise<admin_pb.RegisterExternalApplicationResponse>;
+
+  hasRuningProcess(
+    request: admin_pb.HasRuningProcessRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<admin_pb.HasRuningProcessResponse>;
 
 }
 

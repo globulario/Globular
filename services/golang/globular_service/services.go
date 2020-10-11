@@ -14,7 +14,8 @@ import (
 	"log"
 	"os"
 
-	//	"os/signal"
+	"fmt"
+	"os/signal"
 	"time"
 
 	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
@@ -290,7 +291,22 @@ func StartService(s Service, server *grpc.Server) error {
 		return errors.New("could not list at domain " + s.GetDomain() + err.Error())
 	}
 
-	return server.Serve(lis)
+	// Here I will make a signal hook to interrupt to exit cleanly.
+	go func() {
+		// no web-rpc server.
+		fmt.Println(s.GetName() + " grpc service is starting")
+		if err := server.Serve(lis); err != nil {
+			if err.Error() == "signal: killed" {
+				fmt.Println("service ", s.GetId(), s.GetName(), " was stop!")
+			}
+		}
+	}()
+
+	// Wait for signal to stop.
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
+	return nil
 }
 
 func StopService(s Service, server *grpc.Server) error {

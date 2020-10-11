@@ -166,9 +166,9 @@ func (self *Search_Client) StopService() {
  */
 func (self *Search_Client) GetVersion() (string, error) {
 
-	rqst := &searchpb.GetVersionRequest{}
+	rqst := &searchpb.GetEngineVersionRequest{}
 	ctx := globular.GetClientContext(self)
-	rsp, err := self.c.GetVersion(ctx, rqst)
+	rsp, err := self.c.GetEngineVersion(ctx, rqst)
 	if err != nil {
 		return "", err
 	}

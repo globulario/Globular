@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -158,6 +157,25 @@ func (self *Globule) saveConfig() {
 	} else {
 		log.Panicln(err)
 	}
+}
+
+/**
+ * Test if a process with a given name is runing on the server.
+ */
+func (self *Globule) HasRuningProcess(ctx context.Context, rqst *adminpb.HasRuningProcessRequest) (*adminpb.HasRuningProcessResponse, error) {
+	ids, err := Utility.GetProcessIdsByName(rqst.Name)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return &adminpb.HasRuningProcessResponse{
+			Result: false,
+		}, nil
+	}
+
+	return &adminpb.HasRuningProcessResponse{
+		Result: true,
+	}, nil
 }
 
 /**
@@ -1210,25 +1228,14 @@ func (self *Globule) stopService(serviceId string) error {
 		return errors.New("No process running")
 	}
 
-	//err := s["Process"].(*exec.Cmd).Process.Kill()
-
-	newClientFct := "New" + s["Name"].(string)[strings.Index(s["Name"].(string), ".")+1:] + "_Client"
-	results, err := Utility.CallFunction(newClientFct, s["Domain"].(string), s["Id"].(string))
-	if err == nil {
-		logger.Info("wait to stop service instance ", s["Name"].(string)+":"+s["Id"].(string))
-		c := results[0].Interface().(globular_client.Client)
-		Utility.CallMethod(c, "StopService", []interface{}{})
-		c.Close()
-		logger.Info("service instance ", s["Name"].(string)+":"+s["Id"].(string), " is stop")
-
-	}
+	err := s["Process"].(*exec.Cmd).Process.Signal(os.Interrupt)
 
 	if err != nil {
 		return err
 	}
 
 	if s["ProxyProcess"] != nil {
-		err := s["ProxyProcess"].(*exec.Cmd).Process.Kill()
+		err := s["ProxyProcess"].(*exec.Cmd).Process.Signal(os.Interrupt)
 		// time.Sleep(time.Second * 1)
 		if err != nil {
 			return err
@@ -1325,7 +1332,7 @@ func (self *Globule) stopExternalApplication(serviceId string) error {
 	}
 
 	// kill the process.
-	return self.ExternalApplications[serviceId].srv.Process.Kill()
+	return self.ExternalApplications[serviceId].srv.Process.Signal(os.Interrupt)
 }
 
 // Register external service to be start by Globular in order to run

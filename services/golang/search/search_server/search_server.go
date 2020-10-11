@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -24,8 +20,6 @@ import (
 
 	//	"google.golang.org/grpc/codes"
 	globular "github.com/davecourtois/Globular/services/golang/globular_service"
-
-	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
@@ -57,6 +51,7 @@ type server struct {
 	// The global attribute of the services.
 	Id              string
 	Name            string
+	Proto           string
 	Path            string
 	Port            int
 	Proxy           int
@@ -247,7 +242,7 @@ func (self *server) Init() error {
 	// Get the configuration path.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-	err := api.InitService(dir+"/config.json", self)
+	err := globular.InitService(dir+"/config.json", self)
 	if err != nil {
 		return err
 	}
@@ -306,6 +301,14 @@ func (self *server) indexJsonObjectField(db xapian.WritableDatabase, termgenerat
 		//v := reflect.ValueOf(v)
 	}
 	return nil
+}
+
+// Return the underlying engine version.
+func (self *server) GetEngineVersion(ctx context.Context, rqst *searchpb.GetEngineVersionRequest) (*searchpb.GetEngineVersionResponse, error) {
+	v := xapian.Version_string()
+	return &searchpb.GetEngineVersionResponse{
+		Message: v,
+	}, nil
 }
 
 // Remove a document from the db
@@ -405,15 +408,6 @@ func (self *server) indexJsonObject(db xapian.WritableDatabase, obj map[string]i
 	}
 
 	return nil
-}
-
-// Implementation of the Search method.
-func (self *server) GetVersion(ctx context.Context, rqst *searchpb.GetVersionRequest) (*searchpb.GetVersionResponse, error) {
-	version := Utility.ToString(xapian.Major_version()) + "." + Utility.ToString(xapian.Minor_version()) + "." + Utility.ToString(xapian.Revision())
-
-	return &searchpb.GetVersionResponse{
-		Message: version,
-	}, nil
 }
 
 // Return the number of document in a database.
@@ -890,6 +884,7 @@ func (self *server) IndexJsonObject(ctx context.Context, rqst *searchpb.IndexJso
 
 	db := xapian.NewWritableDatabase(rqst.Path, xapian.DB_CREATE_OR_OPEN)
 	defer xapian.DeleteWritableDatabase(db)
+
 	// Begin the transaction.
 	db.Begin_transaction(true)
 
@@ -944,8 +939,8 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
-	s_impl.Name = string(searchpb.File_search_searchpb_search_proto.Services().Get(0).FullName())
-	s_impl.Proto = searchpb.File_search_searchpb_search_proto.Path()
+	s_impl.Name = string(searchpb.File_services_proto_search_proto.Services().Get(0).FullName())
+	s_impl.Proto = searchpb.File_services_proto_search_proto.Path()
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
@@ -972,7 +967,7 @@ func main() {
 	}
 
 	// Register the echo services
-	echopb.RegisterEchoServiceServer(s_impl.grpcServer, s_impl)
+	searchpb.RegisterSearchServiceServer(s_impl.grpcServer, s_impl)
 	reflection.Register(s_impl.grpcServer)
 
 	// Start the service.

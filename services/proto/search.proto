@@ -7,11 +7,11 @@ package echo;
 option go_package="search/searchpb";
 
 
-message GetVersionRequest {
+message GetEngineVersionRequest {
 
 }
 
-message GetVersionResponse {
+message GetEngineVersionResponse {
   string message = 1;
 }
 
@@ -113,7 +113,7 @@ service SearchService {
 	/**
 	 * Return the version number of the search engine.
 	 */
-	 rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+	 rpc GetEngineVersion(GetEngineVersionRequest) returns (GetEngineVersionResponse);
 
 	/**
 	 * That function is use to index JSON object/array of object

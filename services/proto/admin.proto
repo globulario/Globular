@@ -91,6 +91,14 @@ message SetEmailResponse {
 	string token = 1;
 }
 
+message HasRuningProcessRequest{
+	string name = 1;
+}
+
+message HasRuningProcessResponse {
+	bool result = 1;
+}
+
 /** more can be append here **/
 enum Platform {
 	LINUX32 = 0;
@@ -202,5 +210,8 @@ service AdminService {
 
   // Deloyed a web application to a globular node.
   rpc DeployApplication(stream DeployApplicationRequest) returns (DeployApplicationResponse);
+
+  // Test if a process of given name is running...
+  rpc HasRuningProcess(HasRuningProcessRequest) returns(HasRuningProcessResponse);
 
 }

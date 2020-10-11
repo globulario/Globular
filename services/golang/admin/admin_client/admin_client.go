@@ -245,6 +245,19 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 
 /////////////////////////// Services management functions ////////////////////////
 
+func (self *Admin_Client) hasRuningProcess(name string) (bool, error) {
+	rqst := &adminpb.HasRuningProcessRequest{
+		Name: name,
+	}
+
+	rsp, err := self.c.HasRuningProcess(globular.GetClientContext(self), rqst)
+	if err != nil {
+		return false, err
+	}
+
+	return rsp.Result, nil
+}
+
 /** Create a service package **/
 func (self *Admin_Client) createServicePackage(publisherId string, serviceId string, version string, platform servicespb.Platform, servicePath string) (string, error) {
 

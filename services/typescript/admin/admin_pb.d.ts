@@ -1,4 +1,6 @@
-import * as jspb from "google-protobuf"
+import * as jspb from 'google-protobuf'
+
+
 
 export class GetConfigRequest extends jspb.Message {
   serializeBinary(): Uint8Array;
@@ -355,6 +357,42 @@ export class SetEmailResponse extends jspb.Message {
 export namespace SetEmailResponse {
   export type AsObject = {
     token: string,
+  }
+}
+
+export class HasRuningProcessRequest extends jspb.Message {
+  getName(): string;
+  setName(value: string): HasRuningProcessRequest;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): HasRuningProcessRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: HasRuningProcessRequest): HasRuningProcessRequest.AsObject;
+  static serializeBinaryToWriter(message: HasRuningProcessRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): HasRuningProcessRequest;
+  static deserializeBinaryFromReader(message: HasRuningProcessRequest, reader: jspb.BinaryReader): HasRuningProcessRequest;
+}
+
+export namespace HasRuningProcessRequest {
+  export type AsObject = {
+    name: string,
+  }
+}
+
+export class HasRuningProcessResponse extends jspb.Message {
+  getResult(): boolean;
+  setResult(value: boolean): HasRuningProcessResponse;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): HasRuningProcessResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: HasRuningProcessResponse): HasRuningProcessResponse.AsObject;
+  static serializeBinaryToWriter(message: HasRuningProcessResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): HasRuningProcessResponse;
+  static deserializeBinaryFromReader(message: HasRuningProcessResponse, reader: jspb.BinaryReader): HasRuningProcessResponse;
+}
+
+export namespace HasRuningProcessResponse {
+  export type AsObject = {
+    result: boolean,
   }
 }
 
