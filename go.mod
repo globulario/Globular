@@ -30,7 +30,7 @@ require (
 	github.com/giampaolo/psutil v0.0.0-20200815084658-ee60bad61082 // indirect
 	github.com/glendc/go-external-ip v0.0.0-20200601212049-c872357d968e // indirect
 	github.com/go-acme/lego/v3 v3.9.0
-	github.com/go-acme/lego/v4 v4.0.1 // indirect
+	github.com/go-acme/lego/v4 v4.0.1
 	github.com/go-errors/errors v1.1.1 // indirect
 	github.com/go-ini/ini v1.44.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -47,6 +47,7 @@ require (
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kalafut/imohash v1.0.0 // indirect
+	github.com/kardianos/service v1.1.0
 	github.com/klauspost/compress v1.10.8 // indirect
 	github.com/ledongthuc/pdf v0.0.0-20200323191019-23c5852adbd2
 	github.com/lib/pq v1.2.0
@@ -61,7 +62,7 @@ require (
 	github.com/prometheus/common v0.10.0 // indirect
 	github.com/robinson/gos7 v0.0.0-20191007095816-929a8656546f
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/shirou/gopsutil v2.20.7+incompatible // indirect
+	github.com/shirou/gopsutil v2.20.7+incompatible
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

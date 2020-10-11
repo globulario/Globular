@@ -275,6 +275,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// needed to get access to the system.
 	if method == "/admin.AdminService/GetConfig" ||
+		method == "/admin.AdminService/HasRuningProcess" ||
 		method == "/services.ServiceDiscovery/FindServices" ||
 		method == "/services.ServiceDiscovery/FindServices/GetServiceDescriptor" ||
 		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" ||

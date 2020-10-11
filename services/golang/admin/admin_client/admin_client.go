@@ -245,12 +245,12 @@ func (self *Admin_Client) RegisterExternalApplication(id string, path string, ar
 
 /////////////////////////// Services management functions ////////////////////////
 
-func (self *Admin_Client) hasRuningProcess(name string) (bool, error) {
-	rqst := &adminpb.HasRuningProcessRequest{
+func (self *Admin_Client) hasRunningProcess(name string) (bool, error) {
+	rqst := &adminpb.HasRunningProcessRequest{
 		Name: name,
 	}
 
-	rsp, err := self.c.HasRuningProcess(globular.GetClientContext(self), rqst)
+	rsp, err := self.c.HasRunningProcess(globular.GetClientContext(self), rqst)
 	if err != nil {
 		return false, err
 	}

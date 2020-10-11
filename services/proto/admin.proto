@@ -91,11 +91,11 @@ message SetEmailResponse {
 	string token = 1;
 }
 
-message HasRuningProcessRequest{
+message HasRunningProcessRequest{
 	string name = 1;
 }
 
-message HasRuningProcessResponse {
+message HasRunningProcessResponse {
 	bool result = 1;
 }
 
@@ -212,6 +212,6 @@ service AdminService {
   rpc DeployApplication(stream DeployApplicationRequest) returns (DeployApplicationResponse);
 
   // Test if a process of given name is running...
-  rpc HasRuningProcess(HasRuningProcessRequest) returns(HasRuningProcessResponse);
+  rpc HasRunningProcess(HasRunningProcessRequest) returns(HasRunningProcessResponse);
 
 }

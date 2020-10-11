@@ -160,20 +160,20 @@ func (self *Globule) saveConfig() {
 }
 
 /**
- * Test if a process with a given name is runing on the server.
+ * Test if a process with a given name is Running on the server.
  */
-func (self *Globule) HasRuningProcess(ctx context.Context, rqst *adminpb.HasRuningProcessRequest) (*adminpb.HasRuningProcessResponse, error) {
+func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRunningProcessRequest) (*adminpb.HasRunningProcessResponse, error) {
 	ids, err := Utility.GetProcessIdsByName(rqst.Name)
 	if err != nil {
 		return nil, err
 	}
 	if len(ids) == 0 {
-		return &adminpb.HasRuningProcessResponse{
+		return &adminpb.HasRunningProcessResponse{
 			Result: false,
 		}, nil
 	}
 
-	return &adminpb.HasRuningProcessResponse{
+	return &adminpb.HasRunningProcessResponse{
 		Result: true,
 	}, nil
 }
