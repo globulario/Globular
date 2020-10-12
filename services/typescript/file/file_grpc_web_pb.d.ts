@@ -1,168 +1,145 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  CreateArchiveRequest,
-  CreateArchiveResponse,
-  CreateDirRequest,
-  CreateDirResponse,
-  DeleteDirRequest,
-  DeleteDirResponse,
-  DeleteFileRequest,
-  DeleteFileResponse,
-  GetFileInfoRequest,
-  GetFileInfoResponse,
-  GetThumbnailsRequest,
-  GetThumbnailsResponse,
-  ReadDirRequest,
-  ReadDirResponse,
-  ReadFileRequest,
-  ReadFileResponse,
-  RenameRequest,
-  RenameResponse,
-  SaveFileRequest,
-  SaveFileResponse,
-  StopRequest,
-  StopResponse,
-  WriteExcelFileRequest,
-  WriteExcelFileResponse} from './file_pb';
+import * as file_pb from './file_pb';
+
 
 export class FileServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: file_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: file_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.StopResponse>;
 
   readDir(
-    request: ReadDirRequest,
+    request: file_pb.ReadDirRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<ReadDirResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.ReadDirResponse>;
 
   createDir(
-    request: CreateDirRequest,
+    request: file_pb.CreateDirRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateDirResponse) => void
-  ): grpcWeb.ClientReadableStream<CreateDirResponse>;
+               response: file_pb.CreateDirResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.CreateDirResponse>;
 
   deleteDir(
-    request: DeleteDirRequest,
+    request: file_pb.DeleteDirRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteDirResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteDirResponse>;
+               response: file_pb.DeleteDirResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.DeleteDirResponse>;
 
   rename(
-    request: RenameRequest,
+    request: file_pb.RenameRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RenameResponse) => void
-  ): grpcWeb.ClientReadableStream<RenameResponse>;
+               response: file_pb.RenameResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.RenameResponse>;
 
   createAchive(
-    request: CreateArchiveRequest,
+    request: file_pb.CreateArchiveRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateArchiveResponse) => void
-  ): grpcWeb.ClientReadableStream<CreateArchiveResponse>;
+               response: file_pb.CreateArchiveResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.CreateArchiveResponse>;
 
   getFileInfo(
-    request: GetFileInfoRequest,
+    request: file_pb.GetFileInfoRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetFileInfoResponse) => void
-  ): grpcWeb.ClientReadableStream<GetFileInfoResponse>;
+               response: file_pb.GetFileInfoResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.GetFileInfoResponse>;
 
   readFile(
-    request: ReadFileRequest,
+    request: file_pb.ReadFileRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<ReadFileResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.ReadFileResponse>;
 
   deleteFile(
-    request: DeleteFileRequest,
+    request: file_pb.DeleteFileRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteFileResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteFileResponse>;
+               response: file_pb.DeleteFileResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.DeleteFileResponse>;
 
   getThumbnails(
-    request: GetThumbnailsRequest,
+    request: file_pb.GetThumbnailsRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<GetThumbnailsResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.GetThumbnailsResponse>;
 
   writeExcelFile(
-    request: WriteExcelFileRequest,
+    request: file_pb.WriteExcelFileRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: WriteExcelFileResponse) => void
-  ): grpcWeb.ClientReadableStream<WriteExcelFileResponse>;
+               response: file_pb.WriteExcelFileResponse) => void
+  ): grpcWeb.ClientReadableStream<file_pb.WriteExcelFileResponse>;
 
 }
 
 export class FileServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: file_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<file_pb.StopResponse>;
 
   readDir(
-    request: ReadDirRequest,
+    request: file_pb.ReadDirRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<ReadDirResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.ReadDirResponse>;
 
   createDir(
-    request: CreateDirRequest,
+    request: file_pb.CreateDirRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateDirResponse>;
+  ): Promise<file_pb.CreateDirResponse>;
 
   deleteDir(
-    request: DeleteDirRequest,
+    request: file_pb.DeleteDirRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteDirResponse>;
+  ): Promise<file_pb.DeleteDirResponse>;
 
   rename(
-    request: RenameRequest,
+    request: file_pb.RenameRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RenameResponse>;
+  ): Promise<file_pb.RenameResponse>;
 
   createAchive(
-    request: CreateArchiveRequest,
+    request: file_pb.CreateArchiveRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateArchiveResponse>;
+  ): Promise<file_pb.CreateArchiveResponse>;
 
   getFileInfo(
-    request: GetFileInfoRequest,
+    request: file_pb.GetFileInfoRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetFileInfoResponse>;
+  ): Promise<file_pb.GetFileInfoResponse>;
 
   readFile(
-    request: ReadFileRequest,
+    request: file_pb.ReadFileRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<ReadFileResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.ReadFileResponse>;
 
   deleteFile(
-    request: DeleteFileRequest,
+    request: file_pb.DeleteFileRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteFileResponse>;
+  ): Promise<file_pb.DeleteFileResponse>;
 
   getThumbnails(
-    request: GetThumbnailsRequest,
+    request: file_pb.GetThumbnailsRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<GetThumbnailsResponse>;
+  ): grpcWeb.ClientReadableStream<file_pb.GetThumbnailsResponse>;
 
   writeExcelFile(
-    request: WriteExcelFileRequest,
+    request: file_pb.WriteExcelFileRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<WriteExcelFileResponse>;
+  ): Promise<file_pb.WriteExcelFileResponse>;
 
 }
 

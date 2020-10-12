@@ -1,32 +1,34 @@
-import * as jspb from "google-protobuf"
+import * as jspb from 'google-protobuf'
 
-export class GetVersionRequest extends jspb.Message {
+
+
+export class GetEngineVersionRequest extends jspb.Message {
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): GetVersionRequest.AsObject;
-  static toObject(includeInstance: boolean, msg: GetVersionRequest): GetVersionRequest.AsObject;
-  static serializeBinaryToWriter(message: GetVersionRequest, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): GetVersionRequest;
-  static deserializeBinaryFromReader(message: GetVersionRequest, reader: jspb.BinaryReader): GetVersionRequest;
+  toObject(includeInstance?: boolean): GetEngineVersionRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetEngineVersionRequest): GetEngineVersionRequest.AsObject;
+  static serializeBinaryToWriter(message: GetEngineVersionRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetEngineVersionRequest;
+  static deserializeBinaryFromReader(message: GetEngineVersionRequest, reader: jspb.BinaryReader): GetEngineVersionRequest;
 }
 
-export namespace GetVersionRequest {
+export namespace GetEngineVersionRequest {
   export type AsObject = {
   }
 }
 
-export class GetVersionResponse extends jspb.Message {
+export class GetEngineVersionResponse extends jspb.Message {
   getMessage(): string;
-  setMessage(value: string): GetVersionResponse;
+  setMessage(value: string): GetEngineVersionResponse;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): GetVersionResponse.AsObject;
-  static toObject(includeInstance: boolean, msg: GetVersionResponse): GetVersionResponse.AsObject;
-  static serializeBinaryToWriter(message: GetVersionResponse, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): GetVersionResponse;
-  static deserializeBinaryFromReader(message: GetVersionResponse, reader: jspb.BinaryReader): GetVersionResponse;
+  toObject(includeInstance?: boolean): GetEngineVersionResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetEngineVersionResponse): GetEngineVersionResponse.AsObject;
+  static serializeBinaryToWriter(message: GetEngineVersionResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetEngineVersionResponse;
+  static deserializeBinaryFromReader(message: GetEngineVersionResponse, reader: jspb.BinaryReader): GetEngineVersionResponse;
 }
 
-export namespace GetVersionResponse {
+export namespace GetEngineVersionResponse {
   export type AsObject = {
     message: string,
   }

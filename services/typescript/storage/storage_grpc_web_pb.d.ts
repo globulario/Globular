@@ -1,144 +1,139 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  ClearRequest,
-  ClearResponse,
-  CloseRqst,
-  CloseRsp,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  DropRequest,
-  DropResponse,
-  GetItemRequest,
-  GetItemResponse,
-  OpenRqst,
-  OpenRsp,
-  RemoveItemRequest,
-  RemoveItemResponse,
-  SetItemRequest,
-  SetItemResponse} from './storage_pb';
+import * as storage_pb from './storage_pb';
+
 
 export class StorageServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
+
+  stop(
+    request: storage_pb.StopRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.Error,
+               response: storage_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.StopResponse>;
 
   open(
-    request: OpenRqst,
+    request: storage_pb.OpenRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: OpenRsp) => void
-  ): grpcWeb.ClientReadableStream<OpenRsp>;
+               response: storage_pb.OpenRsp) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.OpenRsp>;
 
   close(
-    request: CloseRqst,
+    request: storage_pb.CloseRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CloseRsp) => void
-  ): grpcWeb.ClientReadableStream<CloseRsp>;
+               response: storage_pb.CloseRsp) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.CloseRsp>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: storage_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: storage_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: storage_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: storage_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.DeleteConnectionRsp>;
 
   setItem(
-    request: SetItemRequest,
+    request: storage_pb.SetItemRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetItemResponse) => void
-  ): grpcWeb.ClientReadableStream<SetItemResponse>;
+               response: storage_pb.SetItemResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.SetItemResponse>;
 
   getItem(
-    request: GetItemRequest,
+    request: storage_pb.GetItemRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetItemResponse) => void
-  ): grpcWeb.ClientReadableStream<GetItemResponse>;
+               response: storage_pb.GetItemResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.GetItemResponse>;
 
   removeItem(
-    request: RemoveItemRequest,
+    request: storage_pb.RemoveItemRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RemoveItemResponse) => void
-  ): grpcWeb.ClientReadableStream<RemoveItemResponse>;
+               response: storage_pb.RemoveItemResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.RemoveItemResponse>;
 
   clear(
-    request: ClearRequest,
+    request: storage_pb.ClearRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ClearResponse) => void
-  ): grpcWeb.ClientReadableStream<ClearResponse>;
+               response: storage_pb.ClearResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.ClearResponse>;
 
   drop(
-    request: DropRequest,
+    request: storage_pb.DropRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DropResponse) => void
-  ): grpcWeb.ClientReadableStream<DropResponse>;
+               response: storage_pb.DropResponse) => void
+  ): grpcWeb.ClientReadableStream<storage_pb.DropResponse>;
 
 }
 
 export class StorageServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
+
+  stop(
+    request: storage_pb.StopRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<storage_pb.StopResponse>;
 
   open(
-    request: OpenRqst,
+    request: storage_pb.OpenRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<OpenRsp>;
+  ): Promise<storage_pb.OpenRsp>;
 
   close(
-    request: CloseRqst,
+    request: storage_pb.CloseRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CloseRsp>;
+  ): Promise<storage_pb.CloseRsp>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: storage_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<storage_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: storage_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<storage_pb.DeleteConnectionRsp>;
 
   setItem(
-    request: SetItemRequest,
+    request: storage_pb.SetItemRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetItemResponse>;
+  ): Promise<storage_pb.SetItemResponse>;
 
   getItem(
-    request: GetItemRequest,
+    request: storage_pb.GetItemRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetItemResponse>;
+  ): Promise<storage_pb.GetItemResponse>;
 
   removeItem(
-    request: RemoveItemRequest,
+    request: storage_pb.RemoveItemRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RemoveItemResponse>;
+  ): Promise<storage_pb.RemoveItemResponse>;
 
   clear(
-    request: ClearRequest,
+    request: storage_pb.ClearRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<ClearResponse>;
+  ): Promise<storage_pb.ClearResponse>;
 
   drop(
-    request: DropRequest,
+    request: storage_pb.DropRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DropResponse>;
+  ): Promise<storage_pb.DropResponse>;
 
 }
 

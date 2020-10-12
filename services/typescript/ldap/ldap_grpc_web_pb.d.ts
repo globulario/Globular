@@ -1,102 +1,91 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  AuthenticateRqst,
-  AuthenticateRsp,
-  CloseRqst,
-  CloseRsp,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  SearchResp,
-  SearchRqst,
-  StopRequest,
-  StopResponse} from './ldap_pb';
+import * as ldap_pb from './ldap_pb';
+
 
 export class LdapServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: ldap_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: ldap_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: ldap_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: ldap_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: ldap_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: ldap_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.DeleteConnectionRsp>;
 
   close(
-    request: CloseRqst,
+    request: ldap_pb.CloseRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CloseRsp) => void
-  ): grpcWeb.ClientReadableStream<CloseRsp>;
+               response: ldap_pb.CloseRsp) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.CloseRsp>;
 
   search(
-    request: SearchRqst,
+    request: ldap_pb.SearchRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SearchResp) => void
-  ): grpcWeb.ClientReadableStream<SearchResp>;
+               response: ldap_pb.SearchResp) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.SearchResp>;
 
   authenticate(
-    request: AuthenticateRqst,
+    request: ldap_pb.AuthenticateRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: AuthenticateRsp) => void
-  ): grpcWeb.ClientReadableStream<AuthenticateRsp>;
+               response: ldap_pb.AuthenticateRsp) => void
+  ): grpcWeb.ClientReadableStream<ldap_pb.AuthenticateRsp>;
 
 }
 
 export class LdapServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: ldap_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<ldap_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: ldap_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<ldap_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: ldap_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<ldap_pb.DeleteConnectionRsp>;
 
   close(
-    request: CloseRqst,
+    request: ldap_pb.CloseRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CloseRsp>;
+  ): Promise<ldap_pb.CloseRsp>;
 
   search(
-    request: SearchRqst,
+    request: ldap_pb.SearchRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<SearchResp>;
+  ): Promise<ldap_pb.SearchResp>;
 
   authenticate(
-    request: AuthenticateRqst,
+    request: ldap_pb.AuthenticateRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<AuthenticateRsp>;
+  ): Promise<ldap_pb.AuthenticateRsp>;
 
 }
 

@@ -1,116 +1,103 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  CloseConnectionRqst,
-  CloseConnectionRsp,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  GetConnectionRqst,
-  GetConnectionRsp,
-  ReadTagRqst,
-  ReadTagRsp,
-  StopRequest,
-  StopResponse,
-  WriteTagRqst,
-  WriteTagRsp} from './plc_pb';
+import * as plc_pb from './plc_pb';
+
 
 export class PlcServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: plc_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: plc_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: plc_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: plc_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.CreateConnectionRsp>;
 
   getConnection(
-    request: GetConnectionRqst,
+    request: plc_pb.GetConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<GetConnectionRsp>;
+               response: plc_pb.GetConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.GetConnectionRsp>;
 
   closeConnection(
-    request: CloseConnectionRqst,
+    request: plc_pb.CloseConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CloseConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CloseConnectionRsp>;
+               response: plc_pb.CloseConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.CloseConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: plc_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: plc_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.DeleteConnectionRsp>;
 
   readTag(
-    request: ReadTagRqst,
+    request: plc_pb.ReadTagRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ReadTagRsp) => void
-  ): grpcWeb.ClientReadableStream<ReadTagRsp>;
+               response: plc_pb.ReadTagRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.ReadTagRsp>;
 
   writeTag(
-    request: WriteTagRqst,
+    request: plc_pb.WriteTagRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: WriteTagRsp) => void
-  ): grpcWeb.ClientReadableStream<WriteTagRsp>;
+               response: plc_pb.WriteTagRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_pb.WriteTagRsp>;
 
 }
 
 export class PlcServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: plc_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<plc_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: plc_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<plc_pb.CreateConnectionRsp>;
 
   getConnection(
-    request: GetConnectionRqst,
+    request: plc_pb.GetConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetConnectionRsp>;
+  ): Promise<plc_pb.GetConnectionRsp>;
 
   closeConnection(
-    request: CloseConnectionRqst,
+    request: plc_pb.CloseConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CloseConnectionRsp>;
+  ): Promise<plc_pb.CloseConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: plc_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<plc_pb.DeleteConnectionRsp>;
 
   readTag(
-    request: ReadTagRqst,
+    request: plc_pb.ReadTagRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ReadTagRsp>;
+  ): Promise<plc_pb.ReadTagRsp>;
 
   writeTag(
-    request: WriteTagRqst,
+    request: plc_pb.WriteTagRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<WriteTagRsp>;
+  ): Promise<plc_pb.WriteTagRsp>;
 
 }
 

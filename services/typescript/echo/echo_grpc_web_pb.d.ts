@@ -1,46 +1,43 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  EchoRequest,
-  EchoResponse,
-  StopRequest,
-  StopResponse} from './echo_pb';
+import * as echo_pb from './echo_pb';
+
 
 export class EchoServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: echo_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: echo_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<echo_pb.StopResponse>;
 
   echo(
-    request: EchoRequest,
+    request: echo_pb.EchoRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: EchoResponse) => void
-  ): grpcWeb.ClientReadableStream<EchoResponse>;
+               response: echo_pb.EchoResponse) => void
+  ): grpcWeb.ClientReadableStream<echo_pb.EchoResponse>;
 
 }
 
 export class EchoServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: echo_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<echo_pb.StopResponse>;
 
   echo(
-    request: EchoRequest,
+    request: echo_pb.EchoRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<EchoResponse>;
+  ): Promise<echo_pb.EchoResponse>;
 
 }
 

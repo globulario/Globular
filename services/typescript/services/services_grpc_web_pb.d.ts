@@ -1,114 +1,101 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  DownloadBundleRequest,
-  DownloadBundleResponse,
-  FindServicesDescriptorRequest,
-  FindServicesDescriptorResponse,
-  GetServiceDescriptorRequest,
-  GetServiceDescriptorResponse,
-  GetServicesDescriptorRequest,
-  GetServicesDescriptorResponse,
-  PublishServiceDescriptorRequest,
-  PublishServiceDescriptorResponse,
-  SetServiceDescriptorRequest,
-  SetServiceDescriptorResponse,
-  UploadBundleRequest,
-  UploadBundleResponse} from './services_pb';
+import * as services_pb from './services_pb';
+
 
 export class ServiceDiscoveryClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   findServices(
-    request: FindServicesDescriptorRequest,
+    request: services_pb.FindServicesDescriptorRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: FindServicesDescriptorResponse) => void
-  ): grpcWeb.ClientReadableStream<FindServicesDescriptorResponse>;
+               response: services_pb.FindServicesDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<services_pb.FindServicesDescriptorResponse>;
 
   getServiceDescriptor(
-    request: GetServiceDescriptorRequest,
+    request: services_pb.GetServiceDescriptorRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetServiceDescriptorResponse) => void
-  ): grpcWeb.ClientReadableStream<GetServiceDescriptorResponse>;
+               response: services_pb.GetServiceDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<services_pb.GetServiceDescriptorResponse>;
 
   getServicesDescriptor(
-    request: GetServicesDescriptorRequest,
+    request: services_pb.GetServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
+  ): grpcWeb.ClientReadableStream<services_pb.GetServicesDescriptorResponse>;
 
   setServiceDescriptor(
-    request: SetServiceDescriptorRequest,
+    request: services_pb.SetServiceDescriptorRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SetServiceDescriptorResponse) => void
-  ): grpcWeb.ClientReadableStream<SetServiceDescriptorResponse>;
+               response: services_pb.SetServiceDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<services_pb.SetServiceDescriptorResponse>;
 
   publishServiceDescriptor(
-    request: PublishServiceDescriptorRequest,
+    request: services_pb.PublishServiceDescriptorRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: PublishServiceDescriptorResponse) => void
-  ): grpcWeb.ClientReadableStream<PublishServiceDescriptorResponse>;
+               response: services_pb.PublishServiceDescriptorResponse) => void
+  ): grpcWeb.ClientReadableStream<services_pb.PublishServiceDescriptorResponse>;
 
 }
 
 export class ServiceRepositoryClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   downloadBundle(
-    request: DownloadBundleRequest,
+    request: services_pb.DownloadBundleRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<DownloadBundleResponse>;
+  ): grpcWeb.ClientReadableStream<services_pb.DownloadBundleResponse>;
 
 }
 
 export class ServiceDiscoveryPromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   findServices(
-    request: FindServicesDescriptorRequest,
+    request: services_pb.FindServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<FindServicesDescriptorResponse>;
+  ): Promise<services_pb.FindServicesDescriptorResponse>;
 
   getServiceDescriptor(
-    request: GetServiceDescriptorRequest,
+    request: services_pb.GetServiceDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetServiceDescriptorResponse>;
+  ): Promise<services_pb.GetServiceDescriptorResponse>;
 
   getServicesDescriptor(
-    request: GetServicesDescriptorRequest,
+    request: services_pb.GetServicesDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<GetServicesDescriptorResponse>;
+  ): grpcWeb.ClientReadableStream<services_pb.GetServicesDescriptorResponse>;
 
   setServiceDescriptor(
-    request: SetServiceDescriptorRequest,
+    request: services_pb.SetServiceDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SetServiceDescriptorResponse>;
+  ): Promise<services_pb.SetServiceDescriptorResponse>;
 
   publishServiceDescriptor(
-    request: PublishServiceDescriptorRequest,
+    request: services_pb.PublishServiceDescriptorRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<PublishServiceDescriptorResponse>;
+  ): Promise<services_pb.PublishServiceDescriptorResponse>;
 
 }
 
 export class ServiceRepositoryPromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   downloadBundle(
-    request: DownloadBundleRequest,
+    request: services_pb.DownloadBundleRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<DownloadBundleResponse>;
+  ): grpcWeb.ClientReadableStream<services_pb.DownloadBundleResponse>;
 
 }
 

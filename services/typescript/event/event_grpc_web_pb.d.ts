@@ -1,100 +1,89 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  OnEventRequest,
-  OnEventResponse,
-  PublishRequest,
-  PublishResponse,
-  QuitRequest,
-  QuitResponse,
-  StopRequest,
-  StopResponse,
-  SubscribeRequest,
-  SubscribeResponse,
-  UnSubscribeRequest,
-  UnSubscribeResponse} from './event_pb';
+import * as event_pb from './event_pb';
+
 
 export class EventServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: event_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: event_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<event_pb.StopResponse>;
 
   onEvent(
-    request: OnEventRequest,
+    request: event_pb.OnEventRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<OnEventResponse>;
+  ): grpcWeb.ClientReadableStream<event_pb.OnEventResponse>;
 
   quit(
-    request: QuitRequest,
+    request: event_pb.QuitRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: QuitResponse) => void
-  ): grpcWeb.ClientReadableStream<QuitResponse>;
+               response: event_pb.QuitResponse) => void
+  ): grpcWeb.ClientReadableStream<event_pb.QuitResponse>;
 
   subscribe(
-    request: SubscribeRequest,
+    request: event_pb.SubscribeRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SubscribeResponse) => void
-  ): grpcWeb.ClientReadableStream<SubscribeResponse>;
+               response: event_pb.SubscribeResponse) => void
+  ): grpcWeb.ClientReadableStream<event_pb.SubscribeResponse>;
 
   unSubscribe(
-    request: UnSubscribeRequest,
+    request: event_pb.UnSubscribeRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: UnSubscribeResponse) => void
-  ): grpcWeb.ClientReadableStream<UnSubscribeResponse>;
+               response: event_pb.UnSubscribeResponse) => void
+  ): grpcWeb.ClientReadableStream<event_pb.UnSubscribeResponse>;
 
   publish(
-    request: PublishRequest,
+    request: event_pb.PublishRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: PublishResponse) => void
-  ): grpcWeb.ClientReadableStream<PublishResponse>;
+               response: event_pb.PublishResponse) => void
+  ): grpcWeb.ClientReadableStream<event_pb.PublishResponse>;
 
 }
 
 export class EventServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: event_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<event_pb.StopResponse>;
 
   onEvent(
-    request: OnEventRequest,
+    request: event_pb.OnEventRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<OnEventResponse>;
+  ): grpcWeb.ClientReadableStream<event_pb.OnEventResponse>;
 
   quit(
-    request: QuitRequest,
+    request: event_pb.QuitRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<QuitResponse>;
+  ): Promise<event_pb.QuitResponse>;
 
   subscribe(
-    request: SubscribeRequest,
+    request: event_pb.SubscribeRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SubscribeResponse>;
+  ): Promise<event_pb.SubscribeResponse>;
 
   unSubscribe(
-    request: UnSubscribeRequest,
+    request: event_pb.UnSubscribeRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<UnSubscribeResponse>;
+  ): Promise<event_pb.UnSubscribeResponse>;
 
   publish(
-    request: PublishRequest,
+    request: event_pb.PublishRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<PublishResponse>;
+  ): Promise<event_pb.PublishResponse>;
 
 }
 

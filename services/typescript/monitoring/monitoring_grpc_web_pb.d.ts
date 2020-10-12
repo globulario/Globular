@@ -1,268 +1,233 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  AlertManagersRequest,
-  AlertManagersResponse,
-  AlertsRequest,
-  AlertsResponse,
-  CleanTombstonesRequest,
-  CleanTombstonesResponse,
-  ConfigRequest,
-  ConfigResponse,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  DeleteSeriesRequest,
-  DeleteSeriesResponse,
-  FlagsRequest,
-  FlagsResponse,
-  LabelNamesRequest,
-  LabelNamesResponse,
-  LabelValuesRequest,
-  LabelValuesResponse,
-  QueryRangeRequest,
-  QueryRangeResponse,
-  QueryRequest,
-  QueryResponse,
-  RulesRequest,
-  RulesResponse,
-  SeriesRequest,
-  SeriesResponse,
-  SnapshotRequest,
-  SnapshotResponse,
-  StopRequest,
-  StopResponse,
-  TargetsMetadataRequest,
-  TargetsMetadataResponse,
-  TargetsRequest,
-  TargetsResponse} from './monitoring_pb';
+import * as monitoring_pb from './monitoring_pb';
+
 
 export class MonitoringServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: monitoring_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: monitoring_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: monitoring_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: monitoring_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: monitoring_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: monitoring_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.DeleteConnectionRsp>;
 
   alerts(
-    request: AlertsRequest,
+    request: monitoring_pb.AlertsRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: AlertsResponse) => void
-  ): grpcWeb.ClientReadableStream<AlertsResponse>;
+               response: monitoring_pb.AlertsResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.AlertsResponse>;
 
   alertManagers(
-    request: AlertManagersRequest,
+    request: monitoring_pb.AlertManagersRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: AlertManagersResponse) => void
-  ): grpcWeb.ClientReadableStream<AlertManagersResponse>;
+               response: monitoring_pb.AlertManagersResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.AlertManagersResponse>;
 
   cleanTombstones(
-    request: CleanTombstonesRequest,
+    request: monitoring_pb.CleanTombstonesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CleanTombstonesResponse) => void
-  ): grpcWeb.ClientReadableStream<CleanTombstonesResponse>;
+               response: monitoring_pb.CleanTombstonesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.CleanTombstonesResponse>;
 
   config(
-    request: ConfigRequest,
+    request: monitoring_pb.ConfigRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ConfigResponse) => void
-  ): grpcWeb.ClientReadableStream<ConfigResponse>;
+               response: monitoring_pb.ConfigResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.ConfigResponse>;
 
   deleteSeries(
-    request: DeleteSeriesRequest,
+    request: monitoring_pb.DeleteSeriesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteSeriesResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteSeriesResponse>;
+               response: monitoring_pb.DeleteSeriesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.DeleteSeriesResponse>;
 
   flags(
-    request: FlagsRequest,
+    request: monitoring_pb.FlagsRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: FlagsResponse) => void
-  ): grpcWeb.ClientReadableStream<FlagsResponse>;
+               response: monitoring_pb.FlagsResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.FlagsResponse>;
 
   labelNames(
-    request: LabelNamesRequest,
+    request: monitoring_pb.LabelNamesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: LabelNamesResponse) => void
-  ): grpcWeb.ClientReadableStream<LabelNamesResponse>;
+               response: monitoring_pb.LabelNamesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.LabelNamesResponse>;
 
   labelValues(
-    request: LabelValuesRequest,
+    request: monitoring_pb.LabelValuesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: LabelValuesResponse) => void
-  ): grpcWeb.ClientReadableStream<LabelValuesResponse>;
+               response: monitoring_pb.LabelValuesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.LabelValuesResponse>;
 
   query(
-    request: QueryRequest,
+    request: monitoring_pb.QueryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: QueryResponse) => void
-  ): grpcWeb.ClientReadableStream<QueryResponse>;
+               response: monitoring_pb.QueryResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.QueryResponse>;
 
   queryRange(
-    request: QueryRangeRequest,
+    request: monitoring_pb.QueryRangeRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<QueryRangeResponse>;
+  ): grpcWeb.ClientReadableStream<monitoring_pb.QueryRangeResponse>;
 
   series(
-    request: SeriesRequest,
+    request: monitoring_pb.SeriesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SeriesResponse) => void
-  ): grpcWeb.ClientReadableStream<SeriesResponse>;
+               response: monitoring_pb.SeriesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.SeriesResponse>;
 
   snapshot(
-    request: SnapshotRequest,
+    request: monitoring_pb.SnapshotRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SnapshotResponse) => void
-  ): grpcWeb.ClientReadableStream<SnapshotResponse>;
+               response: monitoring_pb.SnapshotResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.SnapshotResponse>;
 
   rules(
-    request: RulesRequest,
+    request: monitoring_pb.RulesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RulesResponse) => void
-  ): grpcWeb.ClientReadableStream<RulesResponse>;
+               response: monitoring_pb.RulesResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.RulesResponse>;
 
   targets(
-    request: TargetsRequest,
+    request: monitoring_pb.TargetsRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: TargetsResponse) => void
-  ): grpcWeb.ClientReadableStream<TargetsResponse>;
+               response: monitoring_pb.TargetsResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.TargetsResponse>;
 
   targetsMetadata(
-    request: TargetsMetadataRequest,
+    request: monitoring_pb.TargetsMetadataRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: TargetsMetadataResponse) => void
-  ): grpcWeb.ClientReadableStream<TargetsMetadataResponse>;
+               response: monitoring_pb.TargetsMetadataResponse) => void
+  ): grpcWeb.ClientReadableStream<monitoring_pb.TargetsMetadataResponse>;
 
 }
 
 export class MonitoringServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: monitoring_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<monitoring_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: monitoring_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<monitoring_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: monitoring_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<monitoring_pb.DeleteConnectionRsp>;
 
   alerts(
-    request: AlertsRequest,
+    request: monitoring_pb.AlertsRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<AlertsResponse>;
+  ): Promise<monitoring_pb.AlertsResponse>;
 
   alertManagers(
-    request: AlertManagersRequest,
+    request: monitoring_pb.AlertManagersRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<AlertManagersResponse>;
+  ): Promise<monitoring_pb.AlertManagersResponse>;
 
   cleanTombstones(
-    request: CleanTombstonesRequest,
+    request: monitoring_pb.CleanTombstonesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<CleanTombstonesResponse>;
+  ): Promise<monitoring_pb.CleanTombstonesResponse>;
 
   config(
-    request: ConfigRequest,
+    request: monitoring_pb.ConfigRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<ConfigResponse>;
+  ): Promise<monitoring_pb.ConfigResponse>;
 
   deleteSeries(
-    request: DeleteSeriesRequest,
+    request: monitoring_pb.DeleteSeriesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteSeriesResponse>;
+  ): Promise<monitoring_pb.DeleteSeriesResponse>;
 
   flags(
-    request: FlagsRequest,
+    request: monitoring_pb.FlagsRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<FlagsResponse>;
+  ): Promise<monitoring_pb.FlagsResponse>;
 
   labelNames(
-    request: LabelNamesRequest,
+    request: monitoring_pb.LabelNamesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<LabelNamesResponse>;
+  ): Promise<monitoring_pb.LabelNamesResponse>;
 
   labelValues(
-    request: LabelValuesRequest,
+    request: monitoring_pb.LabelValuesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<LabelValuesResponse>;
+  ): Promise<monitoring_pb.LabelValuesResponse>;
 
   query(
-    request: QueryRequest,
+    request: monitoring_pb.QueryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<QueryResponse>;
+  ): Promise<monitoring_pb.QueryResponse>;
 
   queryRange(
-    request: QueryRangeRequest,
+    request: monitoring_pb.QueryRangeRequest,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<QueryRangeResponse>;
+  ): grpcWeb.ClientReadableStream<monitoring_pb.QueryRangeResponse>;
 
   series(
-    request: SeriesRequest,
+    request: monitoring_pb.SeriesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SeriesResponse>;
+  ): Promise<monitoring_pb.SeriesResponse>;
 
   snapshot(
-    request: SnapshotRequest,
+    request: monitoring_pb.SnapshotRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SnapshotResponse>;
+  ): Promise<monitoring_pb.SnapshotResponse>;
 
   rules(
-    request: RulesRequest,
+    request: monitoring_pb.RulesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RulesResponse>;
+  ): Promise<monitoring_pb.RulesResponse>;
 
   targets(
-    request: TargetsRequest,
+    request: monitoring_pb.TargetsRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<TargetsResponse>;
+  ): Promise<monitoring_pb.TargetsResponse>;
 
   targetsMetadata(
-    request: TargetsMetadataRequest,
+    request: monitoring_pb.TargetsMetadataRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<TargetsMetadataResponse>;
+  ): Promise<monitoring_pb.TargetsMetadataResponse>;
 
 }
 

@@ -6,8 +6,8 @@
   "types": "./services.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build_": "tsc  &&  cp package.json dist/ &&  cp -r ca dist/ && cp -r ressource dist/ && cp -r services dist/ && cp -r lb dist/ && cp -r admin dist/ && cp -r search dist/ && cp  -r catalog dist/ && cp -r echo dist/ && cp -r event dist/ && cp -r file dist/ && cp -r ldap dist/ && cp -r monitoring dist/ && cp -r persistence dist/ && cp -r plc dist/ && cp -r plc_link dist/ && cp -r smtp dist/ && cp -r spc dist/ && cp -r sql dist/ && cp -r storage dist/",
-    "build":"",
+    "build_": "tsc  &&  cp package.json dist/ &&  cp -r ca dist/ && cp -r ressource dist/ && cp -r services dist/ && cp -r lb dist/ && cp -r admin dist/ && cp -r search dist/ && cp  -r catalog dist/ && cp -r echo dist/ && cp -r event dist/ && cp -r file dist/ && cp -r ldap dist/ && cp -r monitoring dist/ && cp -r persistence dist/ && cp -r plc dist/ && cp -r plc_link dist/ && cp -r mail dist/ && cp -r mail dist/ && cp -r sql dist/ && cp -r storage dist/",
+    "build": "",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build",
@@ -18,9 +18,9 @@
   "author": "Dave Courtois",
   "license": "ISC",
   "dependencies": {
-    "@types/google-protobuf": "^3.7.1",
-    "google-protobuf": "^3.9.1",
-    "grpc-web": "^1.0.6",
+    "@types/google-protobuf": "^3.7.3",
+    "google-protobuf": "^3.13.0",
+    "grpc-web": "^1.2.1",
     "tslint": "^6.1.2"
   },
   "devDependencies": {

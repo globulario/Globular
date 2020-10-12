@@ -6,7 +6,7 @@ import { FileServicePromiseClient } from './file/file_grpc_web_pb';
 import { LdapServicePromiseClient } from './ldap/ldap_grpc_web_pb';
 import { PersistenceServicePromiseClient } from './persistence/persistence_grpc_web_pb';
 import { PlcLinkServicePromiseClient } from './plc_link/plc_link_grpc_web_pb';
-import { SmtpServicePromiseClient } from './smtp/smtp_grpc_web_pb';
+import { MailServicePromiseClient } from './mail/mail_grpc_web_pb';
 import { SpcServicePromiseClient } from './spc/spc_grpc_web_pb';
 import { SqlServicePromiseClient } from './sql/sql_grpc_web_pb';
 import { StorageServicePromiseClient } from './storage/storage_grpc_web_pb';
@@ -280,7 +280,7 @@ export class Globular {
   fileService: FileServicePromiseClient | undefined;
   ldapService: LdapServicePromiseClient | undefined;
   persistenceService: PersistenceServicePromiseClient | undefined;
-  smtpService: SmtpServicePromiseClient | undefined;
+  mailService: MailServicePromiseClient | undefined;
   sqlService: SqlServicePromiseClient | undefined;
   storageService: StorageServicePromiseClient | undefined;
   monitoringService: MonitoringServicePromiseClient | undefined;
@@ -450,16 +450,16 @@ export class Globular {
       );
     }
 
-    // The smtp server
-    let smtp_server = this.getFirstConfigByName('smtp.SmtpService')
+    // The mail server
+    let mail_server = this.getFirstConfigByName('mail.MailService')
 
-    if (smtp_server != null) {
+    if (mail_server != null) {
       let protocol = 'http';
-      if (smtp_server.TLS == true) {
+      if (mail_server.TLS == true) {
         protocol = 'https';
       }
-      this.smtpService = new SmtpServicePromiseClient(
-        protocol + '://' + smtp_server.Domain + ':' + smtp_server.Proxy,
+      this.mailService = new MailServicePromiseClient(
+        protocol + '://' + mail_server.Domain + ':' + mail_server.Proxy,
         null,
         null,
       );

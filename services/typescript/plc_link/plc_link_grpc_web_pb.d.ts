@@ -1,88 +1,79 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  LinkRqst,
-  LinkRsp,
-  ResumeRqst,
-  ResumeRsp,
-  StopRequest,
-  StopResponse,
-  SuspendRqst,
-  SuspendRsp,
-  UnLinkRqst,
-  UnLinkRsp} from './plc_link_pb';
+import * as plc_link_pb from './plc_link_pb';
+
 
 export class PlcLinkServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: plc_link_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: plc_link_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<plc_link_pb.StopResponse>;
 
   link(
-    request: LinkRqst,
+    request: plc_link_pb.LinkRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: LinkRsp) => void
-  ): grpcWeb.ClientReadableStream<LinkRsp>;
+               response: plc_link_pb.LinkRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_link_pb.LinkRsp>;
 
   unLink(
-    request: UnLinkRqst,
+    request: plc_link_pb.UnLinkRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: UnLinkRsp) => void
-  ): grpcWeb.ClientReadableStream<UnLinkRsp>;
+               response: plc_link_pb.UnLinkRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_link_pb.UnLinkRsp>;
 
   suspend(
-    request: SuspendRqst,
+    request: plc_link_pb.SuspendRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SuspendRsp) => void
-  ): grpcWeb.ClientReadableStream<SuspendRsp>;
+               response: plc_link_pb.SuspendRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_link_pb.SuspendRsp>;
 
   resume(
-    request: ResumeRqst,
+    request: plc_link_pb.ResumeRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ResumeRsp) => void
-  ): grpcWeb.ClientReadableStream<ResumeRsp>;
+               response: plc_link_pb.ResumeRsp) => void
+  ): grpcWeb.ClientReadableStream<plc_link_pb.ResumeRsp>;
 
 }
 
 export class PlcLinkServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: plc_link_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<plc_link_pb.StopResponse>;
 
   link(
-    request: LinkRqst,
+    request: plc_link_pb.LinkRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<LinkRsp>;
+  ): Promise<plc_link_pb.LinkRsp>;
 
   unLink(
-    request: UnLinkRqst,
+    request: plc_link_pb.UnLinkRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<UnLinkRsp>;
+  ): Promise<plc_link_pb.UnLinkRsp>;
 
   suspend(
-    request: SuspendRqst,
+    request: plc_link_pb.SuspendRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<SuspendRsp>;
+  ): Promise<plc_link_pb.SuspendRsp>;
 
   resume(
-    request: ResumeRqst,
+    request: plc_link_pb.ResumeRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ResumeRsp>;
+  ): Promise<plc_link_pb.ResumeRsp>;
 
 }
 

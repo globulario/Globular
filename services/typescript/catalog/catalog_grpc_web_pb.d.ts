@@ -1,662 +1,571 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  AppendItemDefinitionCategoryRequest,
-  AppendItemDefinitionCategoryResponse,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteCategoryRequest,
-  DeleteCategoryResponse,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  DeleteInventoryRequest,
-  DeleteInventoryResponse,
-  DeleteItemInstanceRequest,
-  DeleteItemInstanceResponse,
-  DeleteItemManufacturerRequest,
-  DeleteItemManufacturerResponse,
-  DeleteLocalisationRequest,
-  DeleteLocalisationResponse,
-  DeleteManufacturerRequest,
-  DeleteManufacturerResponse,
-  DeletePackageRequest,
-  DeletePackageResponse,
-  DeletePackageSupplierRequest,
-  DeletePackageSupplierResponse,
-  DeletePropertyDefinitionRequest,
-  DeletePropertyDefinitionResponse,
-  DeleteSupplierRequest,
-  DeleteSupplierResponse,
-  DeleteUnitOfMeasureRequest,
-  DeleteUnitOfMeasureResponse,
-  GetCategoriesRequest,
-  GetCategoriesResponse,
-  GetCategoryRequest,
-  GetCategoryResponse,
-  GetInventoriesRequest,
-  GetInventoriesResponse,
-  GetItemDefinitionRequest,
-  GetItemDefinitionResponse,
-  GetItemDefinitionsRequest,
-  GetItemDefinitionsResponse,
-  GetItemInstanceRequest,
-  GetItemInstanceResponse,
-  GetItemInstancesRequest,
-  GetItemInstancesResponse,
-  GetLocalisationRequest,
-  GetLocalisationResponse,
-  GetLocalisationsRequest,
-  GetLocalisationsResponse,
-  GetManufacturerRequest,
-  GetManufacturerResponse,
-  GetManufacturersRequest,
-  GetManufacturersResponse,
-  GetPackageRequest,
-  GetPackageResponse,
-  GetPackagesRequest,
-  GetPackagesResponse,
-  GetSupplierPackagesRequest,
-  GetSupplierPackagesResponse,
-  GetSupplierRequest,
-  GetSupplierResponse,
-  GetSuppliersRequest,
-  GetSuppliersResponse,
-  GetUnitOfMeasureRequest,
-  GetUnitOfMeasureResponse,
-  GetUnitOfMeasuresRequest,
-  GetUnitOfMeasuresResponse,
-  RemoveItemDefinitionCategoryRequest,
-  RemoveItemDefinitionCategoryResponse,
-  SaveCategoryRequest,
-  SaveCategoryResponse,
-  SaveInventoryRequest,
-  SaveInventoryResponse,
-  SaveItemDefinitionRequest,
-  SaveItemDefinitionResponse,
-  SaveItemInstanceRequest,
-  SaveItemInstanceResponse,
-  SaveItemManufacturerRequest,
-  SaveItemManufacturerResponse,
-  SaveLocalisationRequest,
-  SaveLocalisationResponse,
-  SaveManufacturerRequest,
-  SaveManufacturerResponse,
-  SavePackageRequest,
-  SavePackageResponse,
-  SavePackageSupplierRequest,
-  SavePackageSupplierResponse,
-  SavePropertyDefinitionRequest,
-  SavePropertyDefinitionResponse,
-  SaveSupplierRequest,
-  SaveSupplierResponse,
-  SaveUnitOfMeasureRequest,
-  SaveUnitOfMeasureResponse,
-  StopRequest,
-  StopResponse} from './catalog_pb';
+import * as catalog_pb from './catalog_pb';
+
 
 export class CatalogServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: catalog_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: catalog_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: catalog_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: catalog_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: catalog_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: catalog_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteConnectionRsp>;
 
   saveUnitOfMeasure(
-    request: SaveUnitOfMeasureRequest,
+    request: catalog_pb.SaveUnitOfMeasureRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveUnitOfMeasureResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveUnitOfMeasureResponse>;
+               response: catalog_pb.SaveUnitOfMeasureResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveUnitOfMeasureResponse>;
 
   savePropertyDefinition(
-    request: SavePropertyDefinitionRequest,
+    request: catalog_pb.SavePropertyDefinitionRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SavePropertyDefinitionResponse) => void
-  ): grpcWeb.ClientReadableStream<SavePropertyDefinitionResponse>;
+               response: catalog_pb.SavePropertyDefinitionResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SavePropertyDefinitionResponse>;
 
   saveItemDefinition(
-    request: SaveItemDefinitionRequest,
+    request: catalog_pb.SaveItemDefinitionRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveItemDefinitionResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveItemDefinitionResponse>;
+               response: catalog_pb.SaveItemDefinitionResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveItemDefinitionResponse>;
 
   saveItemInstance(
-    request: SaveItemInstanceRequest,
+    request: catalog_pb.SaveItemInstanceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveItemInstanceResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveItemInstanceResponse>;
+               response: catalog_pb.SaveItemInstanceResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveItemInstanceResponse>;
 
   saveInventory(
-    request: SaveInventoryRequest,
+    request: catalog_pb.SaveInventoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveInventoryResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveInventoryResponse>;
+               response: catalog_pb.SaveInventoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveInventoryResponse>;
 
   saveManufacturer(
-    request: SaveManufacturerRequest,
+    request: catalog_pb.SaveManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveManufacturerResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveManufacturerResponse>;
+               response: catalog_pb.SaveManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveManufacturerResponse>;
 
   saveSupplier(
-    request: SaveSupplierRequest,
+    request: catalog_pb.SaveSupplierRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveSupplierResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveSupplierResponse>;
+               response: catalog_pb.SaveSupplierResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveSupplierResponse>;
 
   saveLocalisation(
-    request: SaveLocalisationRequest,
+    request: catalog_pb.SaveLocalisationRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveLocalisationResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveLocalisationResponse>;
+               response: catalog_pb.SaveLocalisationResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveLocalisationResponse>;
 
   savePackage(
-    request: SavePackageRequest,
+    request: catalog_pb.SavePackageRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SavePackageResponse) => void
-  ): grpcWeb.ClientReadableStream<SavePackageResponse>;
+               response: catalog_pb.SavePackageResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SavePackageResponse>;
 
   savePackageSupplier(
-    request: SavePackageSupplierRequest,
+    request: catalog_pb.SavePackageSupplierRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SavePackageSupplierResponse) => void
-  ): grpcWeb.ClientReadableStream<SavePackageSupplierResponse>;
+               response: catalog_pb.SavePackageSupplierResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SavePackageSupplierResponse>;
 
   saveItemManufacturer(
-    request: SaveItemManufacturerRequest,
+    request: catalog_pb.SaveItemManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveItemManufacturerResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveItemManufacturerResponse>;
+               response: catalog_pb.SaveItemManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveItemManufacturerResponse>;
 
   saveCategory(
-    request: SaveCategoryRequest,
+    request: catalog_pb.SaveCategoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: SaveCategoryResponse) => void
-  ): grpcWeb.ClientReadableStream<SaveCategoryResponse>;
+               response: catalog_pb.SaveCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.SaveCategoryResponse>;
 
   appendItemDefinitionCategory(
-    request: AppendItemDefinitionCategoryRequest,
+    request: catalog_pb.AppendItemDefinitionCategoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: AppendItemDefinitionCategoryResponse) => void
-  ): grpcWeb.ClientReadableStream<AppendItemDefinitionCategoryResponse>;
+               response: catalog_pb.AppendItemDefinitionCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.AppendItemDefinitionCategoryResponse>;
 
   removeItemDefinitionCategory(
-    request: RemoveItemDefinitionCategoryRequest,
+    request: catalog_pb.RemoveItemDefinitionCategoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RemoveItemDefinitionCategoryResponse) => void
-  ): grpcWeb.ClientReadableStream<RemoveItemDefinitionCategoryResponse>;
+               response: catalog_pb.RemoveItemDefinitionCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.RemoveItemDefinitionCategoryResponse>;
 
   getSupplier(
-    request: GetSupplierRequest,
+    request: catalog_pb.GetSupplierRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetSupplierResponse) => void
-  ): grpcWeb.ClientReadableStream<GetSupplierResponse>;
+               response: catalog_pb.GetSupplierResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetSupplierResponse>;
 
   getSuppliers(
-    request: GetSuppliersRequest,
+    request: catalog_pb.GetSuppliersRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetSuppliersResponse) => void
-  ): grpcWeb.ClientReadableStream<GetSuppliersResponse>;
+               response: catalog_pb.GetSuppliersResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetSuppliersResponse>;
 
   getManufacturer(
-    request: GetManufacturerRequest,
+    request: catalog_pb.GetManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetManufacturerResponse) => void
-  ): grpcWeb.ClientReadableStream<GetManufacturerResponse>;
+               response: catalog_pb.GetManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetManufacturerResponse>;
 
   getManufacturers(
-    request: GetManufacturersRequest,
+    request: catalog_pb.GetManufacturersRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetManufacturersResponse) => void
-  ): grpcWeb.ClientReadableStream<GetManufacturersResponse>;
+               response: catalog_pb.GetManufacturersResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetManufacturersResponse>;
 
   getSupplierPackages(
-    request: GetSupplierPackagesRequest,
+    request: catalog_pb.GetSupplierPackagesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetSupplierPackagesResponse) => void
-  ): grpcWeb.ClientReadableStream<GetSupplierPackagesResponse>;
+               response: catalog_pb.GetSupplierPackagesResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetSupplierPackagesResponse>;
 
   getPackage(
-    request: GetPackageRequest,
+    request: catalog_pb.GetPackageRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetPackageResponse) => void
-  ): grpcWeb.ClientReadableStream<GetPackageResponse>;
+               response: catalog_pb.GetPackageResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetPackageResponse>;
 
   getPackages(
-    request: GetPackagesRequest,
+    request: catalog_pb.GetPackagesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetPackagesResponse) => void
-  ): grpcWeb.ClientReadableStream<GetPackagesResponse>;
+               response: catalog_pb.GetPackagesResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetPackagesResponse>;
 
   getUnitOfMeasure(
-    request: GetUnitOfMeasureRequest,
+    request: catalog_pb.GetUnitOfMeasureRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetUnitOfMeasureResponse) => void
-  ): grpcWeb.ClientReadableStream<GetUnitOfMeasureResponse>;
+               response: catalog_pb.GetUnitOfMeasureResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetUnitOfMeasureResponse>;
 
   getUnitOfMeasures(
-    request: GetUnitOfMeasuresRequest,
+    request: catalog_pb.GetUnitOfMeasuresRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetUnitOfMeasuresResponse) => void
-  ): grpcWeb.ClientReadableStream<GetUnitOfMeasuresResponse>;
+               response: catalog_pb.GetUnitOfMeasuresResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetUnitOfMeasuresResponse>;
 
   getItemDefinition(
-    request: GetItemDefinitionRequest,
+    request: catalog_pb.GetItemDefinitionRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetItemDefinitionResponse) => void
-  ): grpcWeb.ClientReadableStream<GetItemDefinitionResponse>;
+               response: catalog_pb.GetItemDefinitionResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetItemDefinitionResponse>;
 
   getItemDefinitions(
-    request: GetItemDefinitionsRequest,
+    request: catalog_pb.GetItemDefinitionsRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetItemDefinitionsResponse) => void
-  ): grpcWeb.ClientReadableStream<GetItemDefinitionsResponse>;
+               response: catalog_pb.GetItemDefinitionsResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetItemDefinitionsResponse>;
 
   getItemInstance(
-    request: GetItemInstanceRequest,
+    request: catalog_pb.GetItemInstanceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetItemInstanceResponse) => void
-  ): grpcWeb.ClientReadableStream<GetItemInstanceResponse>;
+               response: catalog_pb.GetItemInstanceResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetItemInstanceResponse>;
 
   getItemInstances(
-    request: GetItemInstancesRequest,
+    request: catalog_pb.GetItemInstancesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetItemInstancesResponse) => void
-  ): grpcWeb.ClientReadableStream<GetItemInstancesResponse>;
+               response: catalog_pb.GetItemInstancesResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetItemInstancesResponse>;
 
   getLocalisation(
-    request: GetLocalisationRequest,
+    request: catalog_pb.GetLocalisationRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetLocalisationResponse) => void
-  ): grpcWeb.ClientReadableStream<GetLocalisationResponse>;
+               response: catalog_pb.GetLocalisationResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetLocalisationResponse>;
 
   getLocalisations(
-    request: GetLocalisationsRequest,
+    request: catalog_pb.GetLocalisationsRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetLocalisationsResponse) => void
-  ): grpcWeb.ClientReadableStream<GetLocalisationsResponse>;
+               response: catalog_pb.GetLocalisationsResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetLocalisationsResponse>;
 
   getCategory(
-    request: GetCategoryRequest,
+    request: catalog_pb.GetCategoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetCategoryResponse) => void
-  ): grpcWeb.ClientReadableStream<GetCategoryResponse>;
+               response: catalog_pb.GetCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetCategoryResponse>;
 
   getCategories(
-    request: GetCategoriesRequest,
+    request: catalog_pb.GetCategoriesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetCategoriesResponse) => void
-  ): grpcWeb.ClientReadableStream<GetCategoriesResponse>;
+               response: catalog_pb.GetCategoriesResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetCategoriesResponse>;
 
   getInventories(
-    request: GetInventoriesRequest,
+    request: catalog_pb.GetInventoriesRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: GetInventoriesResponse) => void
-  ): grpcWeb.ClientReadableStream<GetInventoriesResponse>;
+               response: catalog_pb.GetInventoriesResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.GetInventoriesResponse>;
 
   deleteInventory(
-    request: DeleteInventoryRequest,
+    request: catalog_pb.DeleteInventoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteInventoryResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteInventoryResponse>;
+               response: catalog_pb.DeleteInventoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteInventoryResponse>;
 
   deletePackage(
-    request: DeletePackageRequest,
+    request: catalog_pb.DeletePackageRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeletePackageResponse) => void
-  ): grpcWeb.ClientReadableStream<DeletePackageResponse>;
+               response: catalog_pb.DeletePackageResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeletePackageResponse>;
 
   deletePackageSupplier(
-    request: DeletePackageSupplierRequest,
+    request: catalog_pb.DeletePackageSupplierRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeletePackageSupplierResponse) => void
-  ): grpcWeb.ClientReadableStream<DeletePackageSupplierResponse>;
+               response: catalog_pb.DeletePackageSupplierResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeletePackageSupplierResponse>;
 
   deleteSupplier(
-    request: DeleteSupplierRequest,
+    request: catalog_pb.DeleteSupplierRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteSupplierResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteSupplierResponse>;
+               response: catalog_pb.DeleteSupplierResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteSupplierResponse>;
 
   deletePropertyDefinition(
-    request: DeletePropertyDefinitionRequest,
+    request: catalog_pb.DeletePropertyDefinitionRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeletePropertyDefinitionResponse) => void
-  ): grpcWeb.ClientReadableStream<DeletePropertyDefinitionResponse>;
+               response: catalog_pb.DeletePropertyDefinitionResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeletePropertyDefinitionResponse>;
 
   deleteUnitOfMeasure(
-    request: DeleteUnitOfMeasureRequest,
+    request: catalog_pb.DeleteUnitOfMeasureRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteUnitOfMeasureResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteUnitOfMeasureResponse>;
+               response: catalog_pb.DeleteUnitOfMeasureResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteUnitOfMeasureResponse>;
 
   deleteItemInstance(
-    request: DeleteItemInstanceRequest,
+    request: catalog_pb.DeleteItemInstanceRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteItemInstanceResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteItemInstanceResponse>;
+               response: catalog_pb.DeleteItemInstanceResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteItemInstanceResponse>;
 
   deleteManufacturer(
-    request: DeleteManufacturerRequest,
+    request: catalog_pb.DeleteManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteManufacturerResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteManufacturerResponse>;
+               response: catalog_pb.DeleteManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteManufacturerResponse>;
 
   deleteItemManufacturer(
-    request: DeleteItemManufacturerRequest,
+    request: catalog_pb.DeleteItemManufacturerRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteItemManufacturerResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteItemManufacturerResponse>;
+               response: catalog_pb.DeleteItemManufacturerResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteItemManufacturerResponse>;
 
   deleteCategory(
-    request: DeleteCategoryRequest,
+    request: catalog_pb.DeleteCategoryRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteCategoryResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteCategoryResponse>;
+               response: catalog_pb.DeleteCategoryResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteCategoryResponse>;
 
   deleteLocalisation(
-    request: DeleteLocalisationRequest,
+    request: catalog_pb.DeleteLocalisationRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteLocalisationResponse) => void
-  ): grpcWeb.ClientReadableStream<DeleteLocalisationResponse>;
+               response: catalog_pb.DeleteLocalisationResponse) => void
+  ): grpcWeb.ClientReadableStream<catalog_pb.DeleteLocalisationResponse>;
 
 }
 
 export class CatalogServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: catalog_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<catalog_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: catalog_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<catalog_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: catalog_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<catalog_pb.DeleteConnectionRsp>;
 
   saveUnitOfMeasure(
-    request: SaveUnitOfMeasureRequest,
+    request: catalog_pb.SaveUnitOfMeasureRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveUnitOfMeasureResponse>;
+  ): Promise<catalog_pb.SaveUnitOfMeasureResponse>;
 
   savePropertyDefinition(
-    request: SavePropertyDefinitionRequest,
+    request: catalog_pb.SavePropertyDefinitionRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SavePropertyDefinitionResponse>;
+  ): Promise<catalog_pb.SavePropertyDefinitionResponse>;
 
   saveItemDefinition(
-    request: SaveItemDefinitionRequest,
+    request: catalog_pb.SaveItemDefinitionRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveItemDefinitionResponse>;
+  ): Promise<catalog_pb.SaveItemDefinitionResponse>;
 
   saveItemInstance(
-    request: SaveItemInstanceRequest,
+    request: catalog_pb.SaveItemInstanceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveItemInstanceResponse>;
+  ): Promise<catalog_pb.SaveItemInstanceResponse>;
 
   saveInventory(
-    request: SaveInventoryRequest,
+    request: catalog_pb.SaveInventoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveInventoryResponse>;
+  ): Promise<catalog_pb.SaveInventoryResponse>;
 
   saveManufacturer(
-    request: SaveManufacturerRequest,
+    request: catalog_pb.SaveManufacturerRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveManufacturerResponse>;
+  ): Promise<catalog_pb.SaveManufacturerResponse>;
 
   saveSupplier(
-    request: SaveSupplierRequest,
+    request: catalog_pb.SaveSupplierRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveSupplierResponse>;
+  ): Promise<catalog_pb.SaveSupplierResponse>;
 
   saveLocalisation(
-    request: SaveLocalisationRequest,
+    request: catalog_pb.SaveLocalisationRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveLocalisationResponse>;
+  ): Promise<catalog_pb.SaveLocalisationResponse>;
 
   savePackage(
-    request: SavePackageRequest,
+    request: catalog_pb.SavePackageRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SavePackageResponse>;
+  ): Promise<catalog_pb.SavePackageResponse>;
 
   savePackageSupplier(
-    request: SavePackageSupplierRequest,
+    request: catalog_pb.SavePackageSupplierRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SavePackageSupplierResponse>;
+  ): Promise<catalog_pb.SavePackageSupplierResponse>;
 
   saveItemManufacturer(
-    request: SaveItemManufacturerRequest,
+    request: catalog_pb.SaveItemManufacturerRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveItemManufacturerResponse>;
+  ): Promise<catalog_pb.SaveItemManufacturerResponse>;
 
   saveCategory(
-    request: SaveCategoryRequest,
+    request: catalog_pb.SaveCategoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<SaveCategoryResponse>;
+  ): Promise<catalog_pb.SaveCategoryResponse>;
 
   appendItemDefinitionCategory(
-    request: AppendItemDefinitionCategoryRequest,
+    request: catalog_pb.AppendItemDefinitionCategoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<AppendItemDefinitionCategoryResponse>;
+  ): Promise<catalog_pb.AppendItemDefinitionCategoryResponse>;
 
   removeItemDefinitionCategory(
-    request: RemoveItemDefinitionCategoryRequest,
+    request: catalog_pb.RemoveItemDefinitionCategoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<RemoveItemDefinitionCategoryResponse>;
+  ): Promise<catalog_pb.RemoveItemDefinitionCategoryResponse>;
 
   getSupplier(
-    request: GetSupplierRequest,
+    request: catalog_pb.GetSupplierRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetSupplierResponse>;
+  ): Promise<catalog_pb.GetSupplierResponse>;
 
   getSuppliers(
-    request: GetSuppliersRequest,
+    request: catalog_pb.GetSuppliersRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetSuppliersResponse>;
+  ): Promise<catalog_pb.GetSuppliersResponse>;
 
   getManufacturer(
-    request: GetManufacturerRequest,
+    request: catalog_pb.GetManufacturerRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetManufacturerResponse>;
+  ): Promise<catalog_pb.GetManufacturerResponse>;
 
   getManufacturers(
-    request: GetManufacturersRequest,
+    request: catalog_pb.GetManufacturersRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetManufacturersResponse>;
+  ): Promise<catalog_pb.GetManufacturersResponse>;
 
   getSupplierPackages(
-    request: GetSupplierPackagesRequest,
+    request: catalog_pb.GetSupplierPackagesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetSupplierPackagesResponse>;
+  ): Promise<catalog_pb.GetSupplierPackagesResponse>;
 
   getPackage(
-    request: GetPackageRequest,
+    request: catalog_pb.GetPackageRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetPackageResponse>;
+  ): Promise<catalog_pb.GetPackageResponse>;
 
   getPackages(
-    request: GetPackagesRequest,
+    request: catalog_pb.GetPackagesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetPackagesResponse>;
+  ): Promise<catalog_pb.GetPackagesResponse>;
 
   getUnitOfMeasure(
-    request: GetUnitOfMeasureRequest,
+    request: catalog_pb.GetUnitOfMeasureRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetUnitOfMeasureResponse>;
+  ): Promise<catalog_pb.GetUnitOfMeasureResponse>;
 
   getUnitOfMeasures(
-    request: GetUnitOfMeasuresRequest,
+    request: catalog_pb.GetUnitOfMeasuresRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetUnitOfMeasuresResponse>;
+  ): Promise<catalog_pb.GetUnitOfMeasuresResponse>;
 
   getItemDefinition(
-    request: GetItemDefinitionRequest,
+    request: catalog_pb.GetItemDefinitionRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetItemDefinitionResponse>;
+  ): Promise<catalog_pb.GetItemDefinitionResponse>;
 
   getItemDefinitions(
-    request: GetItemDefinitionsRequest,
+    request: catalog_pb.GetItemDefinitionsRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetItemDefinitionsResponse>;
+  ): Promise<catalog_pb.GetItemDefinitionsResponse>;
 
   getItemInstance(
-    request: GetItemInstanceRequest,
+    request: catalog_pb.GetItemInstanceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetItemInstanceResponse>;
+  ): Promise<catalog_pb.GetItemInstanceResponse>;
 
   getItemInstances(
-    request: GetItemInstancesRequest,
+    request: catalog_pb.GetItemInstancesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetItemInstancesResponse>;
+  ): Promise<catalog_pb.GetItemInstancesResponse>;
 
   getLocalisation(
-    request: GetLocalisationRequest,
+    request: catalog_pb.GetLocalisationRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetLocalisationResponse>;
+  ): Promise<catalog_pb.GetLocalisationResponse>;
 
   getLocalisations(
-    request: GetLocalisationsRequest,
+    request: catalog_pb.GetLocalisationsRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetLocalisationsResponse>;
+  ): Promise<catalog_pb.GetLocalisationsResponse>;
 
   getCategory(
-    request: GetCategoryRequest,
+    request: catalog_pb.GetCategoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetCategoryResponse>;
+  ): Promise<catalog_pb.GetCategoryResponse>;
 
   getCategories(
-    request: GetCategoriesRequest,
+    request: catalog_pb.GetCategoriesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetCategoriesResponse>;
+  ): Promise<catalog_pb.GetCategoriesResponse>;
 
   getInventories(
-    request: GetInventoriesRequest,
+    request: catalog_pb.GetInventoriesRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<GetInventoriesResponse>;
+  ): Promise<catalog_pb.GetInventoriesResponse>;
 
   deleteInventory(
-    request: DeleteInventoryRequest,
+    request: catalog_pb.DeleteInventoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteInventoryResponse>;
+  ): Promise<catalog_pb.DeleteInventoryResponse>;
 
   deletePackage(
-    request: DeletePackageRequest,
+    request: catalog_pb.DeletePackageRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeletePackageResponse>;
+  ): Promise<catalog_pb.DeletePackageResponse>;
 
   deletePackageSupplier(
-    request: DeletePackageSupplierRequest,
+    request: catalog_pb.DeletePackageSupplierRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeletePackageSupplierResponse>;
+  ): Promise<catalog_pb.DeletePackageSupplierResponse>;
 
   deleteSupplier(
-    request: DeleteSupplierRequest,
+    request: catalog_pb.DeleteSupplierRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteSupplierResponse>;
+  ): Promise<catalog_pb.DeleteSupplierResponse>;
 
   deletePropertyDefinition(
-    request: DeletePropertyDefinitionRequest,
+    request: catalog_pb.DeletePropertyDefinitionRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeletePropertyDefinitionResponse>;
+  ): Promise<catalog_pb.DeletePropertyDefinitionResponse>;
 
   deleteUnitOfMeasure(
-    request: DeleteUnitOfMeasureRequest,
+    request: catalog_pb.DeleteUnitOfMeasureRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteUnitOfMeasureResponse>;
+  ): Promise<catalog_pb.DeleteUnitOfMeasureResponse>;
 
   deleteItemInstance(
-    request: DeleteItemInstanceRequest,
+    request: catalog_pb.DeleteItemInstanceRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteItemInstanceResponse>;
+  ): Promise<catalog_pb.DeleteItemInstanceResponse>;
 
   deleteManufacturer(
-    request: DeleteManufacturerRequest,
+    request: catalog_pb.DeleteManufacturerRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteManufacturerResponse>;
+  ): Promise<catalog_pb.DeleteManufacturerResponse>;
 
   deleteItemManufacturer(
-    request: DeleteItemManufacturerRequest,
+    request: catalog_pb.DeleteItemManufacturerRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteItemManufacturerResponse>;
+  ): Promise<catalog_pb.DeleteItemManufacturerResponse>;
 
   deleteCategory(
-    request: DeleteCategoryRequest,
+    request: catalog_pb.DeleteCategoryRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteCategoryResponse>;
+  ): Promise<catalog_pb.DeleteCategoryResponse>;
 
   deleteLocalisation(
-    request: DeleteLocalisationRequest,
+    request: catalog_pb.DeleteLocalisationRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteLocalisationResponse>;
+  ): Promise<catalog_pb.DeleteLocalisationResponse>;
 
 }
 

@@ -1,100 +1,89 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  ExecContextRqst,
-  ExecContextRsp,
-  PingConnectionRqst,
-  PingConnectionRsp,
-  QueryContextRqst,
-  QueryContextRsp,
-  StopRequest,
-  StopResponse} from './sql_pb';
+import * as sql_pb from './sql_pb';
+
 
 export class SqlServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: sql_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: sql_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<sql_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: sql_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: sql_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<sql_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: sql_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: sql_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<sql_pb.DeleteConnectionRsp>;
 
   ping(
-    request: PingConnectionRqst,
+    request: sql_pb.PingConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: PingConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<PingConnectionRsp>;
+               response: sql_pb.PingConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<sql_pb.PingConnectionRsp>;
 
   queryContext(
-    request: QueryContextRqst,
+    request: sql_pb.QueryContextRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<QueryContextRsp>;
+  ): grpcWeb.ClientReadableStream<sql_pb.QueryContextRsp>;
 
   execContext(
-    request: ExecContextRqst,
+    request: sql_pb.ExecContextRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ExecContextRsp) => void
-  ): grpcWeb.ClientReadableStream<ExecContextRsp>;
+               response: sql_pb.ExecContextRsp) => void
+  ): grpcWeb.ClientReadableStream<sql_pb.ExecContextRsp>;
 
 }
 
 export class SqlServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: sql_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<sql_pb.StopResponse>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: sql_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<sql_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: sql_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<sql_pb.DeleteConnectionRsp>;
 
   ping(
-    request: PingConnectionRqst,
+    request: sql_pb.PingConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<PingConnectionRsp>;
+  ): Promise<sql_pb.PingConnectionRsp>;
 
   queryContext(
-    request: QueryContextRqst,
+    request: sql_pb.QueryContextRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<QueryContextRsp>;
+  ): grpcWeb.ClientReadableStream<sql_pb.QueryContextRsp>;
 
   execContext(
-    request: ExecContextRqst,
+    request: sql_pb.ExecContextRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ExecContextRsp>;
+  ): Promise<sql_pb.ExecContextRsp>;
 
 }
 

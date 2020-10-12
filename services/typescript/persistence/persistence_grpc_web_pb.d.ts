@@ -1,310 +1,267 @@
 import * as grpcWeb from 'grpc-web';
 
-import {
-  AggregateResp,
-  AggregateRqst,
-  ConnectRqst,
-  ConnectRsp,
-  CountRqst,
-  CountRsp,
-  CreateCollectionRqst,
-  CreateCollectionRsp,
-  CreateConnectionRqst,
-  CreateConnectionRsp,
-  CreateDatabaseRqst,
-  CreateDatabaseRsp,
-  DeleteCollectionRqst,
-  DeleteCollectionRsp,
-  DeleteConnectionRqst,
-  DeleteConnectionRsp,
-  DeleteDatabaseRqst,
-  DeleteDatabaseRsp,
-  DeleteOneRqst,
-  DeleteOneRsp,
-  DeleteRqst,
-  DeleteRsp,
-  DisconnectRqst,
-  DisconnectRsp,
-  FindOneResp,
-  FindOneRqst,
-  FindResp,
-  FindRqst,
-  InsertManyRqst,
-  InsertManyRsp,
-  InsertOneRqst,
-  InsertOneRsp,
-  PingConnectionRqst,
-  PingConnectionRsp,
-  ReplaceOneRqst,
-  ReplaceOneRsp,
-  RunAdminCmdRqst,
-  RunAdminCmdRsp,
-  StopRequest,
-  StopResponse,
-  UpdateOneRqst,
-  UpdateOneRsp,
-  UpdateRqst,
-  UpdateRsp} from './persistence_pb';
+import * as persistence_pb from './persistence_pb';
+
 
 export class PersistenceServiceClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: persistence_pb.StopRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: StopResponse) => void
-  ): grpcWeb.ClientReadableStream<StopResponse>;
+               response: persistence_pb.StopResponse) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.StopResponse>;
 
   createDatabase(
-    request: CreateDatabaseRqst,
+    request: persistence_pb.CreateDatabaseRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateDatabaseRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateDatabaseRsp>;
+               response: persistence_pb.CreateDatabaseRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.CreateDatabaseRsp>;
 
   connect(
-    request: ConnectRqst,
+    request: persistence_pb.ConnectRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ConnectRsp) => void
-  ): grpcWeb.ClientReadableStream<ConnectRsp>;
+               response: persistence_pb.ConnectRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.ConnectRsp>;
 
   disconnect(
-    request: DisconnectRqst,
+    request: persistence_pb.DisconnectRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DisconnectRsp) => void
-  ): grpcWeb.ClientReadableStream<DisconnectRsp>;
+               response: persistence_pb.DisconnectRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DisconnectRsp>;
 
   deleteDatabase(
-    request: DeleteDatabaseRqst,
+    request: persistence_pb.DeleteDatabaseRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteDatabaseRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteDatabaseRsp>;
+               response: persistence_pb.DeleteDatabaseRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DeleteDatabaseRsp>;
 
   createCollection(
-    request: CreateCollectionRqst,
+    request: persistence_pb.CreateCollectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateCollectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateCollectionRsp>;
+               response: persistence_pb.CreateCollectionRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.CreateCollectionRsp>;
 
   deleteCollection(
-    request: DeleteCollectionRqst,
+    request: persistence_pb.DeleteCollectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteCollectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteCollectionRsp>;
+               response: persistence_pb.DeleteCollectionRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DeleteCollectionRsp>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: persistence_pb.CreateConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CreateConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<CreateConnectionRsp>;
+               response: persistence_pb.CreateConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: persistence_pb.DeleteConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteConnectionRsp>;
+               response: persistence_pb.DeleteConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DeleteConnectionRsp>;
 
   ping(
-    request: PingConnectionRqst,
+    request: persistence_pb.PingConnectionRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: PingConnectionRsp) => void
-  ): grpcWeb.ClientReadableStream<PingConnectionRsp>;
+               response: persistence_pb.PingConnectionRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.PingConnectionRsp>;
 
   count(
-    request: CountRqst,
+    request: persistence_pb.CountRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: CountRsp) => void
-  ): grpcWeb.ClientReadableStream<CountRsp>;
+               response: persistence_pb.CountRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.CountRsp>;
 
   insertOne(
-    request: InsertOneRqst,
+    request: persistence_pb.InsertOneRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: InsertOneRsp) => void
-  ): grpcWeb.ClientReadableStream<InsertOneRsp>;
+               response: persistence_pb.InsertOneRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.InsertOneRsp>;
 
   find(
-    request: FindRqst,
+    request: persistence_pb.FindRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<FindResp>;
+  ): grpcWeb.ClientReadableStream<persistence_pb.FindResp>;
 
   findOne(
-    request: FindOneRqst,
+    request: persistence_pb.FindOneRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: FindOneResp) => void
-  ): grpcWeb.ClientReadableStream<FindOneResp>;
+               response: persistence_pb.FindOneResp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.FindOneResp>;
 
   aggregate(
-    request: AggregateRqst,
+    request: persistence_pb.AggregateRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<AggregateResp>;
+  ): grpcWeb.ClientReadableStream<persistence_pb.AggregateResp>;
 
   update(
-    request: UpdateRqst,
+    request: persistence_pb.UpdateRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: UpdateRsp) => void
-  ): grpcWeb.ClientReadableStream<UpdateRsp>;
+               response: persistence_pb.UpdateRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.UpdateRsp>;
 
   updateOne(
-    request: UpdateOneRqst,
+    request: persistence_pb.UpdateOneRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: UpdateOneRsp) => void
-  ): grpcWeb.ClientReadableStream<UpdateOneRsp>;
+               response: persistence_pb.UpdateOneRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.UpdateOneRsp>;
 
   replaceOne(
-    request: ReplaceOneRqst,
+    request: persistence_pb.ReplaceOneRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: ReplaceOneRsp) => void
-  ): grpcWeb.ClientReadableStream<ReplaceOneRsp>;
+               response: persistence_pb.ReplaceOneRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.ReplaceOneRsp>;
 
   delete(
-    request: DeleteRqst,
+    request: persistence_pb.DeleteRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteRsp>;
+               response: persistence_pb.DeleteRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DeleteRsp>;
 
   deleteOne(
-    request: DeleteOneRqst,
+    request: persistence_pb.DeleteOneRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: DeleteOneRsp) => void
-  ): grpcWeb.ClientReadableStream<DeleteOneRsp>;
+               response: persistence_pb.DeleteOneRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.DeleteOneRsp>;
 
   runAdminCmd(
-    request: RunAdminCmdRqst,
+    request: persistence_pb.RunAdminCmdRqst,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.Error,
-               response: RunAdminCmdRsp) => void
-  ): grpcWeb.ClientReadableStream<RunAdminCmdRsp>;
+               response: persistence_pb.RunAdminCmdRsp) => void
+  ): grpcWeb.ClientReadableStream<persistence_pb.RunAdminCmdRsp>;
 
 }
 
 export class PersistenceServicePromiseClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; });
+               options?: null | { [index: string]: any; });
 
   stop(
-    request: StopRequest,
+    request: persistence_pb.StopRequest,
     metadata?: grpcWeb.Metadata
-  ): Promise<StopResponse>;
+  ): Promise<persistence_pb.StopResponse>;
 
   createDatabase(
-    request: CreateDatabaseRqst,
+    request: persistence_pb.CreateDatabaseRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateDatabaseRsp>;
+  ): Promise<persistence_pb.CreateDatabaseRsp>;
 
   connect(
-    request: ConnectRqst,
+    request: persistence_pb.ConnectRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ConnectRsp>;
+  ): Promise<persistence_pb.ConnectRsp>;
 
   disconnect(
-    request: DisconnectRqst,
+    request: persistence_pb.DisconnectRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DisconnectRsp>;
+  ): Promise<persistence_pb.DisconnectRsp>;
 
   deleteDatabase(
-    request: DeleteDatabaseRqst,
+    request: persistence_pb.DeleteDatabaseRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteDatabaseRsp>;
+  ): Promise<persistence_pb.DeleteDatabaseRsp>;
 
   createCollection(
-    request: CreateCollectionRqst,
+    request: persistence_pb.CreateCollectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateCollectionRsp>;
+  ): Promise<persistence_pb.CreateCollectionRsp>;
 
   deleteCollection(
-    request: DeleteCollectionRqst,
+    request: persistence_pb.DeleteCollectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteCollectionRsp>;
+  ): Promise<persistence_pb.DeleteCollectionRsp>;
 
   createConnection(
-    request: CreateConnectionRqst,
+    request: persistence_pb.CreateConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CreateConnectionRsp>;
+  ): Promise<persistence_pb.CreateConnectionRsp>;
 
   deleteConnection(
-    request: DeleteConnectionRqst,
+    request: persistence_pb.DeleteConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteConnectionRsp>;
+  ): Promise<persistence_pb.DeleteConnectionRsp>;
 
   ping(
-    request: PingConnectionRqst,
+    request: persistence_pb.PingConnectionRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<PingConnectionRsp>;
+  ): Promise<persistence_pb.PingConnectionRsp>;
 
   count(
-    request: CountRqst,
+    request: persistence_pb.CountRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<CountRsp>;
+  ): Promise<persistence_pb.CountRsp>;
 
   insertOne(
-    request: InsertOneRqst,
+    request: persistence_pb.InsertOneRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<InsertOneRsp>;
+  ): Promise<persistence_pb.InsertOneRsp>;
 
   find(
-    request: FindRqst,
+    request: persistence_pb.FindRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<FindResp>;
+  ): grpcWeb.ClientReadableStream<persistence_pb.FindResp>;
 
   findOne(
-    request: FindOneRqst,
+    request: persistence_pb.FindOneRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<FindOneResp>;
+  ): Promise<persistence_pb.FindOneResp>;
 
   aggregate(
-    request: AggregateRqst,
+    request: persistence_pb.AggregateRqst,
     metadata?: grpcWeb.Metadata
-  ): grpcWeb.ClientReadableStream<AggregateResp>;
+  ): grpcWeb.ClientReadableStream<persistence_pb.AggregateResp>;
 
   update(
-    request: UpdateRqst,
+    request: persistence_pb.UpdateRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<UpdateRsp>;
+  ): Promise<persistence_pb.UpdateRsp>;
 
   updateOne(
-    request: UpdateOneRqst,
+    request: persistence_pb.UpdateOneRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<UpdateOneRsp>;
+  ): Promise<persistence_pb.UpdateOneRsp>;
 
   replaceOne(
-    request: ReplaceOneRqst,
+    request: persistence_pb.ReplaceOneRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<ReplaceOneRsp>;
+  ): Promise<persistence_pb.ReplaceOneRsp>;
 
   delete(
-    request: DeleteRqst,
+    request: persistence_pb.DeleteRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteRsp>;
+  ): Promise<persistence_pb.DeleteRsp>;
 
   deleteOne(
-    request: DeleteOneRqst,
+    request: persistence_pb.DeleteOneRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<DeleteOneRsp>;
+  ): Promise<persistence_pb.DeleteOneRsp>;
 
   runAdminCmd(
-    request: RunAdminCmdRqst,
+    request: persistence_pb.RunAdminCmdRqst,
     metadata?: grpcWeb.Metadata
-  ): Promise<RunAdminCmdRsp>;
+  ): Promise<persistence_pb.RunAdminCmdRsp>;
 
 }
 

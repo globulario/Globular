@@ -1,4 +1,6 @@
-import * as jspb from "google-protobuf"
+import * as jspb from 'google-protobuf'
+
+
 
 export class Empty extends jspb.Message {
   serializeBinary(): Uint8Array;
