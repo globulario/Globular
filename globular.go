@@ -17,7 +17,7 @@ import (
 	"os"
 	"os/exec"
 
-	//	"os/signal"
+	"context"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -94,7 +94,6 @@ type Globule struct {
 	AdminEmail                string // The admin email
 	RessourcePort             int    // The ressource management service port
 	RessourceProxy            int    // The ressource management proxy port
-	ConfigurationPort         int    // The port use to get the server configuration.
 	CertificateAuthorityPort  int    // The certificate authority port
 	CertificateAuthorityProxy int    // The certificate authority proxy port
 	ServicesDiscoveryPort     int    // The services discovery port
@@ -193,6 +192,10 @@ type Globule struct {
 	exit_           bool
 	inernalServices []*grpc.Server
 	subscribers     map[string]map[string][]string
+
+	// The http server
+	http_server  *http.Server
+	https_server *http.Server
 }
 
 /**
@@ -230,11 +233,9 @@ func NewGlobule() *Globule {
 	g.LdapSyncInfos = make(map[string]interface{}, 0)
 
 	// Configuration must be reachable before services initialysation
-	go func() {
-		// Promometheus metrics for services.
-		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":"+Utility.ToString(g.ConfigurationPort), nil)
-	}()
+
+	// Promometheus metrics for services.
+	http.Handle("/metrics", promhttp.Handler())
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -254,7 +255,6 @@ func NewGlobule() *Globule {
 		// save the configuration to set the port number.
 		portRange := strings.Split(g.PortsRange, "-")
 		start := Utility.ToInt(portRange[0])
-		g.ConfigurationPort = start
 		g.AdminPort = start + 1
 		g.AdminProxy = start + 2
 		g.AdminEmail = "admin@globular.app"
@@ -504,7 +504,7 @@ func (self *Globule) Serve() {
 	}
 
 	// I will save the variable in a tmp file to be sure I can get it outside
-	ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.ConfigurationPort)), 0644)
+	ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.PortHttp)), 0644)
 
 	// set the services.
 	self.initServices()
@@ -517,7 +517,6 @@ func (self *Globule) Serve() {
 	if err != nil {
 		log.Println(err)
 	}
-
 }
 
 /**
@@ -815,6 +814,20 @@ func (self *Globule) stopServices() {
 		}
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if self.https_server != nil {
+		if err := self.https_server.Shutdown(ctx); err != nil {
+			// handle err
+			log.Println(err)
+		}
+	}
+	if self.http_server != nil {
+		if err := self.http_server.Shutdown(ctx); err != nil {
+			// handle err
+			log.Println(err)
+		}
+	}
 }
 
 /**
@@ -1352,7 +1365,7 @@ func (self *Globule) startMonitoring() error {
 	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
 
 	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoringService_Client(s["Domain"].(string), "monitoring.MonitoringService")
+	m, err := monitoring_client.NewMonitoringService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), "monitoring.MonitoringService")
 	if err != nil {
 		return err
 	}
@@ -1485,11 +1498,10 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	}
 
 	var err error
-
 	s := configs[0]
 
 	// Cast-it to the persistence client.
-	self.persistence_client_, err = persistence_client.NewPersistenceService_Client(s["Domain"].(string), s["Id"].(string))
+	self.persistence_client_, err = persistence_client.NewPersistenceService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), s["Id"].(string))
 	if err != nil {
 		return nil, err
 	}
@@ -1497,7 +1509,6 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	// Connect to the database here.
 	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
-		log.Println("---> fail to create local_ressource connection! ", err)
 		return nil, err
 	}
 
@@ -1569,7 +1580,7 @@ func (self *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
 	s := configs[0]
 
 	if self.ldap_client_ == nil {
-		self.ldap_client_, err = ldap_client.NewLdapService_Client(s["Domain"].(string), "ldap.LdapService")
+		self.ldap_client_, err = ldap_client.NewLdapService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), "ldap.LdapService")
 	}
 
 	return self.ldap_client_, err
@@ -1590,7 +1601,7 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
-		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
+		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), s["Id"].(string))
 	}
 
 	return self.event_client_, err
@@ -1663,6 +1674,15 @@ func (self *Globule) Listen() error {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
+	// Must be started before other services.
+	go func() {
+		// local - non secure connection.
+		self.http_server = &http.Server{
+			Addr: ":" + strconv.Itoa(self.PortHttp),
+		}
+		err = self.http_server.ListenAndServe()
+	}()
+
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	// handle the Interrupt
 	// set the register sa user.
@@ -1676,7 +1696,7 @@ func (self *Globule) Listen() error {
 
 		// if no certificates are specified I will try to get one from let's encrypts.
 		// Start https server.
-		server := &http.Server{
+		self.https_server = &http.Server{
 			Addr: ":" + strconv.Itoa(self.PortHttps),
 			TLSConfig: &tls.Config{
 				ServerName: self.getDomain(),
@@ -1686,13 +1706,8 @@ func (self *Globule) Listen() error {
 		log.Println("Globular is running!")
 
 		// get the value from the configuration files.
-		err = server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+		err = self.https_server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
 
-	} else {
-		log.Println("Globular is running!")
-		//Utility.OpenBrowser("http://" + self.Domain + ":" + Utility.ToString(self.PortHttp))
-		// local - non secure connection.
-		err = http.ListenAndServe(":"+strconv.Itoa(self.PortHttp), nil)
 	}
 
 	return err

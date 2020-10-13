@@ -118,6 +118,7 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
  * Return the server local configuration if one exist.
  */
 func getLocalConfig() (map[string]interface{}, error) {
+
 	if !Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
 		return nil, errors.New("No local Globular instance found!")
 	}
@@ -125,8 +126,7 @@ func getLocalConfig() (map[string]interface{}, error) {
 	config := make(map[string]interface{}, 0)
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 
-	root_ := string(root)[0:strings.Index(string(root), ":")]
-
+	root_ := string(root)[0:strings.LastIndex(string(root), ":")]
 	data, err := ioutil.ReadFile(root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
 
 	if err != nil {
@@ -233,7 +233,7 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
  */
 func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}) (keyPath string, certPath string, caPath string, err error) {
 	var path string
-	port := 10000
+	port := 80 // default http server.
 	if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
 		root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 		root_ := string(root)[0:strings.Index(string(root), ":")]

@@ -43,7 +43,12 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 	// Connect to service update events...
 	for i := 0; i < len(self.Discoveries); i++ {
 		log.Println("Connect to discovery event hub ", self.Discoveries[i])
-		eventHub, err := event_client.NewEventService_Client(self.Discoveries[i], "event.EventService")
+		address := self.Discoveries[i]
+		if address == self.Domain {
+			address += ":" + Utility.ToString(self.PortHttp)
+		}
+
+		eventHub, err := event_client.NewEventService_Client(address, "event.EventService")
 		if err == nil {
 			log.Println("Connected with event service at ", self.Discoveries[i])
 			if subscribers[self.Discoveries[i]] == nil {
