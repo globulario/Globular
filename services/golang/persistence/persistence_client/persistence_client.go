@@ -47,6 +47,7 @@ type Persistence_Client struct {
 
 // Create a connection to the service.
 func NewPersistenceService_Client(address string, id string) (*Persistence_Client, error) {
+
 	client := new(Persistence_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {

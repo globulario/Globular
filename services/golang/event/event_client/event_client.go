@@ -57,6 +57,7 @@ type Event_Client struct {
 // Create a connection to the service.
 func NewEventService_Client(address string, id string) (*Event_Client, error) {
 	client := new(Event_Client)
+
 	err := globular.InitClient(client, address, id)
 	if err != nil {
 		return nil, err

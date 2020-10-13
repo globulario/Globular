@@ -87,10 +87,16 @@ func InitClient(client Client, address string, id string) error {
 
 	// Set the domain and the name from the incomming...
 	client.SetDomain(address)
+	address_ := strings.Split(address, ":")
+
+	port := 80 // the default http port...
+	if len(address_) == 2 {
+		address = address_[0]
+		port = Utility.ToInt(address_[1])
+	}
 
 	// Here I will initialyse the client
-	// TODO get the configuration port
-	config, err := security.GetClientConfig(address, id, 10000)
+	config, err := security.GetClientConfig(address, id, port)
 	if err != nil {
 		return err
 	}
@@ -187,14 +193,20 @@ func GetClientContext(client Client) context.Context {
 	// if the address is local.
 	path := os.TempDir() + string(os.PathSeparator) + client.GetDomain() + "_token"
 	token, err := ioutil.ReadFile(path)
+	address := client.GetDomain()
+	if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
+		root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+		port := Utility.ToInt(string(root)[strings.LastIndex(string(root), ":")+1:])
+		address += ":" + Utility.ToString(port)
+	}
 
 	if err == nil {
-		md := metadata.New(map[string]string{"token": string(token), "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+		md := metadata.New(map[string]string{"token": string(token), "domain": address, "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		return ctx
 	}
 
-	md := metadata.New(map[string]string{"token": "", "domain": client.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
+	md := metadata.New(map[string]string{"token": "", "domain": address, "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	return ctx
 
