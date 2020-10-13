@@ -1343,13 +1343,14 @@ func resolveImportPath(path string, importPath string) (string, error) {
  * Start the monitoring service with prometheus.
  */
 func (self *Globule) startMonitoring() error {
-	if self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"] == nil {
+	c := self.getServiceConfigByName("monitoring.MonitoringService")
+	if len(c) == 0 {
 		return errors.New("No monitoring service configuration was found on that server!")
 	}
 
 	var err error
 
-	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
+	s := c[0]
 
 	// Cast-it to the persistence client.
 	m, err := monitoring_client.NewMonitoringService_Client(s["Domain"].(string), "monitoring.MonitoringService")

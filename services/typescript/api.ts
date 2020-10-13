@@ -15,7 +15,9 @@ import {
     SetPasswordRequest,
 
     UninstallServiceRequest,
-    UninstallServiceResponse, HasRunningProcessRequest, HasRunningProcessResponse
+    UninstallServiceResponse, 
+    HasRunningProcessRequest, 
+    HasRunningProcessResponse
 } from "./admin/admin_pb";
 
 import {
@@ -123,6 +125,31 @@ const domain = window.location.hostname
 const application = window.location.pathname.split('/')[1]
 let token = localStorage.getItem("user_token")
 
+
+/**
+ * 
+ * @param globular 
+ * @param name 
+ * @param callback 
+ */
+export function hasRuningProcess(globular: Globular, name: string, callback: (result: boolean) => void) {
+    let rqst = new HasRunningProcessRequest
+    rqst.setName(name)
+
+    globular.adminService.hasRunningProcess(rqst, {
+        "token": token,
+        "application": application,
+        "domain": domain
+    })
+        .then((rsp: HasRunningProcessResponse) => {
+            callback(rsp.getResult())
+        })
+        .catch((err: any) => {
+            console.log(err)
+            callback(false)
+        })
+}
+
 /**
  * Return the globular configuration file. The return config object
  * can contain sensible information so it must be called with appropriate 
@@ -196,18 +223,18 @@ export function saveConfig(
  * @param name 
  * @param callback 
  */
-function hasRunningProcess(globular: Globular, name: string, callback:(result: boolean)=>void){
+function hasRunningProcess(globular: Globular, name: string, callback: (result: boolean) => void) {
     let rqst: HasRunningProcessRequest
     rqst.setName(name)
 
     globular.adminService.hasRunningProcess(rqst)
-    .then((rsp:HasRunningProcessResponse)=>{
-        callback(rsp.getResult())
-    })
-    .catch((err:any)=>{
-        console.log(err)
-        callback(false)
-    })
+        .then((rsp: HasRunningProcessResponse) => {
+            callback(rsp.getResult())
+        })
+        .catch((err: any) => {
+            console.log(err)
+            callback(false)
+        })
 }
 
 ///////////////////////////////////// Ressource & Permissions operations /////////////////////////////////
@@ -2569,16 +2596,16 @@ export function pingSql(
  * @param errorCallback The error callback.
  */
 export function searchDocuments(
-    globular: Globular, 
-    paths: string[], 
-    query: string, 
-    language: string, 
-    fields: string[], 
-    offset: number, 
-    pageSize: number, 
+    globular: Globular,
+    paths: string[],
+    query: string,
+    language: string,
+    fields: string[],
+    offset: number,
+    pageSize: number,
     snippetLength: number,
-    callback:(results: SearchResult[])=>void,
-    errorCallback:(err:any)=>void) {
+    callback: (results: SearchResult[]) => void,
+    errorCallback: (err: any) => void) {
 
     let rqst = new SearchDocumentsRequest
     rqst.setPathsList(paths)

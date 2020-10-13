@@ -1,5 +1,9 @@
 #!/bin/bash Run that command from inside your globular server.
 
+# It's better to regenerate the whole thing when something change, so
+# all the code will be in the same gRpc version. Trust  me I lost one 
+# day of my life just like that. But at then end I learn something...
+
 # GO grpc file generation
 protoc services/proto/admin.proto --go_out=plugins=grpc:./services/golang
 protoc services/proto/ressource.proto --go_out=plugins=grpc:./services/golang

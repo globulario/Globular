@@ -253,6 +253,9 @@ func (self *server) Init() error {
 		return err
 	}
 
+	self.stores = make(map[string]monitoring_store.Store)
+	self.Connections = make(map[string]connection)
+
 	return nil
 
 }
@@ -764,6 +767,7 @@ func main() {
 	s_impl.Port = port
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
+	s_impl.PublisherId = "localhost"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
 	s_impl.Permissions = make([]interface{}, 0)
