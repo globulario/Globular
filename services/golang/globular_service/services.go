@@ -306,6 +306,7 @@ func StartService(s Service, server *grpc.Server) error {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	<-ch
+	fmt.Println(s.GetId() + " is now stopped!")
 	return nil
 }
 

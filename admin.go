@@ -67,8 +67,10 @@ func (self *Globule) startAdminService() error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
-			Utility.KillProcessByName("mongod")
-			Utility.KillProcessByName("prometheus")
+
+			fmt.Println("admin service is now stopped!")
+			//Utility.KillProcessByName("mongod")
+			//Utility.KillProcessByName("prometheus")
 		}()
 	}
 	return err
@@ -1228,14 +1230,15 @@ func (self *Globule) stopService(serviceId string) error {
 		return errors.New("No process running")
 	}
 
-	err := s["Process"].(*exec.Cmd).Process.Signal(os.Interrupt)
+	err := Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid)
 
 	if err != nil {
 		return err
 	}
 
 	if s["ProxyProcess"] != nil {
-		err := s["ProxyProcess"].(*exec.Cmd).Process.Signal(os.Interrupt)
+		err := Utility.TerminateProcess(s["ProxyProcess"].(*exec.Cmd).Process.Pid)
+
 		// time.Sleep(time.Second * 1)
 		if err != nil {
 			return err

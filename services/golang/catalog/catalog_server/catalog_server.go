@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"log"
-	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,7 +21,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
@@ -2209,72 +2204,16 @@ func main() {
 	s_impl.AllowedOrigins = allowed_origins
 
 	// Here I will retreive the list of connections from file if there are some...
-	s_impl.Init()
-
-	// First of all I will creat a listener.
-	// Create the channel to listen on
-	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
+	err := s_impl.Init()
 	if err != nil {
-		log.Fatalf("could not list on %s: %s", s_impl.Domain, err)
-		return
+		log.Fatalf("Fail to initialyse service %s: %s", s_impl.Name, s_impl.Id, err)
 	}
 
-	var grpcServer *grpc.Server
-	if s_impl.TLS {
-		// Load the certificates from disk
-		certificate, err := tls.LoadX509KeyPair(s_impl.CertFile, s_impl.KeyFile)
-		if err != nil {
-			log.Fatalf("could not load server key pair: %s", err)
-			return
-		}
+	// Register the echo services
+	catalogpb.RegisterCatalogServiceServer(s_impl.grpcServer, s_impl)
+	reflection.Register(s_impl.grpcServer)
 
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(s_impl.CertAuthorityTrust)
-		if err != nil {
-			log.Fatalf("could not read ca certificate: %s", err)
-			return
-		}
-
-		// Append the client certificates from the CA
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			log.Fatalf("failed to append client certs")
-			return
-		}
-
-		// Create the TLS credentials
-		creds := credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{certificate},
-			ClientCAs:    certPool,
-		})
-
-		// Create the gRPC server with the credentials
-		grpcServer = grpc.NewServer(grpc.Creds(creds))
-
-	} else {
-		grpcServer = grpc.NewServer()
-	}
-
-	catalogpb.RegisterCatalogServiceServer(grpcServer, s_impl)
-	reflection.Register(grpcServer)
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	go func() {
-		log.Println(s_impl.Name + " grpc service is starting")
-		// no web-rpc server.
-		if err := grpcServer.Serve(lis); err != nil {
-			f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-			if err != nil {
-				log.Fatalf("error opening file: %v", err)
-			}
-			defer f.Close()
-		}
-		log.Println(s_impl.Name + " grpc service is closed")
-	}()
-
-	// Wait for signal to stop.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	<-ch
+	// Start the service.
+	s_impl.StartService()
 
 }

@@ -152,6 +152,7 @@ func (self *Globule) startDiscoveryService() error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+			fmt.Println("dicovery service is now stopped!")
 		}()
 	}
 	return err
@@ -188,6 +189,7 @@ func (self *Globule) startRepositoryService() error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+			fmt.Println("repository service is now stopped!")
 		}()
 	}
 	return err

@@ -6,8 +6,8 @@ import (
 
 	"os/exec"
 
+	"fmt"
 	"io/ioutil"
-
 	"log"
 	"net"
 	"os/signal"
@@ -49,6 +49,7 @@ func (self *Globule) startCertificateAuthorityService() error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+			fmt.Println("certificate authority service is now stopped!")
 		}()
 	}
 	return err

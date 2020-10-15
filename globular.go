@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -16,15 +17,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-
-	"context"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
-
-	//	"syscall"
+	"syscall"
 	"time"
 
 	//	"github.com/davecourtois/Globular/services/golang/globular_client"
@@ -606,7 +604,7 @@ func (self *Globule) registerIpToDns() error {
 func (self *Globule) startProxy(id string, port int, proxy int) error {
 	srv := self.Services[id]
 	if srv.(map[string]interface{})["ProxyProcess"] != nil {
-		srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Signal(os.Interrupt)
+		Utility.TerminateProcess(srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Pid)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -659,7 +657,9 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
-
+	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
 	err := proxyProcess.Start()
 
 	if err != nil {
@@ -854,7 +854,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		if srv.(map[string]interface{})["Process"] != nil {
 			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
 				if srv.(map[string]interface{})["Process"].(*exec.Cmd).Process != nil {
-					srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Signal(os.Interrupt)
+					Utility.TerminateProcess(srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Pid)
 				}
 			}
 		}
@@ -963,6 +963,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		// Here I will set the command dir.
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
+		s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		}
 
 		err = s["Process"].(*exec.Cmd).Start()
 		if err != nil {
@@ -1070,6 +1073,11 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 			// Here I will set the command dir.
 			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
+			err = s["Process"].(*exec.Cmd).Start()
+			s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
+				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			}
+
 			err = s["Process"].(*exec.Cmd).Start()
 			if err != nil {
 				// The process already exist so I will not throw an error and I will use existing process instead. I will make the
@@ -1455,12 +1463,21 @@ inhibit_rules:
 
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
+	prometheus.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+
+	err = s["Process"].(*exec.Cmd).Start()
 	if err != nil {
 		log.Println("fail to start monitoring with prometheus", err)
 		return err
 	}
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
+	alertmanager.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+
 	err = alertmanager.Start()
 	if err != nil {
 		log.Println("fail to start prometheus node exporter", err)
@@ -1468,6 +1485,10 @@ inhibit_rules:
 	}
 
 	node_exporter := exec.Command("node_exporter")
+	node_exporter.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+
 	err = node_exporter.Start()
 	if err != nil {
 		log.Println("fail to start prometheus node exporter", err)

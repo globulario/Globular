@@ -63,6 +63,7 @@ func (self *Globule) startRessourceService() error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 			<-ch
+			fmt.Println("ressource service is now stopped!")
 
 		}()
 
