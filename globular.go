@@ -821,12 +821,14 @@ func (self *Globule) stopServices() {
 			// handle err
 			log.Println(err)
 		}
+		log.Println("stop listen(https) at port ", self.PortHttps)
 	}
 	if self.http_server != nil {
 		if err := self.http_server.Shutdown(ctx); err != nil {
 			// handle err
 			log.Println(err)
 		}
+		log.Println("stop listen(http) at port ", self.PortHttp)
 	}
 }
 
@@ -1703,13 +1705,13 @@ func (self *Globule) Listen() error {
 			},
 		}
 
-		log.Println("Globular is running!")
-
 		// get the value from the configuration files.
-		err = self.https_server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
-
+		go func() {
+			err = self.https_server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+		}()
 	}
 
+	log.Println("Globular is running!")
 	return err
 }
 
