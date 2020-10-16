@@ -478,43 +478,6 @@ func (self *Ressource_Client) ValidateApplicationAccess(application string, meth
 	return rsp.GetResult(), nil
 }
 
-func (self *Ressource_Client) CreateDirPermissions(token string, path string, name string) error {
-	rqst := &ressourcepb.CreateDirPermissionsRqst{
-		Token: token,
-		Path:  path,
-		Name:  name,
-	}
-	_, err := self.c.CreateDirPermissions(globular.GetClientContext(self), rqst)
-	return err
-}
-
-func (self *Ressource_Client) RenameFilePermission(path string, oldName string, newName string) error {
-	rqst := &ressourcepb.RenameFilePermissionRqst{
-		Path:    path,
-		OldName: oldName,
-		NewName: newName,
-	}
-
-	_, err := self.c.RenameFilePermission(globular.GetClientContext(self), rqst)
-	return err
-}
-
-func (self *Ressource_Client) DeleteDirPermissions(path string) error {
-	rqst := &ressourcepb.DeleteDirPermissionsRqst{
-		Path: path,
-	}
-	_, err := self.c.DeleteDirPermissions(globular.GetClientContext(self), rqst)
-	return err
-}
-
-func (self *Ressource_Client) DeleteFilePermissions(path string) error {
-	rqst := &ressourcepb.DeleteFilePermissionsRqst{
-		Path: path,
-	}
-	_, err := self.c.DeleteFilePermissions(globular.GetClientContext(self), rqst)
-	return err
-}
-
 func (self *Ressource_Client) DeleteRolePermissions(id string) error {
 	rqst := &ressourcepb.DeleteRolePermissionsRqst{
 		Id: id,
@@ -531,17 +494,17 @@ func (self *Ressource_Client) DeleteAccountPermissions(id string) error {
 	return err
 }
 
-func (self *Ressource_Client) GetActionPermission(action string) (int32, error) {
+func (self *Ressource_Client) GetActionPermission(action string) ([]*ressourcepb.ActionParameterRessourcePermission, error) {
 	rqst := &ressourcepb.GetActionPermissionRqst{
 		Action: action,
 	}
 
 	rsp, err := self.c.GetActionPermission(globular.GetClientContext(self), rqst)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
-	return rsp.Permission, nil
+	return rsp.ActionParameterRessourcePermissions, nil
 }
 
 func (self *Ressource_Client) SetRessource(name string, path string, modified int64, size int64, token string) error {
@@ -587,13 +550,15 @@ func (self *Ressource_Client) SetRessourceOwner(owner string, path string, token
 }
 
 // Set action permission
-func (self *Ressource_Client) SetActionPermission(action string, permission int32, token string) error {
+func (self *Ressource_Client) SetActionPermission(action string, actionParameterRessourcePermissions []*ressourcepb.ActionParameterRessourcePermission, token string) error {
 	var err error
+
 	// Set action permission.
 	rqst := &ressourcepb.SetActionPermissionRqst{
-		Action:     action,
-		Permission: permission,
+		Action:                              action,
+		ActionParameterRessourcePermissions: actionParameterRessourcePermissions,
 	}
+
 	if len(token) > 0 {
 		md := metadata.New(map[string]string{"token": string(token), "domain": self.GetDomain(), "mac": Utility.MyMacAddr(), "ip": Utility.MyIP()})
 		ctx := metadata.NewOutgoingContext(context.Background(), md)

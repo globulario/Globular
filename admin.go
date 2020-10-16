@@ -435,7 +435,6 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	// Copy the files to it final destination
 	abosolutePath := self.webRoot
-	log.Println("----------> deploy to domain ", domain)
 	if len(domain) > 0 {
 		if Utility.Exists(abosolutePath + "/" + domain) {
 			abosolutePath += "/" + domain

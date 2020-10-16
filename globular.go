@@ -145,7 +145,6 @@ type Globule struct {
 
 	// The list of method supported by this server.
 	methods []string
-
 	// Array of action permissions
 	actionPermissions []interface{}
 
@@ -658,7 +657,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	err := proxyProcess.Start()
 
@@ -964,7 +963,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Here I will set the command dir.
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 		s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
@@ -1075,7 +1074,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			err = s["Process"].(*exec.Cmd).Start()
 			s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
 			err = s["Process"].(*exec.Cmd).Start()
@@ -1218,20 +1217,18 @@ func (self *Globule) initServices() {
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
 	self.methods = append(self.methods, "/file.FileService/FileUploadHandler")
-
 	self.actionPermissions = make([]interface{}, 0)
 
 	// Set local action permission
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeletePermissions", "permission": 1})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/SetRessourceOwner", "permission": 2})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeleteRessourceOwner", "permission": 2})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "permission": 2})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "permission": 2})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeletePermissions", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/SetRessourceOwner", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeleteRessourceOwner", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
 	if !Utility.Exists(configPath) {
-		log.Println("--->  create new globular configuration")
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -1464,7 +1461,7 @@ inhibit_rules:
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
 	prometheus.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = s["Process"].(*exec.Cmd).Start()
@@ -1475,7 +1472,7 @@ inhibit_rules:
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = alertmanager.Start()
@@ -1486,7 +1483,7 @@ inhibit_rules:
 
 	node_exporter := exec.Command("node_exporter")
 	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = node_exporter.Start()

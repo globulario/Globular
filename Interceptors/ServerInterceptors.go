@@ -9,20 +9,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Globular/services/golang/file/filepb"
 	globular "github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 	"github.com/davecourtois/Globular/services/golang/lb/load_balancing_client"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Globular/services/golang/storage/storage_store"
 	"github.com/davecourtois/Utility"
-
 	"github.com/shirou/gopsutil/load"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
@@ -52,8 +52,6 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 		if err != nil {
 			return nil, err
 		}
-
-		fmt.Println("----> start load balancing for ", serviceName)
 
 		// Here I will create the client map.
 		clients = make(map[string]globular.Client)
@@ -320,25 +318,37 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Now I will test file permission.
 	if clientId != "sa" {
-
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
-		permission, err := ressource_client.GetActionPermission(method)
-		if err == nil && permission != -1 {
-			// I will test if the user has file permission.
-			err = ValidateUserRessourceAccess(domain, token, method, path, permission)
-			if err != nil {
-				if len(application) == 0 {
-					return nil, err
-				}
-				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
-				if err != nil {
-					return nil, err
+		actionParameterRessourcesPermissions, err := ressource_client.GetActionPermission(method)
+		if err == nil {
+			val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
+			rqst_ := val.(protoreflect.Message)
+			if rqst_.Descriptor().Fields().Len() > 0 {
+				for i := 0; i < len(actionParameterRessourcesPermissions); i++ {
+					permission := actionParameterRessourcesPermissions[i].Permission
+
+					// Here I will get the paremeter that represent the path of a ressource.
+					param := rqst_.Descriptor().Fields().Get(int(actionParameterRessourcesPermissions[i].Index))
+					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
+
+					fmt.Println("validate ressource ", path, permission)
+
+					// I will test if the user has file permission.
+					err := ValidateUserRessourceAccess(domain, token, method, Utility.ToString(path), permission)
+					if err != nil {
+						if len(application) == 0 {
+							return nil, err
+						}
+						err = ValidateApplicationRessourceAccess(domain, application, method, Utility.ToString(path), permission)
+						if err != nil {
+							return nil, err
+						}
+					}
+
 				}
 			}
-
 		}
-
 	}
 
 	// Here I will exclude local service from the load balancing.
@@ -428,49 +438,85 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		ressource_client.Log(application, clientId, method, err)
 	}
 
-	// Here depending of the request I will execute more actions.
-	if err == nil {
-		if method == "/file.FileService/CreateDir" && clientId != "sa" {
-			rqst := rqst.(*filepb.CreateDirRequest)
-			err := ressource_client.CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
-			if err != nil {
-				fmt.Println(err)
-				return nil, err
-			}
+	return result, err
 
-			// Here I will set the ressource owner for the directory.
-			if strings.HasSuffix(rqst.GetPath(), "/") {
-				ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+rqst.GetName(), "")
-			} else {
-				ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+"/"+rqst.GetName(), "")
-			}
+}
 
-		} else if method == "/file.FileService/Rename" {
-			rqst := rqst.(*filepb.RenameRequest)
-			err := ressource_client.RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
-			if err != nil {
-				fmt.Println(err)
-				return nil, err
-			}
-		} else if method == "/file.FileService/DeleteFile" {
-			rqst := rqst.(*filepb.DeleteFileRequest)
-			err := ressource_client.DeleteFilePermissions(rqst.GetPath())
-			if err != nil {
-				fmt.Println(err)
-				return nil, err
-			}
-		} else if method == "/file.FileService/DeleteDir" {
-			rqst := rqst.(*filepb.DeleteDirRequest)
-			err := ressource_client.DeleteDirPermissions(rqst.GetPath())
-			if err != nil {
-				fmt.Println(err)
-				return nil, err
+// A wrapper for the real grpc.ServerStream
+type ServerStreamInterceptorStream struct {
+	inner       grpc.ServerStream
+	method      string
+	domain      string
+	token       string
+	application string
+	clientId    string
+}
+
+func (l ServerStreamInterceptorStream) SetHeader(m metadata.MD) error {
+	return l.inner.SetHeader(m)
+}
+
+func (l ServerStreamInterceptorStream) SendHeader(m metadata.MD) error {
+	return l.inner.SendHeader(m)
+}
+
+func (l ServerStreamInterceptorStream) SetTrailer(m metadata.MD) {
+	l.inner.SetTrailer(m)
+}
+
+func (l ServerStreamInterceptorStream) Context() context.Context {
+	return l.inner.Context()
+}
+
+func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
+	return l.inner.SendMsg(m)
+}
+
+/**
+ * Here I will wrap the original into this one to get access to the original
+ * rqst, so I can validate it ressources.
+ */
+func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
+
+	var err error
+	ressource_client, err := getRessourceClient(l.domain)
+	if err != nil {
+		return err
+	}
+
+	if l.clientId != "sa" {
+		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
+		rqst_ := val.(protoreflect.Message)
+
+		actionParameterRessourcesPermissions, err := ressource_client.GetActionPermission(l.method)
+		if err == nil {
+			// The token and the application id.
+			if rqst_.Descriptor().Fields().Len() > 0 {
+				for i := 0; i < len(actionParameterRessourcesPermissions); i++ {
+					permission := actionParameterRessourcesPermissions[i].Permission
+					// Here I will get the paremeter that represent the path of a ressource.
+					param := rqst_.Descriptor().Fields().Get(int(actionParameterRessourcesPermissions[i].Index))
+					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
+
+					// I will test if the user has file permission.
+					err := ValidateUserRessourceAccess(l.domain, l.token, l.method, Utility.ToString(path), permission)
+					if err != nil {
+						if len(l.application) == 0 {
+							ressource_client.Log("", l.clientId, l.method, err)
+							return err
+						}
+						err = ValidateApplicationRessourceAccess(l.domain, l.application, l.method, Utility.ToString(path), permission)
+						if err != nil {
+							ressource_client.Log(l.application, l.clientId, l.method, err)
+							return err
+						}
+					}
+				}
 			}
 		}
 	}
 
-	return result, err
-
+	return l.inner.RecvMsg(rqst)
 }
 
 // Stream interceptor.
@@ -480,22 +526,11 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	var token string
 	var application string
 	var domain string
-	var path string
-	//var ip string
-
-	//var mac string
-	//Get the caller ip address.
-	//p, _ := peer.FromContext(stream.Context())
-	//ip = p.Addr.String()
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
-		path = strings.Join(md["path"], "")
 		//mac = strings.Join(md["mac"], "")
-		if !strings.HasPrefix(path, "/") {
-			path = "/" + path
-		}
 		domain = strings.Join(md["domain"], "")
 	}
 
@@ -509,11 +544,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		if err != nil {
 			return err
 		}
-	}
-
-	ressource_client, err := getRessourceClient(domain)
-	if err != nil {
-		return err
 	}
 
 	// If the call come from a local client it has hasAccess
@@ -540,36 +570,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	// Now the permissions
-	if len(path) > 0 && clientId != "sa" {
-		permission, err := ressource_client.GetActionPermission(method)
-		if err == nil && permission != -1 {
-			// I will test if the user has file permission.
-			err = ValidateUserRessourceAccess(domain, token, method, path, permission)
-			if err != nil {
-				if len(application) == 0 {
-					return err
-				}
-				err = ValidateApplicationRessourceAccess(domain, application, method, path, permission)
-				if err != nil {
-					return err
-				}
-			}
-
-		}
-	} else if clientId != "sa" {
-		permission, err := ressource_client.GetActionPermission(method)
-		if err == nil && permission != -1 {
-			return errors.New("Permission denied to execute method " + method)
-		}
-	}
-
-	err = handler(srv, stream)
-
-	// TODO find when the stream is closing and log only one time.
-	//if err == io.EOF {
-	// Send log event...
-	ressource_client.Log(application, clientId, method, err)
-	//}
+	err = handler(srv, ServerStreamInterceptorStream{inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId})
 
 	if err != nil {
 		fmt.Println(err)

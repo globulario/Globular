@@ -875,18 +875,18 @@ func main() {
 
 	// So here I will set the default permissions for services actions.
 	// Permission are use in conjonctions of ressource.
-	s_impl.Permissions[0] = map[string]interface{}{"action": "/file.FileService/ReadDir", "permission": 4}
-	s_impl.Permissions[1] = map[string]interface{}{"action": "/file.FileService/CreateDir", "permission": 2}
-	s_impl.Permissions[2] = map[string]interface{}{"action": "/file.FileService/DeleteDir", "permission": 1}
-	s_impl.Permissions[3] = map[string]interface{}{"action": "/file.FileService/Rename", "permission": 2}
-	s_impl.Permissions[4] = map[string]interface{}{"action": "/file.FileService/GetFileInfo", "permission": 4}
-	s_impl.Permissions[5] = map[string]interface{}{"action": "/file.FileService/ReadFile", "permission": 4}
-	s_impl.Permissions[6] = map[string]interface{}{"action": "/file.FileService/SaveFile", "permission": 2}
-	s_impl.Permissions[7] = map[string]interface{}{"action": "/file.FileService/DeleteFile", "permission": 1}
-	s_impl.Permissions[8] = map[string]interface{}{"action": "/file.FileService/GetThumbnails", "permission": 4}
-	s_impl.Permissions[9] = map[string]interface{}{"action": "/file.FileService/WriteExcelFile", "permission": 2}
-	s_impl.Permissions[10] = map[string]interface{}{"action": "/file.FileService/CreateAchive", "permission": 2}
-	s_impl.Permissions[11] = map[string]interface{}{"action": "/file.FileService/FileUploadHandler", "permission": 2}
+	s_impl.Permissions[0] = map[string]interface{}{"action": "/file.FileService/ReadDir", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 4}}}
+	s_impl.Permissions[1] = map[string]interface{}{"action": "/file.FileService/CreateDir", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}}
+	s_impl.Permissions[2] = map[string]interface{}{"action": "/file.FileService/DeleteDir", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}}
+	s_impl.Permissions[3] = map[string]interface{}{"action": "/file.FileService/Rename", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}}
+	s_impl.Permissions[4] = map[string]interface{}{"action": "/file.FileService/GetFileInfo", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 4}}}
+	s_impl.Permissions[5] = map[string]interface{}{"action": "/file.FileService/ReadFile", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 4}}}
+	s_impl.Permissions[6] = map[string]interface{}{"action": "/file.FileService/SaveFile", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}}
+	s_impl.Permissions[7] = map[string]interface{}{"action": "/file.FileService/DeleteFile", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}}
+	s_impl.Permissions[8] = map[string]interface{}{"action": "/file.FileService/GetThumbnails", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 4}}}
+	s_impl.Permissions[9] = map[string]interface{}{"action": "/file.FileService/WriteExcelFile", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}}
+	s_impl.Permissions[10] = map[string]interface{}{"action": "/file.FileService/CreateAchive", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}}
+	s_impl.Permissions[11] = map[string]interface{}{"action": "/file.FileService/FileUploadHandler", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}}
 
 	// Set the root path if is pass as argument.
 	if len(os.Args) > 2 {

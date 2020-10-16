@@ -329,42 +329,6 @@ message ValidateApplicationRessourceAccessRsp{
 	bool result=1;
 }
 
-message CreateDirPermissionsRqst{
-	string token = 1;
-	string path = 2;
-	string name = 3;
-}
-
-message CreateDirPermissionsRsp{
-	bool result=1;
-}
-
-message RenameFilePermissionRqst{
-	string path = 1;
-	string oldName = 2;
-	string newName = 3;
-}
-
-message RenameFilePermissionRsp{
-	bool result=1;
-}
-
-message DeleteDirPermissionsRqst{
-	string path = 1;
-}
-
-message DeleteDirPermissionsRsp{
-	bool result=1;
-}
-
-message DeleteFilePermissionsRqst{
-	string path = 1;
-}
-
-message DeleteFilePermissionsRsp{
-	bool result=1;
-}
-
 message AccountExistRqst{
 	string id = 1;
 }
@@ -428,7 +392,6 @@ message SetLogMethodRsp{
 	bool result=1;
 }
 
-
 message ResetLogMethodRqst{
 	string method = 1;
 }
@@ -464,7 +427,7 @@ message ClearAllLogRsp{
 
 /** A ressource can be anything with a path an a name **/
 message Ressource {
-	string path = 1;
+	string path = 1; // can be recursive.
 	string name = 2;
 	int64 modified =3;
 	int64 size = 4;
@@ -478,9 +441,17 @@ message SetRessourceRsp{
 	bool result=1;
 }
 
+// gRpc action can modified, delete or create ressource.
+// This message specified what parameter of the Action permission
+// as effect on a ressource and if so what permission is require.
+message ActionParameterRessourcePermission{
+	int32 index = 1; // The index of the parameter in the function start from 0
+	int32 permission = 2; // The assciated ressource permission nunber.
+}
+
 message SetActionPermissionRqst{
 	string action = 1;
-	int32 permission = 2;
+	repeated ActionParameterRessourcePermission actionParameterRessourcePermissions = 2;
 }
 
 message SetActionPermissionRsp{
@@ -489,11 +460,10 @@ message SetActionPermissionRsp{
 
 message GetActionPermissionRqst{
 	string action = 1;
-
 }
 
 message GetActionPermissionRsp{
-	int32 permission = 1;
+	repeated ActionParameterRessourcePermission actionParameterRessourcePermissions = 1;
 }
 
 message RemoveRessourceRqst{
@@ -570,7 +540,7 @@ service RessourceService {
 	/** Get all actions **/
 	rpc GetAllActions(GetAllActionsRqst) returns(GetAllActionsRsp);
 	
-	/** Get All permissions for a given file/dir **/
+	/**  **/
 	rpc GetPermissions(GetPermissionsRqst) returns(GetPermissionsRsp);
 	
 	/** Set a file permission, create new one if not already exist. **/
@@ -609,18 +579,6 @@ service RessourceService {
 	/** Validate if application can access a given method. **/
 	rpc ValidateApplicationAccess(ValidateApplicationAccessRqst) returns (ValidateApplicationAccessRsp);
 		
-	/** Create Permission for a dir (recursive) **/
-	rpc CreateDirPermissions(CreateDirPermissionsRqst) returns(CreateDirPermissionsRsp);
-	
-	/** Rename file/dir permission **/
-	rpc RenameFilePermission(RenameFilePermissionRqst) returns(RenameFilePermissionRsp);
-	
-	/** Delete Permission for a dir (recursive) **/
-	rpc DeleteDirPermissions(DeleteDirPermissionsRqst) returns(DeleteDirPermissionsRsp);
-	
-	/** Delete a single file permission **/
-	rpc DeleteFilePermissions(DeleteFilePermissionsRqst) returns(DeleteFilePermissionsRsp);
-
 	/** Delete all permission for a given account **/
 	rpc DeleteAccountPermissions(DeleteAccountPermissionsRqst) returns(DeleteAccountPermissionsRsp);
 	
