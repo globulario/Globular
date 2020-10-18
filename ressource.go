@@ -829,11 +829,9 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressourcepb.Delete
 	}
 
 	// Delete permissions
-	err = p.Delete(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.Id+`"}`, "")
+	err = self.deleteAccountPermissions("/" + rqst.Id)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return nil, err
 	}
 
 	// Delete the token.
@@ -995,12 +993,9 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *ressourcepb.DeleteRol
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Delete permissions
-	err = p.Delete(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"owner":"`+rqst.RoleId+`"}`, "")
+	err = self.deleteRolePermissions("/" + rqst.RoleId)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return nil, err
 	}
 
 	return &ressourcepb.DeleteRoleRsp{Result: true}, nil
@@ -1782,8 +1777,18 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 				hasAccess = true
 			}
 
-			// TODO validate ressource access!
+			// If a ressource is set set it ressource owner.
+			if method == "/ressource.RessourceService/SetRessource" {
+				if clientId != "sa" {
+					rqst := req.(*ressourcepb.SetRessourceRqst)
 
+					// In that case i will set the userId as the owner of the ressourcepb.
+					err := self.setRessourceOwner(clientId, rqst.Ressource.Path+"/"+rqst.Ressource.Name)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
 		}
 	}
 
