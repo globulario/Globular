@@ -15,9 +15,6 @@ import (
 	"reflect"
 
 	"fmt"
-
-	"io/ioutil"
-
 	"path/filepath"
 
 	"net"
@@ -1538,27 +1535,6 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 		path = path[0 : len(path)-1]
 	}
 
-	// here I if the ressource is a directory I will set the permission on
-	// subdirectory and files...
-	fileInfo, err := os.Stat(self.GetAbsolutePath(path))
-	if err == nil {
-		if fileInfo.IsDir() {
-			files, err := ioutil.ReadDir(self.GetAbsolutePath(path))
-			if err == nil {
-				for i := 0; i < len(files); i++ {
-					file := files[i]
-					if strings.HasSuffix(path, "/") {
-						self.setRessourceOwner(owner, path+file.Name())
-					} else {
-						self.setRessourceOwner(owner, path+"/"+file.Name())
-					}
-				}
-			} else {
-				return err
-			}
-		}
-	}
-
 	// Here I will set ressources whit that path, be sure to have different
 	// path than application and webroot path if you dont want permission follow each other.
 	ressources, err := self.getRessources(path)
@@ -1571,22 +1547,7 @@ func (self *Globule) setRessourceOwner(owner string, path string) error {
 				// set sub-path...
 				for j := 0; j < len(paths); j++ {
 					path_ += "/" + paths[j]
-					ressourceOwner := make(map[string]interface{})
-					ressourceOwner["owner"] = owner
-					ressourceOwner["path"] = path_
-					// force the id to be the same for ressource with the same owner and path.
-					ressourceOwner["_id"] = Utility.GenerateUUID(owner + path_)
-
-					// Here if the
-					jsonStr, err := Utility.ToJson(&ressourceOwner)
-					if err != nil {
-						return err
-					}
-
-					err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", jsonStr, jsonStr, `[{"upsert":true}]`)
-					if err != nil {
-						return err
-					}
+					self.setRessourceOwner(owner, path_)
 				}
 			}
 
@@ -2098,12 +2059,8 @@ func (self *Globule) setRessource(r *ressourcepb.Ressource) error {
 		return err
 	}
 
-	// Here I will generate the _id key
-	_id := Utility.GenerateUUID(r.Path + r.Name)
-	jsonStr = `{ "_id" : "` + _id + `",` + jsonStr[1:]
-
 	// Always create a new if not already exist.
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Ressources", `{ "_id" : "`+_id+`"}`, jsonStr, `[{"upsert": true}]`)
+	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Ressources", `{ "path" : "`+r.Path+`", "name":"`+r.Name+`"}`, jsonStr, `[{"upsert": true}]`)
 	if err != nil {
 		return err
 	}
@@ -2246,10 +2203,10 @@ func (self *Globule) GetRessources(rqst *ressourcepb.GetRessourcesRqst, stream r
 
 	// Send the last infos...
 	if len(ressources) > 0 {
-
 		rsp := &ressourcepb.GetRessourcesRsp{
 			Ressources: ressources,
 		}
+
 		err = stream.Send(rsp)
 		if err != nil {
 			return status.Errorf(
@@ -2298,8 +2255,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressourcepb.Remo
 
 	// Now I will delete the ressourcepb.
 	for i := 0; i < len(toDelete); i++ {
-		id := Utility.GenerateUUID(toDelete[i].Path + toDelete[i].Name)
-		err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Ressources", `{"_id":"`+id+`"}`, "")
+		err := p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Ressources", `{"path":"`+toDelete[i].Path+`", "name":"`+toDelete[i].Name+`"}`, "")
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -2316,7 +2272,7 @@ func (self *Globule) RemoveRessource(ctx context.Context, rqst *ressourcepb.Remo
 		}
 	}
 
-	// In that case the
+	// Remove the ressource owner's
 	if len(rqst.Ressource.Name) == 0 {
 		self.deletePermissions(rqst.Ressource.Path, "")
 		err = p.Delete(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+rqst.Ressource.Path+`"}`, "")

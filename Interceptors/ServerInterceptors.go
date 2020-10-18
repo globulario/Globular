@@ -90,7 +90,7 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 /**
  * Get a the local ressource client.
  */
-func getRessourceClient(domain string) (*ressource_client.Ressource_Client, error) {
+func GetRessourceClient(domain string) (*ressource_client.Ressource_Client, error) {
 	var err error
 	if ressource_client_ == nil {
 		ressource_client_, err = ressource_client.NewRessourceService_Client(domain, "ressource.RessourceService")
@@ -123,7 +123,7 @@ func ValidateUserRessourceAccess(domain string, token string, method string, pat
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func ValidateApplicationRessourceAccess(domain string, applicationName string, m
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 		return true, nil
 	}
 
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return false, err
 	}
@@ -207,7 +207,7 @@ func ValidateApplicationAccess(domain string, application string, method string)
 		return true, nil
 	}
 
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return false, err
 	}
@@ -229,7 +229,7 @@ func ValidateApplicationAccess(domain string, application string, method string)
 
 // Refresh a token.
 func refreshToken(domain string, token string) (string, error) {
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return "", err
 	}
@@ -304,7 +304,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	}
 
 	// Connect to the ressource services for the given domain.
-	ressource_client, err := getRessourceClient(domain)
+	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
 		return nil, err
 	}
@@ -473,13 +473,13 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
 }
 
 /**
- * Here I will wrap the original into this one to get access to the original
+ * Here I will wrap the original stream into this one to get access to the original
  * rqst, so I can validate it ressources.
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
 	var err error
-	ressource_client, err := getRessourceClient(l.domain)
+	ressource_client, err := GetRessourceClient(l.domain)
 	if err != nil {
 		return err
 	}

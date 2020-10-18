@@ -532,6 +532,8 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// Here I will create the directory ressource
+
 	// The directory was successfuly created.
 	return &filepb.CreateDirResponse{
 		Result: true,
