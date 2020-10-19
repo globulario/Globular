@@ -54,6 +54,8 @@ import (
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 
+	"sync"
+
 	"github.com/davecourtois/Globular/security"
 	globular "github.com/davecourtois/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Globular/services/golang/persistence/persistence_store"
@@ -291,56 +293,6 @@ func NewGlobule() *Globule {
 	// Keep in global var to by http handlers.
 	globule = g
 
-	go func() {
-		for {
-			select {
-			case action := <-g.services:
-				if action["name"] == "getServices" {
-					action["result"].(chan map[string]interface{}) <- g.Services
-				} else if action["name"] == "getService" {
-					id := action["id"].(string)
-					if g.Services[id] != nil {
-						action["result"].(chan map[string]interface{}) <- g.Services[id].(map[string]interface{})
-					} else {
-						action["result"].(chan map[string]interface{}) <- nil
-					}
-				} else if action["name"] == "deleteService" {
-					delete(g.Services, action["id"].(string))
-					action["result"].(chan bool) <- true
-				} else if action["name"] == "setService" {
-					id := action["service"].(map[string]interface{})["Id"].(string)
-					g.Services[id] = action["service"].(map[string]interface{})
-					action["result"].(chan bool) <- true
-				} else if action["name"] == "toMap" {
-					config, _ := Utility.ToMap(g)
-					services := config["Services"].(map[string]interface{})
-					for _, service := range services {
-						// remove running information...
-						delete(service.(map[string]interface{}), "Process")
-						delete(service.(map[string]interface{}), "ProxyProcess")
-
-					}
-					action["result"].(chan map[string]interface{}) <- config
-				} else if action["name"] == "getPortsInUse" {
-					portsInUse := make([]int, 0)
-					// I will test if the port is already taken by e services.
-					for _, s := range g.Services {
-						s_ := s.(map[string]interface{})
-						if s_["Process"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(s_["Port"]))
-						}
-						if s_["ProxyProcess"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(s_["Proxy"]))
-						}
-					}
-					action["result"].(chan []int) <- portsInUse
-				}
-			case <-g.exit:
-				return
-			}
-		}
-	}()
-
 	return g
 }
 
@@ -352,12 +304,12 @@ func (self *Globule) toMap() map[string]interface{} {
 	return <-action["result"].(chan map[string]interface{})
 }
 
-func (self *Globule) getServices() map[string]interface{} {
+func (self *Globule) getServices() []map[string]interface{} {
 	action := make(map[string]interface{})
-	action["result"] = make(chan map[string]interface{})
+	action["result"] = make(chan []map[string]interface{})
 	action["name"] = "getServices"
 	self.services <- action
-	return <-action["result"].(chan map[string]interface{})
+	return <-action["result"].(chan []map[string]interface{})
 }
 
 func (self *Globule) setService(service map[string]interface{}) {
@@ -509,6 +461,103 @@ func (self *Globule) initDirectories() {
 	if err == nil {
 		json.Unmarshal(file, &self)
 	}
+
+	// Here I will keep values in a synmap.
+	services := new(sync.Map)
+
+	for k, v := range self.Services {
+		services.Store(k, v)
+	}
+
+	go func() {
+		for {
+			select {
+			case action := <-self.services:
+				if action["name"] == "getServices" {
+					_services_ := make([]map[string]interface{}, 0)
+
+					// Append services into the array.
+					services.Range(func(key, value interface{}) bool {
+						s := make(map[string]interface{})
+						for k, v := range value.(map[string]interface{}) {
+
+							s[k] = v
+
+						}
+						_services_ = append(_services_, s)
+						return true
+					})
+
+					action["result"].(chan []map[string]interface{}) <- _services_
+
+				} else if action["name"] == "getService" {
+
+					id := action["id"].(string)
+					value, ok := services.Load(id)
+					if ok {
+						s := make(map[string]interface{})
+						for k, v := range value.(map[string]interface{}) {
+							s[k] = v
+						}
+						action["result"].(chan map[string]interface{}) <- s
+					} else {
+						action["result"].(chan map[string]interface{}) <- nil
+					}
+
+				} else if action["name"] == "deleteService" {
+
+					id := action["id"].(string)
+					services.Delete(id)
+					action["result"].(chan bool) <- true
+
+				} else if action["name"] == "setService" {
+
+					id := action["service"].(map[string]interface{})["Id"].(string)
+					services.Store(id, action["service"])
+					action["result"].(chan bool) <- true
+
+				} else if action["name"] == "toMap" {
+
+					_map_, _ := Utility.ToMap(self)
+					_services_ := make(map[string]interface{})
+
+					services.Range(func(key, value interface{}) bool {
+						s := make(map[string]interface{})
+						for k, v := range value.(map[string]interface{}) {
+							if k != "Process" && k != "ProxyProcess" {
+								s[k] = v
+							}
+						}
+						_services_[key.(string)] = s
+						return true
+					})
+					_map_["Services"] = _services_
+					action["result"].(chan map[string]interface{}) <- _map_
+
+				} else if action["name"] == "getPortsInUse" {
+
+					portsInUse := make([]int, 0)
+					// I will test if the port is already taken by e services.
+					services.Range(func(key, value interface{}) bool {
+						s := value.(map[string]interface{})
+						if s["Process"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(s["Port"]))
+						}
+						if s["ProxyProcess"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(s["Proxy"]))
+						}
+						return true
+					})
+
+					action["result"].(chan []int) <- portsInUse
+
+				}
+			case <-self.exit:
+				return
+			}
+		}
+	}()
+
 }
 
 /**
@@ -520,8 +569,8 @@ func (self *Globule) KillProcess() {
 
 	// Kill previous instance of the program...
 	for _, s := range self.getServices() {
-		if s.(map[string]interface{})["Path"] != nil {
-			name := s.(map[string]interface{})["Path"].(string)
+		if s["Path"] != nil {
+			name := s["Path"].(string)
 			name = name[strings.LastIndex(name, "/")+1:]
 			err := Utility.KillProcessByName(name)
 			if err != nil {
@@ -903,10 +952,8 @@ func (self *Globule) stopServices() {
 	}
 
 	// Stop proxy process...
-	for _, srv := range self.getServices() {
-		if srv != nil {
-			s := srv.(map[string]interface{})
-
+	for _, s := range self.getServices() {
+		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
 			self.stopService(s["Id"].(string))
 		}
@@ -1394,9 +1441,9 @@ func (self *Globule) initServices() {
 
 	for _, s := range self.getServices() {
 		// Remove existing process information.
-		delete(s.(map[string]interface{}), "Process")
-		delete(s.(map[string]interface{}), "ProxyProcess")
-		err := self.initService(s.(map[string]interface{}))
+		delete(s, "Process")
+		delete(s, "ProxyProcess")
+		err := self.initService(s)
 		if err != nil {
 			log.Println(err)
 		}

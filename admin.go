@@ -112,24 +112,24 @@ func (self *Globule) getConfig() map[string]interface{} {
 	// all other infromation secret.
 	config["Services"] = make(map[string]interface{})
 
-	for name, service_config := range self.getServices() {
+	for _, service_config := range self.getServices() {
 		s := make(map[string]interface{})
-		s["Domain"] = service_config.(map[string]interface{})["Domain"]
-		s["Port"] = service_config.(map[string]interface{})["Port"]
-		s["Proxy"] = service_config.(map[string]interface{})["Proxy"]
-		s["TLS"] = service_config.(map[string]interface{})["TLS"]
-		s["Version"] = service_config.(map[string]interface{})["Version"]
-		s["PublisherId"] = service_config.(map[string]interface{})["PublisherId"]
-		s["KeepUpToDate"] = service_config.(map[string]interface{})["KeepUpToDate"]
-		s["KeepAlive"] = service_config.(map[string]interface{})["KeepAlive"]
-		s["State"] = service_config.(map[string]interface{})["State"]
-		s["Id"] = name
-		s["Name"] = service_config.(map[string]interface{})["Name"]
-		s["CertFile"] = service_config.(map[string]interface{})["CertFile"]
-		s["KeyFile"] = service_config.(map[string]interface{})["KeyFile"]
-		s["CertAuthorityTrust"] = service_config.(map[string]interface{})["CertAuthorityTrust"]
+		s["Domain"] = service_config["Domain"]
+		s["Port"] = service_config["Port"]
+		s["Proxy"] = service_config["Proxy"]
+		s["TLS"] = service_config["TLS"]
+		s["Version"] = service_config["Version"]
+		s["PublisherId"] = service_config["PublisherId"]
+		s["KeepUpToDate"] = service_config["KeepUpToDate"]
+		s["KeepAlive"] = service_config["KeepAlive"]
+		s["State"] = service_config["State"]
+		s["Id"] = service_config["Id"]
+		s["Name"] = service_config["Name"]
+		s["CertFile"] = service_config["CertFile"]
+		s["KeyFile"] = service_config["KeyFile"]
+		s["CertAuthorityTrust"] = service_config["CertAuthorityTrust"]
 
-		config["Services"].(map[string]interface{})[name] = s
+		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
 
 	return config
@@ -1138,9 +1138,8 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	}
 
 	// First of all I will stop the running service(s) instance.
-	for _, service := range self.getServices() {
+	for _, s := range self.getServices() {
 		// Stop the instance of the service.
-		s := service.(map[string]interface{})
 
 		if s["Id"] != nil {
 			if s["PublisherId"].(string) == rqst.PublisherId && s["Id"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {

@@ -57,8 +57,8 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
 			for _, s := range self.getServices() {
 
-				if s.(map[string]interface{})["PublisherId"] != nil {
-					id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
+				if s["PublisherId"] != nil {
+					id := s["PublisherId"].(string) + ":" + s["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
 
 					if subscribers[self.Discoveries[i]][id] == nil {
 						subscribers[self.Discoveries[i]][id] = make([]string, 0)
@@ -72,22 +72,21 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
 						// here I will update the service if it's version is lower
 						for _, s := range self.getServices() {
-							service := s.(map[string]interface{})
-							if service["PublisherId"] != nil {
-								if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
-									if service["KeepUpToDate"] != nil {
-										if service["KeepUpToDate"].(bool) {
+							if s["PublisherId"] != nil {
+								if s["Name"].(string) == descriptor.GetId() && s["PublisherId"].(string) == descriptor.GetPublisherId() {
+									if s["KeepUpToDate"] != nil {
+										if s["KeepUpToDate"].(bool) {
 											// Test if update is needed...
-											if Utility.ToInt(strings.Split(service["Version"].(string), ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
-												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
-													if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-														self.stopService(service["Id"].(string))
-														self.deleteService(service["Id"].(string))
+											if Utility.ToInt(strings.Split(s["Version"].(string), ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
+												if Utility.ToInt(strings.Split(s["Version"].(string), ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
+													if Utility.ToInt(strings.Split(s["Version"].(string), ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
+														self.stopService(s["Id"].(string))
+														self.deleteService(s["Id"].(string))
 														err := self.installService(descriptor)
 														if err != nil {
 															fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
 														} else {
-															service["KeepUpToDate"] = true
+															s["KeepUpToDate"] = true
 															self.saveConfig()
 															fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
 														}

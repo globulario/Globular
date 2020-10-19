@@ -294,6 +294,7 @@ func (self *Globule) registerMethods() error {
 	// Now I will save the action permission.
 	for i := 0; i < len(self.actionPermissions); i++ {
 		permission := self.actionPermissions[i].(map[string]interface{})
+		//log.Println("---------> permission: ", permission)
 		self.setActionPermission(permission["action"].(string), permission["actionParameterRessourcePermissions"].([]interface{}))
 	}
 

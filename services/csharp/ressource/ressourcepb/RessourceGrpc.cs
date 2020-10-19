@@ -105,14 +105,6 @@ namespace Ressource {
     static readonly grpc::Marshaller<global::Ressource.ValidateUserAccessRsp> __Marshaller_ressource_ValidateUserAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateUserAccessRsp.Parser));
     static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRqst> __Marshaller_ressource_ValidateApplicationAccessRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationAccessRqst.Parser));
     static readonly grpc::Marshaller<global::Ressource.ValidateApplicationAccessRsp> __Marshaller_ressource_ValidateApplicationAccessRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.ValidateApplicationAccessRsp.Parser));
-    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRqst> __Marshaller_ressource_CreateDirPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateDirPermissionsRqst.Parser));
-    static readonly grpc::Marshaller<global::Ressource.CreateDirPermissionsRsp> __Marshaller_ressource_CreateDirPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.CreateDirPermissionsRsp.Parser));
-    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRqst> __Marshaller_ressource_RenameFilePermissionRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RenameFilePermissionRqst.Parser));
-    static readonly grpc::Marshaller<global::Ressource.RenameFilePermissionRsp> __Marshaller_ressource_RenameFilePermissionRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.RenameFilePermissionRsp.Parser));
-    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRqst> __Marshaller_ressource_DeleteDirPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteDirPermissionsRqst.Parser));
-    static readonly grpc::Marshaller<global::Ressource.DeleteDirPermissionsRsp> __Marshaller_ressource_DeleteDirPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteDirPermissionsRsp.Parser));
-    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRqst> __Marshaller_ressource_DeleteFilePermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteFilePermissionsRqst.Parser));
-    static readonly grpc::Marshaller<global::Ressource.DeleteFilePermissionsRsp> __Marshaller_ressource_DeleteFilePermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteFilePermissionsRsp.Parser));
     static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRqst> __Marshaller_ressource_DeleteAccountPermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountPermissionsRqst.Parser));
     static readonly grpc::Marshaller<global::Ressource.DeleteAccountPermissionsRsp> __Marshaller_ressource_DeleteAccountPermissionsRsp = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteAccountPermissionsRsp.Parser));
     static readonly grpc::Marshaller<global::Ressource.DeleteRolePermissionsRqst> __Marshaller_ressource_DeleteRolePermissionsRqst = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Ressource.DeleteRolePermissionsRqst.Parser));
@@ -330,34 +322,6 @@ namespace Ressource {
         "ValidateApplicationAccess",
         __Marshaller_ressource_ValidateApplicationAccessRqst,
         __Marshaller_ressource_ValidateApplicationAccessRsp);
-
-    static readonly grpc::Method<global::Ressource.CreateDirPermissionsRqst, global::Ressource.CreateDirPermissionsRsp> __Method_CreateDirPermissions = new grpc::Method<global::Ressource.CreateDirPermissionsRqst, global::Ressource.CreateDirPermissionsRsp>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "CreateDirPermissions",
-        __Marshaller_ressource_CreateDirPermissionsRqst,
-        __Marshaller_ressource_CreateDirPermissionsRsp);
-
-    static readonly grpc::Method<global::Ressource.RenameFilePermissionRqst, global::Ressource.RenameFilePermissionRsp> __Method_RenameFilePermission = new grpc::Method<global::Ressource.RenameFilePermissionRqst, global::Ressource.RenameFilePermissionRsp>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "RenameFilePermission",
-        __Marshaller_ressource_RenameFilePermissionRqst,
-        __Marshaller_ressource_RenameFilePermissionRsp);
-
-    static readonly grpc::Method<global::Ressource.DeleteDirPermissionsRqst, global::Ressource.DeleteDirPermissionsRsp> __Method_DeleteDirPermissions = new grpc::Method<global::Ressource.DeleteDirPermissionsRqst, global::Ressource.DeleteDirPermissionsRsp>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "DeleteDirPermissions",
-        __Marshaller_ressource_DeleteDirPermissionsRqst,
-        __Marshaller_ressource_DeleteDirPermissionsRsp);
-
-    static readonly grpc::Method<global::Ressource.DeleteFilePermissionsRqst, global::Ressource.DeleteFilePermissionsRsp> __Method_DeleteFilePermissions = new grpc::Method<global::Ressource.DeleteFilePermissionsRqst, global::Ressource.DeleteFilePermissionsRsp>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "DeleteFilePermissions",
-        __Marshaller_ressource_DeleteFilePermissionsRqst,
-        __Marshaller_ressource_DeleteFilePermissionsRsp);
 
     static readonly grpc::Method<global::Ressource.DeleteAccountPermissionsRqst, global::Ressource.DeleteAccountPermissionsRsp> __Method_DeleteAccountPermissions = new grpc::Method<global::Ressource.DeleteAccountPermissionsRqst, global::Ressource.DeleteAccountPermissionsRsp>(
         grpc::MethodType.Unary,
@@ -622,7 +586,7 @@ namespace Ressource {
       }
 
       /// <summary>
-      ///* Get All permissions for a given file/dir *
+      ///*  *
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
@@ -760,50 +724,6 @@ namespace Ressource {
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       public virtual global::System.Threading.Tasks.Task<global::Ressource.ValidateApplicationAccessRsp> ValidateApplicationAccess(global::Ressource.ValidateApplicationAccessRqst request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      /// <summary>
-      ///* Create Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.CreateDirPermissionsRsp> CreateDirPermissions(global::Ressource.CreateDirPermissionsRqst request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      /// <summary>
-      ///* Rename file/dir permission *
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.RenameFilePermissionRsp> RenameFilePermission(global::Ressource.RenameFilePermissionRqst request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      /// <summary>
-      ///* Delete Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.DeleteDirPermissionsRsp> DeleteDirPermissions(global::Ressource.DeleteDirPermissionsRqst request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      /// <summary>
-      ///* Delete a single file permission *
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
-      public virtual global::System.Threading.Tasks.Task<global::Ressource.DeleteFilePermissionsRsp> DeleteFilePermissions(global::Ressource.DeleteFilePermissionsRqst request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -1606,7 +1526,7 @@ namespace Ressource {
         return CallInvoker.AsyncUnaryCall(__Method_GetAllActions, null, options, request);
       }
       /// <summary>
-      ///* Get All permissions for a given file/dir *
+      ///*  *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1618,7 +1538,7 @@ namespace Ressource {
         return GetPermissions(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Get All permissions for a given file/dir *
+      ///*  *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -1628,7 +1548,7 @@ namespace Ressource {
         return CallInvoker.BlockingUnaryCall(__Method_GetPermissions, null, options, request);
       }
       /// <summary>
-      ///* Get All permissions for a given file/dir *
+      ///*  *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -1640,7 +1560,7 @@ namespace Ressource {
         return GetPermissionsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      ///* Get All permissions for a given file/dir *
+      ///*  *
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -2176,182 +2096,6 @@ namespace Ressource {
       public virtual grpc::AsyncUnaryCall<global::Ressource.ValidateApplicationAccessRsp> ValidateApplicationAccessAsync(global::Ressource.ValidateApplicationAccessRqst request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_ValidateApplicationAccess, null, options, request);
-      }
-      /// <summary>
-      ///* Create Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.CreateDirPermissionsRsp CreateDirPermissions(global::Ressource.CreateDirPermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return CreateDirPermissions(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Create Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.CreateDirPermissionsRsp CreateDirPermissions(global::Ressource.CreateDirPermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_CreateDirPermissions, null, options, request);
-      }
-      /// <summary>
-      ///* Create Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.CreateDirPermissionsRsp> CreateDirPermissionsAsync(global::Ressource.CreateDirPermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return CreateDirPermissionsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Create Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.CreateDirPermissionsRsp> CreateDirPermissionsAsync(global::Ressource.CreateDirPermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_CreateDirPermissions, null, options, request);
-      }
-      /// <summary>
-      ///* Rename file/dir permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.RenameFilePermissionRsp RenameFilePermission(global::Ressource.RenameFilePermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return RenameFilePermission(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Rename file/dir permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.RenameFilePermissionRsp RenameFilePermission(global::Ressource.RenameFilePermissionRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_RenameFilePermission, null, options, request);
-      }
-      /// <summary>
-      ///* Rename file/dir permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.RenameFilePermissionRsp> RenameFilePermissionAsync(global::Ressource.RenameFilePermissionRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return RenameFilePermissionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Rename file/dir permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.RenameFilePermissionRsp> RenameFilePermissionAsync(global::Ressource.RenameFilePermissionRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_RenameFilePermission, null, options, request);
-      }
-      /// <summary>
-      ///* Delete Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.DeleteDirPermissionsRsp DeleteDirPermissions(global::Ressource.DeleteDirPermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return DeleteDirPermissions(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Delete Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.DeleteDirPermissionsRsp DeleteDirPermissions(global::Ressource.DeleteDirPermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_DeleteDirPermissions, null, options, request);
-      }
-      /// <summary>
-      ///* Delete Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.DeleteDirPermissionsRsp> DeleteDirPermissionsAsync(global::Ressource.DeleteDirPermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return DeleteDirPermissionsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Delete Permission for a dir (recursive) *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.DeleteDirPermissionsRsp> DeleteDirPermissionsAsync(global::Ressource.DeleteDirPermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_DeleteDirPermissions, null, options, request);
-      }
-      /// <summary>
-      ///* Delete a single file permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.DeleteFilePermissionsRsp DeleteFilePermissions(global::Ressource.DeleteFilePermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return DeleteFilePermissions(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Delete a single file permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The response received from the server.</returns>
-      public virtual global::Ressource.DeleteFilePermissionsRsp DeleteFilePermissions(global::Ressource.DeleteFilePermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_DeleteFilePermissions, null, options, request);
-      }
-      /// <summary>
-      ///* Delete a single file permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
-      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
-      /// <param name="cancellationToken">An optional token for canceling the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.DeleteFilePermissionsRsp> DeleteFilePermissionsAsync(global::Ressource.DeleteFilePermissionsRqst request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return DeleteFilePermissionsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      /// <summary>
-      ///* Delete a single file permission *
-      /// </summary>
-      /// <param name="request">The request to send to the server.</param>
-      /// <param name="options">The options for the call.</param>
-      /// <returns>The call object.</returns>
-      public virtual grpc::AsyncUnaryCall<global::Ressource.DeleteFilePermissionsRsp> DeleteFilePermissionsAsync(global::Ressource.DeleteFilePermissionsRqst request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_DeleteFilePermissions, null, options, request);
       }
       /// <summary>
       ///* Delete all permission for a given account *
@@ -2964,10 +2708,6 @@ namespace Ressource {
           .AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl.ValidateApplicationRessourceAccess)
           .AddMethod(__Method_ValidateUserAccess, serviceImpl.ValidateUserAccess)
           .AddMethod(__Method_ValidateApplicationAccess, serviceImpl.ValidateApplicationAccess)
-          .AddMethod(__Method_CreateDirPermissions, serviceImpl.CreateDirPermissions)
-          .AddMethod(__Method_RenameFilePermission, serviceImpl.RenameFilePermission)
-          .AddMethod(__Method_DeleteDirPermissions, serviceImpl.DeleteDirPermissions)
-          .AddMethod(__Method_DeleteFilePermissions, serviceImpl.DeleteFilePermissions)
           .AddMethod(__Method_DeleteAccountPermissions, serviceImpl.DeleteAccountPermissions)
           .AddMethod(__Method_DeleteRolePermissions, serviceImpl.DeleteRolePermissions)
           .AddMethod(__Method_GetAllApplicationsInfo, serviceImpl.GetAllApplicationsInfo)
@@ -3017,10 +2757,6 @@ namespace Ressource {
       serviceBinder.AddMethod(__Method_ValidateApplicationRessourceAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationRessourceAccessRqst, global::Ressource.ValidateApplicationRessourceAccessRsp>(serviceImpl.ValidateApplicationRessourceAccess));
       serviceBinder.AddMethod(__Method_ValidateUserAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateUserAccessRqst, global::Ressource.ValidateUserAccessRsp>(serviceImpl.ValidateUserAccess));
       serviceBinder.AddMethod(__Method_ValidateApplicationAccess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.ValidateApplicationAccessRqst, global::Ressource.ValidateApplicationAccessRsp>(serviceImpl.ValidateApplicationAccess));
-      serviceBinder.AddMethod(__Method_CreateDirPermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.CreateDirPermissionsRqst, global::Ressource.CreateDirPermissionsRsp>(serviceImpl.CreateDirPermissions));
-      serviceBinder.AddMethod(__Method_RenameFilePermission, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.RenameFilePermissionRqst, global::Ressource.RenameFilePermissionRsp>(serviceImpl.RenameFilePermission));
-      serviceBinder.AddMethod(__Method_DeleteDirPermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteDirPermissionsRqst, global::Ressource.DeleteDirPermissionsRsp>(serviceImpl.DeleteDirPermissions));
-      serviceBinder.AddMethod(__Method_DeleteFilePermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteFilePermissionsRqst, global::Ressource.DeleteFilePermissionsRsp>(serviceImpl.DeleteFilePermissions));
       serviceBinder.AddMethod(__Method_DeleteAccountPermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteAccountPermissionsRqst, global::Ressource.DeleteAccountPermissionsRsp>(serviceImpl.DeleteAccountPermissions));
       serviceBinder.AddMethod(__Method_DeleteRolePermissions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.DeleteRolePermissionsRqst, global::Ressource.DeleteRolePermissionsRsp>(serviceImpl.DeleteRolePermissions));
       serviceBinder.AddMethod(__Method_GetAllApplicationsInfo, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ressource.GetAllApplicationsInfoRqst, global::Ressource.GetAllApplicationsInfoRsp>(serviceImpl.GetAllApplicationsInfo));

@@ -541,13 +541,16 @@ COPY services /globular/services
 	}
 
 	// install services...
-	for id, service := range g.getServices() {
-		s := service.(map[string]interface{})
+	for _, s := range g.getServices() {
+		id := s["Id"].(string)
+
 		if s["Name"] != nil {
 			name := s["Name"].(string)
+
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
 			if s["configPath"] != nil {
+
 				configPath := s["configPath"].(string)
 
 				if Utility.Exists(configPath) {
