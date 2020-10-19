@@ -462,7 +462,7 @@ func (self *Globule) initDirectories() {
 		json.Unmarshal(file, &self)
 	}
 
-	// Here I will keep values in a synmap.
+	// Here I will keep values in a sync map.
 	services := new(sync.Map)
 
 	for k, v := range self.Services {
