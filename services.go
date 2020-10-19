@@ -55,7 +55,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 				subscribers[self.Discoveries[i]] = make(map[string][]string)
 			}
 
-			for _, s := range self.Services {
+			for _, s := range self.getServices() {
 
 				if s.(map[string]interface{})["PublisherId"] != nil {
 					id := s.(map[string]interface{})["PublisherId"].(string) + ":" + s.(map[string]interface{})["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
@@ -71,7 +71,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 						jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
 
 						// here I will update the service if it's version is lower
-						for _, s := range self.Services {
+						for _, s := range self.getServices() {
 							service := s.(map[string]interface{})
 							if service["PublisherId"] != nil {
 								if service["Name"].(string) == descriptor.GetId() && service["PublisherId"].(string) == descriptor.GetPublisherId() {
@@ -82,12 +82,12 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 												if Utility.ToInt(strings.Split(service["Version"].(string), ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
 													if Utility.ToInt(strings.Split(service["Version"].(string), ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
 														self.stopService(service["Id"].(string))
-														delete(self.Services, service["Id"].(string))
+														self.deleteService(service["Id"].(string))
 														err := self.installService(descriptor)
 														if err != nil {
 															fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
 														} else {
-															self.Services[service["Id"].(string)].(map[string]interface{})["KeepUpToDate"] = true
+															service["KeepUpToDate"] = true
 															self.saveConfig()
 															fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
 														}

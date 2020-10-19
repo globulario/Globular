@@ -165,11 +165,6 @@ func (self *Globule) getServiceMethods(name string, path string) []string {
 
 func (self *Globule) setServiceMethods(name string, path string) {
 
-	s := self.Services[name]
-	if s == nil {
-		s = self.Services[name+"_server"]
-	}
-
 	// here I will parse the service defintion file to extract the
 	// service difinition.
 	reader, _ := os.Open(path)

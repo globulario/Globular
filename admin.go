@@ -110,9 +110,9 @@ func (self *Globule) getConfig() map[string]interface{} {
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
 	// all other infromation secret.
-	config["Services"] = make(map[string]interface{}) //self.Services
+	config["Services"] = make(map[string]interface{})
 
-	for name, service_config := range self.Services {
+	for name, service_config := range self.getServices() {
 		s := make(map[string]interface{})
 		s["Domain"] = service_config.(map[string]interface{})["Domain"]
 		s["Port"] = service_config.(map[string]interface{})["Port"]
@@ -138,27 +138,14 @@ func (self *Globule) getConfig() map[string]interface{} {
 
 func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
-	config, err := Utility.ToMap(self)
+	config := self.toMap()
+	str, err := Utility.ToJson(config)
 	if err == nil {
-		services := make(map[string]interface{}, 0)
-		if config["Services"] != nil {
-			services = config["Services"].(map[string]interface{})
-		}
-
-		for _, service := range services {
-			// remove running information...
-			delete(service.(map[string]interface{}), "Process")
-			delete(service.(map[string]interface{}), "ProxyProcess")
-		}
-		str, err := Utility.ToJson(config)
-		if err == nil {
-			ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
-		} else {
-			log.Panicln(err)
-		}
+		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	} else {
 		log.Panicln(err)
 	}
+
 }
 
 /**
@@ -185,21 +172,7 @@ func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRun
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
-	config, err := Utility.ToMap(self)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	services := config["Services"].(map[string]interface{})
-	for _, service := range services {
-		// remove running information...
-		delete(service.(map[string]interface{}), "Process")
-		delete(service.(map[string]interface{}), "ProxyProcess")
-
-	}
-
+	config := self.toMap()
 	str, err := Utility.ToJson(config)
 	if err != nil {
 		return nil, status.Errorf(
@@ -240,8 +213,8 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	}
 
 	if config["configPath"] == nil {
-		if self.Services[config["Id"].(string)] != nil {
-			config_ := self.Services[config["Id"].(string)].(map[string]interface{})
+		config_ := self.getService(config["Id"].(string))
+		if config_ != nil {
 			for k, v := range config {
 				config_[k] = v
 			}
@@ -331,11 +304,11 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 	// if the configuration is one of servicespb...
 	if config["Id"] != nil {
-		srv := self.Services[config["Id"].(string)]
+		srv := self.getService(config["Id"].(string))
 		if srv != nil {
 			// Attach the actual process and proxy process to the configuration object.
-			config["Process"] = srv.(map[string]interface{})["Process"]
-			config["ProxyProcess"] = srv.(map[string]interface{})["ProxyProcess"]
+			config["Process"] = srv["Process"]
+			config["ProxyProcess"] = srv["ProxyProcess"]
 			self.initService(config)
 		}
 
@@ -344,7 +317,12 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.Name = config["Name"].(string)
 		self.PortHttp = Utility.ToInt(config["PortHttp"].(float64))
 		self.PortHttps = Utility.ToInt(config["PortHttps"].(float64))
+		self.PortsRange = config["PortsRange"].(string)
 		self.AdminEmail = config["AdminEmail"].(string)
+		self.Country = config["Country"].(string)
+		self.State = config["State"].(string)
+		self.City = config["City"].(string)
+		self.Organization = config["Organization"].(string)
 		self.AdminPort = Utility.ToInt(config["AdminPort"].(float64))
 		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
 		self.RessourcePort = Utility.ToInt(config["RessourcePort"].(float64))
@@ -356,6 +334,14 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.CertificateAuthorityPort = Utility.ToInt(config["CertificateAuthorityPort"].(float64))
 		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
 
+		if config["DnsUpdateIpInfos"] != nil {
+			self.DnsUpdateIpInfos = config["DnsUpdateIpInfos"].([]interface{})
+		}
+
+		if config["AlternateDomains"] != nil {
+			self.AlternateDomains = config["AlternateDomains"].([]interface{})
+		}
+
 		self.Protocol = config["Protocol"].(string)
 		self.Domain = config["Domain"].(string)
 		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
@@ -363,8 +349,10 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		// That will save the services if they have changed.
 		for n, s := range config["Services"].(map[string]interface{}) {
 			// Attach the actual process and proxy process to the configuration object.
-			s.(map[string]interface{})["Process"] = self.Services[n].(map[string]interface{})["Process"]
-			s.(map[string]interface{})["ProxyProcess"] = self.Services[n].(map[string]interface{})["ProxyProcess"]
+			s_ := self.getService(n)
+			s.(map[string]interface{})["Process"] = s_["Process"]
+			s.(map[string]interface{})["ProxyProcess"] = s_["ProxyProcess"]
+			s.(map[string]interface{})["TLS"] = self.Protocol == "https"
 			self.initService(s.(map[string]interface{}))
 		}
 
@@ -1150,14 +1138,15 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	}
 
 	// First of all I will stop the running service(s) instance.
-	for id, service := range self.Services {
+	for _, service := range self.getServices() {
 		// Stop the instance of the service.
 		s := service.(map[string]interface{})
 
 		if s["Id"] != nil {
 			if s["PublisherId"].(string) == rqst.PublisherId && s["Id"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {
 				self.stopService(s["Id"].(string))
-				delete(self.Services, id)
+
+				self.deleteService(s["Id"].(string))
 
 				// Get the list of method to remove from the list of actions.
 				toDelete := self.getServiceMethods(s["Name"].(string), self.path+string(os.PathListSeparator)+s["Proto"].(string))
@@ -1210,10 +1199,8 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 }
 
 func (self *Globule) stopService(serviceId string) error {
-	if (self.Services[serviceId]) == nil {
-		return errors.New("no service with id " + serviceId + " is define on the server!")
-	}
-	s := self.Services[serviceId].(map[string]interface{})
+
+	s := self.getService(serviceId)
 	if s == nil {
 		return errors.New("No service found with id " + serviceId)
 	}
@@ -1276,14 +1263,14 @@ func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceR
 // Start a service
 func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServiceRequest) (*adminpb.StartServiceResponse, error) {
 
-	s := self.Services[rqst.ServiceId]
+	s := self.getService(rqst.ServiceId)
 	if s == nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
 	}
 
-	service_pid, proxy_pid, err := self.startService(s.(map[string]interface{}))
+	service_pid, proxy_pid, err := self.startService(s)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

@@ -541,7 +541,7 @@ COPY services /globular/services
 	}
 
 	// install services...
-	for id, service := range g.Services {
+	for id, service := range g.getServices() {
 		s := service.(map[string]interface{})
 		if s["Name"] != nil {
 			name := s["Name"].(string)

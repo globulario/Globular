@@ -106,14 +106,16 @@ type Globule struct {
 	Protocol string // The protocol of the service.
 
 	// The list of install services.
-	Services      map[string]interface{}
+	Services map[string]interface{}
+	services chan map[string]interface{}
+
 	LdapSyncInfos map[string]interface{} // Contain LdapSyncInfos...
 
 	// List of application need to be start by the server.
 	ExternalApplications map[string]ExternalApplication
 
-	Domain           string   // The principale domain
-	AlternateDomains []string // Alternate domain for multiple domains
+	Domain           string        // The principale domain
+	AlternateDomains []interface{} // Alternate domain for multiple domains
 
 	// Certificate generation variables.
 	CertExpirationDelay int
@@ -139,12 +141,13 @@ type Globule struct {
 	// DNS stuff.
 	DNS []string // Domain name server use to located the server.
 
-	DnsUpdateIpInfos []map[string]interface{} // The internet provader SetA info to keep ip up to date.
+	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
 	discorveriesEventHub map[string]*event_client.Event_Client
 
 	// The list of method supported by this server.
 	methods []string
+
 	// Array of action permissions
 	actionPermissions []interface{}
 
@@ -224,6 +227,9 @@ func NewGlobule() *Globule {
 	g.CertPassword = "1111"
 
 	g.Services = make(map[string]interface{}, 0)
+	// open the channel to get services map.
+	g.services = make(chan map[string]interface{}, 0)
+
 	g.inernalServices = make([]*grpc.Server, 0)
 
 	// Contain the list of ldap syncronization info.
@@ -285,7 +291,137 @@ func NewGlobule() *Globule {
 	// Keep in global var to by http handlers.
 	globule = g
 
+	go func() {
+		for {
+			select {
+			case action := <-g.services:
+				if action["name"] == "getServices" {
+					action["result"].(chan map[string]interface{}) <- g.Services
+				} else if action["name"] == "getService" {
+					id := action["id"].(string)
+					if g.Services[id] != nil {
+						action["result"].(chan map[string]interface{}) <- g.Services[id].(map[string]interface{})
+					} else {
+						action["result"].(chan map[string]interface{}) <- nil
+					}
+				} else if action["name"] == "deleteService" {
+					delete(g.Services, action["id"].(string))
+					action["result"].(chan bool) <- true
+				} else if action["name"] == "setService" {
+					id := action["service"].(map[string]interface{})["Id"].(string)
+					g.Services[id] = action["service"].(map[string]interface{})
+					action["result"].(chan bool) <- true
+				} else if action["name"] == "toMap" {
+					config, _ := Utility.ToMap(g)
+					services := config["Services"].(map[string]interface{})
+					for _, service := range services {
+						// remove running information...
+						delete(service.(map[string]interface{}), "Process")
+						delete(service.(map[string]interface{}), "ProxyProcess")
+
+					}
+					action["result"].(chan map[string]interface{}) <- config
+				} else if action["name"] == "getPortsInUse" {
+					portsInUse := make([]int, 0)
+					// I will test if the port is already taken by e services.
+					for _, s := range g.Services {
+						s_ := s.(map[string]interface{})
+						if s_["Process"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(s_["Port"]))
+						}
+						if s_["ProxyProcess"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(s_["Proxy"]))
+						}
+					}
+					action["result"].(chan []int) <- portsInUse
+				}
+			case <-g.exit:
+				return
+			}
+		}
+	}()
+
 	return g
+}
+
+func (self *Globule) toMap() map[string]interface{} {
+	action := make(map[string]interface{})
+	action["result"] = make(chan map[string]interface{})
+	action["name"] = "toMap"
+	self.services <- action
+	return <-action["result"].(chan map[string]interface{})
+}
+
+func (self *Globule) getServices() map[string]interface{} {
+	action := make(map[string]interface{})
+	action["result"] = make(chan map[string]interface{})
+	action["name"] = "getServices"
+	self.services <- action
+	return <-action["result"].(chan map[string]interface{})
+}
+
+func (self *Globule) setService(service map[string]interface{}) {
+	action := make(map[string]interface{})
+	action["result"] = make(chan bool)
+	action["service"] = service
+	action["name"] = "setService"
+	self.services <- action
+	<-action["result"].(chan bool)
+	return
+}
+
+func (self *Globule) getService(id string) map[string]interface{} {
+	action := make(map[string]interface{})
+	action["id"] = id
+	action["result"] = make(chan map[string]interface{})
+	action["name"] = "getService"
+	self.services <- action
+	return <-action["result"].(chan map[string]interface{})
+}
+
+func (self *Globule) deleteService(id string) {
+	action := make(map[string]interface{})
+	action["id"] = id
+	action["result"] = make(chan bool)
+	action["name"] = "deleteService"
+	self.services <- action
+	<-action["result"].(chan bool)
+}
+
+func (self *Globule) getPortsInUse() []int {
+	action := make(map[string]interface{})
+	action["result"] = make(chan []int)
+	action["name"] = "getPortsInUse"
+	self.services <- action
+	return <-action["result"].(chan []int)
+}
+
+/**
+ * test if a given port is avalaible.
+ */
+func (self *Globule) isPortAvailable(port int) bool {
+	portRange := strings.Split(self.PortsRange, "-")
+	start := Utility.ToInt(portRange[0]) + 13 // The first 12 addresse are reserver by internal service...
+	end := Utility.ToInt(portRange[1])
+
+	if port < start || port > end {
+		return false
+	}
+
+	portsInUse := self.getPortsInUse()
+	for i := 0; i < len(portsInUse); i++ {
+		if portsInUse[i] == port {
+			return false
+		}
+	}
+
+	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
+	if err == nil {
+		defer l.Close()
+		return true
+	}
+
+	return false
 }
 
 /**
@@ -307,50 +443,13 @@ func (self *Globule) getNextAvailablePort() (int, error) {
 }
 
 /**
- * test if a given port is avalaible.
- */
-func (self *Globule) isPortAvailable(port int) bool {
-	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 13 // The first 12 addresse are reserver by internal service...
-	end := Utility.ToInt(portRange[1])
-
-	if port < start || port > end {
-		return false
-	}
-
-	// I will test if the port is already taken by e services.
-	for _, s := range self.Services {
-
-		s_ := s.(map[string]interface{})
-		if s_["Process"] != nil {
-			if port == Utility.ToInt(s_["Port"]) {
-				return false // port is already in use.
-			}
-		}
-		if s_["ProxyProcess"] != nil {
-			if port == Utility.ToInt(s_["Proxy"]) {
-				return false // port is already in use.
-			}
-		}
-	}
-
-	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
-	if err == nil {
-		defer l.Close()
-		return true
-	}
-
-	return false
-}
-
-/**
  * Initialize the server directories config, data, webroot...
  */
 func (self *Globule) initDirectories() {
 
 	// DNS info.
 	self.DNS = make([]string, 0)
-	self.DnsUpdateIpInfos = make([]map[string]interface{}, 0)
+	self.DnsUpdateIpInfos = make([]interface{}, 0)
 
 	// Set the list of discorvery service avalaible...
 	self.Discoveries = make([]string, 0)
@@ -420,7 +519,7 @@ func (self *Globule) KillProcess() {
 	Utility.KillProcessByName("grpcwebproxy")
 
 	// Kill previous instance of the program...
-	for _, s := range self.Services {
+	for _, s := range self.getServices() {
 		if s.(map[string]interface{})["Path"] != nil {
 			name := s.(map[string]interface{})["Path"].(string)
 			name = name[strings.LastIndex(name, "/")+1:]
@@ -566,9 +665,9 @@ func (self *Globule) registerIpToDns() error {
 
 	for i := 0; i < len(self.DnsUpdateIpInfos); i++ {
 		// the api call "https://api.godaddy.com/v1/domains/globular.io/records/A/@"
-		setA := self.DnsUpdateIpInfos[i]["SetA"].(string)
-		key := self.DnsUpdateIpInfos[i]["Key"].(string)
-		secret := self.DnsUpdateIpInfos[i]["Secret"].(string)
+		setA := self.DnsUpdateIpInfos[i].(map[string]interface{})["SetA"].(string)
+		key := self.DnsUpdateIpInfos[i].(map[string]interface{})["Key"].(string)
+		secret := self.DnsUpdateIpInfos[i].(map[string]interface{})["Secret"].(string)
 
 		// set the data to the actual ip address.
 		data := `[{"data":"` + Utility.MyIP() + `"}]`
@@ -601,9 +700,9 @@ func (self *Globule) registerIpToDns() error {
  * Start the grpc proxy.
  */
 func (self *Globule) startProxy(id string, port int, proxy int) error {
-	srv := self.Services[id]
-	if srv.(map[string]interface{})["ProxyProcess"] != nil {
-		Utility.TerminateProcess(srv.(map[string]interface{})["ProxyProcess"].(*exec.Cmd).Process.Pid)
+	srv := self.getService(id)
+	if srv["ProxyProcess"] != nil {
+		Utility.TerminateProcess(srv["ProxyProcess"].(*exec.Cmd).Process.Pid)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -619,7 +718,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// Use in a local network or in test.
 	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-	hasTls := Utility.ToBool(srv.(map[string]interface{})["TLS"])
+	hasTls := Utility.ToBool(srv["TLS"])
 	if hasTls == true {
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
@@ -666,8 +765,9 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	}
 
 	// save service configuration.
-	srv.(map[string]interface{})["ProxyProcess"] = proxyProcess
-	self.Services[id] = srv
+	srv["ProxyProcess"] = proxyProcess
+	srv["Id"] = id
+	self.setService(srv)
 
 	return nil
 }
@@ -702,16 +802,15 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
  */
 func (self *Globule) startInternalService(id string, proto string, port int, proxy int, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, error) {
 	log.Println("Start internal service ", id)
-	if self.Services[id] != nil {
-		hasTls = self.Services[id].(map[string]interface{})["TLS"].(bool)
-	}
 
-	// set the logger.
-	//grpclog.SetLogger(log.New(os.Stdout, id+" service: ", log.LstdFlags))
+	s := self.getService(id)
+	if s == nil {
+		s = make(map[string]interface{}, 0)
+	}
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	s := make(map[string]interface{}, 0)
+
 	var grpcServer *grpc.Server
 	if hasTls {
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
@@ -754,7 +853,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 	s["Proxy"] = proxy
 	s["TLS"] = hasTls
 
-	self.Services[id] = s
+	self.setService(s)
 
 	// save the config.
 	self.saveConfig()
@@ -804,7 +903,7 @@ func (self *Globule) stopServices() {
 	}
 
 	// Stop proxy process...
-	for _, srv := range self.Services {
+	for _, srv := range self.getServices() {
 		if srv != nil {
 			s := srv.(map[string]interface{})
 
@@ -848,12 +947,12 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	s["Domain"] = self.getDomain()
 
 	// if the service already exist.
-	srv := self.Services[s["Id"].(string)]
+	srv := self.getService(s["Id"].(string))
 	if srv != nil {
-		if srv.(map[string]interface{})["Process"] != nil {
-			if reflect.TypeOf(srv.(map[string]interface{})["Process"]).String() == "*exec.Cmd" {
-				if srv.(map[string]interface{})["Process"].(*exec.Cmd).Process != nil {
-					Utility.TerminateProcess(srv.(map[string]interface{})["Process"].(*exec.Cmd).Process.Pid)
+		if srv["Process"] != nil {
+			if reflect.TypeOf(srv["Process"]).String() == "*exec.Cmd" {
+				if srv["Process"].(*exec.Cmd).Process != nil {
+					Utility.TerminateProcess(srv["Process"].(*exec.Cmd).Process.Pid)
 				}
 			}
 		}
@@ -1051,10 +1150,10 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Save configuration stuff.
 		s["Proxy"] = proxy
 
-		self.Services[s["Id"].(string)] = s
+		self.setService(s)
 
 		// get back the service info with the proxy process in it
-		s = self.Services[s["Id"].(string)].(map[string]interface{})
+		s = self.getService(s["Id"].(string))
 
 		// save it to the config.
 		self.saveConfig()
@@ -1117,7 +1216,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 
 			// Save configuration stuff.
-			self.Services[s["Id"].(string)] = s
+			self.setService(s)
 		}
 	}
 
@@ -1164,7 +1263,7 @@ func (self *Globule) initService(s map[string]interface{}) error {
 	if !strings.HasPrefix(s["Name"].(string), "Globular") {
 		hasChange := self.saveServiceConfig(s)
 		if hasChange || s["Process"] == nil {
-			self.Services[s["Id"].(string)] = s
+			self.setService(s)
 			_, _, err := self.startService(s)
 			if err != nil {
 				return err
@@ -1255,7 +1354,7 @@ func (self *Globule) initServices() {
 								if s["Id"] == nil {
 									s["Id"] = Utility.RandomUUID()
 								}
-								self.Services[s["Id"].(string)] = s
+								self.setService(s)
 								s["configPath"] = path
 							}
 						}
@@ -1293,7 +1392,7 @@ func (self *Globule) initServices() {
 		log.Println(err)
 	}
 
-	for _, s := range self.Services {
+	for _, s := range self.getServices() {
 		// Remove existing process information.
 		delete(s.(map[string]interface{}), "Process")
 		delete(s.(map[string]interface{}), "ProxyProcess")

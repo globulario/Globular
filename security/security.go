@@ -571,7 +571,7 @@ func GenerateSignedClientCertificate(path string, pwd string, expiration_delay i
 }
 
 func GenerateSanConfig(path string, country string, state string, city string, organization string, domains []string) error {
-	log.Println("-------------> osti ", path)
+
 	config := fmt.Sprintf(`
 [req]
 distinguished_name = req_distinguished_name
@@ -715,18 +715,22 @@ func KeyToPem(name string, path string, pwd string) error {
  * Private ca.key, server.key, server.pem, server.crt
  * Share ca.crt (needed by the client), server.csr (needed by the CA)
  */
-func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string, country string, state string, city string, organization string, alternateDomains []string) error {
+func GenerateServicesCertificates(pwd string, expiration_delay int, domain string, path string, country string, state string, city string, organization string, alternateDomains []interface{}) error {
 	if Utility.Exists(path + string(os.PathSeparator) + "client.crt") {
 		return nil // certificate are already created.
 	}
 
+	alternateDomains_ := make([]string, len(alternateDomains))
+	for i := 0; i < len(alternateDomains); i++ {
+		alternateDomains_[i] = alternateDomains[i].(string)
+	}
 	// Alternate domain must contain the domain (CN=domain)...
-	if !Utility.Contains(alternateDomains, domain) {
-		alternateDomains = append(alternateDomains, domain)
+	if !Utility.Contains(alternateDomains_, domain) {
+		alternateDomains_ = append(alternateDomains_, domain)
 	}
 
 	// Generate the SAN configuration.
-	err := GenerateSanConfig(path, country, state, city, organization, alternateDomains)
+	err := GenerateSanConfig(path, country, state, city, organization, alternateDomains_)
 	if err != nil {
 		return err
 	}

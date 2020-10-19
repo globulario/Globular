@@ -281,6 +281,8 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" ||
 		method == "/ressource.RessourceService/Log" {
 		hasAccess = true
+	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && (domain == "127.0.0.1" || domain == "localhost") {
+		hasAccess = true
 	}
 
 	var clientId string

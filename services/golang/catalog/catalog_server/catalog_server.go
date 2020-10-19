@@ -251,6 +251,7 @@ func (self *server) Init() error {
 	if err != nil {
 		return err
 	}
+	
 	self.Services = make(map[string]interface{}, 0)
 
 	// Connect to the persistence service.

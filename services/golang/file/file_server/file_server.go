@@ -729,7 +729,6 @@ func (self *server) ReadFile(rqst *filepb.ReadFileRequest, stream filepb.FileSer
 
 	// set the correct os path separator.
 	path = strings.ReplaceAll(strings.ReplaceAll(path, "\\", string(os.PathSeparator)), "/", string(os.PathSeparator))
-
 	if strings.HasPrefix(path, string(os.PathSeparator)) {
 		if len(path) > 1 {
 			if strings.HasPrefix(path, string(os.PathSeparator)) {
