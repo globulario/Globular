@@ -2379,9 +2379,9 @@ func (self *Globule) GetActionPermission(ctx context.Context, rqst *ressourcepb.
 		return nil, err
 	}
 
-	actionParameterRessourcePermissions := make([]*ressourcepb.ActionParameterRessourcePermission, len(actionPermission["actionParameterRessourcePermissions"].([]map[string]interface{})))
-	for i := 0; i < len(actionPermission["actionParameterRessourcePermissions"].([]map[string]interface{})); i++ {
-		a := actionPermission["actionParameterRessourcePermissions"].([]map[string]interface{})[i]
+	actionParameterRessourcePermissions := make([]*ressourcepb.ActionParameterRessourcePermission, len(actionPermission["actionParameterRessourcePermissions"].(primitive.A)))
+	for i := 0; i < len(actionPermission["actionParameterRessourcePermissions"].(primitive.A)); i++ {
+		a := actionPermission["actionParameterRessourcePermissions"].(primitive.A)[i].(map[string]interface{})
 		actionParameterRessourcePermissions[i] = &ressourcepb.ActionParameterRessourcePermission{
 			Index:      int32(Utility.ToInt(a["Index"])),
 			Permission: int32(Utility.ToInt(a["Permission"])),
