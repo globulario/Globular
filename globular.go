@@ -466,7 +466,11 @@ func (self *Globule) initDirectories() {
 	services := new(sync.Map)
 
 	for k, v := range self.Services {
-		services.Store(k, v)
+		m := new(sync.Map)
+		for k_, v_ := range v.(map[string]interface{}) {
+			m.Store(k_, v_)
+		}
+		services.Store(k, m)
 	}
 
 	go func() {
@@ -479,11 +483,10 @@ func (self *Globule) initDirectories() {
 					// Append services into the array.
 					services.Range(func(key, value interface{}) bool {
 						s := make(map[string]interface{})
-						for k, v := range value.(map[string]interface{}) {
-
-							s[k] = v
-
-						}
+						value.(*sync.Map).Range(func(key, value interface{}) bool {
+							s[key.(string)] = value
+							return true
+						})
 						_services_ = append(_services_, s)
 						return true
 					})
@@ -496,9 +499,10 @@ func (self *Globule) initDirectories() {
 					value, ok := services.Load(id)
 					if ok {
 						s := make(map[string]interface{})
-						for k, v := range value.(map[string]interface{}) {
-							s[k] = v
-						}
+						value.(*sync.Map).Range(func(key, value interface{}) bool {
+							s[key.(string)] = value
+							return true
+						})
 						action["result"].(chan map[string]interface{}) <- s
 					} else {
 						action["result"].(chan map[string]interface{}) <- nil
@@ -513,7 +517,11 @@ func (self *Globule) initDirectories() {
 				} else if action["name"] == "setService" {
 
 					id := action["service"].(map[string]interface{})["Id"].(string)
-					services.Store(id, action["service"])
+					m := new(sync.Map)
+					for k, v := range action["service"].(map[string]interface{}) {
+						m.Store(k, v)
+					}
+					services.Store(id, m)
 					action["result"].(chan bool) <- true
 
 				} else if action["name"] == "toMap" {
@@ -523,11 +531,12 @@ func (self *Globule) initDirectories() {
 
 					services.Range(func(key, value interface{}) bool {
 						s := make(map[string]interface{})
-						for k, v := range value.(map[string]interface{}) {
-							if k != "Process" && k != "ProxyProcess" {
-								s[k] = v
+						value.(*sync.Map).Range(func(key, value interface{}) bool {
+							if key != "Process" && key != "ProxyProcess" {
+								s[key.(string)] = value
 							}
-						}
+							return true
+						})
 						_services_[key.(string)] = s
 						return true
 					})
@@ -539,12 +548,16 @@ func (self *Globule) initDirectories() {
 					portsInUse := make([]int, 0)
 					// I will test if the port is already taken by e services.
 					services.Range(func(key, value interface{}) bool {
-						s := value.(map[string]interface{})
-						if s["Process"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(s["Port"]))
+						m := value.(*sync.Map)
+						_, hasProcess := m.Load("Process")
+						if hasProcess {
+							p, _ := m.Load("Port")
+							portsInUse = append(portsInUse, Utility.ToInt(p))
 						}
-						if s["ProxyProcess"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(s["Proxy"]))
+						_, hasProxyProcess := m.Load("ProxyProcess")
+						if hasProxyProcess {
+							p, _ := m.Load("Proxy")
+							portsInUse = append(portsInUse, Utility.ToInt(p))
 						}
 						return true
 					})
