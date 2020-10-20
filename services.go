@@ -11,7 +11,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"sort"
 	"strconv"
 	"strings"
@@ -131,6 +130,7 @@ func (self *Globule) startDiscoveryService() error {
 	// The service discovery.
 	services_discovery_server, err := self.startInternalService(string(servicespb.File_services_proto_services_proto.Services().Get(0).FullName()), servicespb.File_services_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
+		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesDiscoveryPort))
 		if err != nil {
@@ -140,18 +140,13 @@ func (self *Globule) startDiscoveryService() error {
 		servicespb.RegisterServiceDiscoveryServer(services_discovery_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
+
 		go func() {
-			go func() {
-				// no web-rpc server.
-				if err := services_discovery_server.Serve(lis); err != nil {
-					log.Println(err)
-				}
-			}()
-			// Wait for signal to stop.
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			<-ch
-			fmt.Println("dicovery service is now stopped!")
+			// no web-rpc server.
+			if err := services_discovery_server.Serve(lis); err != nil {
+				log.Println(err)
+			}
+			return
 		}()
 	}
 	return err
@@ -166,6 +161,8 @@ func (self *Globule) startRepositoryService() error {
 		Interceptors.ServerStreamInterceptor)
 
 	if err == nil {
+		self.inernalServices = append(self.inernalServices, services_repository_server)
+
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ServicesRepositoryPort))
 		if err != nil {
@@ -174,21 +171,12 @@ func (self *Globule) startRepositoryService() error {
 
 		servicespb.RegisterServiceRepositoryServer(services_repository_server, self)
 
-		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
-			go func() {
+			// no web-rpc server.
+			if err := services_repository_server.Serve(lis); err != nil {
+				log.Println(err)
 
-				// no web-rpc server.
-				if err := services_repository_server.Serve(lis); err != nil {
-					log.Println(err)
-
-				}
-			}()
-			// Wait for signal to stop.
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			<-ch
-			fmt.Println("repository service is now stopped!")
+			}
 		}()
 	}
 	return err

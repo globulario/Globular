@@ -9,8 +9,6 @@ import (
 	"log"
 
 	"net"
-	"os"
-	"os/signal"
 	"strconv"
 
 	"github.com/davecourtois/Globular/Interceptors"
@@ -22,7 +20,9 @@ import (
  */
 func (self *Globule) startLoadBalancingService() error {
 	load_balancer, err := self.startInternalService(string(lbpb.File_services_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_services_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+
 	if err == nil && load_balancer != nil {
+		self.inernalServices = append(self.inernalServices, load_balancer)
 
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
@@ -31,22 +31,16 @@ func (self *Globule) startLoadBalancingService() error {
 			lbpb.RegisterLoadBalancingServiceServer(load_balancer, self)
 
 			// Here I will make a signal hook to interrupt to exit cleanly.
+
 			go func() {
-				go func() {
 
-					// Run the load balancing in it own process.
-					self.startLoadBalancing()
+				// Run the load balancing in it own process.
+				self.startLoadBalancing()
 
-					// no web-rpc server.
-					if err := load_balancer.Serve(lis); err != nil {
-						log.Println(err)
-					}
-				}()
-				// Wait for signal to stop.
-				ch := make(chan os.Signal, 1)
-				signal.Notify(ch, os.Interrupt)
-				<-ch
-				fmt.Println("load balancing service is now stopped!")
+				// no web-rpc server.
+				if err := load_balancer.Serve(lis); err != nil {
+					log.Println(err)
+				}
 			}()
 		}
 	}

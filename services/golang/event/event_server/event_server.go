@@ -265,7 +265,7 @@ func (self *server) StopService() error {
 }
 
 func (self *server) Stop(context.Context, *eventpb.StopRequest) (*eventpb.StopResponse, error) {
-	//self.exit <- true
+	self.exit <- true
 	fmt.Println(`Stop event server was called.`)
 	return &eventpb.StopResponse{}, self.StopService()
 }

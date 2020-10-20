@@ -222,6 +222,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+
 	//if empty, set current directory
 	dir := string(webRoot)
 	if dir == "" {

@@ -342,6 +342,7 @@ export function setActionPermission(
     permission: number,
     callback: (results: any) => void,
     errorCallback: (err: any) => void) {
+        /*
     const rqst = new SetActionPermissionRqst
     rqst.setAction(action)
     rqst.setPermission(permission)
@@ -353,7 +354,7 @@ export function setActionPermission(
     }).then(callback)
         .catch((err: any) => {
             errorCallback(err)
-        })
+        })*/
 }
 
 /**

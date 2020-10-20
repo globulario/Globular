@@ -21,8 +21,6 @@ import (
 
 	"strconv"
 
-	"os/signal"
-
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
@@ -38,6 +36,7 @@ import (
 func (self *Globule) startRessourceService() error {
 	ressource_server, err := self.startInternalService(string(ressourcepb.File_services_proto_ressource_proto.Services().Get(0).FullName()), ressourcepb.File_services_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
+		self.inernalServices = append(self.inernalServices, ressource_server)
 
 		// Create the channel to listen on ressource port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RessourcePort))
@@ -48,20 +47,12 @@ func (self *Globule) startRessourceService() error {
 		ressourcepb.RegisterRessourceServiceServer(ressource_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
+
 		go func() {
-			go func() {
-				// no web-rpc server.
-				if err = ressource_server.Serve(lis); err != nil {
-					log.Println(err)
-				}
-			}()
-
-			// Wait for signal to stop.
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			<-ch
-			fmt.Println("ressource service is now stopped!")
-
+			// no web-rpc server.
+			if err = ressource_server.Serve(lis); err != nil {
+				log.Println(err)
+			}
 		}()
 
 		// In order to be able to give permission to a server
@@ -79,6 +70,8 @@ func (self *Globule) startRessourceService() error {
 					if ip != Utility.MyIP() {
 						self.registerIpToDns()
 					}
+				case <-self.exit:
+					return
 				}
 			}
 		}()
@@ -294,7 +287,6 @@ func (self *Globule) registerMethods() error {
 	// Now I will save the action permission.
 	for i := 0; i < len(self.actionPermissions); i++ {
 		permission := self.actionPermissions[i].(map[string]interface{})
-		//log.Println("---------> permission: ", permission)
 		self.setActionPermission(permission["action"].(string), permission["actionParameterRessourcePermissions"].([]interface{}))
 	}
 

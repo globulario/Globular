@@ -6,11 +6,9 @@ import (
 
 	"os/exec"
 
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
-	"os/signal"
 
 	"strconv"
 
@@ -25,7 +23,10 @@ func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
 	certificate_authority_server, err := self.startInternalService(string(capb.File_services_proto_ca_proto.Services().Get(0).FullName()),
 		capb.File_services_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+
 	if err == nil {
+		self.inernalServices = append(self.inernalServices, certificate_authority_server)
+
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
 		if err != nil {
@@ -33,27 +34,18 @@ func (self *Globule) startCertificateAuthorityService() error {
 		}
 
 		capb.RegisterCertificateAuthorityServer(certificate_authority_server, self)
-
 		// Here I will make a signal hook to interrupt to exit cleanly.
+
 		go func() {
-			go func() {
+			// no web-rpc server.
+			if err := certificate_authority_server.Serve(lis); err != nil {
+				log.Println(err)
+			}
 
-				// no web-rpc server.
-				if err := certificate_authority_server.Serve(lis); err != nil {
-					log.Println(err)
-
-				}
-
-			}()
-			// Wait for signal to stop.
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			<-ch
-			fmt.Println("certificate authority service is now stopped!")
 		}()
+
 	}
 	return err
-
 }
 
 func (self *Globule) signCertificate(client_csr string) (string, error) {

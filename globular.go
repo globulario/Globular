@@ -54,8 +54,6 @@ import (
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 
-	"sync"
-
 	"github.com/davecourtois/Globular/security"
 	globular "github.com/davecourtois/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Globular/services/golang/persistence/persistence_store"
@@ -293,6 +291,29 @@ func NewGlobule() *Globule {
 	// Keep in global var to by http handlers.
 	globule = g
 
+	// Set the list of http handler.
+
+	// The configuration handler.
+	http.HandleFunc("/config", getConfigHanldler)
+
+	// Handle the get ca certificate function
+	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+
+	// Return the san server configuration.
+	http.HandleFunc("/get_san_conf", getSanConfigurationHandler)
+
+	// Handle the signing certificate function.
+	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
+
+	// Start listen for http request.
+	http.HandleFunc("/", ServeFileHandler)
+
+	// The file upload handler.
+	http.HandleFunc("/uploads", FileUploadHandler)
+
+	// initialyse directories.
+	g.initDirectories()
+
 	return g
 }
 
@@ -463,47 +484,22 @@ func (self *Globule) initDirectories() {
 	}
 
 	// Here I will keep values in a sync map.
-	services := new(sync.Map)
-
-	for k, v := range self.Services {
-		m := new(sync.Map)
-		for k_, v_ := range v.(map[string]interface{}) {
-			m.Store(k_, v_)
-		}
-		services.Store(k, m)
-	}
-
 	go func() {
 		for {
 			select {
 			case action := <-self.services:
 				if action["name"] == "getServices" {
-					_services_ := make([]map[string]interface{}, 0)
-
-					// Append services into the array.
-					services.Range(func(key, value interface{}) bool {
-						s := make(map[string]interface{})
-						value.(*sync.Map).Range(func(key, value interface{}) bool {
-							s[key.(string)] = value
-							return true
-						})
-						_services_ = append(_services_, s)
-						return true
-					})
-
-					action["result"].(chan []map[string]interface{}) <- _services_
+					services := make([]map[string]interface{}, 0)
+					for _, v := range self.Services {
+						services = append(services, v.(map[string]interface{}))
+					}
+					action["result"].(chan []map[string]interface{}) <- services
 
 				} else if action["name"] == "getService" {
 
 					id := action["id"].(string)
-					value, ok := services.Load(id)
-					if ok {
-						s := make(map[string]interface{})
-						value.(*sync.Map).Range(func(key, value interface{}) bool {
-							s[key.(string)] = value
-							return true
-						})
-						action["result"].(chan map[string]interface{}) <- s
+					if self.Services[id] != nil {
+						action["result"].(chan map[string]interface{}) <- self.Services[id].(map[string]interface{})
 					} else {
 						action["result"].(chan map[string]interface{}) <- nil
 					}
@@ -511,56 +507,37 @@ func (self *Globule) initDirectories() {
 				} else if action["name"] == "deleteService" {
 
 					id := action["id"].(string)
-					services.Delete(id)
+					delete(self.Services, id)
 					action["result"].(chan bool) <- true
 
 				} else if action["name"] == "setService" {
 
 					id := action["service"].(map[string]interface{})["Id"].(string)
-					m := new(sync.Map)
-					for k, v := range action["service"].(map[string]interface{}) {
-						m.Store(k, v)
-					}
-					services.Store(id, m)
+					self.Services[id] = action["service"]
 					action["result"].(chan bool) <- true
 
 				} else if action["name"] == "toMap" {
 
 					_map_, _ := Utility.ToMap(self)
-					_services_ := make(map[string]interface{})
+					for _, v := range _map_["Services"].(map[string]interface{}) {
+						delete(v.(map[string]interface{}), "Process")
+						delete(v.(map[string]interface{}), "ProxyProcess")
+					}
 
-					services.Range(func(key, value interface{}) bool {
-						s := make(map[string]interface{})
-						value.(*sync.Map).Range(func(key, value interface{}) bool {
-							if key != "Process" && key != "ProxyProcess" {
-								s[key.(string)] = value
-							}
-							return true
-						})
-						_services_[key.(string)] = s
-						return true
-					})
-					_map_["Services"] = _services_
 					action["result"].(chan map[string]interface{}) <- _map_
 
 				} else if action["name"] == "getPortsInUse" {
 
 					portsInUse := make([]int, 0)
-					// I will test if the port is already taken by e services.
-					services.Range(func(key, value interface{}) bool {
-						m := value.(*sync.Map)
-						_, hasProcess := m.Load("Process")
-						if hasProcess {
-							p, _ := m.Load("Port")
-							portsInUse = append(portsInUse, Utility.ToInt(p))
+
+					for _, v := range self.Services {
+						if v.(map[string]interface{})["Process"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(v.(map[string]interface{})["Port"]))
 						}
-						_, hasProxyProcess := m.Load("ProxyProcess")
-						if hasProxyProcess {
-							p, _ := m.Load("Proxy")
-							portsInUse = append(portsInUse, Utility.ToInt(p))
+						if v.(map[string]interface{})["ProxyProcess"] != nil {
+							portsInUse = append(portsInUse, Utility.ToInt(v.(map[string]interface{})["Proxy"]))
 						}
-						return true
-					})
+					}
 
 					action["result"].(chan []int) <- portsInUse
 
@@ -598,58 +575,52 @@ func (self *Globule) KillProcess() {
  */
 func (self *Globule) Serve() {
 
-	// initialyse directories.
-	self.initDirectories()
+	// Reset previous connections.
+	self.store = nil
+	self.persistence_client_ = nil
+	self.ldap_client_ = nil
+	self.event_client_ = nil
 
 	// Open logs db.
-	self.logs = storage_store.NewLevelDB_store()
-	err := self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
-	if err != nil {
-		log.Panicln(err)
-	}
+	if self.logs == nil {
+		self.logs = storage_store.NewLevelDB_store()
+		err := self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
+		if err != nil {
+			log.Println(err)
+		}
 
-	// The configuration handler.
-	http.HandleFunc("/config", getConfigHanldler)
+		// Here it suppose to be only one server instance per computer.
+		self.jwtKey = []byte(Utility.RandomUUID())
+		err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
+		if err != nil {
+			log.Panicln(err)
+		}
 
-	// Handle the get ca certificate function
-	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
+		// The token that identify the server with other services
+		token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
+		err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
+		if err != nil {
+			log.Panicln(err)
+		}
 
-	// Return the san server configuration.
-	http.HandleFunc("/get_san_conf", getSanConfigurationHandler)
-
-	// Handle the signing certificate function.
-	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
-
-	// Here it suppose to be only one server instance per computer.
-	self.jwtKey = []byte(Utility.RandomUUID())
-	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	// The token that identify the server with other services
-	token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
-	err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	// Here I will start the refresh token loop to refresh the server token.
-	// the token will be refresh 10 milliseconds before expiration.
-	ticker := time.NewTicker((self.SessionTimeout - 10) * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
-				err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
-				if err != nil {
-					log.Println(err)
+		// Here I will start the refresh token loop to refresh the server token.
+		// the token will be refresh 10 milliseconds before expiration.
+		ticker := time.NewTicker((self.SessionTimeout - 10) * time.Millisecond)
+		go func() {
+			for {
+				select {
+				case <-ticker.C:
+					token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
+					err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
+					if err != nil {
+						log.Println(err)
+					}
+				case <-self.exit:
+					break
 				}
 			}
-		}
-	}()
-
+		}()
+	}
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -671,7 +642,7 @@ func (self *Globule) Serve() {
 	self.saveConfig()
 
 	// lisen
-	err = self.Listen()
+	err := self.Listen()
 	if err != nil {
 		log.Println(err)
 	}
@@ -936,7 +907,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
  */
 func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
-		self.inernalServices[i].GracefulStop()
+		self.inernalServices[i].Stop()
 	}
 }
 
@@ -1005,15 +976,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 	// set the domain of the service.
 	s["Domain"] = self.getDomain()
+	s["TLS"] = self.Protocol == "https"
 
 	// if the service already exist.
-	srv := self.getService(s["Id"].(string))
-	if srv != nil {
-		if srv["Process"] != nil {
-			if reflect.TypeOf(srv["Process"]).String() == "*exec.Cmd" {
-				if srv["Process"].(*exec.Cmd).Process != nil {
-					Utility.TerminateProcess(srv["Process"].(*exec.Cmd).Process.Pid)
-				}
+	if s["Process"] != nil {
+		if reflect.TypeOf(s["Process"]).String() == "*exec.Cmd" {
+			if s["Process"].(*exec.Cmd).Process != nil {
+				Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid)
 			}
 		}
 	}
@@ -1100,6 +1069,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Get the next available port.
 		port := Utility.ToInt(s["Port"])
 		if !self.isPortAvailable(port) {
+			log.Println("------------> port is in use: ", port)
 			port, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
@@ -1132,7 +1102,12 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			return -1, -1, err
 		}
 
-		go func() {
+		// save the services in the map.
+		self.setService(s)
+
+		go func(id string) {
+			// get back the services.
+			s := self.getService(id)
 
 			// Here I will append the service to the load balancer.
 			if port != -1 {
@@ -1151,8 +1126,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 				self.lb_load_info_channel <- load_info
 			}
-			s["State"] = "running"
 
+			s["State"] = "running"
 			self.keepServiceAlive(s)
 
 			// display the message in the console.
@@ -1190,7 +1165,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 				Port:   int32(port),
 			}
 
-		}()
+		}(s["Id"].(string))
 
 		// get another port.
 		proxy := port + 1
@@ -1209,7 +1184,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 		// Save configuration stuff.
 		s["Proxy"] = proxy
-
 		self.setService(s)
 
 		// get back the service info with the proxy process in it
@@ -1305,7 +1279,8 @@ func (self *Globule) initService(s map[string]interface{}) error {
 
 	if s["Protocol"].(string) == "grpc" {
 		// The domain must be set in the sever configuration and not change after that.
-		hasTls := Utility.ToBool(s["TLS"])
+		hasTls := self.Protocol == "https" //Utility.ToBool(s["TLS"])
+		s["TLS"] = hasTls                  // set the tls...
 		if hasTls {
 			// Set TLS local services configuration here.
 			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
@@ -1813,7 +1788,7 @@ func (self *Globule) GetAbsolutePath(path string) string {
 func (self *Globule) Listen() error {
 
 	// Here I will subscribe to event service to keep then up to date.
-	self.subscribers = self.keepServicesUpToDate()
+	//self.subscribers = self.keepServicesUpToDate()
 
 	// Start internal services.
 
@@ -1846,12 +1821,6 @@ func (self *Globule) Listen() error {
 	if err != nil {
 		return err
 	}
-
-	// Start listen for http request.
-	http.HandleFunc("/", ServeFileHandler)
-
-	// The file upload handler.
-	http.HandleFunc("/uploads", FileUploadHandler)
 
 	// Must be started before other services.
 	go func() {

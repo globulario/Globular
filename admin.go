@@ -29,8 +29,6 @@ import (
 
 	"net"
 
-	"os/signal"
-
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/services/golang/admin/adminpb"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
@@ -44,6 +42,7 @@ import (
 func (self *Globule) startAdminService() error {
 	admin_server, err := self.startInternalService(string(adminpb.File_services_proto_admin_proto.Services().Get(0).FullName()), adminpb.File_services_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
+		self.inernalServices = append(self.inernalServices, admin_server)
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
 
@@ -56,22 +55,14 @@ func (self *Globule) startAdminService() error {
 		adminpb.RegisterAdminServiceServer(admin_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
-		go func() {
-			go func() {
-				// no web-rpc server.
-				if err := admin_server.Serve(lis); err != nil {
-					log.Println(err)
-				}
-			}()
-			// Wait for signal to stop.
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			<-ch
 
-			fmt.Println("admin service is now stopped!")
-			//Utility.KillProcessByName("mongod")
-			//Utility.KillProcessByName("prometheus")
+		go func() {
+			// no web-rpc server.
+			if err := admin_server.Serve(lis); err != nil {
+				log.Println(err)
+			}
 		}()
+
 	}
 	return err
 
@@ -1279,6 +1270,28 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 		ProxyPid:   int64(proxy_pid),
 		ServicePid: int64(service_pid),
 	}, nil
+}
+
+// Restart all Services also the http(s)
+func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartServicesRequest) (*adminpb.RestartServicesResponse, error) {
+
+	defer self.restartServices()
+
+	return &adminpb.RestartServicesResponse{}, nil
+}
+
+func (self *Globule) restartServices() {
+	self.exit <- struct{}{}
+
+	// Stop all internal services
+	self.stopInternalServices()
+
+	// Stop all external services.
+	self.stopServices()
+
+	// Start services
+	self.Serve()
+
 }
 
 // Start an external service here.

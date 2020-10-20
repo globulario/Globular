@@ -54,10 +54,14 @@ func (g *Globule) Stop(s service.Service) error {
 	logger.Info("Globular is stopping!")
 
 	// Stop external services.
+	log.Println("try to stop external services")
 	g.stopServices()
+	log.Println("locals services are stopped")
 
 	// Stop internal services
+	log.Println("try to stop internal services")
 	g.stopInternalServices()
+	log.Println("external services  are stopped")
 
 	logger.Infof("Globular has been stopped!")
 

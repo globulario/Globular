@@ -40,6 +40,12 @@ message StartServiceResponse {
   int64 proxy_pid = 2;
 }
 
+// Restart all services.
+message RestartServicesRequest {
+}
+
+message RestartServicesResponse {
+}
 
 // Register an external service.
 message RegisterExternalApplicationRequest {
@@ -191,6 +197,9 @@ service AdminService {
 
   // Start a service
   rpc StartService(StartServiceRequest) returns (StartServiceResponse);
+
+  // Restart all Services also the http(s)
+  rpc RestartServices(RestartServicesRequest) returns (RestartServicesResponse);
 
   // Create and upload service package
   rpc UploadServicePackage(stream UploadServicePackageRequest) returns(UploadServicePackageResponse);
