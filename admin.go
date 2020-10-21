@@ -1206,14 +1206,14 @@ func (self *Globule) stopService(serviceId string) error {
 		return errors.New("No process running")
 	}
 
-	err := Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid)
+	err := Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid, 0)
 
 	if err != nil {
 		return err
 	}
 
 	if s["ProxyProcess"] != nil {
-		err := Utility.TerminateProcess(s["ProxyProcess"].(*exec.Cmd).Process.Pid)
+		err := Utility.TerminateProcess(s["ProxyProcess"].(*exec.Cmd).Process.Pid, 0)
 
 		// time.Sleep(time.Second * 1)
 		if err != nil {

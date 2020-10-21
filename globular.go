@@ -311,9 +311,6 @@ func NewGlobule() *Globule {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
-	// initialyse directories.
-	g.initDirectories()
-
 	return g
 }
 
@@ -543,6 +540,7 @@ func (self *Globule) initDirectories() {
 
 				}
 			case <-self.exit:
+				log.Println("exit get config loop.")
 				return
 			}
 		}
@@ -574,6 +572,8 @@ func (self *Globule) KillProcess() {
  * Start serving the content.
  */
 func (self *Globule) Serve() {
+	// initialyse directories.
+	self.initDirectories()
 
 	// Reset previous connections.
 	self.store = nil
@@ -735,7 +735,7 @@ func (self *Globule) registerIpToDns() error {
 func (self *Globule) startProxy(id string, port int, proxy int) error {
 	srv := self.getService(id)
 	if srv["ProxyProcess"] != nil {
-		Utility.TerminateProcess(srv["ProxyProcess"].(*exec.Cmd).Process.Pid)
+		Utility.TerminateProcess(srv["ProxyProcess"].(*exec.Cmd).Process.Pid, 0)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -789,7 +789,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	err := proxyProcess.Start()
 
@@ -926,7 +926,6 @@ func (self *Globule) stopServices() {
 				eventHub.UnSubscribe(channelId, uuids[i])
 			}
 		}
-
 		eventHub.Close()
 	}
 
@@ -952,6 +951,7 @@ func (self *Globule) stopServices() {
 		}
 		log.Println("stop listen(https) at port ", self.PortHttps)
 	}
+
 	if self.http_server != nil {
 		if err := self.http_server.Shutdown(ctx); err != nil {
 			// handle err
@@ -982,7 +982,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 	if s["Process"] != nil {
 		if reflect.TypeOf(s["Process"]).String() == "*exec.Cmd" {
 			if s["Process"].(*exec.Cmd).Process != nil {
-				Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid)
+				Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid, 0)
 			}
 		}
 	}
@@ -1092,7 +1092,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Here I will set the command dir.
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 		s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
@@ -1207,7 +1207,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			err = s["Process"].(*exec.Cmd).Start()
 			s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
 			err = s["Process"].(*exec.Cmd).Start()
@@ -1595,7 +1595,7 @@ inhibit_rules:
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
 	prometheus.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = s["Process"].(*exec.Cmd).Start()
@@ -1606,7 +1606,7 @@ inhibit_rules:
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = alertmanager.Start()
@@ -1617,7 +1617,7 @@ inhibit_rules:
 
 	node_exporter := exec.Command("node_exporter")
 	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = node_exporter.Start()

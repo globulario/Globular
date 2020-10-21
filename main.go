@@ -61,12 +61,18 @@ func (g *Globule) Stop(s service.Service) error {
 	// Stop internal services
 	log.Println("try to stop internal services")
 	g.stopInternalServices()
-	log.Println("external services  are stopped")
+	log.Println("internal services  are stopped")
 
 	logger.Infof("Globular has been stopped!")
+	pids, err := Utility.GetProcessIdsByName("grpcwebproxy")
+	if err == nil {
+		for i := 0; i < len(pids); i++ {
+			Utility.TerminateProcess(pids[i], 0)
+		}
+	}
 
 	close(g.exit)
-	return nil
+	return err
 }
 
 func main() {
@@ -128,7 +134,7 @@ func main() {
 		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32, linux64, win32, win64 (Required)")
 
 		switch os.Args[1] {
-		case "package":
+		case "dist":
 			distCommand.Parse(os.Args[2:])
 		case "deploy":
 			deployCommand.Parse(os.Args[2:])
