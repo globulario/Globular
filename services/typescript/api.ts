@@ -125,7 +125,6 @@ const domain = window.location.hostname
 const application = window.location.pathname.split('/')[1]
 let token = localStorage.getItem("user_token")
 
-
 /**
  * 
  * @param globular 
@@ -174,8 +173,8 @@ export function readFullConfig(
                 "domain": domain
             })
             .then(rsp => {
-                globular.config = JSON.parse(rsp.getResult());; // set the globular config with the full config.
-                callback(globular.config);
+                let config = JSON.parse(rsp.getResult());; // set the globular config with the full config.
+                callback(config);
             })
             .catch(err => {
                 errorCallback(err);
