@@ -9,7 +9,7 @@ import (
 
 var (
 	// Connect to the admin client.
-	client = NewAdmin_Client("localhost", "Admin")
+	client, _ = NewAdminService_Client("localhost", "admin.AdminService")
 )
 
 // Test various function here.
@@ -31,6 +31,16 @@ func TestGetFullConfig(t *testing.T) {
 		log.Println("---> ", err)
 	}
 	log.Println("config: ", config)
+}
+
+func TestRestartServices(t *testing.T) {
+	log.Println("---> test get config.")
+
+	err := client.RestartServices()
+	if err != nil {
+		log.Println("---> ", err)
+	}
+
 }
 
 /*

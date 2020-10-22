@@ -226,6 +226,17 @@ func (self *Admin_Client) StopService(id string) error {
 	return nil
 }
 
+func (self *Admin_Client) RestartServices() error {
+	rqst := new(adminpb.RestartServicesRequest)
+
+	_, err := self.c.RestartServices(globular.GetClientContext(self), rqst)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Register and start an application.
 func (self *Admin_Client) RegisterExternalApplication(id string, path string, args []string) (int, error) {
 	rqst := &adminpb.RegisterExternalApplicationRequest{

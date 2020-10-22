@@ -19,6 +19,7 @@ import { CertificateAuthorityPromiseClient } from './ca/ca_grpc_web_pb';
 import { SubscribeRequest, UnSubscribeRequest, PublishRequest, Event, OnEventRequest, SubscribeResponse } from './event/event_pb';
 import { SearchServiceClient, SearchServicePromiseClient } from './search/search_grpc_web_pb';
 import { LoadBalancingServiceClient, LoadBalancingServicePromiseClient } from './lb/lb_grpc_web_pb';
+import { GetThumbnailsRequest } from './file/file_pb';
 
 /**
  * The service configuration information.
@@ -133,13 +134,13 @@ export class EventHub {
         this.dispatch(evt.getName(), data)
       });
 
-      stream.on('status', (status: any)=> {
+      stream.on('status', (status: any) => {
         if (status.code === 0) {
           /** Nothing to do here. */
         }
       });
 
-      stream.on('end',  () => {
+      stream.on('end', () => {
         // stream end signal
         /** Nothing to do here. */
       });
@@ -182,10 +183,10 @@ export class EventHub {
    * @param {*} uuid 
    */
   unSubscribe(name: string, uuid: string) {
-    if(this.subscribers[name]=== undefined){
+    if (this.subscribers[name] === undefined) {
       return
     }
-    if(this.subscribers[name][uuid]=== undefined){
+    if (this.subscribers[name][uuid] === undefined) {
       return
     }
     // Remove the local subscriber.
@@ -246,17 +247,34 @@ export class EventHub {
 
   /** Dispatch the event localy */
   dispatch(name: string, data: any) {
-      for (const uuid in this.subscribers[name]) {
-          // call the event callback function.
-          if(this.subscribers !== undefined){
-              if(this.subscribers[name] !== undefined){
-                  if(this.subscribers[name][uuid]!== undefined){
-                      this.subscribers[name][uuid](data);
-                  }
-              }
+    for (const uuid in this.subscribers[name]) {
+      // call the event callback function.
+      if (this.subscribers !== undefined) {
+        if (this.subscribers[name] !== undefined) {
+          if (this.subscribers[name][uuid] !== undefined) {
+            this.subscribers[name][uuid](data);
           }
+        }
       }
+    }
   }
+}
+
+// Get the configuration from url
+function getFileConfig(url: string, callback: (obj: any) => void, errorcallback: (err: any) => void) {
+  var xmlhttp = new XMLHttpRequest();
+
+  xmlhttp.onreadystatechange = function () {
+    if (this.readyState == 4 && this.status == 201) {
+      var obj = JSON.parse(this.responseText);
+      callback(obj);
+    }else if (this.readyState == 4){
+      errorcallback("fail to get the configuration file at url " + url + " status " + this.status)
+    }
+  };
+
+  xmlhttp.open("GET", url, true);
+  xmlhttp.send();
 }
 
 /**
@@ -264,338 +282,449 @@ export class EventHub {
  * application to get access to sql, ldap, persistence... service.
  */
 export class Globular {
-  config: IConfig | undefined;
-  // The admin service.
-  adminService: AdminServicePromiseClient | undefined;
-  loadBalancingService: LoadBalancingServicePromiseClient | undefined;
-  ressourceService: RessourceServicePromiseClient | undefined;
-  servicesDicovery: ServiceDiscoveryPromiseClient | undefined;
-  servicesRepository: ServiceRepositoryPromiseClient | undefined;
-  certificateAuthority: CertificateAuthorityPromiseClient | undefined;
 
-  // list of services.
-  catalogService: CatalogServicePromiseClient | undefined;
-  echoService: EchoServicePromiseClient | undefined;
-  eventService: EventServicePromiseClient | undefined;
-  fileService: FileServicePromiseClient | undefined;
-  ldapService: LdapServicePromiseClient | undefined;
-  persistenceService: PersistenceServicePromiseClient | undefined;
-  mailService: MailServicePromiseClient | undefined;
-  sqlService: SqlServicePromiseClient | undefined;
-  storageService: StorageServicePromiseClient | undefined;
-  monitoringService: MonitoringServicePromiseClient | undefined;
-  spcService: SpcServicePromiseClient | undefined;
-  searchService: SearchServicePromiseClient | undefined;
-
-  // Non open source services.
-  plcService_ab: PlcServicePromiseClient | undefined;
-  plcService_siemens: PlcServicePromiseClient | undefined;
-  plcLinkService: PlcLinkServicePromiseClient | undefined;
 
   /** The configuation. */
-  constructor(config: IConfig) {
+  constructor(url: string, callback: () => void, errorcallback: (err: any) => void) {
     // Keep the config...
-    this.config = config;
+    getFileConfig(url, (config:any)=>{
+      this.config = config;
+      callback();
+    }, errorcallback)
+  }
 
-    /** The admin service to access to other configurations. */
-    this.adminService = new AdminServicePromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.AdminProxy,
-      null,
-      null,
-    );
+  private _config: IConfig;
+  public get config(): IConfig {
+    return this._config;
+  }
+  public set config(value: IConfig) {
+    this._config = value;
+  }
 
-    /** That service is use to control acces to ressource like method access and account. */
-    this.ressourceService = new RessourceServicePromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy,
-      null,
-      null,
-    );
+  /** The admin service to access to other configurations. */
+  private _adminService: AdminServicePromiseClient
+  public get adminService(): AdminServicePromiseClient | undefined {
+    // refresh the config.
+    if (this._adminService == null) {
+      this._adminService = new AdminServicePromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.AdminProxy,
+        null,
+        null,
+      )
+    }
+    return this._adminService;
+  }
 
-    this.loadBalancingService = new LoadBalancingServicePromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.LoadBalancingServiceProxy,
-      null,
-      null,
-    );
-
-    /** That service help to find and install or publish new service on the backend. */
-    this.servicesDicovery = new ServiceDiscoveryPromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy,
-      null,
-      null,
-    );
-
-    /** Functionality to use service repository server. */
-    this.servicesRepository = new ServiceRepositoryPromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesRepositoryProxy,
-      null,
-      null,
-    );
-
-    /** Certificate authority function needed for TLS client. */
-    this.certificateAuthority = new CertificateAuthorityPromiseClient(
-      this.config.Protocol + '://' + this.config.Domain + ':' + this.config.CertificateAuthorityProxy,
-      null,
-      null,
-    );
-
-    // Iinitialisation of services.
-
-    // The catalog server
-    let catalog_server = this.getFirstConfigByName('catalog.CatalogService')
-    if (catalog_server != undefined) {
-      let protocol = 'http';
-      if (catalog_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.catalogService = new CatalogServicePromiseClient(
-        protocol +
-        '://' +
-        catalog_server.Domain +
-        ':' +
-        catalog_server.Proxy,
+  private _loadBalancingService: LoadBalancingServicePromiseClient
+  public get loadBalancingService(): LoadBalancingServicePromiseClient | undefined {
+    // refresh the config.
+    if (this._loadBalancingService == null) {
+      this._loadBalancingService = new LoadBalancingServicePromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.LoadBalancingServiceProxy,
         null,
         null,
       );
     }
+    return this._loadBalancingService;
+  }
 
-    // The echo server
-    let echo_server = this.getFirstConfigByName('echo.EchoService')
-    if (echo_server != null) {
-      let protocol = 'http';
-      if (echo_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.echoService = new EchoServicePromiseClient(
-        protocol + '://' + echo_server.Domain + ':' + echo_server.Proxy,
+  private _ressourceService: RessourceServicePromiseClient
+  public get ressourceService(): RessourceServicePromiseClient | undefined {
+    // refresh the config.
+    if (this._ressourceService == null) {
+      this._ressourceService = new RessourceServicePromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.RessourceProxy,
         null,
         null,
       );
     }
+    return this._ressourceService;
+  }
 
-    // The search service
-    let search_server = this.getFirstConfigByName('search.SearchService')
-    if (search_server != null) {
-      let protocol = 'http';
-      if (search_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.searchService = new SearchServicePromiseClient(
-        protocol + '://' + search_server.Domain + ':' + search_server.Proxy,
+  private _servicesDicovery: ServiceDiscoveryPromiseClient
+  public get servicesDicovery(): ServiceDiscoveryPromiseClient | undefined {
+    // refresh the config.
+    if (this._servicesDicovery == null) {
+      this._servicesDicovery = new ServiceDiscoveryPromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesDiscoveryProxy,
         null,
         null,
       );
     }
+    return this._servicesDicovery;
+  }
 
-    // The event server.
-    let event_server = this.getFirstConfigByName('event.EventService')
-    if (event_server != null) {
-      let protocol = 'http';
-      if (event_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.eventService = new EventServicePromiseClient(
-        protocol +
-        '://' +
-        event_server.Domain +
-        ':' +
-        event_server.Proxy,
+  private _servicesRepository: ServiceRepositoryPromiseClient
+  public get servicesRepository(): ServiceRepositoryPromiseClient | undefined {
+    // refresh the config.
+    if (this._servicesRepository == null) {
+      this._servicesRepository = new ServiceRepositoryPromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.ServicesRepositoryProxy,
         null,
         null,
       );
     }
+    return this._servicesRepository;
+  }
 
-    // The file server.
-    let file_server = this.getFirstConfigByName('file.FileService')
-    if (file_server != null) {
-      let protocol = 'http';
-      if (file_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.fileService = new FileServicePromiseClient(
-        protocol + '://' + file_server.Domain + ':' + file_server.Proxy,
+  private _certificateAuthority: CertificateAuthorityPromiseClient;
+  public get certificateAuthority(): CertificateAuthorityPromiseClient | undefined {
+    // refresh the config.
+    if (this._certificateAuthority == null) {
+      this._certificateAuthority = new CertificateAuthorityPromiseClient(
+        this.config.Protocol + '://' + this.config.Domain + ':' + this.config.CertificateAuthorityProxy,
         null,
         null,
       );
     }
+    return this._certificateAuthority;
+  }
 
-    // The ldap server
-    let ldap_server = this.getFirstConfigByName('ldap.LdapService')
-    if (ldap_server != null) {
-      let protocol = 'http';
-      if (ldap_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.ldapService = new LdapServicePromiseClient(
-        protocol + '://' + ldap_server.Domain + ':' + ldap_server.Proxy,
-        null,
-        null,
-      );
+  // list of services.
+  private _catalogService: CatalogServicePromiseClient
+  public get catalogService(): CatalogServicePromiseClient | undefined {
+    if (this._catalogService != null) {
+      return this._catalogService
     }
-
-    // The persistence server.
-    let persistence_server = this.getFirstConfigByName('persistence.PersistenceService')
-    if (persistence_server != null) {
-      let protocol = 'http';
-      if (persistence_server.TLS == true) {
-        protocol = 'https';
+    let config = this.getFirstConfigByName('catalog.CatalogService')
+    if (config != undefined) {
+      if (this._catalogService == null) {
+        this._catalogService = new CatalogServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
       }
-      this.persistenceService = new PersistenceServicePromiseClient(
-        protocol +
-        '://' +
-        persistence_server.Domain +
-        ':' +
-        persistence_server.Proxy,
-        null,
-        null,
-      );
+      return this._catalogService;
     }
+    return undefined;
+  }
 
-    // The mail server
-    let mail_server = this.getFirstConfigByName('mail.MailService')
-
-    if (mail_server != null) {
-      let protocol = 'http';
-      if (mail_server.TLS == true) {
-        protocol = 'https';
+  private _echoService: EchoServicePromiseClient
+  public get echoService(): EchoServicePromiseClient | undefined {
+    if (this._echoService != null) {
+      return this._echoService
+    }
+    let config = this.getFirstConfigByName('echo.EchoService')
+    if (config != undefined) {
+      if (this._echoService == null) {
+        this._echoService = new EchoServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
       }
-      this.mailService = new MailServicePromiseClient(
-        protocol + '://' + mail_server.Domain + ':' + mail_server.Proxy,
-        null,
-        null,
-      );
+      return this._echoService;
     }
+    return undefined;
+  }
 
-    // The sql service.
-    let sql_server = this.getFirstConfigByName('sql.SqlService')
-    if (sql_server != null) {
-      let protocol = 'http';
-      if (sql_server.TLS == true) {
-        protocol = 'https';
+  private _eventService: EventServicePromiseClient
+  public get eventService(): EventServicePromiseClient | undefined {
+    if (this._eventService != null) {
+      return this._eventService
+    }
+    let config = this.getFirstConfigByName('event.EventService')
+    if (config != undefined) {
+      if (this._eventService == null) {
+        this._eventService = new EventServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
       }
-      this.sqlService = new SqlServicePromiseClient(
-        protocol + '://' + sql_server.Domain + ':' + sql_server.Proxy,
-        null,
-        null,
-      );
+      return this._eventService;
     }
+    return undefined;
+  }
 
-    // The storage service.
-    let storage_server = this.getFirstConfigByName('storage.StorageService')
-    if (storage_server != null) {
-      let protocol = 'http';
-      if (storage_server.TLS == true) {
-        protocol = 'https';
+  private _fileService: FileServicePromiseClient
+  public get fileService(): FileServicePromiseClient | undefined {
+    if (this._fileService != null) {
+      return this._fileService
+    }
+    let config = this.getFirstConfigByName('file.FileService')
+    if (config != undefined) {
+      if (this._fileService == null) {
+        this._fileService = new FileServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
       }
-      this.storageService = new StorageServicePromiseClient(
-        protocol +
-        '://' +
-        storage_server.Domain +
-        ':' +
-        storage_server.Proxy,
-        null,
-        null,
-      );
+      return this._fileService;
     }
+    return undefined;
+  }
 
-    // The monitoring service.
-    let monitoring_server = this.getFirstConfigByName('monitoring.MonitoringService')
-
-    if (monitoring_server != null) {
-      let protocol = 'http';
-      if (monitoring_server.TLS == true) {
-        protocol = 'https';
+  private _ldapService: LdapServicePromiseClient
+  public get ldapService(): LdapServicePromiseClient | undefined {
+    if (this._ldapService != null) {
+      return this._ldapService
+    }
+    let config = this.getFirstConfigByName('ldap.LdapService')
+    if (config != undefined) {
+      if (this._ldapService == null) {
+        this._ldapService = new LdapServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
       }
-      this.monitoringService = new MonitoringServicePromiseClient(
-        protocol +
-        '://' +
-        monitoring_server.Domain +
-        ':' +
-        monitoring_server.Proxy,
-        null,
-        null,
-      );
+      return this._ldapService;
     }
+    return undefined;
+  }
 
-    // The spc server.
-    let spc_server = this.getFirstConfigByName('spc.SpcService')
-    if (spc_server != null) {
-      let protocol = 'http';
-      if (spc_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.spcService = new SpcServicePromiseClient(
-        protocol + '://' + spc_server.Domain + ':' + spc_server.Proxy,
-        null,
-        null,
-      );
+  private _persistenceService: PersistenceServicePromiseClient
+  public get persistenceService(): PersistenceServicePromiseClient | undefined {
+    if (this._persistenceService != null) {
+      return this._persistenceService
     }
+    let config = this.getFirstConfigByName('persistence.PersistenceService')
+    if (config != undefined) {
+      if (this._persistenceService == null) {
+        this._persistenceService = new PersistenceServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._persistenceService;
+    }
+    return undefined;
+  }
 
-    // TODO Here I got tow implementation of the same service.
-    // So I will use it Path instead of name...
-    /*
-    // The plc_server_ab
-    let plc_server_ab = this.getFirstConfigByName('plc.PlcService')
-    if (plc_server_ab != null) {
-      let protocol = 'http';
-      if (plc_server_ab.TLS == true) {
-        protocol = 'https';
-      }
-      this.plcService_ab = new PlcServicePromiseClient(
-        protocol +
-        '://' +
-        plc_server_ab.Domain +
-        ':' +
-        plc_server_ab.Proxy,
-        null,
-        null,
-      );
+  private _mailService: MailServicePromiseClient
+  public get mailService(): MailServicePromiseClient | undefined {
+    if (this._mailService != null) {
+      return this._mailService
     }
+    let config = this.getFirstConfigByName('mail.MailService')
+    if (config != undefined) {
+      if (this._mailService == null) {
+        this._mailService = new MailServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._mailService;
+    }
+    return undefined;
+  }
 
-    // PLC simmens
-    let plc_server_siemens = this.getFirstConfigByName('plc.PlcService')
-    if (plc_server_siemens != null) {
-      let protocol = 'http';
-      if (plc_server_siemens.TLS == true) {
-        protocol = 'https';
-      }
-      this.plcService_siemens = new PlcServicePromiseClient(
-        protocol +
-        '://' +
-        plc_server_siemens.Domain +
-        ':' +
-        plc_server_siemens.Proxy,
-        null,
-        null,
-      );
+  private _sqlService: SqlServicePromiseClient
+  public get sqlService(): SqlServicePromiseClient | undefined {
+    if (this._sqlService != null) {
+      return this._sqlService
     }
-    */
+    let config = this.getFirstConfigByName('sql.SqlService')
+    if (config != undefined) {
+      if (this._sqlService == null) {
+        this._sqlService = new SqlServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._sqlService;
+    }
+    return undefined;
+  }
 
-    // PLC Link server.
-    let plc_link_server = this.getFirstConfigByName('plc_link.PlcLinkService')
-    if (plc_link_server != null) {
-      let protocol = 'http';
-      if (plc_link_server.TLS == true) {
-        protocol = 'https';
-      }
-      this.plcLinkService = new PlcLinkServicePromiseClient(
-        protocol +
-        '://' +
-        plc_link_server.Domain +
-        ':' +
-        plc_link_server.Proxy,
-        null,
-        null,
-      );
+  private _storageService: StorageServicePromiseClient
+  public get storageService(): StorageServicePromiseClient | undefined {
+    if (this._storageService != null) {
+      return this._storageService
     }
+    let config = this.getFirstConfigByName('storage.StorageService')
+    if (config != undefined) {
+      if (this._storageService == null) {
+        this._storageService = new StorageServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._storageService;
+    }
+    return undefined;
+  }
+
+  private _monitoringService: MonitoringServicePromiseClient
+  public get monitoringService(): MonitoringServicePromiseClient | undefined {
+    if (this._monitoringService != null) {
+      return this._monitoringService
+    }
+    let config = this.getFirstConfigByName('monitoring.MonitoringService')
+    if (config != undefined) {
+      if (this._monitoringService == null) {
+        this._monitoringService = new MonitoringServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._monitoringService;
+    }
+    return undefined;
+  }
+
+  private _spcService: SpcServicePromiseClient
+  public get spcService(): SpcServicePromiseClient | undefined {
+    if (this._spcService != null) {
+      return this._spcService
+    }
+    let config = this.getFirstConfigByName('spc.SpcService')
+    if (config != undefined) {
+      if (this._spcService == null) {
+        this._spcService = new SpcServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._spcService;
+    }
+    return undefined;
+  }
+
+  private _searchService: SearchServicePromiseClient
+  public get searchService(): SearchServicePromiseClient | undefined {
+    if (this._searchService != null) {
+      return this.searchService
+    }
+    let config = this.getFirstConfigByName('search.SearchService')
+    if (config != undefined) {
+      if (this._searchService == null) {
+        this._searchService = new SearchServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._searchService;
+    }
+    return undefined;
+  }
+
+  // Non open source services.
+  private _plcService_ab: PlcServicePromiseClient
+  public get plcService_ab(): PlcServicePromiseClient | undefined {
+    let config = this.getFirstConfigByName('plc.PlcService')
+    if (config != undefined) {
+      if (this._plcService_ab == null) {
+        this._plcService_ab = new PlcServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._plcService_ab;
+    }
+    return undefined;
+  }
+
+  private _plcService_siemens: PlcServicePromiseClient
+  public get plcService_siemens(): PlcServicePromiseClient | undefined {
+    let config = this.getFirstConfigByName('plc.PlcService')
+    if (config != undefined) {
+      if (this._plcService_siemens == null) {
+        this._plcService_siemens = new PlcServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._plcService_siemens;
+    }
+    return undefined;
+  }
+
+  private _plcLinkService: PlcLinkServicePromiseClient
+  public get plcLinkService(): PlcLinkServicePromiseClient | undefined {
+    let config = this.getFirstConfigByName('plc_link.PlcLinkService')
+    if (config != undefined) {
+      if (this._plcLinkService == null) {
+        this._plcLinkService = new PlcLinkServicePromiseClient(
+          this.config.Protocol +
+          '://' +
+          config.Domain +
+          ':' +
+          config.Proxy,
+          null,
+          null,
+        );
+      }
+      return this._plcLinkService;
+    }
+    return undefined;
   }
 
   // Return the first configuration that match the given name.
   // The load balancer will be in charge to select the correct service instance from the list
   // The first instance is the entry point of the services.
-  getFirstConfigByName(name:string): IServiceConfig {
-    for(const id in this.config.Services){
+  getFirstConfigByName(name: string): IServiceConfig {
+    for (const id in this.config.Services) {
       const service = this.config.Services[id]
-      if(service.Name == name){
+      if (service.Name == name) {
         return service;
       }
     }
