@@ -210,8 +210,8 @@ func NewGlobule() *Globule {
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.RootPassword = "adminadmin"
 
-	g.PortHttp = 8080  // The default http port
-	g.PortHttps = 8181 // The default https port number
+	g.PortHttp = 80   // The default http port
+	g.PortHttps = 443 // The default https port number
 
 	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
 
@@ -310,6 +310,8 @@ func NewGlobule() *Globule {
 
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
+
+	g.initDirectories()
 
 	return g
 }
@@ -572,8 +574,6 @@ func (self *Globule) KillProcess() {
  * Start serving the content.
  */
 func (self *Globule) Serve() {
-	// initialyse directories.
-	self.initDirectories()
 
 	// Reset previous connections.
 	self.store = nil
@@ -724,9 +724,34 @@ func (self *Globule) registerIpToDns() error {
 		if err != nil {
 			return (err)
 		}
+
+	}
+
+	domains := self.AlternateDomains
+
+	for i := 0; i < len(domains); i++ {
+		if !testDomainIp(domains[i].(string), Utility.MyIP(), 3) {
+			return errors.New("The domain " + domains[i].(string) + "is not associated with ip " + Utility.MyIP())
+		}
 	}
 
 	return nil
+}
+
+// Test if a domain is asscociated with a given ip.
+func testDomainIp(domain string, ip string, try int) bool {
+	if try == 0 {
+		return false
+	}
+
+	if Utility.DomainHasIp(domain, Utility.MyIP()) {
+		return true
+	} else {
+		time.Sleep(5 * time.Second)
+		try--
+		return testDomainIp(domain, ip, try)
+	}
+
 }
 
 /**
@@ -789,7 +814,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	err := proxyProcess.Start()
 
@@ -808,7 +833,8 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 /**
  * That function will
  */
-func (self *Globule) keepServiceAlive(s map[string]interface{}) {
+func (self *Globule) keepServiceAlive(id string) {
+	s := self.getService(id)
 	if self.exit_ {
 		return
 	}
@@ -824,7 +850,7 @@ func (self *Globule) keepServiceAlive(s map[string]interface{}) {
 
 	s["Process"].(*exec.Cmd).Wait()
 
-	_, _, err := self.startService(s)
+	_, _, err := self.startService(id)
 	if err != nil {
 		return
 	}
@@ -964,7 +990,8 @@ func (self *Globule) stopServices() {
 /**
  * Start services define in the configuration.
  */
-func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
+func (self *Globule) startService(id string) (int, int, error) {
+	s := self.getService(id)
 	var err error
 
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
@@ -1069,13 +1096,13 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Get the next available port.
 		port := Utility.ToInt(s["Port"])
 		if !self.isPortAvailable(port) {
-			log.Println("------------> port is in use: ", port)
 			port, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
 			}
+			s["Port"] = port
+			self.setService(s)
 		}
-		s["Port"] = port
 
 		// File service need root...
 		if s["Name"].(string) == "file.FileService" {
@@ -1092,7 +1119,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		// Here I will set the command dir.
 		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 		s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
 		err = s["Process"].(*exec.Cmd).Start()
@@ -1128,7 +1155,9 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 
 			s["State"] = "running"
-			self.keepServiceAlive(s)
+			self.setService(s)
+
+			self.keepServiceAlive(id)
 
 			// display the message in the console.
 			reader := bufio.NewReader(pipe)
@@ -1168,12 +1197,14 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}(s["Id"].(string))
 
 		// get another port.
-		proxy := port + 1
+		proxy := Utility.ToInt(s["Proxy"])
 		if !self.isPortAvailable(proxy) {
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
 			}
+			s["Proxy"] = proxy
+			self.setService(s)
 		}
 
 		// Start the proxy.
@@ -1183,7 +1214,6 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 		}
 
 		// Save configuration stuff.
-		s["Proxy"] = proxy
 		self.setService(s)
 
 		// get back the service info with the proxy process in it
@@ -1207,7 +1237,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			err = s["Process"].(*exec.Cmd).Start()
 			s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
-				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
 			err = s["Process"].(*exec.Cmd).Start()
@@ -1221,10 +1251,14 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 			}
 
 			s["State"] = "running"
-			if err == nil {
-				go func() {
+			self.setService(s)
 
-					self.keepServiceAlive(s)
+			if err == nil {
+				go func(id string) {
+
+					self.keepServiceAlive(id)
+
+					s := self.getService(id)
 
 					// display the message in the console.
 					reader := bufio.NewReader(pipe)
@@ -1246,7 +1280,7 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 						// I will log the program error into the admin logger.
 						self.logServiceInfo(s["Name"].(string), errb.String())
 					}
-				}()
+				}(s["id"].(string))
 			}
 
 			// Save configuration stuff.
@@ -1256,12 +1290,15 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 
 	if s["Process"].(*exec.Cmd).Process == nil {
 		s["State"] = "fail"
+		self.setService(s)
 		err := errors.New("Fail to start process " + s["Name"].(string))
 		return -1, -1, err
 	}
 
 	// Return the pid of the service.
 	if s["ProxyProcess"] != nil {
+		s["State"] = "running"
+		self.setService(s)
 		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
 	}
 
@@ -1271,7 +1308,8 @@ func (self *Globule) startService(s map[string]interface{}) (int, int, error) {
 /**
  * Init services configuration.
  */
-func (self *Globule) initService(s map[string]interface{}) error {
+func (self *Globule) initService(id string) error {
+	s := self.getService(id)
 	if s["Protocol"] == nil {
 		// internal service dosent has Protocol define.
 		return nil
@@ -1299,7 +1337,7 @@ func (self *Globule) initService(s map[string]interface{}) error {
 		hasChange := self.saveServiceConfig(s)
 		if hasChange || s["Process"] == nil {
 			self.setService(s)
-			_, _, err := self.startService(s)
+			_, _, err := self.startService(s["Id"].(string))
 			if err != nil {
 				return err
 			}
@@ -1431,7 +1469,7 @@ func (self *Globule) initServices() {
 		// Remove existing process information.
 		delete(s, "Process")
 		delete(s, "ProxyProcess")
-		err := self.initService(s)
+		err := self.initService(s["Id"].(string))
 		if err != nil {
 			log.Println(err)
 		}
@@ -1595,7 +1633,7 @@ inhibit_rules:
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
 	prometheus.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = s["Process"].(*exec.Cmd).Start()
@@ -1606,7 +1644,7 @@ inhibit_rules:
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = alertmanager.Start()
@@ -1617,7 +1655,7 @@ inhibit_rules:
 
 	node_exporter := exec.Command("node_exporter")
 	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = node_exporter.Start()

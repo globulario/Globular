@@ -234,13 +234,13 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}) (keyPath string, certPath string, caPath string, err error) {
 	var path string
 	port := 80 // default http server.
-	if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
+	/*if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
 		root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 		root_ := string(root)[0:strings.Index(string(root), ":")]
 		port = Utility.ToInt(string(root)[strings.Index(string(root), ":")+1:])
 
 		path = root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
-	}
+	}*/
 
 	// TODO Clarify the use of the password here.
 	pwd := "1111"

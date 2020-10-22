@@ -498,6 +498,7 @@ ADD Globular /globular
 COPY bin /globular/bin
 COPY proto /globular/proto
 COPY services /globular/services
+COPY webroot /globular/webroot
 `
 
 	Utility.CreateDirIfNotExist(path)

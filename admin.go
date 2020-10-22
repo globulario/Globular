@@ -293,14 +293,16 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// if the configuration is one of servicespb...
+	// if the configuration is one of services...
 	if config["Id"] != nil {
 		srv := self.getService(config["Id"].(string))
 		if srv != nil {
 			// Attach the actual process and proxy process to the configuration object.
 			config["Process"] = srv["Process"]
 			config["ProxyProcess"] = srv["ProxyProcess"]
-			self.initService(config)
+			self.setService(config)
+
+			self.initService(config["Id"].(string))
 		}
 
 	} else if config["Services"] != nil {
@@ -341,10 +343,12 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		for n, s := range config["Services"].(map[string]interface{}) {
 			// Attach the actual process and proxy process to the configuration object.
 			s_ := self.getService(n)
+			id := s.(map[string]interface{})["Id"].(string)
 			s.(map[string]interface{})["Process"] = s_["Process"]
 			s.(map[string]interface{})["ProxyProcess"] = s_["ProxyProcess"]
 			s.(map[string]interface{})["TLS"] = self.Protocol == "https"
-			self.initService(s.(map[string]interface{}))
+			self.setService(s.(map[string]interface{}))
+			self.initService(id)
 		}
 
 		// Save Discoveries.
@@ -525,10 +529,12 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
+	/**
 	configs := self.getServiceConfigByName("persistence.PersistenceService")
 	if len(configs) == 0 {
 		return errors.New("No persistence service was configure on that globule!")
 	}
+	*/
 
 	// Here I will test if mongo db exist on the server.
 	existMongo := exec.Command("mongod", "--version")
@@ -1054,9 +1060,10 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 
 			// Set the id with the descriptor id.
 			config["Id"] = strings.Replace(descriptor.Id, ".exe", "", -1)
+			self.setService(config)
 
 			// initialyse the new service.
-			err = self.initService(config)
+			err = self.initService(config["Id"].(string))
 			if err != nil {
 				return err
 			}
@@ -1260,7 +1267,7 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
 	}
 
-	service_pid, proxy_pid, err := self.startService(s)
+	service_pid, proxy_pid, err := self.startService(rqst.ServiceId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
