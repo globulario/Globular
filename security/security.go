@@ -33,7 +33,6 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 	// In case of local service I will get the service value directly from
 	// the configuration file.
 	serverConfig, err = getLocalConfig()
-
 	isLocal := true
 	if err == nil {
 		if serverConfig["Domain"] != address {
@@ -100,15 +99,16 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 		if serverConfig["AlternateDomains"] != nil {
 			alternateDomains = serverConfig["AlternateDomains"].([]interface{})
 		}
-
-		keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), country, state, city, organization, alternateDomains)
-		if err != nil {
-			return nil, err
+		if !isLocal {
+			keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), country, state, city, organization, alternateDomains, port)
+			if err != nil {
+				return nil, err
+			}
+			// set the credential function here
+			config["KeyFile"] = keyPath
+			config["CertFile"] = certPath
+			config["CertAuthorityTrust"] = caPath
 		}
-		// set the credential function here
-		config["KeyFile"] = keyPath
-		config["CertFile"] = certPath
-		config["CertAuthorityTrust"] = caPath
 	}
 
 	return config, nil
@@ -231,52 +231,13 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 /**
  * Return the credential configuration.
  */
-func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}) (keyPath string, certPath string, caPath string, err error) {
-	var path string
-	port := 80 // default http server.
-	/*if Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
-		root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
-		root_ := string(root)[0:strings.Index(string(root), ":")]
-		port = Utility.ToInt(string(root)[strings.Index(string(root), ":")+1:])
-
-		path = root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
-	}*/
+func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}, port int) (keyPath string, certPath string, caPath string, err error) {
 
 	// TODO Clarify the use of the password here.
 	pwd := "1111"
 
-	// Here I will get the local configuration...
-	var config map[string]interface{}
-	config, err = getLocalConfig()
-	isLocal := true
-	if err == nil {
-		if config["Domain"] != address {
-			if config["AlternateDomains"] != nil {
-				isLocal = false
-				alternateDomains := config["AlternateDomains"].([]interface{})
-				for i := 0; i < len(alternateDomains); i++ {
-					if alternateDomains[i].(string) == address {
-						isLocal = true
-						break
-					}
-				}
-			}
-		}
-	} else {
-		isLocal = false
-	}
-
-	if isLocal {
-		pwd = config["CertPassword"].(string)
-		keyPath = path + string(os.PathSeparator) + "client.pem"
-		certPath = path + string(os.PathSeparator) + "client.crt"
-		caPath = path + string(os.PathSeparator) + "ca.crt"
-		return
-	} else {
-		// use the temp dir to store the certificate in that case.
-		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
-		err = nil
-	}
+	// use the temp dir to store the certificate in that case.
+	path := os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
 
 	// must have write access of file.
 	_, err = ioutil.ReadFile(path + string(os.PathSeparator) + address + string(os.PathSeparator) + "client.pem")

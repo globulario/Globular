@@ -141,7 +141,9 @@ func GetClientConnection(client Client) (*grpc.ClientConn, error) {
 
 				return nil, errors.New("no certificate file is available for client")
 			}
-
+			log.Println(client.GetName())
+			log.Println("------> load ", client.GetCertFile())
+			log.Println("------> load ", client.GetCertFile())
 			certificate, err := tls.LoadX509KeyPair(client.GetCertFile(), client.GetKeyFile())
 			if err != nil {
 				log.Println("-------> ", err)
