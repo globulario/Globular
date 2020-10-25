@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"log"
 	"sort"
 
-	"fmt"
-	"log"
+	"github.com/davecourtois/Utility"
 
 	"net"
 	"strconv"
@@ -19,7 +20,8 @@ import (
  * Start the load balancing service.
  */
 func (self *Globule) startLoadBalancingService() error {
-	load_balancer, err := self.startInternalService(string(lbpb.File_services_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_services_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	id := string(lbpb.File_services_proto_lb_proto.Services().Get(0).FullName())
+	load_balancer, err := self.startInternalService(id, lbpb.File_services_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 
 	if err == nil && load_balancer != nil {
 		self.inernalServices = append(self.inernalServices, load_balancer)
@@ -41,6 +43,12 @@ func (self *Globule) startLoadBalancingService() error {
 				if err := load_balancer.Serve(lis); err != nil {
 					log.Println(err)
 				}
+				// Close it proxy process
+				s := self.getService(id)
+				pid := getIntVal(s, "ProxyProcess")
+				Utility.TerminateProcess(pid, 0)
+				s.Store("ProxyProcess", -1)
+				self.saveConfig()
 			}()
 		}
 	}

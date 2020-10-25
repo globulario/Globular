@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	//	"log"
 	"strings"
 	"time"
 
@@ -270,6 +271,10 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// If the call come from a local client it has hasAccess
 	hasAccess := false // strings.HasPrefix(ip, "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	var pwd string
+	if Utility.GetProperty(info.Server, "RootPassword") != nil {
+		pwd = Utility.GetProperty(info.Server, "RootPassword").(string)
+	}
 
 	// needed to get access to the system.
 	if method == "/admin.AdminService/GetConfig" ||
@@ -281,7 +286,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" ||
 		method == "/ressource.RessourceService/Log" {
 		hasAccess = true
-	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && (domain == "127.0.0.1" || domain == "localhost") {
+	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && ((domain == "127.0.0.1" || domain == "localhost") || pwd == "adminadmin") {
 		hasAccess = true
 	}
 
@@ -401,9 +406,9 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 				break // stop the loop...
 			} else {
 				// Here the canditade is the actual server so I will dispatch the request to the candidate.
-				if clients[candidate.GetId()] == nil {
+				if clients[candidate.GetId()] == nil && len(method) > 1 {
 					// Here I will create an instance of the client.
-					newClientFct := method[1:strings.Index(method, "/")]
+					newClientFct := method[1:strings.LastIndex(method, "/")]
 					newClientFct = method[strings.Index(newClientFct, ".")+1:]
 					newClientFct = "New" + newClientFct + "_Client"
 

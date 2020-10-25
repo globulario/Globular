@@ -18,14 +18,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
-	//	"github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 
 	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
@@ -105,9 +104,11 @@ type Globule struct {
 	// can be https or http.
 	Protocol string // The protocol of the service.
 
-	// The list of install services.
+	// Use to store services informations
 	Services map[string]interface{}
-	services chan map[string]interface{}
+
+	// The list of install services.
+	services *sync.Map
 
 	LdapSyncInfos map[string]interface{} // Contain LdapSyncInfos...
 
@@ -227,8 +228,7 @@ func NewGlobule() *Globule {
 	g.CertPassword = "1111"
 
 	g.Services = make(map[string]interface{}, 0)
-	// open the channel to get services map.
-	g.services = make(chan map[string]interface{}, 0)
+	g.services = new(sync.Map)
 
 	g.inernalServices = make([]*grpc.Server, 0)
 
@@ -316,56 +316,124 @@ func NewGlobule() *Globule {
 	return g
 }
 
-func (self *Globule) toMap() map[string]interface{} {
-	action := make(map[string]interface{})
-	action["result"] = make(chan map[string]interface{})
-	action["name"] = "toMap"
-	self.services <- action
-	return <-action["result"].(chan map[string]interface{})
+// Little shortcut to get access to map value in one step.
+func setValues(m *sync.Map, values map[string]interface{}) {
+	for k, v := range values {
+		m.Store(k, v)
+	}
 }
 
-func (self *Globule) getServices() []map[string]interface{} {
-	action := make(map[string]interface{})
-	action["result"] = make(chan []map[string]interface{})
-	action["name"] = "getServices"
-	self.services <- action
-	return <-action["result"].(chan []map[string]interface{})
+func getStringVal(m *sync.Map, k string) string {
+	v, ok := m.Load(k)
+	if !ok {
+		return ""
+	}
+
+	return Utility.ToString(v)
 }
 
-func (self *Globule) setService(service map[string]interface{}) {
-	action := make(map[string]interface{})
-	action["result"] = make(chan bool)
-	action["service"] = service
-	action["name"] = "setService"
-	self.services <- action
-	<-action["result"].(chan bool)
-	return
+func getIntVal(m *sync.Map, k string) int {
+	v, ok := m.Load(k)
+	if !ok {
+		return 0
+	}
+
+	return Utility.ToInt(v)
 }
 
-func (self *Globule) getService(id string) map[string]interface{} {
-	action := make(map[string]interface{})
-	action["id"] = id
-	action["result"] = make(chan map[string]interface{})
-	action["name"] = "getService"
-	self.services <- action
-	return <-action["result"].(chan map[string]interface{})
+func getBoolVal(m *sync.Map, k string) bool {
+	v, ok := m.Load(k)
+	if !ok {
+		return false
+	}
+
+	return Utility.ToBool(v)
+}
+
+func getNumericVal(m *sync.Map, k string) float64 {
+	v, ok := m.Load(k)
+	if !ok {
+		return 0.0
+	}
+
+	return Utility.ToNumeric(v)
+}
+
+func getVal(m *sync.Map, k string) interface{} {
+	v, ok := m.Load(k)
+	if !ok {
+		return nil
+	}
+	return v
+}
+
+func (self *Globule) getServices() []*sync.Map {
+	_services_ := make([]*sync.Map, 0)
+
+	// Append services into the array.
+	self.services.Range(func(key, s interface{}) bool {
+		_services_ = append(_services_, s.(*sync.Map))
+		return true
+	})
+
+	return _services_
+
+}
+
+func (self *Globule) setService(s *sync.Map) {
+	id, _ := s.Load("Id") //service["Id"].(string)
+	self.services.Store(id.(string), s)
+}
+
+func (self *Globule) getService(id string) *sync.Map {
+	s, ok := self.services.Load(id)
+	if ok {
+		return s.(*sync.Map)
+	} else {
+		return nil
+	}
 }
 
 func (self *Globule) deleteService(id string) {
-	action := make(map[string]interface{})
-	action["id"] = id
-	action["result"] = make(chan bool)
-	action["name"] = "deleteService"
-	self.services <- action
-	<-action["result"].(chan bool)
+	self.services.Delete(id)
+}
+
+func (self *Globule) toMap() map[string]interface{} {
+	_map_, _ := Utility.ToMap(self)
+	_services_ := make(map[string]interface{})
+
+	self.services.Range(func(key, value interface{}) bool {
+		s := make(map[string]interface{})
+		value.(*sync.Map).Range(func(key, value interface{}) bool {
+			s[key.(string)] = value
+			return true
+		})
+		_services_[key.(string)] = s
+		return true
+	})
+	_map_["Services"] = _services_
+	return _map_
 }
 
 func (self *Globule) getPortsInUse() []int {
-	action := make(map[string]interface{})
-	action["result"] = make(chan []int)
-	action["name"] = "getPortsInUse"
-	self.services <- action
-	return <-action["result"].(chan []int)
+	portsInUse := make([]int, 0)
+	// I will test if the port is already taken by e services.
+	self.services.Range(func(key, value interface{}) bool {
+		m := value.(*sync.Map)
+		_, hasProcess := m.Load("Process")
+		if hasProcess {
+			p, _ := m.Load("Port")
+			portsInUse = append(portsInUse, Utility.ToInt(p))
+		}
+		_, hasProxyProcess := m.Load("ProxyProcess")
+		if hasProxyProcess {
+			p, _ := m.Load("Proxy")
+			portsInUse = append(portsInUse, Utility.ToInt(p))
+		}
+		return true
+	})
+
+	return portsInUse
 }
 
 /**
@@ -482,72 +550,7 @@ func (self *Globule) initDirectories() {
 		json.Unmarshal(file, &self)
 	}
 
-	// Here I will keep values in a sync map.
-	go func() {
-		for {
-			select {
-			case action := <-self.services:
-				if action["name"] == "getServices" {
-					services := make([]map[string]interface{}, 0)
-					for _, v := range self.Services {
-						services = append(services, v.(map[string]interface{}))
-					}
-					action["result"].(chan []map[string]interface{}) <- services
-
-				} else if action["name"] == "getService" {
-
-					id := action["id"].(string)
-					if self.Services[id] != nil {
-						action["result"].(chan map[string]interface{}) <- self.Services[id].(map[string]interface{})
-					} else {
-						action["result"].(chan map[string]interface{}) <- nil
-					}
-
-				} else if action["name"] == "deleteService" {
-
-					id := action["id"].(string)
-					delete(self.Services, id)
-					action["result"].(chan bool) <- true
-
-				} else if action["name"] == "setService" {
-
-					id := action["service"].(map[string]interface{})["Id"].(string)
-					self.Services[id] = action["service"]
-					action["result"].(chan bool) <- true
-
-				} else if action["name"] == "toMap" {
-
-					_map_, _ := Utility.ToMap(self)
-					for _, v := range _map_["Services"].(map[string]interface{}) {
-						delete(v.(map[string]interface{}), "Process")
-						delete(v.(map[string]interface{}), "ProxyProcess")
-					}
-
-					action["result"].(chan map[string]interface{}) <- _map_
-
-				} else if action["name"] == "getPortsInUse" {
-
-					portsInUse := make([]int, 0)
-
-					for _, v := range self.Services {
-						if v.(map[string]interface{})["Process"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(v.(map[string]interface{})["Port"]))
-						}
-						if v.(map[string]interface{})["ProxyProcess"] != nil {
-							portsInUse = append(portsInUse, Utility.ToInt(v.(map[string]interface{})["Proxy"]))
-						}
-					}
-
-					action["result"].(chan []int) <- portsInUse
-
-				}
-			case <-self.exit:
-				log.Println("exit get config loop.")
-				return
-			}
-		}
-	}()
-
+	log.Println("Globular is running!")
 }
 
 /**
@@ -559,8 +562,9 @@ func (self *Globule) KillProcess() {
 
 	// Kill previous instance of the program...
 	for _, s := range self.getServices() {
-		if s["Path"] != nil {
-			name := s["Path"].(string)
+		_, ok := s.Load("Path")
+		if ok {
+			name := getStringVal(s, "Path")
 			name = name[strings.LastIndex(name, "/")+1:]
 			err := Utility.KillProcessByName(name)
 			if err != nil {
@@ -757,10 +761,14 @@ func testDomainIp(domain string, ip string, try int) bool {
 /**
  * Start the grpc proxy.
  */
-func (self *Globule) startProxy(id string, port int, proxy int) error {
-	srv := self.getService(id)
-	if srv["ProxyProcess"] != nil {
-		Utility.TerminateProcess(srv["ProxyProcess"].(*exec.Cmd).Process.Pid, 0)
+func (self *Globule) startProxy(s *sync.Map, port int, proxy int) error {
+	_, hasProxyProcess := s.Load("ProxyProcess")
+	if !hasProxyProcess {
+		s.Store("ProxyProcess", -1)
+	}
+	pid := getIntVal(s, "ProxyProcess")
+	if pid != -1 {
+		Utility.TerminateProcess(pid, 0)
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
@@ -776,7 +784,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	// Use in a local network or in test.
 	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-	hasTls := Utility.ToBool(srv["TLS"])
+	hasTls := getBoolVal(s, "TLS")
 	if hasTls == true {
 		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
 
@@ -823,9 +831,7 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 	}
 
 	// save service configuration.
-	srv["ProxyProcess"] = proxyProcess
-	srv["Id"] = id
-	self.setService(srv)
+	s.Store("ProxyProcess", proxyProcess.Process.Pid)
 
 	return nil
 }
@@ -833,24 +839,32 @@ func (self *Globule) startProxy(id string, port int, proxy int) error {
 /**
  * That function will
  */
-func (self *Globule) keepServiceAlive(id string) {
-	s := self.getService(id)
+func (self *Globule) keepServiceAlive(s *sync.Map) {
+
 	if self.exit_ {
 		return
 	}
 
-	if s["KeepAlive"] == nil {
+	_, HasKeepAlive := s.Load("KeepAlive")
+	if !HasKeepAlive {
 		return
 	}
 	// In case the service must not be kept alive.
-	keepAlive := Utility.ToBool(s["KeepAlive"])
+	keepAlive := getBoolVal(s, "KeepAlive")
 	if !keepAlive {
 		return
 	}
 
-	s["Process"].(*exec.Cmd).Wait()
+	pid := getIntVal(s, "Process")
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
 
-	_, _, err := self.startService(id)
+	// Wait for process to return.
+	p.Wait()
+
+	_, _, err = self.startService(s)
 	if err != nil {
 		return
 	}
@@ -864,7 +878,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 
 	s := self.getService(id)
 	if s == nil {
-		s = make(map[string]interface{}, 0)
+		s = new(sync.Map)
 	}
 
 	// Set the log information in case of crash...
@@ -876,9 +890,9 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 		certFile := self.creds + string(os.PathSeparator) + "server.crt"
 		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
 
-		s["CertFile"] = certFile
-		s["KeyFile"] = keyFile
-		s["CertAuthorityTrust"] = certAuthorityTrust
+		s.Store("CertFile", certFile)
+		s.Store("KeyFile", keyFile)
+		s.Store("CertAuthorityTrust", certAuthorityTrust)
 
 		// Create the TLS credentials
 		creds := credentials.NewTLS(globular.GetTLSConfig(keyFile, certFile, certAuthorityTrust))
@@ -892,9 +906,9 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 		grpcServer = grpc.NewServer(opts...)
 
 	} else {
-		s["CertFile"] = ""
-		s["KeyFile"] = ""
-		s["CertAuthorityTrust"] = ""
+		s.Store("CertFile", "")
+		s.Store("KeyFile", "")
+		s.Store("CertAuthorityTrust", "")
 
 		grpcServer = grpc.NewServer([]grpc.ServerOption{
 			grpc.UnaryInterceptor(unaryInterceptor),
@@ -904,13 +918,14 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 	reflection.Register(grpcServer)
 
 	// Here I will create the service configuration object.
-	s["Domain"] = self.getDomain()
-	s["Name"] = id
-	s["Id"] = id
-	s["Proto"] = proto
-	s["Port"] = port
-	s["Proxy"] = proxy
-	s["TLS"] = hasTls
+	s.Store("Domain", self.getDomain())
+	s.Store("Name", id)
+	s.Store("Id", id)
+	s.Store("Proto", proto)
+	s.Store("Port", port)
+	s.Store("Proxy", proxy)
+	s.Store("TLS", hasTls)
+	s.Store("ProxyProcess", -1)
 
 	self.setService(s)
 
@@ -918,7 +933,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 	self.saveConfig()
 
 	// start the proxy
-	err := self.startProxy(id, port, proxy)
+	err := self.startProxy(s, port, proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -934,6 +949,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
 		self.inernalServices[i].Stop()
+
 	}
 }
 
@@ -964,7 +980,7 @@ func (self *Globule) stopServices() {
 	for _, s := range self.getServices() {
 		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
-			self.stopService(s["Id"].(string))
+			self.stopService(getStringVal(s, "Id"))
 		}
 	}
 
@@ -990,160 +1006,123 @@ func (self *Globule) stopServices() {
 /**
  * Start services define in the configuration.
  */
-func (self *Globule) startService(id string) (int, int, error) {
-	s := self.getService(id)
+func (self *Globule) startService(s *sync.Map) (int, int, error) {
+
 	var err error
 
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
-	if !Utility.IsLocal(s["Domain"].(string)) && root_ != self.path {
+	if !Utility.IsLocal(getStringVal(s, "Domain")) && root_ != self.path {
 		return -1, -1, errors.New("Can not start a distant service localy!")
 	}
 
 	// set the domain of the service.
-	s["Domain"] = self.getDomain()
-	s["TLS"] = self.Protocol == "https"
+	s.Store("Domain", self.getDomain())
+	s.Store("TLS", self.Protocol == "https")
 
 	// if the service already exist.
-	if s["Process"] != nil {
-		if reflect.TypeOf(s["Process"]).String() == "*exec.Cmd" {
-			if s["Process"].(*exec.Cmd).Process != nil {
-				Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid, 0)
-			}
-		}
+	_, hasProcess := s.Load("Process")
+	if !hasProcess {
+		s.Store("Process", -1)
+		s.Store("ProxyProcess", -1)
 	}
 
-	servicePath := s["Path"].(string)
-	if s["Protocol"].(string) == "grpc" {
-		hasTls := Utility.ToBool(s["TLS"])
-		if hasTls {
-			// Set TLS local services configuration here.
-			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
-			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
-			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
-		} else {
-			// not secure services.
-			s["CertAuthorityTrust"] = ""
-			s["CertFile"] = ""
-			s["KeyFile"] = ""
-		}
+	pid := getIntVal(s, "Process")
+	if pid != -1 {
+		Utility.TerminateProcess(pid, 0)
+	}
+
+	servicePath := getStringVal(s, "Path")
+	if getStringVal(s, "Protocol") == "grpc" {
+		// I will test if the service is find if not I will try to set path
+		// to standard dist directory structure.
 
 		if !Utility.Exists(servicePath) {
-			log.Println("Fail to retreive exe path ", servicePath)
-			// Here the service was not retreive so I will try to fix the path...
-			root := strings.ReplaceAll(self.path, "\\", "/")
-			if strings.Index(servicePath, "services") != -1 {
-				// set the service path
-				servicePath = root + servicePath[strings.Index(servicePath, "/services"):]
-				s["Path"] = servicePath
+			// Here I will set various base on the standard dist directory structure.
+			path := self.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version") + "/" + getStringVal(s, "Id")
+			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
 
-				// set the proto path
-				protoPath := s["Proto"].(string)
-				protoPath = root + protoPath[strings.Index(protoPath, "/services"):]
-				s["Proto"] = protoPath
-
-				// set the key path
-				if s["KeyFile"] != nil {
-					if len(s["KeyFile"].(string)) > 0 {
-						path := s["KeyFile"].(string)
-						if !Utility.Exists(path) {
-							path = root + path[strings.Index(path, "/services"):]
-							s["KeyFile"] = path
-						}
-					}
-				}
-
-				// set the certificate path
-				if s["CertFile"] != nil {
-					if len(s["CertFile"].(string)) > 0 {
-						path := s["CertFile"].(string)
-						if !Utility.Exists(path) {
-							path = root + path[strings.Index(path, "/services"):]
-							s["CertFile"] = path
-						}
-					}
-				}
-
-				// set the ca path
-				if s["CertAuthorityTrust"] != nil {
-					if len(s["CertAuthorityTrust"].(string)) > 0 {
-						path := s["CertAuthorityTrust"].(string)
-						if !Utility.Exists(path) {
-							path = root + path[strings.Index(path, "/services"):]
-							s["CertAuthorityTrust"] = path
-						}
-					}
-				}
-
-				// here I will keep the configuration path in the global configuration.
-				if s["configPath"] != nil {
-					if len(s["configPath"].(string)) > 0 {
-						configPath := s["configPath"].(string)
-						if !Utility.Exists(configPath) {
-							configPath = root + configPath[strings.Index(configPath, "/services"):]
-							s["configPath"] = configPath
-						}
-					}
-				}
-				self.saveServiceConfig(s)
-
-			} else {
-				return -1, -1, errors.New("no service found at path " + servicePath)
+			s.Store("Path", path+"/"+execName)
+			_, exist := s.Load("Path")
+			if !exist {
+				return -1, -1, errors.New("Fail to retreive exe path " + servicePath)
 			}
+
+			// Now the proto file.
+			files, err := Utility.FindFileByName(self.path+"/services/"+getStringVal(s, "PublisherId")+"/"+getStringVal(s, "Name")+"/"+getStringVal(s, "Version"), ".proto")
+			if err != nil {
+				return -1, -1, errors.New("No prototype file was found")
+			}
+
+			s.Store("Proto", files[0])
+
+		}
+
+		hasTls := getBoolVal(s, "TLS")
+		if hasTls {
+			// Set TLS local services configuration here.
+			s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
+			s.Store("CertFile", self.creds+string(os.PathSeparator)+"server.crt")
+			s.Store("KeyFile", self.creds+string(os.PathSeparator)+"server.pem")
+		} else {
+			// not secure services.
+			s.Store("CertAuthorityTrust", "")
+			s.Store("CertFile", "")
+			s.Store("KeyFile", "")
 		}
 
 		// Get the next available port.
-		port := Utility.ToInt(s["Port"])
+		port := getIntVal(s, "Port")
+
 		if !self.isPortAvailable(port) {
 			port, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
 			}
-			s["Port"] = port
+			s.Store("Port", port)
 			self.setService(s)
 		}
 
 		// File service need root...
-		if s["Name"].(string) == "file.FileService" {
-			s["Root"] = globule.webRoot
-			s["Process"] = exec.Command(servicePath, Utility.ToString(port), globule.webRoot)
-		} else {
-			s["Process"] = exec.Command(servicePath, Utility.ToString(port))
+		if getStringVal(s, "Name") == "file.FileService" {
+			// Set it root to the globule root.
+			s.Store("Root", globule.webRoot)
 		}
 
+		p := exec.Command(servicePath, Utility.ToString(port))
 		var errb bytes.Buffer
-		pipe, _ := s["Process"].(*exec.Cmd).StdoutPipe()
-		s["Process"].(*exec.Cmd).Stderr = &errb
+		pipe, _ := p.StdoutPipe()
+		p.Stderr = &errb
 
 		// Here I will set the command dir.
-		s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, "/")]
-		s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
+		p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
+		p.SysProcAttr = &syscall.SysProcAttr{
 			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
-		err = s["Process"].(*exec.Cmd).Start()
+		err = p.Start()
 		if err != nil {
-			s["State"] = "fail"
-			log.Println("Fail to start service: ", s["Name"].(string), " at port ", port, " with error ", err)
+			s.Store("State", "fail")
+			s.Store("Process", -1)
+			log.Println("Fail to start service: ", getStringVal(s, "Name"), " at port ", port, " with error ", err)
 			return -1, -1, err
+		} else {
+			s.Store("Process", p.Process.Pid)
+			log.Println("Service ", getStringVal(s, "Name")+":"+getStringVal(s, "Id"), "started with pid:", getIntVal(s, "Process"))
 		}
 
 		// save the services in the map.
-		self.setService(s)
-
-		go func(id string) {
-			// get back the services.
-			s := self.getService(id)
+		go func(s *sync.Map, p *exec.Cmd) {
 
 			// Here I will append the service to the load balancer.
 			if port != -1 {
-				log.Println("Append ", s["Name"].(string), " to load balancer.")
+				log.Println("Append ", getStringVal(s, "Name"), " to load balancer.")
 				load_info := &lbpb.LoadInfo{
 					ServerInfo: &lbpb.ServerInfo{
-						Id:     s["Id"].(string),
-						Name:   s["Name"].(string),
-						Domain: s["Domain"].(string),
+						Id:     getStringVal(s, "Id"),
+						Name:   getStringVal(s, "Name"),
+						Domain: getStringVal(s, "Domain"),
 						Port:   int32(port),
 					},
 					Load1:  0, // All service will be initialise with a 0 load.
@@ -1154,133 +1133,126 @@ func (self *Globule) startService(id string) (int, int, error) {
 				self.lb_load_info_channel <- load_info
 			}
 
-			s["State"] = "running"
-			self.setService(s)
-
-			self.keepServiceAlive(id)
+			s.Store("State", "running")
+			self.keepServiceAlive(s)
 
 			// display the message in the console.
 			reader := bufio.NewReader(pipe)
 			line, err := reader.ReadString('\n')
 			for err == nil {
 				line, err = reader.ReadString('\n')
-				self.logServiceInfo(s["Name"].(string), line)
+				self.logServiceInfo(getStringVal(s, "Name"), line)
 			}
 
 			// if the process is not define.
-			if s["Process"] == nil {
-				log.Println("No process found for service", s["Name"].(string))
-				return
-			}
-
-			err = s["Process"].(*exec.Cmd).Wait() // wait for the program to return
+			err = p.Wait() // wait for the program to return
+			log.Println("-------> 1080  process exit! ", p.Process.Pid)
 
 			if err != nil {
 				// I will log the program error into the admin logger.
-				self.logServiceInfo(s["Name"].(string), err.Error())
-
+				self.logServiceInfo(getStringVal(s, "Name"), err.Error())
 			}
 
 			// Print the error
 			if len(errb.String()) > 0 {
-				fmt.Println("service", s["Name"].(string), "err:", errb.String())
+				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
 			}
 
 			// I will remove the service from the load balancer.
 			self.lb_remove_candidate_info_channel <- &lbpb.ServerInfo{
-				Id:     s["Id"].(string),
-				Name:   s["Name"].(string),
-				Domain: s["Domain"].(string),
+				Id:     getStringVal(s, "Id"),
+				Name:   getStringVal(s, "Name"),
+				Domain: getStringVal(s, "Domain"),
 				Port:   int32(port),
 			}
 
-		}(s["Id"].(string))
+			s.Store("Process", -1)
+			s.Store("ProxyProcess", -1)
+
+			self.saveConfig()
+
+		}(s, p)
 
 		// get another port.
-		proxy := Utility.ToInt(s["Proxy"])
+		proxy := getIntVal(s, "Proxy")
 		if !self.isPortAvailable(proxy) {
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
 				return -1, -1, err
 			}
-			s["Proxy"] = proxy
+			s.Store("Proxy", proxy)
 			self.setService(s)
 		}
 
 		// Start the proxy.
-		err = self.startProxy(s["Id"].(string), port, proxy)
+		err = self.startProxy(s, port, proxy)
 		if err != nil {
 			return -1, -1, err
 		}
 
-		// Save configuration stuff.
-		self.setService(s)
-
-		// get back the service info with the proxy process in it
-		s = self.getService(s["Id"].(string))
-
 		// save it to the config.
 		self.saveConfig()
-		log.Println("Service "+s["Name"].(string)+":"+s["Id"].(string)+" is up and running at port ", port, " and proxy ", proxy)
+		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
-	} else if s["Protocol"].(string) == "http" {
+	} else if getStringVal(s, "Protocol") == "http" {
 		// any other http server except this one...
-		if !strings.HasPrefix(s["Name"].(string), "Globular") {
+		if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 
-			s["Process"] = exec.Command(servicePath, Utility.ToString(s["Port"]))
+			p := exec.Command(servicePath, getStringVal(s, "Port"))
 
 			var errb bytes.Buffer
-			pipe, _ := s["Process"].(*exec.Cmd).StdoutPipe()
-			s["Process"].(*exec.Cmd).Stderr = &errb
+			pipe, _ := p.StdoutPipe()
+			p.Stderr = &errb
 
 			// Here I will set the command dir.
-			s["Process"].(*exec.Cmd).Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
-			err = s["Process"].(*exec.Cmd).Start()
-			s["Process"].(*exec.Cmd).SysProcAttr = &syscall.SysProcAttr{
+			p.Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
+			p.SysProcAttr = &syscall.SysProcAttr{
 				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
-			err = s["Process"].(*exec.Cmd).Start()
+			err = p.Start()
 			if err != nil {
 				// The process already exist so I will not throw an error and I will use existing process instead. I will make the
 				if err.Error() != "exec: already started" {
-					s["State"] = "fail"
-					log.Println("Fail to start service: ", s["Name"].(string), " at port ", s["Port"], " with error ", err)
+					s.Store("Process", -1)
+					s.Store("State", "fail")
+					log.Println("Fail to start service: ", getStringVal(s, "Name"), " at port ", getStringVal(s, "Port"), " with error ", err)
 					return -1, -1, err
 				}
 			}
-
-			s["State"] = "running"
-			self.setService(s)
+			s.Store("Process", p.Process.Pid)
+			s.Store("State", "running")
 
 			if err == nil {
-				go func(id string) {
+				go func(s *sync.Map) {
 
-					self.keepServiceAlive(id)
-
-					s := self.getService(id)
+					self.keepServiceAlive(s)
 
 					// display the message in the console.
 					reader := bufio.NewReader(pipe)
 					line, err := reader.ReadString('\n')
 					for err == nil {
-						log.Println(s["Name"].(string), ":", line)
+						name := getStringVal(s, "Name")
+						log.Println(name, ":", line)
 						line, err = reader.ReadString('\n')
-						self.logServiceInfo(s["Name"].(string), line)
+						self.logServiceInfo(name, line)
 					}
 
 					// if the process is not define.
-					if s["Process"] == nil {
-						log.Println("No process found for service", s["Name"].(string))
+					pid := getIntVal(s, "Process")
+					if pid == -1 {
+						log.Println("No process found for service", getStringVal(s, "Name"))
+					}
+					p, err := os.FindProcess(pid)
+					if err == nil {
+						_, err := p.Wait()
+						if err != nil {
+							// I will log the program error into the admin logger.
+							self.logServiceInfo(getStringVal(s, "Name"), errb.String())
+						}
 					}
 
-					err = s["Process"].(*exec.Cmd).Wait() // wait for the program to resturn
-
-					if err != nil {
-						// I will log the program error into the admin logger.
-						self.logServiceInfo(s["Name"].(string), errb.String())
-					}
-				}(s["id"].(string))
+				}(s)
 			}
 
 			// Save configuration stuff.
@@ -1288,56 +1260,60 @@ func (self *Globule) startService(id string) (int, int, error) {
 		}
 	}
 
-	if s["Process"].(*exec.Cmd).Process == nil {
-		s["State"] = "fail"
+	if getIntVal(s, "Process") == -1 {
+		s.Store("State", "fail")
 		self.setService(s)
-		err := errors.New("Fail to start process " + s["Name"].(string))
+		err := errors.New("Fail to start process " + getStringVal(s, "Name"))
 		return -1, -1, err
 	}
 
 	// Return the pid of the service.
-	if s["ProxyProcess"] != nil {
-		s["State"] = "running"
+	if getIntVal(s, "ProxyProcess") != -1 {
+		s.Store("State", "running")
 		self.setService(s)
-		return s["Process"].(*exec.Cmd).Process.Pid, s["ProxyProcess"].(*exec.Cmd).Process.Pid, nil
+		return getIntVal(s, "Process"), getIntVal(s, "ProxyProcess"), nil
 	}
 
-	return s["Process"].(*exec.Cmd).Process.Pid, -1, nil
+	return getIntVal(s, "Process"), -1, nil
 }
 
 /**
  * Init services configuration.
  */
-func (self *Globule) initService(id string) error {
-	s := self.getService(id)
-	if s["Protocol"] == nil {
+func (self *Globule) initService(s *sync.Map) error {
+	_, hasProtocol := s.Load("Protocol")
+	if !hasProtocol {
 		// internal service dosent has Protocol define.
 		return nil
 	}
 
-	if s["Protocol"].(string) == "grpc" {
+	if getStringVal(s, "Protocol") == "grpc" {
 		// The domain must be set in the sever configuration and not change after that.
 		hasTls := self.Protocol == "https" //Utility.ToBool(s["TLS"])
-		s["TLS"] = hasTls                  // set the tls...
+		s.Store("TLS", hasTls)             // set the tls...
 		if hasTls {
 			// Set TLS local services configuration here.
-			s["CertAuthorityTrust"] = self.creds + string(os.PathSeparator) + "ca.crt"
-			s["CertFile"] = self.creds + string(os.PathSeparator) + "server.crt"
-			s["KeyFile"] = self.creds + string(os.PathSeparator) + "server.pem"
+			s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
+			s.Store("CertFile", self.creds+string(os.PathSeparator)+"server.crt")
+			s.Store("KeyFile", self.creds+string(os.PathSeparator)+"server.pem")
 		} else {
 			// not secure services.
-			s["CertAuthorityTrust"] = ""
-			s["CertFile"] = ""
-			s["KeyFile"] = ""
+			s.Store("CertAuthorityTrust", "")
+			s.Store("CertFile", "")
+			s.Store("KeyFile", "")
 		}
 	}
 
 	// any other http server except this one...
-	if !strings.HasPrefix(s["Name"].(string), "Globular") {
+	if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-		if hasChange || s["Process"] == nil {
+		_, hasProcess := s.Load("Process")
+		if !hasProcess {
+			s.Store("Process", -1)
+		}
+		if hasChange || getIntVal(s, "Process") == -1 {
 			self.setService(s)
-			_, _, err := self.startService(s["Id"].(string))
+			_, _, err := self.startService(s)
 			if err != nil {
 				return err
 			}
@@ -1354,7 +1330,6 @@ func (self *Globule) initService(id string) error {
 func (self *Globule) initServices() {
 
 	log.Println("Initialyse services")
-
 	log.Println("local ip ", Utility.MyLocalIP())
 	log.Println("external ip ", Utility.MyIP())
 
@@ -1363,12 +1338,13 @@ func (self *Globule) initServices() {
 		// security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds)
 		if len(self.Certificate) == 0 {
 			self.registerIpToDns()
-
 			log.Println(" Now let's encrypts!")
 			// Here is the command to be execute in order to ge the certificates.
 			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
 			// I need to remove the gRPC certificate and recreate it.
+
 			Utility.RemoveDirContents(self.creds)
+
 			// recreate the certificates.
 			err := security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds, self.Country, self.State, self.City, self.Organization, self.AlternateDomains)
 			if err != nil {
@@ -1381,8 +1357,20 @@ func (self *Globule) initServices() {
 				log.Println(err)
 				return
 			}
-		} else {
-			security.GenerateServicesCertificates(self.CertPassword, self.CertExpirationDelay, self.getDomain(), self.creds, self.Country, self.State, self.City, self.Organization, self.AlternateDomains)
+		}
+
+		// Here I will read the certificate
+		r, _ := ioutil.ReadFile(self.creds + "/" + self.Certificate)
+		block, _ := pem.Decode(r)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err == nil {
+			delay := cert.NotAfter.Sub(time.Now()) - time.Duration(15*time.Minute)
+			timeout := time.NewTimer(delay)
+			go func() {
+				<-timeout.C
+				//self.Certificate = ""
+				//self.restartServices()
+			}()
 		}
 	}
 
@@ -1415,6 +1403,7 @@ func (self *Globule) initServices() {
 				config, err := ioutil.ReadFile(path)
 				if err == nil {
 					// Read the config file.
+
 					err := json.Unmarshal(config, &s)
 					if err == nil {
 						if s["Protocol"] != nil {
@@ -1423,12 +1412,18 @@ func (self *Globule) initServices() {
 							if s["Name"] == nil {
 								log.Println("---> no 'Name' attribute found in service configuration in file config ", path)
 							} else {
+
 								// if no id was given I will generate a uuid.
 								if s["Id"] == nil {
 									s["Id"] = Utility.RandomUUID()
 								}
-								self.setService(s)
+
+								s_ := new(sync.Map)
+								for k, v := range s {
+									s_.Store(k, v)
+								}
 								s["configPath"] = path
+								self.setService(s_)
 							}
 						}
 					} else {
@@ -1440,6 +1435,17 @@ func (self *Globule) initServices() {
 			}
 			return nil
 		})
+	} else {
+		// Initialyse sync map from Services Map.
+		for k, v := range self.Services {
+			m := new(sync.Map)
+			for k_, v_ := range v.(map[string]interface{}) {
+				v.(map[string]interface{})["Process"] = -1
+				v.(map[string]interface{})["ProxyProcess"] = -1
+				m.Store(k_, v_)
+			}
+			self.services.Store(k, m)
+		}
 	}
 
 	// Rescan the proto file and update the role after.
@@ -1467,9 +1473,9 @@ func (self *Globule) initServices() {
 
 	for _, s := range self.getServices() {
 		// Remove existing process information.
-		delete(s, "Process")
-		delete(s, "ProxyProcess")
-		err := self.initService(s["Id"].(string))
+		s.Store("Process", -1)
+		s.Store("ProxyProcess", -1)
+		err := self.initService(s)
 		if err != nil {
 			log.Println(err)
 		}
@@ -1540,7 +1546,6 @@ func (self *Globule) startMonitoring() error {
 	}
 
 	var err error
-
 	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
 
 	// Cast-it to the persistence client.
@@ -1684,7 +1689,6 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 
 	configs := self.getServiceConfigByName("persistence.PersistenceService")
 	if len(configs) == 0 {
-
 		err := errors.New("No persistence service configuration was found on that server!")
 		return nil, err
 	}
@@ -1826,7 +1830,7 @@ func (self *Globule) GetAbsolutePath(path string) string {
 func (self *Globule) Listen() error {
 
 	// Here I will subscribe to event service to keep then up to date.
-	//self.subscribers = self.keepServicesUpToDate()
+	self.subscribers = self.keepServicesUpToDate()
 
 	// Start internal services.
 
@@ -1875,7 +1879,7 @@ func (self *Globule) Listen() error {
 	self.registerSa()
 
 	// Start the monitoring service with prometheus.
-	self.startMonitoring()
+	//self.startMonitoring()
 
 	// Start the http server.
 	if self.Protocol == "https" {

@@ -384,7 +384,7 @@ func (self *ServicesRepository_Client) SetCaFile(caFile string) {
 /**
  * Download bundle from a repository and return it as an object in memory.
  */
-func (self *ServicesRepository_Client) DownloadBundle(descriptor *servicespb.ServiceDescriptor, platform servicespb.Platform) (*servicespb.ServiceBundle, error) {
+func (self *ServicesRepository_Client) DownloadBundle(descriptor *servicespb.ServiceDescriptor, platform string) (*servicespb.ServiceBundle, error) {
 
 	rqst := &servicespb.DownloadBundleRequest{
 		Descriptor_: descriptor,
@@ -428,14 +428,14 @@ func (self *ServicesRepository_Client) DownloadBundle(descriptor *servicespb.Ser
 /**
  * Upload a service bundle.
  */
-func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceId string, publisherId string, platform int32, packagePath string) error {
+func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceId string, publisherId string, platform string, packagePath string) error {
 
 	// The service bundle...
 	bundle := new(servicespb.ServiceBundle)
-	bundle.Plaform = servicespb.Platform(platform)
+	bundle.Plaform = platform
 
 	// Here I will find the service descriptor from the given information.
-	discoveryService, err := NewServicesDiscoveryService_Client(discoveryId, "services_discovery")
+	discoveryService, err := NewServicesDiscoveryService_Client(discoveryId, "services.ServiceDiscovery")
 	if err != nil {
 		return err
 	}
@@ -444,7 +444,7 @@ func (self *ServicesRepository_Client) UploadBundle(discoveryId string, serviceI
 	if err != nil {
 		return err
 	}
-
+	log.Println("----------------> 447", descriptors[0])
 	bundle.Descriptor_ = descriptors[0]
 
 	/*bundle.Binairies*/

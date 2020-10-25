@@ -21,7 +21,8 @@ import (
 
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
-	certificate_authority_server, err := self.startInternalService(string(capb.File_services_proto_ca_proto.Services().Get(0).FullName()),
+	id := string(capb.File_services_proto_ca_proto.Services().Get(0).FullName())
+	certificate_authority_server, err := self.startInternalService(id,
 		capb.File_services_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 
 	if err == nil {
@@ -41,7 +42,12 @@ func (self *Globule) startCertificateAuthorityService() error {
 			if err := certificate_authority_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
-
+			// Close it proxy process
+			s := self.getService(id)
+			pid := getIntVal(s, "ProxyProcess")
+			Utility.TerminateProcess(pid, 0)
+			s.Store("ProxyProcess", -1)
+			self.saveConfig()
 		}()
 
 	}

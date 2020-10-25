@@ -36,6 +36,17 @@ export interface IServiceConfig {
   KeepAlive: boolean;
   PublisherId: string;
   Version: string;
+  Description: string;
+  Keywords: Array<string>;
+  Discoveries: Array<string>;
+  Repositories: Array<string>;
+  Proto: String;
+  Path: string;
+  CertAuthorityTrust: string;
+  CertFile: string;
+  KeyFile: string;
+
+
 }
 
 /**

@@ -9,27 +9,21 @@ option go_package="services/servicespb";
 /** Description of the service **/
 message ServiceDescriptor {
 	string id = 1;
-	string publisherId = 2;
-	string version = 3;
-	string description = 4;
-	repeated string repositories = 5; // The list of repositories that has the services
-	repeated string discoveries = 6; // The list of dicoveries that has the services
-	repeated string keywords = 7;
+	string name = 2;
+	string publisherId = 3;
+	string version = 4;
+	string description = 5;
+	repeated string repositories = 6; // The list of repositories that has the services
+	repeated string discoveries = 7; // The list of dicoveries that has the services
+	repeated string keywords = 8;
 }
 
-/** more can be append here **/
-enum Platform {
-	LINUX32 = 0;
-	LINUX64 = 1;
-	WIN32 = 2;
-	WIN64 = 3;
-}
-	
+
 /** That message will contain the information to update a service on a node. **/
 message ServiceBundle {
 	ServiceDescriptor descriptor = 1;
 	string buildNumber = 2;
-	Platform plaform = 3;
+	string plaform = 3;
 	
 	/** binairies must be a tar.gz file **/
 	bytes binairies = 4;
@@ -53,7 +47,7 @@ message UploadBundleResponse {
 
 message DownloadBundleRequest {
 	ServiceDescriptor descriptor = 1;
-	Platform plaform = 2;
+	string plaform = 2;
 }
 
 message DownloadBundleResponse {

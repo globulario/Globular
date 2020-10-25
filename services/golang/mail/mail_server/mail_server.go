@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -65,6 +66,10 @@ type server struct {
 	AllowAllOrigins    bool
 	AllowedOrigins     string // comma separated string.
 	Domain             string
+	Description        string
+	Keywords           []string
+	Repositories       []string
+	Discoveries        []string
 	CertFile           string
 	KeyFile            string
 	CertAuthorityTrust string
@@ -113,12 +118,56 @@ func (self *server) SetName(name string) {
 	self.Name = name
 }
 
+// The description of the service
+func (self *server) GetDescription() string {
+	return self.Description
+}
+func (self *server) SetDescription(description string) {
+	self.Description = description
+}
+
+// The list of keywords of the services.
+func (self *server) GetKeywords() []string {
+	return self.Keywords
+}
+func (self *server) SetKeywords(keywords []string) {
+	self.Keywords = keywords
+}
+
+// Dist
+func (self *server) Dist(path string) error {
+
+	return globular.Dist(path, self)
+}
+
+func (self *server) GetPlatform() string {
+	return globular.GetPlatform()
+}
+
+func (self *server) PublishService(address string, user string, password string) error {
+	return globular.PublishService(address, user, password, self)
+}
+
 // The path of the executable.
 func (self *server) GetPath() string {
 	return self.Path
 }
 func (self *server) SetPath(path string) {
 	self.Path = path
+}
+
+func (self *server) GetRepositories() []string {
+	return self.Repositories
+}
+func (self *server) SetRepositories(repositories []string) {
+	self.Repositories = repositories
+}
+
+func (self *server) GetDiscoveries() []string {
+	return self.Discoveries
+}
+func (self *server) SetDiscoveries(discoveries []string) {
+	self.Discoveries = discoveries
 }
 
 // The path of the .proto file.
@@ -543,18 +592,15 @@ func (self *server) SendEmailWithAttachements(stream mailpb.MailService_SendEmai
 // That service is use to give access to SQL.
 // port number must be pass as argument.
 func main() {
-
+	port := defaultPort // the default value.
+	if len(os.Args) == 2 {
+		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
+	}
 	// set the logger.
 	//grpclog.SetLogger(log.New(os.Stdout, "smtp_service: ", log.LstdFlags))
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// The first argument must be the port number to listen to.
-	port := defaultPort
-	if len(os.Args) > 1 {
-		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
-	}
 
 	// The actual server implementation.
 	s_impl := new(server)
@@ -576,6 +622,9 @@ func main() {
 	s_impl.IMAP_Port = 143     // non
 	s_impl.IMAPS_Port = 993
 	s_impl.IMAP_ALT_Port = 1043 // non official
+	s_impl.Keywords = make([]string, 0)
+	s_impl.Repositories = make([]string, 0)
+	s_impl.Discoveries = make([]string, 0)
 
 	s_impl.Password = "adminadmin" // The default password for the admin.
 
@@ -585,27 +634,68 @@ func main() {
 		log.Fatalf("Fail to initialyse service %s: %s", s_impl.Name, s_impl.Id, err)
 	}
 
-	// Register the echo services
-	mailpb.RegisterMailServiceServer(s_impl.grpcServer, s_impl)
-	reflection.Register(s_impl.grpcServer)
+	if len(os.Args) > 2 {
+		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
+		publishCommand_domain := publishCommand.String("a", "", "The address(domain ex. my.domain.com:8080) of your backend (Required)")
+		publishCommand_user := publishCommand.String("u", "", "The user (Required)")
+		publishCommand_password := publishCommand.String("p", "", "The password (Required)")
 
-	// Here I will start the local smtp server.
-	go func() {
-		certFile := s_impl.CertFile
-
-		// Here in case of tls connection I will use the domain certificate instead of the server certificate.
-		if s_impl.TLS == true {
-			certFile = certFile[0:strings.Index(certFile, "server.crt")] + s_impl.Domain + ".crt"
+		switch os.Args[1] {
+		case "publish":
+			publishCommand.Parse(os.Args[2:])
+		default:
+			flag.PrintDefaults()
+			os.Exit(1)
 		}
 
-		// start imap server.
-		imap.StartImap(s_impl.Password, s_impl.KeyFile, certFile, s_impl.IMAP_Port, s_impl.IMAPS_Port, s_impl.IMAP_ALT_Port)
+		if publishCommand.Parsed() {
+			// Required Flags
+			if *publishCommand_domain == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
 
-		// start smtp server
-		smtp.StartSmtp(s_impl.Password, s_impl.Domain, s_impl.KeyFile, certFile, s_impl.SMTP_Port, s_impl.SMTPS_Port, s_impl.SMTP_ALT_Port)
+			if *publishCommand_user == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
 
-	}()
+			if *publishCommand_password == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
 
-	// Start the service.
-	s_impl.StartService()
+			err := s_impl.PublishService(*publishCommand_domain, *publishCommand_user, *publishCommand_password)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("Your service was publish successfuly!")
+			}
+		}
+	} else {
+
+		// Register the echo services
+		mailpb.RegisterMailServiceServer(s_impl.grpcServer, s_impl)
+		reflection.Register(s_impl.grpcServer)
+
+		// Here I will start the local smtp server.
+		go func() {
+			certFile := s_impl.CertFile
+
+			// Here in case of tls connection I will use the domain certificate instead of the server certificate.
+			if s_impl.TLS == true {
+				certFile = certFile[0:strings.Index(certFile, "server.crt")] + s_impl.Domain + ".crt"
+			}
+
+			// start imap server.
+			imap.StartImap(s_impl.Password, s_impl.KeyFile, certFile, s_impl.IMAP_Port, s_impl.IMAPS_Port, s_impl.IMAP_ALT_Port)
+
+			// start smtp server
+			smtp.StartSmtp(s_impl.Password, s_impl.Domain, s_impl.KeyFile, certFile, s_impl.SMTP_Port, s_impl.SMTPS_Port, s_impl.SMTP_ALT_Port)
+
+		}()
+
+		// Start the service.
+		s_impl.StartService()
+	}
 }

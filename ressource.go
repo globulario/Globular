@@ -34,7 +34,8 @@ import (
 )
 
 func (self *Globule) startRessourceService() error {
-	ressource_server, err := self.startInternalService(string(ressourcepb.File_services_proto_ressource_proto.Services().Get(0).FullName()), ressourcepb.File_services_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
+	id := string(ressourcepb.File_services_proto_ressource_proto.Services().Get(0).FullName())
+	ressource_server, err := self.startInternalService(id, ressourcepb.File_services_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, ressource_server)
 
@@ -53,6 +54,11 @@ func (self *Globule) startRessourceService() error {
 			if err = ressource_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
+			s := self.getService(id)
+			pid := getIntVal(s, "ProxyProcess")
+			Utility.TerminateProcess(pid, 0)
+			s.Store("ProxyProcess", -1)
+			self.saveConfig()
 		}()
 
 		// In order to be able to give permission to a server

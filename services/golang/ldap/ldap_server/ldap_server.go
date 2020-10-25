@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -62,6 +63,10 @@ type server struct {
 	AllowAllOrigins    bool
 	AllowedOrigins     string // comma separated string.
 	Domain             string
+	Description        string
+	Keywords           []string
+	Repositories       []string
+	Discoveries        []string
 	CertAuthorityTrust string
 	CertFile           string
 	KeyFile            string
@@ -94,6 +99,50 @@ func (self *server) GetName() string {
 }
 func (self *server) SetName(name string) {
 	self.Name = name
+}
+
+// The description of the service
+func (self *server) GetDescription() string {
+	return self.Description
+}
+func (self *server) SetDescription(description string) {
+	self.Description = description
+}
+
+// The list of keywords of the services.
+func (self *server) GetKeywords() []string {
+	return self.Keywords
+}
+func (self *server) SetKeywords(keywords []string) {
+	self.Keywords = keywords
+}
+
+func (self *server) GetRepositories() []string {
+	return self.Repositories
+}
+func (self *server) SetRepositories(repositories []string) {
+	self.Repositories = repositories
+}
+
+func (self *server) GetDiscoveries() []string {
+	return self.Discoveries
+}
+func (self *server) SetDiscoveries(discoveries []string) {
+	self.Discoveries = discoveries
+}
+
+// Dist
+func (self *server) Dist(path string) error {
+
+	return globular.Dist(path, self)
+}
+
+func (self *server) GetPlatform() string {
+	return globular.GetPlatform()
+}
+
+func (self *server) PublishService(address string, user string, password string) error {
+	return globular.PublishService(address, user, password, self)
 }
 
 // The path of the executable.
@@ -458,18 +507,12 @@ func main() {
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// The first argument must be the port number to listen to.
-	port := defaultPort
-	if len(os.Args) > 1 {
-		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
-	}
-
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Connections = make(map[string]connection)
 	s_impl.Name = string(ldappb.File_services_proto_ldap_proto.Services().Get(0).FullName())
 	s_impl.Proto = ldappb.File_services_proto_ldap_proto.Path()
-	s_impl.Port = port
+	s_impl.Port = defaultPort
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
@@ -478,19 +521,65 @@ func main() {
 	s_impl.AllowedOrigins = allowed_origins
 	s_impl.PublisherId = domain
 	s_impl.Permissions = make([]interface{}, 0)
+	s_impl.Keywords = make([]string, 0)
+	s_impl.Repositories = make([]string, 0)
+	s_impl.Discoveries = make([]string, 0)
 
 	// Here I will retreive the list of connections from file if there are some...
 	err := s_impl.Init()
 	if err != nil {
 		log.Fatalf("Fail to initialyse service %s: %s", s_impl.Name, s_impl.Id, err)
 	}
+	if len(os.Args) == 2 {
+		s_impl.Port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
+	}
 
-	// Register the echo services
-	ldappb.RegisterLdapServiceServer(s_impl.grpcServer, s_impl)
-	reflection.Register(s_impl.grpcServer)
+	if len(os.Args) > 2 {
+		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
+		publishCommand_domain := publishCommand.String("a", "", "The address(domain ex. my.domain.com:8080) of your backend (Required)")
+		publishCommand_user := publishCommand.String("u", "", "The user (Required)")
+		publishCommand_password := publishCommand.String("p", "", "The password (Required)")
 
-	// Start the service.
-	s_impl.StartService()
+		switch os.Args[1] {
+		case "publish":
+			publishCommand.Parse(os.Args[2:])
+		default:
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+
+		if publishCommand.Parsed() {
+			// Required Flags
+			if *publishCommand_domain == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_user == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_password == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			err := s_impl.PublishService(*publishCommand_domain, *publishCommand_user, *publishCommand_password)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("Your service was publish successfuly!")
+			}
+		}
+	} else {
+		// Register the echo services
+		ldappb.RegisterLdapServiceServer(s_impl.grpcServer, s_impl)
+		reflection.Register(s_impl.grpcServer)
+
+		// Start the service.
+		s_impl.StartService()
+	}
 }
 
 /**

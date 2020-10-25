@@ -32,11 +32,8 @@ import (
  * Subscribe to Discoverie's and repositories to keep services up to date.
  */
 func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
-	// append itself to service discoveries...
-	if !Utility.Contains(self.Discoveries, self.getDomain()) {
-		self.Discoveries = append(self.Discoveries, self.getDomain())
-	}
 
+	// append itself to service discoveries...
 	subscribers := make(map[string]map[string][]string, 0)
 
 	// Connect to service update events...
@@ -55,9 +52,9 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 			}
 
 			for _, s := range self.getServices() {
-
-				if s["PublisherId"] != nil {
-					id := s["PublisherId"].(string) + ":" + s["Name"].(string) + ":SERVICE_PUBLISH_EVENT"
+				_, hasPublisherId := s.Load("PublisherId")
+				if hasPublisherId {
+					id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Name") + ":SERVICE_PUBLISH_EVENT"
 
 					if subscribers[self.Discoveries[i]][id] == nil {
 						subscribers[self.Discoveries[i]][id] = make([]string, 0)
@@ -71,29 +68,31 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
 						// here I will update the service if it's version is lower
 						for _, s := range self.getServices() {
-							if s["PublisherId"] != nil {
-								if s["Name"].(string) == descriptor.GetId() && s["PublisherId"].(string) == descriptor.GetPublisherId() {
-									if s["KeepUpToDate"] != nil {
-										if s["KeepUpToDate"].(bool) {
-											// Test if update is needed...
-											if Utility.ToInt(strings.Split(s["Version"].(string), ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
-												if Utility.ToInt(strings.Split(s["Version"].(string), ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
-													if Utility.ToInt(strings.Split(s["Version"].(string), ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-														self.stopService(s["Id"].(string))
-														self.deleteService(s["Id"].(string))
-														err := self.installService(descriptor)
-														if err != nil {
-															fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
-														} else {
-															s["KeepUpToDate"] = true
-															self.saveConfig()
-															fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
-														}
+							_, hasPublisherId := s.Load("PublisherId")
+							if hasPublisherId {
+								if getStringVal(s, "Name") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
+
+									if getBoolVal(s, "KeepUpToDate") {
+										// Test if update is needed...
+										version := getStringVal(s, "Version")
+										if Utility.ToInt(strings.Split(version, ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
+											if Utility.ToInt(strings.Split(version, ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
+												if Utility.ToInt(strings.Split(version, ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
+													self.stopService(getStringVal(s, "Id"))
+													self.deleteService(getStringVal(s, "Id"))
+													err := self.installService(descriptor)
+													if err != nil {
+														fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
+													} else {
+														s.Store("KeepUpToDate", true)
+														self.saveConfig()
+														fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
 													}
 												}
 											}
 										}
 									}
+
 								}
 							}
 						}
@@ -128,7 +127,8 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 // Start service discovery
 func (self *Globule) startDiscoveryService() error {
 	// The service discovery.
-	services_discovery_server, err := self.startInternalService(string(servicespb.File_services_proto_services_proto.Services().Get(0).FullName()), servicespb.File_services_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	id := string(servicespb.File_services_proto_services_proto.Services().Get(0).FullName())
+	services_discovery_server, err := self.startInternalService(id, servicespb.File_services_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
@@ -146,6 +146,11 @@ func (self *Globule) startDiscoveryService() error {
 			if err := services_discovery_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
+			s := self.getService(id)
+			pid := getIntVal(s, "ProxyProcess")
+			Utility.TerminateProcess(pid, 0)
+			s.Store("ProxyProcess", -1)
+			self.saveConfig()
 			return
 		}()
 	}
@@ -229,6 +234,7 @@ func (self *Globule) FindServices(ctx context.Context, rqst *servicespb.FindServ
 		descriptor := data[i].(map[string]interface{})
 		descriptors[i] = new(servicespb.ServiceDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
+		descriptors[i].Name = descriptor["name"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
 		descriptors[i].Version = descriptor["version"].(string)
@@ -292,6 +298,7 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *servicespb.
 		descriptor := values[i].(map[string]interface{})
 		descriptors[i] = new(servicespb.ServiceDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
+		descriptors[i].Name = descriptor["name"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
 		descriptors[i].Version = descriptor["version"].(string)
@@ -351,6 +358,7 @@ func (self *Globule) GetServicesDescriptor(rqst *servicespb.GetServicesDescripto
 		descriptor := new(servicespb.ServiceDescriptor)
 
 		descriptor.Id = data[i].(map[string]interface{})["id"].(string)
+		descriptor.Name = data[i].(map[string]interface{})["name"].(string)
 		descriptor.Description = data[i].(map[string]interface{})["description"].(string)
 		descriptor.PublisherId = data[i].(map[string]interface{})["publisherid"].(string)
 		descriptor.Version = data[i].(map[string]interface{})["version"].(string)
@@ -503,16 +511,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 
 	// Generate the bundle id....
 	var id string
-	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Id + "%" + bundle.Descriptor_.Version
-	if bundle.Plaform == servicespb.Platform_LINUX32 {
-		id += "%LINUX32"
-	} else if bundle.Plaform == servicespb.Platform_LINUX64 {
-		id += "%LINUX64"
-	} else if bundle.Plaform == servicespb.Platform_WIN32 {
-		id += "%WIN32"
-	} else if bundle.Plaform == servicespb.Platform_WIN64 {
-		id += "%WIN64"
-	}
+	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
 
 	path := self.data + string(os.PathSeparator) + "service-repository"
 
@@ -599,21 +598,8 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 	}
 
 	// Generate the bundle id....
-	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Id + "%" + bundle.Descriptor_.Version
-	var platform string
-	if bundle.Plaform == servicespb.Platform_LINUX32 {
-		id += "%LINUX32"
-		platform = "LINUX32"
-	} else if bundle.Plaform == servicespb.Platform_LINUX64 {
-		id += "%LINUX64"
-		platform = "LINUX64"
-	} else if bundle.Plaform == servicespb.Platform_WIN32 {
-		id += "%WIN32"
-		platform = "WIN32"
-		platform = "WIN64"
-	} else if bundle.Plaform == servicespb.Platform_WIN64 {
-		id += "%WIN64"
-	}
+	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + bundle.Plaform
+	log.Println(id)
 
 	repositoryId := self.getDomain()
 	// Now I will append the address of the repository into the service descriptor.
@@ -622,7 +608,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		// Publish change into discoveries...
 		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService, err := service_client.NewServicesDiscoveryService_Client(discoveryId, "services_discovery")
+			discoveryService, err := service_client.NewServicesDiscoveryService_Client(discoveryId, "services.ServiceDiscovery")
 			if err != nil {
 				return err
 			}
@@ -634,7 +620,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 	Utility.CreateDirIfNotExist(path)
 
 	// the file must be a zipped archive that contain a .proto, .config and executable.
-	err = ioutil.WriteFile(path+string(os.PathSeparator)+id+".tar.gz", bundle.Binairies, 777)
+	err = ioutil.WriteFile(path+"/"+id+".tar.gz", bundle.Binairies, 777)
 	if err != nil {
 		return err
 	}
@@ -645,7 +631,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		return err
 	}
 
-	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": platform, "publisherid": bundle.Descriptor_.PublisherId, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
+	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": bundle.Plaform, "publisherid": bundle.Descriptor_.PublisherId, "servicename": bundle.Descriptor_.Name, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
 
 	return err
 }

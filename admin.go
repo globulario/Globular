@@ -12,8 +12,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/davecourtois/Globular/services/golang/event/event_client"
 	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +23,6 @@ import (
 	"encoding/json"
 	"os/exec"
 	"reflect"
-	"runtime"
 
 	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
 
@@ -31,6 +32,7 @@ import (
 
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/services/golang/admin/adminpb"
+	globular "github.com/davecourtois/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
 	"github.com/davecourtois/Globular/services/golang/services/service_client"
 	"github.com/davecourtois/Utility"
@@ -40,7 +42,8 @@ import (
 )
 
 func (self *Globule) startAdminService() error {
-	admin_server, err := self.startInternalService(string(adminpb.File_services_proto_admin_proto.Services().Get(0).FullName()), adminpb.File_services_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	id := string(adminpb.File_services_proto_admin_proto.Services().Get(0).FullName())
+	admin_server, err := self.startInternalService(id, adminpb.File_services_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, admin_server)
 		// First of all I will creat a listener.
@@ -61,6 +64,12 @@ func (self *Globule) startAdminService() error {
 			if err := admin_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
+			// Close it proxy process
+			s := self.getService(id)
+			pid := getIntVal(s, "ProxyProcess")
+			Utility.TerminateProcess(pid, 0)
+			s.Store("ProxyProcess", -1)
+			self.saveConfig()
 		}()
 
 	}
@@ -77,6 +86,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["AdminPort"] = self.AdminPort
 	config["AdminProxy"] = self.AdminProxy
 	config["AdminEmail"] = self.AdminEmail
+	config["AlternateDomains"] = self.AlternateDomains
 	config["RessourcePort"] = self.RessourcePort
 	config["RessourceProxy"] = self.RessourceProxy
 	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
@@ -86,6 +96,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["LoadBalancingServiceProxy"] = self.LoadBalancingServiceProxy
 	config["SessionTimeout"] = self.SessionTimeout
 	config["Discoveries"] = self.Discoveries
+	config["PortsRange"] = self.PortsRange
 	config["Version"] = self.Version
 	config["Platform"] = self.Platform
 	config["DNS"] = self.DNS
@@ -97,6 +108,12 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["CertStableURL"] = self.CertStableURL
 	config["CertificateAuthorityPort"] = self.CertificateAuthorityPort
 	config["CertificateAuthorityProxy"] = self.CertificateAuthorityProxy
+	config["CertExpirationDelay"] = self.CertExpirationDelay
+	config["CertPassword"] = self.CertPassword
+	config["Country"] = self.Country
+	config["State"] = self.State
+	config["City"] = self.City
+	config["Organization"] = self.Organization
 
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
@@ -105,20 +122,24 @@ func (self *Globule) getConfig() map[string]interface{} {
 
 	for _, service_config := range self.getServices() {
 		s := make(map[string]interface{})
-		s["Domain"] = service_config["Domain"]
-		s["Port"] = service_config["Port"]
-		s["Proxy"] = service_config["Proxy"]
-		s["TLS"] = service_config["TLS"]
-		s["Version"] = service_config["Version"]
-		s["PublisherId"] = service_config["PublisherId"]
-		s["KeepUpToDate"] = service_config["KeepUpToDate"]
-		s["KeepAlive"] = service_config["KeepAlive"]
-		s["State"] = service_config["State"]
-		s["Id"] = service_config["Id"]
-		s["Name"] = service_config["Name"]
-		s["CertFile"] = service_config["CertFile"]
-		s["KeyFile"] = service_config["KeyFile"]
-		s["CertAuthorityTrust"] = service_config["CertAuthorityTrust"]
+		s["Domain"] = getStringVal(service_config, "Domain")
+		s["Port"] = getIntVal(service_config, "Port")
+		s["Proxy"] = getIntVal(service_config, "Proxy")
+		s["TLS"] = getBoolVal(service_config, "TLS")
+		s["Version"] = getStringVal(service_config, "Version")
+		s["PublisherId"] = getStringVal(service_config, "PublisherId")
+		s["KeepUpToDate"] = getBoolVal(service_config, "KeepUpToDate")
+		s["KeepAlive"] = getBoolVal(service_config, "KeepAlive")
+		s["Description"] = getStringVal(service_config, "Description")
+		s["Keywords"] = getVal(service_config, "Keywords")
+		s["Repositories"] = getVal(service_config, "Repositories")
+		s["Discoveries"] = getVal(service_config, "Discoveries")
+		s["State"] = getStringVal(service_config, "State")
+		s["Id"] = getStringVal(service_config, "Id")
+		s["Name"] = getStringVal(service_config, "Name")
+		s["CertFile"] = getStringVal(service_config, "CertFile")
+		s["KeyFile"] = getStringVal(service_config, "KeyFile")
+		s["CertAuthorityTrust"] = getStringVal(service_config, "CertAuthorityTrust")
 
 		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
@@ -129,8 +150,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 
 func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
-	config := self.toMap()
-	str, err := Utility.ToJson(config)
+	str, err := Utility.ToJson(self.toMap())
 	if err == nil {
 		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
 	} else {
@@ -163,8 +183,7 @@ func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRun
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
-	config := self.toMap()
-	str, err := Utility.ToJson(config)
+	str, err := Utility.ToJson(self.toMap())
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -195,20 +214,22 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigReque
 }
 
 // return true if the configuation has change.
-func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
+func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
-	if !Utility.IsLocal(config["Domain"].(string)) && root_ != self.path {
+	if !Utility.IsLocal(getStringVal(config, "Domain")) && root_ != self.path {
 		return false
 	}
 
-	if config["configPath"] == nil {
-		config_ := self.getService(config["Id"].(string))
+	_, hasConfigPath := config.Load("configPath")
+	if !hasConfigPath {
+		config_ := self.getService(getStringVal(config, "Id"))
 		if config_ != nil {
-			for k, v := range config {
-				config_[k] = v
-			}
+			config.Range(func(k, v interface{}) bool {
+				config_.Store(k, v)
+				return true
+			})
 			// save the globule configuration.
 			self.saveConfig()
 		}
@@ -218,62 +239,59 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 	// Here I will
 
 	// set the domain of the service.
-	config["Domain"] = self.getDomain()
-
-	// get the config path.
-	var process interface{}
-	var proxyProcess interface{}
-
-	process = config["Process"]
-	proxyProcess = config["ProxyProcess"]
-
-	// remove unused information...
-	delete(config, "Process")
-	delete(config, "ProxyProcess")
+	config.Store("Domain", self.getDomain())
 
 	// format the path's
-	config["Path"] = strings.ReplaceAll(config["Path"].(string), "\\", "/")
-	config["Proto"] = strings.ReplaceAll(config["Proto"].(string), "\\", "/")
-	if config["configPath"] != nil {
-		config["configPath"] = strings.ReplaceAll(config["configPath"].(string), "\\", "/")
+	config.Store("Path", strings.ReplaceAll(getStringVal(config, "Path"), "\\", "/"))
+	config.Store("Proto", strings.ReplaceAll(getStringVal(config, "Proto"), "\\", "/"))
+
+	_, hasConfigPath = config.Load("hasConfigPath")
+	if !hasConfigPath {
+		config.Store("configPath", strings.ReplaceAll(getStringVal(config, "configPath"), "\\", "/"))
 	}
 
 	// so here I will get the previous information...
-	f, err := os.Open(config["configPath"].(string))
+	f, err := os.Open(getStringVal(config, "configPath"))
+
 	if err == nil {
 		b, err := ioutil.ReadAll(f)
 		if err == nil {
+			// get previous configuration...
 			config_ := make(map[string]interface{})
-
 			json.Unmarshal(b, &config_)
-			if reflect.DeepEqual(config_, config) {
+			config_["Process"] = getIntVal(config, "Process")
+			config_["ProxyProcess"] = getIntVal(config, "ProxyProcess")
+
+			config__ := make(map[string]interface{})
+			config.Range(func(k, v interface{}) bool {
+				config__[k.(string)] = v
+				return true
+			})
+
+			if reflect.DeepEqual(config_, config__) {
 				f.Close()
 				// set back the path's info.
-				config["Process"] = process
-				config["ProxyProcess"] = proxyProcess
 				return false
 			}
 		}
 	}
 	f.Close()
 
-	// set back internal infos...
-	config["Process"] = process
-	config["ProxyProcess"] = proxyProcess
-
 	// sync the data/config file with the service file.
 	jsonStr, _ := Utility.ToJson(config)
 
 	// here I will write the file
-	err = ioutil.WriteFile(config["configPath"].(string), []byte(jsonStr), 0644)
+	err = ioutil.WriteFile(getStringVal(config, "configPath"), []byte(jsonStr), 0644)
 	if err != nil {
 		return false
 	}
 
 	// Here I will get the list of service permission and set it...
-	if config["Permissions"] != nil {
-		for i := 0; i < len(config["Permissions"].([]interface{})); i++ {
-			permission := config["Permissions"].([]interface{})[i].(map[string]interface{})
+	permissions, hasPermissions := config.Load("permissions")
+
+	if hasPermissions {
+		for i := 0; i < len(permissions.([]interface{})); i++ {
+			permission := permissions.([]interface{})[i].(map[string]interface{})
 			self.actionPermissions = append(self.actionPermissions, permission)
 		}
 	}
@@ -284,7 +302,6 @@ func (self *Globule) saveServiceConfig(config map[string]interface{}) bool {
 // Save a service configuration
 func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
 	// Save service...
-
 	config := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(rqst.Config), &config)
 	if err != nil {
@@ -297,12 +314,8 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 	if config["Id"] != nil {
 		srv := self.getService(config["Id"].(string))
 		if srv != nil {
-			// Attach the actual process and proxy process to the configuration object.
-			config["Process"] = srv["Process"]
-			config["ProxyProcess"] = srv["ProxyProcess"]
-			self.setService(config)
-
-			self.initService(config["Id"].(string))
+			setValues(srv, config)
+			self.initService(srv)
 		}
 
 	} else if config["Services"] != nil {
@@ -339,18 +352,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.Domain = config["Domain"].(string)
 		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
 
-		// That will save the services if they have changed.
-		for n, s := range config["Services"].(map[string]interface{}) {
-			// Attach the actual process and proxy process to the configuration object.
-			s_ := self.getService(n)
-			id := s.(map[string]interface{})["Id"].(string)
-			s.(map[string]interface{})["Process"] = s_["Process"]
-			s.(map[string]interface{})["ProxyProcess"] = s_["ProxyProcess"]
-			s.(map[string]interface{})["TLS"] = self.Protocol == "https"
-			self.setService(s.(map[string]interface{}))
-			self.initService(id)
-		}
-
 		// Save Discoveries.
 		self.Discoveries = make([]string, 0)
 		for i := 0; i < len(config["Discoveries"].([]interface{})); i++ {
@@ -361,6 +362,14 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.DNS = make([]string, 0)
 		for i := 0; i < len(config["DNS"].([]interface{})); i++ {
 			self.DNS = append(self.DNS, config["DNS"].([]interface{})[i].(string))
+		}
+
+		// That will save the services if they have changed.
+		for id, s := range config["Services"].(map[string]interface{}) {
+			// Attach the actual process and proxy process to the configuration object.
+			s_ := self.getService(id)
+			setValues(s_, s.(map[string]interface{}))
+			self.initService(s_)
 		}
 
 		// save the application server.
@@ -529,12 +538,10 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 /** Create the super administrator in the db. **/
 func (self *Globule) registerSa() error {
 
-	/**
 	configs := self.getServiceConfigByName("persistence.PersistenceService")
 	if len(configs) == 0 {
 		return errors.New("No persistence service was configure on that globule!")
 	}
-	*/
 
 	// Here I will test if mongo db exist on the server.
 	existMongo := exec.Command("mongod", "--version")
@@ -870,7 +877,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery, err := service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err := service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services.ServiceDiscovery")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -878,7 +885,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := service_client.NewServicesRepositoryService_Client(rqst.RepositoryId, "services_repository")
+	services_repository, err := service_client.NewServicesRepositoryService_Client(rqst.RepositoryId, "services.ServiceRepository")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -888,6 +895,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	// Now I will upload the service to the repository...
 	serviceDescriptor := &servicespb.ServiceDescriptor{
 		Id:           rqst.ServiceId,
+		Name:         rqst.ServiceName,
 		PublisherId:  rqst.PublisherId,
 		Version:      rqst.Version,
 		Description:  rqst.Description,
@@ -903,7 +911,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, int32(rqst.Platform), rqst.Path)
+	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, rqst.Platform, rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -935,7 +943,16 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Here I will send an event that the service has a new version...
-	// eventHub, err := event_client.NewEvent_Client(rqst.DicorveryId, "event.EventService")
+	if self.discorveriesEventHub[rqst.DicorveryId] == nil {
+		client, err := event_client.NewEventService_Client(rqst.DicorveryId, "event.EventService")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		self.discorveriesEventHub[rqst.DicorveryId] = client
+	}
+
 	self.discorveriesEventHub[rqst.DicorveryId].Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
 
 	// Here I will set the ressource to manage the applicaiton access permission.
@@ -964,114 +981,56 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 		return errors.New("No service repository was found for service " + descriptor.Id)
 	}
 
-	var platform servicespb.Platform
-	// The first step will be to create the archive.
-	if runtime.GOOS == "windows" {
-		if runtime.GOARCH == "amd64" {
-			platform = servicespb.Platform_WIN64
-		} else if runtime.GOARCH == "386" {
-			platform = servicespb.Platform_WIN32
-		}
-	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
-		if runtime.GOARCH == "amd64" {
-			platform = servicespb.Platform_LINUX64
-		} else if runtime.GOARCH == "386" {
-			platform = servicespb.Platform_LINUX32
-		}
-	} else if runtime.GOOS == "darwin" {
-		/** TODO Deploy services on other platforme here... **/
-	}
-
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		services_repository, err := service_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "services_repository")
+		services_repository, err := service_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "services.ServiceRepository")
 		if err != nil {
 			return err
 		}
 
-		bundle, err := services_repository.DownloadBundle(descriptor, platform)
+		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 		if err == nil {
-			id := descriptor.PublisherId + "%" + descriptor.Id + "%" + descriptor.Version
-			if platform == servicespb.Platform_LINUX32 {
-				id += "%LINUX32"
-			} else if platform == servicespb.Platform_LINUX64 {
-				id += "%LINUX64"
-			} else if platform == servicespb.Platform_WIN32 {
-				id += "%WIN32"
-			} else if platform == servicespb.Platform_WIN64 {
-				id += "%WIN64"
-			}
 
 			// Create the file.
 			r := bytes.NewReader(bundle.Binairies)
 			Utility.ExtractTarGz(r)
 
+			// This is the directory path inside the archive.
+			id := descriptor.PublisherId + "%" + descriptor.Name + "%" + descriptor.Version + "%" + descriptor.Id + "%" + globular.GetPlatform()
+
 			// I will save the binairy in file...
-			dest := "services" + string(os.PathSeparator) + strings.ReplaceAll(id, "%", string(os.PathSeparator))
-			Utility.CreateDirIfNotExist(dest)
-			Utility.CopyDirContent(self.path+string(os.PathSeparator)+id, self.path+string(os.PathSeparator)+dest)
+			Utility.CreateDirIfNotExist(self.path + "/services")
+			Utility.CopyDirContent(self.path+"/"+id, self.path+"/services")
 
-			// remove the file...
-			os.RemoveAll(self.path + string(os.PathSeparator) + id)
+			defer os.RemoveAll(self.path + "/" + id)
+			path := self.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
+			configs, _ := Utility.FindFileByName(path, "config.json")
+			if len(configs) == 0 {
+				return errors.New("No configuration file was found")
+			}
 
-			// I will repalce the service configuration with the new one...
-			jsonStr, err := ioutil.ReadFile(self.path + string(os.PathSeparator) + dest + string(os.PathSeparator) + "config.json")
+			s := make(map[string]interface{}, 0)
+			data, err := ioutil.ReadFile(configs[0])
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(data, &s)
 			if err != nil {
 				return err
 			}
 
-			config := make(map[string]interface{})
-			json.Unmarshal(jsonStr, &config)
-
-			config["configPath"] = strings.ReplaceAll(string(os.PathSeparator)+dest+string(os.PathSeparator)+"config.json", string(os.PathSeparator), "/")
-
-			// save the new paths...
-
-			// Take the existing servicePath from the configuration.
-			servicePath := string(os.PathSeparator) + dest
-			servicePath += string(os.PathSeparator) + config["Path"].(string)[strings.LastIndex(config["Path"].(string), "/"):]
-			config["Path"] = strings.ReplaceAll(servicePath, string(os.PathSeparator), "/")
-
-			// Here I will try to find .proto file.
-			files, err := ioutil.ReadDir(self.path + string(os.PathSeparator) + dest)
-			if err != nil {
-				return err
-			}
-
-			// proto file dosen't have the save name as the service itself.
-			protoPath := string(os.PathSeparator) + dest
-			for i := 0; i < len(files); i++ {
-				f := files[i]
-				if strings.HasSuffix(f.Name(), ".proto") {
-					protoPath += string(os.PathSeparator) + f.Name()
-					break
-				}
-			}
-
-			config["Proto"] = strings.ReplaceAll(protoPath, string(os.PathSeparator), "/")
-
-			// Set execute permission
-			err = os.Chmod(config["Path"].(string), 0755)
-			if err != nil {
-				return err
-			}
-
-			// Set service tls true if the protocol is https
-			config["TLS"] = self.Protocol == "https"
-
-			// Set the id with the descriptor id.
-			config["Id"] = strings.Replace(descriptor.Id, ".exe", "", -1)
-			self.setService(config)
+			// set the service in the map.
+			s_ := new(sync.Map)
+			setValues(s_, s)
 
 			// initialyse the new service.
-			err = self.initService(config["Id"].(string))
+			err = self.initService(s_)
 			if err != nil {
 				return err
 			}
 
-			self.saveConfig() // save the configuration with the newly install service...
-
 			// Here I will set the service method...
-			self.setServiceMethods(config["Name"].(string), self.path+string(os.PathSeparator)+config["Proto"].(string))
+			self.setServiceMethods(s["Name"].(string), s["Proto"].(string))
+
 			self.registerMethods()
 
 			break
@@ -1088,7 +1047,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 	// Connect to the dicovery services
 	var services_discovery *service_client.ServicesDiscovery_Client
 	var err error
-	services_discovery, err = service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services_discovery")
+	services_discovery, err = service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services.ServiceDiscovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -1138,15 +1097,15 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	// First of all I will stop the running service(s) instance.
 	for _, s := range self.getServices() {
 		// Stop the instance of the service.
+		id, ok := s.Load("Id")
+		if ok {
+			if getStringVal(s, "PublisherId") == rqst.PublisherId && id == rqst.ServiceId && getStringVal(s, "Version") == rqst.Version {
 
-		if s["Id"] != nil {
-			if s["PublisherId"].(string) == rqst.PublisherId && s["Id"].(string) == rqst.ServiceId && s["Version"].(string) == rqst.Version {
-				self.stopService(s["Id"].(string))
-
-				self.deleteService(s["Id"].(string))
+				self.stopService(id.(string))
+				self.deleteService(id.(string))
 
 				// Get the list of method to remove from the list of actions.
-				toDelete := self.getServiceMethods(s["Name"].(string), self.path+string(os.PathListSeparator)+s["Proto"].(string))
+				toDelete := self.getServiceMethods(getStringVal(s, "Name"), getStringVal(s, "Proto"))
 				methods := make([]string, 0)
 				for i := 0; i < len(self.methods); i++ {
 					if !Utility.Contains(toDelete, self.methods[i]) {
@@ -1203,41 +1162,47 @@ func (self *Globule) stopService(serviceId string) error {
 	}
 
 	// Set keep alive to false...
-	s["KeepAlive"] = false
+	s.Store("KeepAlive", false)
 
-	if s["Process"] == nil {
+	_, hasProcessPid := s.Load("Proccess")
+	if !hasProcessPid {
+		s.Store("Process", -1)
+	}
+
+	pid := getIntVal(s, "Process")
+
+	if pid == -1 {
 		return errors.New("No process running")
 	}
 
-	if s["Process"].(*exec.Cmd).Process == nil {
-		return errors.New("No process running")
-	}
-
-	err := Utility.TerminateProcess(s["Process"].(*exec.Cmd).Process.Pid, 0)
-
+	err := Utility.TerminateProcess(pid, 0)
 	if err != nil {
 		return err
 	}
 
-	if s["ProxyProcess"] != nil {
-		err := Utility.TerminateProcess(s["ProxyProcess"].(*exec.Cmd).Process.Pid, 0)
+	_, hasProxyProcessPid := s.Load("ProxyProcess")
+	if !hasProxyProcessPid {
+		s.Store("ProxyProcess", -1)
+	}
+	pid = getIntVal(s, "ProxyProcess")
 
-		// time.Sleep(time.Second * 1)
+	if pid != -1 {
+		err := Utility.TerminateProcess(pid, 0)
 		if err != nil {
 			return err
 		}
 	}
 
-	s["State"] = "stopped"
+	s.Store("State", "stopped")
 
-	self.logServiceInfo(s["Name"].(string), time.Now().String()+"Service "+s["Name"].(string)+" was stopped!")
+	self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
 
 	// I will remove the service from the load balancer.
 	self.lb_remove_candidate_info_channel <- &lbpb.ServerInfo{
-		Id:     s["Id"].(string),
-		Name:   s["Name"].(string),
-		Domain: s["Domain"].(string),
-		Port:   int32(Utility.ToInt(s["Port"])),
+		Id:     getStringVal(s, "Id"),
+		Name:   getStringVal(s, "Name"),
+		Domain: getStringVal(s, "Domain"),
+		Port:   int32(getIntVal(s, "Port")),
 	}
 
 	return nil
@@ -1267,7 +1232,7 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
 	}
 
-	service_pid, proxy_pid, err := self.startService(rqst.ServiceId)
+	service_pid, proxy_pid, err := self.startService(s)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

@@ -9,7 +9,7 @@ import (
 
 var (
 	// Connect to the services client.
-	services_discovery  = NewServicesDiscovery_Client("globular3.omniscient.app", "services_discovery")
+	services_discovery  = NewServicesDiscovery_Client("globular3.omniscient.app", services.ServiceDiscovery)
 	services_repository = NewServicesRepository_Client("globular3.omniscient.app", "services_repository")
 )
 

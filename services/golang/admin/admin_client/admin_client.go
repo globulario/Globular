@@ -8,15 +8,14 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 
 	//	"log"
 	"os"
-	"runtime"
 	"strconv"
 
 	"github.com/davecourtois/Globular/services/golang/admin/adminpb"
 	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/services/servicespb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -270,19 +269,11 @@ func (self *Admin_Client) hasRunningProcess(name string) (bool, error) {
 }
 
 /** Create a service package **/
-func (self *Admin_Client) createServicePackage(publisherId string, serviceId string, version string, platform servicespb.Platform, servicePath string) (string, error) {
+func (self *Admin_Client) createServicePackage(publisherId string, serviceName string, serviceId string, version string, platform string, servicePath string) (string, error) {
 
 	// Take the information from the configuration...
-	id := publisherId + "%" + serviceId + "%" + version
-	if platform == servicespb.Platform_LINUX32 {
-		id += "%LINUX32"
-	} else if platform == servicespb.Platform_LINUX64 {
-		id += "%LINUX64"
-	} else if platform == servicespb.Platform_WIN32 {
-		id += "%WIN32"
-	} else if platform == servicespb.Platform_WIN64 {
-		id += "%WIN64"
-	}
+	id := publisherId + "%" + serviceName + "%" + version + "%" + serviceId + "%" + platform
+	log.Println(id)
 
 	// So here I will create a directory and put file in it...
 	path := id
@@ -321,7 +312,9 @@ func (self *Admin_Client) createServicePackage(publisherId string, serviceId str
 /**
  * Create and Upload the service archive on the server.
  */
-func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceId string, version string, token string, domain string) (string, int, error) {
+func (self *Admin_Client) UploadServicePackage(path string, publisherId string, serviceName string, serviceId string, version string, token string, domain string, platform string) (string, int, error) {
+	log.Println(publisherId, serviceName)
+
 	// Here I will try to read the service configuation from the path.
 	configs, _ := Utility.FindFileByName(path, "config.json")
 	if len(configs) == 0 {
@@ -330,7 +323,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 
 	// Find proto by name
 	_, err := Utility.FindFileByName(path, ".proto")
-	if len(configs) == 0 {
+	if err != nil {
 		return "", 0, errors.New("No prototype file was found")
 	}
 
@@ -348,29 +341,11 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// set the correct information inside the configuration
 	s["PublisherId"] = publisherId
 	s["Version"] = version
-	s["Name"] = serviceId
+	s["Id"] = serviceId
+	s["Name"] = serviceName
 
 	jsonStr, _ := Utility.ToJson(&s)
 	ioutil.WriteFile(configs[0], []byte(jsonStr), 0644)
-
-	var platform servicespb.Platform
-
-	// The first step will be to create the archive.
-	if runtime.GOOS == "windows" {
-		if runtime.GOARCH == "amd64" {
-			platform = servicespb.Platform_WIN64
-		} else if runtime.GOARCH == "386" {
-			platform = servicespb.Platform_WIN32
-		}
-	} else if runtime.GOOS == "linux" { // also can be specified to FreeBSD
-		if runtime.GOARCH == "amd64" {
-			platform = servicespb.Platform_LINUX64
-		} else if runtime.GOARCH == "386" {
-			platform = servicespb.Platform_LINUX32
-		}
-	} else if runtime.GOOS == "darwin" {
-		/** TODO Deploy services on other platforme here... **/
-	}
 
 	md := metadata.New(map[string]string{"token": token, "domain": domain})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
@@ -378,7 +353,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// First of all I will create the archive for the service.
 	// If a path is given I will take it entire content. If not
 	// the proto, the config and the executable only will be taken.
-	packagePath, err := self.createServicePackage(publisherId, serviceId, version, platform, path)
+	packagePath, err := self.createServicePackage(publisherId, serviceName, serviceId, version, platform, path)
 	if err != nil {
 		return "", 0, err
 	}
@@ -436,7 +411,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 /**
  * Publish a service from a runing globular server.
  */
-func (self *Admin_Client) PublishService(user string, path string, serviceId string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform int32, keywords []string, token string, domain string) error {
+func (self *Admin_Client) PublishService(user string, path string, serviceId string, serviceName string, publisherId string, discoveryAddress string, repositoryAddress string, description string, version string, platform string, keywords []string, token string, domain string) error {
 
 	rqst := new(adminpb.PublishServiceRequest)
 	rqst.Path = path
@@ -447,10 +422,11 @@ func (self *Admin_Client) PublishService(user string, path string, serviceId str
 	rqst.Keywords = keywords
 	rqst.Version = version
 	rqst.ServiceId = serviceId
-	rqst.Platform = adminpb.Platform(platform)
+	rqst.ServiceName = serviceName
+	rqst.Platform = platform
 
 	// Set the token into the context and send the request.
-	md := metadata.New(map[string]string{"token": token, "domain": domain, "user": user, "path": "/services/" + publisherId + "/" + serviceId + "/" + version})
+	md := metadata.New(map[string]string{"token": token, "domain": domain, "user": user})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	_, err := self.c.PublishService(ctx, rqst)

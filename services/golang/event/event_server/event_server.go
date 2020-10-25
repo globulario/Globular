@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
-
-	"fmt"
 
 	//	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/services/golang/event/event_client"
@@ -45,6 +45,11 @@ type server struct {
 	AllowedOrigins  string // comma separated string.
 	Protocol        string
 	Domain          string
+	Description     string
+	Keywords        []string
+	Repositories    []string
+	Discoveries     []string
+
 	// self-signed X.509 public keys for distribution
 	CertFile string
 	// a private RSA key to sign and authenticate the public key
@@ -83,6 +88,36 @@ func (self *server) GetName() string {
 }
 func (self *server) SetName(name string) {
 	self.Name = name
+}
+
+// The description of the service
+func (self *server) GetDescription() string {
+	return self.Description
+}
+func (self *server) SetDescription(description string) {
+	self.Description = description
+}
+
+// The list of keywords of the services.
+func (self *server) GetKeywords() []string {
+	return self.Keywords
+}
+func (self *server) SetKeywords(keywords []string) {
+	self.Keywords = keywords
+}
+
+// Dist
+func (self *server) Dist(path string) error {
+
+	return globular.Dist(path, self)
+}
+
+func (self *server) GetPlatform() string {
+	return globular.GetPlatform()
+}
+
+func (self *server) PublishService(address string, user string, password string) error {
+	return globular.PublishService(address, user, password, self)
 }
 
 // The path of the executable.
@@ -199,6 +234,20 @@ func (self *server) GetPublisherId() string {
 }
 func (self *server) SetPublisherId(publisherId string) {
 	self.PublisherId = publisherId
+}
+
+func (self *server) GetRepositories() []string {
+	return self.Repositories
+}
+func (self *server) SetRepositories(repositories []string) {
+	self.Repositories = repositories
+}
+
+func (self *server) GetDiscoveries() []string {
+	return self.Discoveries
+}
+func (self *server) SetDiscoveries(discoveries []string) {
+	self.Discoveries = discoveries
 }
 
 func (self *server) GetKeepUpToDate() bool {
@@ -450,23 +499,21 @@ func (self *server) Publish(ctx context.Context, rqst *eventpb.PublishRequest) (
 func main() {
 
 	// The first argument must be the port number to listen to.
-	port := defaultPort // the default value.
-
-	if len(os.Args) > 1 {
-		port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
-	}
 
 	// The actual server implementation.
 	s_impl := new(server)
 	s_impl.Name = string(eventpb.File_services_proto_event_proto.Services().Get(0).FullName())
 	s_impl.Proto = eventpb.File_services_proto_event_proto.Path()
-	s_impl.Port = port
+	s_impl.Port = defaultPort
 	s_impl.Proxy = defaultProxy
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
 	s_impl.PublisherId = domain
 	s_impl.Permissions = make([]interface{}, 0)
+	s_impl.Keywords = make([]string, 0)
+	s_impl.Repositories = make([]string, 0)
+	s_impl.Discoveries = make([]string, 0)
 
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
@@ -478,20 +525,62 @@ func main() {
 		fmt.Println("Fail to initialyse service %s: %s", s_impl.Name, s_impl.Id, err)
 		return
 	}
-
-	// Register the echo services
-	eventpb.RegisterEventServiceServer(s_impl.grpcServer, s_impl)
-	reflection.Register(s_impl.grpcServer)
-
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	go s_impl.run()
-
-	// Start the service.
-	err = s_impl.StartService()
-
-	if err != nil {
-		fmt.Println("Fail to start service %s: %s", s_impl.Name, s_impl.Id, err)
-		return
+	if len(os.Args) == 2 {
+		s_impl.Port, _ = strconv.Atoi(os.Args[1]) // The second argument must be the port number
 	}
 
+	if len(os.Args) > 2 {
+		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
+		publishCommand_domain := publishCommand.String("a", "", "The address(domain ex. my.domain.com:8080) of your backend (Required)")
+		publishCommand_user := publishCommand.String("u", "", "The user (Required)")
+		publishCommand_password := publishCommand.String("p", "", "The password (Required)")
+
+		switch os.Args[1] {
+		case "publish":
+			publishCommand.Parse(os.Args[2:])
+		default:
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+
+		if publishCommand.Parsed() {
+			// Required Flags
+			if *publishCommand_domain == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_user == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *publishCommand_password == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			err := s_impl.PublishService(*publishCommand_domain, *publishCommand_user, *publishCommand_password)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("Your service was publish successfuly!")
+			}
+		}
+	} else {
+		// Register the echo services
+		eventpb.RegisterEventServiceServer(s_impl.grpcServer, s_impl)
+		reflection.Register(s_impl.grpcServer)
+
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go s_impl.run()
+
+		// Start the service.
+		err = s_impl.StartService()
+
+		if err != nil {
+			fmt.Println("Fail to start service %s: %s", s_impl.Name, s_impl.Id, err)
+			return
+		}
+	}
 }

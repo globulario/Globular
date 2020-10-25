@@ -19,13 +19,14 @@ import (
 	"time"
 
 	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
+	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
 	//"google.golang.org/grpc/grpclog"
-
 	"errors"
+	"runtime"
 )
 
 // The client service interface.
@@ -40,6 +41,17 @@ type Service interface {
 	// The name of a service, must be the gRpc Service name.
 	GetName() string
 	SetName(string)
+
+	// The description of the services.
+	GetDescription() string
+	SetDescription(string)
+
+	// The plaform of the services.
+	GetPlatform() string
+
+	// The keywords.
+	GetKeywords() []string
+	SetKeywords([]string)
 
 	// The path of the executable.
 	GetPath() string
@@ -60,6 +72,12 @@ type Service interface {
 	// Can be one of http/https/tls
 	GetProtocol() string
 	SetProtocol(string)
+
+	GetDiscoveries() []string
+	SetDiscoveries([]string)
+
+	GetRepositories() []string
+	SetRepositories([]string)
 
 	// Return true if all Origins are allowed to access the mircoservice.
 	GetAllowAllOrigins() bool
@@ -120,6 +138,17 @@ type Service interface {
 
 	/** Start the service **/
 	StartService() error
+
+	/** That function create the dist folder of the services that can be use to
+		to publish the services. The content of that folder must respect the structure,
+		(path)/
+	 **/
+	Dist(path string) error
+
+	/** Publish the service. That function made use of globular (services.proto)
+	To publish itself on it sever.
+	**/
+	PublishService(address string, user string, password string) error
 }
 
 /**
@@ -151,10 +180,122 @@ func InitService(path string, s Service) error {
 	}
 }
 
+/**
+ * Publish a service on a repository.
+ **/
+func PublishService(address string, user string, pwd string, s Service) error {
+
+	log.Println("publish service...", s.GetId(), "at address", address)
+	if s.GetPublisherId() == "localhost" {
+		return errors.New("Please set the service PublisherId with your PublisherId before publishing it!")
+	}
+
+	if len(s.GetDiscoveries()) == 0 {
+		return errors.New("No Discoveries address was given in service configuration")
+	}
+
+	if len(s.GetRepositories()) == 0 {
+		return errors.New("No Repository address was given in service configuration")
+	}
+
+	path := os.TempDir() + "/" + Utility.RandomUUID()
+	defer os.RemoveAll(path)
+
+	// Generate package content from the service.
+	err := s.Dist(path)
+	if err != nil {
+		return err
+	}
+
+	// Authenticate the user in order to get the token
+	ressource_client_, err := ressource_client.NewRessourceService_Client(address, "ressource.RessourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := ressource_client_.Authenticate(user, pwd)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	path_, _, err := admin_client_.UploadServicePackage(path, s.GetPublisherId(), s.GetName(), s.GetId(), s.GetVersion(), token, address, GetPlatform())
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = admin_client_.PublishService(user, path_, s.GetId(), s.GetName(), s.GetPublisherId(), s.GetDiscoveries()[0], s.GetRepositories()[0], s.GetDescription(), s.GetVersion(), GetPlatform(), s.GetKeywords(), token, address)
+	if err != nil {
+		return err
+	}
+
+	log.Println("Service", s.GetPublisherId(), "was pulbish successfully!")
+	return nil
+}
+
+/**
+ * Generate the dist path with all necessary info in it.
+ */
+func Dist(distPath string, s Service) error {
+
+	// Create the dist diectories...
+	path := distPath + "/" + s.GetPublisherId() + "/" + s.GetName() + "/" + s.GetVersion() + "/" + s.GetId()
+	Utility.CreateDirIfNotExist(path)
+
+	// copy the proto file.
+	err := Utility.Copy(s.GetProto(), distPath+"/"+s.GetPublisherId()+"/"+s.GetName()+"/"+s.GetVersion()+"/"+s.GetName()+".proto")
+	if err != nil {
+		return err
+	}
+
+	// copy the config file.
+	config_path := s.GetPath()[0:strings.LastIndex(s.GetPath(), "/")] + "/config.json"
+	if !Utility.Exists(config_path) {
+		return errors.New("No config.json file was found for your service, run your service once to generate it configuration and try again.")
+	}
+
+	err = Utility.Copy(config_path, path+"/config.json")
+	if err != nil {
+		return err
+	}
+
+	exec_name := s.GetPath()[strings.LastIndex(s.GetPath(), "/")+1:]
+	if !Utility.Exists(config_path) {
+		return errors.New("No config.json file was found for your service, run your service once to generate it configuration and try again.")
+	}
+
+	err = Utility.Copy(s.GetPath(), path+"/"+exec_name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Return the OS and the arch
+ */
+func GetPlatform() string {
+	platform := runtime.GOOS
+	platform += runtime.GOARCH
+	return strings.ToUpper(platform)
+}
+
 func GetTLSConfig(key string, cert string, ca string) *tls.Config {
 	tlsCer, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
-		log.Fatalf("Failed to generate credentials: %v", err)
+		log.Fatalf("Failed to get credentials: %v", err)
 	}
 
 	certPool := x509.NewCertPool()
@@ -288,13 +429,16 @@ func StartService(s Service, server *grpc.Server) error {
 	// Create the channel to listen on
 	lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(s.GetPort()))
 	if err != nil {
-		return errors.New("could not list at domain " + s.GetDomain() + err.Error())
+		err_ := errors.New("could not list at domain " + s.GetDomain() + err.Error())
+		log.Print(err_)
+		return err_
 	}
 
 	// Here I will make a signal hook to interrupt to exit cleanly.
 	go func() {
+
 		// no web-rpc server.
-		fmt.Println(s.GetName() + " grpc service is starting")
+		fmt.Println(s.GetName()+" grpc service is starting at port ", s.GetPort(), " and proxy ", s.GetProxy())
 		if err := server.Serve(lis); err != nil {
 			if err.Error() == "signal: killed" {
 				fmt.Println("service ", s.GetId(), s.GetName(), " was stop!")

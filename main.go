@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	//globular "github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
 	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
@@ -70,7 +69,7 @@ func (g *Globule) Stop(s service.Service) error {
 			Utility.TerminateProcess(pids[i], 0)
 		}
 	}
-
+	g.stopMongod()
 	close(g.exit)
 	return err
 }
@@ -97,7 +96,9 @@ func main() {
 
 	if len(os.Args) > 1 {
 
-		// Subcommands
+		// Start with sepecific parameter.
+		startCommand := flag.NewFlagSet("start", flag.ExitOnError)
+		startCommand_domain := startCommand.String("domain", "", "The domain of the service.")
 
 		// Intall globular as service/demon
 		installCommand := flag.NewFlagSet("install", flag.ExitOnError)
@@ -122,6 +123,7 @@ func main() {
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
 		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Required)")
 		publishCommand_publisher_id := publishCommand.String("publisher", "", "The publisher id. (Required)")
+		publishCommand_id := publishCommand.String("id", "", "The service id. (Required)")
 		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
 		publishCommand_discovery := publishCommand.String("discovery", "", "You must specified the domain of the discovery service where to publish your service (Required)")
 		publishCommand_repository := publishCommand.String("repository", "", "You must specified the domain of the repository service where to publish your service (Required)")
@@ -131,9 +133,11 @@ func main() {
 		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Required)")
 		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Required)")
 		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Required)")
-		publishCommand_plaform := publishCommand.String("platform", "", "One of linux32, linux64, win32, win64 (Required)")
+		publishCommand_plaform := publishCommand.String("platform", "", "(Required)")
 
 		switch os.Args[1] {
+		case "start":
+			startCommand.Parse(os.Args[2:])
 		case "dist":
 			distCommand.Parse(os.Args[2:])
 		case "deploy":
@@ -147,6 +151,14 @@ func main() {
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if startCommand.Parsed() {
+			// Required Flags
+			if *startCommand_domain == "" {
+				g.Domain = *startCommand_domain
+			}
+			s.Run()
 		}
 
 		// Check if the command was parsed
@@ -224,6 +236,11 @@ func main() {
 				os.Exit(1)
 			}
 
+			if *publishCommand_id == "" {
+				publishCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
 			if *publishCommand_publisher_id == "" {
 				publishCommand.PrintDefaults()
 				os.Exit(1)
@@ -274,27 +291,13 @@ func main() {
 				os.Exit(1)
 			}
 
-			var platform int32
-			if *publishCommand_plaform == "linux32" {
-				platform = 0
-			} else if *publishCommand_plaform == "linux64" {
-				platform = 1
-			} else if *publishCommand_plaform == "win32" {
-				platform = 2
-			} else if *publishCommand_plaform == "win64" {
-				platform = 3
-			} else {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
 			keywords := strings.Split(*publishCommand_keywords, ",")
 			for i := 0; i < len(keywords); i++ {
 				keywords[i] = strings.TrimSpace(keywords[i])
 			}
 
 			// Pulish the services.
-			publish(g, *publishCommand_path, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, platform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
+			publish(g, *publishCommand_path, *publishCommand_name, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
 		}
 
 	} else {
@@ -386,7 +389,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
  * care to include all dependencies, dll... to be sure your services will run
  * as expected.
  */
-func publish(g *Globule, path string, serviceId string, publisherId string, discoveryId string, repositoryId string, description string, version string, platform int32, keywords []string, address string, user string, pwd string) error {
+func publish(g *Globule, path string, serviceName string, serviceId string, publisherId string, discoveryId string, repositoryId string, description string, version string, platform string, keywords []string, address string, user string, pwd string) error {
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
@@ -411,13 +414,13 @@ func publish(g *Globule, path string, serviceId string, publisherId string, disc
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, _, err := admin_client_.UploadServicePackage(path, publisherId, serviceId, version, token, address)
+	path_, _, err := admin_client_.UploadServicePackage(path, publisherId, serviceName, serviceId, version, token, address, platform)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = admin_client_.PublishService(user, path_, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
+	err = admin_client_.PublishService(user, path_, serviceName, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
 	if err != nil {
 		return err
 	}
@@ -553,17 +556,16 @@ COPY webroot /globular/webroot
 
 	// install services...
 	for _, s := range g.getServices() {
-		id := s["Id"].(string)
-
-		if s["Name"] != nil {
-			name := s["Name"].(string)
+		id := getStringVal(s, "Id")
+		_, hasName := s.Load("Name")
+		if hasName {
+			name := getStringVal(s, "Name")
 
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
-			if s["configPath"] != nil {
-
-				configPath := s["configPath"].(string)
-
+			_, hasConfigPath := s.Load("configPath")
+			if hasConfigPath {
+				configPath := getStringVal(s, "configPath")
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
@@ -571,12 +573,13 @@ COPY webroot /globular/webroot
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {
-
+						_, hasProto := s.Load("Proto")
+						_, hasPath := s.Load("Path")
 						// set the name.
-						if config["PublisherId"] != nil && config["Version"] != nil && s["Proto"] != nil && s["Path"] != nil {
+						if config["PublisherId"] != nil && config["Version"] != nil && hasPath && hasProto {
 
-							execPath := s["Path"].(string)
-							protoPath := s["Proto"].(string)
+							execPath := getStringVal(s, "Path")
+							protoPath := getStringVal(s, "Proto")
 
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 								var serviceDir = "services" + "/"
@@ -637,9 +640,9 @@ COPY webroot /globular/webroot
 							fmt.Println("no publisher was define!")
 						} else if config["Version"] == nil {
 							fmt.Println("no version was define!")
-						} else if s["Proto"] == nil {
+						} else if !hasProto {
 							fmt.Println(" no proto file was found!")
-						} else if s["Path"] != nil {
+						} else if !hasPath {
 							fmt.Println("no executable was found!")
 						}
 					} else {

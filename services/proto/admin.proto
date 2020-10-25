@@ -105,24 +105,17 @@ message HasRunningProcessResponse {
 	bool result = 1;
 }
 
-/** more can be append here **/
-enum Platform {
-	LINUX32 = 0;
-	LINUX64 = 1;
-	WIN32 = 2;
-	WIN64 = 3;
-}
-
 message PublishServiceRequest{
 	string serviceId = 1;
-	string publisherId = 2;
-	string path = 3;
-	string dicorveryId = 4;
-	string repositoryId = 5;
-	string description = 6;
-	repeated string keywords = 7;
-	string version = 8;
-	Platform platform = 9;
+	string serviceName = 2;
+	string publisherId = 3;
+	string path = 4;
+	string dicorveryId = 5;
+	string repositoryId = 6;
+	string description = 7;
+	repeated string keywords = 8;
+	string version = 9;
+	string platform = 10;
 }
 
 message UploadServicePackageRequest{
