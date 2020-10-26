@@ -276,7 +276,6 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 
 			// sync the data/config file with the service file.
 			jsonStr, _ := Utility.ToJson(config__)
-			log.Println("----------------> 279 ", jsonStr)
 			// here I will write the file
 			err = ioutil.WriteFile(getStringVal(config, "configPath"), []byte(jsonStr), 0644)
 			if err != nil {
