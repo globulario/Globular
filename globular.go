@@ -254,6 +254,16 @@ func NewGlobule() *Globule {
 			log.Println("fail to initialyse the globule configuration")
 		}
 
+		// Now I will initialyse sync services map.
+		for _, v := range g.Services {
+			s := v.(map[string]interface{})
+			s_ := new(sync.Map)
+			for k_, v_ := range s {
+				s_.Store(k_, v_)
+			}
+			g.setService(s_)
+		}
+
 	} else {
 		// save the configuration to set the port number.
 		portRange := strings.Split(g.PortsRange, "-")
@@ -1060,6 +1070,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		}
 
 		hasTls := getBoolVal(s, "TLS")
+		log.Println("Has TLS ", hasTls, getStringVal(s, "Name"))
 		if hasTls {
 			// Set TLS local services configuration here.
 			s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
@@ -1088,6 +1099,11 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		if getStringVal(s, "Name") == "file.FileService" {
 			// Set it root to the globule root.
 			s.Store("Root", globule.webRoot)
+		}
+
+		err = os.Chmod(servicePath, 0755)
+		if err != nil {
+			log.Println(err)
 		}
 
 		p := exec.Command(servicePath, Utility.ToString(port))
@@ -1146,7 +1162,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
-			log.Println("-------> 1080  process exit! ", p.Process.Pid)
+			log.Println("process exit! ", p.Process.Pid)
 
 			if err != nil {
 				// I will log the program error into the admin logger.
@@ -1417,13 +1433,15 @@ func (self *Globule) initServices() {
 								if s["Id"] == nil {
 									s["Id"] = Utility.RandomUUID()
 								}
+								s["configPath"] = path
 
 								s_ := new(sync.Map)
 								for k, v := range s {
 									s_.Store(k, v)
 								}
-								s["configPath"] = path
+
 								self.setService(s_)
+								self.saveConfig()
 							}
 						}
 					} else {
@@ -1435,17 +1453,6 @@ func (self *Globule) initServices() {
 			}
 			return nil
 		})
-	} else {
-		// Initialyse sync map from Services Map.
-		for k, v := range self.Services {
-			m := new(sync.Map)
-			for k_, v_ := range v.(map[string]interface{}) {
-				v.(map[string]interface{})["Process"] = -1
-				v.(map[string]interface{})["ProxyProcess"] = -1
-				m.Store(k_, v_)
-			}
-			self.services.Store(k, m)
-		}
 	}
 
 	// Rescan the proto file and update the role after.

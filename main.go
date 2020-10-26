@@ -563,9 +563,10 @@ COPY webroot /globular/webroot
 
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
-			_, hasConfigPath := s.Load("configPath")
-			if hasConfigPath {
-				configPath := getStringVal(s, "configPath")
+
+			configPath := getStringVal(s, "Path")
+			if len(configPath) > 0 {
+				configPath = configPath[:strings.LastIndex(configPath, "/")] + "/config.json"
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
@@ -651,8 +652,6 @@ COPY webroot /globular/webroot
 				} else {
 					fmt.Println("service", name, ":", id, "configuration is incomplete!")
 				}
-			} else {
-				fmt.Println("service", name, ":", id, "has no configuration!")
 			}
 		} else {
 			fmt.Println("service Name for", id, " is missing")

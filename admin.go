@@ -246,7 +246,7 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 	config.Store("Proto", strings.ReplaceAll(getStringVal(config, "Proto"), "\\", "/"))
 
 	_, hasConfigPath = config.Load("hasConfigPath")
-	if !hasConfigPath {
+	if hasConfigPath {
 		config.Store("configPath", strings.ReplaceAll(getStringVal(config, "configPath"), "\\", "/"))
 	}
 
@@ -273,18 +273,19 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 				// set back the path's info.
 				return false
 			}
+
+			// sync the data/config file with the service file.
+			jsonStr, _ := Utility.ToJson(config__)
+			log.Println("----------------> 279 ", jsonStr)
+			// here I will write the file
+			err = ioutil.WriteFile(getStringVal(config, "configPath"), []byte(jsonStr), 0644)
+			if err != nil {
+				return false
+			}
+
 		}
 	}
 	f.Close()
-
-	// sync the data/config file with the service file.
-	jsonStr, _ := Utility.ToJson(config)
-
-	// here I will write the file
-	err = ioutil.WriteFile(getStringVal(config, "configPath"), []byte(jsonStr), 0644)
-	if err != nil {
-		return false
-	}
 
 	// Here I will get the list of service permission and set it...
 	permissions, hasPermissions := config.Load("permissions")
@@ -977,15 +978,18 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 // Install/Update a service on globular instance.
 func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) error {
 	// repository must exist...
+	log.Println("step 2: try to dowload service bundle")
 	if len(descriptor.Repositories) == 0 {
 		return errors.New("No service repository was found for service " + descriptor.Id)
 	}
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
+
 		services_repository, err := service_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "services.ServiceRepository")
 		if err != nil {
 			return err
 		}
+		log.Println("--> try to download service from ", descriptor.Repositories[i])
 
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 		if err == nil {
@@ -1003,8 +1007,12 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 
 			defer os.RemoveAll(self.path + "/" + id)
 			path := self.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
+			log.Println("--> service downloaded successfully")
+			log.Println("--> try to install service to ", path)
+
 			configs, _ := Utility.FindFileByName(path, "config.json")
 			if len(configs) == 0 {
+				log.Println("No configuration file was found at at path ", path)
 				return errors.New("No configuration file was found")
 			}
 
@@ -1018,10 +1026,30 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 				return err
 			}
 
+			protos, _ := Utility.FindFileByName(self.path+"/services/"+descriptor.PublisherId+"/"+descriptor.Name+"/"+descriptor.Version, ".proto")
+			if len(protos) == 0 {
+				log.Println("No prototype file was found at at path ", self.path+"/services/"+descriptor.PublisherId+"/"+descriptor.Name+"/"+descriptor.Version)
+				return errors.New("No configuration file was found")
+			}
+
+			// I will replace the path inside the config...
+			execName := s["Path"].(string)[strings.LastIndex(s["Path"].(string), "/")+1:]
+			s["Path"] = path + "/" + execName
+			s["configPath"] = configs[0]
+			s["Proto"] = protos[0]
+
+			err = os.Chmod(s["Path"].(string), 0755)
+			if err != nil {
+				log.Println(err)
+			}
+
+			jsonStr, _ := Utility.ToJson(s)
+			ioutil.WriteFile(configs[0], []byte(jsonStr), 0644)
+
 			// set the service in the map.
 			s_ := new(sync.Map)
 			setValues(s_, s)
-
+			log.Println("Service is install successfully!")
 			// initialyse the new service.
 			err = self.initService(s_)
 			if err != nil {
@@ -1034,6 +1062,9 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 			self.registerMethods()
 
 			break
+		} else {
+			log.Println("fail to download error with error ", err)
+			return err
 		}
 	}
 
@@ -1043,7 +1074,7 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 
 // Install/Update a service on globular instance.
 func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
-
+	log.Println("Try to install new service...")
 	// Connect to the dicovery services
 	var services_discovery *service_client.ServicesDiscovery_Client
 	var err error
@@ -1061,7 +1092,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
+	log.Println("step 1: get service dscriptor")
 	// The first element in the array is the most recent descriptor
 	// so if no version is given the most recent will be taken.
 	descriptor := descriptors[0]
@@ -1071,7 +1102,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			break
 		}
 	}
-
+	log.Println("--> service descriptor receiced whit id ", descriptor.GetId())
 	err = self.installService(descriptor)
 	if err != nil {
 		return nil, status.Errorf(
@@ -1163,14 +1194,12 @@ func (self *Globule) stopService(serviceId string) error {
 
 	// Set keep alive to false...
 	s.Store("KeepAlive", false)
-
-	_, hasProcessPid := s.Load("Proccess")
+	_, hasProcessPid := s.Load("Process")
 	if !hasProcessPid {
 		s.Store("Process", -1)
 	}
 
 	pid := getIntVal(s, "Process")
-
 	if pid == -1 {
 		return errors.New("No process running")
 	}

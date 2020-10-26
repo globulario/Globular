@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	//	"log"
+	"log"
 	"strings"
 	"time"
 
@@ -280,16 +280,16 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if method == "/admin.AdminService/GetConfig" ||
 		method == "/admin.AdminService/HasRunningProcess" ||
 		method == "/services.ServiceDiscovery/FindServices" ||
-		method == "/services.ServiceDiscovery/FindServices/GetServiceDescriptor" ||
-		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" ||
-		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" ||
-		method == "/dns.DnsService/GetA" || method == "/dns.DnsService/GetAAAA" ||
+		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
+		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
+		method == "/dns.DnsService/GetA" ||
+		method == "/dns.DnsService/GetAAAA" ||
 		method == "/ressource.RessourceService/Log" {
 		hasAccess = true
 	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && ((domain == "127.0.0.1" || domain == "localhost") || pwd == "adminadmin") {
 		hasAccess = true
 	}
-
+	log.Println("Validate method ", method, "result ", hasAccess)
 	var clientId string
 	var err error
 
@@ -557,7 +557,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	hasAccess := false // strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
 	// needed by the admin.
 	if application == "admin" ||
-		method == "/services.ServiceDiscovery/FindServices/GetServicesDescriptor" {
+		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
+		method == "/services.ServiceRepository/DownloadBundle" {
 		hasAccess = true
 	}
 
@@ -571,6 +572,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
 	}
 
+	log.Println("Validate access method with result: ", method, hasAccess)
 	// Return here if access is denied.
 	if !hasAccess {
 		return errors.New("Permission denied to execute method " + method)
