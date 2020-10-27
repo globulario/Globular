@@ -147,11 +147,14 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
             this->config->Id = (*it)["Id"].get<std::string>();
             this->config->Name = (*it)["Name"].get<std::string>();
             this->config->Domain = (*it)["Domain"].get<std::string>();
+            this->config->Description = (*it)["Domain"].get<std::string>();
             this->config->Port = (*it)["Port"].get<unsigned int>();
             this->config->Proxy = (*it)["Proxy"].get<unsigned int>();
             this->config->TLS= (*it)["TLS"].get<bool>();
-            std::cout << "client domain " << this->config->Domain << std::endl;
-            std::cout << "client Name " << this->config->Name << std::endl;
+            this->config->Keywords = (*it)["Keywords"].get<std::vector<std::string>>();
+            this->config->Discoveries = (*it)["Discoveries"].get<std::vector<std::string>>();
+            this->config->Repositories = (*it)["Repositories"].get<std::vector<std::string>>();
+
             if(this->config->TLS){
                 // The service is secure.
                 std::stringstream ss;
@@ -333,7 +336,7 @@ std::string Globular::Client::signCaCertificate(std::string domain, unsigned int
     return ss.str();
 }
 
-
+// TODO fix to new certificate with multiple domains.
 void Globular::Client::generateClientPrivateKey(std::string path, std::string pwd){
     std::stringstream ss;
     ss << path <<   "/client.key";

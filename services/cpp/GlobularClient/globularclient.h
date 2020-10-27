@@ -19,10 +19,11 @@ struct ServiceConfig{
     std::string Proto;
     unsigned int Port;
     unsigned int Proxy;
-    unsigned int ConfigurationPort;
     std::string Domain;
     std::string Description;
-    std::list<std::string> keywords;
+    std::vector<std::string> Keywords;
+    std::vector<std::string> Discoveries;
+    std::vector<std::string> Repositories;
 
     // TLS
     bool TLS;
