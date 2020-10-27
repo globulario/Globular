@@ -373,6 +373,7 @@ export class Globular {
         null,
       );
     }
+
     return this._servicesRepository;
   }
 

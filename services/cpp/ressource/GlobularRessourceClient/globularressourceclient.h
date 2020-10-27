@@ -30,7 +30,7 @@ class RessourceClient : Client
 public:
 
     // The constructor.
-    RessourceClient(std::string name, std::string domain="localhost", unsigned int configurationPort=10000);
+    RessourceClient(std::string name, std::string domain="localhost", unsigned int configurationPort=8080);
 
     // Now the ressource client functionnalites.
 
@@ -102,7 +102,7 @@ public:
      * @param method The gRpc method path. ex. /module/methodName/
      * @return
      */
-    int getActionPermission(std::string method);
+    std::vector<::ressource::ActionParameterRessourcePermission> getActionPermission(std::string method);
 
     /**
      * @brief Log

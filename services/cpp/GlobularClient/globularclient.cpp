@@ -88,14 +88,12 @@ Globular::Client::Client(std::string name, std::string domain, unsigned int conf
 
     // init internal values.
     this->init(configurationPort);
-
+    std::cout << "Domain config port " << configurationPort << std::endl;
     std::stringstream ss;
     ss << this->config->Domain << ":" << this->config->Port;
 
     // Now I will create the grpc channel.
     if(this->getTls()){
-
-
         grpc::SslCredentialsOptions opts =
         {
             readAllText( this->config->CertAuthorityTrust),
@@ -125,8 +123,10 @@ void Globular::Client::init(unsigned int configurationPort){
 }
 
 void Globular::Client::initServiceConfig(unsigned int configurationPort){
+
     std::stringstream ss;
     ss << "http://" << this->config->Domain << ":" << configurationPort << "/config";
+    std::cout << "get configuration from " << ss.str() << std::endl;;
     http::Request request(ss.str());
     const http::Response response = request.send("GET");
     ss.flush();
@@ -147,11 +147,14 @@ void Globular::Client::initServiceConfig(unsigned int configurationPort){
             this->config->Id = (*it)["Id"].get<std::string>();
             this->config->Name = (*it)["Name"].get<std::string>();
             this->config->Domain = (*it)["Domain"].get<std::string>();
+            this->config->Description = (*it)["Domain"].get<std::string>();
             this->config->Port = (*it)["Port"].get<unsigned int>();
             this->config->Proxy = (*it)["Proxy"].get<unsigned int>();
             this->config->TLS= (*it)["TLS"].get<bool>();
-            std::cout << "client domain " << this->config->Domain << std::endl;
-            std::cout << "client Name " << this->config->Name << std::endl;
+            this->config->Keywords = (*it)["Keywords"].get<std::vector<std::string>>();
+            this->config->Discoveries = (*it)["Discoveries"].get<std::vector<std::string>>();
+            this->config->Repositories = (*it)["Repositories"].get<std::vector<std::string>>();
+
             if(this->config->TLS){
                 // The service is secure.
                 std::stringstream ss;
@@ -333,7 +336,7 @@ std::string Globular::Client::signCaCertificate(std::string domain, unsigned int
     return ss.str();
 }
 
-
+// TODO fix to new certificate with multiple domains.
 void Globular::Client::generateClientPrivateKey(std::string path, std::string pwd){
     std::stringstream ss;
     ss << path <<   "/client.key";

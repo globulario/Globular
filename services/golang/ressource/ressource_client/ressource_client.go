@@ -596,3 +596,40 @@ func (self *Ressource_Client) Log(application string, user string, method string
 
 	return err
 }
+
+func (self *Ressource_Client) CreateDirPermissions(token string, path string, name string) error {
+	rqst := &ressourcepb.CreateDirPermissionsRqst{
+		Token: token,
+		Path:  path,
+		Name:  name,
+	}
+	_, err := self.c.CreateDirPermissions(globular.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) RenameFilePermission(path string, oldName string, newName string) error {
+	rqst := &ressourcepb.RenameFilePermissionRqst{
+		Path:    path,
+		OldName: oldName,
+		NewName: newName,
+	}
+
+	_, err := self.c.RenameFilePermission(globular.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) DeleteDirPermissions(path string) error {
+	rqst := &ressourcepb.DeleteDirPermissionsRqst{
+		Path: path,
+	}
+	_, err := self.c.DeleteDirPermissions(globular.GetClientContext(self), rqst)
+	return err
+}
+
+func (self *Ressource_Client) DeleteFilePermissions(path string) error {
+	rqst := &ressourcepb.DeleteFilePermissionsRqst{
+		Path: path,
+	}
+	_, err := self.c.DeleteFilePermissions(globular.GetClientContext(self), rqst)
+	return err
+}

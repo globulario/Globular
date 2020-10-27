@@ -491,6 +491,44 @@ message RemoveActionPermissionRsp{
 	bool result=1;
 }
 
+/** File permission specific infos. **/
+message CreateDirPermissionsRqst{
+	string token = 1;
+	string path = 2;
+	string name = 3;
+}
+
+message CreateDirPermissionsRsp{
+	bool result=1;
+}
+
+message RenameFilePermissionRqst{
+	string path = 1;
+	string oldName = 2;
+	string newName = 3;
+}
+
+message RenameFilePermissionRsp{
+	bool result=1;
+}
+
+message DeleteDirPermissionsRqst{
+	string path = 1;
+}
+
+message DeleteDirPermissionsRsp{
+	bool result=1;
+}
+
+message DeleteFilePermissionsRqst{
+	string path = 1;
+}
+
+message DeleteFilePermissionsRsp{
+	bool result=1;
+}
+
+
 /**
  * That service is use to manage Globular ressource like permissions and accounts
  * or role. The service made use of Persistence service to store various 
@@ -620,5 +658,17 @@ service RessourceService {
 	
 	/** Get ressource action permission **/
 	rpc GetActionPermission(GetActionPermissionRqst) returns(GetActionPermissionRsp);
+	
+	/** Create Permission for a dir (recursive) **/
+	rpc CreateDirPermissions(CreateDirPermissionsRqst) returns(CreateDirPermissionsRsp);
+	
+	/** Rename file/dir permission **/
+	rpc RenameFilePermission(RenameFilePermissionRqst) returns(RenameFilePermissionRsp);
+	
+	/** Delete Permission for a dir (recursive) **/
+	rpc DeleteDirPermissions(DeleteDirPermissionsRqst) returns(DeleteDirPermissionsRsp);
+	
+	/** Delete a single file permission **/
+	rpc DeleteFilePermissions(DeleteFilePermissionsRqst) returns(DeleteFilePermissionsRsp);
 	
 }

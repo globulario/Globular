@@ -1,6 +1,8 @@
 #ifndef GLOBULARSERVER_H
 #define GLOBULARSERVER_H
 
+
+
 #include <string>
 #include <sstream>
 
@@ -175,7 +177,6 @@ public:
             domain = getMetadata("domain", map);
             application = getMetadata("application", map);
             token = getMetadata("token", map);
-            path = getMetadata("path", map);
         }
 
         if (methods->QueryInterceptionHookPoint(
@@ -191,7 +192,18 @@ public:
 
             // Here I will create the ressource client.
             if(ressourceClient == 0){
-                ressourceClient = new Globular::RessourceClient("ressource.RessourceService", domain);
+                std::cout << "create ressouce client for domain: " << domain  << std::endl;
+                auto index = domain.find(":");
+                auto port = 80;
+                if(index != 0){
+                    port = atoi(domain.substr(index+1).c_str());
+                    domain = domain.substr(0, index);
+                    std::cout << "port" << domain.substr(index) << std::endl;
+                    std::cout << "index "<< index << std::endl;
+                    std::cout <<"domain " << domain << std::endl;
+                    std::cout << "port int " << port << std::endl;
+                }
+                ressourceClient = new Globular::RessourceClient("ressource.RessourceService", domain, port);
             }
 
             if(!application.empty()){
@@ -211,22 +223,26 @@ public:
             }else{
 
                 // Now if the action has ressource access permission defines...
-                auto permission = ressourceClient->getActionPermission(method);
-                if(permission != -1){
-                    if(!path.empty()){
-                        auto hasRessourcePermission = ServerInterceptor::ressourceClient->validateUserRessourceAccess(token, path, method, permission);
-                        if (!hasRessourcePermission)
-                        {
-                            ServerInterceptor::ressourceClient->validateApplicationRessourceAccess(application, path, method, permission);
-                        }
-                        if (!hasRessourcePermission)
-                        {
-                            grpc::Status error(grpc::StatusCode::PERMISSION_DENIED, "Permission denied access denied on ressource " + path + "!");
-                            methods->ModifySendStatus(error);
-                            methods->Proceed();
-                            return;
-                        }
+                auto permissions = ressourceClient->getActionPermission(method);
+                for(auto it = permissions.cbegin(); it != permissions.cend(); ++it){
+
+                    auto permission = *(it);
+                    std::string path = "";
+
+                    // permission.permission()
+                    auto hasRessourcePermission = ServerInterceptor::ressourceClient->validateUserRessourceAccess(token, path, method, permission.permission());
+                    if (!hasRessourcePermission)
+                    {
+                        ServerInterceptor::ressourceClient->validateApplicationRessourceAccess(application, path, method, permission.permission());
                     }
+                    if (!hasRessourcePermission)
+                    {
+                        grpc::Status error(grpc::StatusCode::PERMISSION_DENIED, "Permission denied access denied on ressource " + path + "!");
+                        methods->ModifySendStatus(error);
+                        methods->Proceed();
+                        return;
+                    }
+
                 }
             }
         }
@@ -240,11 +256,11 @@ private:
         // Here I will retreive the metadata....
         bool found = false;
         for (const auto& pair : *map) {
-          found = pair.first.find(key) == 0;
+            found = pair.first.find(key) == 0;
 
-          if (found){
-              return  std::string(pair.second.data());
-          }
+            if (found){
+                return  std::string(pair.second.data());
+            }
         }
 
         return "";

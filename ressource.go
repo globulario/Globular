@@ -3150,3 +3150,235 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *ressource
 	}, nil
 
 }
+
+//* Create Permission for a dir (recursive) *
+func (self *Globule) CreateDirPermissions(ctx context.Context, rqst *ressourcepb.CreateDirPermissionsRqst) (*ressourcepb.CreateDirPermissionsRsp, error) {
+
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	clientId, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if expiredAt < time.Now().Unix() {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token is expired!")))
+	}
+
+	// A new directory will take the parent permissions by default...
+	path := rqst.GetPath()
+
+	permissions, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// Now I will create the new permission of the created directory.
+	for i := 0; i < len(permissions); i++ {
+		// Copy the permission.
+		permission := permissions[i].(map[string]interface{})
+		permission_ := make(map[string]interface{}, 0)
+		permission_["owner"] = permission["owner"]
+		permission_["path"] = path + "/" + rqst.GetName()
+		permission_["permission"] = permission["permission"].(int32)
+
+		p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Permissions", permission_, "")
+	}
+
+	ressourceOwners, err := p.Find(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`"}`, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// Now I will create the new permission of the created directory.
+	for i := 0; i < len(ressourceOwners); i++ {
+		// Copye the permission.
+		ressourceOwner := ressourceOwners[i].(map[string]interface{})
+		ressourceOwner_ := make(map[string]interface{}, 0)
+		ressourceOwner_["owner"] = ressourceOwner["owner"]
+		ressourceOwner_["path"] = path + "/" + rqst.GetName()
+
+		p.InsertOne(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", ressourceOwner_, "")
+	}
+
+	// The user who create a directory will be the owner of the
+	// directory.
+	if clientId != "sa" && clientId != "guest" && len(rqst.GetName()) > 0 {
+		ressourceOwner := make(map[string]interface{}, 0)
+		ressourceOwner["owner"] = clientId
+		ressourceOwner["path"] = path + "/" + rqst.GetName()
+		ressourceOwnerStr, _ := Utility.ToJson(ressourceOwner)
+		p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", ressourceOwnerStr, ressourceOwnerStr, `[{"upsert":true}]`)
+	}
+
+	return &ressourcepb.CreateDirPermissionsRsp{
+		Result: true,
+	}, nil
+}
+
+//* Rename file/dir permission *
+func (self *Globule) RenameFilePermission(ctx context.Context, rqst *ressourcepb.RenameFilePermissionRqst) (*ressourcepb.RenameFilePermissionRsp, error) {
+
+	path := rqst.GetPath()
+	path = strings.ReplaceAll(path, "\\", "/")
+	if len(path) > 1 {
+		if strings.HasSuffix(path, "/") {
+			path = path[0 : len(path)-2]
+		}
+	}
+
+	oldPath := rqst.OldName
+	newPath := rqst.NewName
+
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if strings.HasPrefix(path, "/") {
+		if len(path) > 1 {
+			oldPath = path + "/" + rqst.OldName
+			newPath = path + "/" + rqst.NewName
+
+		} else {
+			oldPath = "/" + rqst.OldName
+			newPath = "/" + rqst.NewName
+		}
+	}
+
+	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
+	permissions, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Permissions", `{}`, "")
+	if err == nil {
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), oldPath) {
+				path := newPath + permission["path"].(string)[len(oldPath):]
+				err := p.Update(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+path+`"}}`, "")
+				if err != nil {
+					return nil, status.Errorf(
+						codes.Internal,
+						Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				}
+			}
+		}
+	}
+
+	// Replace file owner path... regex not work... "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}
+	permissions, err = p.Find(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{}`, "")
+	if err == nil {
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), oldPath) {
+				path := newPath + permission["path"].(string)[len(oldPath):]
+				err = p.Update(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, `{"$set":{"path":"`+path+`"}}`, "")
+				if err != nil {
+					return nil, status.Errorf(
+						codes.Internal,
+						Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				}
+			}
+		}
+	}
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &ressourcepb.RenameFilePermissionRsp{
+		Result: true,
+	}, nil
+}
+
+func (self *Globule) deleteDirPermissions(path string) error {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	path = strings.ReplaceAll(path, "\\", "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[0 : len(path)-2]
+	}
+
+	// Replace permission path... regex "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"} not work.
+	permissions, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Permissions", `{}`, "")
+	if err == nil {
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), path) {
+				err := p.Delete(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+permission["path"].(string)+`"}`, "")
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Replace file owner path... regex not work... "path":{"$regex":"/^`+strings.ReplaceAll(oldPath, "/", "\\/")+`.*/"}
+	permissions, err = p.Find(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{}`, "")
+	if err == nil {
+		for i := 0; i < len(permissions); i++ { // stringnify and save it...
+			permission := permissions[i].(map[string]interface{})
+			if strings.HasPrefix(permission["path"].(string), path) {
+				err = p.Delete(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+permission["path"].(string)+`"}`, "")
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+//* Delete Permission for a dir (recursive) *
+func (self *Globule) DeleteDirPermissions(ctx context.Context, rqst *ressourcepb.DeleteDirPermissionsRqst) (*ressourcepb.DeleteDirPermissionsRsp, error) {
+	err := self.deleteDirPermissions(rqst.GetPath())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressourcepb.DeleteDirPermissionsRsp{
+		Result: true,
+	}, nil
+}
+
+//* Delete a single file permission *
+func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressourcepb.DeleteFilePermissionsRqst) (*ressourcepb.DeleteFilePermissionsRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	path := rqst.GetPath()
+
+	err = p.Delete(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"path":"`+path+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = p.Delete(context.Background(), "local_ressource", "local_ressource", "RessourceOwners", `{"path":"`+path+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressourcepb.DeleteFilePermissionsRsp{
+		Result: true,
+	}, nil
+}

@@ -22,7 +22,7 @@ std::string Globular::RessourceClient::authenticate(std::string user, std::strin
    if(status.ok()){
     return rsp.token();
    }else{
-       std::cout << "fail to autenticate user " << user;
+       std::cout << "fail to autenticate user " << user  << std::endl;
        return "";
    }
 }
@@ -127,7 +127,7 @@ void  Globular::RessourceClient::removeRessouce(std::string path, std::string na
     }
 }
 
-int  Globular::RessourceClient::getActionPermission(std::string method){
+std::vector<::ressource::ActionParameterRessourcePermission>  Globular::RessourceClient::getActionPermission(std::string method){
     ressource::GetActionPermissionRqst rqst;
     rqst.set_action(method);
 
@@ -135,11 +135,13 @@ int  Globular::RessourceClient::getActionPermission(std::string method){
     this->getClientContext(ctx);
     ressource::GetActionPermissionRsp rsp;
     Status status = this->stub_->GetActionPermission(&ctx, rqst, &rsp);
+    std::vector<::ressource::ActionParameterRessourcePermission>  results;
     if(status.ok()){
-        return rsp.permission();
-    }else{
-        return -1;
+        for(auto i=0; i < rsp.actionparameterressourcepermissions().size(); i++){
+            results.push_back(rsp.actionparameterressourcepermissions()[i]);
+        }
     }
+    return results;
 }
 
 void  Globular::RessourceClient::Log(std::string application, std::string method, std::string message, int type){
