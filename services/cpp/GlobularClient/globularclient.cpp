@@ -88,14 +88,12 @@ Globular::Client::Client(std::string name, std::string domain, unsigned int conf
 
     // init internal values.
     this->init(configurationPort);
-
+    std::cout << "Domain config port " << configurationPort << std::endl;
     std::stringstream ss;
     ss << this->config->Domain << ":" << this->config->Port;
 
     // Now I will create the grpc channel.
     if(this->getTls()){
-
-
         grpc::SslCredentialsOptions opts =
         {
             readAllText( this->config->CertAuthorityTrust),
@@ -125,8 +123,10 @@ void Globular::Client::init(unsigned int configurationPort){
 }
 
 void Globular::Client::initServiceConfig(unsigned int configurationPort){
+
     std::stringstream ss;
     ss << "http://" << this->config->Domain << ":" << configurationPort << "/config";
+    std::cout << "get configuration from " << ss.str() << std::endl;;
     http::Request request(ss.str());
     const http::Response response = request.send("GET");
     ss.flush();

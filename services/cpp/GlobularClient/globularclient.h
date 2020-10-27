@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #include <grpcpp/client_context.h>
 
 using grpc::ClientContext;
@@ -18,7 +19,10 @@ struct ServiceConfig{
     std::string Proto;
     unsigned int Port;
     unsigned int Proxy;
+    unsigned int ConfigurationPort;
     std::string Domain;
+    std::string Description;
+    std::list<std::string> keywords;
 
     // TLS
     bool TLS;

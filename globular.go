@@ -1162,8 +1162,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
-			log.Println("process exit! ", p.Process.Pid)
-
 			if err != nil {
 				// I will log the program error into the admin logger.
 				self.logServiceInfo(getStringVal(s, "Name"), err.Error())
@@ -1194,6 +1192,8 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		if !self.isPortAvailable(proxy) {
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
+				s.Store("Proxy", -1)
+
 				return -1, -1, err
 			}
 			s.Store("Proxy", proxy)
@@ -1205,6 +1205,9 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		if err != nil {
 			return -1, -1, err
 		}
+
+		// save service config.
+		self.saveServiceConfig(s)
 
 		// save it to the config.
 		self.saveConfig()

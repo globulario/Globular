@@ -207,7 +207,9 @@ func (self *Globule) startLoadBalancing() {
 
 				// push the first node at last to distribute the load in case all
 				// load are equal (that the case for a computer with multiple service instance).
-				loads[rqst["ServiceName"].(string)] = append(loads_[1:], loads_[0])
+				if len(loads_) > 0 {
+					loads[rqst["ServiceName"].(string)] = append(loads_[1:], loads_[0])
+				}
 				rqst["Candidates"].(chan []*lbpb.ServerInfo) <- canditates
 			}
 

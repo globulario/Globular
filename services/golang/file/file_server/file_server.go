@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/davecourtois/Globular/Interceptors"
 	"github.com/davecourtois/Globular/services/golang/file/file_client"
 	"github.com/davecourtois/Globular/services/golang/file/filepb"
@@ -582,7 +584,45 @@ func (self *server) CreateDir(ctx context.Context, rqst *filepb.CreateDirRequest
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Here I will create the directory ressource
+	// Set Create dir Permission.
+	ressource_client, err := Interceptors.GetRessourceClient(self.GetDomain())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// The token and the application id.
+	var token string
+	var clientId string
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		token = strings.Join(md["token"], "")
+	}
+
+	var expiredAt int64
+	clientId, _, expiredAt, err = Interceptors.ValidateToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if expiredAt < time.Now().Unix() {
+		return nil, errors.New("The token is expired!")
+	}
+
+	err = ressource_client.CreateDirPermissions(token, rqst.GetPath(), rqst.GetName())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Here I will set the ressource owner for the directory.
+	if strings.HasSuffix(rqst.GetPath(), "/") {
+		ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+rqst.GetName(), "")
+	} else {
+		ressource_client.SetRessourceOwner(clientId, rqst.GetPath()+"/"+rqst.GetName(), "")
+	}
 
 	// The directory was successfuly created.
 	return &filepb.CreateDirResponse{
@@ -665,6 +705,21 @@ func (self *server) Rename(ctx context.Context, rqst *filepb.RenameRequest) (*fi
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// Rename permissions
+	ressource_client, err := Interceptors.GetRessourceClient(self.GetDomain())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = ressource_client.RenameFilePermission(rqst.GetPath(), rqst.GetOldName(), rqst.GetNewName())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	return &filepb.RenameResponse{
 		Result: true,
 	}, nil
@@ -696,6 +751,21 @@ func (self *server) DeleteDir(ctx context.Context, rqst *filepb.DeleteDirRequest
 	}
 	err := os.RemoveAll(path)
 
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	ressource_client, err := Interceptors.GetRessourceClient(self.GetDomain())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Set permission on the ressource.
+	err = ressource_client.DeleteDirPermissions(rqst.GetPath())
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -886,6 +956,20 @@ func (self *server) DeleteFile(ctx context.Context, rqst *filepb.DeleteFileReque
 
 	err := os.Remove(path)
 
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	ressource_client, err := Interceptors.GetRessourceClient(self.GetDomain())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = ressource_client.DeleteFilePermissions(rqst.GetPath())
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

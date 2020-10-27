@@ -259,15 +259,11 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 			// get previous configuration...
 			config_ := make(map[string]interface{})
 			json.Unmarshal(b, &config_)
-			config_["Process"] = getIntVal(config, "Process")
-			config_["ProxyProcess"] = getIntVal(config, "ProxyProcess")
-
 			config__ := make(map[string]interface{})
 			config.Range(func(k, v interface{}) bool {
 				config__[k.(string)] = v
 				return true
 			})
-
 			if reflect.DeepEqual(config_, config__) {
 				f.Close()
 				// set back the path's info.
@@ -281,7 +277,6 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 			if err != nil {
 				return false
 			}
-
 		}
 	}
 	f.Close()
@@ -1199,13 +1194,11 @@ func (self *Globule) stopService(serviceId string) error {
 	}
 
 	pid := getIntVal(s, "Process")
-	if pid == -1 {
-		return errors.New("No process running")
-	}
-
-	err := Utility.TerminateProcess(pid, 0)
-	if err != nil {
-		return err
+	if pid != -1 {
+		err := Utility.TerminateProcess(pid, 0)
+		if err != nil {
+			log.Println("fail to teminate process ", pid)
+		}
 	}
 
 	_, hasProxyProcessPid := s.Load("ProxyProcess")
@@ -1217,11 +1210,30 @@ func (self *Globule) stopService(serviceId string) error {
 	if pid != -1 {
 		err := Utility.TerminateProcess(pid, 0)
 		if err != nil {
-			return err
+			log.Println("fail to teminate proxy process ", pid)
 		}
 	}
 
+	s.Store("Process", -1)
+	s.Store("ProxyProcess", -1)
 	s.Store("State", "stopped")
+
+	config := make(map[string]interface{})
+	s.Range(func(k, v interface{}) bool {
+		config[k.(string)] = v
+		return true
+	})
+
+	// sync the data/config file with the service file.
+	jsonStr, _ := Utility.ToJson(config)
+	configPath := getStringVal(s, "configPath")
+	if len(configPath) > 0 {
+		// here I will write the file
+		err := ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
+		if err != nil {
+			return err
+		}
+	}
 
 	self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
 

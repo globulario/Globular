@@ -99,7 +99,7 @@ Globular::GlobularService::GlobularService(std::string id,
         std::stringstream strStream;
         strStream << inFile.rdbuf(); //read the file
         std::string jsonStr = strStream.str(); //str holds the content of the file
-
+        std::cout << "Load configuration file " << configPath << std::endl;
         // Parse the json file.
         auto j = nlohmann::json::parse(jsonStr);
 

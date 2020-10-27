@@ -456,6 +456,6 @@ func StartService(s Service, server *grpc.Server) error {
 
 func StopService(s Service, server *grpc.Server) error {
 	// Stop the service.
-	server.GracefulStop()
+	server.Stop()
 	return nil
 }
