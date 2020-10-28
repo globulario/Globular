@@ -384,7 +384,7 @@ func (mbox *MailBox_impl) Expunge() error {
 			// mbox.Messages = append(mbox.Messages[:i], mbox.Messages[i+1:]...)
 			connectionId := mbox.user + "_db"
 
-			err := store.DeleteOne(context.Background(), connectionId, connectionId, mbox.name, `{Uid=`+Utility.ToString(msg.Uid)+`}`, "")
+			err := store.DeleteOne(context.Background(), connectionId, connectionId, mbox.name, `{"Uid":`+Utility.ToString(msg.Uid)+`}`, "")
 			if err != nil {
 				return err
 			}
