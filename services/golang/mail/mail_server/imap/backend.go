@@ -13,7 +13,7 @@ type Backend_impl struct {
 }
 
 func (self *Backend_impl) Login(connInfo *imap.ConnInfo, username, password string) (backend.User, error) {
-
+	log.Println("----> try to authenticate the user ", username)
 	// I will use the datastore to authenticate the user.
 	connection_id := username + "_db"
 	err := store.Connect(connection_id, "0.0.0.0", 27017, username, password, connection_id, 1000, "")
@@ -26,6 +26,7 @@ func (self *Backend_impl) Login(connInfo *imap.ConnInfo, username, password stri
 	query := `{"name":"` + username + `"}`
 	info, err := store.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", query, "")
 	if err != nil {
+		log.Println("fail to retreive account ", username)
 		return nil, err
 	}
 

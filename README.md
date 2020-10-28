@@ -1,4 +1,4 @@
-# [go to Globular website](https://globular.io/doc)
+# [go to Globular website](https://globular.io)
 
 ## Why Globular?
 If gRPC is of great help with service implementation, it does nothing about service management. In fact, service management is out of gRPC  scope, but it’s the main purpose of globular. Managing service manually can be easy if you have only couple of service, and the number of application is limited. Over time number of applications and services has tendency to increase, and when that happened, you can became a victim of your success.
@@ -23,6 +23,6 @@ What propertie must be define on a service to make it manageable? To be manageab
 
 By using Globular you will be able to manage your microservices and make them avaible to your web-applications.
 
-Click [here](https://globular.io/doc) and learn more about globular!
+Click [here](https://globular.io) and learn more about globular!
 
 ** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
