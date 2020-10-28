@@ -4,21 +4,19 @@ import (
 	//"encoding/json"
 	"log"
 	"testing"
-
-	"github.com/davecourtois/Globular/search/search_client"
 )
 
 var (
-	client    *Search_client.Search_Client
+	client    *Search_Client
 	tmpDir    = "C:/temp" // "/media/dave/DCB5-6ABA/tmp"
-	ebookPath = "E:/Ebook"
+	ebookPath = "E:/Ebook/CSS3 Ebook Collection 2014[A4]"
 )
 
-func getClient() *Search_client.Search_Client {
+func getClient() *Search_Client {
 	if client != nil {
 		return client
 	}
-	client, _ = Search_client.NewSearch_Client("localhost", "search_server")
+	client, _ = NewSearchService_Client("localhost:8080", "cc0342f8-3727-4bd4-a1d9-720b850ee58d")
 	return client
 }
 
@@ -129,8 +127,8 @@ func TestIndexDir(t *testing.T) {
 */
 
 func TestSearchTextFiles(t *testing.T) {
-	paths := []string{tmpDir + "/dir_db"}
-	query := `File`
+	paths := []string{tmpDir + "/dir_db/Cloud"}
+	query := `File AND downloading`
 	language := "english"
 	fields := []string{}
 	offset := int32(0)

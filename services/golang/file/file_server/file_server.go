@@ -988,6 +988,7 @@ func main() {
 
 	// The actual server implementation.
 	s_impl := new(server)
+
 	// The name must the same as the grpc service name.
 	s_impl.Name = string(filepb.File_services_proto_file_proto.Services().Get(0).FullName())
 	s_impl.Proto = filepb.File_services_proto_file_proto.Path()
