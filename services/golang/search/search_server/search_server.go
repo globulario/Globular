@@ -30,7 +30,7 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/davecourtois/GoXapian/xapian"
+	"github.com/davecourtois/GoXapian"
 )
 
 // TODO take care of TLS/https
