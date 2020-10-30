@@ -23,6 +23,7 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -247,7 +248,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	var application string
 	var path string
 	var domain string // This is the target domain, the one use in TLS certificate.
-
 	var load_balanced bool
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
@@ -257,11 +257,13 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
 
+		//TODO secure it
 		load_balanced_ := strings.Join(md["load_balanced"], "")
 		ctx = metadata.AppendToOutgoingContext(ctx, "load_balanced", "") // Set back the value to nothing.
 		load_balanced = load_balanced_ == "true"
-	}
 
+	}
+	p, _ := peer.FromContext(ctx)
 	// Here I will test if the
 	method := info.FullMethod
 
@@ -270,7 +272,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := false // strings.HasPrefix(ip, "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
 	var pwd string
 	if Utility.GetProperty(info.Server, "RootPassword") != nil {
 		pwd = Utility.GetProperty(info.Server, "RootPassword").(string)
@@ -289,7 +291,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && ((domain == "127.0.0.1" || domain == "localhost") || pwd == "adminadmin") {
 		hasAccess = true
 	}
-	log.Println("Validate method ", method, "result ", hasAccess)
+	log.Println("Validate method ", method, "result ", hasAccess, "domain", domain)
 	var clientId string
 	var err error
 
@@ -540,6 +542,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		//mac = strings.Join(md["mac"], "")
 		domain = strings.Join(md["domain"], "")
 	}
+	p, _ := peer.FromContext(stream.Context())
 
 	method := info.FullMethod
 
@@ -554,7 +557,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := false // strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(ip, Utility.MyIP())
+	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
 	// needed by the admin.
 	if application == "admin" ||
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
