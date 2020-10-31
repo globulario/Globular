@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/plc/plc_client"
+	"github.com/globulario/Globular/plc/plc_client"
 )
 
 var (

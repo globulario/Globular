@@ -5,8 +5,8 @@ import (
 
 	"context"
 
-	"github.com/davecourtois/Globular/services/golang/catalog/catalogpb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/catalog/catalogpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Utility"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc"

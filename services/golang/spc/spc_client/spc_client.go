@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/spc/spcpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/spc/spcpb"
 	"google.golang.org/grpc"
 )
 

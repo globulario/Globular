@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	"github.com/davecourtois/Globular/event/event_client"
-	"github.com/davecourtois/Globular/event/eventpb"
+	"github.com/globulario/Globular/event/event_client"
+	"github.com/globulario/Globular/event/eventpb"
 	"github.com/davecourtois/Utility"
 )
 

@@ -24,10 +24,10 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/file/file_client"
-	"github.com/davecourtois/Globular/services/golang/file/filepb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/file/file_client"
+	"github.com/globulario/Globular/services/golang/file/filepb"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Utility"
 	"github.com/nfnt/resize"
 	"github.com/polds/imgbase64"
@@ -999,7 +999,7 @@ func main() {
 	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Permissions = make([]interface{}, 12)
 	s_impl.Keywords = make([]string, 0)
 	s_impl.Repositories = make([]string, 0)

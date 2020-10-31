@@ -12,7 +12,7 @@ import (
 	"github.com/emersion/go-smtp-mta"
 
 	// I will use persistence store as backend...
-	"github.com/davecourtois/Globular/services/golang/persistence/persistence_store"
+	"github.com/globulario/Globular/services/golang/persistence/persistence_store"
 
 	"github.com/davecourtois/Utility"
 	"github.com/mhale/smtpd"

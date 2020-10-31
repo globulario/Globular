@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
-	"github.com/davecourtois/Globular/services/golang/dns/dnspb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/dns/dns_client"
+	"github.com/globulario/Globular/services/golang/dns/dnspb"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -29,7 +29,7 @@ import (
 	//"google.golang.org/grpc/status"
 	"encoding/binary"
 
-	"github.com/davecourtois/Globular/services/golang/storage/storage_store"
+	"github.com/globulario/Globular/services/golang/storage/storage_store"
 	"github.com/miekg/dns"
 )
 
@@ -1726,7 +1726,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = domain // value by default.
+	s_impl.PublisherId = "globulario" // value by default.
 	s_impl.Permissions = make([]interface{}, 0)
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins

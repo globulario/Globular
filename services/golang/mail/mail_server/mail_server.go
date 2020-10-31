@@ -12,19 +12,19 @@ import (
 	"strconv"
 	"strings"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/mail/mail_client"
-	"github.com/davecourtois/Globular/services/golang/mail/mailpb"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/mail/mail_client"
+	"github.com/globulario/Globular/services/golang/mail/mailpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
 	//"google.golang.org/grpc/grpclog"
 
-	"github.com/davecourtois/Globular/services/golang/mail/mail_server/imap"
-	"github.com/davecourtois/Globular/services/golang/mail/mail_server/smtp"
+	"github.com/globulario/Globular/services/golang/mail/mail_server/imap"
+	"github.com/globulario/Globular/services/golang/mail/mail_server/smtp"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
@@ -614,7 +614,7 @@ func main() {
 	s_impl.Version = "0.0.1"
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Permissions = make([]interface{}, 0)
 	s_impl.SMTP_Port = 25      // non encrypted
 	s_impl.SMTPS_Port = 465    // encrypted

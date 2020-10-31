@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/plc/plcpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/plc/plcpb"
 
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"

@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/davecourtois/Globular/Interceptors"
+	"github.com/globulario/Globular/Interceptors"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
-	"github.com/davecourtois/Globular/services/golang/plc/plc_client"
-	"github.com/davecourtois/Globular/services/golang/plc_link/plc_link_pb"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/services/golang/plc/plc_client"
+	"github.com/globulario/Globular/services/golang/plc_link/plc_link_pb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 
@@ -564,7 +564,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Links = make(map[string]Link, 0)
 	s_impl.Permissions = make([]interface{}, 0)
 	s_impl.Keywords = make([]string, 0)

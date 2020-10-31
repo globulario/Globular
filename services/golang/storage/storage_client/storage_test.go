@@ -6,7 +6,7 @@ import (
 
 	"testing"
 
-	"github.com/davecourtois/Globular/storage/storage_client"
+	"github.com/globulario/Globular/storage/storage_client"
 )
 
 // Set the correct addresse here as needed.
@@ -14,9 +14,9 @@ var (
 	// Test with a secure connection.
 	// Those files must be accessible to the client to be able to call
 	// gRpc function on the server.
-	crt = "E:/Project/src/github.com/davecourtois/Globular/config/tls/client.crt"
-	key = "E:/Project/src/github.com/davecourtois/Globular/config/tls/client.pem"
-	ca  = "E:/Project/src/github.com/davecourtois/Globular/config/tls/ca.crt"
+	crt = "E:/Project/src/github.com/globulario/Globular/config/tls/client.crt"
+	key = "E:/Project/src/github.com/globulario/Globular/config/tls/client.pem"
+	ca  = "E:/Project/src/github.com/globulario/Globular/config/tls/ca.crt"
 
 	// The token is print in the sever console. It can be taken from the local temp file if the client service run on the same machine.
 	// It will be regenerate each time the server is started and valid until the token expire.

@@ -18,8 +18,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
-	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
+	"github.com/globulario/Globular/services/golang/admin/admin_client"
+	"github.com/globulario/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

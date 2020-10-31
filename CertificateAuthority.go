@@ -12,8 +12,8 @@ import (
 
 	"strconv"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/ca/capb"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/ca/capb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

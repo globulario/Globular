@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/services/golang/smtp/smtppb"
+	"github.com/globulario/Globular/services/golang/smtp/smtppb"
 )
 
 var (

@@ -25,13 +25,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davecourtois/Globular/services/golang/lb/lbpb"
-
-	"github.com/davecourtois/Globular/services/golang/dns/dns_client"
-	"github.com/davecourtois/Globular/services/golang/event/event_client"
-	"github.com/davecourtois/Globular/services/golang/ldap/ldap_client"
-	"github.com/davecourtois/Globular/services/golang/monitoring/monitoring_client"
-	"github.com/davecourtois/Globular/services/golang/persistence/persistence_client"
+	"github.com/globulario/Globular/services/golang/dns/dns_client"
+	"github.com/globulario/Globular/services/golang/event/event_client"
+	"github.com/globulario/Globular/services/golang/lb/lbpb"
+	"github.com/globulario/Globular/services/golang/ldap/ldap_client"
+	"github.com/globulario/Globular/services/golang/monitoring/monitoring_client"
+	"github.com/globulario/Globular/services/golang/persistence/persistence_client"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -40,22 +39,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	// Interceptor for authentication, event, log...
-	"github.com/davecourtois/Globular/Interceptors"
+	"github.com/globulario/Globular/Interceptors"
 
 	// Client services.
 	"crypto"
 
-	"github.com/davecourtois/Globular/services/golang/storage/storage_store"
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/Globular/services/golang/storage/storage_store"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 
-	"github.com/davecourtois/Globular/security"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
-	"github.com/davecourtois/Globular/services/golang/persistence/persistence_store"
+	"github.com/globulario/Globular/security"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/services/golang/persistence/persistence_store"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -321,7 +320,15 @@ func NewGlobule() *Globule {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
-	g.initDirectories()
+	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+
+	// if globular is found.
+	g.webRoot = g.path + string(os.PathSeparator) + "webroot" // The default directory to server.
+
+	if Utility.Exists(g.path+"/bin/grpcwebproxy") || Utility.Exists(g.path+"/bin/grpcwebproxy.exe") {
+		// TODO test restart with initDirectories
+		g.initDirectories()
+	}
 
 	return g
 }
@@ -498,6 +505,7 @@ func (self *Globule) getNextAvailablePort() (int, error) {
 func (self *Globule) initDirectories() {
 
 	// DNS info.
+
 	self.DNS = make([]string, 0)
 	self.DnsUpdateIpInfos = make([]interface{}, 0)
 
@@ -510,12 +518,6 @@ func (self *Globule) initDirectories() {
 
 	// Set external map services.
 	self.ExternalApplications = make(map[string]ExternalApplication, 0)
-
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	self.path = dir // keep the installation path.
-
-	// if globular is found.
-	self.webRoot = dir + string(os.PathSeparator) + "webroot" // The default directory to server.
 
 	// keep the root in global variable for the file handler.
 	webRoot = self.webRoot
@@ -541,11 +543,11 @@ func (self *Globule) initDirectories() {
 	}
 
 	// Create the directory if is not exist.
-	self.data = dir + string(os.PathSeparator) + "data"
+	self.data = self.path + string(os.PathSeparator) + "data"
 	Utility.CreateDirIfNotExist(self.data)
 
 	// Configuration directory
-	self.config = dir + string(os.PathSeparator) + "config"
+	self.config = self.path + string(os.PathSeparator) + "config"
 	Utility.CreateDirIfNotExist(self.config)
 
 	// Create the creds directory if it not already exist.
@@ -588,6 +590,8 @@ func (self *Globule) KillProcess() {
  * Start serving the content.
  */
 func (self *Globule) Serve() {
+
+	//self.initDirectories()
 
 	// Reset previous connections.
 	self.store = nil
@@ -832,7 +836,7 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) error {
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	err := proxyProcess.Start()
 
@@ -1060,9 +1064,10 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			}
 
 			// Now the proto file.
-			files, err := Utility.FindFileByName(self.path+"/services/"+getStringVal(s, "PublisherId")+"/"+getStringVal(s, "Name")+"/"+getStringVal(s, "Version"), ".proto")
+			path_ := self.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version")
+			files, err := Utility.FindFileByName(path_, ".proto")
 			if err != nil {
-				return -1, -1, errors.New("No prototype file was found")
+				return -1, -1, errors.New("No prototype file was found for path '" + path_)
 			}
 
 			s.Store("Proto", files[0])
@@ -1115,7 +1120,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// Here I will set the command dir.
 		p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 		p.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
 		err = p.Start()
@@ -1231,7 +1236,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			// Here I will set the command dir.
 			p.Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			p.SysProcAttr = &syscall.SysProcAttr{
-				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
 			err = p.Start()
@@ -1482,7 +1487,7 @@ func (self *Globule) initServices() {
 	// Start the load balancer.
 	err := self.startLoadBalancingService()
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 
 	for _, s := range self.getServices() {
@@ -1652,7 +1657,7 @@ inhibit_rules:
 	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheus.Start()
 	prometheus.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = s["Process"].(*exec.Cmd).Start()
@@ -1663,7 +1668,7 @@ inhibit_rules:
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = alertmanager.Start()
@@ -1674,7 +1679,7 @@ inhibit_rules:
 
 	node_exporter := exec.Command("node_exporter")
 	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = node_exporter.Start()

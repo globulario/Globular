@@ -4,8 +4,8 @@ import (
 	"io"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/monitoring/monitoringpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/monitoring/monitoringpb"
 
 	"context"
 

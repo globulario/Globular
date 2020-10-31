@@ -9,11 +9,11 @@ import (
 
 var (
 	// Connect to the admin client.
-	client, _ = NewAdminService_Client("localhost", "admin.AdminService")
+	client, _ = NewAdminService_Client("globular.live", "admin.AdminService")
 )
 
 // Test various function here.
-/*func TestGetConfig(t *testing.T) {
+func TestGetConfig(t *testing.T) {
 	log.Println("---> test get config.")
 	config, err := client.GetConfig()
 	if err != nil {
@@ -22,7 +22,8 @@ var (
 
 	log.Println("config: ", config)
 }
-*/
+
+/*
 func TestGetFullConfig(t *testing.T) {
 	log.Println("---> test get config.")
 
@@ -32,10 +33,10 @@ func TestGetFullConfig(t *testing.T) {
 	}
 	log.Println("config: ", config)
 }
-
+*/
 func TestRestartServices(t *testing.T) {
 	log.Println("---> test get config.")
-
+	log.Println("---->", client)
 	err := client.RestartServices()
 	if err != nil {
 		log.Println("---> ", err)
@@ -128,13 +129,13 @@ func TestInstallService(t *testing.T) {
 	}
 	time.Sleep(time.Second * 5)
 }*/
-
+/*
 func TestUninstallService(t *testing.T) {
 	err := client.UninstallService("localhost", "echo_server", "0.0.1")
 	if err != nil {
 		log.Panicln(err)
 	}
-}
+}*/
 
 /*func TestDeployApplication(t *testing.T) {
 	err := client.DeployApplication("testApp", "/home/dave/Documents/chitchat")

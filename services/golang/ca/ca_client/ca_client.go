@@ -5,8 +5,8 @@ import (
 
 	"context"
 
-	"github.com/davecourtois/Globular/services/golang/ca/capb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/ca/capb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
 	"google.golang.org/grpc"
 )
 

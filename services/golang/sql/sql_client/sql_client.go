@@ -6,8 +6,8 @@ import (
 	"io"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/sql/sqlpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )

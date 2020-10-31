@@ -5,8 +5,8 @@ import (
 	//	"log"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/plc_link/plc_link_pb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/plc_link/plc_link_pb"
 
 	//	"github.com/davecourtois/Utility"
 

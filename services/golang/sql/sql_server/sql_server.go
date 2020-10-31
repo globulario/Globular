@@ -19,10 +19,10 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
-	"github.com/davecourtois/Globular/services/golang/sql/sql_client"
-	"github.com/davecourtois/Globular/services/golang/sql/sqlpb"
+	"github.com/globulario/Globular/Interceptors"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/services/golang/sql/sql_client"
+	"github.com/globulario/Globular/services/golang/sql/sqlpb"
 	"github.com/davecourtois/Utility"
 
 	"google.golang.org/grpc"
@@ -809,7 +809,7 @@ func main() {
 	// TODO set it from the program arguments...
 	s_impl.AllowAllOrigins = allow_all_origins
 	s_impl.AllowedOrigins = allowed_origins
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Permissions = make([]interface{}, 0)
 	s_impl.Keywords = make([]string, 0)
 	s_impl.Repositories = make([]string, 0)

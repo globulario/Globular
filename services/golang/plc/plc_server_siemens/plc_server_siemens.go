@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/Interceptors"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 
-	"github.com/davecourtois/Globular/services/golang/plc/plc_client"
-	"github.com/davecourtois/Globular/services/golang/plc/plcpb"
+	"github.com/globulario/Globular/services/golang/plc/plc_client"
+	"github.com/globulario/Globular/services/golang/plc/plcpb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

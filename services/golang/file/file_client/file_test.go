@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/davecourtois/Globular/file/filepb"
+	"github.com/globulario/Globular/file/filepb"
 	"google.golang.org/grpc"
 
 	"testing"

@@ -9,8 +9,8 @@ import (
 	"os"
 	"strconv"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/mail/mailpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/mail/mailpb"
 	"google.golang.org/grpc"
 )
 

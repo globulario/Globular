@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/echo/echo_client"
+	"github.com/globulario/Globular/echo/echo_client"
 )
 
 // Test various function here.

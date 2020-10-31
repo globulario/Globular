@@ -13,14 +13,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/search/search_client"
-	"github.com/davecourtois/Globular/services/golang/search/searchpb"
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/search/search_client"
+	"github.com/globulario/Globular/services/golang/search/searchpb"
 	"google.golang.org/grpc"
 
 	//	"google.golang.org/grpc/codes"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 
 	//"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
@@ -30,7 +30,7 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/davecourtois/GoXapian"
+	"github.com/davecourtois/GoXapian/xapian"
 )
 
 // TODO take care of TLS/https
@@ -988,7 +988,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Permissions = make([]interface{}, 0)
 
 	// TODO set it from the program arguments...

@@ -7,7 +7,7 @@ import (
 
 	//	"time"
 
-	"github.com/davecourtois/Globular/monitoring/monitoring_client"
+	"github.com/globulario/Globular/monitoring/monitoring_client"
 )
 
 // Set the correct addresse here as needed.

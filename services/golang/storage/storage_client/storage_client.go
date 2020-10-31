@@ -5,8 +5,8 @@ import (
 
 	"context"
 
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
-	"github.com/davecourtois/Globular/services/golang/storage/storagepb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/storage/storagepb"
 	"google.golang.org/grpc"
 )
 

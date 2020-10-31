@@ -14,9 +14,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/davecourtois/Globular/services/golang/admin/adminpb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/Globular/services/golang/admin/adminpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -56,13 +56,16 @@ type Admin_Client struct {
 
 // Create a connection to the service.
 func NewAdminService_Client(address string, id string) (*Admin_Client, error) {
+	log.Println("----> 59")
 	client := new(Admin_Client)
 	err := globular.InitClient(client, address, id)
 	if err != nil {
+		log.Println("----> 63", err)
 		return nil, err
 	}
 	client.cc, err = globular.GetClientConnection(client)
 	if err != nil {
+		log.Println("----> 68", err)
 		return nil, err
 	}
 	client.c = adminpb.NewAdminServiceClient(client.cc)
@@ -324,7 +327,7 @@ func (self *Admin_Client) UploadServicePackage(path string, publisherId string, 
 	// Find proto by name
 	_, err := Utility.FindFileByName(path, ".proto")
 	if err != nil {
-		return "", 0, errors.New("No prototype file was found")
+		return "", 0, errors.New("No prototype file was found at path '" + path + "'")
 	}
 
 	s := make(map[string]interface{}, 0)

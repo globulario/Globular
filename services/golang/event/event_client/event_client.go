@@ -9,8 +9,8 @@ import (
 
 	"context"
 
-	"github.com/davecourtois/Globular/services/golang/event/eventpb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/event/eventpb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 )

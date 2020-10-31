@@ -21,8 +21,8 @@ import (
 
 	"strconv"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/ressource/ressourcepb"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
 	"github.com/golang/protobuf/jsonpb"

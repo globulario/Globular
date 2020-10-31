@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davecourtois/Globular/services/golang/admin/admin_client"
-	"github.com/davecourtois/Globular/services/golang/ressource/ressource_client"
+	"github.com/globulario/Globular/services/golang/admin/admin_client"
+	"github.com/globulario/Globular/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
 	"github.com/kardianos/service"
 )
@@ -33,11 +33,11 @@ func (g *Globule) Start(s service.Service) error {
 }
 
 func (g *Globule) run() error {
-	logger.Infof("Starting Globular as %v.", service.Platform())
 
 	// start globular and wait on exit chan...
 	go func() {
 		g.Serve()
+		log.Println("globular serve at domain ", g.Domain)
 	}()
 
 	for {
@@ -155,10 +155,11 @@ func main() {
 
 		if startCommand.Parsed() {
 			// Required Flags
-			if *startCommand_domain == "" {
+
+			if len(*startCommand_domain) > 0 {
 				g.Domain = *startCommand_domain
 			}
-			s.Run()
+			g.run()
 		}
 
 		// Check if the command was parsed

@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/dns/dns_client"
+	"github.com/globulario/Globular/dns/dns_client"
 	"github.com/davecourtois/Utility"
 )
 

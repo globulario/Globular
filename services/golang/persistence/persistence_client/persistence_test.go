@@ -7,7 +7,7 @@ import (
 
 	"testing"
 
-	"github.com/davecourtois/Globular/persistence/persistence_client"
+	"github.com/globulario/Globular/persistence/persistence_client"
 	//"github.com/davecourtois/Utility"
 )
 

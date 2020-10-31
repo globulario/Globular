@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/ldap/ldap_client"
+	"github.com/globulario/Globular/ldap/ldap_client"
 )
 
 var (

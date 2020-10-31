@@ -6,7 +6,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/davecourtois/Globular/sql/sql_client"
+	"github.com/globulario/Globular/sql/sql_client"
 )
 
 // Set the correct addresse here as needed.

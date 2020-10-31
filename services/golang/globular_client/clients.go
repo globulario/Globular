@@ -12,7 +12,7 @@ import (
 
 	"reflect"
 
-	"github.com/davecourtois/Globular/security"
+	"github.com/globulario/Globular/security"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

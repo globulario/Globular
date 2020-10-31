@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/davecourtois/Globular/Interceptors"
-	"github.com/davecourtois/Globular/services/golang/echo/echo_client"
-	"github.com/davecourtois/Globular/services/golang/echo/echopb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_service"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/Globular/services/golang/echo/echo_client"
+	"github.com/globulario/Globular/services/golang/echo/echopb"
+	globular "github.com/globulario/Globular/services/golang/globular_service"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -355,7 +355,7 @@ func main() {
 	s_impl.Protocol = "grpc"
 	s_impl.Domain = domain
 	s_impl.Version = "0.0.1"
-	s_impl.PublisherId = domain
+	s_impl.PublisherId = "globulario"
 	s_impl.Description = "The Hello world of gRPC service!"
 	s_impl.Keywords = []string{"Example", "Echo", "Test", "Service"}
 	s_impl.Repositories = make([]string, 0)

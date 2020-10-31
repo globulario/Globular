@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/davecourtois/Globular/services/golang/dns/dnspb"
-	globular "github.com/davecourtois/Globular/services/golang/globular_client"
+	"github.com/globulario/Globular/services/golang/dns/dnspb"
+	globular "github.com/globulario/Globular/services/golang/globular_client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
