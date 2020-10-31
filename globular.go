@@ -25,12 +25,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/globulario/Globular/services/golang/dns/dns_client"
-	"github.com/globulario/Globular/services/golang/event/event_client"
-	"github.com/globulario/Globular/services/golang/lb/lbpb"
-	"github.com/globulario/Globular/services/golang/ldap/ldap_client"
-	"github.com/globulario/Globular/services/golang/monitoring/monitoring_client"
-	"github.com/globulario/Globular/services/golang/persistence/persistence_client"
+	"github.com/globulario/services/golang/dns/dns_client"
+	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/lb/lbpb"
+	"github.com/globulario/services/golang/ldap/ldap_client"
+	"github.com/globulario/services/golang/monitoring/monitoring_client"
+	"github.com/globulario/services/golang/persistence/persistence_client"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -45,7 +45,7 @@ import (
 	"crypto"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/services/golang/storage/storage_store"
+	"github.com/globulario/services/golang/storage/storage_store"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/http01"
@@ -53,8 +53,8 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 
 	"github.com/globulario/Globular/security"
-	globular "github.com/globulario/Globular/services/golang/globular_service"
-	"github.com/globulario/Globular/services/golang/persistence/persistence_store"
+	globular "github.com/globulario/services/golang/globular_service"
+	"github.com/globulario/services/golang/persistence/persistence_store"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/globulario/Globular/services/golang/event/event_client"
-	"github.com/globulario/Globular/services/golang/services/servicespb"
+	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -24,17 +24,17 @@ import (
 	"os/exec"
 	"reflect"
 
-	"github.com/globulario/Globular/services/golang/lb/lbpb"
+	"github.com/globulario/services/golang/lb/lbpb"
 
 	"strconv"
 
 	"net"
 
 	"github.com/globulario/Globular/Interceptors"
-	"github.com/globulario/Globular/services/golang/admin/adminpb"
-	globular "github.com/globulario/Globular/services/golang/globular_service"
-	"github.com/globulario/Globular/services/golang/ressource/ressourcepb"
-	"github.com/globulario/Globular/services/golang/services/service_client"
+	"github.com/globulario/services/golang/admin/adminpb"
+	globular "github.com/globulario/services/golang/globular_service"
+	"github.com/globulario/services/golang/ressource/ressourcepb"
+	"github.com/globulario/services/golang/services/service_client"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

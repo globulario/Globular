@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/globulario/Globular/services/golang/admin/admin_client"
-	"github.com/globulario/Globular/services/golang/ressource/ressource_client"
+	"github.com/globulario/services/golang/admin/admin_client"
+	"github.com/globulario/services/golang/ressource/ressource_client"
 	"github.com/davecourtois/Utility"
 	"github.com/kardianos/service"
 )

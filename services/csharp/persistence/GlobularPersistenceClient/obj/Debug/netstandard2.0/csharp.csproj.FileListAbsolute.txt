@@ -1,8 +1,0 @@
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\bin\Debug\netstandard2.0\csharp.deps.json
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\bin\Debug\netstandard2.0\csharp.dll
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\bin\Debug\netstandard2.0\csharp.pdb
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\obj\Debug\netstandard2.0\csharp.csprojAssemblyReference.cache
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\obj\Debug\netstandard2.0\csharp.AssemblyInfoInputs.cache
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\obj\Debug\netstandard2.0\csharp.AssemblyInfo.cs
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\obj\Debug\netstandard2.0\csharp.dll
-E:\Project\src\github.com\davecourtois\Globular\persistence\persistence_client\csharp\obj\Debug\netstandard2.0\csharp.pdb

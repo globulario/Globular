@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/globulario/Globular/Interceptors"
-	"github.com/globulario/Globular/services/golang/lb/lbpb"
+	"github.com/globulario/services/golang/lb/lbpb"
 )
 
 /**

@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/globulario/Globular/Interceptors"
-	"github.com/globulario/Globular/services/golang/ca/capb"
+	"github.com/globulario/services/golang/ca/capb"
 	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
