@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Utility"
 	globular "github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/lb/load_balancing_client"
 	"github.com/globulario/services/golang/ressource/ressource_client"
 	"github.com/globulario/services/golang/storage/storage_store"
-	"github.com/davecourtois/Utility"
 	"github.com/shirou/gopsutil/load"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -198,6 +198,62 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 }
 
 /**
+ * Validate peer ressouce permission.
+ */
+func ValidatePeerRessourceAccess(domain string, name string, method string, path string, permission int32) error {
+
+	// keep the values in the map for the lifetime of the token and validate it
+	// from local map.
+	ressource_client, err := GetRessourceClient(domain)
+	if err != nil {
+		return err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidatePeerRessourceAccess(name, path, method, permission)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		return errors.New("Permission denied! for ressource " + path)
+	}
+
+	return nil
+}
+
+func ValidatePeerAccess(domain string, peer string, method string) (bool, error) {
+
+	log.Println("----> validate domain permission.")
+
+	key := Utility.GenerateUUID(peer + method)
+
+	_, err := getCache().GetItem(key)
+	if err == nil {
+		// Here a value exist in the store...
+		return true, nil
+	}
+
+	ressource_client, err := GetRessourceClient(domain)
+	if err != nil {
+		return false, err
+	}
+
+	// get access from remote source.
+	hasAccess, err := ressource_client.ValidatePeerAccess(peer, method)
+	if hasAccess {
+		getCache().SetItem(key, []byte(""))
+
+		// Here I will set a timeout for the permission.
+		timeout := time.NewTimer(15 * time.Minute)
+		go func() {
+			<-timeout.C
+			getCache().RemoveItem(key)
+		}()
+	}
+	return hasAccess, err
+}
+
+/**
  * Validate Application method access.
  */
 func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
@@ -263,6 +319,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		load_balanced = load_balanced_ == "true"
 
 	}
+
 	p, _ := peer.FromContext(ctx)
 	// Here I will test if the
 	method := info.FullMethod
@@ -312,6 +369,11 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		hasAccess, _ = ValidateUserAccess(domain, token, method)
 	}
 
+	// Test if peer has access
+	if !hasAccess {
+		hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
+	}
+
 	// Connect to the ressource services for the given domain.
 	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
@@ -351,7 +413,11 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 						}
 						err = ValidateApplicationRessourceAccess(domain, application, method, Utility.ToString(path), permission)
 						if err != nil {
-							return nil, err
+							err = ValidatePeerRessourceAccess(domain, "globular.io", method, Utility.ToString(path), permission)
+							if err != nil {
+								fmt.Println(err)
+								return nil, err
+							}
 						}
 					}
 
@@ -456,6 +522,7 @@ type ServerStreamInterceptorStream struct {
 	inner       grpc.ServerStream
 	method      string
 	domain      string
+	peer        string
 	token       string
 	application string
 	clientId    string
@@ -517,8 +584,13 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 						err = ValidateApplicationRessourceAccess(l.domain, l.application, l.method, Utility.ToString(path), permission)
 						if err != nil {
 							ressource_client.Log(l.application, l.clientId, l.method, err)
-							return err
+							err = ValidatePeerRessourceAccess(l.domain, l.peer, l.method, Utility.ToString(path), permission)
+							if err != nil {
+								ressource_client.Log("", l.clientId, l.method, err)
+								return err
+							}
 						}
+
 					}
 				}
 			}
@@ -573,6 +645,11 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
 		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
+	}
+
+	if !hasAccess {
+		log.Println("-----> 648")
+		hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
 	}
 
 	log.Println("Validate access method with result: ", method, hasAccess)

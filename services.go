@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
 	"github.com/globulario/services/golang/services/service_client"
 	"github.com/globulario/services/golang/services/servicespb"
-	"github.com/davecourtois/Utility"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
@@ -127,8 +127,8 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 // Start service discovery
 func (self *Globule) startDiscoveryService() error {
 	// The service discovery.
-	id := string(servicespb.File_services_proto_services_proto.Services().Get(0).FullName())
-	services_discovery_server, err := self.startInternalService(id, servicespb.File_services_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	id := string(servicespb.File_proto_services_proto.Services().Get(0).FullName())
+	services_discovery_server, err := self.startInternalService(id, servicespb.File_proto_services_proto.Path(), self.ServicesDiscoveryPort, self.ServicesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
@@ -160,7 +160,7 @@ func (self *Globule) startDiscoveryService() error {
 
 // Start service repository
 func (self *Globule) startRepositoryService() error {
-	services_repository_server, err := self.startInternalService(string(servicespb.File_services_proto_services_proto.Services().Get(1).FullName()), servicespb.File_services_proto_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
+	services_repository_server, err := self.startInternalService(string(servicespb.File_proto_services_proto.Services().Get(1).FullName()), servicespb.File_proto_services_proto.Path(), self.ServicesRepositoryPort, self.ServicesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)

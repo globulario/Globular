@@ -20,8 +20,8 @@ import (
  * Start the load balancing service.
  */
 func (self *Globule) startLoadBalancingService() error {
-	id := string(lbpb.File_services_proto_lb_proto.Services().Get(0).FullName())
-	load_balancer, err := self.startInternalService(id, lbpb.File_services_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	id := string(lbpb.File_proto_lb_proto.Services().Get(0).FullName())
+	load_balancer, err := self.startInternalService(id, lbpb.File_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 
 	if err == nil && load_balancer != nil {
 		self.inernalServices = append(self.inernalServices, load_balancer)

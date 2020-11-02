@@ -21,9 +21,9 @@ import (
 
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
-	id := string(capb.File_services_proto_ca_proto.Services().Get(0).FullName())
+	id := string(capb.File_proto_ca_proto.Services().Get(0).FullName())
 	certificate_authority_server, err := self.startInternalService(id,
-		capb.File_services_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+		capb.File_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, certificate_authority_server)

@@ -21,10 +21,10 @@ import (
 
 	"strconv"
 
-	"github.com/globulario/Globular/Interceptors"
-	"github.com/globulario/services/golang/ressource/ressourcepb"
 	"github.com/davecourtois/Utility"
 	"github.com/emicklei/proto"
+	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/services/golang/ressource/ressourcepb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
@@ -34,8 +34,8 @@ import (
 )
 
 func (self *Globule) startRessourceService() error {
-	id := string(ressourcepb.File_services_proto_ressource_proto.Services().Get(0).FullName())
-	ressource_server, err := self.startInternalService(id, ressourcepb.File_services_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
+	id := string(ressourcepb.File_proto_ressource_proto.Services().Get(0).FullName())
+	ressource_server, err := self.startInternalService(id, ressourcepb.File_proto_ressource_proto.Path(), self.RessourcePort, self.RessourceProxy, self.Protocol == "https", self.unaryRessourceInterceptor, self.streamRessourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, ressource_server)
 
@@ -163,7 +163,7 @@ func (self *Globule) getServiceMethods(name string, path string) []string {
 }
 
 func (self *Globule) setServiceMethods(name string, path string) {
-
+	log.Println("-------> ", path)
 	// here I will parse the service defintion file to extract the
 	// service difinition.
 	reader, _ := os.Open(path)
@@ -310,11 +310,12 @@ func (self *Globule) createApplicationConnection() error {
 	if err != nil {
 		return err
 	}
-
+	address, port := self.getBackendAddress()
 	for i := 0; i < len(applications); i++ {
 		application := applications[i].(map[string]interface{})
 		// Open the user database connection.
-		err = p.CreateConnection(application["_id"].(string)+"_db", application["_id"].(string)+"_db", "0.0.0.0", 27017, 0, application["_id"].(string), application["password"].(string), 5000, "", false)
+
+		err = p.CreateConnection(application["_id"].(string)+"_db", application["_id"].(string)+"_db", address, float64(port), 0, application["_id"].(string), application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -516,18 +517,32 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 		"db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
 		name, name, password, name)
 
-	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, createUserScript)
-	if err != nil {
-		return err
-	}
-
 	p_, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return err
 	}
 
-	err = p_.CreateConnection(name+"_db", name+"_db", "0.0.0.0", 27017, 0, name, password, 5000, "", false)
+	// I will execute the sript with the admin function.
+	address, port := self.getBackendAddress()
+	if address == "0.0.0.0" {
+		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, createUserScript)
+		if err != nil {
+			return err
+		}
+	} else {
+		p_, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return err
+		}
+		log.Println("----> try to create account ", account)
+		log.Println(createUserScript)
+		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, createUserScript)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = p_.CreateConnection(name+"_db", name+"_db", address, float64(port), 0, name, password, 5000, "", false)
 	if err != nil {
 		return errors.New("No persistence service are available to store ressource information.")
 	}
@@ -714,7 +729,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressourcepb.Authent
 	}
 
 	// Open the user database connection.
-	err = p_.CreateConnection(name_+"_db", name_+"_db", "0.0.0.0", 27017, 0, name_, rqst.Password, 5000, "", false)
+	address, port := self.getBackendAddress()
+	err = p_.CreateConnection(name_+"_db", name_+"_db", address, float64(port), 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -845,11 +861,28 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *ressourcepb.Delete
 		name)
 
 	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, dropUserScript)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	address, _ := self.getBackendAddress()
+	if address == "0.0.0.0" {
+		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, dropUserScript)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		p_, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, dropUserScript)
+		if err != nil {
+			log.Println(err)
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	// Remove the user database.
@@ -1429,11 +1462,27 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *ressourcepb.De
 		rqst.ApplicationId)
 
 	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, dropUserScript)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	address, _ := self.getBackendAddress()
+	if address == "0.0.0.0" {
+		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, dropUserScript)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		p_, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, dropUserScript)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	// TODO delete dir permission associate with the application.
@@ -1732,6 +1781,8 @@ func (self *Globule) unaryRessourceInterceptor(ctx context.Context, req interfac
 	// Here some method are accessible by default.
 	if method == "/ressource.RessourceService/GetAllActions" ||
 		method == "/ressource.RessourceService/RegisterAccount" ||
+		method == "/ressource.RessourceService/RegisterPeer" ||
+		method == "/ressource.RessourceService/GetPeers" ||
 		method == "/ressource.RessourceService/AccountExist" ||
 		method == "/ressource.RessourceService/Authenticate" ||
 		method == "/ressource.RessourceService/RefreshToken" ||
@@ -3379,6 +3430,340 @@ func (self *Globule) DeleteFilePermissions(ctx context.Context, rqst *ressourcep
 	}
 
 	return &ressourcepb.DeleteFilePermissionsRsp{
+		Result: true,
+	}, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Peer's Authorization and Authentication code.
+////////////////////////////////////////////////////////////////////////////////
+
+//* Register a new Peer on the network *
+func (self *Globule) RegisterPeer(ctx context.Context, rqst *ressourcepb.RegisterPeerRqst) (*ressourcepb.RegisterPeerRsp, error) {
+	// A peer want to be part of the network.
+
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will first look if a peer with a same name already exist on the
+	// ressources...
+	_id := Utility.GenerateUUID(rqst.Peer.Domain)
+
+	count, _ := p.Count(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, "")
+	if count > 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer with name '"+rqst.Peer.Domain+"' already exist!")))
+
+	}
+
+	// No authorization exist for that peer I will insert it.
+	// Here will create the new peer.
+	peer := make(map[string]interface{}, 0)
+	peer["_id"] = _id
+	peer["domain"] = rqst.Peer.Domain
+	peer["actions"] = make([]interface{}, 0)
+
+	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Peers", peer, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressourcepb.RegisterPeerRsp{
+		Result: true,
+	}, nil
+}
+
+//* Return the list of authorized peers *
+func (self *Globule) GetPeers(rqst *ressourcepb.GetPeersRqst, stream ressourcepb.RessourceService_GetPeersServer) error {
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
+
+	peers, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Peers", query, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 100
+	values := make([]*ressourcepb.Peer, 0)
+
+	for i := 0; i < len(peers); i++ {
+
+		p := &ressourcepb.Peer{Domain: peers[i].(map[string]interface{})["domain"].(string), Actions: make([]string, 0)}
+		peers[i].(map[string]interface{})["actions"] = []interface{}(peers[i].(map[string]interface{})["actions"].(primitive.A))
+		for j := 0; j < len(peers[i].(map[string]interface{})["actions"].([]interface{})); j++ {
+			p.Actions = append(p.Actions, peers[i].(map[string]interface{})["actions"].([]interface{})[j].(string))
+		}
+
+		values = append(values, p)
+
+		if len(values) >= maxSize {
+			err := stream.Send(
+				&ressourcepb.GetPeersRsp{
+					Peers: values,
+				},
+			)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			values = make([]*ressourcepb.Peer, 0)
+		}
+	}
+
+	// Send reminding values.
+
+	err = stream.Send(
+		&ressourcepb.GetPeersRsp{
+			Peers: values,
+		},
+	)
+
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return nil
+}
+
+//* Remove a peer from the network *
+func (self *Globule) DeletePeer(ctx context.Context, rqst *ressourcepb.DeletePeerRqst) (*ressourcepb.DeletePeerRsp, error) {
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// No authorization exist for that peer I will insert it.
+	// Here will create the new peer.
+	_id := Utility.GenerateUUID(rqst.Peer.Domain)
+
+	err = p.DeleteOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Delete permissions
+	err = p.Delete(context.Background(), "local_ressource", "local_ressource", "Permissions", `{"owner":"`+_id+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressourcepb.DeletePeerRsp{
+		Result: true,
+	}, nil
+}
+
+//* Add peer action permission *
+func (self *Globule) AddPeerAction(ctx context.Context, rqst *ressourcepb.AddPeerActionRqst) (*ressourcepb.AddPeerActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+	_id := Utility.GenerateUUID(rqst.Domain)
+
+	// Here I will test if a newer token exist for that user if it's the case
+	// I will not refresh that token.
+	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	peer := values.(map[string]interface{})
+
+	needSave := false
+	if peer["actions"] == nil {
+		peer["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		for i := 0; i < len(peer["actions"].(primitive.A)); i++ {
+
+			if peer["actions"].(primitive.A)[i].(string) == rqst.Action {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			peer["actions"] = append(peer["actions"].(primitive.A), rqst.Action)
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer named "+rqst.Domain+" already contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(peer)
+		err := p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressourcepb.AddPeerActionRsp{Result: true}, nil
+
+}
+
+//* Remove peer action permission *
+func (self *Globule) RemovePeerAction(ctx context.Context, rqst *ressourcepb.RemovePeerActionRqst) (*ressourcepb.RemovePeerActionRsp, error) {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+	_id := Utility.GenerateUUID(rqst.Domain)
+	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	peer := values.(map[string]interface{})
+
+	needSave := false
+	if peer["actions"] == nil {
+		peer["actions"] = []string{rqst.Action}
+		needSave = true
+	} else {
+		exist := false
+		actions := make([]interface{}, 0)
+		for i := 0; i < len(peer["actions"].(primitive.A)); i++ {
+			if peer["actions"].(primitive.A)[i].(string) == rqst.Action {
+				exist = true
+			} else {
+				actions = append(actions, peer["actions"].(primitive.A)[i])
+			}
+		}
+		if exist {
+			peer["actions"] = actions
+			needSave = true
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer named "+rqst.Domain+" not contain actions named "+rqst.Action+"!")))
+		}
+	}
+
+	if needSave {
+		jsonStr, _ := json.Marshal(peer)
+		err := p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, string(jsonStr), ``)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	}
+
+	return &ressourcepb.RemovePeerActionRsp{Result: true}, nil
+}
+
+/**
+ * Validate application access by role
+ */
+func (self *Globule) validatePeerAccess(domain string, method string) error {
+
+	if len(domain) == 0 {
+		return errors.New("No domain was given to validate peer method access " + method)
+	}
+
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	_id := Utility.GenerateUUID(domain)
+	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Peers", `{"_id":"`+_id+`"}`, ``)
+	if err != nil {
+		return err
+	}
+
+	peer := values.(map[string]interface{})
+
+	err = errors.New("permission denied! peer with domain " + domain + " cannot execute methode '" + method + "'")
+	if peer["actions"] == nil {
+		return err
+	}
+
+	actions := []interface{}(peer["actions"].(primitive.A))
+	if actions == nil {
+		return err
+	}
+
+	for i := 0; i < len(actions); i++ {
+		if actions[i].(string) == method {
+			return nil
+		}
+	}
+
+	return err
+}
+
+//* Validate if a peer can access a given ressource. *
+func (self *Globule) ValidatePeerRessourceAccess(ctx context.Context, rqst *ressourcepb.ValidatePeerRessourceAccessRqst) (*ressourcepb.ValidatePeerRessourceAccessRsp, error) {
+	path := rqst.GetPath()
+
+	hasPermission, count := self.hasPermission(rqst.Domain, path, rqst.Permission)
+	if hasPermission {
+		return &ressourcepb.ValidatePeerRessourceAccessRsp{
+			Result: true,
+		}, nil
+	}
+
+	// If theres permission definied and we are here it's means the user dosent
+	// have write to execute the action on the ressource.
+	if count > 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Permission Denied for "+rqst.Domain)))
+
+	}
+
+	return &ressourcepb.ValidatePeerRessourceAccessRsp{
+		Result: true,
+	}, nil
+}
+
+//* Validate if a peer can access a given method. *
+func (self *Globule) ValidatePeerAccess(ctx context.Context, rqst *ressourcepb.ValidatePeerAccessRqst) (*ressourcepb.ValidatePeerAccessRsp, error) {
+	err := self.validatePeerAccess(rqst.Domain, rqst.Method)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &ressourcepb.ValidatePeerAccessRsp{
 		Result: true,
 	}, nil
 }

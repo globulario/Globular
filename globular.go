@@ -99,6 +99,7 @@ type Globule struct {
 	LoadBalancingServicePort  int    // The load balancing service port
 	LoadBalancingServiceProxy int    // The load balancing proxy port
 	PortsRange                string // The range of port to be use for the service. ex 10000-10200
+	DbIpV4                    string // The address of the databe ex 0.0.0.0:27017
 
 	// can be https or http.
 	Protocol string // The protocol of the service.
@@ -220,6 +221,7 @@ func NewGlobule() *Globule {
 
 	// Set default values.
 	g.PortsRange = "10000-10100"
+	g.DbIpV4 = "0.0.0.0:27017"
 
 	// set default values.
 	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
@@ -1420,6 +1422,13 @@ func (self *Globule) initServices() {
 		// Each service contain a file name config.json that describe service.
 		// I will keep services info in services map and also it running process.
 		basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+		// GLOBULAR_SERVICES_ROOT is the path of the globular service executables.
+		// if not set the services must be in the same folder as Globurar executable.
+		globularServicesRoot := os.Getenv("GLOBULAR_SERVICES_ROOT")
+		if len(globularServicesRoot) > 0 {
+			basePath = globularServicesRoot
+		}
+
 		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 			path = strings.ReplaceAll(path, "\\", "/")
 			if info == nil {
@@ -1469,6 +1478,12 @@ func (self *Globule) initServices() {
 
 	// Rescan the proto file and update the role after.
 	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	// GLOBULAR_SERVICES_ROOT is the path of the globular service executables.
+	// if not set the services must be in the same folder as Globurar executable.
+	globularServicesRoot := os.Getenv("GLOBULAR_SERVICES_ROOT")
+	if len(globularServicesRoot) > 0 {
+		basePath = globularServicesRoot
+	}
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		path = strings.ReplaceAll(path, "\\", "/")
 		if info == nil {
@@ -1721,13 +1736,20 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return nil, err
 	}
 
+	address, port := self.getBackendAddress()
+
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", "0.0.0.0", 27017, 0, "sa", self.RootPassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", address, Utility.ToNumeric(port), 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
 
 	return self.persistence_client_, nil
+}
+
+func (self *Globule) getBackendAddress() (string, int32) {
+	values := strings.Split(self.DbIpV4, ":")
+	return values[0], int32(Utility.ToInt(values[1]))
 }
 
 /**
@@ -1737,7 +1759,8 @@ func (self *Globule) getPersistenceStore() (persistence_store.Store, error) {
 	// That service made user of persistence service.
 	if self.store == nil {
 		self.store = new(persistence_store.MongoStore)
-		err := self.store.Connect("local_ressource", "0.0.0.0", 27017, "sa", self.RootPassword, "local_ressource", 5000, "")
+		address, port := self.getBackendAddress()
+		err := self.store.Connect("local_ressource", address, port, "sa", self.RootPassword, "local_ressource", 5000, "")
 		if err != nil {
 			return nil, err
 		}

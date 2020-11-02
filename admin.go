@@ -30,20 +30,20 @@ import (
 
 	"net"
 
+	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/admin/adminpb"
 	globular "github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/ressource/ressourcepb"
 	"github.com/globulario/services/golang/services/service_client"
-	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 func (self *Globule) startAdminService() error {
-	id := string(adminpb.File_services_proto_admin_proto.Services().Get(0).FullName())
-	admin_server, err := self.startInternalService(id, adminpb.File_services_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	id := string(adminpb.File_proto_admin_proto.Services().Get(0).FullName())
+	admin_server, err := self.startInternalService(id, adminpb.File_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, admin_server)
 		// First of all I will creat a listener.
@@ -484,15 +484,28 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	}
 
 	if err != nil || count == 0 {
+		address, port := self.getBackendAddress()
 
 		// create the application database.
 		createApplicationUserDbScript := fmt.Sprintf(
 			"db=db.getSiblingDB('%s_db');db.createCollection('application_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
 			name, name, application["password"].(string), name)
 
-		err = store.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
-		if err != nil {
-			return err
+		if address == "0.0.0.0" {
+			err = store.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
+			if err != nil {
+				return err
+			}
+		} else {
+			// in the case of remote data store.
+			p_, err := self.getPersistenceSaConnection()
+			if err != nil {
+				return err
+			}
+			err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
+			if err != nil {
+				return err
+			}
 		}
 
 		application["creation_date"] = time.Now().Unix() // save it as unix time.
@@ -504,7 +517,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		p, err := self.getPersistenceSaConnection()
 
-		err = p.CreateConnection(name+"_db", name+"_db", "0.0.0.0", 27017, 0, name, application["password"].(string), 5000, "", false)
+		err = p.CreateConnection(name+"_db", name+"_db", address, float64(port), 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
 			return err
 		}
@@ -620,11 +633,27 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 	}
 
 	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", rqst.OldPassword, changeRootPasswordScript)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	address, _ := self.getBackendAddress()
+	if address == "0.0.0.0" {
+		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", rqst.OldPassword, changeRootPasswordScript)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		p_, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, changeRootPasswordScript)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	self.saveConfig()
@@ -671,9 +700,21 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 		"db=db.getSiblingDB('admin');db.changeUserPassword('%s','%s');", name, newPassword)
 
 	// I will execute the sript with the admin function.
-	err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, changePasswordScript)
-	if err != nil {
-		return err
+	address, _ := self.getBackendAddress()
+	if address == "0.0.0.0" {
+		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, changePasswordScript)
+		if err != nil {
+			return err
+		}
+	} else {
+		p_, err := self.getPersistenceSaConnection()
+		if err != nil {
+			return err
+		}
+		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, changePasswordScript)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Here I will update the user information.
@@ -1149,6 +1190,9 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 
 						// Delete it from Application.
 						p.Update(context.Background(), "local_ressource", "local_ressource", "Applications", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
+
+						// Delete it from Peer.
+						p.Update(context.Background(), "local_ressource", "local_ressource", "Peers", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
 
 					}
 				}
