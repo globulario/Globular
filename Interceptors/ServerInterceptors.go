@@ -348,7 +348,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && ((domain == "127.0.0.1" || domain == "localhost") || pwd == "adminadmin") {
 		hasAccess = true
 	}
-	log.Println("Validate method ", method, "result ", hasAccess, "domain", domain)
+
 	var clientId string
 	var err error
 
@@ -383,7 +383,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
 		fmt.Println(err)
-		ressource_client.Log(application, clientId, method, err)
 		return nil, err
 	}
 
@@ -470,7 +469,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 			if candidate.GetId() == serverId {
 				// In that case the handler is the actual server.
 				result, err = handler(ctx, rqst)
-				fmt.Println("398 execute load balanced request ", serverId)
+
 				break // stop the loop...
 			} else {
 				// Here the canditade is the actual server so I will dispatch the request to the candidate.
@@ -502,9 +501,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		}
 
 	} else {
-		if Utility.GetProperty(info.Server, "Id") != nil {
-			fmt.Println("421 execute request ", Utility.GetProperty(info.Server, "Id").(string))
-		}
 		result, err = handler(ctx, rqst)
 	}
 

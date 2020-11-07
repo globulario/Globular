@@ -1882,8 +1882,6 @@ func (self *Globule) getLogInfoKeyValue(info *ressourcepb.LogInfo) (string, stri
 
 	key := ""
 	if info.GetType() == ressourcepb.LogType_INFO_MESSAGE {
-		// Increnment prometheus counter,
-		self.methodsCounterLog.WithLabelValues("INFO", info.Method).Inc()
 
 		// Append the log in leveldb
 		key += "/infos/" + info.Method + Utility.ToString(info.Date)
@@ -1900,8 +1898,7 @@ func (self *Globule) getLogInfoKeyValue(info *ressourcepb.LogInfo) (string, stri
 		key += "/" + Utility.GenerateUUID(jsonStr)
 
 	} else {
-		// Increnment prometheus counter,
-		self.methodsCounterLog.WithLabelValues("ERROR", info.Method).Inc()
+
 		key += "/errors/" + info.Method + Utility.ToString(info.Date)
 
 		// Set the application in the path
@@ -2790,7 +2787,6 @@ func (self *Globule) validateApplicationAccess(name string, method string) error
 
 	for i := 0; i < len(actions); i++ {
 		if actions[i].(string) == method {
-			log.Println("Application", name, "can run "+method)
 			return nil
 		}
 	}
