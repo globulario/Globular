@@ -277,6 +277,15 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 			if err != nil {
 				return false
 			}
+
+			hub, err := self.getEventHub()
+			if err == nil {
+				// Publish event on the network to update the configuration...
+				err := hub.Publish("update_globular_service_configuration_evt", []byte(jsonStr))
+				if err != nil {
+					log.Println("fail to publish event with error: ", err)
+				}
+			}
 		}
 	}
 	f.Close()

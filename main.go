@@ -503,6 +503,7 @@ COPY bin /globular/bin
 COPY proto /globular/proto
 COPY services /globular/services
 COPY webroot /globular/webroot
+WORKDIR /globular
 `
 
 	Utility.CreateDirIfNotExist(path)
@@ -540,11 +541,30 @@ COPY webroot /globular/webroot
 
 	// Now I will copy the prototype files of the internal gRPC service
 	// admin, ressource, ca and services.
-	Utility.CreateDirIfNotExist(path + "/" + "proto")
-	Utility.CopyFile(dir+"/"+"admin"+"/"+"admin.proto", path+"/"+"proto"+"/"+"admin.proto")
-	Utility.CopyFile(dir+"/"+"ca"+"/"+"ca.proto", path+"/"+"proto"+"/"+"ca.proto")
-	Utility.CopyFile(dir+"/"+"ressource"+"/"+"ressource.proto", path+"/"+"proto"+"/"+"ressource.proto")
-	Utility.CopyFile(dir+"/"+"services"+"/"+"services.proto", path+"/"+"proto"+"/"+"services.proto")
+	log.Println("---> source path is ", dir)
+	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
+	Utility.CreateDirIfNotExist(path + "/proto")
+	err = Utility.CopyFile(serviceDir+"/proto/admin.proto", path+"/proto/admin.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
+	err = Utility.CopyFile(serviceDir+"/proto/ca.proto", path+"/proto/ca.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
+	err = Utility.CopyFile(serviceDir+"/proto/ressource.proto", path+"/proto/ressource.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
+	err = Utility.CopyFile(serviceDir+"/proto/services.proto", path+"/proto/services.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
+
+	err = Utility.CopyFile(serviceDir+"/proto/lb.proto", path+"/proto/lb.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
 
 	for _, f := range files {
 		if !f.IsDir() {
@@ -564,7 +584,6 @@ COPY webroot /globular/webroot
 
 			// I will read the configuration file to have nessecary service information
 			// to be able to create the path.
-
 			configPath := getStringVal(s, "Path")
 			if len(configPath) > 0 {
 				configPath = configPath[:strings.LastIndex(configPath, "/")] + "/config.json"

@@ -29,8 +29,8 @@ import (
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/ldap/ldap_client"
-	"github.com/globulario/services/golang/monitoring/monitoring_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
+	"github.com/struCoder/pidusage"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -155,7 +155,9 @@ type Globule struct {
 	// The prometheus logging informations.
 	methodsCounterLog *prometheus.CounterVec
 
-	// prometheus.CounterVec
+	// Monitor the cpu usage of process.
+	servicesCpuUsage    *prometheus.GaugeVec
+	servicesMemoryUsage *prometheus.GaugeVec
 
 	// Directories.
 	path    string // The path of the exec...
@@ -286,19 +288,6 @@ func NewGlobule() *Globule {
 		g.LoadBalancingServiceProxy = start + 12
 	}
 
-	// Prometheus logging informations.
-	g.methodsCounterLog = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "globular_methods_counter",
-		Help: "Globular services methods usage.",
-	},
-		[]string{
-			"type",
-			"method"},
-	)
-
-	// Set the function into prometheus.
-	prometheus.MustRegister(g.methodsCounterLog)
-
 	// Keep in global var to by http handlers.
 	globule = g
 
@@ -388,7 +377,6 @@ func getVal(m *sync.Map, k string) interface{} {
 
 func (self *Globule) getServices() []*sync.Map {
 	_services_ := make([]*sync.Map, 0)
-
 	// Append services into the array.
 	self.services.Range(func(key, s interface{}) bool {
 		_services_ = append(_services_, s.(*sync.Map))
@@ -1572,21 +1560,11 @@ func resolveImportPath(path string, importPath string) (string, error) {
 }
 
 /**
- * Start the monitoring service with prometheus.
+ * Start prometheus.
  */
-func (self *Globule) startMonitoring() error {
-	if self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"] == nil {
-		return errors.New("No monitoring service configuration was found on that server!")
-	}
+func (self *Globule) startPrometheus() error {
 
 	var err error
-	s := self.getConfig()["Services"].(map[string]interface{})["monitoring.MonitoringService"].(map[string]interface{})
-
-	// Cast-it to the persistence client.
-	m, err := monitoring_client.NewMonitoringService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), "monitoring.MonitoringService")
-	if err != nil {
-		return err
-	}
 
 	// Here I will start promethus.
 	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
@@ -1624,7 +1602,7 @@ scrape_configs:
   - job_name: 'globular_internal_services_metrics'
     scrape_interval: 5s
     static_configs:
-    - targets: ['localhost:10000']
+    - targets: ['localhost:` + Utility.ToString(self.PortHttp) + `']
     
   - job_name: 'node_exporter_metrics'
     scrape_interval: 5s
@@ -1675,11 +1653,92 @@ inhibit_rules:
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
-	err = s["Process"].(*exec.Cmd).Start()
 	if err != nil {
-		log.Println("fail to start monitoring with prometheus", err)
+		log.Println("fail to start prometheus ", err)
 		return err
 	}
+
+	// Here I will register various metric that I would like to have for the dashboard.
+
+	// Prometheus logging informations.
+	self.methodsCounterLog = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "globular_methods_counter",
+		Help: "Globular services methods usage.",
+	},
+		[]string{
+			"application",
+			"user",
+			"method"},
+	)
+	prometheus.MustRegister(self.methodsCounterLog)
+
+	// Here I will monitor the cpu usage of each services
+	self.servicesCpuUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "globular_services_cpu_usage_counter",
+		Help: "Monitor the cpu usage of each services.",
+	},
+		[]string{
+			"id",
+			"name"},
+	)
+
+	self.servicesMemoryUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "globular_services_memory_usage_counter",
+		Help: "Monitor the memory usage of each services.",
+	},
+		[]string{
+			"id",
+			"name"},
+	)
+
+	// Set the function into prometheus.
+	prometheus.MustRegister(self.servicesCpuUsage)
+	prometheus.MustRegister(self.servicesMemoryUsage)
+
+	// Start feeding the time series...
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				self.services.Range(func(key, s interface{}) bool {
+					pids, err := Utility.GetProcessIdsByName("Globular")
+					if err == nil {
+						for i := 0; i < len(pids); i++ {
+							sysInfo, err := pidusage.GetStat(pids[i])
+							if err == nil {
+								//log.Println("---> set cpu for process ", pid, getStringVal(s.(*sync.Map), "Name"), sysInfo.CPU)
+								self.servicesCpuUsage.WithLabelValues("Globular", "Globular").Set(sysInfo.CPU)
+								self.servicesMemoryUsage.WithLabelValues("Globular", "Globular").Set(sysInfo.Memory)
+							}
+						}
+					}
+
+					pid := getIntVal(s.(*sync.Map), "Process")
+					if pid > 0 {
+						sysInfo, err := pidusage.GetStat(pid)
+						if err == nil {
+							//log.Println("---> set cpu for process ", pid, getStringVal(s.(*sync.Map), "Name"), sysInfo.CPU)
+							self.servicesCpuUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(sysInfo.CPU)
+							self.servicesMemoryUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(sysInfo.Memory)
+						}
+					} else {
+						path := getStringVal(s.(*sync.Map), "Path")
+						if len(path) > 0 {
+							self.servicesCpuUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(0)
+							self.servicesMemoryUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(0)
+							//log.Println("----> process is close for ", getStringVal(s.(*sync.Map), "Name"))
+						}
+
+					}
+					return true
+				})
+			case <-self.exit:
+				break
+			}
+		}
+
+	}()
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
@@ -1688,7 +1747,7 @@ inhibit_rules:
 
 	err = alertmanager.Start()
 	if err != nil {
-		log.Println("fail to start prometheus node exporter", err)
+		log.Println("fail to start prometheus alert manager", err)
 		// do not return here in that case simply continue without node exporter metrics.
 	}
 
@@ -1701,12 +1760,6 @@ inhibit_rules:
 	if err != nil {
 		log.Println("fail to start prometheus node exporter", err)
 		// do not return here in that case simply continue without node exporter metrics.
-	}
-
-	// Here I will create a new connection.
-	err = m.CreateConnection("local_ressource", "localhost", 0, 9090)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -1841,7 +1894,15 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
-		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), s["Id"].(string))
+		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
+		if err == nil {
+			// Here I need to publish a fake event message to be sure the event service is listen.
+			err := self.event_client_.Publish("__init__", []byte("This is a test!"))
+			if err != nil {
+				self.event_client_ = nil
+				return nil, err
+			}
+		}
 	}
 
 	return self.event_client_, err
@@ -1922,9 +1983,6 @@ func (self *Globule) Listen() error {
 	// set the register sa user.
 	self.registerSa()
 
-	// Start the monitoring service with prometheus.
-	//self.startMonitoring()
-
 	// Start the http server.
 	if self.Protocol == "https" {
 
@@ -1944,6 +2002,9 @@ func (self *Globule) Listen() error {
 	}
 
 	log.Println("Globular is running!")
+	// Start the monitoring service with prometheus.
+	self.startPrometheus()
+
 	return err
 }
 
