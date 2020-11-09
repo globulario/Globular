@@ -223,8 +223,6 @@ func ValidatePeerRessourceAccess(domain string, name string, method string, path
 
 func ValidatePeerAccess(domain string, peer string, method string) (bool, error) {
 
-	log.Println("----> validate domain permission.")
-
 	key := Utility.GenerateUUID(peer + method)
 
 	_, err := getCache().GetItem(key)
@@ -312,6 +310,13 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		// in case of ressource path.
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
+		if strings.Index(domain, ":") == 0 {
+			port := strings.Join(md["port"], "")
+			if len(port) > 0 {
+				// set the address in that particular case.
+				domain += ":" + port
+			}
+		}
 
 		//TODO secure it
 		load_balanced_ := strings.Join(md["load_balanced"], "")
@@ -329,7 +334,8 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+	hasAccess := false //strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+
 	var pwd string
 	if Utility.GetProperty(info.Server, "RootPassword") != nil {
 		pwd = Utility.GetProperty(info.Server, "RootPassword").(string)
@@ -355,6 +361,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)
 		if err != nil {
+			log.Println("token validation fail with error: ", err)
 			return nil, err
 		}
 	}
@@ -371,18 +378,23 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Test if peer has access
 	if !hasAccess {
-		hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
+		// hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
 	}
 
 	// Connect to the ressource services for the given domain.
 	ressource_client, err := GetRessourceClient(domain)
 	if err != nil {
+		log.Println("fail to get ressource validator client ", err)
 		return nil, err
 	}
+
+	log.Println("validate call from ", p.Addr.String(), "application", application, "domain", domain)
+	log.Println("Validate access method with result: ", method, hasAccess)
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
 		fmt.Println(err)
+		log.Println("validation fail ", err)
 		ressource_client.Log(application, clientId, method, err)
 		return nil, err
 	}
@@ -563,7 +575,6 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 	if l.clientId != "sa" {
 		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
 		rqst_ := val.(protoreflect.Message)
-
 		actionParameterRessourcesPermissions, err := ressource_client.GetActionPermission(l.method)
 		if err == nil {
 			// The token and the application id.
@@ -589,6 +600,7 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 								ressource_client.Log("", l.clientId, l.method, err)
 								return err
 							}
+							return err
 						}
 
 					}
@@ -596,7 +608,7 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 			}
 		}
 	}
-
+	log.Println("---> 606 ", l.domain)
 	return l.inner.RecvMsg(rqst)
 }
 
@@ -606,14 +618,24 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// The token and the application id.
 	var token string
 	var application string
+
+	// The peer domain.
 	var domain string
 
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
-		//mac = strings.Join(md["mac"], "")
 		domain = strings.Join(md["domain"], "")
+		if strings.Index(domain, ":") == 0 {
+			port := strings.Join(md["port"], "")
+			if len(port) > 0 {
+				// set the address in that particular case.
+				domain += ":" + port
+			}
+		}
+
 	}
+
 	p, _ := peer.FromContext(stream.Context())
 
 	method := info.FullMethod
@@ -629,7 +651,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+	hasAccess := false //strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+
 	// needed by the admin.
 	if application == "admin" ||
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
@@ -648,10 +671,9 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	if !hasAccess {
-		log.Println("-----> 648")
-		hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
+		// hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
 	}
-
+	log.Println("validate call from ", p.Addr.String(), "application", application, "domain", domain)
 	log.Println("Validate access method with result: ", method, hasAccess)
 	// Return here if access is denied.
 	if !hasAccess {
@@ -659,10 +681,9 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	// Now the permissions
-	err = handler(srv, ServerStreamInterceptorStream{inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId})
+	err = handler(srv, ServerStreamInterceptorStream{inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
 
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

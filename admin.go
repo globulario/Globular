@@ -548,6 +548,7 @@ func (self *Globule) registerSa() error {
 
 	configs := self.getServiceConfigByName("persistence.PersistenceService")
 	if len(configs) == 0 {
+		logger.Info("No persistence service was configure on that globule!")
 		return errors.New("No persistence service was configure on that globule!")
 	}
 
@@ -555,6 +556,7 @@ func (self *Globule) registerSa() error {
 	existMongo := exec.Command("mongod", "--version")
 	err := existMongo.Run()
 	if err != nil {
+		logger.Info("Failt to run command mongod --version ", err.Error())
 		log.Println("fail to start mongo db!", err)
 		return err
 	}
@@ -597,12 +599,16 @@ func (self *Globule) registerSa() error {
 
 	// Now I will start mongod with auth available.
 	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--bind_ip", "0.0.0.0", "--dbpath", dataPath)
+	logger.Info("try to start mongod with path ", dataPath)
 	err = mongod.Start()
 	if err != nil {
+
+		logger.Info("Fail to strart mongo with error ", err)
 		return err
 	}
 
 	// wait 15 seconds that the server restart.
+
 	self.waitForMongo(60, true)
 
 	// Get the list of all services method.

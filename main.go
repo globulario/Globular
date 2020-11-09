@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/ressource/ressource_client"
-	"github.com/davecourtois/Utility"
 	"github.com/kardianos/service"
 )
 
@@ -630,6 +630,7 @@ COPY webroot /globular/webroot
 									if Utility.Exists(protoPath) {
 										Utility.Copy(protoPath, config["Proto"].(string))
 									}
+
 								} else {
 									fmt.Println("executable not exist ", execPath)
 								}
@@ -653,9 +654,15 @@ COPY webroot /globular/webroot
 				} else {
 					fmt.Println("service", name, ":", id, "configuration is incomplete!")
 				}
+			} else {
+
+				// Internal services here.
+				protoPath := getStringVal(s, "Proto")
+				// Copy the proto file.
+				if Utility.Exists(os.Getenv("GLOBULAR_SERVICES_ROOT") + "/" + protoPath) {
+					Utility.Copy(os.Getenv("GLOBULAR_SERVICES_ROOT")+"/"+protoPath, path+"/"+protoPath)
+				}
 			}
-		} else {
-			fmt.Println("service Name for", id, " is missing")
 		}
 	}
 

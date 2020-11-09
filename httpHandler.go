@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/globulario/Globular/Interceptors"
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/Globular/Interceptors"
 )
 
 /**
