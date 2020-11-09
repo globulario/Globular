@@ -357,6 +357,10 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		if err != nil {
 			return nil, err
 		}
+		if clientId == "sa" {
+			log.Println("-----> 361 has access " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
+			hasAccess = true
+		}
 	}
 
 	// Test if the application has access to execute the method.
@@ -616,16 +620,20 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	var clientId string
 	var err error
+	// If the call come from a local client it has hasAccess
+	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
 
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)
 		if err != nil {
 			return err
 		}
+		if clientId == "sa" {
+			log.Println("-----> 631 has access")
+			hasAccess = true
+		}
 	}
 
-	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
 	// needed by the admin.
 	if application == "admin" ||
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
@@ -644,7 +652,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	}
 
 	if !hasAccess {
-		log.Println("-----> 648")
+
 		hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
 	}
 

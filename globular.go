@@ -1895,7 +1895,15 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	var err error
 	if self.event_client_ == nil {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
-		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string)+":"+Utility.ToString(self.PortHttp), s["Id"].(string))
+		self.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
+		if err == nil {
+			// Here I need to publish a fake event message to be sure the event service is listen.
+			err := self.event_client_.Publish("__init__", []byte("This is a test!"))
+			if err != nil {
+				self.event_client_ = nil
+				return nil, err
+			}
+		}
 	}
 
 	return self.event_client_, err

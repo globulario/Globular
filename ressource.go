@@ -657,13 +657,15 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressourcepb.Authent
 	// in case of sa user.(admin)
 	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
 		// Generate a token to identify the user.
+		log.Println("---> generate a token... for sa")
 		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-
+		_, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+		log.Println("--> expireAt unix time: ", expireAt, "--> date: ", time.Unix(expireAt, 0).String())
 		/** Return the token only **/
 		return &ressourcepb.AuthenticateRsp{
 			Token: tokenString,
@@ -766,7 +768,12 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 	}
 
 	// first of all I will validate the current token.
-	name, email, expireAt, _ := Interceptors.ValidateToken(rqst.Token)
+	name, email, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
 
 	// If the token is older than seven day without being refresh then I retrun an error.
 	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
@@ -783,7 +790,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(int32)), 0)
 
 		// That mean a newer token was already refresh.
-		if savedTokenExpireAt.Before(time.Unix(expireAt, 0)) {
+		if time.Unix(expireAt, 0).Before(savedTokenExpireAt) {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")))
@@ -3088,6 +3095,7 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressourcepb.V
 
 	// first of all I will validate the token.
 	clientID, _, expiredAt, err := Interceptors.ValidateToken(rqst.Token)
+	log.Println("----> clientID ", clientID, " expire at ", time.Unix(expiredAt, 0).String(), err)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -3095,6 +3103,7 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressourcepb.V
 	}
 
 	if expiredAt < time.Now().Unix() {
+		log.Println("----> token is expired!", expiredAt, time.Now().Unix())
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token is expired!")))
@@ -3104,6 +3113,7 @@ func (self *Globule) ValidateUserAccess(ctx context.Context, rqst *ressourcepb.V
 	err = self.validateUserAccess(clientID, rqst.Method)
 
 	if err != nil {
+		log.Println("----> ", rqst.Method, err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
