@@ -664,8 +664,15 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressourcepb.Authent
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-		_, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-		log.Println("--> expireAt unix time: ", expireAt, "--> date: ", time.Unix(expireAt, 0).String())
+
+		name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+		err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
 		/** Return the token only **/
 		return &ressourcepb.AuthenticateRsp{
 			Token: tokenString,
@@ -791,7 +798,8 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 	if err == nil && values != nil {
 		lastTokenInfo := values.(map[string]interface{})
 		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(int32)), 0)
-
+		log.Println("already existing token expire at ", savedTokenExpireAt.String())
+		log.Println("newly created token expire at ", time.Unix(expireAt, 0).String())
 		// That mean a newer token was already refresh.
 		if time.Unix(expireAt, 0).Before(savedTokenExpireAt) {
 			err := errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")

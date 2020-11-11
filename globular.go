@@ -826,7 +826,7 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) error {
 	// start the proxy service one time
 	proxyProcess := exec.Command(self.path+proxyPath, proxyArgs...)
 	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 	err := proxyProcess.Start()
 
@@ -1110,7 +1110,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// Here I will set the command dir.
 		p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 		p.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 
 		err = p.Start()
@@ -1226,7 +1226,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			// Here I will set the command dir.
 			p.Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
 			p.SysProcAttr = &syscall.SysProcAttr{
-				CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
 
 			err = p.Start()
@@ -1650,7 +1650,7 @@ inhibit_rules:
 	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheusCmd.Start()
 	prometheusCmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	if err != nil {
@@ -1742,7 +1742,7 @@ inhibit_rules:
 
 	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = alertmanager.Start()
@@ -1753,7 +1753,7 @@ inhibit_rules:
 
 	node_exporter := exec.Command("node_exporter")
 	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
 	err = node_exporter.Start()
