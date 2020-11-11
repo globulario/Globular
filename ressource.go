@@ -769,10 +769,13 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 
 	// first of all I will validate the current token.
 	name, email, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		if !strings.HasPrefix(err.Error(), "token is expired") {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	}
 
 	// If the token is older than seven day without being refresh then I retrun an error.
@@ -785,20 +788,23 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
 	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `[{"Projection":{"expireAt":1}}]`)
-	if err == nil {
+	if err == nil && values != nil {
 		lastTokenInfo := values.(map[string]interface{})
 		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(int32)), 0)
 
 		// That mean a newer token was already refresh.
 		if time.Unix(expireAt, 0).Before(savedTokenExpireAt) {
+			err := errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")
+			log.Println(err)
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")))
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	}
 
 	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name, email)
 	if err != nil {
+		log.Println(err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -809,11 +815,13 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *ressourcepb.Refresh
 
 	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 	if err != nil {
+		log.Println(err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("token was refresh with success for entity named ", name, "!!")
 	// return the token string.
 	return &ressourcepb.RefreshTokenRsp{
 		Token: tokenString,

@@ -1647,9 +1647,9 @@ inhibit_rules:
 		}
 	}
 
-	prometheus := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
-	err = prometheus.Start()
-	prometheus.SysProcAttr = &syscall.SysProcAttr{
+	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
+	err = prometheusCmd.Start()
+	prometheusCmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
