@@ -657,7 +657,6 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *ressourcepb.Authent
 	// in case of sa user.(admin)
 	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
 		// Generate a token to identify the user.
-		log.Println("---> generate a token... for sa")
 		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
 		if err != nil {
 			return nil, status.Errorf(

@@ -99,7 +99,7 @@ type Globule struct {
 	LoadBalancingServicePort  int    // The load balancing service port
 	LoadBalancingServiceProxy int    // The load balancing proxy port
 	PortsRange                string // The range of port to be use for the service. ex 10000-10200
-	DbIpV4                    string // The address of the databe ex 0.0.0.0:27017
+	DbIpV4                    string // The address of the database ex 0.0.0.0:27017
 
 	// can be https or http.
 	Protocol string // The protocol of the service.
