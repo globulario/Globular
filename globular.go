@@ -1789,10 +1789,10 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return nil, err
 	}
 
-	address, port := self.getBackendAddress()
+	domain, port := self.getBackendAddress()
 
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", address, Utility.ToNumeric(port), 0, "sa", self.RootPassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", domain, Utility.ToNumeric(port), 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -1812,8 +1812,8 @@ func (self *Globule) getPersistenceStore() (persistence_store.Store, error) {
 	// That service made user of persistence service.
 	if self.store == nil {
 		self.store = new(persistence_store.MongoStore)
-		address, port := self.getBackendAddress()
-		err := self.store.Connect("local_ressource", address, port, "sa", self.RootPassword, "local_ressource", 5000, "")
+		domain, port := self.getBackendAddress()
+		err := self.store.Connect("local_ressource", domain, port, "sa", self.RootPassword, "local_ressource", 5000, "")
 		if err != nil {
 			return nil, err
 		}
