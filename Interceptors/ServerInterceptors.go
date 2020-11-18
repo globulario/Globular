@@ -609,7 +609,6 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 			}
 		}
 	}
-	log.Println("---> 606 ", l.domain)
 	return l.inner.RecvMsg(rqst)
 }
 
@@ -627,6 +626,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 		domain = strings.Join(md["domain"], "")
+
 		if strings.Index(domain, ":") == 0 {
 			port := strings.Join(md["port"], "")
 			if len(port) > 0 {
@@ -634,7 +634,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 				domain += ":" + port
 			}
 		}
-
 	}
 
 	p, _ := peer.FromContext(stream.Context())
@@ -652,7 +651,6 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 			return err
 		}
 		if clientId == "sa" {
-			log.Println("-----> 631 has access")
 			hasAccess = true
 		}
 	}
