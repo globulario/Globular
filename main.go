@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/davecourtois/Utility"
+	"github.com/globulario/services/golang/admin/admin_client"
+	"github.com/globulario/services/golang/ressource/ressource_client"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/admin/admin_client"
-	"github.com/globulario/services/golang/ressource/ressource_client"
 	"github.com/kardianos/service"
 )
 
