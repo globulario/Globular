@@ -3478,7 +3478,6 @@ func (self *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.Register
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer with name '"+rqst.Peer.Domain+"' already exist!")))
-
 	}
 
 	// No authorization exist for that peer I will insert it.
@@ -3550,7 +3549,6 @@ func (self *Globule) GetPeers(rqst *resourcepb.GetPeersRqst, stream resourcepb.R
 	}
 
 	// Send reminding values.
-
 	err = stream.Send(
 		&resourcepb.GetPeersRsp{
 			Peers: values,

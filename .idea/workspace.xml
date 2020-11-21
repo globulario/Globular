@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="2b6e123d-a570-4fb6-9e43-5d4f45849f87" name="Default Changelist" comment="" />
+    <list default="true" id="2b6e123d-a570-4fb6-9e43-5d4f45849f87" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -25,14 +46,22 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../services" />
-    <property name="settings.editor.selected.configurable" value="com.goide.configuration.GoLibrariesConfigurableProvider" />
+    <property name="settings.editor.selected.configurable" value="go.vgo" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
-  <component name="VgoProject">
-    <integration-enabled>true</integration-enabled>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="WindowStateProjectService">
     <state x="2346" y="170" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1605745498198">
@@ -43,9 +72,9 @@
       <screen x="1920" y="0" width="2560" height="1080" />
     </state>
     <state x="2983" y="277" width="424" height="478" key="FileChooserDialogImpl/1920.0.2560.1080/0.0.1920.1040@1920.0.2560.1080" timestamp="1605745339970" />
-    <state x="2392" y="147" key="SettingsEditor" timestamp="1605745867679">
+    <state x="2392" y="147" key="SettingsEditor" timestamp="1605968589726">
       <screen x="1920" y="0" width="2560" height="1080" />
     </state>
-    <state x="2392" y="147" key="SettingsEditor/1920.0.2560.1080/0.0.1920.1040@1920.0.2560.1080" timestamp="1605745867679" />
+    <state x="2392" y="147" key="SettingsEditor/1920.0.2560.1080/0.0.1920.1040@1920.0.2560.1080" timestamp="1605968589726" />
   </component>
 </project>

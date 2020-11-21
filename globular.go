@@ -27,7 +27,6 @@ import (
 
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
-	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/ldap/ldap_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/struCoder/pidusage"
@@ -46,11 +45,11 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/storage/storage_store"
-	"github.com/go-acme/lego/v4/certcrypto"
-	"github.com/go-acme/lego/v4/certificate"
-	"github.com/go-acme/lego/v4/challenge/http01"
-	"github.com/go-acme/lego/v4/lego"
-	"github.com/go-acme/lego/v4/registration"
+	"github.com/go-acme/lego/certcrypto"
+	"github.com/go-acme/lego/certificate"
+	"github.com/go-acme/lego/challenge/http01"
+	"github.com/go-acme/lego/lego"
+	"github.com/go-acme/lego/registration"
 
 	"github.com/globulario/Globular/security"
 	globular "github.com/globulario/services/golang/globular_service"
@@ -88,8 +87,8 @@ type Globule struct {
 	AdminPort                 int    // The admin port
 	AdminProxy                int    // The admin proxy port.
 	AdminEmail                string // The admin email
-	ResourcePort             int    // The resource management service port
-	ResourceProxy            int    // The resource management proxy port
+	ResourcePort              int    // The resource management service port
+	ResourceProxy             int    // The resource management proxy port
 	CertificateAuthorityPort  int    // The certificate authority port
 	CertificateAuthorityProxy int    // The certificate authority proxy port
 	ServicesDiscoveryPort     int    // The services discovery port
@@ -183,12 +182,6 @@ type Globule struct {
 
 	// ACME protocol registration
 	registration *registration.Resource
-
-	// load balancing action channel.
-	lb_load_info_channel             chan *lbpb.LoadInfo
-	lb_remove_candidate_info_channel chan *lbpb.ServerInfo
-	lb_get_candidates_info_channel   chan map[string]interface{}
-	lb_stop_channel                  chan bool
 
 	// exit channel.
 	exit            chan struct{}
@@ -1129,24 +1122,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// save the services in the map.
 		go func(s *sync.Map, p *exec.Cmd) {
 
-			// Here I will append the service to the load balancer.
-			if port != -1 {
-				log.Println("Append ", getStringVal(s, "Name"), " to load balancer.")
-				load_info := &lbpb.LoadInfo{
-					ServerInfo: &lbpb.ServerInfo{
-						Id:     getStringVal(s, "Id"),
-						Name:   getStringVal(s, "Name"),
-						Domain: getStringVal(s, "Domain"),
-						Port:   int32(port),
-					},
-					Load1:  0, // All service will be initialise with a 0 load.
-					Load5:  0,
-					Load15: 0,
-				}
-
-				self.lb_load_info_channel <- load_info
-			}
-
 			s.Store("State", "running")
 			self.keepServiceAlive(s)
 
@@ -1168,14 +1143,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			// Print the error
 			if len(errb.String()) > 0 {
 				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
-			}
-
-			// I will remove the service from the load balancer.
-			self.lb_remove_candidate_info_channel <- &lbpb.ServerInfo{
-				Id:     getStringVal(s, "Id"),
-				Name:   getStringVal(s, "Name"),
-				Domain: getStringVal(s, "Domain"),
-				Port:   int32(port),
 			}
 
 			s.Store("Process", -1)
@@ -1486,12 +1453,6 @@ func (self *Globule) initServices() {
 
 	// Kill previous instance of the program...
 	self.KillProcess()
-
-	// Start the load balancer.
-	err := self.startLoadBalancingService()
-	if err != nil {
-		log.Panicln(err)
-	}
 
 	for _, s := range self.getServices() {
 		// Remove existing process information.

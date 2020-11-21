@@ -24,8 +24,6 @@ import (
 	"os/exec"
 	"reflect"
 
-	"github.com/globulario/services/golang/lb/lbpb"
-
 	"strconv"
 
 	"net"
@@ -34,7 +32,8 @@ import (
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/admin/adminpb"
 	globular "github.com/globulario/services/golang/globular_service"
-	"github.com/globulario/services/golang/resource/resourcepb"
+
+	//"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/service_client"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -476,19 +475,15 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	ctx := stream.Context()
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
-
-		// Set user owner of the application directory.
-		self.setResourceOwner(user, "/"+name)
-
 		path := strings.Join(md["path"], "")
-		res := &resourcepb.Resource{
-			Path:     path,
-			Modified: time.Now().Unix(),
-			Size:     int64(buffer.Len()),
-			Name:     name,
+
+		resourceClient, err := Interceptors.GetResourceClient(self.Domain)
+		if err != nil {
+			return err
 		}
-		self.setResource(res)
-		self.setResourceOwner(user, path+"/"+name)
+		resourceClient.SetResource(name, path, time.Now().Unix(), int64(buffer.Len()), "")
+		resourceClient.SetResourceOwner(user, "/"+name, "")
+		resourceClient.SetResourceOwner(user, path+"/"+name, "")
 
 	}
 
@@ -850,7 +845,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// read the token.
+	// read the local token.
 	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
@@ -880,7 +875,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 	// save the configuration.
 	self.saveConfig()
 
-	// read the token.
+	// read the local token.
 	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
@@ -1010,14 +1005,15 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
 		path := strings.Join(md["path"], "")
-		res := &resourcepb.Resource{
-			Path:     path,
-			Modified: time.Now().Unix(),
-			Size:     fi.Size(),
-			Name:     rqst.ServiceId,
+
+		resourceClient, err := Interceptors.GetResourceClient(self.Domain)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-		self.setResource(res)
-		self.setResourceOwner(user, "/services/"+rqst.PublisherId)
+		resourceClient.SetResource(rqst.ServiceId, path, time.Now().Unix(), fi.Size(), "")
+		resourceClient.SetResourceOwner(user, "/services/"+rqst.PublisherId, "")
 	}
 
 	return &adminpb.PublishServiceResponse{
@@ -1295,14 +1291,6 @@ func (self *Globule) stopService(serviceId string) error {
 	}
 
 	self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
-
-	// I will remove the service from the load balancer.
-	self.lb_remove_candidate_info_channel <- &lbpb.ServerInfo{
-		Id:     getStringVal(s, "Id"),
-		Name:   getStringVal(s, "Name"),
-		Domain: getStringVal(s, "Domain"),
-		Port:   int32(getIntVal(s, "Port")),
-	}
 
 	return nil
 }
