@@ -222,7 +222,7 @@ func (self *Globule) FindServices(ctx context.Context, rqst *servicespb.FindServ
 	// Test...
 	query := `{"keywords": { "$all" : ` + kewordsStr + `}}`
 
-	data, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Services", query, "")
+	data, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", query, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -279,7 +279,7 @@ func (self *Globule) GetServiceDescriptor(ctx context.Context, rqst *servicespb.
 
 	query := `{"id":"` + rqst.ServiceId + `", "publisherid":"` + rqst.PublisherId + `"}`
 
-	values, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Services", query, "")
+	values, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", query, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -346,7 +346,7 @@ func (self *Globule) GetServicesDescriptor(rqst *servicespb.GetServicesDescripto
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	data, err := p.Find(context.Background(), "local_ressource", "local_ressource", "Services", `{}`, "")
+	data, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", `{}`, "")
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -428,7 +428,7 @@ func (self *Globule) SetServiceDescriptor(ctx context.Context, rqst *servicespb.
 	jsonStr = strings.ReplaceAll(jsonStr, "publisherId", "publisherid")
 
 	// Always create a new if not already exist.
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, jsonStr, `[{"upsert": true}]`)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, jsonStr, `[{"upsert": true}]`)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -457,7 +457,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 	}
 
 	// Here I will test if the services already exist...
-	_, err = p.FindOne(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
+	_, err = p.FindOne(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
 	if err == nil {
 		// Update existing descriptor.
 
@@ -465,7 +465,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 		discoveries, err := Utility.ToJson(rqst.Descriptor_.Discoveries)
 		if err == nil {
 			values := `{"$set":{"discoveries":` + discoveries + `}}`
-			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -477,7 +477,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 		repositories, err := Utility.ToJson(rqst.Descriptor_.Repositories)
 		if err == nil {
 			values := `{"$set":{"repositories":` + repositories + `}}`
-			err = p.Update(context.Background(), "local_ressource", "local_ressource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -488,7 +488,7 @@ func (self *Globule) PublishServiceDescriptor(ctx context.Context, rqst *service
 	} else {
 
 		// The key will be the descriptor string itself.
-		_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "Services", rqst.Descriptor_, "")
+		_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Services", rqst.Descriptor_, "")
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -527,7 +527,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 		return err
 	}
 
-	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", `{"_id":"`+id+`"}`, "")
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", `{"_id":"`+id+`"}`, "")
 	if err != nil {
 		return err
 	}
@@ -631,7 +631,7 @@ func (self *Globule) UploadBundle(stream servicespb.ServiceRepository_UploadBund
 		return err
 	}
 
-	_, err = p.InsertOne(context.Background(), "local_ressource", "local_ressource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": bundle.Plaform, "publisherid": bundle.Descriptor_.PublisherId, "servicename": bundle.Descriptor_.Name, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
+	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": bundle.Plaform, "publisherid": bundle.Descriptor_.PublisherId, "servicename": bundle.Descriptor_.Name, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
 
 	return err
 }

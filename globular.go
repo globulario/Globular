@@ -88,14 +88,14 @@ type Globule struct {
 	AdminPort                 int    // The admin port
 	AdminProxy                int    // The admin proxy port.
 	AdminEmail                string // The admin email
-	RessourcePort             int    // The ressource management service port
-	RessourceProxy            int    // The ressource management proxy port
+	ResourcePort             int    // The resource management service port
+	ResourceProxy            int    // The resource management proxy port
 	CertificateAuthorityPort  int    // The certificate authority port
 	CertificateAuthorityProxy int    // The certificate authority proxy port
 	ServicesDiscoveryPort     int    // The services discovery port
-	ServicesDiscoveryProxy    int    // The ressource management proxy port
+	ServicesDiscoveryProxy    int    // The resource management proxy port
 	ServicesRepositoryPort    int    // The services discovery port
-	ServicesRepositoryProxy   int    // The ressource management proxy port
+	ServicesRepositoryProxy   int    // The resource management proxy port
 	LoadBalancingServicePort  int    // The load balancing service port
 	LoadBalancingServiceProxy int    // The load balancing proxy port
 	PortsRange                string // The range of port to be use for the service. ex 10000-10200
@@ -274,8 +274,8 @@ func NewGlobule() *Globule {
 		g.AdminPort = start + 1
 		g.AdminProxy = start + 2
 		g.AdminEmail = "admin@globular.app"
-		g.RessourcePort = start + 3
-		g.RessourceProxy = start + 4
+		g.ResourcePort = start + 3
+		g.ResourceProxy = start + 4
 
 		// services management...
 		g.ServicesDiscoveryPort = start + 5
@@ -875,7 +875,7 @@ func (self *Globule) keepServiceAlive(s *sync.Map) {
 }
 
 /**
- * Start internal service admin and ressource are use that function.
+ * Start internal service admin and resource are use that function.
  */
 func (self *Globule) startInternalService(id string, proto string, port int, proxy int, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, error) {
 	log.Println("Start internal service ", id)
@@ -948,7 +948,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 }
 
 /**
- * Stop internal services ressource admin lb...
+ * Stop internal services resource admin lb...
  */
 func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
@@ -1398,11 +1398,11 @@ func (self *Globule) initServices() {
 	self.actionPermissions = make([]interface{}, 0)
 
 	// Set local action permission
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeletePermissions", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/SetRessourceOwner", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/ressource.RessourceService/DeleteRessourceOwner", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "actionParameterRessourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
@@ -1792,7 +1792,7 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	domain, port := self.getBackendAddress()
 
 	// Connect to the database here.
-	err = self.persistence_client_.CreateConnection("local_ressource", "local_ressource", domain, Utility.ToNumeric(port), 0, "sa", self.RootPassword, 5000, "", false)
+	err = self.persistence_client_.CreateConnection("local_resource", "local_resource", domain, Utility.ToNumeric(port), 0, "sa", self.RootPassword, 5000, "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -1813,7 +1813,7 @@ func (self *Globule) getPersistenceStore() (persistence_store.Store, error) {
 	if self.store == nil {
 		self.store = new(persistence_store.MongoStore)
 		domain, port := self.getBackendAddress()
-		err := self.store.Connect("local_ressource", domain, port, "sa", self.RootPassword, "local_ressource", 5000, "")
+		err := self.store.Connect("local_resource", domain, port, "sa", self.RootPassword, "local_resource", 5000, "")
 		if err != nil {
 			return nil, err
 		}
@@ -1945,8 +1945,8 @@ func (self *Globule) Listen() error {
 		return err
 	}
 
-	// Ressource service
-	err = self.startRessourceService()
+	// Resource service
+	err = self.startResourceService()
 	if err != nil {
 		return err
 	}
