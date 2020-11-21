@@ -34,7 +34,7 @@ import (
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/admin/adminpb"
 	globular "github.com/globulario/services/golang/globular_service"
-	"github.com/globulario/services/golang/ressource/ressourcepb"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/service_client"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -87,8 +87,8 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["AdminProxy"] = self.AdminProxy
 	config["AdminEmail"] = self.AdminEmail
 	config["AlternateDomains"] = self.AlternateDomains
-	config["RessourcePort"] = self.RessourcePort
-	config["RessourceProxy"] = self.RessourceProxy
+	config["ResourcePort"] = self.ResourcePort
+	config["ResourceProxy"] = self.ResourceProxy
 	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
 	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
 	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
@@ -335,8 +335,8 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.Organization = config["Organization"].(string)
 		self.AdminPort = Utility.ToInt(config["AdminPort"].(float64))
 		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
-		self.RessourcePort = Utility.ToInt(config["RessourcePort"].(float64))
-		self.RessourceProxy = Utility.ToInt(config["RessourceProxy"].(float64))
+		self.ResourcePort = Utility.ToInt(config["ResourcePort"].(float64))
+		self.ResourceProxy = Utility.ToInt(config["ResourceProxy"].(float64))
 		self.ServicesDiscoveryPort = Utility.ToInt(config["ServicesDiscoveryPort"].(float64))
 		self.ServicesDiscoveryProxy = Utility.ToInt(config["ServicesDiscoveryProxy"].(float64))
 		self.ServicesRepositoryPort = Utility.ToInt(config["ServicesRepositoryPort"].(float64))
@@ -460,7 +460,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-	count, err := store.Count(context.Background(), "local_ressource", "local_ressource", "Applications", `{"_id":"`+name+`"}`, "")
+	count, err := store.Count(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, "")
 	application := make(map[string]interface{})
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
@@ -472,23 +472,23 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	}
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
-	// Here I will set the ressource to manage the applicaiton access permission.
+	// Here I will set the resource to manage the applicaiton access permission.
 	ctx := stream.Context()
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
 
 		// Set user owner of the application directory.
-		self.setRessourceOwner(user, "/"+name)
+		self.setResourceOwner(user, "/"+name)
 
 		path := strings.Join(md["path"], "")
-		res := &ressourcepb.Ressource{
+		res := &resourcepb.Resource{
 			Path:     path,
 			Modified: time.Now().Unix(),
 			Size:     int64(buffer.Len()),
 			Name:     name,
 		}
-		self.setRessource(res)
-		self.setRessourceOwner(user, path+"/"+name)
+		self.setResource(res)
+		self.setResourceOwner(user, path+"/"+name)
 
 	}
 
@@ -501,7 +501,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 			name, name, application["password"].(string), name)
 
 		if address == "0.0.0.0" {
-			err = store.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
+			err = store.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
 				return err
 			}
@@ -511,7 +511,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 			if err != nil {
 				return err
 			}
-			err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, createApplicationUserDbScript)
+			err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
 				return err
 			}
@@ -519,7 +519,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		application["creation_date"] = time.Now().Unix() // save it as unix time.
 
-		_, err := store.InsertOne(context.Background(), "local_ressource", "local_ressource", "Applications", application, "")
+		_, err := store.InsertOne(context.Background(), "local_resource", "local_resource", "Applications", application, "")
 		if err != nil {
 			return err
 		}
@@ -533,7 +533,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	} else {
 
-		err := store.UpdateOne(context.Background(), "local_ressource", "local_ressource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }}`, "")
+		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }}`, "")
 		if err != nil {
 			return err
 		}
@@ -650,7 +650,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 	// I will execute the sript with the admin function.
 	address, _ := self.getBackendAddress()
 	if address == "0.0.0.0" {
-		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", rqst.OldPassword, changeRootPasswordScript)
+		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", rqst.OldPassword, changeRootPasswordScript)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -663,7 +663,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, changeRootPasswordScript)
+		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, changeRootPasswordScript)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -689,7 +689,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 		return err
 	}
 
-	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"_id":"`+accountId+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+accountId+`"}`, ``)
 	if err != nil {
 		return err
 	}
@@ -717,7 +717,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 	// I will execute the sript with the admin function.
 	address, _ := self.getBackendAddress()
 	if address == "0.0.0.0" {
-		err = p.RunAdminCmd(context.Background(), "local_ressource", "sa", self.RootPassword, changePasswordScript)
+		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, changePasswordScript)
 		if err != nil {
 			return err
 		}
@@ -726,7 +726,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 		if err != nil {
 			return err
 		}
-		err = p_.RunAdminCmd("local_ressource", "sa", self.RootPassword, changePasswordScript)
+		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, changePasswordScript)
 		if err != nil {
 			return err
 		}
@@ -760,7 +760,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 	jsonStr += `]`
 	jsonStr += "}"
 
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
 	if err != nil {
 		return err
 	}
@@ -800,7 +800,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	values, err := p.FindOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -843,7 +843,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	// set the new email.
 	account["email"] = rqst.NewEmail
 
-	err = p.ReplaceOne(context.Background(), "local_ressource", "local_ressource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1006,18 +1006,18 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 
 	self.discorveriesEventHub[rqst.DicorveryId].Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
 
-	// Here I will set the ressource to manage the applicaiton access permission.
+	// Here I will set the resource to manage the applicaiton access permission.
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		user := strings.Join(md["user"], "")
 		path := strings.Join(md["path"], "")
-		res := &ressourcepb.Ressource{
+		res := &resourcepb.Resource{
 			Path:     path,
 			Modified: time.Now().Unix(),
 			Size:     fi.Size(),
 			Name:     rqst.ServiceId,
 		}
-		self.setRessource(res)
-		self.setRessourceOwner(user, "/services/"+rqst.PublisherId)
+		self.setResource(res)
+		self.setResourceOwner(user, "/services/"+rqst.PublisherId)
 	}
 
 	return &adminpb.PublishServiceResponse{
@@ -1198,16 +1198,16 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 				if rqst.DeletePermissions {
 					// Now I will remove action permissions
 					for i := 0; i < len(toDelete); i++ {
-						p.Delete(context.Background(), "local_ressource", "local_ressource", "ActionPermission", `{"action":"`+toDelete[i]+`"}`, "")
+						p.Delete(context.Background(), "local_resource", "local_resource", "ActionPermission", `{"action":"`+toDelete[i]+`"}`, "")
 
 						// Delete it from Role.
-						p.Update(context.Background(), "local_ressource", "local_ressource", "Roles", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
+						p.Update(context.Background(), "local_resource", "local_resource", "Roles", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
 
 						// Delete it from Application.
-						p.Update(context.Background(), "local_ressource", "local_ressource", "Applications", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
+						p.Update(context.Background(), "local_resource", "local_resource", "Applications", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
 
 						// Delete it from Peer.
-						p.Update(context.Background(), "local_ressource", "local_ressource", "Peers", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
+						p.Update(context.Background(), "local_resource", "local_resource", "Peers", `{}`, `{"$pull":{"actions":"`+toDelete[i]+`"}}`, "")
 
 					}
 				}

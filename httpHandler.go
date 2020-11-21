@@ -126,7 +126,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	user := ""
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
+		err := Interceptors.ValidateApplicationResourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
 		if err == nil {
 			hasPermission = true
 		}
@@ -136,7 +136,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/FileUploadHandler", path, 2)
+		err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/FileUploadHandler", path, 2)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -154,7 +154,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Here the path dosent exist.
 	if !Utility.Exists(globule.webRoot + path) {
 		if len(token) != 0 {
-			err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
+			err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
 			if err != nil {
 				log.Println("142 Unable to create the file for writing. Check your write access privilege! ", path)
 				http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -163,7 +163,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			user, _, _, _ = Interceptors.ValidateToken(token)
 			hasPermission = true
 		} else if len(application) > 0 {
-			err := Interceptors.ValidateApplicationRessourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
+			err := Interceptors.ValidateApplicationResourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
 			if err != nil {
 				log.Println("148 Unable to create the file for writing. Check your write access privilege! ", path)
 				http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -180,9 +180,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Give the user or application the owner privilege on the created dir.
 		if len(user) > 0 {
-			globule.setRessourceOwner(user, path)
+			globule.setResourceOwner(user, path)
 		} else if len(application) > 0 {
-			globule.setRessourceOwner(application, path)
+			globule.setResourceOwner(application, path)
 		}
 
 		Utility.CreateDirIfNotExist(globule.webRoot + path)
@@ -198,9 +198,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// set the file owner if the length of the user if greather than 0
 		if len(user) > 0 {
-			globule.setRessourceOwner(user, path+"/"+files[i].Filename)
+			globule.setResourceOwner(user, path+"/"+files[i].Filename)
 		} else if len(application) > 0 {
-			globule.setRessourceOwner(application, path+"/"+files[i].Filename)
+			globule.setResourceOwner(application, path+"/"+files[i].Filename)
 		}
 
 		// Create the file.
@@ -232,7 +232,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If a directory with the same name as the host in the request exist
-	// it will be taken as root. Permission will be manage by the ressource
+	// it will be taken as root. Permission will be manage by the resource
 	// manager and not simply the name of the directory. If you want to protect
 	// a given you need to set permission on it.
 	if Utility.Exists(dir + "/" + r.Host) {
@@ -263,7 +263,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationRessourceAccess(domain, application, "/file.FileService/ServeFileHandler", name, 4)
+		err := Interceptors.ValidateApplicationResourceAccess(domain, application, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to download the file with error ", err.Error())
 			return
@@ -275,7 +275,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserRessourceAccess(domain, token, "/file.FileService/ServeFileHandler", name, 4)
+		err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil {
 			log.Println("Fail to dowload the file with error ", err.Error())
 			return

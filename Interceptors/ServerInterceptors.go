@@ -1,6 +1,6 @@
 package Interceptors
 
-// TODO for the validation, use a map to store valid method/token/ressource/access
+// TODO for the validation, use a map to store valid method/token/resource/access
 // the validation will be renew only if the token expire. And when a token expire
 // the value in the map will be discard. That way it will put less charge on the server
 // side.
@@ -18,7 +18,7 @@ import (
 	globular "github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/lb/load_balancing_client"
-	"github.com/globulario/services/golang/ressource/ressource_client"
+	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/storage/storage_store"
 	"github.com/shirou/gopsutil/load"
 	"google.golang.org/grpc"
@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	// The ressource client
-	ressource_client_ *ressource_client.Ressource_Client
+	// The resource client
+	resource_client_ *resource_client.Resource_Client
 
 	// The load balancer client.
 	lb_client *load_balancing_client.Lb_Client
@@ -39,12 +39,12 @@ var (
 	clients map[string]globular.Client
 
 	// That will contain the permission in memory to limit the number
-	// of ressource request...
+	// of resource request...
 	cache *storage_store.BigCache_store
 )
 
 /**
- * Get a the local ressource client.
+ * Get a the local resource client.
  */
 func getLoadBalancingClient(domain string, serverId string, serviceName string, serverDomain string, serverPort int32) (*load_balancing_client.Lb_Client, error) {
 
@@ -90,18 +90,18 @@ func getLoadBalancingClient(domain string, serverId string, serviceName string, 
 }
 
 /**
- * Get a the local ressource client.
+ * Get a the local resource client.
  */
-func GetRessourceClient(domain string) (*ressource_client.Ressource_Client, error) {
+func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
 	var err error
-	if ressource_client_ == nil {
-		ressource_client_, err = ressource_client.NewRessourceService_Client(domain, "ressource.RessourceService")
+	if resource_client_ == nil {
+		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return ressource_client_, nil
+	return resource_client_, nil
 }
 
 /**
@@ -121,48 +121,48 @@ func getCache() *storage_store.BigCache_store {
 /**
  * Validate user file permission.
  */
-func ValidateUserRessourceAccess(domain string, token string, method string, path string, permission int32) error {
+func ValidateUserResourceAccess(domain string, token string, method string, path string, permission int32) error {
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidateUserRessourceAccess(token, path, method, permission)
+	hasAccess, err := resource_client.ValidateUserResourceAccess(token, path, method, permission)
 	if err != nil {
 		return err
 	}
 
 	if !hasAccess {
 		user, _, _, _ := ValidateToken(token)
-		return errors.New("Permission denied for user " + user + " to execute methode " + method + " on ressource " + path)
+		return errors.New("Permission denied for user " + user + " to execute methode " + method + " on resource " + path)
 	}
 
 	return nil
 }
 
 /**
- * Validate application ressource permission.
+ * Validate application resource permission.
  */
-func ValidateApplicationRessourceAccess(domain string, applicationName string, method string, path string, permission int32) error {
+func ValidateApplicationResourceAccess(domain string, applicationName string, method string, path string, permission int32) error {
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidateApplicationRessourceAccess(applicationName, path, method, permission)
+	hasAccess, err := resource_client.ValidateApplicationResourceAccess(applicationName, path, method, permission)
 	if err != nil {
 		return err
 	}
 	if !hasAccess {
-		return errors.New("Permission denied for application " + applicationName + " to execute method " + method + " on ressource " + path)
+		return errors.New("Permission denied for application " + applicationName + " to execute method " + method + " on resource " + path)
 	}
 
 	return nil
@@ -182,13 +182,13 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 		return true, nil
 	}
 
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return false, err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidateUserAccess(token, method)
+	hasAccess, err := resource_client.ValidateUserAccess(token, method)
 
 	if hasAccess {
 		getCache().SetItem(key, []byte(""))
@@ -200,22 +200,22 @@ func ValidateUserAccess(domain string, token string, method string) (bool, error
 /**
  * Validate peer ressouce permission.
  */
-func ValidatePeerRessourceAccess(domain string, name string, method string, path string, permission int32) error {
+func ValidatePeerResourceAccess(domain string, name string, method string, path string, permission int32) error {
 
 	// keep the values in the map for the lifetime of the token and validate it
 	// from local map.
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidatePeerRessourceAccess(name, path, method, permission)
+	hasAccess, err := resource_client.ValidatePeerResourceAccess(name, path, method, permission)
 	if err != nil {
 		return err
 	}
 	if !hasAccess {
-		return errors.New("Permission denied! for ressource " + path)
+		return errors.New("Permission denied! for resource " + path)
 	}
 
 	return nil
@@ -231,13 +231,13 @@ func ValidatePeerAccess(domain string, peer string, method string) (bool, error)
 		return true, nil
 	}
 
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return false, err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidatePeerAccess(peer, method)
+	hasAccess, err := resource_client.ValidatePeerAccess(peer, method)
 	if hasAccess {
 		getCache().SetItem(key, []byte(""))
 
@@ -263,13 +263,13 @@ func ValidateApplicationAccess(domain string, application string, method string)
 		return true, nil
 	}
 
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return false, err
 	}
 
 	// get access from remote source.
-	hasAccess, err := ressource_client.ValidateApplicationAccess(application, method)
+	hasAccess, err := resource_client.ValidateApplicationAccess(application, method)
 	if hasAccess {
 		getCache().SetItem(key, []byte(""))
 
@@ -285,15 +285,15 @@ func ValidateApplicationAccess(domain string, application string, method string)
 
 // Refresh a token.
 func refreshToken(domain string, token string) (string, error) {
-	ressource_client, err := GetRessourceClient(domain)
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
 		return "", err
 	}
 
-	return ressource_client.RefreshToken(token)
+	return resource_client.RefreshToken(token)
 }
 
-// That interceptor is use by all services except the ressource service who has
+// That interceptor is use by all services except the resource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
@@ -307,7 +307,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
-		// in case of ressource path.
+		// in case of resource path.
 		path = strings.Join(md["path"], "")
 		domain = strings.Join(md["domain"], "")
 		if strings.Index(domain, ":") == 0 {
@@ -349,7 +349,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
 		method == "/dns.DnsService/GetA" ||
 		method == "/dns.DnsService/GetAAAA" ||
-		method == "/ressource.RessourceService/Log" {
+		method == "/resource.ResourceService/Log" {
 		hasAccess = true
 	} else if (method == "/admin.AdminService/SetRootEmail" || method == "/admin.AdminService/SetRootPassword") && ((domain == "127.0.0.1" || domain == "localhost") || pwd == "adminadmin") {
 		hasAccess = true
@@ -385,10 +385,10 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		// hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
 	}
 
-	// Connect to the ressource services for the given domain.
-	ressource_client, err := GetRessourceClient(domain)
+	// Connect to the resource services for the given domain.
+	resource_client, err := GetResourceClient(domain)
 	if err != nil {
-		log.Println("fail to get ressource validator client ", err)
+		log.Println("fail to get resource validator client ", err)
 		return nil, err
 	}
 
@@ -399,7 +399,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
 		fmt.Println(err)
 		log.Println("validation fail ", err)
-		ressource_client.Log(application, clientId, method, err)
+		resource_client.Log(application, clientId, method, err)
 		return nil, err
 	}
 
@@ -407,29 +407,29 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if clientId != "sa" {
 		// Here I will retreive the permission from the database if there is some...
 		// the path will be found in the parameter of the method.
-		actionParameterRessourcesPermissions, err := ressource_client.GetActionPermission(method)
+		actionParameterResourcesPermissions, err := resource_client.GetActionPermission(method)
 		if err == nil {
 			val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
 			rqst_ := val.(protoreflect.Message)
 			if rqst_.Descriptor().Fields().Len() > 0 {
-				for i := 0; i < len(actionParameterRessourcesPermissions); i++ {
-					permission := actionParameterRessourcesPermissions[i].Permission
+				for i := 0; i < len(actionParameterResourcesPermissions); i++ {
+					permission := actionParameterResourcesPermissions[i].Permission
 
-					// Here I will get the paremeter that represent the path of a ressource.
-					param := rqst_.Descriptor().Fields().Get(int(actionParameterRessourcesPermissions[i].Index))
+					// Here I will get the paremeter that represent the path of a resource.
+					param := rqst_.Descriptor().Fields().Get(int(actionParameterResourcesPermissions[i].Index))
 					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
 
-					fmt.Println("validate ressource ", path, permission)
+					fmt.Println("validate resource ", path, permission)
 
 					// I will test if the user has file permission.
-					err := ValidateUserRessourceAccess(domain, token, method, Utility.ToString(path), permission)
+					err := ValidateUserResourceAccess(domain, token, method, Utility.ToString(path), permission)
 					if err != nil {
 						if len(application) == 0 {
 							return nil, err
 						}
-						err = ValidateApplicationRessourceAccess(domain, application, method, Utility.ToString(path), permission)
+						err = ValidateApplicationResourceAccess(domain, application, method, Utility.ToString(path), permission)
 						if err != nil {
-							err = ValidatePeerRessourceAccess(domain, "globular.io", method, Utility.ToString(path), permission)
+							err = ValidatePeerResourceAccess(domain, "globular.io", method, Utility.ToString(path), permission)
 							if err != nil {
 								fmt.Println(err)
 								return nil, err
@@ -523,7 +523,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Send log event...
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
-		ressource_client.Log(application, clientId, method, err)
+		resource_client.Log(application, clientId, method, err)
 	}
 
 	return result, err
@@ -563,12 +563,12 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
 
 /**
  * Here I will wrap the original stream into this one to get access to the original
- * rqst, so I can validate it ressources.
+ * rqst, so I can validate it resources.
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
 	var err error
-	ressource_client, err := GetRessourceClient(l.domain)
+	resource_client, err := GetResourceClient(l.domain)
 	if err != nil {
 		return err
 	}
@@ -576,29 +576,29 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 	if l.clientId != "sa" {
 		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
 		rqst_ := val.(protoreflect.Message)
-		actionParameterRessourcesPermissions, err := ressource_client.GetActionPermission(l.method)
+		actionParameterResourcesPermissions, err := resource_client.GetActionPermission(l.method)
 		if err == nil {
 			// The token and the application id.
 			if rqst_.Descriptor().Fields().Len() > 0 {
-				for i := 0; i < len(actionParameterRessourcesPermissions); i++ {
-					permission := actionParameterRessourcesPermissions[i].Permission
-					// Here I will get the paremeter that represent the path of a ressource.
-					param := rqst_.Descriptor().Fields().Get(int(actionParameterRessourcesPermissions[i].Index))
+				for i := 0; i < len(actionParameterResourcesPermissions); i++ {
+					permission := actionParameterResourcesPermissions[i].Permission
+					// Here I will get the paremeter that represent the path of a resource.
+					param := rqst_.Descriptor().Fields().Get(int(actionParameterResourcesPermissions[i].Index))
 					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
 
 					// I will test if the user has file permission.
-					err := ValidateUserRessourceAccess(l.domain, l.token, l.method, Utility.ToString(path), permission)
+					err := ValidateUserResourceAccess(l.domain, l.token, l.method, Utility.ToString(path), permission)
 					if err != nil {
 						if len(l.application) == 0 {
-							ressource_client.Log("", l.clientId, l.method, err)
+							resource_client.Log("", l.clientId, l.method, err)
 							return err
 						}
-						err = ValidateApplicationRessourceAccess(l.domain, l.application, l.method, Utility.ToString(path), permission)
+						err = ValidateApplicationResourceAccess(l.domain, l.application, l.method, Utility.ToString(path), permission)
 						if err != nil {
-							ressource_client.Log(l.application, l.clientId, l.method, err)
-							err = ValidatePeerRessourceAccess(l.domain, l.peer, l.method, Utility.ToString(path), permission)
+							resource_client.Log(l.application, l.clientId, l.method, err)
+							err = ValidatePeerResourceAccess(l.domain, l.peer, l.method, Utility.ToString(path), permission)
 							if err != nil {
-								ressource_client.Log("", l.clientId, l.method, err)
+								resource_client.Log("", l.clientId, l.method, err)
 								return err
 							}
 							return err

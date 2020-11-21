@@ -12,7 +12,7 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
-	"github.com/globulario/services/golang/ressource/ressource_client"
+	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/kardianos/service"
 )
 
@@ -348,13 +348,13 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 	log.Println("deploy application...", name, " to address ", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client, err := ressource_client.NewRessourceService_Client(address, "ressource.RessourceService")
+	resource_client, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 	if err != nil {
-		log.Println("fail to access ressource service at "+address+" with error ", err)
+		log.Println("fail to access resource service at "+address+" with error ", err)
 		return err
 	}
 
-	token, err := ressource_client.Authenticate(user, pwd)
+	token, err := resource_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
 		return err
@@ -362,7 +362,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService") // create the ressource server.
+	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService") // create the resource server.
 	if err != nil {
 		return err
 	}
@@ -394,13 +394,13 @@ func publish(g *Globule, path string, serviceName string, serviceId string, publ
 	log.Println("publish service...", serviceId, "at address", address)
 
 	// Authenticate the user in order to get the token
-	ressource_client_, err := ressource_client.NewRessourceService_Client(address, "ressource.RessourceService")
+	resource_client_, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := ressource_client_.Authenticate(user, pwd)
+	token, err := resource_client_.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -540,7 +540,7 @@ WORKDIR /globular
 	}
 
 	// Now I will copy the prototype files of the internal gRPC service
-	// admin, ressource, ca and services.
+	// admin, resource, ca and services.
 	log.Println("---> source path is ", dir)
 	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
 	Utility.CreateDirIfNotExist(path + "/proto")
@@ -552,7 +552,7 @@ WORKDIR /globular
 	if err != nil {
 		log.Println("fail to copy with error ", err)
 	}
-	err = Utility.CopyFile(serviceDir+"/proto/ressource.proto", path+"/proto/ressource.proto")
+	err = Utility.CopyFile(serviceDir+"/proto/resource.proto", path+"/proto/resource.proto")
 	if err != nil {
 		log.Println("fail to copy with error ", err)
 	}
