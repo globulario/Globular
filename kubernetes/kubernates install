@@ -1,0 +1,63 @@
+
+# This is the video to install docker and kubernates.
+https://www.youtube.com/watch?v=l7gC4SgW7DU&t=1s&ab_channel=Intellipaat
+
+# Another tutorial showing how to install kubernetes with kubeadm
+# this tutorial show how to name your host repectively (master0, master1, master2, worker0, worker1, worker2)
+https://linuxconfig.org/how-to-install-kubernetes-on-ubuntu-20-04-focal-fossa-linux
+
+
+# install Docker.
+sudo sysctl --system
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+
+# install docker.
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+sudo apt-get update
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+sudo apt-get install docker.io
+sudo apt install containerd
+sudo apt-get install docker.io
+
+# Install kubernates
+cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+sudo kubeadm init --apiserver-advertise-address=192.168.0.173 --pod-network-cidr=192.168.0.0/16
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl get nodes
+kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+
+watch kubectl get pods -n calico-system
+
+# display all install pods.
+watch kubectl get pods --all-namespaces
+
+# The dashboard (get access to from external address)
+# https://www.replex.io/blog/how-to-install-access-and-add-heapster-metrics-to-the-kubernetes-dashboard
+
+# ssh tunnel must be execute from where you want to access the dasboard on 192.168.0.173 here.
+# https://docs.oracle.com/en/operating-systems/olcne/orchestration/dashboard-remote.html
+ssh -L 8001:127.0.0.1:8001 192.168.0.173
+
+# Setup admin and generate token to get access from remote location.
+get access from admin
+sudo kubectl create serviceaccount dashboard-admin-sa
+sudo kubectl create clusterrolebinding dashboard-admin-sa --clusterrole=cluster-admin --serviceaccount=default:dashboard-admin-sa
+sudo kubectl get secrets
+
+
+
+

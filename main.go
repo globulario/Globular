@@ -492,18 +492,16 @@ RUN rm -rf node_exporter-0.18.1.linux-amd64*
 RUN curl http://www.unixodbc.org/unixODBC-2.3.7.tar.gz --output unixODBC-2.3.7.tar.gz
 RUN tar -xvf unixODBC-2.3.7.tar.gz
 RUN rm unixODBC-2.3.7.tar.gz
-
-# -- Load all newly install libs.
-RUN ldconfig
-
 WORKDIR unixODBC-2.3.7
-RUN ./configure && make all install clean && ldconfig && mkdir /globular && cd /globular
+RUN ./configure && make all install clean && ldconfig
+
+# -- Copy globular files.
+RUN mkdir /globular
 ADD Globular /globular
 COPY bin /globular/bin
 COPY proto /globular/proto
 COPY services /globular/services
 COPY webroot /globular/webroot
-WORKDIR /globular
 `
 
 	Utility.CreateDirIfNotExist(path)
@@ -557,11 +555,6 @@ WORKDIR /globular
 		log.Println("fail to copy with error ", err)
 	}
 	err = Utility.CopyFile(serviceDir+"/proto/services.proto", path+"/proto/services.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
-
-	err = Utility.CopyFile(serviceDir+"/proto/lb.proto", path+"/proto/lb.proto")
 	if err != nil {
 		log.Println("fail to copy with error ", err)
 	}
@@ -685,7 +678,9 @@ WORKDIR /globular
 		}
 	}
 
-	dockerfile += "CMD /globular/Globular\n"
+	dockerfile += `WORKDIR /globular
+ENTRYPOINT ["/globular/Globular"]`
+
 	// save docker.
 	err = ioutil.WriteFile(path+"/"+"Dockerfile", []byte(dockerfile), 0644)
 	if err != nil {

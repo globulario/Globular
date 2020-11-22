@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata: 
+ name: globular-service
+spec: 
+ selector: 
+  app: globular-v1
+ type: NodePort
+ ports: 
+  - protocol: TCP
+    name: http
+    port: 80
+    targetPort: 80
+    nodePort: 30007
+  - protocol: TCP
+    name: https
+    port: 443
+    targetPort: 443
+    nodePort: 30008

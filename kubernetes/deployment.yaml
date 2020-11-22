@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: globular-deployment
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: globular-v1
+ template:
+  metadata:
+   labels:
+    app: globular-v1
+  spec:
+   containers:
+    - name: globular-node
+      image: globular/globular:latest
+      command: [ "./Globular" ]
+      resources:
+       requests:
+        memory: "64Mi"
+        cpu: "250m"
+       limits:
+        memory: "250Mi"
+        cpu: "500m"
