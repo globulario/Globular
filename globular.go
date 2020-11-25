@@ -460,7 +460,8 @@ func (self *Globule) isPortAvailable(port int) bool {
 		defer l.Close()
 		return true
 	}
-
+	// wait before interogate the next port
+	time.Sleep(250 * time.Millisecond)
 	return false
 }
 
@@ -1031,11 +1032,12 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 	}
 
 	servicePath := getStringVal(s, "Path")
-	if getStringVal(s, "Protocol") == "grpc" {
+	serviceName := getStringVal(s, "Name")
+	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "services.ServiceDiscovery" {
 		// I will test if the service is find if not I will try to set path
 		// to standard dist directory structure.
-
 		if !Utility.Exists(servicePath) {
+
 			// Here I will set various base on the standard dist directory structure.
 			path := self.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version") + "/" + getStringVal(s, "Id")
 			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
@@ -1046,7 +1048,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 				return -1, -1, errors.New("Fail to retreive exe path " + servicePath)
 			}
 
-			// Now the proto file.
+			// Try to get the prototype from the standard deployement path.
 			path_ := self.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version")
 			files, err := Utility.FindFileByName(path_, ".proto")
 			if err != nil {
@@ -1107,7 +1109,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		}
 
 		err = p.Start()
-		time.Sleep(time.Second * 2) // give time to service to start...
 
 		if err != nil {
 			s.Store("State", "fail")
@@ -1171,7 +1172,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			return -1, -1, err
 		}
 
-		time.Sleep(time.Millisecond * 500)
+		//time.Sleep(time.Millisecond * 500)
 
 		// save service config.
 		self.saveServiceConfig(s)
