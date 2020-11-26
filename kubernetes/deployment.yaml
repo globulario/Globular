@@ -15,6 +15,13 @@ spec:
    containers:
     - name: globular-node
       image: globular/globular:latest
+      volumeMounts:
+       - mountPath: /globular/config
+         name: config-volume
+       - mountPath: /globular/data
+         name: data-volume
+       - mountPath: /globular/webroot
+         name: webroot-volume
       command: [ "./Globular" ]
       resources:
        requests:
@@ -23,3 +30,13 @@ spec:
        limits:
         memory: "250Mi"
         cpu: "500m"
+   volumes:
+    - name: config-volume
+      persistentVolumeClaim:
+       claimName: globular-config-volume-claim
+    - name: data-volume
+      persistentVolumeClaim:
+       claimName: globular-data-volume-claim
+    - name: webroot-volume 
+      persistentVolumeClaim:
+       claimName: globular-webroot-volume-claim

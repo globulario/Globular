@@ -17,3 +17,113 @@ spec:
     port: 443
     targetPort: 443
     nodePort: 30008
+  - protocol: TCP
+    name: grpc0
+    port: 10000
+    targetPort: 10000
+    nodePort: 30009
+  - protocol: TCP
+    name: grpc1
+    port: 10001
+    targetPort: 10001
+    nodePort: 30010
+  - protocol: TCP
+    name: grpc2
+    port: 10002
+    targetPort: 10002
+    nodePort: 30011
+  - protocol: TCP
+    name: grpc3
+    port: 10003
+    targetPort: 10003
+    nodePort: 30012
+  - protocol: TCP
+    name: grpc4
+    port: 10004
+    targetPort: 10004
+    nodePort: 30013
+  - protocol: TCP
+    name: grpc5
+    port: 10005
+    targetPort: 10005
+    nodePort: 30014
+  - protocol: TCP
+    name: grpc6
+    port: 10006
+    targetPort: 10006
+    nodePort: 30015
+  - protocol: TCP
+    name: grpc7
+    port: 10007
+    targetPort: 10007
+    nodePort: 30016
+  - protocol: TCP
+    name: grpc8
+    port: 10008
+    targetPort: 10008
+    nodePort: 30017
+  - protocol: TCP
+    name: grpc9
+    port: 10009
+    targetPort: 10009
+    nodePort: 30018
+  - protocol: TCP
+    name: grpc10
+    port: 10010
+    targetPort: 10010
+    nodePort: 30019
+  - protocol: TCP
+    name: grpc11
+    port: 10011
+    targetPort: 10011
+    nodePort: 30020
+  - protocol: TCP
+    name: grpc12
+    port: 10012
+    targetPort: 10012
+    nodePort: 30021
+  - protocol: TCP
+    name: grpc13
+    port: 10013
+    targetPort: 10013
+    nodePort: 30022
+  - protocol: TCP
+    name: grpc14
+    port: 10014
+    targetPort: 10014
+    nodePort: 30023
+  - protocol: TCP
+    name: grpc15
+    port: 10015
+    targetPort: 10015
+    nodePort: 30024
+  - protocol: TCP
+    name: grpc16
+    port: 10016
+    targetPort: 10016
+    nodePort: 30025
+  - protocol: TCP
+    name: grpc17
+    port: 10017
+    targetPort: 10017
+    nodePort: 30026
+  - protocol: TCP
+    name: grpc18
+    port: 10018
+    targetPort: 10018
+    nodePort: 30027
+  - protocol: TCP
+    name: grpc19
+    port: 10019
+    targetPort: 10019
+    nodePort: 30028
+  - protocol: TCP
+    name: grpc20
+    port: 10020
+    targetPort: 10020
+    nodePort: 30029
+  - protocol: TCP
+    name: grpc21
+    port: 10021
+    targetPort: 10021
+    nodePort: 30030
