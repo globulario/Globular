@@ -36,7 +36,8 @@ import (
 	//"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/service_client"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
+
+	// "google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -472,20 +473,6 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
 	// Here I will set the resource to manage the applicaiton access permission.
-	ctx := stream.Context()
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		user := strings.Join(md["user"], "")
-		path := strings.Join(md["path"], "")
-
-		resourceClient, err := Interceptors.GetResourceClient(self.Domain)
-		if err != nil {
-			return err
-		}
-		resourceClient.SetResource(name, path, time.Now().Unix(), int64(buffer.Len()), "")
-		resourceClient.SetResourceOwner(user, "/"+name, "")
-		resourceClient.SetResourceOwner(user, path+"/"+name, "")
-
-	}
 
 	if err != nil || count == 0 {
 		address, port := self.getBackendAddress()
@@ -964,13 +951,6 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	fi, err := os.Stat(rqst.Path)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	// So here I will send an plublish event...
 	err = os.Remove(rqst.Path)
 	if err != nil {
@@ -1002,19 +982,11 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	self.discorveriesEventHub[rqst.DicorveryId].Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
 
 	// Here I will set the resource to manage the applicaiton access permission.
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		user := strings.Join(md["user"], "")
-		path := strings.Join(md["path"], "")
-
-		resourceClient, err := Interceptors.GetResourceClient(self.Domain)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-		resourceClient.SetResource(rqst.ServiceId, path, time.Now().Unix(), fi.Size(), "")
-		resourceClient.SetResourceOwner(user, "/services/"+rqst.PublisherId, "")
-	}
+	//if md, ok := metadata.FromIncomingContext(ctx); ok {
+	// user := strings.Join(md["user"], "")
+	// path := strings.Join(md["path"], "")
+	// TODO set ressource owner etc...
+	//}
 
 	return &adminpb.PublishServiceResponse{
 		Result: true,
@@ -1290,7 +1262,7 @@ func (self *Globule) stopService(serviceId string) error {
 		}
 	}
 
-	self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
+	// self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
 
 	return nil
 }

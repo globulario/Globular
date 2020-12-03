@@ -12,7 +12,6 @@ import (
 
 	"log"
 	"strings"
-	"time"
 
 	"github.com/davecourtois/Utility"
 	globular "github.com/globulario/services/golang/globular_client"
@@ -21,7 +20,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
@@ -66,171 +64,6 @@ func getCache() *storage_store.BigCache_store {
 	return cache
 }
 
-/**
- * Validate user file permission.
- */
-func ValidateUserResourceAccess(domain string, token string, method string, path string, permission int32) error {
-
-	// keep the values in the map for the lifetime of the token and validate it
-	// from local map.
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidateUserResourceAccess(token, path, method, permission)
-	if err != nil {
-		return err
-	}
-
-	if !hasAccess {
-		user, _, _, _ := ValidateToken(token)
-		return errors.New("Permission denied for user " + user + " to execute methode " + method + " on resource " + path)
-	}
-
-	return nil
-}
-
-/**
- * Validate application resource permission.
- */
-func ValidateApplicationResourceAccess(domain string, applicationName string, method string, path string, permission int32) error {
-
-	// keep the values in the map for the lifetime of the token and validate it
-	// from local map.
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidateApplicationResourceAccess(applicationName, path, method, permission)
-	if err != nil {
-		return err
-	}
-	if !hasAccess {
-		return errors.New("Permission denied for application " + applicationName + " to execute method " + method + " on resource " + path)
-	}
-
-	return nil
-}
-
-func ValidateUserAccess(domain string, token string, method string) (bool, error) {
-	clientId, _, expire, err := ValidateToken(token)
-
-	key := Utility.GenerateUUID(clientId + method)
-	if err != nil || expire < time.Now().Unix() {
-		getCache().RemoveItem(key)
-	}
-
-	_, err = getCache().GetItem(key)
-	if err == nil {
-		// Here a value exist in the store...
-		return true, nil
-	}
-
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return false, err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidateUserAccess(token, method)
-
-	if hasAccess {
-		getCache().SetItem(key, []byte(""))
-	}
-
-	return hasAccess, err
-}
-
-/**
- * Validate peer ressouce permission.
- */
-func ValidatePeerResourceAccess(domain string, name string, method string, path string, permission int32) error {
-
-	// keep the values in the map for the lifetime of the token and validate it
-	// from local map.
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidatePeerResourceAccess(name, path, method, permission)
-	if err != nil {
-		return err
-	}
-	if !hasAccess {
-		return errors.New("Permission denied! for resource " + path)
-	}
-
-	return nil
-}
-
-func ValidatePeerAccess(domain string, peer string, method string) (bool, error) {
-
-	key := Utility.GenerateUUID(peer + method)
-
-	_, err := getCache().GetItem(key)
-	if err == nil {
-		// Here a value exist in the store...
-		return true, nil
-	}
-
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return false, err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidatePeerAccess(peer, method)
-	if hasAccess {
-		getCache().SetItem(key, []byte(""))
-
-		// Here I will set a timeout for the permission.
-		timeout := time.NewTimer(15 * time.Minute)
-		go func() {
-			<-timeout.C
-			getCache().RemoveItem(key)
-		}()
-	}
-	return hasAccess, err
-}
-
-/**
- * Validate Application method access.
- */
-func ValidateApplicationAccess(domain string, application string, method string) (bool, error) {
-	key := Utility.GenerateUUID(application + method)
-
-	_, err := getCache().GetItem(key)
-	if err == nil {
-		// Here a value exist in the store...
-		return true, nil
-	}
-
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return false, err
-	}
-
-	// get access from remote source.
-	hasAccess, err := resource_client.ValidateApplicationAccess(application, method)
-	if hasAccess {
-		getCache().SetItem(key, []byte(""))
-
-		// Here I will set a timeout for the permission.
-		timeout := time.NewTimer(15 * time.Minute)
-		go func() {
-			<-timeout.C
-			getCache().RemoveItem(key)
-		}()
-	}
-	return hasAccess, err
-}
-
 // Refresh a token.
 func refreshToken(domain string, token string) (string, error) {
 	resource_client, err := GetResourceClient(domain)
@@ -265,7 +98,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		}
 	}
 
-	p, _ := peer.FromContext(ctx)
+	// p, _ := peer.FromContext(ctx)
 	// Here I will test if the
 	method := info.FullMethod
 
@@ -309,75 +142,23 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		}
 	}
 
-	// Test if the application has access to execute the method.
-	if len(application) > 0 && !hasAccess {
-		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
-	}
-
-	// Test if the user has access to execute the method
-	if len(token) > 0 && !hasAccess {
-		hasAccess, _ = ValidateUserAccess(domain, token, method)
-	}
-
 	// Test if peer has access
 	if !hasAccess {
-		// hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
+		// TODO validate gRPC method access here.
+		hasAccess = true // for convenience...
 	}
-
-	// Connect to the resource services for the given domain.
-	resource_client, err := GetResourceClient(domain)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println("validate call from ", p.Addr.String(), "application", application, "domain", domain)
-	log.Println("Validate access method with result: ", method, hasAccess)
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
 		fmt.Println(err)
 		log.Println("validation fail ", err)
-		resource_client.Log(application, clientId, method, err)
+		//resource_client.Log(application, clientId, method, err)
 		return nil, err
 	}
 
 	// Now I will test file permission.
 	if clientId != "sa" {
-		// Here I will retreive the permission from the database if there is some...
-		// the path will be found in the parameter of the method.
-		actionParameterResourcesPermissions, err := resource_client.GetActionPermission(method)
-		if err == nil {
-			val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
-			rqst_ := val.(protoreflect.Message)
-			if rqst_.Descriptor().Fields().Len() > 0 {
-				for i := 0; i < len(actionParameterResourcesPermissions); i++ {
-					permission := actionParameterResourcesPermissions[i].Permission
-
-					// Here I will get the paremeter that represent the path of a resource.
-					param := rqst_.Descriptor().Fields().Get(int(actionParameterResourcesPermissions[i].Index))
-					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
-
-					fmt.Println("validate resource ", path, permission)
-
-					// I will test if the user has file permission.
-					err := ValidateUserResourceAccess(domain, token, method, Utility.ToString(path), permission)
-					if err != nil {
-						if len(application) == 0 {
-							return nil, err
-						}
-						err = ValidateApplicationResourceAccess(domain, application, method, Utility.ToString(path), permission)
-						if err != nil {
-							err = ValidatePeerResourceAccess(domain, "globular.io", method, Utility.ToString(path), permission)
-							if err != nil {
-								fmt.Println(err)
-								return nil, err
-							}
-						}
-					}
-
-				}
-			}
-		}
+		// TODO validate gRPC ressource access here.
 	}
 
 	var result interface{}
@@ -386,7 +167,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Send log event...
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
-		resource_client.Log(application, clientId, method, err)
+		// resource_client.Log(application, clientId, method, err)
 	}
 
 	return result, err
@@ -430,47 +211,8 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
-	var err error
-	resource_client, err := GetResourceClient(l.domain)
-	if err != nil {
-		return err
-	}
-
 	if l.clientId != "sa" {
-		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
-		rqst_ := val.(protoreflect.Message)
-		actionParameterResourcesPermissions, err := resource_client.GetActionPermission(l.method)
-		if err == nil {
-			// The token and the application id.
-			if rqst_.Descriptor().Fields().Len() > 0 {
-				for i := 0; i < len(actionParameterResourcesPermissions); i++ {
-					permission := actionParameterResourcesPermissions[i].Permission
-					// Here I will get the paremeter that represent the path of a resource.
-					param := rqst_.Descriptor().Fields().Get(int(actionParameterResourcesPermissions[i].Index))
-					path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
-
-					// I will test if the user has file permission.
-					err := ValidateUserResourceAccess(l.domain, l.token, l.method, Utility.ToString(path), permission)
-					if err != nil {
-						if len(l.application) == 0 {
-							resource_client.Log("", l.clientId, l.method, err)
-							return err
-						}
-						err = ValidateApplicationResourceAccess(l.domain, l.application, l.method, Utility.ToString(path), permission)
-						if err != nil {
-							resource_client.Log(l.application, l.clientId, l.method, err)
-							err = ValidatePeerResourceAccess(l.domain, l.peer, l.method, Utility.ToString(path), permission)
-							if err != nil {
-								resource_client.Log("", l.clientId, l.method, err)
-								return err
-							}
-							return err
-						}
-
-					}
-				}
-			}
-		}
+		// TODO validate gRpc method and ressource access. here.
 	}
 	return l.inner.RecvMsg(rqst)
 }
@@ -525,21 +267,11 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		hasAccess = true
 	}
 
-	// Test if the user has access to execute the method
-	if len(token) > 0 && !hasAccess {
-		hasAccess, _ = ValidateUserAccess(domain, token, method)
-	}
-
-	// Test if the application has access to execute the method.
-	if len(application) > 0 && !hasAccess {
-		hasAccess, _ = ValidateApplicationAccess(domain, application, method)
-	}
-
 	if !hasAccess {
-		// hasAccess, _ = ValidatePeerAccess(domain, "globular.io", method)
+		// TODO validate gRpc method access
+		hasAccess = true // for convenience...
 	}
-	log.Println("validate call from ", p.Addr.String(), "application", application, "domain", domain)
-	log.Println("Validate access method with result: ", method, hasAccess)
+
 	// Return here if access is denied.
 	if !hasAccess {
 		return errors.New("Permission denied to execute method " + method)

@@ -1037,7 +1037,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// I will test if the service is find if not I will try to set path
 		// to standard dist directory structure.
 		if !Utility.Exists(servicePath) {
-
+			log.Println("No executable path was found for path ", servicePath)
 			// Here I will set various base on the standard dist directory structure.
 			path := self.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version") + "/" + getStringVal(s, "Id")
 			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
@@ -1131,14 +1131,17 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			line, err := reader.ReadString('\n')
 			for err == nil {
 				line, err = reader.ReadString('\n')
-				self.logServiceInfo(getStringVal(s, "Name"), line)
+				if err == nil {
+					log.Println(line)
+				}
+				// self.logServiceInfo(getStringVal(s, "Name"), line)
 			}
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
 			if err != nil {
 				// I will log the program error into the admin logger.
-				self.logServiceInfo(getStringVal(s, "Name"), err.Error())
+				// self.logServiceInfo(getStringVal(s, "Name"), err.Error())
 			}
 
 			// Print the error
@@ -1198,6 +1201,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			}
 
 			err = p.Start()
+
 			if err != nil {
 				// The process already exist so I will not throw an error and I will use existing process instead. I will make the
 				if err.Error() != "exec: already started" {
@@ -1222,7 +1226,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 						name := getStringVal(s, "Name")
 						log.Println(name, ":", line)
 						line, err = reader.ReadString('\n')
-						self.logServiceInfo(name, line)
+						// self.logServiceInfo(name, line)
 					}
 
 					// if the process is not define.
@@ -1235,7 +1239,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 						_, err := p.Wait()
 						if err != nil {
 							// I will log the program error into the admin logger.
-							self.logServiceInfo(getStringVal(s, "Name"), errb.String())
+							// self.logServiceInfo(getStringVal(s, "Name"), errb.String())
 						}
 					}
 				}(s)
@@ -1366,11 +1370,11 @@ func (self *Globule) initServices() {
 	self.actionPermissions = make([]interface{}, 0)
 
 	// Set local action permission
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 1}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "actionParameterResourcePermissions": []interface{}{map[string]interface{}{"Index": 0, "Permission": 2}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "delete"}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"
@@ -1385,7 +1389,6 @@ func (self *Globule) initServices() {
 		if len(globularServicesRoot) > 0 {
 			basePath = globularServicesRoot
 		}
-		log.Println("---------------------> globular services root: ", globularServicesRoot)
 
 		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 			path = strings.ReplaceAll(path, "\\", "/")

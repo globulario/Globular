@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/Interceptors"
 )
 
 /**
@@ -121,28 +120,16 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
-	domain := r.Header.Get("domain")
 	hasPermission := false
 	user := ""
+	// domain := r.Header.Get("domain")
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationResourceAccess(domain, application, "/file.FileService/FileUploadHandler", path, 2)
-		if err == nil {
-			hasPermission = true
-		}
+		// TODO validate rpc method access here
 	}
 
 	if len(token) != 0 && !hasPermission {
-		// Test if the requester has the permission to do the upload...
-		// Here I will named the methode /file.FileService/FileUploadHandler
-		// I will be threaded like a file service methode.
-		err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/FileUploadHandler", path, 2)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		user, _, _, _ = Interceptors.ValidateToken(token)
-		hasPermission = true
+		// TODO validate rpc method access here
 	}
 
 	if !hasPermission {
@@ -153,38 +140,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Here the path dosent exist.
 	if !Utility.Exists(globule.webRoot + path) {
-		if len(token) != 0 {
-			err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
-			if err != nil {
-				log.Println("142 Unable to create the file for writing. Check your write access privilege! ", path)
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-			user, _, _, _ = Interceptors.ValidateToken(token)
-			hasPermission = true
-		} else if len(application) > 0 {
-			err := Interceptors.ValidateApplicationResourceAccess(domain, token, "/file.FileService/CreateDir", path, 2)
-			if err != nil {
-				log.Println("148 Unable to create the file for writing. Check your write access privilege! ", path)
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-			hasPermission = true
-		}
-
-		if !hasPermission {
-			log.Println("149 Unable to create the file for writing. Check your write access privilege! ", path)
-			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
-			return
-		}
-
-		// Give the user or application the owner privilege on the created dir.
-		if len(user) > 0 {
-			globule.setResourceOwner(user, path)
-		} else if len(application) > 0 {
-			globule.setResourceOwner(application, path)
-		}
-
+		// TODO validate ressource access here
 		Utility.CreateDirIfNotExist(globule.webRoot + path)
 	}
 
@@ -198,9 +154,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// set the file owner if the length of the user if greather than 0
 		if len(user) > 0 {
-			globule.setResourceOwner(user, path+"/"+files[i].Filename)
+			// TODO Set owner here.
 		} else if len(application) > 0 {
-			globule.setResourceOwner(application, path+"/"+files[i].Filename)
+			// TODO set owner here.
+			// globule.setResourceOwner(application, path+"/"+files[i].Filename)
 		}
 
 		// Create the file.
@@ -259,27 +216,32 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
 	token := r.Header.Get("token")
-	domain := r.Header.Get("domain")
+	// domain := r.Header.Get("domain")
 	hasPermission := false
 
 	if len(application) != 0 {
-		err := Interceptors.ValidateApplicationResourceAccess(domain, application, "/file.FileService/ServeFileHandler", name, 4)
+		// TODO validate access here.
+		/*err := Interceptors.ValidateApplicationResourceAccess(domain, application, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil && len(token) == 0 {
 			log.Println("Fail to download the file with error ", err.Error())
 			return
 		}
 		hasPermission = err == nil
+		*/
 	}
 
 	if len(token) != 0 && !hasPermission {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
+
+		// TODO validate access here.
+		/**
 		err := Interceptors.ValidateUserResourceAccess(domain, token, "/file.FileService/ServeFileHandler", name, 4)
 		if err != nil {
 			log.Println("Fail to dowload the file with error ", err.Error())
 			return
-		}
+		}*/
 	}
 
 	//check if file exists
