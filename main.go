@@ -55,6 +55,7 @@ func (g *Globule) Stop(s service.Service) error {
 	// Stop external services.
 	log.Println("try to stop external services")
 	g.stopServices()
+
 	log.Println("locals services are stopped")
 
 	// Stop internal services

@@ -86,6 +86,7 @@ type Globule struct {
 	PortHttps                 int    // The secure port
 	AdminPort                 int    // The admin port
 	AdminProxy                int    // The admin proxy port.
+	LogProxy                  int    // Log proxy
 	AdminEmail                string // The admin email
 	ResourcePort              int    // The resource management service port
 	ResourceProxy             int    // The resource management proxy port
