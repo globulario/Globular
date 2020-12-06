@@ -1386,7 +1386,7 @@ func (self *Globule) initServices() {
 		// GLOBULAR_SERVICES_ROOT is the path of the globular service executables.
 		// if not set the services must be in the same folder as Globurar executable.
 		globularServicesRoot := os.Getenv("GLOBULAR_SERVICES_ROOT")
-
+		log.Println("GLOBULAR_SERVICES_ROOT ", globularServicesRoot)
 		if len(globularServicesRoot) > 0 {
 			basePath = globularServicesRoot
 		}
