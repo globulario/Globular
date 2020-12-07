@@ -1,167 +1,53 @@
 package main
 
 import (
-	"time"
-
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
-	globular "github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/golang/protobuf/jsonpb"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type Log_Client struct {
-	cc *grpc.ClientConn
-	c  resourcepb.LogServiceClient
+// Start internal logging services.
+func (self *Globule) startLogService() error {
+	id := string(resourcepb.File_proto_resource_proto.Services().Get(2).FullName())
+	log_server, err := self.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), self.LogPort, self.LogProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	if err == nil {
+		self.inernalServices = append(self.inernalServices, log_server)
 
-	// The id of the service
-	id string
+		// Create the channel to listen on resource port.
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.LogPort))
+		if err != nil {
+			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
+		}
 
-	// The name of the service
-	name string
+		resourcepb.RegisterLogServiceServer(log_server, self)
 
-	// The client domain
-	domain string
-
-	// The port number
-	port int
-
-	// is the connection is secure?
-	hasTLS bool
-
-	// Link to client key file
-	keyFile string
-
-	// Link to client certificate file.
-	certFile string
-
-	// certificate authority file
-	caFile string
-}
-
-// Create a connection to the service.
-func NewResourceService_Client(address string, id string) (*Log_Client, error) {
-
-	client := new(Log_Client)
-	err := globular.InitClient(client, address, id)
-	if err != nil {
-
-		return nil, err
+		// Here I will make a signal hook to interrupt to exit cleanly.
+		go func() {
+			// no web-rpc server.
+			if err = log_server.Serve(lis); err != nil {
+				log.Println(err)
+			}
+			s := self.getService(id)
+			pid := getIntVal(s, "ProxyProcess")
+			Utility.TerminateProcess(pid, 0)
+			s.Store("ProxyProcess", -1)
+			self.saveConfig()
+		}()
 	}
 
-	client.cc, err = globular.GetClientConnection(client)
-	if err != nil {
-
-		return nil, err
-	}
-
-	client.c = resourcepb.NewLogServiceClient(client.cc)
-
-	return client, nil
-}
-
-func (self *Log_Client) Invoke(method string, rqst interface{}, ctx context.Context) (interface{}, error) {
-	if ctx == nil {
-		ctx = globular.GetClientContext(self)
-	}
-	return globular.InvokeClientRequest(self.c, ctx, method, rqst)
-}
-
-// Return the ipv4 address
-// Return the address
-func (self *Log_Client) GetAddress() string {
-	return self.domain + ":" + strconv.Itoa(self.port)
-}
-
-// Return the domain
-func (self *Log_Client) GetDomain() string {
-	return self.domain
-}
-
-// Return the id of the service instance
-func (self *Log_Client) GetId() string {
-	return self.id
-}
-
-// Return the name of the service
-func (self *Log_Client) GetName() string {
-	return self.name
-}
-
-// must be close when no more needed.
-func (self *Log_Client) Close() {
-	self.cc.Close()
-}
-
-// Set grpc_service port.
-func (self *Log_Client) SetPort(port int) {
-	self.port = port
-}
-
-// Set the client name.
-func (self *Log_Client) SetId(id string) {
-	self.id = id
-}
-
-// Set the client name.
-func (self *Log_Client) SetName(name string) {
-	self.name = name
-}
-
-// Set the domain.
-func (self *Log_Client) SetDomain(domain string) {
-	self.domain = domain
-}
-
-////////////////// TLS ///////////////////
-
-// Get if the client is secure.
-func (self *Log_Client) HasTLS() bool {
-	return self.hasTLS
-}
-
-// Get the TLS certificate file path
-func (self *Log_Client) GetCertFile() string {
-	return self.certFile
-}
-
-// Get the TLS key file path
-func (self *Log_Client) GetKeyFile() string {
-	return self.keyFile
-}
-
-// Get the TLS key file path
-func (self *Log_Client) GetCaFile() string {
-	return self.caFile
-}
-
-// Set the client is a secure client.
-func (self *Log_Client) SetTLS(hasTls bool) {
-	self.hasTLS = hasTls
-}
-
-// Set TLS certificate file path
-func (self *Log_Client) SetCertFile(certFile string) {
-	self.certFile = certFile
-}
-
-// Set TLS key file path
-func (self *Log_Client) SetKeyFile(keyFile string) {
-	self.keyFile = keyFile
-}
-
-// Set TLS authority trust certificate file path
-func (self *Log_Client) SetCaFile(caFile string) {
-	self.caFile = caFile
+	return err
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +74,7 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 func (self *Globule) logInfo(application string, method string, token string, err_ error) error {
 
 	// Remove cyclic calls
-	if method == "/resource.ResourceService/Log" {
+	if method == "/resource.LogService/Log" {
 		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itself!")
 	}
 
@@ -367,7 +253,6 @@ func (self *Globule) deleteLog(query string) error {
 
 	// First of all I will retreive the log info with a given date.
 	data, err := self.logs.GetItem(query)
-
 	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
 
 	// read open bracket
@@ -388,8 +273,8 @@ func (self *Globule) deleteLog(query string) error {
 		if err != nil {
 			return err
 		}
-		self.logs.RemoveItem(key)
 
+		self.logs.RemoveItem(key)
 	}
 
 	return nil

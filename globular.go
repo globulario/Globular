@@ -86,7 +86,10 @@ type Globule struct {
 	PortHttps                 int    // The secure port
 	AdminPort                 int    // The admin port
 	AdminProxy                int    // The admin proxy port.
+	LogPort                   int    // The port to get log.
 	LogProxy                  int    // Log proxy
+	RbacPort                  int    // RBAC port
+	RbacProxy                 int    // RBAC proxy
 	AdminEmail                string // The admin email
 	ResourcePort              int    // The resource management service port
 	ResourceProxy             int    // The resource management proxy port
@@ -280,6 +283,10 @@ func NewGlobule() *Globule {
 		g.CertificateAuthorityProxy = start + 10
 		g.LoadBalancingServicePort = start + 11
 		g.LoadBalancingServiceProxy = start + 12
+		g.LogPort = start + 13
+		g.LogProxy = start + 14
+		g.RbacPort = start + 15
+		g.RbacProxy = start + 16
 	}
 
 	// Keep in global var to by http handlers.
@@ -442,7 +449,7 @@ func (self *Globule) getPortsInUse() []int {
  */
 func (self *Globule) isPortAvailable(port int) bool {
 	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 13 // The first 12 addresse are reserver by internal service...
+	start := Utility.ToInt(portRange[0]) + 17 // The first 12 addresse are reserver by internal service...
 	end := Utility.ToInt(portRange[1])
 
 	if port < start || port > end {
@@ -471,7 +478,7 @@ func (self *Globule) isPortAvailable(port int) bool {
  **/
 func (self *Globule) getNextAvailablePort() (int, error) {
 	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 13 // The first 13 addresse are reserver by internal service...
+	start := Utility.ToInt(portRange[0]) + 17 // The first 17 addresse are reserver by internal service...
 	end := Utility.ToInt(portRange[1])
 
 	for i := start; i < end; i++ {
@@ -1189,6 +1196,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// any other http server except this one...
 		if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 
+			// log.Println("------------->", getStringVal(s, "Name"))
 			p := exec.Command(servicePath, getStringVal(s, "Port"))
 
 			var errb bytes.Buffer
@@ -1915,6 +1923,12 @@ func (self *Globule) Listen() error {
 
 	// Resource service
 	err = self.startResourceService()
+	if err != nil {
+		return err
+	}
+
+	// Start Role Based Access Control (RBAC) service.
+	err = self.startRbacService()
 	if err != nil {
 		return err
 	}

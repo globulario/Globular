@@ -1569,8 +1569,8 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, req interface
 		method == "/resource.ResourceService/GetAllFilesInfo" ||
 		method == "/resource.ResourceService/GetAllApplicationsInfo" ||
 		method == "/resource.ResourceService/ValidateToken" ||
-		method == "/resource.ResourceService/Log" ||
-		method == "/resource.ResourceService/GetLog" {
+		method == "/resource.LogService/Log" ||
+		method == "/resource.LogService/GetLog" {
 		hasAccess = true
 	}
 
