@@ -356,6 +356,7 @@ func (self *Globule) createReference(p persistence_store.Store, id, sourceCollec
 	if err != nil {
 		return err
 	}
+
 	log.Println("create reference ", id, " source ", sourceCollection, " field ", field, " field ", targetId, " target ", targetCollection)
 	source := values.(map[string]interface{})
 	references := make([]interface{}, 0)
@@ -389,15 +390,13 @@ func (self *Globule) createCrossReferences(sourceId, sourceCollection, sourceFie
 
 	err = self.createReference(p, targetId, targetCollection, targetField, sourceId, sourceCollection)
 	if err != nil {
-		return err
+		//return err
+		log.Println(err)
 	}
 
 	err = self.createReference(p, sourceId, sourceCollection, sourceField, targetId, targetCollection)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 
 }
 
@@ -1239,45 +1238,13 @@ func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *resourcepb.Remo
 //* Add role to a given account *
 func (self *Globule) AddAccountRole(ctx context.Context, rqst *resourcepb.AddAccountRoleRqst) (*resourcepb.AddAccountRoleRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
-	if err != nil {
-		return nil, err
-	}
-
-	// Here I will test if a newer token exist for that user if it's the case
-	// I will not refresh that token.
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	err := self.createCrossReferences(rqst.RoleId, "Roles", "members", rqst.AccountId, "Accounts", "roles")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account named "+rqst.AccountId+" exist!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	account := values.(map[string]interface{})
-
-	// Now I will test if the account already contain the role.
-	if account["roles"] != nil {
-		roles := []interface{}(account["roles"].(primitive.A))
-		for j := 0; j < len(roles); j++ {
-			if roles[j].(map[string]interface{})["$id"] == rqst.RoleId {
-				return nil, status.Errorf(
-					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+rqst.RoleId+" aleready exist in account "+rqst.AccountId+"!")))
-			}
-		}
-
-		// append the newly created role.
-		account["roles"] = append(roles, map[string]interface{}{"$ref": "Roles", "$id": rqst.RoleId, "$db": "local_resource"})
-		jsonStr := serialyseObject(account)
-
-		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, jsonStr, ``)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-	}
 	return &resourcepb.AddAccountRoleRsp{Result: true}, nil
 }
 
@@ -2015,16 +1982,15 @@ func (self *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb
 	}
 
 	// No I will stream the result over the networks.
-	maxSize := 100
+	maxSize := 50
 	values := make([]*resourcepb.Group, 0)
-
 	for i := 0; i < len(groups); i++ {
-		g := &resourcepb.Group{Name: groups[i].(map[string]interface{})["domain"].(string), Members: make([]string, 0)}
+
+		g := &resourcepb.Group{Name: groups[i].(map[string]interface{})["name"].(string), Id: groups[i].(map[string]interface{})["_id"].(string), Members: make([]string, 0)}
 		members := []interface{}(groups[i].(map[string]interface{})["members"].(primitive.A))
 		g.Members = make([]string, 0)
 		for j := 0; j < len(members); j++ {
-			// g.Members = append(g.Members, members[j].(""))
-			log.Println("---> g ", members[j])
+			g.Members = append(g.Members, members[j].(map[string]interface{})["$id"].(string))
 		}
 
 		values = append(values, g)
@@ -2062,51 +2028,35 @@ func (self *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb
 //* Delete organization
 func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGroupRqst) (*resourcepb.DeleteGroupRsp, error) {
 	// Get the persistence connection
-	/*p, err := self.getPersistenceStore()
+	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
-	// No authorization exist for that peer I will insert it.
-	// Here will create the new peer.
-	_id := Utility.GenerateUUID(rqst.GroupId)
-
-	groups, err := p.Find(context.Background(), "local_resource", "local_resource", "Groups", query, ``)
-	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// No I will stream the result over the networks.
-	maxSize := 100
-	values := make([]*resourcepb.Group, 0)
-
-	for i := 0; i < len(groups); i++ {
-		g := &resourcepb.Group{Name: groups[i].(map[string]interface{})["domain"].(string), Members: make([]string, 0)}
-
-		groups[i].(map[string]interface{})["members"] = []interface{}(groups[i].(map[string]interface{})["members"].(primitive.A))
-	}
-
-	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+_id+`"}`, "")
+	g, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Delete permissions
-	err = p.Delete(context.Background(), "local_resource", "local_resource", "Permissions", `{"owner":"`+_id+`"}`, "")
+	members := []interface{}(g.(map[string]interface{})["members"].(primitive.A))
+
+	for j := 0; j < len(members); j++ {
+		self.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
+	}
+
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group+`"}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &resourcepb.DeletePeerRsp{
+	return &resourcepb.DeleteGroupRsp{
 		Result: true,
-	}, nil*/
-	return nil, nil
+	}, nil
+
 }
 
 //* Add a member account to the group *
