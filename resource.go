@@ -929,26 +929,26 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 	account := values.(map[string]interface{})
 
 	// Remove references.
-	organizations := []interface{}(account["organizations"].(primitive.A))
-	if organizations != nil {
+	if account["organizations"] != nil {
+		organizations := []interface{}(account["organizations"].(primitive.A))
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, rqst.Id, organizationId, "accounts", "Accounts")
 		}
 	}
 
-	groups := []interface{}(account["groups"].(primitive.A))
-	if groups != nil {
+	if account["groups"] != nil {
+		groups := []interface{}(account["groups"].(primitive.A))
 		for i := 0; i < len(groups); i++ {
 			groupId := groups[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, rqst.Id, groupId, "members", "Accounts")
 		}
 	}
 
-	roles := []interface{}(account["roles"].(primitive.A))
-	if roles != nil {
+	if account["roles"] != nil {
+		roles := []interface{}(account["roles"].(primitive.A))
 		for i := 0; i < len(roles); i++ {
-			roleId := groups[i].(map[string]interface{})["$id"].(string)
+			roleId := roles[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, rqst.Id, roleId, "members", "Accounts")
 		}
 	}
@@ -1101,8 +1101,8 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 	roleId := role["_id"].(string)
 
 	// Remove it from the accounts
-	accounts := []interface{}(role["members"].(primitive.A))
-	if accounts != nil {
+	if role["members"] != nil {
+		accounts := []interface{}(role["members"].(primitive.A))
 		for i := 0; i < len(accounts); i++ {
 			accountId := accounts[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, accountId, roleId, "roles", "Accounts")
@@ -1110,8 +1110,8 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 	}
 
 	// I will remove it from organizations...
-	organizations := []interface{}(role["organizations"].(primitive.A))
-	if organizations != nil {
+	if role["organizations"] != nil {
+		organizations := []interface{}(role["organizations"].(primitive.A))
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, rqst.RoleId, organizationId, "roles", "Roles")
@@ -1332,9 +1332,9 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.Del
 	application := values.(map[string]interface{})
 
 	// I will remove it from organization...
-	organizations := []interface{}(application["organizations"].(primitive.A))
+	if application["organizations"] != nil {
+		organizations := []interface{}(application["organizations"].(primitive.A))
 
-	if organizations != nil {
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
 			self.deleteReference(p, rqst.ApplicationId, organizationId, "applications", "Applications")
@@ -1744,7 +1744,6 @@ func (self *Globule) GetPeers(rqst *resourcepb.GetPeersRqst, stream resourcepb.R
 	values := make([]*resourcepb.Peer, 0)
 
 	for i := 0; i < len(peers); i++ {
-
 		p := &resourcepb.Peer{Domain: peers[i].(map[string]interface{})["domain"].(string), Actions: make([]string, 0)}
 		peers[i].(map[string]interface{})["actions"] = []interface{}(peers[i].(map[string]interface{})["actions"].(primitive.A))
 		for j := 0; j < len(peers[i].(map[string]interface{})["actions"].([]interface{})); j++ {
@@ -1843,7 +1842,6 @@ func (self *Globule) AddPeerAction(ctx context.Context, rqst *resourcepb.AddPeer
 	} else {
 		exist := false
 		for i := 0; i < len(peer["actions"].(primitive.A)); i++ {
-
 			if peer["actions"].(primitive.A)[i].(string) == rqst.Action {
 				exist = true
 				break
@@ -2120,36 +2118,43 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 	}
 
 	organization := values.(map[string]interface{})
-
-	groups := []interface{}(organization["groups"].(primitive.A))
-	if groups != nil {
-		for i := 0; i < len(groups); i++ {
-			groupId := groups[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Organization, groupId, "organizations", "Organizations")
+	if organization["groups"] != nil {
+		groups := []interface{}(organization["groups"].(primitive.A))
+		if groups != nil {
+			for i := 0; i < len(groups); i++ {
+				groupId := groups[i].(map[string]interface{})["$id"].(string)
+				self.deleteReference(p, rqst.Organization, groupId, "organizations", "Organizations")
+			}
 		}
 	}
 
-	roles := []interface{}(organization["roles"].(primitive.A))
-	if roles != nil {
-		for i := 0; i < len(roles); i++ {
-			roleId := groups[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Organization, roleId, "organizations", "Organizations")
+	if organization["roles"].(primitive.A) != nil {
+		roles := []interface{}(organization["roles"].(primitive.A))
+		if roles != nil {
+			for i := 0; i < len(roles); i++ {
+				roleId := roles[i].(map[string]interface{})["$id"].(string)
+				self.deleteReference(p, rqst.Organization, roleId, "organizations", "Organizations")
+			}
 		}
 	}
 
-	applications := []interface{}(organization["applications"].(primitive.A))
-	if applications != nil {
-		for i := 0; i < len(applications); i++ {
-			applicationId := groups[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Organization, applicationId, "organizations", "Organizations")
+	if organization["applications"].(primitive.A) != nil {
+		applications := []interface{}(organization["applications"].(primitive.A))
+		if applications != nil {
+			for i := 0; i < len(applications); i++ {
+				applicationId := applications[i].(map[string]interface{})["$id"].(string)
+				self.deleteReference(p, rqst.Organization, applicationId, "organizations", "Organizations")
+			}
 		}
 	}
 
-	accounts := []interface{}(organization["accounts"].(primitive.A))
-	if accounts != nil {
-		for i := 0; i < len(accounts); i++ {
-			accountsId := accounts[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Organization, accountsId, "organizations", "Organizations")
+	if organization["accounts"].(primitive.A) != nil {
+		accounts := []interface{}(organization["accounts"].(primitive.A))
+		if accounts != nil {
+			for i := 0; i < len(accounts); i++ {
+				accountsId := accounts[i].(map[string]interface{})["$id"].(string)
+				self.deleteReference(p, rqst.Organization, accountsId, "organizations", "Organizations")
+			}
 		}
 	}
 
@@ -2288,11 +2293,13 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 	}
 
 	// I will remove it from organizations...
-	organizations := []interface{}(group["organizations"].(primitive.A))
-	if organizations != nil {
-		for i := 0; i < len(organizations); i++ {
-			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Group, organizationId, "groups", "Groups")
+	if group["organizations"] != nil {
+		organizations := []interface{}(group["organizations"].(primitive.A))
+		if organizations != nil {
+			for i := 0; i < len(organizations); i++ {
+				organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+				self.deleteReference(p, rqst.Group, organizationId, "groups", "Groups")
+			}
 		}
 	}
 
