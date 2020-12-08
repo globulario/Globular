@@ -1969,8 +1969,110 @@ func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.Cr
 
 //* Return the list of organizations
 func (self *Globule) GetOrganizations(rqst *resourcepb.GetOrganizationsRqst, stream resourcepb.ResourceService_GetOrganizationsServer) error {
-	// TODO implement it!
-	return errors.New("Not implemented")
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
+
+	organizations, err := p.Find(context.Background(), "local_resource", "local_resource", "Organizations", query, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 50
+	values := make([]*resourcepb.Organization, 0)
+	for i := 0; i < len(organizations); i++ {
+		o := organizations[i].(map[string]interface{})
+
+		organization := new(resourcepb.Organization)
+		organization.Id = o["_id"].(string)
+		organization.Name = o["name"].(string)
+
+		// Here I will set the aggregation.
+
+		// Groups
+		if o["groups"] != nil {
+			groups := []interface{}(o["groups"].(primitive.A))
+			if groups != nil {
+				for i := 0; i < len(groups); i++ {
+					groupId := groups[i].(map[string]interface{})["$id"].(string)
+					organization.Groups = append(organization.Groups, groupId)
+				}
+			}
+		}
+
+		// Roles
+		if o["roles"] != nil {
+			roles := []interface{}(o["roles"].(primitive.A))
+			if roles != nil {
+				for i := 0; i < len(roles); i++ {
+					roleId := roles[i].(map[string]interface{})["$id"].(string)
+					organization.Roles = append(organization.Roles, roleId)
+				}
+			}
+		}
+
+		// Accounts
+		if o["accounts"] != nil {
+			accounts := []interface{}(o["accounts"].(primitive.A))
+			if accounts != nil {
+				for i := 0; i < len(accounts); i++ {
+					accountId := accounts[i].(map[string]interface{})["$id"].(string)
+					organization.Accounts = append(organization.Accounts, accountId)
+				}
+			}
+		}
+
+		// Applications
+		if o["applications"] != nil {
+			applications := []interface{}(o["applications"].(primitive.A))
+			if applications != nil {
+				for i := 0; i < len(applications); i++ {
+					applicationId := applications[i].(map[string]interface{})["$id"].(string)
+					organization.Applications = append(organization.Applications, applicationId)
+				}
+			}
+		}
+
+		values = append(values, organization)
+		if len(values) >= maxSize {
+			err := stream.Send(
+				&resourcepb.GetOrganizationsRsp{
+					Organizations: values,
+				},
+			)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			values = make([]*resourcepb.Organization, 0)
+		}
+	}
+
+	// Send reminding values.
+	err = stream.Send(
+		&resourcepb.GetOrganizationsRsp{
+			Organizations: values,
+		},
+	)
+
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return nil
 }
 
 //* Add Account *
