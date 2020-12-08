@@ -928,6 +928,31 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 
 	account := values.(map[string]interface{})
 
+	// Remove references.
+	organizations := []interface{}(account["organizations"].(primitive.A))
+	if organizations != nil {
+		for i := 0; i < len(organizations); i++ {
+			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Id, organizationId, "accounts", "Accounts")
+		}
+	}
+
+	groups := []interface{}(account["groups"].(primitive.A))
+	if groups != nil {
+		for i := 0; i < len(groups); i++ {
+			groupId := groups[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Id, groupId, "members", "Accounts")
+		}
+	}
+
+	roles := []interface{}(account["roles"].(primitive.A))
+	if roles != nil {
+		for i := 0; i < len(roles); i++ {
+			roleId := groups[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Id, roleId, "members", "Accounts")
+		}
+	}
+
 	// Try to delete the account...
 	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.Id+`"}`, "")
 	if err != nil {
@@ -1070,41 +1095,26 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 		return nil, err
 	}
 
-	// Here I will test if a newer token exist for that user if it's the case
-	// I will not refresh that token.
-	accounts, err := p.Find(context.Background(), "local_resource", "local_resource", "Accounts", `{}`, ``)
-	if err == nil {
+	// Remove references
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, ``)
+	role := values.(map[string]interface{})
+	roleId := role["_id"].(string)
+
+	// Remove it from the accounts
+	accounts := []interface{}(role["members"].(primitive.A))
+	if accounts != nil {
 		for i := 0; i < len(accounts); i++ {
-			account := accounts[i].(map[string]interface{})
-			if account["roles"] != nil {
-				roles := []interface{}(account["roles"].(primitive.A))
-				roles_ := make([]interface{}, 0)
-				needSave := false
-				for j := 0; j < len(roles); j++ {
-					// TODO remove the role with name rqst.roleId from the account.
-					role := roles[j].(map[string]interface{})
-					if role["$id"] == rqst.RoleId {
-						needSave = true
-					} else {
-						roles_ = append(roles_, role)
-					}
-				}
+			accountId := accounts[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, accountId, roleId, "roles", "Accounts")
+		}
+	}
 
-				// Here I will save the role.
-				if needSave {
-					account["roles"] = roles_
-
-					// Here I will save the role.
-					jsonStr := serialyseObject(account)
-
-					err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+account["name"].(string)+`"}`, jsonStr, ``)
-					if err != nil {
-						return nil, status.Errorf(
-							codes.Internal,
-							Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-					}
-				}
-			}
+	// I will remove it from organizations...
+	organizations := []interface{}(role["organizations"].(primitive.A))
+	if organizations != nil {
+		for i := 0; i < len(organizations); i++ {
+			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.RoleId, organizationId, "roles", "Roles")
 		}
 	}
 
@@ -1321,7 +1331,17 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.Del
 
 	application := values.(map[string]interface{})
 
-	// First of all I will remove the directory.
+	// I will remove it from organization...
+	organizations := []interface{}(application["organizations"].(primitive.A))
+
+	if organizations != nil {
+		for i := 0; i < len(organizations); i++ {
+			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.ApplicationId, organizationId, "applications", "Applications")
+		}
+	}
+
+	// I will remove the directory.
 	err = os.RemoveAll(application["path"].(string))
 	if err != nil {
 		return nil, status.Errorf(
@@ -1909,8 +1929,44 @@ func (self *Globule) RemovePeerAction(ctx context.Context, rqst *resourcepb.Remo
 
 //* Register a new organization
 func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.CreateOrganizationRqst) (*resourcepb.CreateOrganizationRsp, error) {
-	// TODO implement it!
-	return nil, errors.New("Not implemented")
+
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// Here I will first look if a peer with a same name already exist on the
+	// resources...
+	count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Organizations", `{"_id":"`+rqst.Organization.Id+`"}`, "")
+	if count > 0 {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Organization with name '"+rqst.Organization.Id+"' already exist!")))
+	}
+
+	// No authorization exist for that peer I will insert it.
+	// Here will create the new peer.
+	g := make(map[string]interface{}, 0)
+	g["_id"] = rqst.Organization.Id
+	g["name"] = rqst.Organization.Name
+
+	// Those are the list of entity linked to the organisation
+	g["accounts"] = make([]interface{}, 0)
+	g["groups"] = make([]interface{}, 0)
+	g["roles"] = make([]interface{}, 0)
+	g["applications"] = make([]interface{}, 0)
+
+	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Organizations", g, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.CreateOrganizationRsp{
+		Result: true,
+	}, nil
 }
 
 //* Return the list of organizations
@@ -1919,10 +1975,193 @@ func (self *Globule) GetOrganizations(rqst *resourcepb.GetOrganizationsRqst, str
 	return errors.New("Not implemented")
 }
 
+//* Add Account *
+func (self *Globule) AddOrganizationAccount(ctx context.Context, rqst *resourcepb.AddOrganizationAccountRqst) (*resourcepb.AddOrganizationAccountRsp, error) {
+	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "accounts", rqst.AccountId, "Accounts", "organizations")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.AddOrganizationAccountRsp{Result: true}, nil
+}
+
+//* Add Group *
+func (self *Globule) AddOrganizationGroup(ctx context.Context, rqst *resourcepb.AddOrganizationGroupRqst) (*resourcepb.AddOrganizationGroupRsp, error) {
+	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "groups", rqst.GroupId, "Groups", "organizations")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.AddOrganizationGroupRsp{Result: true}, nil
+}
+
+//* Add Role *
+func (self *Globule) AddOrganizationRole(ctx context.Context, rqst *resourcepb.AddOrganizationRoleRqst) (*resourcepb.AddOrganizationRoleRsp, error) {
+	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "roles", rqst.RoleId, "Roles", "organizations")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.AddOrganizationRoleRsp{Result: true}, nil
+}
+
+//* Add Application *
+func (self *Globule) AddOrganizationApplication(ctx context.Context, rqst *resourcepb.AddOrganizationApplicationRqst) (*resourcepb.AddOrganizationApplicationRsp, error) {
+	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "applications", rqst.ApplicationId, "Applications", "organizations")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.AddOrganizationApplicationRsp{Result: true}, nil
+}
+
+//* Remove Account *
+func (self *Globule) RemoveOrganizationAccount(ctx context.Context, rqst *resourcepb.RemoveOrganizationAccountRqst) (*resourcepb.RemoveOrganizationAccountRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.AccountId, rqst.OrganizationId, "accounts", "Organizations")
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.OrganizationId, rqst.AccountId, "organizations", "Accounts")
+	if err != nil {
+		return nil, err
+	}
+
+	return &resourcepb.RemoveOrganizationAccountRsp{Result: true}, nil
+}
+
+//* Remove Group *
+func (self *Globule) RemoveOrganizationGroup(ctx context.Context, rqst *resourcepb.RemoveOrganizationGroupRqst) (*resourcepb.RemoveOrganizationGroupRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.GroupId, rqst.OrganizationId, "groups", "Organizations")
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.OrganizationId, rqst.GroupId, "organizations", "Groups")
+	if err != nil {
+		return nil, err
+	}
+
+	return &resourcepb.RemoveOrganizationGroupRsp{Result: true}, nil
+}
+
+//* Remove Role *
+func (self *Globule) RemoveOrganizationRole(ctx context.Context, rqst *resourcepb.RemoveOrganizationRoleRqst) (*resourcepb.RemoveOrganizationRoleRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.RoleId, rqst.OrganizationId, "roles", "Organizations")
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.OrganizationId, rqst.RoleId, "organizations", "Roles")
+	if err != nil {
+		return nil, err
+	}
+
+	return &resourcepb.RemoveOrganizationRoleRsp{Result: true}, nil
+}
+
+//* Remove Application *
+func (self *Globule) RemoveOrganizationApplication(ctx context.Context, rqst *resourcepb.RemoveOrganizationApplicationRqst) (*resourcepb.RemoveOrganizationApplicationRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.ApplicationId, rqst.OrganizationId, "applications", "Organizations")
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.deleteReference(p, rqst.OrganizationId, rqst.ApplicationId, "organizations", "Applications")
+	if err != nil {
+		return nil, err
+	}
+
+	return &resourcepb.RemoveOrganizationApplicationRsp{Result: true}, nil
+}
+
 //* Delete organization
 func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.DeleteOrganizationRqst) (*resourcepb.DeleteOrganizationRsp, error) {
-	// TODO implement it!
-	return nil, errors.New("Not implemented")
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Organizations", `{"_id":"`+rqst.Organization+`"}`, ``)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	organization := values.(map[string]interface{})
+
+	groups := []interface{}(organization["groups"].(primitive.A))
+	if groups != nil {
+		for i := 0; i < len(groups); i++ {
+			groupId := groups[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Organization, groupId, "organizations", "Organizations")
+		}
+	}
+
+	roles := []interface{}(organization["roles"].(primitive.A))
+	if roles != nil {
+		for i := 0; i < len(roles); i++ {
+			roleId := groups[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Organization, roleId, "organizations", "Organizations")
+		}
+	}
+
+	applications := []interface{}(organization["applications"].(primitive.A))
+	if applications != nil {
+		for i := 0; i < len(applications); i++ {
+			applicationId := groups[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Organization, applicationId, "organizations", "Organizations")
+		}
+	}
+
+	accounts := []interface{}(organization["accounts"].(primitive.A))
+	if accounts != nil {
+		for i := 0; i < len(accounts); i++ {
+			accountsId := accounts[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Organization, accountsId, "organizations", "Organizations")
+		}
+	}
+
+	// Try to delete the account...
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Organizations", `{"_id":"`+rqst.Organization+`"}`, "")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.DeleteOrganizationRsp{Result: true}, nil
 }
 
 //* Register a new group
@@ -2033,17 +2272,28 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 		return nil, err
 	}
 
-	g, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	members := []interface{}(g.(map[string]interface{})["members"].(primitive.A))
+	group := values.(map[string]interface{})
 
+	// I will remove it from accounts...
+	members := []interface{}(group["members"].(primitive.A))
 	for j := 0; j < len(members); j++ {
 		self.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
+	}
+
+	// I will remove it from organizations...
+	organizations := []interface{}(group["organizations"].(primitive.A))
+	if organizations != nil {
+		for i := 0; i < len(organizations); i++ {
+			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+			self.deleteReference(p, rqst.Group, organizationId, "groups", "Groups")
+		}
 	}
 
 	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group+`"}`, "")
