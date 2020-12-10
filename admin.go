@@ -853,7 +853,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 	if self.AdminEmail != rqst.OldEmail {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given! old email is "+rqst.OldEmail+" not "+self.AdminEmail)))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given, old email is "+rqst.OldEmail+" not "+self.AdminEmail+"!")))
 	}
 
 	// Now I will update de sa password.
