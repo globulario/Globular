@@ -42,38 +42,36 @@ func (self *Globule) startRbacService() error {
 	return err
 }
 
-//* Set the action resources permissions *
-func (self *Globule) SetActionResourcesPermissions(ctx context.Context, rqst *resourcepb.SetActionResourcesPermissionsRqst) (*resourcepb.SetActionResourcesPermissionsRsp, error) {
-	// TODO implement it.
-	return nil, errors.New("method SetActionResourcesPermissions not yet implemented!")
-}
-
-//* Get the action ressouces permission *
-func (self *Globule) GetActionResourcesPermissions(ctx context.Context, rqst *resourcepb.GetActionResourcesPermissionsRqst) (*resourcepb.GetActionResourcesPermissionsRsp, error) {
-	// TODO implement it.
-	return nil, errors.New("method GetActionResourcesPermissions not yet implemented!")
+/** Set action permissions. */
+func (self *Globule) setActionResourcesPermissions(permissions map[string]interface{}) {
+	// So here I will keep values in local storage.cap()
+	log.Println("---> ", permissions)
 }
 
 //* Set resource permissions this method will replace existing permission at once *
 func (self *Globule) SetResourcePermissions(ctx context.Context, rqst *resourcepb.SetResourcePermissionsRqst) (*resourcepb.SetResourcePermissionsRqst, error) {
+
 	// TODO implement it.
 	return nil, errors.New("method SetResourcePermissions not yet implemented!")
 }
 
 //* Delete a resource permissions (when a resource is deleted) *
 func (self *Globule) DeleteResourcePermissions(ctx context.Context, rqst *resourcepb.DeleteResourcePermissionsRqst) (*resourcepb.DeleteResourcePermissionsRqst, error) {
+
 	// TODO implement it.
 	return nil, errors.New("method DeleteResourcePermissions not yet implemented!")
 }
 
 //* Delete a specific resource permission *
 func (self *Globule) DeleteResourcePermission(ctx context.Context, rqst *resourcepb.DeleteResourcePermissionRqst) (*resourcepb.DeleteResourcePermissionRqst, error) {
+
 	// TODO implement it.
 	return nil, errors.New("method DeleteResourcePermission not yet implemented!")
 }
 
 //* Set specific resource permission  ex. read permission... *
 func (self *Globule) SetResourcePermission(ctx context.Context, rqst *resourcepb.SetResourcePermissionRqst) (*resourcepb.SetResourcePermissionRsp, error) {
+
 	// TODO implement it.
 	return nil, errors.New("method SetResourcePermission not yet implemented!")
 }

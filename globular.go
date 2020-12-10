@@ -152,9 +152,6 @@ type Globule struct {
 	// The list of method supported by this server.
 	methods []string
 
-	// Array of action permissions
-	actionPermissions []interface{}
-
 	// The prometheus logging informations.
 	methodsCounterLog *prometheus.CounterVec
 
@@ -1376,14 +1373,13 @@ func (self *Globule) initServices() {
 	// That will contain all method path from the proto files.
 	self.methods = make([]string, 0)
 	self.methods = append(self.methods, "/file.FileService/FileUploadHandler")
-	self.actionPermissions = make([]interface{}, 0)
 
 	// Set local action permission
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "delete"}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	self.actionPermissions = append(self.actionPermissions, map[string]interface{}{"action": "/admin.AdminService/PublishService", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "delete"}}})
+	self.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.setActionResourcesPermissions(map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
+	self.setActionResourcesPermissions(map[string]interface{}{"action": "/admin.AdminService/PublishService", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
 
 	// It will be execute the first time only...
 	configPath := self.config + string(os.PathSeparator) + "config.json"

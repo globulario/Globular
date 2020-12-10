@@ -284,13 +284,6 @@ func (self *Globule) registerMethods() error {
 	// Create connection application.
 	self.createApplicationConnection()
 
-	// Now I will save the action permission.
-	for i := 0; i < len(self.actionPermissions); i++ {
-		// permission := self.actionPermissions[i].(map[string]interface{})
-		// self.setActionPermission(permission["action"].(string), permission["resources"].([]interface{}))
-		// TODO SetActionResourcesPermission
-	}
-
 	return nil
 }
 

@@ -290,13 +290,15 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 	}
 	f.Close()
 
+	// Load the services permissions.
 	// Here I will get the list of service permission and set it...
-	permissions, hasPermissions := config.Load("permissions")
-
+	permissions, hasPermissions := config.Load("Permissions")
 	if hasPermissions {
-		for i := 0; i < len(permissions.([]interface{})); i++ {
-			permission := permissions.([]interface{})[i].(map[string]interface{})
-			self.actionPermissions = append(self.actionPermissions, permission)
+		if permissions != nil {
+			for i := 0; i < len(permissions.([]interface{})); i++ {
+				permission := permissions.([]interface{})[i].(map[string]interface{})
+				self.setActionResourcesPermissions(permission)
+			}
 		}
 	}
 
