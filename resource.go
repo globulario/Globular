@@ -554,7 +554,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	}
 
 	// first of all the Persistence service must be active.
-	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+name+`"}`, "")
+	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+id+`"}`, "")
 	if err != nil {
 		return err
 	}

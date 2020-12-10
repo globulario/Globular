@@ -42,16 +42,16 @@ func (self *Globule) startRbacService() error {
 	return err
 }
 
-//* Set the action resources permissions *
-func (self *Globule) SetActionResourcesPermission(ctx context.Context, rqst *resourcepb.SetActionResourcesPermissionRqst) (*resourcepb.SetActionResourcesPermissionRsp, error) {
+//* Set the action permissions *
+func (self *Globule) SetActionPermission(ctx context.Context, rqst *resourcepb.SetActionPermissionRqst) (*resourcepb.SetActionPermissionRsp, error) {
 	// TODO implement it.
-	return nil, errors.New("method SetActionResourcesPermission not yet implemented!")
+	return nil, errors.New("method SetActionPermission not yet implemented!")
 }
 
 //* Get the action ressouces permission *
-func (self *Globule) GetActionResourcesPermission(ctx context.Context, rqst *resourcepb.GetActionResourcesPermissionRqst) (*resourcepb.GetActionResourcesPermissionRsp, error) {
+func (self *Globule) GetActionPermission(ctx context.Context, rqst *resourcepb.GetActionPermissionRqst) (*resourcepb.GetActionPermissionRsp, error) {
 	// TODO implement it.
-	return nil, errors.New("method GetActionResourcesPermission not yet implemented!")
+	return nil, errors.New("method GetActionPermissions not yet implemented!")
 }
 
 //* Set resource permissions this method will replace existing permission at once *
