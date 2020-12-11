@@ -25,4 +25,6 @@ By using Globular you will be able to manage your microservices and make them av
 
 Click [here](https://globular.io) and learn more about globular!
 
+Also the a docker image for amd64 and arm7 is avaible [here](https://hub.docker.com/r/globular/globular)
+
 ** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
