@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -46,9 +47,10 @@ func (self *Globule) startRbacService() error {
 	return err
 }
 
-func (self *Globule) setEntityResourcePermissions(entity string, permission_type string, name string, path string) error {
+func (self *Globule) setEntityResourcePermissions(entity string, path string) error {
 	// Here I will retreive the actual list of paths use by this user.
-	data, err := self.permissions.GetItem(entity + ":" + permission_type + ":" + name)
+	data, err := self.permissions.GetItem(entity)
+
 	paths := make([]string, 0)
 	if err == nil {
 		err := json.Unmarshal(data, &paths)
@@ -69,7 +71,7 @@ func (self *Globule) setEntityResourcePermissions(entity string, permission_type
 		return err
 	}
 
-	return self.permissions.SetItem(entity+":"+permission_type+":"+name, data)
+	return self.permissions.SetItem(entity, data)
 }
 
 func (self *Globule) setResourcePermissions(path string, permissions *resourcepb.Permissions) error {
@@ -83,7 +85,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Accounts
 		for j := 0; j < len(allowed[i].Accounts); j++ {
-			err := self.setEntityResourcePermissions(allowed[i].Accounts[j], "allowed", allowed[i].Name, path)
+			err := self.setEntityResourcePermissions(allowed[i].Accounts[j], path)
 			if err != nil {
 				return err
 			}
@@ -91,7 +93,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Groups
 		for j := 0; j < len(allowed[i].Groups); j++ {
-			err := self.setEntityResourcePermissions(allowed[i].Groups[j], "allowed", allowed[i].Name, path)
+			err := self.setEntityResourcePermissions(allowed[i].Groups[j], path)
 			if err != nil {
 				return err
 			}
@@ -99,7 +101,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Organizations
 		for j := 0; j < len(allowed[i].Organizations); j++ {
-			err := self.setEntityResourcePermissions(allowed[i].Organizations[j], "allowed", allowed[i].Name, path)
+			err := self.setEntityResourcePermissions(allowed[i].Organizations[j], path)
 			if err != nil {
 				return err
 			}
@@ -107,7 +109,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Applications
 		for j := 0; j < len(allowed[i].Applications); j++ {
-			err := self.setEntityResourcePermissions(allowed[i].Applications[j], "allowed", allowed[i].Name, path)
+			err := self.setEntityResourcePermissions(allowed[i].Applications[j], path)
 			if err != nil {
 				return err
 			}
@@ -115,7 +117,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Peers
 		for j := 0; j < len(allowed[i].Peers); j++ {
-			err := self.setEntityResourcePermissions(allowed[i].Peers[j], "allowed", allowed[i].Name, path)
+			err := self.setEntityResourcePermissions(allowed[i].Peers[j], path)
 			if err != nil {
 				return err
 			}
@@ -127,14 +129,14 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 	for i := 0; i < len(denied); i++ {
 		// Acccounts
 		for j := 0; j < len(denied[i].Accounts); j++ {
-			err := self.setEntityResourcePermissions(denied[i].Accounts[j], "denied", denied[i].Name, path)
+			err := self.setEntityResourcePermissions(denied[i].Accounts[j], path)
 			if err != nil {
 				return err
 			}
 		}
 		// Applications
 		for j := 0; j < len(denied[i].Applications); j++ {
-			err := self.setEntityResourcePermissions(denied[i].Applications[j], "denied", denied[i].Name, path)
+			err := self.setEntityResourcePermissions(denied[i].Applications[j], path)
 			if err != nil {
 				return err
 			}
@@ -142,7 +144,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Peers
 		for j := 0; j < len(denied[i].Peers); j++ {
-			err := self.setEntityResourcePermissions(denied[i].Peers[j], "denied", denied[i].Name, path)
+			err := self.setEntityResourcePermissions(denied[i].Peers[j], path)
 			if err != nil {
 				return err
 			}
@@ -150,7 +152,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Groups
 		for j := 0; j < len(denied[i].Groups); j++ {
-			err := self.setEntityResourcePermissions(denied[i].Groups[j], "denied", denied[i].Name, path)
+			err := self.setEntityResourcePermissions(denied[i].Groups[j], path)
 			if err != nil {
 				return err
 			}
@@ -158,7 +160,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 		// Organizations
 		for j := 0; j < len(denied[i].Organizations); j++ {
-			err := self.setEntityResourcePermissions(denied[i].Organizations[j], "denied", denied[i].Name, path)
+			err := self.setEntityResourcePermissions(denied[i].Organizations[j], path)
 			if err != nil {
 				return err
 			}
@@ -169,7 +171,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 	owners := permissions.Owners
 	// Acccounts
 	for j := 0; j < len(owners.Accounts); j++ {
-		err := self.setEntityResourcePermissions(owners.Accounts[j], "owned", owners.Name, path)
+		err := self.setEntityResourcePermissions(owners.Accounts[j], path)
 		if err != nil {
 			return err
 		}
@@ -177,7 +179,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 	// Applications
 	for j := 0; j < len(owners.Applications); j++ {
-		err := self.setEntityResourcePermissions(owners.Applications[j], "owned", owners.Name, path)
+		err := self.setEntityResourcePermissions(owners.Applications[j], path)
 		if err != nil {
 			return err
 		}
@@ -185,7 +187,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 	// Peers
 	for j := 0; j < len(owners.Peers); j++ {
-		err := self.setEntityResourcePermissions(owners.Peers[j], "owned", owners.Name, path)
+		err := self.setEntityResourcePermissions(owners.Peers[j], path)
 		if err != nil {
 			return err
 		}
@@ -193,7 +195,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 	// Groups
 	for j := 0; j < len(owners.Groups); j++ {
-		err := self.setEntityResourcePermissions(owners.Groups[j], "owned", owners.Name, path)
+		err := self.setEntityResourcePermissions(owners.Groups[j], path)
 		if err != nil {
 			return err
 		}
@@ -201,7 +203,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *resourcepb
 
 	// Organizations
 	for j := 0; j < len(owners.Organizations); j++ {
-		err := self.setEntityResourcePermissions(owners.Organizations[j], "owned", owners.Name, path)
+		err := self.setEntityResourcePermissions(owners.Organizations[j], path)
 		if err != nil {
 			return err
 		}
@@ -244,8 +246,8 @@ func remove(s []string, r string) []string {
 /**
  * Remove a resource path for an entity.
  */
-func (self *Globule) deleteEntityResourcePermissions(entity string, permission_type string, name string, path string) error {
-	data, err := self.permissions.GetItem(entity + ":" + permission_type + ":" + name)
+func (self *Globule) deleteEntityResourcePermissions(entity string, path string) error {
+	data, err := self.permissions.GetItem(entity)
 	if err != nil {
 		return err
 	}
@@ -264,7 +266,7 @@ func (self *Globule) deleteEntityResourcePermissions(entity string, permission_t
 			return err
 		}
 
-		return self.permissions.SetItem(entity+":"+permission_type+":"+name, data)
+		return self.permissions.SetItem(entity, data)
 	}
 
 	return nil
@@ -279,7 +281,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Accounts
 		for j := 0; j < len(allowed[i].Accounts); j++ {
-			err := self.deleteEntityResourcePermissions(allowed[i].Accounts[j], "allowed", allowed[i].Name, path)
+			err := self.deleteEntityResourcePermissions(allowed[i].Accounts[j], path)
 			if err != nil {
 				return err
 			}
@@ -287,7 +289,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Groups
 		for j := 0; j < len(allowed[i].Groups); j++ {
-			err := self.deleteEntityResourcePermissions(allowed[i].Groups[j], "allowed", allowed[i].Name, path)
+			err := self.deleteEntityResourcePermissions(allowed[i].Groups[j], path)
 			if err != nil {
 				return err
 			}
@@ -295,7 +297,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Organizations
 		for j := 0; j < len(allowed[i].Organizations); j++ {
-			err := self.deleteEntityResourcePermissions(allowed[i].Organizations[j], "allowed", allowed[i].Name, path)
+			err := self.deleteEntityResourcePermissions(allowed[i].Organizations[j], path)
 			if err != nil {
 				return err
 			}
@@ -303,7 +305,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Applications
 		for j := 0; j < len(allowed[i].Applications); j++ {
-			err := self.deleteEntityResourcePermissions(allowed[i].Applications[j], "allowed", allowed[i].Name, path)
+			err := self.deleteEntityResourcePermissions(allowed[i].Applications[j], path)
 			if err != nil {
 				return err
 			}
@@ -311,7 +313,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Peers
 		for j := 0; j < len(allowed[i].Peers); j++ {
-			err := self.deleteEntityResourcePermissions(allowed[i].Peers[j], "allowed", allowed[i].Name, path)
+			err := self.deleteEntityResourcePermissions(allowed[i].Peers[j], path)
 			if err != nil {
 				return err
 			}
@@ -323,14 +325,14 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 	for i := 0; i < len(denied); i++ {
 		// Acccounts
 		for j := 0; j < len(denied[i].Accounts); j++ {
-			err := self.deleteEntityResourcePermissions(denied[i].Accounts[j], "denied", denied[i].Name, path)
+			err := self.deleteEntityResourcePermissions(denied[i].Accounts[j], path)
 			if err != nil {
 				return err
 			}
 		}
 		// Applications
 		for j := 0; j < len(denied[i].Applications); j++ {
-			err := self.deleteEntityResourcePermissions(denied[i].Applications[j], "denied", denied[i].Name, path)
+			err := self.deleteEntityResourcePermissions(denied[i].Applications[j], path)
 			if err != nil {
 				return err
 			}
@@ -338,7 +340,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Peers
 		for j := 0; j < len(denied[i].Peers); j++ {
-			err := self.deleteEntityResourcePermissions(denied[i].Peers[j], "denied", denied[i].Name, path)
+			err := self.deleteEntityResourcePermissions(denied[i].Peers[j], path)
 			if err != nil {
 				return err
 			}
@@ -346,7 +348,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Groups
 		for j := 0; j < len(denied[i].Groups); j++ {
-			err := self.deleteEntityResourcePermissions(denied[i].Groups[j], "denied", denied[i].Name, path)
+			err := self.deleteEntityResourcePermissions(denied[i].Groups[j], path)
 			if err != nil {
 				return err
 			}
@@ -354,7 +356,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 		// Organizations
 		for j := 0; j < len(denied[i].Organizations); j++ {
-			err := self.deleteEntityResourcePermissions(denied[i].Organizations[j], "denied", denied[i].Name, path)
+			err := self.deleteEntityResourcePermissions(denied[i].Organizations[j], path)
 			if err != nil {
 				return err
 			}
@@ -365,7 +367,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 	owners := permissions.Owners
 	// Acccounts
 	for j := 0; j < len(owners.Accounts); j++ {
-		err := self.deleteEntityResourcePermissions(owners.Accounts[j], "owned", owners.Name, path)
+		err := self.deleteEntityResourcePermissions(owners.Accounts[j], path)
 		if err != nil {
 			return err
 		}
@@ -373,7 +375,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 	// Applications
 	for j := 0; j < len(owners.Applications); j++ {
-		err := self.deleteEntityResourcePermissions(owners.Applications[j], "owned", owners.Name, path)
+		err := self.deleteEntityResourcePermissions(owners.Applications[j], path)
 		if err != nil {
 			return err
 		}
@@ -381,7 +383,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 	// Peers
 	for j := 0; j < len(owners.Peers); j++ {
-		err := self.deleteEntityResourcePermissions(owners.Peers[j], "owned", owners.Name, path)
+		err := self.deleteEntityResourcePermissions(owners.Peers[j], path)
 		if err != nil {
 			return err
 		}
@@ -389,7 +391,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 	// Groups
 	for j := 0; j < len(owners.Groups); j++ {
-		err := self.deleteEntityResourcePermissions(owners.Groups[j], "owned", owners.Name, path)
+		err := self.deleteEntityResourcePermissions(owners.Groups[j], path)
 		if err != nil {
 			return err
 		}
@@ -397,7 +399,7 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *resourc
 
 	// Organizations
 	for j := 0; j < len(owners.Organizations); j++ {
-		err := self.deleteEntityResourcePermissions(owners.Organizations[j], "owned", owners.Name, path)
+		err := self.deleteEntityResourcePermissions(owners.Organizations[j], path)
 		if err != nil {
 			return err
 		}
@@ -577,41 +579,183 @@ func (self *Globule) AddResourceOwner(ctx context.Context, rqst *resourcepb.AddR
 	return &resourcepb.AddResourceOwnerRsp{}, nil
 }
 
-//* Remove resource owner
-func (self *Globule) RemoveResourceOwner(ctx context.Context, rqst *resourcepb.AddResourceOwnerRqst) (*resourcepb.AddResourceOwnerRsp, error) {
-	permissions, err := self.getResourcePermissions(rqst.Path)
+func (self *Globule) removeResourceOwner(owner string, subjectType resourcepb.SubjectType, path string) error {
+	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Owned resources
 	owners := permissions.Owners
-	if rqst.Subject == resourcepb.SubjectType_ACCOUNT {
-		if Utility.Contains(owners.Accounts, rqst.Owner) {
-			owners.Accounts = remove(owners.Accounts, rqst.Owner)
+	if subjectType == resourcepb.SubjectType_ACCOUNT {
+		if Utility.Contains(owners.Accounts, owner) {
+			owners.Accounts = remove(owners.Accounts, owner)
 		}
-	} else if rqst.Subject == resourcepb.SubjectType_APPLICATION {
-		if Utility.Contains(owners.Applications, rqst.Owner) {
-			owners.Applications = remove(owners.Applications, rqst.Owner)
+	} else if subjectType == resourcepb.SubjectType_APPLICATION {
+		if Utility.Contains(owners.Applications, owner) {
+			owners.Applications = remove(owners.Applications, owner)
 		}
-	} else if rqst.Subject == resourcepb.SubjectType_GROUP {
-		if Utility.Contains(owners.Groups, rqst.Owner) {
-			owners.Groups = remove(owners.Groups, rqst.Owner)
+	} else if subjectType == resourcepb.SubjectType_GROUP {
+		if Utility.Contains(owners.Groups, owner) {
+			owners.Groups = remove(owners.Groups, owner)
 		}
-	} else if rqst.Subject == resourcepb.SubjectType_ORGANIZATION {
-		if Utility.Contains(owners.Organizations, rqst.Owner) {
-			owners.Organizations = remove(owners.Organizations, rqst.Owner)
+	} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
+		if Utility.Contains(owners.Organizations, owner) {
+			owners.Organizations = remove(owners.Organizations, owner)
 		}
-	} else if rqst.Subject == resourcepb.SubjectType_PEER {
-		if Utility.Contains(owners.Peers, rqst.Owner) {
-			owners.Peers = remove(owners.Peers, rqst.Owner)
+	} else if subjectType == resourcepb.SubjectType_PEER {
+		if Utility.Contains(owners.Peers, owner) {
+			owners.Peers = remove(owners.Peers, owner)
 		}
 	}
 
 	permissions.Owners = owners
-	err = self.setResourcePermissions(rqst.Path, permissions)
+	err = self.setResourcePermissions(path, permissions)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Remove a suject from denied list and allowed list.
+func (self *Globule) removeResourceSubject(subject string, subjectType resourcepb.SubjectType, path string) error {
+	permissions, err := self.getResourcePermissions(path)
+	if err != nil {
+		return err
+	}
+
+	// Allowed resources
+	allowed := permissions.Allowed
+	for i := 0; i < len(allowed); i++ {
+		// Accounts
+		if subjectType == resourcepb.SubjectType_ACCOUNT {
+			accounts := make([]string, 0)
+			for j := 0; j < len(allowed[i].Accounts); j++ {
+				if subject != allowed[i].Accounts[j] {
+					accounts = append(accounts, allowed[i].Accounts[j])
+				}
+
+			}
+			allowed[i].Accounts = accounts
+		}
+
+		// Groups
+		if subjectType == resourcepb.SubjectType_GROUP {
+			groups := make([]string, 0)
+			for j := 0; j < len(allowed[i].Groups); j++ {
+				if subject != allowed[i].Groups[j] {
+					groups = append(groups, allowed[i].Groups[j])
+				}
+			}
+			allowed[i].Groups = groups
+		}
+
+		// Organizations
+		if subjectType == resourcepb.SubjectType_ORGANIZATION {
+			organizations := make([]string, 0)
+			for j := 0; j < len(allowed[i].Organizations); j++ {
+				if subject != allowed[i].Organizations[j] {
+					organizations = append(organizations, allowed[i].Organizations[j])
+				}
+			}
+			allowed[i].Organizations = organizations
+		}
+
+		// Applications
+		if subjectType == resourcepb.SubjectType_APPLICATION {
+			applications := make([]string, 0)
+			for j := 0; j < len(allowed[i].Applications); j++ {
+				if subject != allowed[i].Applications[j] {
+					applications = append(applications, allowed[i].Applications[j])
+				}
+			}
+			allowed[i].Applications = applications
+		}
+
+		// Peers
+		if subjectType == resourcepb.SubjectType_PEER {
+			peers := make([]string, 0)
+			for j := 0; j < len(allowed[i].Peers); j++ {
+				if subject != allowed[i].Peers[j] {
+					peers = append(peers, allowed[i].Peers[j])
+				}
+			}
+			allowed[i].Peers = peers
+		}
+	}
+
+	// Denied resources
+	denied := permissions.Denied
+	for i := 0; i < len(denied); i++ {
+		// Accounts
+		if subjectType == resourcepb.SubjectType_ACCOUNT {
+			accounts := make([]string, 0)
+			for j := 0; j < len(denied[i].Accounts); j++ {
+				if subject != denied[i].Accounts[j] {
+					accounts = append(accounts, denied[i].Accounts[j])
+				}
+
+			}
+			denied[i].Accounts = accounts
+		}
+
+		// Groups
+		if subjectType == resourcepb.SubjectType_GROUP {
+			groups := make([]string, 0)
+			for j := 0; j < len(denied[i].Groups); j++ {
+				if subject != denied[i].Groups[j] {
+					groups = append(groups, denied[i].Groups[j])
+				}
+			}
+			denied[i].Groups = groups
+		}
+
+		// Organizations
+		if subjectType == resourcepb.SubjectType_ORGANIZATION {
+			organizations := make([]string, 0)
+			for j := 0; j < len(denied[i].Organizations); j++ {
+				if subject != denied[i].Organizations[j] {
+					organizations = append(organizations, denied[i].Organizations[j])
+				}
+			}
+			denied[i].Organizations = organizations
+		}
+
+		// Applications
+		if subjectType == resourcepb.SubjectType_APPLICATION {
+			applications := make([]string, 0)
+			for j := 0; j < len(denied[i].Applications); j++ {
+				if subject != denied[i].Applications[j] {
+					applications = append(applications, denied[i].Applications[j])
+				}
+			}
+			denied[i].Applications = applications
+		}
+
+		// Peers
+		if subjectType == resourcepb.SubjectType_PEER {
+			peers := make([]string, 0)
+			for j := 0; j < len(denied[i].Peers); j++ {
+				if subject != denied[i].Peers[j] {
+					peers = append(peers, denied[i].Peers[j])
+				}
+			}
+			denied[i].Peers = peers
+		}
+	}
+
+	err = self.setResourcePermissions(path, permissions)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Remove resource owner
+func (self *Globule) RemoveResourceOwner(ctx context.Context, rqst *resourcepb.AddResourceOwnerRqst) (*resourcepb.AddResourceOwnerRsp, error) {
+	err := self.removeResourceOwner(rqst.Owner, rqst.Subject, rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -623,7 +767,22 @@ func (self *Globule) RemoveResourceOwner(ctx context.Context, rqst *resourcepb.A
 
 //* That function must be call when a subject is removed to clean up permissions.
 func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *resourcepb.DeleteAllAccessRqst) (*resourcepb.DeleteAllAccessRsp, error) {
-	err := self.permissions.RemoveItem(rqst.Subject + "*")
+
+	// Here I must remove the subject from all permissions.
+	data, err := self.permissions.GetItem(rqst.Subject)
+	paths := make([]string, 0)
+	err = json.Unmarshal(data, &paths)
+	for i := 0; i < len(paths); i++ {
+
+		// Remove from owner
+		self.removeResourceOwner(rqst.Subject, rqst.Type, paths[i])
+
+		// Remove from subject.
+		self.removeResourceSubject(rqst.Subject, rqst.Type, paths[i])
+
+	}
+
+	err = self.permissions.RemoveItem(rqst.Subject)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -633,51 +792,275 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *resourcepb.Delet
 	return &resourcepb.DeleteAllAccessRsp{}, nil
 }
 
-//* Validate if a user can get access to a given ressource for a given operation (read, write...) *
-func (self *Globule) ValidateAccess(ctx context.Context, rqst *resourcepb.ValidateAccessRqst) (*resourcepb.ValidateAccessRsp, error) {
-	permissions, err := self.getResourcePermissions(rqst.Path)
+// Return  accessAllowed, accessDenied, error
+func (self *Globule) validateAccess(subject string, subjectType resourcepb.SubjectType, name string, path string) (bool, bool, error) {
+	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return false, false, err
+	}
+	// Test if the suject is owner of the ressource in that case I will git him access.
+	owners := permissions.Owners
+	isOwner := false
+	subjectStr := ""
+	if subjectType == resourcepb.SubjectType_ACCOUNT {
+		subjectStr = "Account"
+		if Utility.Contains(owners.Accounts, subject) {
+			isOwner = true
+		}
+	} else if subjectType == resourcepb.SubjectType_APPLICATION {
+		subjectStr = "Application"
+		if Utility.Contains(owners.Applications, subject) {
+			isOwner = true
+		}
+	} else if subjectType == resourcepb.SubjectType_GROUP {
+		subjectStr = "Group"
+		if Utility.Contains(owners.Groups, subject) {
+			isOwner = true
+		}
+	} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
+		subjectStr = "Organization"
+		if Utility.Contains(owners.Organizations, subject) {
+			isOwner = true
+		}
+	} else if subjectType == resourcepb.SubjectType_PEER {
+		subjectStr = "Peer"
+		if Utility.Contains(owners.Peers, subject) {
+			isOwner = true
+		}
 	}
 
-	owners := permissions.Owners
+	// If the user is the owner no other validation are required.
+	if isOwner {
+		return true, false, nil
+	}
+
+	// First I will validate that the permission is not denied...
+	var denied *resourcepb.Permission
+	for i := 0; i < len(permissions.Denied); i++ {
+		if permissions.Denied[i].Name == name {
+			denied = permissions.Denied[i]
+			break
+		}
+	}
+
+	////////////////////// Test if the access is denied first. /////////////////////
+
+	accessDenied := false
+
+	// Here the suject is not the owner...
+	if subjectType == resourcepb.SubjectType_ACCOUNT {
+
+		// Here the subject is an account.
+		accessDenied = Utility.Contains(denied.Accounts, subject)
+
+		// The access is not denied for the account itself, I will validate
+		// that the account is not part of denied group.
+		if !accessDenied {
+			// I will test if one of the group account if part of hare access denied.
+			p, err := self.getPersistenceStore()
+			if err != nil {
+				return false, false, err
+			}
+
+			// Here I will test if a newer token exist for that user if it's the case
+			// I will not refresh that token.
+			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+			if err != nil {
+				return false, false, errors.New("No account named " + subject + " exist!")
+			}
+
+			// from the account I will get the list of group.
+			account := values.(map[string]interface{})
+			if account["groups"] != nil {
+				groups := []interface{}(account["groups"].(primitive.A))
+				if groups != nil {
+					for i := 0; i < len(groups); i++ {
+						groupId := groups[i].(map[string]interface{})["$id"].(string)
+						_, accessDenied_, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
+						if accessDenied_ {
+							return false, true, nil
+						}
+					}
+				}
+			}
+
+			// from the account I will get the list of group.
+			if account["organizations"] != nil {
+				organizations := []interface{}(account["organizations"].(primitive.A))
+				if organizations != nil {
+					for i := 0; i < len(organizations); i++ {
+						organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+						_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+						if accessDenied_ {
+							return false, true, nil
+						}
+					}
+				}
+			}
+		}
+
+	} else if subjectType == resourcepb.SubjectType_APPLICATION {
+		// Here the suject is an application.
+		accessDenied = Utility.Contains(denied.Applications, subject)
+	} else if subjectType == resourcepb.SubjectType_GROUP {
+		// Here the suject is a group
+		accessDenied = Utility.Contains(denied.Groups, subject)
+
+		// The access is not denied for the account itself, I will validate
+		// that the account is not part of denied group.
+		if !accessDenied {
+			// I will test if one of the group account if part of hare access denied.
+			p, err := self.getPersistenceStore()
+			if err != nil {
+				return false, false, err
+			}
+
+			// Here I will test if a newer token exist for that user if it's the case
+			// I will not refresh that token.
+			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
+			if err != nil {
+				return false, false, errors.New("No account named " + subject + " exist!")
+			}
+
+			// from the account I will get the list of group.
+			group := values.(map[string]interface{})
+			if group["organizations"] != nil {
+				organizations := []interface{}(group["organizations"].(primitive.A))
+				if organizations != nil {
+					for i := 0; i < len(organizations); i++ {
+						organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+						_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+						if accessDenied_ {
+							return false, true, errors.New("Access denied for " + subjectStr + " " + organizationId + "!")
+						}
+					}
+				}
+			}
+		}
+	} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
+		// Here the suject is an Organisations.
+		accessDenied = Utility.Contains(denied.Organizations, subject)
+	} else if subjectType == resourcepb.SubjectType_PEER {
+		// Here the suject is a Peer.
+		accessDenied = Utility.Contains(denied.Peers, subject)
+	}
+
+	if accessDenied {
+		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
+		return false, true, err
+	}
+
+	var allowed *resourcepb.Permission
+	for i := 0; i < len(permissions.Allowed); i++ {
+		if permissions.Allowed[i].Name == name {
+			allowed = permissions.Allowed[i]
+			break
+		}
+	}
+
 	hasAccess := false
-	subjectType := ""
-	if rqst.Type == resourcepb.SubjectType_ACCOUNT {
-		subjectType = "Account"
-		if Utility.Contains(owners.Accounts, rqst.Subject) {
-			hasAccess = true
+
+	// Test if the access is allowed
+	if subjectType == resourcepb.SubjectType_ACCOUNT {
+		hasAccess = Utility.Contains(allowed.Accounts, subject)
+		if !hasAccess {
+			// I will test if one of the group account if part of hare access denied.
+			p, err := self.getPersistenceStore()
+			if err != nil {
+				return false, false, err
+			}
+
+			// Here I will test if a newer token exist for that user if it's the case
+			// I will not refresh that token.
+			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+			if err == nil {
+				// from the account I will get the list of group.
+				account := values.(map[string]interface{})
+				if account["groups"] != nil {
+					groups := []interface{}(account["groups"].(primitive.A))
+					if groups != nil {
+						for i := 0; i < len(groups); i++ {
+							groupId := groups[i].(map[string]interface{})["$id"].(string)
+							hasAccess_, _, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
+							if hasAccess_ {
+								return true, false, nil
+							}
+						}
+					}
+				}
+
+				// from the account I will get the list of group.
+				if account["organizations"] != nil {
+					organizations := []interface{}(account["organizations"].(primitive.A))
+					if organizations != nil {
+						for i := 0; i < len(organizations); i++ {
+							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+							hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+							if hasAccess_ {
+								return true, false, nil
+							}
+						}
+					}
+				}
+			}
 		}
-	} else if rqst.Type == resourcepb.SubjectType_APPLICATION {
-		subjectType = "Application"
-		if Utility.Contains(owners.Applications, rqst.Subject) {
-			hasAccess = true
+
+	} else if subjectType == resourcepb.SubjectType_GROUP {
+		// validate the group access
+		hasAccess = Utility.Contains(allowed.Groups, subject)
+		if !hasAccess {
+			// I will test if one of the group account if part of hare access denied.
+			p, err := self.getPersistenceStore()
+			if err != nil {
+				return false, false, err
+			}
+
+			// Here I will test if a newer token exist for that user if it's the case
+			// I will not refresh that token.
+			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
+			if err == nil {
+				// Validate group organization
+				group := values.(map[string]interface{})
+				if group["organizations"] != nil {
+					organizations := []interface{}(group["organizations"].(primitive.A))
+					if organizations != nil {
+						for i := 0; i < len(organizations); i++ {
+							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+							hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+							if hasAccess_ {
+								return true, false, nil
+							}
+						}
+					}
+				}
+			}
 		}
-	} else if rqst.Type == resourcepb.SubjectType_GROUP {
-		subjectType = "Group"
-		if Utility.Contains(owners.Groups, rqst.Subject) {
-			hasAccess = true
-		}
-	} else if rqst.Type == resourcepb.SubjectType_ORGANIZATION {
-		subjectType = "Organization"
-		if Utility.Contains(owners.Organizations, rqst.Subject) {
-			hasAccess = true
-		}
-	} else if rqst.Type == resourcepb.SubjectType_PEER {
-		subjectType = "Peer"
-		if Utility.Contains(owners.Peers, rqst.Subject) {
-			hasAccess = true
-		}
+	} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
+		hasAccess = Utility.Contains(allowed.Organizations, subject)
+	} else if subjectType == resourcepb.SubjectType_PEER {
+		// Here the suject is an application.
+		hasAccess = Utility.Contains(allowed.Peers, subject)
+	} else if subjectType == resourcepb.SubjectType_APPLICATION {
+		// Here the suject is an application.
+		hasAccess = Utility.Contains(allowed.Applications, subject)
 	}
 
 	if !hasAccess {
-		err := errors.New("Permission denied for " + subjectType + " " + rqst.Subject + "!")
+		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
+		return false, false, err
+	}
+
+	// The permission is set.
+	return true, false, nil
+}
+
+//* Validate if a user can get access to a given ressource for a given operation (read, write...) *
+func (self *Globule) ValidateAccess(ctx context.Context, rqst *resourcepb.ValidateAccessRqst) (*resourcepb.ValidateAccessRsp, error) {
+	hasAccess, accessDenied, err := self.validateAccess(rqst.Subject, rqst.Type, rqst.Permission, rqst.Path)
+	if err != nil || !hasAccess || accessDenied {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-
 	}
 
 	// The permission is set.
