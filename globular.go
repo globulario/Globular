@@ -169,6 +169,9 @@ type Globule struct {
 	// Log store.
 	logs *storage_store.LevelDB_store
 
+	// RBAC store.
+	permissions *storage_store.LevelDB_store
+
 	// Create the JWT key used to create the signature
 	jwtKey       []byte
 	RootPassword string
@@ -590,8 +593,17 @@ func (self *Globule) Serve() {
 
 	// Open logs db.
 	if self.logs == nil {
+
+		// The logs storage.
 		self.logs = storage_store.NewLevelDB_store()
 		err := self.logs.Open(`{"path":"` + self.data + `", "name":"logs"}`)
+		if err != nil {
+			log.Println(err)
+		}
+
+		// The rbac storage.
+		self.permissions = storage_store.NewLevelDB_store()
+		err = self.permissions.Open(`{"path":"` + self.data + `", "name":"permissions"}`)
 		if err != nil {
 			log.Println(err)
 		}
@@ -1004,6 +1016,7 @@ func (self *Globule) stopServices() {
 		}
 		log.Println("stop listen(http) at port ", self.PortHttp)
 	}
+
 }
 
 /**
@@ -1139,14 +1152,14 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 				if err == nil {
 					log.Println(line)
 				}
-				// self.logServiceInfo(getStringVal(s, "Name"), line)
+				self.logServiceInfo(getStringVal(s, "Name"), line)
 			}
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
 			if err != nil {
 				// I will log the program error into the admin logger.
-				// self.logServiceInfo(getStringVal(s, "Name"), err.Error())
+				self.logServiceInfo(getStringVal(s, "Name"), err.Error())
 			}
 
 			// Print the error
@@ -1180,8 +1193,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			return -1, -1, err
 		}
 
-		//time.Sleep(time.Millisecond * 500)
-
 		// save service config.
 		self.saveServiceConfig(s)
 
@@ -1192,8 +1203,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 	} else if getStringVal(s, "Protocol") == "http" {
 		// any other http server except this one...
 		if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
-
-			// log.Println("------------->", getStringVal(s, "Name"))
 			p := exec.Command(servicePath, getStringVal(s, "Port"))
 
 			var errb bytes.Buffer
@@ -1232,7 +1241,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 						name := getStringVal(s, "Name")
 						log.Println(name, ":", line)
 						line, err = reader.ReadString('\n')
-						// self.logServiceInfo(name, line)
 					}
 
 					// if the process is not define.
@@ -1245,7 +1253,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 						_, err := p.Wait()
 						if err != nil {
 							// I will log the program error into the admin logger.
-							// self.logServiceInfo(getStringVal(s, "Name"), errb.String())
+							self.logServiceInfo(getStringVal(s, "Name"), errb.String())
 						}
 					}
 				}(s)

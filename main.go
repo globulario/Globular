@@ -71,6 +71,11 @@ func (g *Globule) Stop(s service.Service) error {
 		}
 	}
 	g.stopMongod()
+
+	// Close kv stores.
+	g.logs.Close()
+	g.permissions.Close()
+
 	close(g.exit)
 	return err
 }

@@ -75,9 +75,7 @@ func (self *Globule) startResourceService() error {
 				}
 			}
 		}()
-
 	}
-
 	return err
 }
 
