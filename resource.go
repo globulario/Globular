@@ -285,6 +285,20 @@ func (self *Globule) registerMethods() error {
 	return nil
 }
 
+/** Set action permissions.
+When gRPC service methode are called they must validate the ressource pass in parameters.
+So each service is reponsible to give access permissions requirement.
+*/
+func (self *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
+	// So here I will keep values in local storage.cap()
+	data, err := json.Marshal(permissions["resources"])
+	if err != nil {
+		return err
+	}
+	self.permissions.SetItem(permissions["action"].(string), data)
+	return nil
+}
+
 func (self *Globule) createApplicationConnection() error {
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {

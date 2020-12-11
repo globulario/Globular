@@ -730,7 +730,6 @@ func (self *Globule) registerIpToDns() error {
 		// set the HTTP method, url, and request body
 		req, err := http.NewRequest(http.MethodPut, setA, bytes.NewBuffer([]byte(data)))
 		if err != nil {
-			log.Println(err)
 			return err
 		}
 
@@ -745,7 +744,6 @@ func (self *Globule) registerIpToDns() error {
 		}
 
 	}
-
 	domains := self.AlternateDomains
 
 	for i := 0; i < len(domains); i++ {
