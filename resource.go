@@ -729,6 +729,9 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountE
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested resourcepb.
 func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.AuthenticateRqst) (*resourcepb.AuthenticateRsp, error) {
+
+	log.Println("----> authenticate user ", rqst.Name)
+
 	// Get the persistence connection
 	p, err := self.getPersistenceStore()
 	if err != nil {
