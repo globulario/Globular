@@ -1314,9 +1314,9 @@ func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartS
 }
 
 func (self *Globule) restartServices() {
-	log.Println("---> 1317")
-	self.exit <- struct{}{}
-	log.Println("---> 1319")
+	//log.Println("---> 1317")
+	//self.exit <- struct{}{}
+	//log.Println("---> 1319")
 	log.Println("--> stop internal services")
 
 	// Stop all internal services
