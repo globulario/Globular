@@ -1307,8 +1307,8 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 
 // Restart all Services also the http(s)
 func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartServicesRequest) (*adminpb.RestartServicesResponse, error) {
-
-	defer self.restartServices()
+	log.Println("restart service... ")
+	self.restartServices()
 
 	return &adminpb.RestartServicesResponse{}, nil
 }
