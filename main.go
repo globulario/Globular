@@ -99,6 +99,11 @@ func main() {
 	}
 
 	s, err := service.New(g, svcConfig)
+	errs := make(chan error, 5)
+	logger, err = s.Logger(errs)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if len(os.Args) > 1 {
 
@@ -309,11 +314,6 @@ func main() {
 
 	} else {
 
-		if err != nil {
-			log.Fatal(err)
-		}
-		errs := make(chan error, 5)
-		logger, err = s.Logger(errs)
 		if err != nil {
 			log.Fatal(err)
 		}
