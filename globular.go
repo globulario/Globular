@@ -639,6 +639,9 @@ func (self *Globule) Serve() {
 				}
 			}
 		}()
+
+		// Start the monitoring service with prometheus.
+		self.startPrometheus()
 	}
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -662,6 +665,8 @@ func (self *Globule) Serve() {
 
 	// lisen
 	err := self.Listen()
+
+	log.Println("Globular is running!")
 	if err != nil {
 		log.Println(err)
 	}
@@ -1984,10 +1989,6 @@ func (self *Globule) Listen() error {
 			err = self.https_server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
 		}()
 	}
-
-	log.Println("Globular is running!")
-	// Start the monitoring service with prometheus.
-	self.startPrometheus()
 
 	return err
 }
