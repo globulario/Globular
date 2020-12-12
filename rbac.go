@@ -1093,7 +1093,7 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 	return true, false, nil
 }
 
-//* Validate if a user can get access to a given ressource for a given operation (read, write...) *
+//* Validate if a account can get access to a given ressource for a given operation (read, write...) That function is recursive. *
 func (self *Globule) ValidateAccess(ctx context.Context, rqst *resourcepb.ValidateAccessRqst) (*resourcepb.ValidateAccessRsp, error) {
 	hasAccess, accessDenied, err := self.validateAccess(rqst.Subject, rqst.Type, rqst.Permission, rqst.Path)
 
