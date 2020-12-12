@@ -961,7 +961,7 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
  */
 func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
-		self.inernalServices[i].GracefulStop()
+		self.inernalServices[i].Stop()
 
 	}
 }

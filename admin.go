@@ -1316,11 +1316,17 @@ func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartS
 func (self *Globule) restartServices() {
 	self.exit <- struct{}{}
 
+	log.Println("--> stop internal services")
+
 	// Stop all internal services
 	self.stopInternalServices()
 
+	log.Println("--> stop external services")
+
 	// Stop all external services.
 	self.stopServices()
+
+	log.Println("--> restart...")
 
 	// Start services
 	self.Serve()
