@@ -25,7 +25,6 @@ func (g *Globule) Start(s service.Service) error {
 	} else {
 		logger.Info("Running under service manager.")
 	}
-	g.exit = make(chan struct{})
 
 	// Start should not block. Do the actual work async.
 	go g.run()
@@ -83,6 +82,7 @@ func (g *Globule) Stop(s service.Service) error {
 func main() {
 
 	g := NewGlobule()
+	g.exit = make(chan struct{})
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()
 
