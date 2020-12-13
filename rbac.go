@@ -826,7 +826,6 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *resourcepb.Delet
 
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType resourcepb.SubjectType, name string, path string) (bool, bool, error) {
-	log.Println("---> ", subject, subjectType, name, path)
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
 		return false, false, err
@@ -864,7 +863,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 
 	// If the user is the owner no other validation are required.
 	if isOwner {
-		log.Println("----> is owner ", subject, path)
 		return true, false, nil
 	}
 
@@ -914,7 +912,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 							groupId := groups[i].(map[string]interface{})["$id"].(string)
 							_, accessDenied_, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
 							if accessDenied_ {
-								log.Println("---> 917")
 								return false, true, errors.New("Access denied for " + subjectStr + " " + subject + "!")
 							}
 						}
@@ -929,7 +926,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
 							_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
 							if accessDenied_ {
-								log.Println("---> 931")
 								return false, true, errors.New("Access denied for " + subjectStr + " " + subject + "!")
 							}
 						}
@@ -973,7 +969,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
 							_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
 							if accessDenied_ {
-								log.Println("---> 974")
 								return false, true, errors.New("Access denied for " + subjectStr + " " + organizationId + "!")
 							}
 						}
@@ -986,7 +981,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 			if denied.Organizations != nil {
 				accessDenied = Utility.Contains(denied.Organizations, subject)
 			}
-			log.Println("---> 981 ", accessDenied)
 		} else if subjectType == resourcepb.SubjectType_PEER {
 			// Here the Subject is a Peer.
 			if denied.Peers != nil {
@@ -996,7 +990,6 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 	}
 
 	if accessDenied {
-		log.Println("---> 997")
 		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
 		return false, true, err
 	}
