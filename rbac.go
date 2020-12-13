@@ -826,6 +826,7 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *resourcepb.Delet
 
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType resourcepb.SubjectType, name string, path string) (bool, bool, error) {
+	log.Println("---> ", subject, subjectType, name, path)
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
 		return false, false, err
@@ -887,48 +888,49 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 			// Here the subject is an account.
 			if denied.Accounts != nil {
 				accessDenied = Utility.Contains(denied.Accounts, subject)
+			}
+			// The access is not denied for the account itself, I will validate
+			// that the account is not part of denied group.
+			if !accessDenied {
+				// I will test if one of the group account if part of hare access denied.
+				p, err := self.getPersistenceStore()
+				if err != nil {
+					return false, false, err
+				}
 
-				// The access is not denied for the account itself, I will validate
-				// that the account is not part of denied group.
-				if !accessDenied {
-					// I will test if one of the group account if part of hare access denied.
-					p, err := self.getPersistenceStore()
-					if err != nil {
-						return false, false, err
-					}
+				// Here I will test if a newer token exist for that user if it's the case
+				// I will not refresh that token.
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+				if err != nil {
+					return false, false, errors.New("No account named " + subject + " exist!")
+				}
 
-					// Here I will test if a newer token exist for that user if it's the case
-					// I will not refresh that token.
-					values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
-					if err != nil {
-						return false, false, errors.New("No account named " + subject + " exist!")
-					}
-
-					// from the account I will get the list of group.
-					account := values.(map[string]interface{})
-					if account["groups"] != nil {
-						groups := []interface{}(account["groups"].(primitive.A))
-						if groups != nil {
-							for i := 0; i < len(groups); i++ {
-								groupId := groups[i].(map[string]interface{})["$id"].(string)
-								_, accessDenied_, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
-								if accessDenied_ {
-									return false, true, nil
-								}
+				// from the account I will get the list of group.
+				account := values.(map[string]interface{})
+				if account["groups"] != nil {
+					groups := []interface{}(account["groups"].(primitive.A))
+					if groups != nil {
+						for i := 0; i < len(groups); i++ {
+							groupId := groups[i].(map[string]interface{})["$id"].(string)
+							_, accessDenied_, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
+							if accessDenied_ {
+								log.Println("---> 917")
+								return false, true, errors.New("Access denied for " + subjectStr + " " + subject + "!")
 							}
 						}
 					}
+				}
 
-					// from the account I will get the list of group.
-					if account["organizations"] != nil {
-						organizations := []interface{}(account["organizations"].(primitive.A))
-						if organizations != nil {
-							for i := 0; i < len(organizations); i++ {
-								organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-								_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
-								if accessDenied_ {
-									return false, true, nil
-								}
+				// from the account I will get the list of group.
+				if account["organizations"] != nil {
+					organizations := []interface{}(account["organizations"].(primitive.A))
+					if organizations != nil {
+						for i := 0; i < len(organizations); i++ {
+							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+							_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+							if accessDenied_ {
+								log.Println("---> 931")
+								return false, true, errors.New("Access denied for " + subjectStr + " " + subject + "!")
 							}
 						}
 					}
@@ -937,54 +939,64 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 
 		} else if subjectType == resourcepb.SubjectType_APPLICATION {
 			// Here the Subject is an application.
-			accessDenied = Utility.Contains(denied.Applications, subject)
+			if denied.Applications != nil {
+				accessDenied = Utility.Contains(denied.Applications, subject)
+			}
 		} else if subjectType == resourcepb.SubjectType_GROUP {
 			// Here the Subject is a group
 			if denied.Groups != nil {
 				accessDenied = Utility.Contains(denied.Groups, subject)
+			}
 
-				// The access is not denied for the account itself, I will validate
-				// that the account is not part of denied group.
-				if !accessDenied {
-					// I will test if one of the group account if part of hare access denied.
-					p, err := self.getPersistenceStore()
-					if err != nil {
-						return false, false, err
-					}
+			// The access is not denied for the account itself, I will validate
+			// that the account is not part of denied group.
+			if !accessDenied {
+				// I will test if one of the group account if part of hare access denied.
+				p, err := self.getPersistenceStore()
+				if err != nil {
+					return false, false, err
+				}
 
-					// Here I will test if a newer token exist for that user if it's the case
-					// I will not refresh that token.
-					values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
-					if err != nil {
-						return false, false, errors.New("No account named " + subject + " exist!")
-					}
+				// Here I will test if a newer token exist for that user if it's the case
+				// I will not refresh that token.
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
+				if err != nil {
+					return false, false, errors.New("No account named " + subject + " exist!")
+				}
 
-					// from the account I will get the list of group.
-					group := values.(map[string]interface{})
-					if group["organizations"] != nil {
-						organizations := []interface{}(group["organizations"].(primitive.A))
-						if organizations != nil {
-							for i := 0; i < len(organizations); i++ {
-								organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-								_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
-								if accessDenied_ {
-									return false, true, errors.New("Access denied for " + subjectStr + " " + organizationId + "!")
-								}
+				// from the account I will get the list of group.
+				group := values.(map[string]interface{})
+				if group["organizations"] != nil {
+					organizations := []interface{}(group["organizations"].(primitive.A))
+					if organizations != nil {
+						for i := 0; i < len(organizations); i++ {
+							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+							_, accessDenied_, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+							if accessDenied_ {
+								log.Println("---> 974")
+								return false, true, errors.New("Access denied for " + subjectStr + " " + organizationId + "!")
 							}
 						}
 					}
 				}
 			}
+
 		} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
 			// Here the Subject is an Organisations.
-			accessDenied = Utility.Contains(denied.Organizations, subject)
+			if denied.Organizations != nil {
+				accessDenied = Utility.Contains(denied.Organizations, subject)
+			}
+			log.Println("---> 981 ", accessDenied)
 		} else if subjectType == resourcepb.SubjectType_PEER {
 			// Here the Subject is a Peer.
-			accessDenied = Utility.Contains(denied.Peers, subject)
+			if denied.Peers != nil {
+				accessDenied = Utility.Contains(denied.Peers, subject)
+			}
 		}
 	}
 
 	if accessDenied {
+		log.Println("---> 997")
 		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
 		return false, true, err
 	}
@@ -998,92 +1010,103 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 	}
 
 	hasAccess := false
+	if allowed != nil {
+		// Test if the access is allowed
+		if subjectType == resourcepb.SubjectType_ACCOUNT {
+			if allowed.Accounts != nil {
+				hasAccess = Utility.Contains(allowed.Accounts, subject)
+			}
+			if !hasAccess {
+				// I will test if one of the group account if part of hare access denied.
+				p, err := self.getPersistenceStore()
+				if err != nil {
+					return false, false, err
+				}
 
-	// Test if the access is allowed
-	if subjectType == resourcepb.SubjectType_ACCOUNT {
-		hasAccess = Utility.Contains(allowed.Accounts, subject)
-		if !hasAccess {
-			// I will test if one of the group account if part of hare access denied.
-			p, err := self.getPersistenceStore()
-			if err != nil {
-				return false, false, err
+				// Here I will test if a newer token exist for that user if it's the case
+				// I will not refresh that token.
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+				if err == nil {
+					// from the account I will get the list of group.
+					account := values.(map[string]interface{})
+					if account["groups"] != nil {
+						groups := []interface{}(account["groups"].(primitive.A))
+						if groups != nil {
+							for i := 0; i < len(groups); i++ {
+								groupId := groups[i].(map[string]interface{})["$id"].(string)
+								hasAccess_, _, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
+								if hasAccess_ {
+									return true, false, nil
+								}
+							}
+						}
+					}
+
+					// from the account I will get the list of group.
+					if account["organizations"] != nil {
+						organizations := []interface{}(account["organizations"].(primitive.A))
+						if organizations != nil {
+							for i := 0; i < len(organizations); i++ {
+								organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+								hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+								if hasAccess_ {
+									return true, false, nil
+								}
+							}
+						}
+					}
+				}
 			}
 
-			// Here I will test if a newer token exist for that user if it's the case
-			// I will not refresh that token.
-			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
-			if err == nil {
-				// from the account I will get the list of group.
-				account := values.(map[string]interface{})
-				if account["groups"] != nil {
-					groups := []interface{}(account["groups"].(primitive.A))
-					if groups != nil {
-						for i := 0; i < len(groups); i++ {
-							groupId := groups[i].(map[string]interface{})["$id"].(string)
-							hasAccess_, _, _ := self.validateAccess(groupId, resourcepb.SubjectType_GROUP, name, path)
-							if hasAccess_ {
-								return true, false, nil
-							}
-						}
-					}
+		} else if subjectType == resourcepb.SubjectType_GROUP {
+			// validate the group access
+			if allowed.Groups != nil {
+				hasAccess = Utility.Contains(allowed.Groups, subject)
+			}
+			if !hasAccess {
+				// I will test if one of the group account if part of hare access denied.
+				p, err := self.getPersistenceStore()
+				if err != nil {
+					return false, false, err
 				}
 
-				// from the account I will get the list of group.
-				if account["organizations"] != nil {
-					organizations := []interface{}(account["organizations"].(primitive.A))
-					if organizations != nil {
-						for i := 0; i < len(organizations); i++ {
-							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-							hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
-							if hasAccess_ {
-								return true, false, nil
+				// Here I will test if a newer token exist for that user if it's the case
+				// I will not refresh that token.
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
+				if err == nil {
+					// Validate group organization
+					group := values.(map[string]interface{})
+					if group["organizations"] != nil {
+						organizations := []interface{}(group["organizations"].(primitive.A))
+						if organizations != nil {
+							for i := 0; i < len(organizations); i++ {
+								organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+								hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
+								if hasAccess_ {
+									return true, false, nil
+								}
 							}
 						}
 					}
 				}
+			}
+		} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
+			if allowed.Organizations != nil {
+				hasAccess = Utility.Contains(allowed.Organizations, subject)
+			}
+		} else if subjectType == resourcepb.SubjectType_PEER {
+			// Here the Subject is an application.
+			if allowed.Peers != nil {
+				hasAccess = Utility.Contains(allowed.Peers, subject)
+			}
+		} else if subjectType == resourcepb.SubjectType_APPLICATION {
+			// Here the Subject is an application.
+			if allowed.Applications != nil {
+
+				hasAccess = Utility.Contains(allowed.Applications, subject)
 			}
 		}
-
-	} else if subjectType == resourcepb.SubjectType_GROUP {
-		// validate the group access
-		hasAccess = Utility.Contains(allowed.Groups, subject)
-		if !hasAccess {
-			// I will test if one of the group account if part of hare access denied.
-			p, err := self.getPersistenceStore()
-			if err != nil {
-				return false, false, err
-			}
-
-			// Here I will test if a newer token exist for that user if it's the case
-			// I will not refresh that token.
-			values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+subject+`"}`, ``)
-			if err == nil {
-				// Validate group organization
-				group := values.(map[string]interface{})
-				if group["organizations"] != nil {
-					organizations := []interface{}(group["organizations"].(primitive.A))
-					if organizations != nil {
-						for i := 0; i < len(organizations); i++ {
-							organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-							hasAccess_, _, _ := self.validateAccess(organizationId, resourcepb.SubjectType_ORGANIZATION, name, path)
-							if hasAccess_ {
-								return true, false, nil
-							}
-						}
-					}
-				}
-			}
-		}
-	} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
-		hasAccess = Utility.Contains(allowed.Organizations, subject)
-	} else if subjectType == resourcepb.SubjectType_PEER {
-		// Here the Subject is an application.
-		hasAccess = Utility.Contains(allowed.Peers, subject)
-	} else if subjectType == resourcepb.SubjectType_APPLICATION {
-		// Here the Subject is an application.
-		hasAccess = Utility.Contains(allowed.Applications, subject)
 	}
-
 	if !hasAccess {
 		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
 		return false, false, err
