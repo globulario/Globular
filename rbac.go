@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
@@ -826,10 +827,19 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *resourcepb.Delet
 
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType resourcepb.SubjectType, name string, path string) (bool, bool, error) {
+
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
+		// In that case I will try to get parent ressource permission.
+		if len(strings.Split(path, "/")) > 1 {
+			// test for it parent.
+			log.Println("Evaluate the path ", path[0:strings.LastIndex(path, "/")-1])
+			return self.validateAccess(subject, subjectType, name, path[0:strings.LastIndex(path, "/")-1])
+		}
+
 		return false, false, err
 	}
+
 	// Test if the Subject is owner of the ressource in that case I will git him access.
 	owners := permissions.Owners
 	isOwner := false
@@ -887,6 +897,7 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 			if denied.Accounts != nil {
 				accessDenied = Utility.Contains(denied.Accounts, subject)
 			}
+
 			// The access is not denied for the account itself, I will validate
 			// that the account is not part of denied group.
 			if !accessDenied {
@@ -1008,6 +1019,9 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 		if subjectType == resourcepb.SubjectType_ACCOUNT {
 			if allowed.Accounts != nil {
 				hasAccess = Utility.Contains(allowed.Accounts, subject)
+				if hasAccess {
+					return true, false, nil
+				}
 			}
 			if !hasAccess {
 				// I will test if one of the group account if part of hare access denied.
@@ -1055,7 +1069,11 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 			// validate the group access
 			if allowed.Groups != nil {
 				hasAccess = Utility.Contains(allowed.Groups, subject)
+				if hasAccess {
+					return true, false, nil
+				}
 			}
+
 			if !hasAccess {
 				// I will test if one of the group account if part of hare access denied.
 				p, err := self.getPersistenceStore()
@@ -1086,20 +1104,29 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 		} else if subjectType == resourcepb.SubjectType_ORGANIZATION {
 			if allowed.Organizations != nil {
 				hasAccess = Utility.Contains(allowed.Organizations, subject)
+				if hasAccess {
+					return true, false, nil
+				}
 			}
 		} else if subjectType == resourcepb.SubjectType_PEER {
 			// Here the Subject is an application.
 			if allowed.Peers != nil {
 				hasAccess = Utility.Contains(allowed.Peers, subject)
+				if hasAccess {
+					return true, false, nil
+				}
 			}
 		} else if subjectType == resourcepb.SubjectType_APPLICATION {
 			// Here the Subject is an application.
 			if allowed.Applications != nil {
-
 				hasAccess = Utility.Contains(allowed.Applications, subject)
+				if hasAccess {
+					return true, false, nil
+				}
 			}
 		}
 	}
+
 	if !hasAccess {
 		err := errors.New("Access denied for " + subjectStr + " " + subject + "!")
 		return false, false, err
