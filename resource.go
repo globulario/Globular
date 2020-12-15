@@ -1252,7 +1252,9 @@ func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *resourcepb.Remo
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(role)
+		// jsonStr, _ := json.Marshal(role)
+		jsonStr := serialyseObject(role)
+
 		err := p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -1471,7 +1473,7 @@ func (self *Globule) AddApplicationAction(ctx context.Context, rqst *resourcepb.
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(application)
+		jsonStr := serialyseObject(application)
 		err := p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -1527,7 +1529,7 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *resource
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(application)
+		jsonStr := serialyseObject(application)
 		err := p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -1877,7 +1879,7 @@ func (self *Globule) AddPeerAction(ctx context.Context, rqst *resourcepb.AddPeer
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(peer)
+		jsonStr := serialyseObject(peer)
 		err := p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Peers", `{"_id":"`+_id+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -1932,7 +1934,7 @@ func (self *Globule) RemovePeerAction(ctx context.Context, rqst *resourcepb.Remo
 	}
 
 	if needSave {
-		jsonStr, _ := json.Marshal(peer)
+		jsonStr := serialyseObject(peer)
 		err := p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Peers", `{"_id":"`+_id+`"}`, string(jsonStr), ``)
 		if err != nil {
 			return nil, status.Errorf(
@@ -2560,9 +2562,10 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 	if !hasAccess {
 		if values["actions"] != nil {
-			actions := values["actions"].([]interface{})
+			actions := []interface{}(values["actions"].(primitive.A))
 			for i := 0; i < len(actions); i++ {
 				if actions[i].(string) == action {
+
 					hasAccess = true
 				}
 			}
@@ -2584,13 +2587,10 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 			}
 
 			for i := 0; i < len(resources); i++ {
-				hasAccess, accessDenied, err := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-				if err != nil {
-					return false, err
-				}
+				hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
 
 				if hasAccess == false || accessDenied == true {
-					return false, errors.New("Access denied for " + subject + " to call method " + action)
+					return false, errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
 				}
 			}
 		}

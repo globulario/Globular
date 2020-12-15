@@ -146,6 +146,11 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if !hasAccess {
 		// TODO validate gRPC method access here.
 		hasAccess = true // for convenience...
+		resource_client_, err := GetResourceClient(domain)
+		if err == nil {
+			infos, err := resource_client_.GetActionResourceInfos(method)
+			log.Println("-----------> info", infos, err)
+		}
 	}
 
 	if !hasAccess {

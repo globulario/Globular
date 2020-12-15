@@ -833,8 +833,8 @@ func (self *Globule) validateAccess(subject string, subjectType resourcepb.Subje
 		// In that case I will try to get parent ressource permission.
 		if len(strings.Split(path, "/")) > 1 {
 			// test for it parent.
-			log.Println("Evaluate the path ", path[0:strings.LastIndex(path, "/")-1])
-			return self.validateAccess(subject, subjectType, name, path[0:strings.LastIndex(path, "/")-1])
+			log.Println("Evaluate the path ", path[0:strings.LastIndex(path, "/")])
+			return self.validateAccess(subject, subjectType, name, path[0:strings.LastIndex(path, "/")])
 		}
 
 		return false, false, err
