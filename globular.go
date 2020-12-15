@@ -95,10 +95,10 @@ type Globule struct {
 	ResourceProxy             int    // The resource management proxy port
 	CertificateAuthorityPort  int    // The certificate authority port
 	CertificateAuthorityProxy int    // The certificate authority proxy port
-	ServicesDiscoveryPort     int    // The services discovery port
-	ServicesDiscoveryProxy    int    // The resource management proxy port
-	ServicesRepositoryPort    int    // The services discovery port
-	ServicesRepositoryProxy   int    // The resource management proxy port
+	PackagesDiscoveryPort     int    // The Packages discovery port
+	PackagesDiscoveryProxy    int    // The Packages discovery proxy port
+	PackagesRepositoryPort    int    // The Packages repository port
+	PackagesRepositoryProxy   int    // The Packages repository proxy port
 	LoadBalancingServicePort  int    // The load balancing service port
 	LoadBalancingServiceProxy int    // The load balancing proxy port
 	PortsRange                string // The range of port to be use for the service. ex 10000-10200
@@ -275,10 +275,10 @@ func NewGlobule() *Globule {
 		g.ResourceProxy = start + 4
 
 		// services management...
-		g.ServicesDiscoveryPort = start + 5
-		g.ServicesDiscoveryProxy = start + 6
-		g.ServicesRepositoryPort = start + 7
-		g.ServicesRepositoryProxy = start + 8
+		g.PackagesDiscoveryPort = start + 5
+		g.PackagesDiscoveryProxy = start + 6
+		g.PackagesRepositoryPort = start + 7
+		g.PackagesRepositoryProxy = start + 8
 		g.CertificateAuthorityPort = start + 9
 		g.CertificateAuthorityProxy = start + 10
 		g.LoadBalancingServicePort = start + 11
@@ -1054,7 +1054,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 	servicePath := getStringVal(s, "Path")
 	serviceName := getStringVal(s, "Name")
-	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "services.ServiceDiscovery" {
+	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "services.PackageDiscovery" {
 		// I will test if the service is find if not I will try to set path
 		// to standard dist directory structure.
 		if !Utility.Exists(servicePath) {
@@ -1411,13 +1411,13 @@ func (self *Globule) initServices() {
 			if info == nil {
 				return nil
 			}
+
 			if err == nil && info.Name() == "config.json" {
 				// So here I will read the content of the file.
 				s := make(map[string]interface{})
 				config, err := ioutil.ReadFile(path)
 				if err == nil {
 					// Read the config file.
-
 					err := json.Unmarshal(config, &s)
 					if err == nil {
 						if s["Protocol"] != nil {
@@ -1941,13 +1941,13 @@ func (self *Globule) Listen() error {
 	}
 
 	// Directorie service
-	err = self.startDiscoveryService()
+	err = self.startPackagesDiscoveryService()
 	if err != nil {
 		return err
 	}
 
 	// Repository service
-	err = self.startRepositoryService()
+	err = self.startPackagesRepositoryService()
 	if err != nil {
 		return err
 	}

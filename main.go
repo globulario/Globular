@@ -132,19 +132,20 @@ func main() {
 
 		// Publish command.
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
-		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Required)")
-		publishCommand_publisher_id := publishCommand.String("publisher", "", "The publisher id. (Required)")
-		publishCommand_id := publishCommand.String("id", "", "The service id. (Required)")
 		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
-		publishCommand_discovery := publishCommand.String("discovery", "", "You must specified the domain of the discovery service where to publish your service (Required)")
-		publishCommand_repository := publishCommand.String("repository", "", "You must specified the domain of the repository service where to publish your service (Required)")
 		publishCommand_user := publishCommand.String("u", "", "The user name. (Required)")
 		publishCommand_pwd := publishCommand.String("p", "", "The user password. (Required)")
 		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
-		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Required)")
-		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Required)")
-		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Required)")
-		publishCommand_plaform := publishCommand.String("platform", "", "(Required)")
+		// *** Those informations are optional they are in the configuration of the service.
+		publishCommand_id := publishCommand.String("id", "", "The service id. (Optional)")
+		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Optional)")
+		publishCommand_discovery := publishCommand.String("discovery", "", "You must specified the domain of the discovery service where to publish your service (Optional)")
+		publishCommand_repository := publishCommand.String("repository", "", "You must specified the domain of the repository service where to publish your service (Optional)")
+		publishCommand_publisher_id := publishCommand.String("publisher", "", "The publisher id. (Optional)")
+		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Optional)")
+		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Optional)")
+		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Optional)")
+		publishCommand_plaform := publishCommand.String("platform", "", "(Optional)")
 
 		switch os.Args[1] {
 		case "start":
@@ -243,43 +244,22 @@ func main() {
 		}
 
 		if publishCommand.Parsed() {
-			if *publishCommand_name == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
-			if *publishCommand_id == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
-			if *publishCommand_publisher_id == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
 
 			if *publishCommand_path == "" {
 				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
-			if *publishCommand_discovery == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
-			if *publishCommand_repository == "" {
-				publishCommand.PrintDefaults()
+				fmt.Println("No -path was given!")
 				os.Exit(1)
 			}
 
 			if *publishCommand_user == "" {
 				publishCommand.PrintDefaults()
+				fmt.Println("No -u (user) was given!")
 				os.Exit(1)
 			}
 
 			if *publishCommand_pwd == "" {
 				publishCommand.PrintDefaults()
+				fmt.Println("No -p (password) was given!")
 				os.Exit(1)
 			}
 
@@ -288,28 +268,38 @@ func main() {
 				os.Exit(1)
 			}
 
-			if *publishCommand_description == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
+			// Here I will read the configuration file...
+			log.Println(*publishCommand_path)
+			keywords := make([]string, 0)
+			if *publishCommand_keywords != "" {
+				keywords = strings.Split(*publishCommand_keywords, ",")
+				for i := 0; i < len(keywords); i++ {
+					keywords[i] = strings.TrimSpace(keywords[i])
+				}
 			}
 
-			if *publishCommand_keywords == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
+			log.Println("---> service path is ", *publishCommand_path)
 
-			if *publishCommand_version == "" {
-				publishCommand.PrintDefaults()
-				os.Exit(1)
-			}
+			if *publishCommand_id != "" {
 
-			keywords := strings.Split(*publishCommand_keywords, ",")
-			for i := 0; i < len(keywords); i++ {
-				keywords[i] = strings.TrimSpace(keywords[i])
+			} else if *publishCommand_name != "" {
+
+			} else if *publishCommand_discovery != "" {
+
+			} else if *publishCommand_repository != "" {
+
+			} else if *publishCommand_publisher_id != "" {
+
+			} else if *publishCommand_description != "" {
+
+			} else if *publishCommand_version != "" {
+
+			} else if *publishCommand_plaform != "" {
+
 			}
 
 			// Pulish the services.
-			publish(g, *publishCommand_path, *publishCommand_name, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
+			//publish(g, *publishCommand_path, *publishCommand_id, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
 		}
 
 	} else {

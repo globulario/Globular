@@ -89,10 +89,10 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["AlternateDomains"] = self.AlternateDomains
 	config["ResourcePort"] = self.ResourcePort
 	config["ResourceProxy"] = self.ResourceProxy
-	config["ServicesDiscoveryPort"] = self.ServicesDiscoveryPort
-	config["ServicesDiscoveryProxy"] = self.ServicesDiscoveryProxy
-	config["ServicesRepositoryPort"] = self.ServicesRepositoryPort
-	config["ServicesRepositoryProxy"] = self.ServicesRepositoryProxy
+	config["PackagesDiscoveryPort"] = self.PackagesDiscoveryPort
+	config["PackagesDiscoveryProxy"] = self.PackagesDiscoveryProxy
+	config["PackagesRepositoryPort"] = self.PackagesRepositoryPort
+	config["PackagesRepositoryProxy"] = self.PackagesRepositoryProxy
 	config["LoadBalancingServiceProxy"] = self.LoadBalancingServiceProxy
 	config["SessionTimeout"] = self.SessionTimeout
 	config["Discoveries"] = self.Discoveries
@@ -339,10 +339,10 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
 		self.ResourcePort = Utility.ToInt(config["ResourcePort"].(float64))
 		self.ResourceProxy = Utility.ToInt(config["ResourceProxy"].(float64))
-		self.ServicesDiscoveryPort = Utility.ToInt(config["ServicesDiscoveryPort"].(float64))
-		self.ServicesDiscoveryProxy = Utility.ToInt(config["ServicesDiscoveryProxy"].(float64))
-		self.ServicesRepositoryPort = Utility.ToInt(config["ServicesRepositoryPort"].(float64))
-		self.ServicesRepositoryProxy = Utility.ToInt(config["ServicesRepositoryProxy"].(float64))
+		self.PackagesDiscoveryPort = Utility.ToInt(config["ServicesDiscoveryPort"].(float64))
+		self.PackagesDiscoveryProxy = Utility.ToInt(config["PackagesDiscoveryProxy"].(float64))
+		self.PackagesRepositoryPort = Utility.ToInt(config["PackagesRepositoryPort"].(float64))
+		self.PackagesRepositoryProxy = Utility.ToInt(config["PackagesRepositoryProxy"].(float64))
 		self.CertificateAuthorityPort = Utility.ToInt(config["CertificateAuthorityPort"].(float64))
 		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
 
@@ -389,7 +389,19 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 	}, nil
 }
 
-// Deloyed a web application to a globular node.
+// Uninstall application...
+func (self *Globule) UninstallApplication(ctx context.Context, rqst *adminpb.UninstallApplicationRequest) (*adminpb.UninstallApplicationResponse, error) {
+
+	return nil, nil
+}
+
+// Install Application
+func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.InstallApplicationRequest) (*adminpb.InstallApplicationResponse, error) {
+
+	return nil, nil
+}
+
+// Deloyed a web application to a globular node. Mostly use a develeopment time.
 func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
 
 	// The bundle will cantain the necessary information to install the service.
@@ -912,7 +924,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Connect to the dicovery services
-	services_discovery, err := service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services.ServiceDiscovery")
+	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "services.PackageDiscovery")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -928,7 +940,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Now I will upload the service to the repository...
-	serviceDescriptor := &servicespb.ServiceDescriptor{
+	PackageDescriptor := &servicespb.PackageDescriptor{
 		Id:           rqst.ServiceId,
 		Name:         rqst.ServiceName,
 		PublisherId:  rqst.PublisherId,
@@ -936,9 +948,11 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 		Description:  rqst.Description,
 		Keywords:     rqst.Keywords,
 		Repositories: []string{rqst.RepositoryId},
+		Type:         servicespb.PackageType_SERVICE,
 	}
 
-	err = services_discovery.PublishServiceDescriptor(serviceDescriptor)
+	// Fist of all publish the package descriptor.
+	err = services_discovery.PublishPackageDescriptor(PackageDescriptor)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -946,7 +960,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(rqst.DicorveryId, serviceDescriptor.Id, serviceDescriptor.PublisherId, rqst.Platform, rqst.Path)
+	err = services_repository.UploadBundle(rqst.DicorveryId, PackageDescriptor.Id, PackageDescriptor.PublisherId, rqst.Platform, rqst.Path)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -963,7 +977,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 
 	// Here I will send a event to be sure all server will update...
 	var marshaler jsonpb.Marshaler
-	data, err := marshaler.MarshalToString(serviceDescriptor)
+	data, err := marshaler.MarshalToString(PackageDescriptor)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -981,7 +995,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 		self.discorveriesEventHub[rqst.DicorveryId] = client
 	}
 
-	self.discorveriesEventHub[rqst.DicorveryId].Publish(serviceDescriptor.PublisherId+":"+serviceDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
+	self.discorveriesEventHub[rqst.DicorveryId].Publish(PackageDescriptor.PublisherId+":"+PackageDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
 
 	// Here I will set the resource to manage the applicaiton access permission.
 	//if md, ok := metadata.FromIncomingContext(ctx); ok {
@@ -993,10 +1007,11 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	return &adminpb.PublishServiceResponse{
 		Result: true,
 	}, nil
+
 }
 
 // Install/Update a service on globular instance.
-func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) error {
+func (self *Globule) installService(descriptor *servicespb.PackageDescriptor) error {
 	// repository must exist...
 	log.Println("step 2: try to dowload service bundle")
 	if len(descriptor.Repositories) == 0 {
@@ -1096,9 +1111,9 @@ func (self *Globule) installService(descriptor *servicespb.ServiceDescriptor) er
 func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
 	log.Println("Try to install new service...")
 	// Connect to the dicovery services
-	var services_discovery *service_client.ServicesDiscovery_Client
+	var services_discovery *service_client.PackagesDiscovery_Client
 	var err error
-	services_discovery, err = service_client.NewServicesDiscoveryService_Client(rqst.DicorveryId, "services.ServiceDiscovery")
+	services_discovery, err = service_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "services.PackageDiscovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -1106,7 +1121,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
-	descriptors, err := services_discovery.GetServiceDescriptor(rqst.ServiceId, rqst.PublisherId)
+	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

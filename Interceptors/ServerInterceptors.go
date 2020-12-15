@@ -16,10 +16,12 @@ import (
 	"github.com/davecourtois/Utility"
 	globular "github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/storage/storage_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
@@ -74,6 +76,44 @@ func refreshToken(domain string, token string) (string, error) {
 	return resource_client.RefreshToken(token)
 }
 
+func validateActionRequest(rqst interface{}, method string, subject string, subjectType resourcepb.SubjectType, domain string) (bool, error) {
+
+	id := Utility.GenerateUUID(method + "|" + subject + "|" + domain)
+
+	resource_client_, err := GetResourceClient(domain)
+	if err != nil {
+		return false, err
+	}
+
+	hasAccess := false
+	infos, err := resource_client_.GetActionResourceInfos(method)
+	if err != nil {
+		infos = make([]*resourcepb.ResourceInfos, 0)
+	} else {
+		// Here I will get the params...
+		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
+		rqst_ := val.(protoreflect.Message)
+		if rqst_.Descriptor().Fields().Len() > 0 {
+			for i := 0; i < len(infos); i++ {
+				// Get the path value from retreive infos.
+				param := rqst_.Descriptor().Fields().Get(Utility.ToInt(infos[i].Index))
+				path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
+				infos[i].Path = path.(string)
+				id += "|" + path.(string)
+			}
+		}
+	}
+
+	hasAccess, err = resource_client_.ValidateAction(method, subject, resourcepb.SubjectType_ACCOUNT, infos)
+	if err != nil {
+		return false, err
+	}
+
+	// Here I will store the permission for further use...
+
+	return hasAccess, nil
+}
+
 // That interceptor is use by all services except the resource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -117,9 +157,9 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	// needed to get access to the system.
 	if method == "/admin.AdminService/GetConfig" ||
 		method == "/admin.AdminService/HasRunningProcess" ||
-		method == "/services.ServiceDiscovery/FindServices" ||
-		method == "/services.ServiceDiscovery/GetServiceDescriptor" ||
-		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
+		method == "/services.PackageDiscovery/FindServices" ||
+		method == "/services.PackageDiscovery/GetServiceDescriptor" ||
+		method == "/services.PackageDiscovery/GetServicesDescriptor" ||
 		method == "/dns.DnsService/GetA" ||
 		method == "/dns.DnsService/GetAAAA" ||
 		method == "/resource.ResourceService/Log" {
@@ -143,15 +183,19 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	}
 
 	// Test if peer has access
-	if !hasAccess {
-		// TODO validate gRPC method access here.
-		hasAccess = true // for convenience...
-		resource_client_, err := GetResourceClient(domain)
-		if err == nil {
-			infos, err := resource_client_.GetActionResourceInfos(method)
-			log.Println("-----------> info", infos, err)
-		}
+	if !hasAccess && len(clientId) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, method, clientId, resourcepb.SubjectType_ACCOUNT, domain)
 	}
+
+	if !hasAccess && len(application) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, method, application, resourcepb.SubjectType_APPLICATION, domain)
+	}
+
+	/* TODO validate peer id here.
+	if !hasAccess && len(peerId) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, method, peerId, resourcepb.SubjectType_PEER, domain)
+	}
+	*/
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
@@ -161,16 +205,11 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		return nil, err
 	}
 
-	// Now I will test file permission.
-	if clientId != "sa" {
-		// TODO validate gRPC ressource access here.
-	}
-
 	var result interface{}
 
 	result, err = handler(ctx, rqst)
 
-	// Send log event...
+	// Send log message.
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
 		// resource_client.Log(application, clientId, method, err)
 	}
@@ -216,9 +255,27 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
-	if l.clientId != "sa" {
-		// TODO validate gRpc method and ressource access. here.
+	hasAccess := l.clientId == "sa"
+	// Test if peer has access
+	if !hasAccess && len(l.clientId) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.clientId, resourcepb.SubjectType_ACCOUNT, l.domain)
 	}
+
+	if !hasAccess && len(l.application) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.application, resourcepb.SubjectType_APPLICATION, l.domain)
+	}
+
+	if !hasAccess && len(l.peer) > 0 {
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.peer, resourcepb.SubjectType_PEER, l.domain)
+	}
+
+	if !hasAccess {
+		err := errors.New("Permission denied to execute method " + l.method + " user:" + l.clientId + " domain:" + l.domain + " application:" + l.application)
+		fmt.Println(err)
+		log.Println("validation fail ", err)
+		return err
+	}
+
 	return l.inner.RecvMsg(rqst)
 }
 
@@ -267,7 +324,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// needed by the admin.
 	if application == "admin" ||
-		method == "/services.ServiceDiscovery/GetServicesDescriptor" ||
+		method == "/services.PackageDiscovery/GetServicesDescriptor" ||
 		method == "/services.ServiceRepository/DownloadBundle" {
 		hasAccess = true
 	}
