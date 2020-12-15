@@ -25,6 +25,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func (self *Globule) startResourceService() error {
@@ -300,7 +302,7 @@ func (self *Globule) setActionResourcesPermissions(permissions map[string]interf
 }
 
 // Retreive the ressource infos from the database.
-func (self *Globule) getActionResourcesPermissions(action string) ([]interface{}, error) {
+func (self *Globule) getActionResourcesPermissions(action string) ([]*resourcepb.ResourceInfos, error) {
 	data, err := self.permissions.GetItem(action)
 	if err != nil {
 		return nil, err
@@ -309,7 +311,13 @@ func (self *Globule) getActionResourcesPermissions(action string) ([]interface{}
 	infos := make([]interface{}, 0)
 	err = json.Unmarshal(data, &infos)
 
-	return infos, err
+	infos_ := make([]*resourcepb.ResourceInfos, 0)
+	for i := 0; i < len(infos); i++ {
+		info := infos[i].(map[string]interface{})
+		infos_ = append(infos_, &resourcepb.ResourceInfos{Index: int32(Utility.ToInt(info["index"])), Permission: info["permission"].(string)})
+	}
+
+	return infos_, err
 }
 
 func (self *Globule) createApplicationConnection() error {
@@ -1549,9 +1557,35 @@ func (self *Globule) GetAllActions(ctx context.Context, rqst *resourcepb.GetAllA
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
+func (self *Globule) validateActionRequest(rqst interface{}, method string, subject string, subjectType resourcepb.SubjectType) (bool, error) {
+	hasAccess := false
+	infos, err := self.getActionResourcesPermissions(method)
+	if err != nil {
+		infos = make([]*resourcepb.ResourceInfos, 0)
+	} else {
+		// Here I will get the params...
+		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
+		rqst_ := val.(protoreflect.Message)
+		if rqst_.Descriptor().Fields().Len() > 0 {
+			for i := 0; i < len(infos); i++ {
+				// Get the path value from retreive infos.
+				param := rqst_.Descriptor().Fields().Get(Utility.ToInt(infos[i].Index))
+				path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
+				infos[i].Path = path.(string)
+			}
+		}
+	}
+
+	hasAccess, err = self.validateAction(method, subject, resourcepb.SubjectType_ACCOUNT, infos)
+	if err != nil {
+		return false, err
+	}
+
+	return hasAccess, nil
+}
 
 // unaryInterceptor calls authenticateClient with current context
-func (self *Globule) unaryResourceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	method := info.FullMethod
 
 	// The token and the application id.
@@ -1598,15 +1632,14 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, req interface
 
 		hasAccess = clientId == "sa"
 		if !hasAccess {
-			// TODO validate rpc method access
-			err := errors.New("Permission denied " + clientId + " to execute method " + method)
-			return nil, err
+			hasAccess, _ = self.validateActionRequest(rqst, method, clientId, resourcepb.SubjectType_ACCOUNT)
 		}
 	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
 		// TODO validate rpc method access
+		hasAccess, _ = self.validateActionRequest(rqst, method, application, resourcepb.SubjectType_APPLICATION)
 	}
 
 	if !hasAccess {
@@ -1616,11 +1649,7 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, req interface
 	}
 
 	// Execute the action.
-	result, err := handler(ctx, req)
-
-	if err == nil {
-
-	}
+	result, err := handler(ctx, rqst)
 
 	return result, err
 
@@ -2494,13 +2523,7 @@ func (self *Globule) GetActionResourceInfos(ctx context.Context, rqst *resourcep
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	infos_ := make([]*resourcepb.ResourceInfos, 0)
-
-	for i := 0; i < len(infos); i++ {
-		info := infos[i].(map[string]interface{})
-		infos_ = append(infos_, &resourcepb.ResourceInfos{Index: int32(Utility.ToInt(info["index"])), Permission: info["permission"].(string)})
-	}
-	return &resourcepb.GetActionResourceInfosRsp{Infos: infos_}, nil
+	return &resourcepb.GetActionResourceInfosRsp{Infos: infos}, nil
 }
 
 /**
