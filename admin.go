@@ -952,7 +952,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 		Id:           rqst.ServiceId,
 		Name:         rqst.ServiceName,
 		Organization: rqst.Organization,
-		PublisherId:  rqst.PublisherId, //  Account
+		PublisherId:  rqst.PublisherId, //  Account member of the organization.
 		Version:      rqst.Version,
 		Description:  rqst.Description,
 		Keywords:     rqst.Keywords,
