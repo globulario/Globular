@@ -402,8 +402,20 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 	return nil, nil
 }
 
+//
+func (self *Globule) installApplication() error {
+	// - Install dependency
+	//  -- Services
+	//  -- Permissions
+
+	return nil // TODO take code from Deploy
+}
+
 // Deloyed a web application to a globular node. Mostly use a develeopment time.
 func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
+
+	// TODO publish the application as package.
+	// - Get the information from the package.json (npm package, the version, the keywords and set the package descriptor with it.
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
