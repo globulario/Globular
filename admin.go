@@ -921,31 +921,121 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 	return nil
 }
 
-// Publish a service. The service must be install localy on the server.
-func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
+// Publish a package, the package can contain an application or a services.
+func (self *Globule) publishPackage(discovery string, repository string, platform string, path string, descriptor *servicespb.PackageDescriptor) error {
+
+	// Test if an organization is given.
+	if len(descriptor.Organization) == 0 {
+		return errors.New("No organization was given!")
+	}
 
 	// Test if the publisher is a member of the organization before publish the service.
-	if !self.isOrganizationMemeber(rqst.PublisherId, rqst.Organization) {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New(rqst.PublisherId+" must be member of the organization "+rqst.Organization+" in order to publish a service!")))
+	if !self.isOrganizationMemeber(descriptor.PublisherId, descriptor.Organization) {
+		return errors.New(descriptor.PublisherId + " must be member of the organization " + descriptor.Organization + " in order to publish a service!")
 	}
 
 	// Connect to the dicovery services
-	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "services.PackageDiscovery")
+	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(discovery, "services.PackageDiscovery")
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
+		return errors.New("Fail to connect to " + discovery)
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := service_client.NewServicesRepositoryService_Client(rqst.RepositoryId, "services.ServiceRepository")
+	services_repository, err := service_client.NewServicesRepositoryService_Client(repository, "services.ServiceRepository")
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.RepositoryId)))
+		return errors.New("Fail to connect to " + repository)
 	}
+
+	// Ladies and Gentlemans After one year after tow years services as resource!
+	path_ := descriptor.Organization + "/" + descriptor.Name + "/" + descriptor.Id + "/" + descriptor.Version
+
+	// So here I will set the permissions
+	var permissions *resourcepb.Permissions
+	permissions, err = self.getResourcePermissions(path_)
+	if err != nil {
+		// Create the permission...
+		permissions = &resourcepb.Permissions{
+			Allowed: []*resourcepb.Permission{
+				//  Exemple of possible permission values.
+				&resourcepb.Permission{
+					Name:          "publish", // member of the organization can publish the service.
+					Applications:  []string{},
+					Accounts:      []string{},
+					Groups:        []string{},
+					Peers:         []string{},
+					Organizations: []string{descriptor.Organization},
+				},
+			},
+			Denied: []*resourcepb.Permission{},
+			Owners: &resourcepb.Permission{
+				Name:     "owner",
+				Accounts: []string{descriptor.PublisherId},
+			},
+		}
+	}
+
+	// Test the permission before actualy publish the service.
+	hasAccess, isDenied, err := self.validateAccess(descriptor.PublisherId, resourcepb.SubjectType_ACCOUNT, "publish", path_)
+	if !hasAccess || isDenied || err != nil {
+		return err
+	}
+
+	if !Utility.Contains(permissions.Owners.Accounts, path_) {
+		permissions.Owners.Accounts = append(permissions.Owners.Accounts, path_)
+	}
+
+	// The publisher will be the owner.
+	err = self.setResourcePermissions(path_, permissions)
+	if err != nil {
+		return err
+	}
+
+	// Fist of all publish the package descriptor.
+	err = services_discovery.PublishPackageDescriptor(descriptor)
+	if err != nil {
+		return err
+	}
+
+	// Upload the service to the repository.
+	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, platform, path)
+	if err != nil {
+		return err
+	}
+
+	// So here I will send an plublish event...
+	err = os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	// Here I will send a event to be sure all server will update...
+	var marshaler jsonpb.Marshaler
+	data, err := marshaler.MarshalToString(descriptor)
+	if err != nil {
+		return err
+	}
+
+	// Here I will send an event that the service has a new version...
+	if self.discorveriesEventHub[discovery] == nil {
+		client, err := event_client.NewEventService_Client(discovery, "event.EventService")
+		if err != nil {
+			return err
+		}
+		self.discorveriesEventHub[discovery] = client
+	}
+
+	eventId := descriptor.PublisherId + ":" + descriptor.Id
+	if descriptor.Type == servicespb.PackageType_SERVICE {
+		eventId += ":SERVICE_PUBLISH_EVENT"
+	} else if descriptor.Type == servicespb.PackageType_APPLICATION {
+		eventId += ":APPLICATION_PUBLISH_EVENT"
+	}
+
+	return self.discorveriesEventHub[discovery].Publish(eventId, []byte(data))
+}
+
+// Publish a service. The service must be install localy on the server.
+func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
 	// Now I will upload the service to the repository...
 	PackageDescriptor := &servicespb.PackageDescriptor{
@@ -960,99 +1050,13 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 		Type:         servicespb.PackageType_SERVICE,
 	}
 
-	// Ladies and Gentlemans After one year after tow years services as resource!
-	path := rqst.Organization + "/" + rqst.ServiceName + "/" + rqst.ServiceId + "/" + rqst.Version
+	err := self.publishPackage(rqst.DicorveryId, rqst.RepositoryId, rqst.Platform, rqst.Path, PackageDescriptor)
 
-	// So here I will set the permissions
-	var permissions *resourcepb.Permissions
-	permissions, err = self.getResourcePermissions(path)
-	if err != nil {
-		// Create the permission...
-		permissions = &resourcepb.Permissions{
-			Allowed: []*resourcepb.Permission{
-				//  Exemple of possible permission values.
-				&resourcepb.Permission{
-					Name:          "publish", // member of the organization can publish the service.
-					Applications:  []string{},
-					Accounts:      []string{},
-					Groups:        []string{},
-					Peers:         []string{},
-					Organizations: []string{rqst.Organization},
-				},
-			},
-			Denied: []*resourcepb.Permission{},
-			Owners: &resourcepb.Permission{
-				Name:     "owner",
-				Accounts: []string{rqst.PublisherId},
-			},
-		}
-	}
-
-	// Test the permission before actualy publish the service.
-	hasAccess, isDenied, err := self.validateAccess(rqst.PublisherId, resourcepb.SubjectType_ACCOUNT, "publish", path)
-	if !hasAccess || isDenied || err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	if !Utility.Contains(permissions.Owners.Accounts, path) {
-		permissions.Owners.Accounts = append(permissions.Owners.Accounts, path)
-	}
-
-	// The publisher will be the owner.
-	err = self.setResourcePermissions(path, permissions)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	// Fist of all publish the package descriptor.
-	err = services_discovery.PublishPackageDescriptor(PackageDescriptor)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Upload the service to the repository.
-	err = services_repository.UploadBundle(rqst.DicorveryId, PackageDescriptor.Id, PackageDescriptor.PublisherId, rqst.Platform, rqst.Path)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// So here I will send an plublish event...
-	err = os.Remove(rqst.Path)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Here I will send a event to be sure all server will update...
-	var marshaler jsonpb.Marshaler
-	data, err := marshaler.MarshalToString(PackageDescriptor)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Here I will send an event that the service has a new version...
-	if self.discorveriesEventHub[rqst.DicorveryId] == nil {
-		client, err := event_client.NewEventService_Client(rqst.DicorveryId, "event.EventService")
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-		self.discorveriesEventHub[rqst.DicorveryId] = client
-	}
-
-	self.discorveriesEventHub[rqst.DicorveryId].Publish(PackageDescriptor.PublisherId+":"+PackageDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
 
 	return &adminpb.PublishServiceResponse{
 		Result: true,
