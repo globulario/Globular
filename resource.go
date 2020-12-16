@@ -938,6 +938,34 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 	}, nil
 }
 
+// Test if account is a member of organisation.
+func (self *Globule) isOrganizationMemeber(account string, organization string) bool {
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return false
+	}
+
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+account+`"}`, ``)
+	if err != nil {
+		return false
+	}
+
+	account_ := values.(map[string]interface{})
+	if account_["organizations"] != nil {
+		organizations := []interface{}(account_["organizations"].(primitive.A))
+		for i := 0; i < len(organizations); i++ {
+			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+			if organization == organizationId {
+				return true
+			}
+		}
+	}
+
+	return false
+
+}
+
 //* Delete an account *
 func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteAccountRqst) (*resourcepb.DeleteAccountRsp, error) {
 	// That service made user of persistence service.

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -923,6 +924,13 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 // Publish a service. The service must be install localy on the server.
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
+	// Test if the publisher is a member of the organization before publish the service.
+	if !self.isOrganizationMemeber(rqst.PublisherId, rqst.Organization) {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New(rqst.PublisherId+" must be member of the organization "+rqst.Organization+" in order to publish a service!")))
+	}
+
 	// Connect to the dicovery services
 	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "services.PackageDiscovery")
 	if err != nil {
@@ -943,12 +951,61 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	PackageDescriptor := &servicespb.PackageDescriptor{
 		Id:           rqst.ServiceId,
 		Name:         rqst.ServiceName,
-		PublisherId:  rqst.PublisherId,
+		Organization: rqst.Organization,
+		PublisherId:  rqst.PublisherId, //  Account
 		Version:      rqst.Version,
 		Description:  rqst.Description,
 		Keywords:     rqst.Keywords,
 		Repositories: []string{rqst.RepositoryId},
 		Type:         servicespb.PackageType_SERVICE,
+	}
+
+	// Ladies and Gentlemans After one year after tow years services as resource!
+	path := rqst.Organization + "/" + rqst.ServiceName + "/" + rqst.ServiceId + "/" + rqst.Version
+
+	// So here I will set the permissions
+	var permissions *resourcepb.Permissions
+	permissions, err = self.getResourcePermissions(path)
+	if err != nil {
+		// Create the permission...
+		permissions = &resourcepb.Permissions{
+			Allowed: []*resourcepb.Permission{
+				//  Exemple of possible permission values.
+				&resourcepb.Permission{
+					Name:          "publish", // member of the organization can publish the service.
+					Applications:  []string{},
+					Accounts:      []string{},
+					Groups:        []string{},
+					Peers:         []string{},
+					Organizations: []string{rqst.Organization},
+				},
+			},
+			Denied: []*resourcepb.Permission{},
+			Owners: &resourcepb.Permission{
+				Name:     "owner",
+				Accounts: []string{rqst.PublisherId},
+			},
+		}
+	}
+
+	// Test the permission before actualy publish the service.
+	hasAccess, isDenied, err := self.validateAccess(rqst.PublisherId, resourcepb.SubjectType_ACCOUNT, "publish", path)
+	if !hasAccess || isDenied || err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	if !Utility.Contains(permissions.Owners.Accounts, path) {
+		permissions.Owners.Accounts = append(permissions.Owners.Accounts, path)
+	}
+
+	// The publisher will be the owner.
+	err = self.setResourcePermissions(path, permissions)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Fist of all publish the package descriptor.
@@ -996,13 +1053,6 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	}
 
 	self.discorveriesEventHub[rqst.DicorveryId].Publish(PackageDescriptor.PublisherId+":"+PackageDescriptor.Id+":SERVICE_PUBLISH_EVENT", []byte(data))
-
-	// Here I will set the resource to manage the applicaiton access permission.
-	//if md, ok := metadata.FromIncomingContext(ctx); ok {
-	// user := strings.Join(md["user"], "")
-	// path := strings.Join(md["path"], "")
-	// TODO set ressource owner etc...
-	//}
 
 	return &adminpb.PublishServiceResponse{
 		Result: true,

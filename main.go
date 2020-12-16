@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/davecourtois/Utility"
@@ -265,41 +266,99 @@ func main() {
 
 			if *publishCommand_address == "" {
 				publishCommand.PrintDefaults()
+				fmt.Println("No -a (address or domain) was given!")
 				os.Exit(1)
 			}
 
 			// Here I will read the configuration file...
-			log.Println(*publishCommand_path)
+
+			if !Utility.Exists(*publishCommand_path) {
+				fmt.Println("No configuration file was found at " + *publishCommand_path)
+				os.Exit(1)
+			}
+
+			// Set the config.json file in path if not already there.
+			if !strings.HasSuffix(*publishCommand_path, "/config.json") {
+				if !strings.HasSuffix(*publishCommand_path, "/") {
+					*publishCommand_path += "/"
+				}
+				*publishCommand_path += "config.json"
+			}
+
+			config := make(map[string]interface{})
+			data, err := ioutil.ReadFile(*publishCommand_path)
+			if err != nil {
+				fmt.Println("fail to read config.json file ", err)
+				os.Exit(1)
+			}
+
+			err = json.Unmarshal(data, &config)
+			if err != nil {
+				fmt.Println("fail to read config.json file json content!", err)
+				os.Exit(1)
+			}
+
+			if *publishCommand_id == "" {
+				*publishCommand_id = config["Id"].(string)
+			}
+
+			if *publishCommand_name == "" {
+				*publishCommand_name = config["Name"].(string)
+			}
+
+			if *publishCommand_publisher_id == "" {
+				*publishCommand_publisher_id = config["PublisherId"].(string)
+			}
+			if *publishCommand_description == "" {
+				*publishCommand_publisher_id = config["Description"].(string)
+			}
+
+			if *publishCommand_version == "" {
+				log.Println("No version was given, the actual version is ", config["Version"].(string), " please specify a version with the option -version ")
+				os.Exit(1)
+			}
+
+			// Detect the platform if none was given...
+			if *publishCommand_plaform == "" {
+				*publishCommand_plaform = runtime.GOOS + "_" + runtime.GOARCH
+			}
+
+			if *publishCommand_discovery == "" {
+				discoveries := config["Discoveries"].([]interface{})
+				if len(discoveries) > 0 {
+					*publishCommand_discovery = discoveries[0].(string)
+				} else {
+					fmt.Println("No services discoveries was found in config.json! Please use the option -discovery to specify one.")
+					os.Exit(1)
+				}
+			}
+
+			if *publishCommand_repository == "" {
+				repositories := config["Repositories"].([]interface{})
+				if len(repositories) > 0 {
+					*publishCommand_repository = repositories[0].(string)
+				} else {
+					fmt.Println("No services repositories was found in config.json! Please use the option -repository to specify one.")
+					os.Exit(1)
+				}
+			}
+
 			keywords := make([]string, 0)
 			if *publishCommand_keywords != "" {
 				keywords = strings.Split(*publishCommand_keywords, ",")
 				for i := 0; i < len(keywords); i++ {
 					keywords[i] = strings.TrimSpace(keywords[i])
 				}
-			}
-
-			log.Println("---> service path is ", *publishCommand_path)
-
-			if *publishCommand_id != "" {
-
-			} else if *publishCommand_name != "" {
-
-			} else if *publishCommand_discovery != "" {
-
-			} else if *publishCommand_repository != "" {
-
-			} else if *publishCommand_publisher_id != "" {
-
-			} else if *publishCommand_description != "" {
-
-			} else if *publishCommand_version != "" {
-
-			} else if *publishCommand_plaform != "" {
-
+			} else {
+				// Append existing keywords.
+				keywords_ := config["Keywords"].([]interface{})
+				for i := 0; i < len(keywords_); i++ {
+					keywords[i] = keywords_[i].(string)
+				}
 			}
 
 			// Pulish the services.
-			//publish(g, *publishCommand_path, *publishCommand_id, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
+			publish(g, *publishCommand_path, *publishCommand_id, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
 		}
 
 	} else {
