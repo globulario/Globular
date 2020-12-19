@@ -172,6 +172,9 @@ type Globule struct {
 	// RBAC store.
 	permissions *storage_store.LevelDB_store
 
+	// Keep cache...
+	cache *storage_store.BigCache_store
+
 	// Create the JWT key used to create the signature
 	jwtKey       []byte
 	RootPassword string
@@ -323,6 +326,20 @@ func NewGlobule() *Globule {
 	}
 
 	return g
+}
+
+/**
+ * A singleton use to access the cache.
+ */
+func (self *Globule) getCache() *storage_store.BigCache_store {
+	if self.cache == nil {
+		self.cache = storage_store.NewBigCache_store()
+		err := self.cache.Open("")
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	return self.cache
 }
 
 // Little shortcut to get access to map value in one step.

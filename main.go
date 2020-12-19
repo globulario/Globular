@@ -126,6 +126,7 @@ func main() {
 		// Deploy command
 		deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
 		deployCommand_name := deployCommand.String("name", "", "You must specify an application name. (Required)")
+		deployCommand_organization := deployCommand.String("o", "", "The name of the organisation that responsible of the application. (Required)")
 		deployCommand_path := deployCommand.String("path", "", "You must specify the path that contain the source (bundle.js, index.html...) of the application to deploy. (Required)")
 		deployCommand_user := deployCommand.String("u", "", "The user name. (Required)")
 		deployCommand_pwd := deployCommand.String("p", "", "The user password. (Required)")
@@ -223,6 +224,12 @@ func main() {
 				os.Exit(1)
 			}
 
+			if *deployCommand_organization == "" {
+				fmt.Print("You must sepcie the organization name")
+				deployCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
 			if *deployCommand_user == "" {
 				fmt.Print("You must authenticate yourself")
 				deployCommand.PrintDefaults()
@@ -241,7 +248,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			deploy(g, *deployCommand_name, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd)
+			deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd)
 		}
 
 		if publishCommand.Parsed() {
@@ -398,7 +405,7 @@ func main() {
 /**
  * That function can be use to deploy an application on the server...
  */
-func deploy(g *Globule, name string, path string, address string, user string, pwd string) error {
+func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string) error {
 
 	log.Println("deploy application...", name, " to address ", address)
 
@@ -422,7 +429,7 @@ func deploy(g *Globule, name string, path string, address string, user string, p
 		return err
 	}
 
-	_, err = admin_client_.DeployApplication(user, name, path, token, address)
+	_, err = admin_client_.DeployApplication(user, name, organization, path, token, address)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
 		return err

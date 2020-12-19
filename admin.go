@@ -440,6 +440,8 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	}
 
 	// Before extract I will keep the archive.
+
+	/*  TODO this was replace by publish package...
 	backupPath := self.webRoot + string(os.PathSeparator) + "_old" + string(os.PathSeparator) + name
 
 	Utility.CreateIfNotExists(backupPath, 0644)
@@ -449,6 +451,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	if err != nil {
 		return err
 	}
+	*/
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
@@ -478,6 +481,8 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	// remove temporary files.
 	os.RemoveAll(Utility.GenerateUUID(name))
+
+	// Now I will publish the application.
 
 	// Now I will create the application database in the persistence store,
 	// and the Application entry in the database.
@@ -1484,4 +1489,9 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 	return &adminpb.RegisterExternalApplicationResponse{
 		ServicePid: int64(pid),
 	}, nil
+}
+
+// Run an external command must be use with care.
+func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunRequest) (*adminpb.RunResponse, error) {
+	return nil, nil
 }

@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -257,10 +258,8 @@ func (self *Globule) registerMethods() error {
 			"/resource.ResourceService/GetAllFilesInfo",
 			"/resource.ResourceService/GetAllApplicationsInfo",
 			"/resource.ResourceService/GetResourceOwners",
-			"/resource.ResourceService/ValidateUserAccess",
-			"/resource.ResourceService/ValidateUserResourceAccess",
-			"/resource.ResourceService/ValidateApplicationAccess",
-			"/resource.ResourceService/ValidateApplicationResourceAccess",
+			"/resource.ResourceService/ValidateAction",
+			"/resource.ResourceService/ValidateAccess",
 			"/event.EventService/Subscribe",
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
 			"/event.EventService/Quit",
@@ -745,6 +744,39 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountE
 
 }
 
+// That function will be use to keep the a token... at any given time the port
+// and address must correspond.
+func (self *Globule) setTokenByAddress(ctx context.Context, token string) error {
+	// Here I will keep a token by connection...
+	peer_, _ := peer.FromContext(ctx)
+	address := peer_.Addr.String()
+	address = address[0:strings.Index(address, ":")]
+	key := Utility.GenerateUUID(address + ":token")
+	return self.getCache().SetItem(key, []byte(token))
+}
+
+// Get previous stored token.
+func (self *Globule) getTokenByAddress(ctx context.Context) (string, error) {
+	peer_, _ := peer.FromContext(ctx)
+	address := peer_.Addr.String()
+	address = address[0:strings.Index(address, ":")]
+	key := Utility.GenerateUUID(address + ":token")
+	data, err := self.getCache().GetItem(key)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (self *Globule) deleteTokenByAddress(ctx context.Context) error {
+	peer_, _ := peer.FromContext(ctx)
+	address := peer_.Addr.String()
+	address = address[0:strings.Index(address, ":")]
+	key := Utility.GenerateUUID(address + ":token")
+	return self.getCache().RemoveItem(key)
+}
+
 //* Authenticate a account by it name or email.
 // That function test if the password is the correct one for a given user
 // if it is a token is generate and that token will be use by other service
@@ -774,6 +806,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
+
+		self.setTokenByAddress(ctx, tokenString)
 
 		/** Return the token only **/
 		return &resourcepb.AuthenticateRsp{
@@ -857,7 +891,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// So here I will start a timer
+	// save the token for the default session time.
+	self.setTokenByAddress(ctx, tokenString)
 
 	// Here I got the token I will now put it in the cache.
 	return &resourcepb.AuthenticateRsp{
@@ -1639,6 +1674,8 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		method == "/resource.ResourceService/GetAllFilesInfo" ||
 		method == "/resource.ResourceService/GetAllApplicationsInfo" ||
 		method == "/resource.ResourceService/ValidateToken" ||
+		method == "/resource.ResourceService/ValidateAction" ||
+		method == "/resource.ResourceService/ValidateAccess" ||
 		method == "/resource.LogService/Log" ||
 		method == "/resource.LogService/GetLog" {
 		hasAccess = true
@@ -2651,12 +2688,36 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 //* Validate the actions...
 func (self *Globule) ValidateAction(ctx context.Context, rqst *resourcepb.ValidateActionRqst) (*resourcepb.ValidateActionRsp, error) {
-	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
+
+	// Here I will try to get back token
+	subject := rqst.Subject
+	subjectType := rqst.Type
+	token, err := self.getTokenByAddress(ctx)
+
+	if err == nil {
+		clientId, _, expireAt, err := Interceptors.ValidateToken(token)
+		// Get information from the token and test if it's expired.
+		if err == nil && time.Now().Before(time.Unix(expireAt, 0)) {
+			subject = clientId
+			subjectType = resourcepb.SubjectType_ACCOUNT
+			if subject == "sa" {
+				return &resourcepb.ValidateActionRsp{
+					Result: true,
+				}, nil
+			}
+		} else {
+			// remove the token from the cache.
+			self.deleteTokenByAddress(ctx)
+		}
+	}
+
+	hasAccess, err := self.validateAction(rqst.Action, subject, subjectType, rqst.Infos)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
 	return &resourcepb.ValidateActionRsp{
 		Result: hasAccess,
 	}, nil

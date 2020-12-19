@@ -79,7 +79,6 @@ func refreshToken(domain string, token string) (string, error) {
 func validateActionRequest(rqst interface{}, method string, subject string, subjectType resourcepb.SubjectType, domain string) (bool, error) {
 
 	id := Utility.GenerateUUID(method + "|" + subject + "|" + domain)
-
 	resource_client_, err := GetResourceClient(domain)
 	if err != nil {
 		return false, err
@@ -104,13 +103,12 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 		}
 	}
 
-	hasAccess, err = resource_client_.ValidateAction(method, subject, resourcepb.SubjectType_ACCOUNT, infos)
+	hasAccess, err = resource_client_.ValidateAction(method, subject, subjectType, infos)
 	if err != nil {
 		return false, err
 	}
 
 	// Here I will store the permission for further use...
-
 	return hasAccess, nil
 }
 
@@ -138,16 +136,25 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		}
 	}
 
-	// p, _ := peer.FromContext(ctx)
+	// Get the peer information.
+	p, _ := peer.FromContext(ctx)
+
 	// Here I will test if the
 	method := info.FullMethod
+	if Utility.IsLocal(p.Addr.String()) {
+		domain = "localhost"
+	}
 
 	if len(domain) == 0 {
-		return nil, errors.New("No domain was given for method call '" + method + "'")
+		if strings.Index(p.Addr.String(), ":") != 0 {
+			domain = p.Addr.String()[0:strings.Index(p.Addr.String(), ":")]
+		} else {
+			domain = p.Addr.String()
+		}
 	}
 
 	// If the call come from a local client it has hasAccess
-	hasAccess := false //strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+	hasAccess := false
 
 	var pwd string
 	if Utility.GetProperty(info.Server, "RootPassword") != nil {
@@ -191,11 +198,9 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		hasAccess, _ = validateActionRequest(rqst, method, application, resourcepb.SubjectType_APPLICATION, domain)
 	}
 
-	/* TODO validate peer id here.
-	if !hasAccess && len(peerId) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, method, peerId, resourcepb.SubjectType_PEER, domain)
+	if !hasAccess {
+		hasAccess, _ = validateActionRequest(rqst, method, p.Addr.String(), resourcepb.SubjectType_PEER, domain)
 	}
-	*/
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
@@ -255,7 +260,8 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
-	hasAccess := l.clientId == "sa"
+	hasAccess := l.clientId == "sa" || l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
+
 	// Test if peer has access
 	if !hasAccess && len(l.clientId) > 0 {
 		hasAccess, _ = validateActionRequest(rqst, l.method, l.clientId, resourcepb.SubjectType_ACCOUNT, l.domain)
