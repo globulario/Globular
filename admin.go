@@ -1492,6 +1492,20 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 }
 
 // Run an external command must be use with care.
-func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunRequest) (*adminpb.RunResponse, error) {
-	return nil, nil
+func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*adminpb.RunCmdResponse, error) {
+
+	baseCmd := rqst.Cmd
+	cmdArgs := rqst.Args
+
+	cmd := exec.Command(baseCmd, cmdArgs...)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.RunCmdResponse{
+		Result: string(out),
+	}, nil
 }
