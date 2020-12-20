@@ -15,8 +15,9 @@ import (
 
 	"github.com/davecourtois/Utility"
 	globular "github.com/globulario/services/golang/globular_client"
+	"github.com/globulario/services/golang/rbac/rbac_client"
+	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
-	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/storage/storage_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -27,6 +28,7 @@ import (
 var (
 	// The resource client
 	resource_client_ *resource_client.Resource_Client
+	rbac_client_     *rbac_client.Rbac_Client
 
 	// The map will contain connection with other server of same kind to load
 	// balance the server charge.
@@ -53,6 +55,21 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 }
 
 /**
+ * Get the rbac client.
+ */
+func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
+	var err error
+	if rbac_client_ == nil {
+		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rbac_client_, nil
+}
+
+/**
  * A singleton use to access the cache.
  */
 func getCache() *storage_store.BigCache_store {
@@ -76,18 +93,18 @@ func refreshToken(domain string, token string) (string, error) {
 	return resource_client.RefreshToken(token)
 }
 
-func validateActionRequest(rqst interface{}, method string, subject string, subjectType resourcepb.SubjectType, domain string) (bool, error) {
+func validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
 
 	id := Utility.GenerateUUID(method + "|" + subject + "|" + domain)
-	resource_client_, err := GetResourceClient(domain)
+	rbac_client_, err := GetRbacClient(domain)
 	if err != nil {
 		return false, err
 	}
 
 	hasAccess := false
-	infos, err := resource_client_.GetActionResourceInfos(method)
+	infos, err := rbac_client_.GetActionResourceInfos(method)
 	if err != nil {
-		infos = make([]*resourcepb.ResourceInfos, 0)
+		infos = make([]*rbacpb.ResourceInfos, 0)
 	} else {
 		// Here I will get the params...
 		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
@@ -103,7 +120,7 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 		}
 	}
 
-	hasAccess, err = resource_client_.ValidateAction(method, subject, subjectType, infos)
+	hasAccess, err = rbac_client_.ValidateAction(method, subject, subjectType, infos)
 	if err != nil {
 		return false, err
 	}
@@ -122,6 +139,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	var domain string // This is the target domain, the one use in TLS certificate.
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
+
 		application = strings.Join(md["application"], "")
 		token = strings.Join(md["token"], "")
 
@@ -167,6 +185,8 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		method == "/services.PackageDiscovery/FindServices" ||
 		method == "/services.PackageDiscovery/GetServiceDescriptor" ||
 		method == "/services.PackageDiscovery/GetServicesDescriptor" ||
+		method == "/rbac.RbacService/ValidateAction" ||
+		method == "/rbac.RbacService/ValidateAccess" ||
 		method == "/dns.DnsService/GetA" ||
 		method == "/dns.DnsService/GetAAAA" ||
 		method == "/resource.ResourceService/Log" {
@@ -191,15 +211,15 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Test if peer has access
 	if !hasAccess && len(clientId) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, method, clientId, resourcepb.SubjectType_ACCOUNT, domain)
+		hasAccess, _ = validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT, domain)
 	}
 
 	if !hasAccess && len(application) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, method, application, resourcepb.SubjectType_APPLICATION, domain)
+		hasAccess, _ = validateActionRequest(rqst, method, application, rbacpb.SubjectType_APPLICATION, domain)
 	}
 
 	if !hasAccess {
-		hasAccess, _ = validateActionRequest(rqst, method, p.Addr.String(), resourcepb.SubjectType_PEER, domain)
+		hasAccess, _ = validateActionRequest(rqst, method, p.Addr.String(), rbacpb.SubjectType_PEER, domain)
 	}
 
 	if !hasAccess {
@@ -264,15 +284,15 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
 	// Test if peer has access
 	if !hasAccess && len(l.clientId) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.clientId, resourcepb.SubjectType_ACCOUNT, l.domain)
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.clientId, rbacpb.SubjectType_ACCOUNT, l.domain)
 	}
 
 	if !hasAccess && len(l.application) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.application, resourcepb.SubjectType_APPLICATION, l.domain)
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.application, rbacpb.SubjectType_APPLICATION, l.domain)
 	}
 
 	if !hasAccess && len(l.peer) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.peer, resourcepb.SubjectType_PEER, l.domain)
+		hasAccess, _ = validateActionRequest(rqst, l.method, l.peer, rbacpb.SubjectType_PEER, l.domain)
 	}
 
 	if !hasAccess {
@@ -309,14 +329,19 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		}
 	}
 
-	p, _ := peer.FromContext(stream.Context())
-
 	method := info.FullMethod
 
 	var clientId string
 	var err error
 	// If the call come from a local client it has hasAccess
-	hasAccess := strings.HasPrefix(p.Addr.String(), "127.0.0.1") || strings.HasPrefix(p.Addr.String(), Utility.MyIP())
+	hasAccess := false
+
+	peer_, _ := peer.FromContext(stream.Context())
+	address := peer_.Addr.String()
+	address = address[0:strings.Index(address, ":")]
+	if Utility.IsLocal(address) {
+		hasAccess = true
+	}
 
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)

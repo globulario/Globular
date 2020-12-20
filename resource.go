@@ -20,11 +20,12 @@ import (
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/persistence/persistence_store"
 	"github.com/globulario/services/golang/resource/resourcepb"
+
+	"github.com/globulario/services/golang/rbac/rbacpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -258,8 +259,8 @@ func (self *Globule) registerMethods() error {
 			"/resource.ResourceService/GetAllFilesInfo",
 			"/resource.ResourceService/GetAllApplicationsInfo",
 			"/resource.ResourceService/GetResourceOwners",
-			"/resource.ResourceService/ValidateAction",
-			"/resource.ResourceService/ValidateAccess",
+			"/rbac.RbacService/ValidateAction",
+			"/rbac.RbacService/ValidateAccess",
 			"/event.EventService/Subscribe",
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
 			"/event.EventService/Quit",
@@ -301,7 +302,7 @@ func (self *Globule) setActionResourcesPermissions(permissions map[string]interf
 }
 
 // Retreive the ressource infos from the database.
-func (self *Globule) getActionResourcesPermissions(action string) ([]*resourcepb.ResourceInfos, error) {
+func (self *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
 	data, err := self.permissions.GetItem(action)
 	if err != nil {
 		return nil, err
@@ -310,10 +311,10 @@ func (self *Globule) getActionResourcesPermissions(action string) ([]*resourcepb
 	infos := make([]interface{}, 0)
 	err = json.Unmarshal(data, &infos)
 
-	infos_ := make([]*resourcepb.ResourceInfos, 0)
+	infos_ := make([]*rbacpb.ResourceInfos, 0)
 	for i := 0; i < len(infos); i++ {
 		info := infos[i].(map[string]interface{})
-		infos_ = append(infos_, &resourcepb.ResourceInfos{Index: int32(Utility.ToInt(info["index"])), Permission: info["permission"].(string)})
+		infos_ = append(infos_, &rbacpb.ResourceInfos{Index: int32(Utility.ToInt(info["index"])), Permission: info["permission"].(string)})
 	}
 
 	return infos_, err
@@ -654,7 +655,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 
 /* Register a new Account */
 func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.RegisterAccountRqst) (*resourcepb.RegisterAccountRsp, error) {
-	if rqst.ConfirmPassword != rqst.Password {
+	if rqst.ConfirmPassword != rqst.Account.Password {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to confirm your password!")))
@@ -668,7 +669,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 
 	}
 
-	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Password, []interface{}{"guest"})
+	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Account.Password, []interface{}{"guest"})
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1587,11 +1588,11 @@ func (self *Globule) GetAllActions(ctx context.Context, rqst *resourcepb.GetAllA
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
-func (self *Globule) validateActionRequest(rqst interface{}, method string, subject string, subjectType resourcepb.SubjectType) (bool, error) {
+func (self *Globule) validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType) (bool, error) {
 	hasAccess := false
 	infos, err := self.getActionResourcesPermissions(method)
 	if err != nil {
-		infos = make([]*resourcepb.ResourceInfos, 0)
+		infos = make([]*rbacpb.ResourceInfos, 0)
 	} else {
 		// Here I will get the params...
 		val, _ := Utility.CallMethod(rqst, "ProtoReflect", []interface{}{})
@@ -1606,7 +1607,7 @@ func (self *Globule) validateActionRequest(rqst interface{}, method string, subj
 		}
 	}
 
-	hasAccess, err = self.validateAction(method, subject, resourcepb.SubjectType_ACCOUNT, infos)
+	hasAccess, err = self.validateAction(method, subject, rbacpb.SubjectType_ACCOUNT, infos)
 	if err != nil {
 		return false, err
 	}
@@ -1628,6 +1629,16 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 	}
 
 	hasAccess := false
+
+	// If the address is local I will give the permission.
+	/* Test only
+	peer_, _ := peer.FromContext(ctx)
+	address := peer_.Addr.String()
+	address = address[0:strings.Index(address, ":")]
+	if Utility.IsLocal(address) {
+		hasAccess = true
+	}*/
+
 	var err error
 
 	// Here some method are accessible by default.
@@ -1641,8 +1652,8 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		method == "/resource.ResourceService/GetAllFilesInfo" ||
 		method == "/resource.ResourceService/GetAllApplicationsInfo" ||
 		method == "/resource.ResourceService/ValidateToken" ||
-		method == "/resource.ResourceService/ValidateAction" ||
-		method == "/resource.ResourceService/ValidateAccess" ||
+		method == "/rbac.RbacService/ValidateAction" ||
+		method == "/rbac.RbacService/ValidateAccess" ||
 		method == "/resource.LogService/Log" ||
 		method == "/resource.LogService/GetLog" {
 		hasAccess = true
@@ -1664,14 +1675,14 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 
 		hasAccess = clientId == "sa"
 		if !hasAccess {
-			hasAccess, _ = self.validateActionRequest(rqst, method, clientId, resourcepb.SubjectType_ACCOUNT)
+			hasAccess, _ = self.validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT)
 		}
 	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
 		// TODO validate rpc method access
-		hasAccess, _ = self.validateActionRequest(rqst, method, application, resourcepb.SubjectType_APPLICATION)
+		hasAccess, _ = self.validateActionRequest(rqst, method, application, rbacpb.SubjectType_APPLICATION)
 	}
 
 	if !hasAccess {
@@ -2536,144 +2547,4 @@ func (self *Globule) RemoveGroupMemberAccount(ctx context.Context, rqst *resourc
 	}
 
 	return &resourcepb.RemoveGroupMemberAccountRsp{Result: true}, nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////
-
-//* Return the action resource informations. That function must be called
-// before calling ValidateAction. In that way the list of ressource affected
-// by the rpc method will be given and resource access validated.
-// ex. CopyFile(src, dest) -> src and dest are resource path and must be validated
-// for read and write access respectivly.
-func (self *Globule) GetActionResourceInfos(ctx context.Context, rqst *resourcepb.GetActionResourceInfosRqst) (*resourcepb.GetActionResourceInfosRsp, error) {
-	infos, err := self.getActionResourcesPermissions(rqst.Action)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	return &resourcepb.GetActionResourceInfosRsp{Infos: infos}, nil
-}
-
-/**
- * Validate an action and also validate it resources
- */
-func (self *Globule) validateAction(action string, subject string, subjectType resourcepb.SubjectType, resources []*resourcepb.ResourceInfos) (bool, error) {
-	p, err := self.getPersistenceStore()
-	if err != nil {
-		return false, err
-	}
-
-	var values map[string]interface{}
-
-	// Validate the access for a given suject...
-	hasAccess := false
-
-	// So first of all I will validate the actions itself...
-	if subjectType == resourcepb.SubjectType_APPLICATION {
-		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
-		if err != nil {
-			return false, err
-		}
-		values = values_.(map[string]interface{})
-	} else if subjectType == resourcepb.SubjectType_PEER {
-		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Peers", `{"_id":"`+subject+`"}`, "")
-		if err != nil {
-			return false, err
-		}
-		values = values_.(map[string]interface{})
-	} else if subjectType == resourcepb.SubjectType_ROLE {
-		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+subject+`"}`, "")
-		if err != nil {
-			return false, err
-		}
-		values = values_.(map[string]interface{})
-	} else if subjectType == resourcepb.SubjectType_ACCOUNT {
-		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, "")
-		if err != nil {
-			return false, err
-		}
-		values = values_.(map[string]interface{})
-
-		// Here I will test if one of the role of the account has access to
-		// call the rpc method.
-		if values["roles"].(primitive.A) != nil {
-			roles := []interface{}(values["roles"].(primitive.A))
-			if roles != nil {
-				for i := 0; i < len(roles); i++ {
-					roleId := roles[i].(map[string]interface{})["$id"].(string)
-					hasAccess_, _ := self.validateAction(action, roleId, resourcepb.SubjectType_ROLE, resources)
-					if hasAccess_ {
-						hasAccess = hasAccess_
-						break
-					}
-				}
-			}
-		}
-	}
-
-	if !hasAccess {
-		if values["actions"] != nil {
-			actions := []interface{}(values["actions"].(primitive.A))
-			for i := 0; i < len(actions); i++ {
-				if actions[i].(string) == action {
-
-					hasAccess = true
-				}
-			}
-		}
-	}
-
-	if !hasAccess {
-		return false, errors.New("Access denied for " + subject + " to call method " + action)
-	}
-
-	// Here I will validate the access for a given subject...
-	if subjectType != resourcepb.SubjectType_ROLE {
-		// Now I will validate the resource access.
-		// infos
-		permissions_, _ := self.getActionResourcesPermissions(action)
-		if len(resources) > 0 {
-			if permissions_ == nil {
-				return false, errors.New("No resources path are given for validations!")
-			}
-
-			for i := 0; i < len(resources); i++ {
-				hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-
-				if hasAccess == false || accessDenied == true {
-					return false, errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
-				}
-			}
-		}
-	}
-	return true, nil
-}
-
-//* Validate the actions...
-func (self *Globule) ValidateAction(ctx context.Context, rqst *resourcepb.ValidateActionRqst) (*resourcepb.ValidateActionRsp, error) {
-
-	// If the address is local I will give the permission.
-	peer_, _ := peer.FromContext(ctx)
-	address := peer_.Addr.String()
-	address = address[0:strings.Index(address, ":")]
-	if Utility.IsLocal(address) {
-		return &resourcepb.ValidateActionRsp{
-			Result: true,
-		}, nil
-	}
-
-	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	return &resourcepb.ValidateActionRsp{
-		Result: hasAccess,
-	}, nil
 }

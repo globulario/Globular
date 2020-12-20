@@ -143,7 +143,7 @@ type Globule struct {
 	Discoveries []string // Contain the list of discovery service use to keep service up to date.
 
 	// DNS stuff.
-	DNS []string // Domain name server use to located the server.
+	DNS []interface{} // Domain name server use to located the server.
 
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
@@ -515,7 +515,7 @@ func (self *Globule) initDirectories() {
 
 	// DNS info.
 
-	self.DNS = make([]string, 0)
+	self.DNS = make([]interface{}, 0)
 	self.DnsUpdateIpInfos = make([]interface{}, 0)
 
 	// Set the list of discorvery service avalaible...
@@ -716,7 +716,7 @@ func (self *Globule) registerIpToDns() error {
 	if self.DNS != nil {
 		if len(self.DNS) > 0 {
 			for i := 0; i < len(self.DNS); i++ {
-				dns_client_, err := dns_client.NewDnsService_Client(self.DNS[i], "dns.DnsService")
+				dns_client_, err := dns_client.NewDnsService_Client(self.DNS[i].(string), "dns.DnsService")
 				if err != nil {
 					return err
 				}
@@ -1941,6 +1941,12 @@ func (self *Globule) Listen() error {
 
 	// Admin service
 	err := self.startAdminService()
+	if err != nil {
+		return err
+	}
+
+	// Log service
+	err = self.startLogService()
 	if err != nil {
 		return err
 	}

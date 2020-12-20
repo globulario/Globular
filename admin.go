@@ -16,7 +16,9 @@ import (
 	"time"
 
 	"github.com/globulario/services/golang/event/event_client"
-	"github.com/globulario/services/golang/resource/resourcepb"
+	"github.com/globulario/services/golang/rbac/rbacpb"
+
+	//"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/servicespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,6 +38,8 @@ import (
 
 	//"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/services/service_client"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"google.golang.org/grpc/codes"
 
 	// "google.golang.org/grpc/metadata"
@@ -184,7 +188,7 @@ func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRun
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
-	str, err := Utility.ToJson(self.toMap())
+	obj, err := structpb.NewStruct(self.toMap())
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -192,17 +196,16 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigR
 	}
 
 	return &adminpb.GetConfigResponse{
-		Result: str,
+		Result: obj,
 	}, nil
 
 }
 
 // Return the configuration.
 func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
+	map_, _ := Utility.ToMap(self.getConfig())
+	obj, err := structpb.NewStruct(map_)
 
-	config := self.getConfig()
-
-	str, err := Utility.ToJson(config)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -210,7 +213,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigReque
 	}
 
 	return &adminpb.GetConfigResponse{
-		Result: str,
+		Result: obj,
 	}, nil
 }
 
@@ -366,7 +369,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		}
 
 		// Save DNS
-		self.DNS = make([]string, 0)
+		self.DNS = make([]interface{}, 0)
 		for i := 0; i < len(config["DNS"].([]interface{})); i++ {
 			self.DNS = append(self.DNS, config["DNS"].([]interface{})[i].(string))
 		}
@@ -967,14 +970,14 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	path_ := descriptor.Organization + "/" + descriptor.Name + "/" + descriptor.Id + "/" + descriptor.Version
 
 	// So here I will set the permissions
-	var permissions *resourcepb.Permissions
+	var permissions *rbacpb.Permissions
 	permissions, err = self.getResourcePermissions(path_)
 	if err != nil {
 		// Create the permission...
-		permissions = &resourcepb.Permissions{
-			Allowed: []*resourcepb.Permission{
+		permissions = &rbacpb.Permissions{
+			Allowed: []*rbacpb.Permission{
 				//  Exemple of possible permission values.
-				&resourcepb.Permission{
+				&rbacpb.Permission{
 					Name:          "publish", // member of the organization can publish the service.
 					Applications:  []string{},
 					Accounts:      []string{},
@@ -983,8 +986,8 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 					Organizations: []string{descriptor.Organization},
 				},
 			},
-			Denied: []*resourcepb.Permission{},
-			Owners: &resourcepb.Permission{
+			Denied: []*rbacpb.Permission{},
+			Owners: &rbacpb.Permission{
 				Name:     "owner",
 				Accounts: []string{descriptor.PublisherId},
 			},
@@ -992,7 +995,7 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	}
 
 	// Test the permission before actualy publish the service.
-	hasAccess, isDenied, err := self.validateAccess(descriptor.PublisherId, resourcepb.SubjectType_ACCOUNT, "publish", path_)
+	hasAccess, isDenied, err := self.validateAccess(descriptor.PublisherId, rbacpb.SubjectType_ACCOUNT, "publish", path_)
 	if !hasAccess || isDenied || err != nil {
 		return err
 	}
@@ -1508,4 +1511,26 @@ func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*
 	return &adminpb.RunCmdResponse{
 		Result: string(out),
 	}, nil
+}
+
+// Set environement variable.
+func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.SetEnvironmentVariableRequest) (*adminpb.SetEnvironmentVariableResponse, error) {
+	err := os.Setenv(rqst.Name, rqst.Value)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &adminpb.SetEnvironmentVariableResponse{}, nil
+}
+
+// Delete environement variable.
+func (self *Globule) UnsetEnvironmentVariable(ctx context.Context, rqst *adminpb.UnsetEnvironmentVariableRequest) (*adminpb.UnsetEnvironmentVariableResponse, error) {
+	err := os.Unsetenv(rqst.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &adminpb.UnsetEnvironmentVariableResponse{}, nil
 }

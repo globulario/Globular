@@ -12,7 +12,7 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
-	"github.com/globulario/services/golang/resource/resourcepb"
+	"github.com/globulario/services/golang/log/logpb"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,8 +20,8 @@ import (
 
 // Start internal logging services.
 func (self *Globule) startLogService() error {
-	id := string(resourcepb.File_proto_resource_proto.Services().Get(2).FullName())
-	log_server, err := self.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), self.LogPort, self.LogProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	id := string(logpb.File_proto_log_proto.Services().Get(0).FullName())
+	log_server, err := self.startInternalService(id, logpb.File_proto_log_proto.Path(), self.LogPort, self.LogProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, log_server)
 
@@ -31,7 +31,7 @@ func (self *Globule) startLogService() error {
 			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
 		}
 
-		resourcepb.RegisterLogServiceServer(log_server, self)
+		logpb.RegisterLogServiceServer(log_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -57,14 +57,14 @@ func (self *Globule) startLogService() error {
 func (self *Globule) logServiceInfo(service string, message string) error {
 
 	// Here I will use event to publish log information...
-	info := new(resourcepb.LogInfo)
+	info := new(logpb.LogInfo)
 	info.Application = ""
 	info.UserId = "globular"
 	info.UserName = "globular"
 	info.Method = service
 	info.Date = time.Now().Unix()
 	info.Message = message
-	info.Type = resourcepb.LogType_ERROR_MESSAGE // not necessarely errors..
+	info.Type = logpb.LogType_ERROR_MESSAGE // not necessarely errors..
 	self.log(info)
 
 	return nil
@@ -79,7 +79,7 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	}
 
 	// Here I will use event to publish log information...
-	info := new(resourcepb.LogInfo)
+	info := new(logpb.LogInfo)
 	info.Application = application
 	info.UserId = token
 	info.UserName = token
@@ -87,10 +87,10 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = resourcepb.LogType_ERROR_MESSAGE
+		info.Type = logpb.LogType_ERROR_MESSAGE
 		logger.Error(info.Message)
 	} else {
-		info.Type = resourcepb.LogType_INFO_MESSAGE
+		info.Type = logpb.LogType_INFO_MESSAGE
 		logger.Info(info.Message)
 	}
 
@@ -99,7 +99,7 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	return nil
 }
 
-func (self *Globule) getLogInfoKeyValue(info *resourcepb.LogInfo) (string, string, error) {
+func (self *Globule) getLogInfoKeyValue(info *logpb.LogInfo) (string, string, error) {
 	marshaler := new(jsonpb.Marshaler)
 	jsonStr, err := marshaler.MarshalToString(info)
 	if err != nil {
@@ -107,7 +107,7 @@ func (self *Globule) getLogInfoKeyValue(info *resourcepb.LogInfo) (string, strin
 	}
 
 	key := ""
-	if info.GetType() == resourcepb.LogType_INFO_MESSAGE {
+	if info.GetType() == logpb.LogType_INFO_MESSAGE {
 
 		// Append the log in leveldb
 		key += "/infos/" + info.Method + Utility.ToString(info.Date)
@@ -142,7 +142,7 @@ func (self *Globule) getLogInfoKeyValue(info *resourcepb.LogInfo) (string, strin
 	return key, jsonStr, nil
 }
 
-func (self *Globule) log(info *resourcepb.LogInfo) error {
+func (self *Globule) log(info *logpb.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserName) > 0 {
@@ -176,18 +176,18 @@ func (self *Globule) log(info *resourcepb.LogInfo) error {
 }
 
 // Log error or information into the data base *
-func (self *Globule) Log(ctx context.Context, rqst *resourcepb.LogRqst) (*resourcepb.LogRsp, error) {
+func (self *Globule) Log(ctx context.Context, rqst *logpb.LogRqst) (*logpb.LogRsp, error) {
 	// Publish event...
 	self.log(rqst.Info)
 
-	return &resourcepb.LogRsp{
+	return &logpb.LogRsp{
 		Result: true,
 	}, nil
 }
 
 // Log error or information into the data base *
 // Retreive log infos (the query must be something like /infos/'date'/'applicationName'/'userName'
-func (self *Globule) GetLog(rqst *resourcepb.GetLogRqst, stream resourcepb.LogService_GetLogServer) error {
+func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetLogServer) error {
 
 	query := rqst.Query
 	if len(query) == 0 {
@@ -204,11 +204,11 @@ func (self *Globule) GetLog(rqst *resourcepb.GetLogRqst, stream resourcepb.LogSe
 		return err
 	}
 
-	infos := make([]*resourcepb.LogInfo, 0)
+	infos := make([]*logpb.LogInfo, 0)
 	i := 0
 	max := 100
 	for jsonDecoder.More() {
-		info := resourcepb.LogInfo{}
+		info := logpb.LogInfo{}
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
 			return err
@@ -217,7 +217,7 @@ func (self *Globule) GetLog(rqst *resourcepb.GetLogRqst, stream resourcepb.LogSe
 		infos = append(infos, &info)
 		if i == max-1 {
 			// I will send the stream at each 100 logs...
-			rsp := &resourcepb.GetLogRsp{
+			rsp := &logpb.GetLogRsp{
 				Info: infos,
 			}
 			// Send the infos
@@ -227,7 +227,7 @@ func (self *Globule) GetLog(rqst *resourcepb.GetLogRqst, stream resourcepb.LogSe
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
-			infos = make([]*resourcepb.LogInfo, 0)
+			infos = make([]*logpb.LogInfo, 0)
 			i = 0
 		}
 		i++
@@ -235,7 +235,7 @@ func (self *Globule) GetLog(rqst *resourcepb.GetLogRqst, stream resourcepb.LogSe
 
 	// Send the last infos...
 	if len(infos) > 0 {
-		rsp := &resourcepb.GetLogRsp{
+		rsp := &logpb.GetLogRsp{
 			Info: infos,
 		}
 		err = stream.Send(rsp)
@@ -262,7 +262,7 @@ func (self *Globule) deleteLog(query string) error {
 	}
 
 	for jsonDecoder.More() {
-		info := resourcepb.LogInfo{}
+		info := logpb.LogInfo{}
 
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
@@ -281,7 +281,7 @@ func (self *Globule) deleteLog(query string) error {
 }
 
 //* Delete a log info *
-func (self *Globule) DeleteLog(ctx context.Context, rqst *resourcepb.DeleteLogRqst) (*resourcepb.DeleteLogRsp, error) {
+func (self *Globule) DeleteLog(ctx context.Context, rqst *logpb.DeleteLogRqst) (*logpb.DeleteLogRsp, error) {
 
 	key, _, _ := self.getLogInfoKeyValue(rqst.Log)
 	err := self.logs.RemoveItem(key)
@@ -291,16 +291,16 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *resourcepb.DeleteLogRq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &resourcepb.DeleteLogRsp{
+	return &logpb.DeleteLogRsp{
 		Result: true,
 	}, nil
 }
 
 //* Clear logs. info or errors *
-func (self *Globule) ClearAllLog(ctx context.Context, rqst *resourcepb.ClearAllLogRqst) (*resourcepb.ClearAllLogRsp, error) {
+func (self *Globule) ClearAllLog(ctx context.Context, rqst *logpb.ClearAllLogRqst) (*logpb.ClearAllLogRsp, error) {
 	var err error
 
-	if rqst.Type == resourcepb.LogType_ERROR_MESSAGE {
+	if rqst.Type == logpb.LogType_ERROR_MESSAGE {
 		err = self.deleteLog("/errors/*")
 	} else {
 		err = self.deleteLog("/infos/*")
@@ -312,7 +312,7 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *resourcepb.ClearAllL
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &resourcepb.ClearAllLogRsp{
+	return &logpb.ClearAllLogRsp{
 		Result: true,
 	}, nil
 }
