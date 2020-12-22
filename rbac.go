@@ -603,40 +603,48 @@ func (self *Globule) GetResourcePermissions(ctx context.Context, rqst *rbacpb.Ge
 	return &rbacpb.GetResourcePermissionsRsp{Permissions: permissions}, nil
 }
 
-//* Add resource owner do nothing if it already exist
-func (self *Globule) AddResourceOwner(ctx context.Context, rqst *rbacpb.AddResourceOwnerRqst) (*rbacpb.AddResourceOwnerRsp, error) {
-	permissions, err := self.getResourcePermissions(rqst.Path)
+func (self *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
+	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Owned resources
 	owners := permissions.Owners
-	if rqst.Type == rbacpb.SubjectType_ACCOUNT {
-		if !Utility.Contains(owners.Accounts, rqst.Subject) {
-			owners.Accounts = append(owners.Accounts, rqst.Subject)
+	if subjectType == rbacpb.SubjectType_ACCOUNT {
+		if !Utility.Contains(owners.Accounts, subject) {
+			owners.Accounts = append(owners.Accounts, subject)
 		}
-	} else if rqst.Type == rbacpb.SubjectType_APPLICATION {
-		if !Utility.Contains(owners.Applications, rqst.Subject) {
-			owners.Applications = append(owners.Applications, rqst.Subject)
+	} else if subjectType == rbacpb.SubjectType_APPLICATION {
+		if !Utility.Contains(owners.Applications, subject) {
+			owners.Applications = append(owners.Applications, subject)
 		}
-	} else if rqst.Type == rbacpb.SubjectType_GROUP {
-		if !Utility.Contains(owners.Groups, rqst.Subject) {
-			owners.Groups = append(owners.Groups, rqst.Subject)
+	} else if subjectType == rbacpb.SubjectType_GROUP {
+		if !Utility.Contains(owners.Groups, subject) {
+			owners.Groups = append(owners.Groups, subject)
 		}
-	} else if rqst.Type == rbacpb.SubjectType_ORGANIZATION {
-		if !Utility.Contains(owners.Organizations, rqst.Subject) {
-			owners.Organizations = append(owners.Organizations, rqst.Subject)
+	} else if subjectType == rbacpb.SubjectType_ORGANIZATION {
+		if !Utility.Contains(owners.Organizations, subject) {
+			owners.Organizations = append(owners.Organizations, subject)
 		}
-	} else if rqst.Type == rbacpb.SubjectType_PEER {
-		if !Utility.Contains(owners.Peers, rqst.Subject) {
-			owners.Peers = append(owners.Peers, rqst.Subject)
+	} else if subjectType == rbacpb.SubjectType_PEER {
+		if !Utility.Contains(owners.Peers, subject) {
+			owners.Peers = append(owners.Peers, subject)
 		}
 	}
 	permissions.Owners = owners
-	err = self.setResourcePermissions(rqst.Path, permissions)
+	err = self.setResourcePermissions(subject, permissions)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Add resource owner do nothing if it already exist
+func (self *Globule) AddResourceOwner(ctx context.Context, rqst *rbacpb.AddResourceOwnerRqst) (*rbacpb.AddResourceOwnerRsp, error) {
+
+	err := self.addResourceOwner(rqst.Path, rqst.Subject, rqst.Type)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1220,9 +1228,6 @@ func (self *Globule) GetActionResourceInfos(ctx context.Context, rqst *rbacpb.Ge
  * Validate an action and also validate it resources
  */
 func (self *Globule) validateAction(action string, subject string, subjectType rbacpb.SubjectType, resources []*rbacpb.ResourceInfos) (bool, error) {
-
-	log.Println("-----> validate action ", action, subject, resources)
-
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return false, err
@@ -1235,6 +1240,8 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 	// So first of all I will validate the actions itself...
 	if subjectType == rbacpb.SubjectType_APPLICATION {
+		log.Println("-----> validate action ", action, subject, resources)
+
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
 			return false, err
@@ -1281,7 +1288,6 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 			actions := []interface{}(values["actions"].(primitive.A))
 			for i := 0; i < len(actions); i++ {
 				if actions[i].(string) == action {
-
 					hasAccess = true
 				}
 			}
@@ -1289,24 +1295,30 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 	}
 
 	if !hasAccess {
-		return false, errors.New("Access denied for " + subject + " to call method " + action)
+		err := errors.New("Access denied for " + subject + " to call method " + action)
+		return false, err
 	}
+
+	log.Println("Access allow for " + subject + " to call method " + action)
 
 	// Here I will validate the access for a given subject...
 	if subjectType != rbacpb.SubjectType_ROLE {
 		// Now I will validate the resource access.
 		// infos
+
 		permissions_, _ := self.getActionResourcesPermissions(action)
 		if len(resources) > 0 {
 			if permissions_ == nil {
-				return false, errors.New("No resources path are given for validations!")
+				err := errors.New("No resources path are given for validations!")
+				return false, err
 			}
-
 			for i := 0; i < len(resources); i++ {
-				hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-
-				if hasAccess == false || accessDenied == true {
-					return false, errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
+				if len(resources[i].Path) > 0 { // Here if the path is empty i will simply not validate it.
+					hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
+					if hasAccess == false || accessDenied == true {
+						err := errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
+						return false, err
+					}
 				}
 			}
 		}

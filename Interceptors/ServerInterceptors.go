@@ -95,12 +95,10 @@ func refreshToken(domain string, token string) (string, error) {
 
 func validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
 
-	id := Utility.GenerateUUID(method + "|" + subject + "|" + domain)
 	rbac_client_, err := GetRbacClient(domain)
 	if err != nil {
 		return false, err
 	}
-
 	hasAccess := false
 	infos, err := rbac_client_.GetActionResourceInfos(method)
 	if err != nil {
@@ -113,9 +111,8 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 			for i := 0; i < len(infos); i++ {
 				// Get the path value from retreive infos.
 				param := rqst_.Descriptor().Fields().Get(Utility.ToInt(infos[i].Index))
-				path, _ := Utility.CallMethod(rqst, "Get"+strings.ToUpper(string(param.Name())[0:1])+string(param.Name())[1:], []interface{}{})
-				infos[i].Path = path.(string)
-				id += "|" + path.(string)
+				val := rqst_.Get(param)
+				infos[i].Path = val.String()
 			}
 		}
 	}
@@ -226,7 +223,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
 		fmt.Println(err)
 		log.Println("validation fail ", err)
-		//resource_client.Log(application, clientId, method, err)
 		return nil, err
 	}
 
@@ -270,8 +266,8 @@ func (l ServerStreamInterceptorStream) Context() context.Context {
 	return l.inner.Context()
 }
 
-func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
-	return l.inner.SendMsg(m)
+func (l ServerStreamInterceptorStream) SendMsg(rqst interface{}) error {
+	return l.inner.SendMsg(rqst)
 }
 
 /**
@@ -279,6 +275,8 @@ func (l ServerStreamInterceptorStream) SendMsg(m interface{}) error {
  * rqst, so I can validate it resources.
  */
 func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
+	// First of all i will get the message.
+	l.inner.RecvMsg(rqst)
 
 	hasAccess := l.clientId == "sa" || l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
 
@@ -302,7 +300,7 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 		return err
 	}
 
-	return l.inner.RecvMsg(rqst)
+	return nil
 }
 
 // Stream interceptor.
