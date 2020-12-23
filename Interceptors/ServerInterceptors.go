@@ -117,6 +117,8 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 		}
 	}
 
+	// TODO keep to value in cache for keep speed.
+
 	hasAccess, err = rbac_client_.ValidateAction(method, subject, subjectType, infos)
 	if err != nil {
 		return false, err

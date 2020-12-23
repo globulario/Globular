@@ -343,7 +343,12 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
 		self.ResourcePort = Utility.ToInt(config["ResourcePort"].(float64))
 		self.ResourceProxy = Utility.ToInt(config["ResourceProxy"].(float64))
-		self.PackagesDiscoveryPort = Utility.ToInt(config["ServicesDiscoveryPort"].(float64))
+
+		/*log.Println("------------> PackagesDiscoveryPort", config["PackagesDiscoveryPort"])
+		log.Println("------------> PackagesDiscoveryProxy", config["PackagesDiscoveryProxy"])
+		log.Println("------------> PackagesRepositoryPort", config["PackagesRepositoryPort"])
+		log.Println("------------> PackagesRepositoryProxy", config["PackagesRepositoryProxy"])*/
+		self.PackagesDiscoveryPort = Utility.ToInt(config["PackagesDiscoveryPort"].(float64))
 		self.PackagesDiscoveryProxy = Utility.ToInt(config["PackagesDiscoveryProxy"].(float64))
 		self.PackagesRepositoryPort = Utility.ToInt(config["PackagesRepositoryPort"].(float64))
 		self.PackagesRepositoryProxy = Utility.ToInt(config["PackagesRepositoryProxy"].(float64))

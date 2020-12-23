@@ -27,6 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -252,6 +253,7 @@ func (self *Globule) registerMethods() error {
 		guest["actions"] = []string{
 			"/admin.AdminService/GetConfig",
 			"/resource.ResourceService/RegisterAccount",
+			"/resource.ResourceService/GetAccounts",
 			"/resource.ResourceService/AccountExist",
 			"/resource.ResourceService/Authenticate",
 			"/resource.ResourceService/RefreshToken",
@@ -705,6 +707,145 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 	}, nil
 }
 
+//* Return the list accounts *
+func (self *Globule) GetAccounts(rqst *resourcepb.GetAccountsRqst, stream resourcepb.ResourceService_GetAccountsServer) error {
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
+
+	accounts, err := p.Find(context.Background(), "local_resource", "local_resource", "Accounts", query, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 100
+	values := make([]*resourcepb.Account, 0)
+
+	for i := 0; i < len(accounts); i++ {
+		account := accounts[i].(map[string]interface{})
+		a := &resourcepb.Account{Id: account["_id"].(string), Name: account["name"].(string), Email: account["email"].(string)}
+
+		if account["groups"] != nil {
+			groups := []interface{}(account["groups"].(primitive.A))
+			if groups != nil {
+				for i := 0; i < len(groups); i++ {
+					groupId := groups[i].(map[string]interface{})["$id"].(string)
+					a.Groups = append(a.Groups, groupId)
+				}
+			}
+		}
+
+		if account["roles"] != nil {
+			roles := []interface{}(account["roles"].(primitive.A))
+			if roles != nil {
+				for i := 0; i < len(roles); i++ {
+					roleId := roles[i].(map[string]interface{})["$id"].(string)
+					a.Roles = append(a.Roles, roleId)
+				}
+			}
+		}
+
+		if account["organizations"] != nil {
+			organizations := []interface{}(account["organizations"].(primitive.A))
+			if organizations != nil {
+				for i := 0; i < len(organizations); i++ {
+					organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+					a.Organizations = append(a.Organizations, organizationId)
+				}
+			}
+		}
+
+		if account["contacts"] != nil {
+			contacts := []interface{}(account["contacts"].(primitive.A))
+			if contacts != nil {
+				for i := 0; i < len(contacts); i++ {
+					contactId := contacts[i].(map[string]interface{})["$id"].(string)
+					a.Contacts = append(a.Contacts, contactId)
+				}
+			}
+		}
+
+		values = append(values, a)
+
+		if len(values) >= maxSize {
+			err := stream.Send(
+				&resourcepb.GetAccountsRsp{
+					Accounts: values,
+				},
+			)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			values = make([]*resourcepb.Account, 0)
+		}
+	}
+
+	// Send reminding values.
+	err = stream.Send(
+		&resourcepb.GetAccountsRsp{
+			Accounts: values,
+		},
+	)
+
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return nil
+}
+
+//* Add contact to a given account *
+func (self *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.AddAccountContactRqst) (*resourcepb.AddAccountContactRsp, error) {
+
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = self.createReference(p, rqst.AccountId, "Accounts", "contacts", rqst.ContactId, "Accounts")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.AddAccountContactRsp{Result: true}, nil
+}
+
+//* Remove a contact from a given account *
+func (self *Globule) RemoveAccountContact(ctx context.Context, rqst *resourcepb.RemoveAccountContactRqst) (*resourcepb.RemoveAccountContactRsp, error) {
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// That service made user of persistence service.
+	err = self.deleteReference(p, rqst.AccountId, rqst.ContactId, "contacts", "Accounts")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &resourcepb.RemoveAccountContactRsp{Result: true}, nil
+}
+
 func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountExistRqst) (*resourcepb.AccountExistRsp, error) {
 	var exist bool
 	// Get the persistence connection
@@ -1125,6 +1266,95 @@ func (self *Globule) CreateRole(ctx context.Context, rqst *resourcepb.CreateRole
 	return &resourcepb.CreateRoleRsp{Result: true}, nil
 }
 
+func (self *Globule) GetRoles(rqst *resourcepb.GetRolesRqst, stream resourcepb.ResourceService_GetRolesServer) error {
+	// Get the persistence connection
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	query := rqst.Query
+	if len(query) == 0 {
+		query = "{}"
+	}
+
+	roles, err := p.Find(context.Background(), "local_resource", "local_resource", "Roles", query, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// No I will stream the result over the networks.
+	maxSize := 100
+	values := make([]*resourcepb.Role, 0)
+
+	for i := 0; i < len(roles); i++ {
+		role := roles[i].(map[string]interface{})
+		r := &resourcepb.Role{Id: role["_id"].(string), Name: role["name"].(string), Actions: make([]string, 0)}
+
+		if role["actions"] != nil {
+			actions := []interface{}(role["actions"].(primitive.A))
+			if actions != nil {
+				for i := 0; i < len(actions); i++ {
+					r.Actions = append(r.Actions, actions[i].(string))
+				}
+			}
+		}
+
+		if role["organizations"] != nil {
+			organizations := []interface{}(role["organizations"].(primitive.A))
+			if organizations != nil {
+				for i := 0; i < len(organizations); i++ {
+					organizationId := organizations[i].(map[string]interface{})["$id"].(string)
+					r.Organizations = append(r.Organizations, organizationId)
+				}
+			}
+		}
+
+		if role["members"] != nil {
+			members := []interface{}(role["members"].(primitive.A))
+			if members != nil {
+				for i := 0; i < len(members); i++ {
+					memberId := members[i].(map[string]interface{})["$id"].(string)
+					r.Members = append(r.Members, memberId)
+				}
+			}
+		}
+
+		values = append(values, r)
+
+		if len(values) >= maxSize {
+			err := stream.Send(
+				&resourcepb.GetRolesRsp{
+					Roles: values,
+				},
+			)
+			if err != nil {
+				return status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			values = make([]*resourcepb.Role, 0)
+		}
+	}
+
+	// Send reminding values.
+	err = stream.Send(
+		&resourcepb.GetRolesRsp{
+			Roles: values,
+		},
+	)
+
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return nil
+}
+
 // That function is necessary to serialyse reference and kept field orders
 func serialyseObject(obj map[string]interface{}) string {
 	// Here I will save the role.
@@ -1189,7 +1419,7 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 }
 
 //* Append an action to existing role. *
-func (self *Globule) AddRoleAction(ctx context.Context, rqst *resourcepb.AddRoleActionRqst) (*resourcepb.AddRoleActionRsp, error) {
+func (self *Globule) AddRoleActions(ctx context.Context, rqst *resourcepb.AddRoleActionsRqst) (*resourcepb.AddRoleActionsRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1209,24 +1439,23 @@ func (self *Globule) AddRoleAction(ctx context.Context, rqst *resourcepb.AddRole
 
 	needSave := false
 	if role["actions"] == nil {
-		role["actions"] = []string{rqst.Action}
+		role["actions"] = rqst.Actions
 		needSave = true
 	} else {
-		exist := false
 		actions := []interface{}(role["actions"].(primitive.A))
-		for i := 0; i < len(actions); i++ {
-			if actions[i].(string) == rqst.Action {
-				exist = true
-				break
+		for j := 0; j < len(rqst.Actions); j++ {
+			exist := false
+			for i := 0; i < len(actions); i++ {
+				if actions[i].(string) == rqst.Actions[j] {
+					exist = true
+					break
+				}
 			}
-		}
-		if !exist {
-			actions = append(actions, rqst.Action)
-			needSave = true
-		} else {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Role named "+rqst.RoleId+"already contain actions named "+rqst.Action+"!")))
+			if !exist {
+				// append only if not already there.
+				actions = append(actions, rqst.Actions[j])
+				needSave = true
+			}
 		}
 		role["actions"] = actions
 	}
@@ -1242,7 +1471,7 @@ func (self *Globule) AddRoleAction(ctx context.Context, rqst *resourcepb.AddRole
 		}
 	}
 
-	return &resourcepb.AddRoleActionRsp{Result: true}, nil
+	return &resourcepb.AddRoleActionsRsp{Result: true}, nil
 }
 
 //* Remove an action to existing role. *
@@ -1469,7 +1698,7 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.Del
 }
 
 //* Append an action to existing application. *
-func (self *Globule) AddApplicationAction(ctx context.Context, rqst *resourcepb.AddApplicationActionRqst) (*resourcepb.AddApplicationActionRsp, error) {
+func (self *Globule) AddApplicationActions(ctx context.Context, rqst *resourcepb.AddApplicationActionsRqst) (*resourcepb.AddApplicationActionsRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1487,28 +1716,26 @@ func (self *Globule) AddApplicationAction(ctx context.Context, rqst *resourcepb.
 	}
 
 	application := values.(map[string]interface{})
-
 	needSave := false
 	if application["actions"] == nil {
-		application["actions"] = []string{rqst.Action}
+		application["actions"] = rqst.Actions
 		needSave = true
 	} else {
-		exist := false
 		application["actions"] = []interface{}(application["actions"].(primitive.A))
-		for i := 0; i < len(application["actions"].([]interface{})); i++ {
-			if application["actions"].([]interface{})[i].(string) == rqst.Action {
-				exist = true
-				break
+		for j := 0; j < len(rqst.Actions); j++ {
+			exist := false
+			for i := 0; i < len(application["actions"].([]interface{})); i++ {
+				if application["actions"].([]interface{})[i].(string) == rqst.Actions[j] {
+					exist = true
+					break
+				}
+				if !exist {
+					application["actions"] = append(application["actions"].([]interface{}), rqst.Actions[j])
+					needSave = true
+				}
 			}
 		}
-		if !exist {
-			application["actions"] = append(application["actions"].([]interface{}), rqst.Action)
-			needSave = true
-		} else {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Application named "+rqst.ApplicationId+" already contain actions named "+rqst.Action+"!")))
-		}
+
 	}
 
 	if needSave {
@@ -1521,7 +1748,7 @@ func (self *Globule) AddApplicationAction(ctx context.Context, rqst *resourcepb.
 		}
 	}
 
-	return &resourcepb.AddApplicationActionRsp{Result: true}, nil
+	return &resourcepb.AddApplicationActionsRsp{Result: true}, nil
 }
 
 //* Remove an action to existing application. *
@@ -1644,6 +1871,7 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 	// Here some method are accessible by default.
 	if method == "/resource.ResourceService/GetAllActions" ||
 		method == "/resource.ResourceService/RegisterAccount" ||
+		method == "/resource.ResourceService/GetAccounts" ||
 		method == "/resource.ResourceService/RegisterPeer" ||
 		method == "/resource.ResourceService/GetPeers" ||
 		method == "/resource.ResourceService/AccountExist" ||
@@ -1760,10 +1988,17 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcep
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	jsonStr, _ := Utility.ToJson(values)
+	// Convert to struct.
+	infos := make([]*structpb.Struct, 0)
+	for i := 0; i < len(values); i++ {
+		info, err := structpb.NewStruct(values[i].(map[string]interface{}))
+		if err == nil {
+			infos = append(infos, info)
+		}
+	}
 
 	return &resourcepb.GetAllApplicationsInfoRsp{
-		Result: jsonStr,
+		Applications: infos,
 	}, nil
 
 }
@@ -1909,7 +2144,7 @@ func (self *Globule) DeletePeer(ctx context.Context, rqst *resourcepb.DeletePeer
 }
 
 //* Add peer action permission *
-func (self *Globule) AddPeerAction(ctx context.Context, rqst *resourcepb.AddPeerActionRqst) (*resourcepb.AddPeerActionRsp, error) {
+func (self *Globule) AddPeerActions(ctx context.Context, rqst *resourcepb.AddPeerActionsRqst) (*resourcepb.AddPeerActionsRsp, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -1930,24 +2165,24 @@ func (self *Globule) AddPeerAction(ctx context.Context, rqst *resourcepb.AddPeer
 
 	needSave := false
 	if peer["actions"] == nil {
-		peer["actions"] = []string{rqst.Action}
+		peer["actions"] = rqst.Actions
 		needSave = true
 	} else {
-		exist := false
-		for i := 0; i < len(peer["actions"].(primitive.A)); i++ {
-			if peer["actions"].(primitive.A)[i].(string) == rqst.Action {
-				exist = true
-				break
+		actions := []interface{}(peer["actions"].(primitive.A))
+		for j := 0; j < len(rqst.Actions); j++ {
+			exist := false
+			for i := 0; i < len(peer["actions"].(primitive.A)); i++ {
+				if peer["actions"].(primitive.A)[i].(string) == rqst.Actions[j] {
+					exist = true
+					break
+				}
+			}
+			if !exist {
+				actions = append(actions, rqst.Actions[j])
+				needSave = true
 			}
 		}
-		if !exist {
-			peer["actions"] = append(peer["actions"].(primitive.A), rqst.Action)
-			needSave = true
-		} else {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Peer named "+rqst.Domain+" already contain actions named "+rqst.Action+"!")))
-		}
+		peer["actions"] = actions
 	}
 
 	if needSave {
@@ -1960,7 +2195,7 @@ func (self *Globule) AddPeerAction(ctx context.Context, rqst *resourcepb.AddPeer
 		}
 	}
 
-	return &resourcepb.AddPeerActionRsp{Result: true}, nil
+	return &resourcepb.AddPeerActionsRsp{Result: true}, nil
 
 }
 
