@@ -25,6 +25,34 @@ By using Globular you will be able to manage your microservices and make them av
 
 Click [here](https://globular.io) and learn more about globular!
 
-Also docker images for both amd64 and arm7 are avaible [here](https://hub.docker.com/r/globular/globular)
+You can also install globular via docker's image's, [here](https://hub.docker.com/r/globular/globular)
 
 ** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
+
+## First Step with Globular
+
+### How to configure your server
+
+Globular is all about gRpc, so the way you communicate with your backend is via gRpc Api. We made use of evan's. If your installation run at localhost without tls, simply run cmd,
+
+``` sh
+$ evans -port 10001 -r
+```
+If your server has a domain and it secured with tls, you must get access to certificate. To do so execute the following command,
+
+``` sh
+$ Globular certificates -domain=globular.live -path=/tmp/tata -port=80
+$ Your certificate are installed: 
+$ cacert:  /tmp/tata/config/tls/globular.live/ca.crt
+$ cert:  /tmp/tata/config/tls/globular.live/client.crt
+$ certkey:  /tmp/tata/config/tls/globular.live/client.pem
+```
+** Note that you must have Globular in your path or be in the same directory as the exec.
+
+So to log into evans you must do the following command,
+``` sh
+$ evans --host globular.live -r --tls --cacert "/tmp/tata/config/tls/globular.live/ca.crt" --cert  "/tmp/tata/config/tls/globular.live/client.crt" --certkey "/tmp/tata/config/tls/globular.live/client.pem" --port 10003
+```
+** if you got access denied try the command with sudo, or change permission on the certificate by given read access to your user.
+
+
