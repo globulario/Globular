@@ -25,6 +25,23 @@ By using Globular you will be able to manage your microservices and make them av
 
 Click [here](https://globular.io) and learn more about globular!
 
-Also docker images for both amd64 and arm7 are avaible [here](https://hub.docker.com/r/globular/globular)
+You can also install globular via docker's image's, [here](https://hub.docker.com/r/globular/globular)
 
 ** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
+
+## First Step with Globular
+
+### How to configure your server
+
+Globular is all about gRpc, so the way you communicate with your backend is via gRpc Api. We made use of evan's. If your installation run at localhost without tls, simply run cmd,
+
+``` sh
+$ evans -port 10001 -r
+```
+If your server has a domain and he's secured with tls, you must get access to certificate. To do so execute the following command,
+
+``` sh
+$ Globular certificates -domain=globular.live -path=/tmp/tata -port=80
+```
+
+
