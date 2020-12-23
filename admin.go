@@ -19,13 +19,14 @@ import (
 	"github.com/globulario/services/golang/rbac/rbacpb"
 
 	//"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/services/servicespb"
-	"github.com/golang/protobuf/jsonpb"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"encoding/json"
 	"os/exec"
 	"reflect"
+
+	"github.com/globulario/Globular/security"
+	"github.com/globulario/services/golang/services/servicespb"
+	"github.com/golang/protobuf/jsonpb"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"strconv"
 
@@ -180,6 +181,33 @@ func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRun
 
 	return &adminpb.HasRunningProcessResponse{
 		Result: true,
+	}, nil
+}
+
+// Install certificates from a given server at a given path.
+func (self *Globule) InstallCertificates(ctx context.Context, rqst *adminpb.InstallCertificatesRequest) (*adminpb.InstallCertificatesResponse, error) {
+	path := rqst.Path
+	if len(path) == 0 {
+		path = os.TempDir()
+	}
+
+	port := 80
+	if rqst.Port != 0 {
+		port = int(rqst.Port)
+	}
+
+	key, cert, ca, err := security.InstallCertificates(rqst.Domain, port, path)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.InstallCertificatesResponse{
+		Certkey: key,
+		Cert:    cert,
+		Cacert:  ca,
 	}, nil
 }
 

@@ -1867,7 +1867,6 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 	}*/
 
 	var err error
-
 	// Here some method are accessible by default.
 	if method == "/resource.ResourceService/GetAllActions" ||
 		method == "/resource.ResourceService/RegisterAccount" ||

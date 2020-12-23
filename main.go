@@ -149,6 +149,12 @@ func main() {
 		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Optional)")
 		publishCommand_plaform := publishCommand.String("platform", "", "(Optional)")
 
+		// Install certificates command.
+		installCertificatesCommand := flag.NewFlagSet("certificates", flag.ExitOnError)
+		installCertificatesCommand_path := installCertificatesCommand.String("path", "", "You must specify where to install certificate (Required)")
+		installCertificatesCommand_port := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
+		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
+
 		switch os.Args[1] {
 		case "start":
 			startCommand.Parse(os.Args[2:])
@@ -162,9 +168,31 @@ func main() {
 			installCommand.Parse(os.Args[2:])
 		case "uninstall":
 			unstallCommand.Parse(os.Args[2:])
+		case "certificates":
+			installCertificatesCommand.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if installCertificatesCommand.Parsed() {
+			// Required Flags
+			if *installCertificatesCommand_path == "" {
+				installCertificatesCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *installCertificatesCommand_domain == "" {
+				installCertificatesCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *installCertificatesCommand_port == "" {
+				installCertificatesCommand.PrintDefaults()
+				os.Exit(1)
+			}
+
+			installCertificates(g, *installCertificatesCommand_domain, Utility.ToInt(*installCertificatesCommand_port), *installCertificatesCommand_path)
 		}
 
 		if startCommand.Parsed() {
@@ -401,6 +429,24 @@ func main() {
 /**
  * Service interface use to run as Windows Service or Linux deamon...
  */
+func installCertificates(g *Globule, domain string, port int, path string) error {
+	log.Println("Get certificates from ", domain, "...")
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println("fail to get certificates...", err)
+		return err
+	}
+
+	key, cert, ca, err := admin_client_.InstallCertificates(domain, port, path)
+	if err != nil {
+		log.Println("fail to get certificates...", err)
+	}
+	log.Println("Your certificate are installed: ")
+	log.Println("cacert: ", ca)
+	log.Println("cert: ", cert)
+	log.Println("certkey: ", key)
+	return nil
+}
 
 /**
  * That function can be use to deploy an application on the server...

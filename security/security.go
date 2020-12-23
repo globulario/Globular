@@ -19,7 +19,7 @@ import (
 
 // That function will be access via http so event server or client will be able
 // to get particular service configuration.
-func GetClientConfig(address string, name string, port int) (map[string]interface{}, error) {
+func GetClientConfig(address string, name string, port int, path string) (map[string]interface{}, error) {
 
 	var serverConfig map[string]interface{}
 	var config map[string]interface{}
@@ -100,7 +100,7 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 			alternateDomains = serverConfig["AlternateDomains"].([]interface{})
 		}
 		if !isLocal {
-			keyPath, certPath, caPath, err := getCredentialConfig(serverConfig["Domain"].(string), country, state, city, organization, alternateDomains, port)
+			keyPath, certPath, caPath, err := getCredentialConfig(path, serverConfig["Domain"].(string), country, state, city, organization, alternateDomains, port)
 			if err != nil {
 				return nil, err
 			}
@@ -112,6 +112,10 @@ func GetClientConfig(address string, name string, port int) (map[string]interfac
 	}
 
 	return config, nil
+}
+
+func InstallCertificates(domain string, port int, path string) (string, string, string, error) {
+	return getCredentialConfig(path, domain, "", "", "", "", []interface{}{}, port)
 }
 
 /**
@@ -231,18 +235,18 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 /**
  * Return the credential configuration.
  */
-func getCredentialConfig(address string, country string, state string, city string, organization string, alternateDomains []interface{}, port int) (keyPath string, certPath string, caPath string, err error) {
+func getCredentialConfig(basePath string, address string, country string, state string, city string, organization string, alternateDomains []interface{}, port int) (keyPath string, certPath string, caPath string, err error) {
 
 	// TODO Clarify the use of the password here.
 	pwd := "1111"
 
 	// use the temp dir to store the certificate in that case.
-	path := os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
+	path := basePath + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
 
 	// must have write access of file.
 	_, err = ioutil.ReadFile(path + string(os.PathSeparator) + address + string(os.PathSeparator) + "client.pem")
 	if err != nil {
-		path = os.TempDir() + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
+		path = basePath + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "tls"
 		err = nil
 	}
 
