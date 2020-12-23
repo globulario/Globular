@@ -42,6 +42,17 @@ If your server has a domain and he's secured with tls, you must get access to ce
 
 ``` sh
 $ Globular certificates -domain=globular.live -path=/tmp/tata -port=80
+$ Your certificate are installed: 
+$ cacert:  /tmp/tata/config/tls/globular.live/ca.crt
+$ cert:  /tmp/tata/config/tls/globular.live/client.crt
+$ certkey:  /tmp/tata/config/tls/globular.live/client.pem
 ```
+** Note that you must have Globular in your path or be in the same directory as the exec.
+
+So to log into evans you must do the following command,
+``` sh
+$ evans --host globular.live -r --tls --cacert "/tmp/tata/config/tls/globular.live/ca.crt" --cert  "/tmp/tata/config/tls/globular.live/client.crt" --certkey "/tmp/tata/config/tls/globular.live/client.pem" --port 10003
+```
+** if you got access denied try the command with sudo, or change permission on the certificate by given read access to your user.
 
 
