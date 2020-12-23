@@ -38,7 +38,7 @@ Globular is all about gRpc, so the way you communicate with your backend is via 
 ``` sh
 $ evans -port 10001 -r
 ```
-If your server has a domain and he's secured with tls, you must get access to certificate. To do so execute the following command,
+If your server has a domain and it secured with tls, you must get access to certificate. To do so execute the following command,
 
 ``` sh
 $ Globular certificates -domain=globular.live -path=/tmp/tata -port=80
