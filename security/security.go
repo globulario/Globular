@@ -128,9 +128,17 @@ func getLocalConfig() (map[string]interface{}, error) {
 	}
 
 	config := make(map[string]interface{}, 0)
-	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	root, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	if err != nil {
+		return nil, err
+	}
 
-	root_ := string(root)[0:strings.LastIndex(string(root), ":")]
+	index := strings.LastIndex(string(root), ":")
+	if index == -1 {
+		return nil, errors.New("File contain does not contain ':' separator! ")
+	}
+
+	root_ := string(root)[0:index]
 	data, err := ioutil.ReadFile(root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
 
 	if err != nil {

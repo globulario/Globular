@@ -458,20 +458,35 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	var name string
 	var domain string
+	var organization string
 	for {
 		msg, err := stream.Recv()
+		log.Println(msg.Domain, msg.Organization, msg.Name, len(msg.Data))
 		if err == io.EOF {
 			// end of stream...
 			stream.SendAndClose(&adminpb.DeployApplicationResponse{
 				Result: true,
 			})
+			err = nil
 			break
 		} else if err != nil {
 			return err
 		} else {
-			name = msg.Name
-			domain = msg.Domain
-			buffer.Write(msg.Data)
+			if len(msg.Name) > 0 {
+				name = msg.Name
+			}
+			if len(msg.Domain) > 0 {
+				domain = msg.Domain
+			}
+			if len(msg.Organization) > 0 {
+				organization = msg.Organization
+			}
+			if len(msg.Data) > 0 {
+				buffer.Write(msg.Data)
+			}
+			if len(msg.Data) == 0 {
+				break
+			}
 		}
 	}
 
@@ -525,6 +540,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	// That service made user of persistence service.
 	store, err := self.getPersistenceStore()
 	if err != nil {
+		log.Println("------> 546", err)
 		return err
 	}
 
@@ -553,16 +569,19 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		if address == "0.0.0.0" {
 			err = store.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
+				log.Println("------> 575", err)
 				return err
 			}
 		} else {
 			// in the case of remote data store.
 			p_, err := self.getPersistenceSaConnection()
 			if err != nil {
+				log.Println("------> 582", err)
 				return err
 			}
 			err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
+				log.Println("------> 582", err)
 				return err
 			}
 		}
@@ -571,6 +590,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		_, err := store.InsertOne(context.Background(), "local_resource", "local_resource", "Applications", application, "")
 		if err != nil {
+			log.Println("------> 596", err)
 			return err
 		}
 
@@ -578,6 +598,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		err = p.CreateConnection(name+"_db", name+"_db", address, float64(port), 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
+			log.Println("------> 604", err)
 			return err
 		}
 
@@ -585,6 +606,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }}`, "")
 		if err != nil {
+			log.Println("------> 612", err)
 			return err
 		}
 	}
@@ -598,8 +620,8 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
 
 	}
-
-	return nil
+	log.Println("------> 626", err)
+	return err
 }
 
 /** Create the super administrator in the db. **/

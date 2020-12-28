@@ -53,6 +53,7 @@ import (
 
 	"github.com/globulario/Globular/security"
 	globular "github.com/globulario/services/golang/globular_service"
+	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/persistence/persistence_store"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -189,6 +190,12 @@ type Globule struct {
 
 	// ACME protocol registration
 	registration *registration.Resource
+
+	// load balancing action channel.
+	lb_load_info_channel             chan *lbpb.LoadInfo
+	lb_remove_candidate_info_channel chan *lbpb.ServerInfo
+	lb_get_candidates_info_channel   chan map[string]interface{}
+	lb_stop_channel                  chan bool
 
 	// exit channel.
 	exit            chan struct{}
@@ -1492,6 +1499,12 @@ func (self *Globule) initServices() {
 
 	// Kill previous instance of the program...
 	self.KillProcess()
+
+	// Start the load balancer.
+	err := self.startLoadBalancingService()
+	if err != nil {
+		log.Println(err)
+	}
 
 	for _, s := range self.getServices() {
 		// Remove existing process information.
