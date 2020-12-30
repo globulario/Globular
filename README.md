@@ -36,7 +36,7 @@ You can also install globular via docker's image's, [here](https://hub.docker.co
 Globular is all about gRpc, so the way you communicate with your backend is via gRpc Api. We made use of evan's. If your installation run at localhost without tls, simply run cmd,
 
 ``` sh
-$ evans -port 10001 -r
+$ evans --port 10001 -r
 ```
 If your server has a domain and it secured with tls, you must get access to certificate. To do so execute the following command,
 
