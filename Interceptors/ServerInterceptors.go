@@ -186,12 +186,11 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 // That interceptor is use by all services except the resource service who has
 // it own interceptor.
 func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	log.Println("------> 189")
+
 	// The token and the application id.
 	var token string
 	var application string
 	var domain string // This is the target domain, the one use in TLS certificate.
-	var load_balanced bool
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 
@@ -207,10 +206,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 				domain += ":" + port
 			}
 		}
-
-		load_balanced_ := strings.Join(md["load_balanced"], "")
-		ctx = metadata.AppendToOutgoingContext(ctx, "load_balanced", "") // Set back the value to nothing.
-		load_balanced = load_balanced_ == "true"
 	}
 
 	// Get the peer information.
@@ -291,8 +286,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// So here the user has access to the ressource...
 
-	// Here I will exclude local service from the load balancing.
-	var candidates []*lbpb.ServerInfo
 	// I will try to get the list of candidates for load balancing
 	if Utility.GetProperty(info.Server, "Port") != nil {
 
@@ -316,63 +309,14 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 			Load15: stats.Load15,
 		}
 		lb_client.ReportLoadInfo(load_info)
-
-		// if load balanced is false I will get list of candidate.
-		if load_balanced == false {
-			candidates, _ = lb_client.GetCandidates(Utility.GetProperty(info.Server, "Name").(string))
-		}
 	}
 
 	var result interface{}
 
-	// Execute the action.
-	if candidates != nil {
-		serverId := Utility.GetProperty(info.Server, "Id").(string)
-		// Here there is some candidate in the list.
-		for i := 0; i < len(candidates); i++ {
-			candidate := candidates[i]
-			if candidate.GetId() == serverId {
-				// In that case the handler is the actual server.
-				result, err = handler(ctx, rqst)
-				fmt.Println("398 execute load balanced request ", serverId)
-				break // stop the loop...
-			} else {
-				// Here the canditade is the actual server so I will dispatch the request to the candidate.
-				if clients[candidate.GetId()] == nil {
-					// Note that golang client must exist for the services to be able to loadbalance it.
-					newClientFct := method[1:strings.Index(method, "/")]
-					newClientFct = method[strings.Index(newClientFct, ".")+1:]
-					newClientFct = "New" + newClientFct + "_Client"
-
-					// Here I will create a connection with the other server in order to be able to dispatch the request.
-					results, err := Utility.CallFunction(newClientFct, candidate.GetDomain(), candidate.GetId())
-					if err != nil {
-						fmt.Println(err)
-						continue // skip to the next client.
-					}
-
-					// So here I will keep the client inside the map.
-					clients[candidate.GetId()] = results[0].Interface().(globular.Client)
-				}
-
-				// Here I will invoke the request on the server whit the same context, so permission and token etc will be kept the save.
-				result, err = clients[candidate.GetId()].Invoke(method, rqst, metadata.AppendToOutgoingContext(ctx, "load_balanced", "true", "domain", Utility.GetProperty(info.Server, "Domain").(string), "application", application, "token", token))
-				if err != nil {
-					fmt.Println(err)
-					continue // skip to the next client.
-				} else {
-					break
-				}
-			}
-		}
-
-	} else {
-		if Utility.GetProperty(info.Server, "Id") != nil {
-			fmt.Println("421 execute request ", Utility.GetProperty(info.Server, "Id").(string))
-		}
-		result, err = handler(ctx, rqst)
+	if Utility.GetProperty(info.Server, "Id") != nil {
+		fmt.Println("421 execute request ", Utility.GetProperty(info.Server, "Id").(string))
 	}
-
+	result, err = handler(ctx, rqst)
 	// Send log message.
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
 		// resource_client.Log(application, clientId, method, err)
@@ -421,7 +365,9 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 	// First of all i will get the message.
 	l.inner.RecvMsg(rqst)
 
-	hasAccess := l.clientId == "sa" || l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
+	hasAccess := l.clientId == "sa" ||
+		l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo" ||
+		l.method == "/admin.AdminService/DeployApplication"
 
 	// Test if peer has access
 	if !hasAccess && len(l.clientId) > 0 {
@@ -443,7 +389,6 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 		return err
 	}
 
-	log.Println("-------------> 445")
 	return nil
 }
 
@@ -493,6 +438,34 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		if clientId == "sa" {
 			hasAccess = true
 		}
+	}
+
+	if Utility.GetProperty(srv, "Id") != nil {
+		serverId := Utility.GetProperty(srv, "Id").(string)
+		serverName := Utility.GetProperty(srv, "Name").(string)
+		serverDomain := Utility.GetProperty(srv, "Domain").(string)
+		serverPort := int32(Utility.GetProperty(srv, "Port").(int))
+		// Set load balancing informations.
+		lb_client, err := getLoadBalancingClient(domain, serverId, serverName, serverDomain, serverPort)
+		if err != nil {
+			return err
+		}
+
+		// At each call I will report the load of the server.
+		stats, _ := load.Avg()
+		load_info := &lbpb.LoadInfo{
+			ServerInfo: &lbpb.ServerInfo{
+				Id:     serverId,
+				Name:   serverName,
+				Domain: serverDomain,
+				Port:   serverPort,
+			},
+			Load1:  stats.Load1,
+			Load5:  stats.Load5,
+			Load15: stats.Load15,
+		}
+
+		lb_client.ReportLoadInfo(load_info)
 	}
 
 	// needed by the admin.

@@ -1,19 +1,21 @@
 package main
 
 import (
-	"context"
-
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
+
 	"regexp"
 	"strings"
 	"sync"
-	"time"
+
+	//	"time"
 
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
@@ -371,11 +373,6 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
 		self.ResourcePort = Utility.ToInt(config["ResourcePort"].(float64))
 		self.ResourceProxy = Utility.ToInt(config["ResourceProxy"].(float64))
-
-		/*log.Println("------------> PackagesDiscoveryPort", config["PackagesDiscoveryPort"])
-		log.Println("------------> PackagesDiscoveryProxy", config["PackagesDiscoveryProxy"])
-		log.Println("------------> PackagesRepositoryPort", config["PackagesRepositoryPort"])
-		log.Println("------------> PackagesRepositoryProxy", config["PackagesRepositoryProxy"])*/
 		self.PackagesDiscoveryPort = Utility.ToInt(config["PackagesDiscoveryPort"].(float64))
 		self.PackagesDiscoveryProxy = Utility.ToInt(config["PackagesDiscoveryProxy"].(float64))
 		self.PackagesRepositoryPort = Utility.ToInt(config["PackagesRepositoryPort"].(float64))
@@ -432,86 +429,21 @@ func (self *Globule) UninstallApplication(ctx context.Context, rqst *adminpb.Uni
 	return nil, nil
 }
 
-// Install Application
+// Install web Application
 func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.InstallApplicationRequest) (*adminpb.InstallApplicationResponse, error) {
-
+	// Get the package bundle from the repository and install it on the server.
 	return nil, nil
 }
 
-//
-func (self *Globule) installApplication() error {
-	// - Install dependency
-	//  -- Services
-	//  -- Permissions
-
-	return nil // TODO take code from Deploy
-}
-
-// Deloyed a web application to a globular node. Mostly use a develeopment time.
-func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
-
-	// TODO publish the application as package.
-	// - Get the information from the package.json (npm package, the version, the keywords and set the package descriptor with it.
-
-	// The bundle will cantain the necessary information to install the service.
-	var buffer bytes.Buffer
-
-	var name string
-	var domain string
-	var organization string
-	for {
-		msg, err := stream.Recv()
-		log.Println(msg.Domain, msg.Organization, msg.Name, len(msg.Data))
-		if err == io.EOF {
-			// end of stream...
-			stream.SendAndClose(&adminpb.DeployApplicationResponse{
-				Result: true,
-			})
-			err = nil
-			break
-		} else if err != nil {
-			return err
-		} else {
-			if len(msg.Name) > 0 {
-				name = msg.Name
-			}
-			if len(msg.Domain) > 0 {
-				domain = msg.Domain
-			}
-			if len(msg.Organization) > 0 {
-				organization = msg.Organization
-			}
-			if len(msg.Data) > 0 {
-				buffer.Write(msg.Data)
-			}
-			if len(msg.Data) == 0 {
-				break
-			}
-		}
-	}
-
-	// Before extract I will keep the archive.
-
-	/*  TODO this was replace by publish package...
-	backupPath := self.webRoot + string(os.PathSeparator) + "_old" + string(os.PathSeparator) + name
-
-	Utility.CreateIfNotExists(backupPath, 0644)
-	backupPath += string(os.PathSeparator) + Utility.ToString(time.Now().Unix()) + ".tar.gz"
-
-	err := ioutil.WriteFile(backupPath, buffer.Bytes(), 0644)
-	if err != nil {
-		return err
-	}
-	*/
-
-	// Read bytes and extract it in the current directory.
-	r := bytes.NewReader(buffer.Bytes())
-
-	// Before I will
+// Intall
+func (self *Globule) installApplication(domain, name, organization, version, description string, r io.Reader) error {
+	// Here I will extract the file.
 	Utility.ExtractTarGz(r)
 
 	// Copy the files to it final destination
 	abosolutePath := self.webRoot
+
+	// If a domain is given.
 	if len(domain) > 0 {
 		if Utility.Exists(abosolutePath + "/" + domain) {
 			abosolutePath += "/" + domain
@@ -526,21 +458,18 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		os.RemoveAll(abosolutePath)
 	}
 
+	// remove temporary files.
+	defer os.RemoveAll(Utility.GenerateUUID(name))
+
 	// Recreate the dir and move file in it.
 	Utility.CreateDirIfNotExist(abosolutePath)
 	Utility.CopyDirContent(Utility.GenerateUUID(name), abosolutePath)
-
-	// remove temporary files.
-	os.RemoveAll(Utility.GenerateUUID(name))
-
-	// Now I will publish the application.
 
 	// Now I will create the application database in the persistence store,
 	// and the Application entry in the database.
 	// That service made user of persistence service.
 	store, err := self.getPersistenceStore()
 	if err != nil {
-		log.Println("------> 546", err)
 		return err
 	}
 
@@ -549,18 +478,21 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
 	application["path"] = "/" + name // The path must be the same as the application name.
+	application["organization"] = organization
+	application["version"] = version
+	application["description"] = description
+
 	if len(domain) > 0 {
 		if Utility.Exists(self.webRoot + "/" + domain) {
 			application["path"] = "/" + domain + "/" + application["path"].(string)
 		}
 	}
+
 	application["last_deployed"] = time.Now().Unix() // save it as unix time.
 
 	// Here I will set the resource to manage the applicaiton access permission.
-
 	if err != nil || count == 0 {
 		address, port := self.getBackendAddress()
-
 		// create the application database.
 		createApplicationUserDbScript := fmt.Sprintf(
 			"db=db.getSiblingDB('%s_db');db.createCollection('application_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
@@ -569,44 +501,35 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		if address == "0.0.0.0" {
 			err = store.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
-				log.Println("------> 575", err)
 				return err
 			}
 		} else {
 			// in the case of remote data store.
 			p_, err := self.getPersistenceSaConnection()
 			if err != nil {
-				log.Println("------> 582", err)
 				return err
 			}
 			err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, createApplicationUserDbScript)
 			if err != nil {
-				log.Println("------> 582", err)
 				return err
 			}
 		}
 
 		application["creation_date"] = time.Now().Unix() // save it as unix time.
-
 		_, err := store.InsertOne(context.Background(), "local_resource", "local_resource", "Applications", application, "")
 		if err != nil {
-			log.Println("------> 596", err)
 			return err
 		}
-
 		p, err := self.getPersistenceSaConnection()
 
 		err = p.CreateConnection(name+"_db", name+"_db", address, float64(port), 0, name, application["password"].(string), 5000, "", false)
 		if err != nil {
-			log.Println("------> 604", err)
 			return err
 		}
 
 	} else {
-
 		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }}`, "")
 		if err != nil {
-			log.Println("------> 612", err)
 			return err
 		}
 	}
@@ -620,7 +543,135 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
 
 	}
-	log.Println("------> 626", err)
+
+	return err
+}
+
+func (self *Globule) publishApplication(path, name, domain, publisherId, organization, version, description, repositoryId, discoveryId string, keywords []string) error {
+
+	PackageDescriptor := &servicespb.PackageDescriptor{
+		Id:           name,
+		Name:         name,
+		Organization: organization,
+		PublisherId:  publisherId, //  Account member of the organization.
+		Version:      version,
+		Description:  description,
+		Repositories: []string{},
+		Type:         servicespb.PackageType_APPLICATION,
+	}
+
+	if len(repositoryId) > 0 {
+		PackageDescriptor.Repositories = append(PackageDescriptor.Repositories, repositoryId)
+	}
+
+	if len(discoveryId) > 0 {
+		PackageDescriptor.Discoveries = append(PackageDescriptor.Discoveries, discoveryId)
+	}
+
+	if len(keywords) > 0 {
+		PackageDescriptor.Keywords = keywords
+	}
+
+	err := self.publishPackage(discoveryId, repositoryId, "webapp", path, PackageDescriptor)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Deloyed a web application to a globular node. Mostly use a develeopment time.
+func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplicationServer) error {
+
+	// - Get the information from the package.json (npm package, the version, the keywords and set the package descriptor with it.
+
+	// The bundle will cantain the necessary information to install the service.
+	var buffer bytes.Buffer
+
+	// Here is necessary information to publish an application.
+	var name string
+	var domain string
+	var organization string
+	var version string
+	var description string
+	var publisherId string
+	var repositoryId string
+	var discoveryId string
+	var keywords []string
+
+	for {
+		msg, err := stream.Recv()
+		if len(msg.Name) > 0 {
+			name = msg.Name
+		}
+		if len(msg.Domain) > 0 {
+			domain = msg.Domain
+		}
+		if len(msg.Organization) > 0 {
+			organization = msg.Organization
+		}
+		if len(msg.User) > 0 {
+			publisherId = msg.User
+		}
+		if len(msg.Version) > 0 {
+			version = msg.Version
+		}
+		if len(msg.Description) > 0 {
+			description = msg.Description
+		}
+		if msg.Keywords != nil {
+			keywords = msg.Keywords
+		}
+		if len(msg.Repository) > 0 {
+			repositoryId = msg.Repository
+		}
+		if len(msg.Discovery) > 0 {
+			discoveryId = msg.Discovery
+		}
+
+		if err == io.EOF {
+			// end of stream...
+			stream.SendAndClose(&adminpb.DeployApplicationResponse{
+				Result: true,
+			})
+			err = nil
+			break
+		} else if err != nil {
+			return err
+		} else if len(msg.Data) == 0 {
+			break
+		} else {
+			buffer.Write(msg.Data)
+		}
+	}
+
+	if len(repositoryId) == 0 {
+		repositoryId = domain
+	}
+
+	if len(discoveryId) == 0 {
+		discoveryId = domain
+	}
+
+	// Now I will save the bundle into a file in the temp directory.
+	path := os.TempDir() + "/" + Utility.RandomUUID()
+	defer os.RemoveAll(path)
+
+	err := ioutil.WriteFile(path, buffer.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
+	err = self.publishApplication(path, name, domain, publisherId, organization, version, description, repositoryId, discoveryId, keywords)
+	if err != nil {
+		return err
+	}
+
+	// Read bytes and extract it in the current directory.
+	r := bytes.NewReader(buffer.Bytes())
+	err = self.installApplication(domain, name, organization, version, description, r)
+
 	return err
 }
 
@@ -988,6 +1039,8 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 			break
 		} else if err != nil {
 			return err
+		} else if len(msg.Data) == 0 {
+			break
 		} else {
 			fo.Write(msg.Data)
 		}
@@ -1012,13 +1065,13 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	// Connect to the dicovery services
 	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(discovery, "services.PackageDiscovery")
 	if err != nil {
-		return errors.New("Fail to connect to " + discovery)
+		return errors.New("Fail to connect to package discovery at " + discovery)
 	}
 
 	// Connect to the repository servicespb.
-	services_repository, err := service_client.NewServicesRepositoryService_Client(repository, "services.ServiceRepository")
+	services_repository, err := service_client.NewServicesRepositoryService_Client(repository, "services.PackageRepository")
 	if err != nil {
-		return errors.New("Fail to connect to " + repository)
+		return errors.New("Fail to connect to package repository at " + repository)
 	}
 
 	// Ladies and Gentlemans After one year after tow years services as resource!
@@ -1047,16 +1100,22 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 				Accounts: []string{descriptor.PublisherId},
 			},
 		}
+
+		// Set the permissions.
+		err = self.setResourcePermissions(path_, permissions)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Test the permission before actualy publish the service.
+	// Test the permission before actualy publish the package.
 	hasAccess, isDenied, err := self.validateAccess(descriptor.PublisherId, rbacpb.SubjectType_ACCOUNT, "publish", path_)
 	if !hasAccess || isDenied || err != nil {
 		return err
 	}
 
-	if !Utility.Contains(permissions.Owners.Accounts, path_) {
-		permissions.Owners.Accounts = append(permissions.Owners.Accounts, path_)
+	if !Utility.Contains(permissions.Owners.Accounts, descriptor.PublisherId) {
+		permissions.Owners.Accounts = append(permissions.Owners.Accounts, descriptor.PublisherId)
 	}
 
 	// The publisher will be the owner.
@@ -1072,13 +1131,7 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, platform, path)
-	if err != nil {
-		return err
-	}
-
-	// So here I will send an plublish event...
-	err = os.Remove(path)
+	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, descriptor.Organization, platform, path)
 	if err != nil {
 		return err
 	}
@@ -1094,6 +1147,7 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	if self.discorveriesEventHub[discovery] == nil {
 		client, err := event_client.NewEventService_Client(discovery, "event.EventService")
 		if err != nil {
+			log.Println("-->", err)
 			return err
 		}
 		self.discorveriesEventHub[discovery] = client
@@ -1250,7 +1304,7 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
-	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId)
+	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId, rqst.Organization)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1458,10 +1512,6 @@ func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartS
 }
 
 func (self *Globule) restartServices() {
-	//log.Println("---> 1317")
-	//self.exit <- struct{}{}
-	//log.Println("---> 1319")
-	log.Println("--> stop internal services")
 
 	// Stop all internal services
 	self.stopInternalServices()

@@ -159,7 +159,9 @@ func (self *Globule) startPackagesDiscoveryService() error {
 
 // Start service repository
 func (self *Globule) startPackagesRepositoryService() error {
-	services_repository_server, err := self.startInternalService(string(servicespb.File_proto_services_proto.Services().Get(1).FullName()), servicespb.File_proto_services_proto.Path(), self.PackagesRepositoryPort, self.PackagesRepositoryProxy,
+	id := string(servicespb.File_proto_services_proto.Services().Get(1).FullName())
+
+	services_repository_server, err := self.startInternalService(id, servicespb.File_proto_services_proto.Path(), self.PackagesRepositoryPort, self.PackagesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -221,7 +223,7 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *servicespb.FindPack
 	// Test...
 	query := `{"keywords": { "$all" : ` + kewordsStr + `}}`
 
-	data, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", query, "")
+	data, err := p.Find(context.Background(), "local_resource", "local_resource", "Packages", query, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -278,7 +280,7 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *servicespb.
 
 	query := `{"id":"` + rqst.ServiceId + `", "publisherid":"` + rqst.PublisherId + `"}`
 
-	values, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", query, "")
+	values, err := p.Find(context.Background(), "local_resource", "local_resource", "Packages", query, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -460,7 +462,7 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 	}
 
 	// Here I will test if the services already exist...
-	_, err = p.FindOne(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
+	_, err = p.FindOne(context.Background(), "local_resource", "local_resource", "Packages", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, "")
 	if err == nil {
 		// Update existing descriptor.
 
@@ -468,7 +470,7 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 		discoveries, err := Utility.ToJson(rqst.Descriptor_.Discoveries)
 		if err == nil {
 			values := `{"$set":{"discoveries":` + discoveries + `}}`
-			err = p.Update(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_resource", "local_resource", "Packages", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -480,7 +482,7 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 		repositories, err := Utility.ToJson(rqst.Descriptor_.Repositories)
 		if err == nil {
 			values := `{"$set":{"repositories":` + repositories + `}}`
-			err = p.Update(context.Background(), "local_resource", "local_resource", "Services", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
+			err = p.Update(context.Background(), "local_resource", "local_resource", "Packages", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, values, "")
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
@@ -488,16 +490,22 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 			}
 		}
 
-	} else {
+	}
 
-		// The key will be the descriptor string itself.
-		_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Services", rqst.Descriptor_, "")
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
+	// The key will be the descriptor string itself.
+	jsonStr, err := Utility.ToJson(rqst.Descriptor_)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	jsonStr = strings.ReplaceAll(jsonStr, "publisherId", "publisherid")
 
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Packages", `{"id":"`+rqst.Descriptor_.Id+`", "publisherid":"`+rqst.Descriptor_.PublisherId+`", "version":"`+rqst.Descriptor_.Version+`"}`, jsonStr, `[{"upsert": true}]`)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &servicespb.PublishPackageDescriptorResponse{
@@ -516,7 +524,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 	var id string
 	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
 
-	path := self.data + string(os.PathSeparator) + "service-repository"
+	path := self.data + string(os.PathSeparator) + "packages-repository"
 
 	var err error
 	// the file must be a zipped archive that contain a .proto, .config and executable.
@@ -584,9 +592,12 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 			stream.SendAndClose(&servicespb.UploadBundleResponse{
 				Result: true,
 			})
+			err = nil
 			break
 		} else if err != nil {
 			return err
+		} else if len(msg.Data) == 0 {
+			break
 		} else {
 			buffer.Write(msg.Data)
 		}
@@ -604,22 +615,24 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + bundle.Plaform
 	log.Println(id)
 
-	repositoryId := self.getDomain()
-	// Now I will append the address of the repository into the service descriptor.
-	if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
-		bundle.Descriptor_.Repositories = append(bundle.Descriptor_.Repositories, repositoryId)
-		// Publish change into discoveries...
-		for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
-			discoveryId := bundle.Descriptor_.Discoveries[i]
-			discoveryService, err := service_client.NewPackagesDiscoveryService_Client(discoveryId, "services.PackageDiscovery")
-			if err != nil {
-				return err
+	repositoryId := self.Domain
+	if len(repositoryId) > 0 {
+		// Now I will append the address of the repository into the service descriptor.
+		if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
+			bundle.Descriptor_.Repositories = append(bundle.Descriptor_.Repositories, repositoryId)
+			// Publish change into discoveries...
+			for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
+				discoveryId := bundle.Descriptor_.Discoveries[i]
+				discoveryService, err := service_client.NewPackagesDiscoveryService_Client(discoveryId, "services.PackageDiscovery")
+				if err != nil {
+					return err
+				}
+				discoveryService.PublishPackageDescriptor(bundle.Descriptor_)
 			}
-			discoveryService.PublishPackageDescriptor(bundle.Descriptor_)
 		}
 	}
 
-	path := self.data + string(os.PathSeparator) + "service-repository"
+	path := self.data + string(os.PathSeparator) + "packages-repository"
 	Utility.CreateDirIfNotExist(path)
 
 	// the file must be a zipped archive that contain a .proto, .config and executable.
@@ -634,7 +647,12 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 		return err
 	}
 
-	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", map[string]interface{}{"_id": id, "checksum": checksum, "platform": bundle.Plaform, "publisherid": bundle.Descriptor_.PublisherId, "servicename": bundle.Descriptor_.Name, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)}, "")
+	jsonStr, err := Utility.ToJson(map[string]interface{}{"_id": id, "checksum": checksum, "platform": bundle.Plaform, "publisherid": bundle.Descriptor_.PublisherId, "servicename": bundle.Descriptor_.Name, "serviceid": bundle.Descriptor_.Id, "modified": time.Now().Unix(), "size": len(bundle.Binairies)})
+	if err != nil {
+		return err
+	}
 
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", `{"_id":"`+id+`"}`, jsonStr, `[{"upsert": true}]`)
+	log.Println("---------> 650 ", err)
 	return err
 }

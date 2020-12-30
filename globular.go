@@ -276,15 +276,14 @@ func NewGlobule() *Globule {
 
 	} else {
 		// save the configuration to set the port number.
+		g.AdminEmail = "admin@globular.app"
+
 		portRange := strings.Split(g.PortsRange, "-")
 		start := Utility.ToInt(portRange[0])
 		g.AdminPort = start + 1
 		g.AdminProxy = start + 2
-		g.AdminEmail = "admin@globular.app"
 		g.ResourcePort = start + 3
 		g.ResourceProxy = start + 4
-
-		// services management...
 		g.PackagesDiscoveryPort = start + 5
 		g.PackagesDiscoveryProxy = start + 6
 		g.PackagesRepositoryPort = start + 7

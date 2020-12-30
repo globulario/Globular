@@ -52,8 +52,8 @@ func (self *Globule) startRbacService() error {
 func (self *Globule) setEntityResourcePermissions(entity string, path string) error {
 	// Here I will retreive the actual list of paths use by this user.
 	data, err := self.permissions.GetItem(entity)
-
 	paths := make([]string, 0)
+
 	if err == nil {
 		err := json.Unmarshal(data, &paths)
 		if err != nil {
@@ -72,7 +72,6 @@ func (self *Globule) setEntityResourcePermissions(entity string, path string) er
 	if err != nil {
 		return err
 	}
-
 	return self.permissions.SetItem(entity, data)
 }
 
@@ -88,6 +87,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Per
 
 			// Accounts
 			for j := 0; j < len(allowed[i].Accounts); j++ {
+
 				err := self.setEntityResourcePermissions(allowed[i].Accounts[j], path)
 				if err != nil {
 					return err
@@ -1193,7 +1193,6 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 //* Validate if a account can get access to a given ressource for a given operation (read, write...) That function is recursive. *
 func (self *Globule) ValidateAccess(ctx context.Context, rqst *rbacpb.ValidateAccessRqst) (*rbacpb.ValidateAccessRsp, error) {
 	hasAccess, accessDenied, err := self.validateAccess(rqst.Subject, rqst.Type, rqst.Permission, rqst.Path)
-
 	if err != nil || !hasAccess || accessDenied {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1240,8 +1239,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 	// So first of all I will validate the actions itself...
 	if subjectType == rbacpb.SubjectType_APPLICATION {
-		log.Println("-----> validate action ", action, subject, resources)
-
+		//log.Println("-----> validate action ", action, subject, resources)
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
 			return false, err
@@ -1299,7 +1297,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 		return false, err
 	}
 
-	log.Println("Access allow for " + subject + " to call method " + action)
+	// log.Println("Access allow for " + subject + " to call method " + action)
 
 	// Here I will validate the access for a given subject...
 	if subjectType != rbacpb.SubjectType_ROLE {
@@ -1330,7 +1328,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateActionRqst) (*rbacpb.ValidateActionRsp, error) {
 
 	// If the address is local I will give the permission.
-	log.Println("-----> validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
+	// log.Println("-----> validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 
 	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 	if err != nil {

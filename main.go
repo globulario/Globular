@@ -138,6 +138,7 @@ func main() {
 		publishCommand_user := publishCommand.String("u", "", "The user name. (Required)")
 		publishCommand_pwd := publishCommand.String("p", "", "The user password. (Required)")
 		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
+
 		// *** Those informations are optional they are in the configuration of the service.
 		publishCommand_id := publishCommand.String("id", "", "The service id. (Optional)")
 		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Optional)")
