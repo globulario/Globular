@@ -26,7 +26,7 @@ import (
 	"reflect"
 
 	"github.com/globulario/Globular/security"
-	"github.com/globulario/services/golang/services/servicespb"
+	"github.com/globulario/services/golang/packages/packagespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -40,7 +40,7 @@ import (
 	globular "github.com/globulario/services/golang/globular_service"
 
 	//"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/services/service_client"
+	"github.com/globulario/services/golang/packages/packages_client"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"google.golang.org/grpc/codes"
@@ -320,6 +320,7 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 					log.Println("fail to publish event with error: ", err)
 				}
 			}
+
 		}
 	}
 	f.Close()
@@ -541,38 +542,43 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 		indexHtml_ := re.ReplaceAllString(string(indexHtml), "/bundle.js?updated="+Utility.ToString(time.Now().Unix()))
 		// save it back.
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
-
 	}
 
 	return err
 }
 
-func (self *Globule) publishApplication(path, name, domain, publisherId, organization, version, description, repositoryId, discoveryId string, keywords []string) error {
+func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId string, keywords []string) error {
+	publisherId := user
+	if len(organization) > 0 {
+		publisherId = organization
+		if !self.isOrganizationMemeber(user, organization) {
+			return errors.New(user + " is not a member of " + organization + "!")
+		}
+	}
 
-	PackageDescriptor := &servicespb.PackageDescriptor{
+	descriptor := &packagespb.PackageDescriptor{
 		Id:           name,
 		Name:         name,
-		Organization: organization,
-		PublisherId:  publisherId, //  Account member of the organization.
+		PublisherId:  publisherId,
 		Version:      version,
 		Description:  description,
 		Repositories: []string{},
-		Type:         servicespb.PackageType_APPLICATION,
+		Type:         packagespb.PackageType_APPLICATION_TYPE,
 	}
 
 	if len(repositoryId) > 0 {
-		PackageDescriptor.Repositories = append(PackageDescriptor.Repositories, repositoryId)
+		descriptor.Repositories = append(descriptor.Repositories, repositoryId)
 	}
 
 	if len(discoveryId) > 0 {
-		PackageDescriptor.Discoveries = append(PackageDescriptor.Discoveries, discoveryId)
+		descriptor.Discoveries = append(descriptor.Discoveries, discoveryId)
 	}
 
 	if len(keywords) > 0 {
-		PackageDescriptor.Keywords = keywords
+		descriptor.Keywords = keywords
 	}
 
-	err := self.publishPackage(discoveryId, repositoryId, "webapp", path, PackageDescriptor)
+	err := self.publishPackage(user, organization, discoveryId, repositoryId, "webapp", path, descriptor)
 
 	if err != nil {
 		return err
@@ -592,10 +598,10 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	// Here is necessary information to publish an application.
 	var name string
 	var domain string
+	var user string
 	var organization string
 	var version string
 	var description string
-	var publisherId string
 	var repositoryId string
 	var discoveryId string
 	var keywords []string
@@ -612,7 +618,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 			organization = msg.Organization
 		}
 		if len(msg.User) > 0 {
-			publisherId = msg.User
+			user = msg.User
 		}
 		if len(msg.Version) > 0 {
 			version = msg.Version
@@ -663,7 +669,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-	err = self.publishApplication(path, name, domain, publisherId, organization, version, description, repositoryId, discoveryId, keywords)
+	err = self.publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId, keywords)
 	if err != nil {
 		return err
 	}
@@ -1021,6 +1027,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServicePackageServer) error {
 	// The bundle will cantain the necessary information to install the service.
 	path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
+
 	fo, err := os.Create(path)
 	if err != nil {
 		return status.Errorf(
@@ -1031,51 +1038,46 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 
 	for {
 		msg, err := stream.Recv()
-		if err == io.EOF {
+		if err == nil {
+			if len(msg.Organization) > 0 {
+				if !self.isOrganizationMemeber(msg.User, msg.Organization) {
+					return errors.New(msg.User + " is not a member of " + msg.Organization)
+				}
+			}
+		}
+		if err == io.EOF || len(msg.Data) == 0 {
 			// end of stream...
 			stream.SendAndClose(&adminpb.UploadServicePackageResponse{
 				Path: path,
 			})
+			err = nil
 			break
 		} else if err != nil {
 			return err
-		} else if len(msg.Data) == 0 {
-			break
 		} else {
 			fo.Write(msg.Data)
 		}
 	}
-
 	return nil
 }
 
 // Publish a package, the package can contain an application or a services.
-func (self *Globule) publishPackage(discovery string, repository string, platform string, path string, descriptor *servicespb.PackageDescriptor) error {
-
-	// Test if an organization is given.
-	if len(descriptor.Organization) == 0 {
-		return errors.New("No organization was given!")
-	}
-
-	// Test if the publisher is a member of the organization before publish the service.
-	if !self.isOrganizationMemeber(descriptor.PublisherId, descriptor.Organization) {
-		return errors.New(descriptor.PublisherId + " must be member of the organization " + descriptor.Organization + " in order to publish a service!")
-	}
+func (self *Globule) publishPackage(user string, organization string, discovery string, repository string, platform string, path string, descriptor *packagespb.PackageDescriptor) error {
 
 	// Connect to the dicovery services
-	services_discovery, err := service_client.NewPackagesDiscoveryService_Client(discovery, "services.PackageDiscovery")
+	services_discovery, err := packages_client.NewPackagesDiscoveryService_Client(discovery, "packages.PackageDiscovery")
 	if err != nil {
 		return errors.New("Fail to connect to package discovery at " + discovery)
 	}
 
-	// Connect to the repository servicespb.
-	services_repository, err := service_client.NewServicesRepositoryService_Client(repository, "services.PackageRepository")
+	// Connect to the repository packagespb.
+	services_repository, err := packages_client.NewServicesRepositoryService_Client(repository, "packages.PackageRepository")
 	if err != nil {
 		return errors.New("Fail to connect to package repository at " + repository)
 	}
 
 	// Ladies and Gentlemans After one year after tow years services as resource!
-	path_ := descriptor.Organization + "/" + descriptor.Name + "/" + descriptor.Id + "/" + descriptor.Version
+	path_ := descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Id + "/" + descriptor.Version
 
 	// So here I will set the permissions
 	var permissions *rbacpb.Permissions
@@ -1091,13 +1093,13 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 					Accounts:      []string{},
 					Groups:        []string{},
 					Peers:         []string{},
-					Organizations: []string{descriptor.Organization},
+					Organizations: []string{organization},
 				},
 			},
 			Denied: []*rbacpb.Permission{},
 			Owners: &rbacpb.Permission{
 				Name:     "owner",
-				Accounts: []string{descriptor.PublisherId},
+				Accounts: []string{user},
 			},
 		}
 
@@ -1109,16 +1111,17 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	}
 
 	// Test the permission before actualy publish the package.
-	hasAccess, isDenied, err := self.validateAccess(descriptor.PublisherId, rbacpb.SubjectType_ACCOUNT, "publish", path_)
+	hasAccess, isDenied, err := self.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "publish", path_)
 	if !hasAccess || isDenied || err != nil {
 		return err
 	}
 
-	if !Utility.Contains(permissions.Owners.Accounts, descriptor.PublisherId) {
-		permissions.Owners.Accounts = append(permissions.Owners.Accounts, descriptor.PublisherId)
+	// Append the user into the list of owner if is not already part of it.
+	if !Utility.Contains(permissions.Owners.Accounts, user) {
+		permissions.Owners.Accounts = append(permissions.Owners.Accounts, user)
 	}
 
-	// The publisher will be the owner.
+	// Save the permissions.
 	err = self.setResourcePermissions(path_, permissions)
 	if err != nil {
 		return err
@@ -1131,7 +1134,7 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	}
 
 	// Upload the service to the repository.
-	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, descriptor.Organization, platform, path)
+	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, platform, path)
 	if err != nil {
 		return err
 	}
@@ -1154,9 +1157,9 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 	}
 
 	eventId := descriptor.PublisherId + ":" + descriptor.Id
-	if descriptor.Type == servicespb.PackageType_SERVICE {
+	if descriptor.Type == packagespb.PackageType_SERVICE_TYPE {
 		eventId += ":SERVICE_PUBLISH_EVENT"
-	} else if descriptor.Type == servicespb.PackageType_APPLICATION {
+	} else if descriptor.Type == packagespb.PackageType_APPLICATION_TYPE {
 		eventId += ":APPLICATION_PUBLISH_EVENT"
 	}
 
@@ -1166,20 +1169,28 @@ func (self *Globule) publishPackage(discovery string, repository string, platfor
 // Publish a service. The service must be install localy on the server.
 func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
 
+	// Make sure the user is part of the organization if one is given.
+	publisherId := rqst.User
+	if len(rqst.Organization) > 0 {
+		publisherId = rqst.Organization
+		if !self.isOrganizationMemeber(rqst.User, rqst.Organization) {
+			return nil, errors.New(rqst.User + " is not member of " + rqst.Organization)
+		}
+	}
+
 	// Now I will upload the service to the repository...
-	PackageDescriptor := &servicespb.PackageDescriptor{
+	descriptor := &packagespb.PackageDescriptor{
 		Id:           rqst.ServiceId,
 		Name:         rqst.ServiceName,
-		Organization: rqst.Organization,
-		PublisherId:  rqst.PublisherId, //  Account member of the organization.
+		PublisherId:  publisherId,
 		Version:      rqst.Version,
 		Description:  rqst.Description,
 		Keywords:     rqst.Keywords,
 		Repositories: []string{rqst.RepositoryId},
-		Type:         servicespb.PackageType_SERVICE,
+		Type:         packagespb.PackageType_SERVICE_TYPE,
 	}
 
-	err := self.publishPackage(rqst.DicorveryId, rqst.RepositoryId, rqst.Platform, rqst.Path, PackageDescriptor)
+	err := self.publishPackage(rqst.User, rqst.Organization, rqst.DicorveryId, rqst.RepositoryId, rqst.Platform, rqst.Path, descriptor)
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -1194,7 +1205,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 }
 
 // Install/Update a service on globular instance.
-func (self *Globule) installService(descriptor *servicespb.PackageDescriptor) error {
+func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) error {
 	// repository must exist...
 	log.Println("step 2: try to dowload service bundle")
 	if len(descriptor.Repositories) == 0 {
@@ -1203,13 +1214,14 @@ func (self *Globule) installService(descriptor *servicespb.PackageDescriptor) er
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
 
-		services_repository, err := service_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "services.ServiceRepository")
+		services_repository, err := packages_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "packages.ServiceRepository")
 		if err != nil {
 			return err
 		}
-		log.Println("--> try to download service from ", descriptor.Repositories[i])
 
+		log.Println("--> try to download service from ", descriptor.Repositories[i])
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
+
 		if err == nil {
 
 			// Create the file.
@@ -1225,10 +1237,8 @@ func (self *Globule) installService(descriptor *servicespb.PackageDescriptor) er
 
 			defer os.RemoveAll(self.path + "/" + id)
 			path := self.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
-			log.Println("--> service downloaded successfully")
-			log.Println("--> try to install service to ", path)
-
 			configs, _ := Utility.FindFileByName(path, "config.json")
+
 			if len(configs) == 0 {
 				log.Println("No configuration file was found at at path ", path)
 				return errors.New("No configuration file was found")
@@ -1294,9 +1304,9 @@ func (self *Globule) installService(descriptor *servicespb.PackageDescriptor) er
 func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
 	log.Println("Try to install new service...")
 	// Connect to the dicovery services
-	var services_discovery *service_client.PackagesDiscovery_Client
+	var services_discovery *packages_client.PackagesDiscovery_Client
 	var err error
-	services_discovery, err = service_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "services.PackageDiscovery")
+	services_discovery, err = packages_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "packages.PackageDiscovery")
 
 	if services_discovery == nil {
 		return nil, status.Errorf(
@@ -1304,12 +1314,13 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
-	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId, rqst.Organization)
+	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
 	log.Println("step 1: get service dscriptor")
 	// The first element in the array is the most recent descriptor
 	// so if no version is given the most recent will be taken.
@@ -1387,7 +1398,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	}
 
 	// Now I will remove the service.
-	// Service are located into the servicespb...
+	// Service are located into the packagespb...
 	path := self.path + string(os.PathSeparator) + "services" + string(os.PathSeparator) + rqst.PublisherId + string(os.PathSeparator) + rqst.ServiceId + string(os.PathSeparator) + rqst.Version
 
 	// remove directory and sub-directory.
@@ -1427,6 +1438,10 @@ func (self *Globule) stopService(serviceId string) error {
 			log.Println("fail to teminate process ", pid)
 		}
 	}
+
+	// Here I will wait util the port is releaser...
+
+	self.getNextAvailablePort()
 
 	_, hasProxyProcessPid := s.Load("ProxyProcess")
 	if !hasProxyProcessPid {
@@ -1469,37 +1484,70 @@ func (self *Globule) stopService(serviceId string) error {
 
 // Stop a service
 func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceRequest) (*adminpb.StopServiceResponse, error) {
-	err := self.stopService(rqst.ServiceId)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+
+	s := self.getService(rqst.ServiceId)
+	if s != nil {
+		err := self.stopService(rqst.ServiceId)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+	} else {
+		// Close all services with a given name.
+		services := self.getServiceConfigByName(rqst.ServiceId)
+		for i := 0; i < len(services); i++ {
+			s := services[i]
+			err := self.stopService(s["Id"].(string))
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+		}
 	}
 
 	return &adminpb.StopServiceResponse{
 		Result: true,
 	}, nil
+
 }
 
 // Start a service
 func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServiceRequest) (*adminpb.StartServiceResponse, error) {
 
 	s := self.getService(rqst.ServiceId)
+	proxy_pid := int64(-1)
+	service_pid := int64(-1)
+
 	if s == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+rqst.ServiceId)))
+		services := self.getServiceConfigByName(rqst.ServiceId)
+		for i := 0; i < len(services); i++ {
+			id := services[i]["Id"].(string)
+			s := self.getService(id)
+			service_pid_, proxy_pid_, err := self.startService(s)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+			proxy_pid = int64(proxy_pid_)
+			service_pid = int64(service_pid_)
+		}
+	} else {
+		service_pid_, proxy_pid_, err := self.startService(s)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		proxy_pid = int64(proxy_pid_)
+		service_pid = int64(service_pid_)
 	}
 
-	service_pid, proxy_pid, err := self.startService(s)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
 	return &adminpb.StartServiceResponse{
-		ProxyPid:   int64(proxy_pid),
-		ServicePid: int64(service_pid),
+		ProxyPid:   proxy_pid,
+		ServicePid: service_pid,
 	}, nil
 }
 

@@ -237,9 +237,9 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	if method == "/admin.AdminService/GetConfig" ||
 		method == "/admin.AdminService/HasRunningProcess" ||
 		method == "/admin.AdminService/InstallCertificates" ||
-		method == "/services.PackageDiscovery/FindServices" ||
-		method == "/services.PackageDiscovery/GetServiceDescriptor" ||
-		method == "/services.PackageDiscovery/GetServicesDescriptor" ||
+		method == "/packages.PackageDiscovery/FindServices" ||
+		method == "/packages.PackageDiscovery/GetServiceDescriptor" ||
+		method == "/packages.PackageDiscovery/GetServicesDescriptor" ||
 		method == "/rbac.RbacService/ValidateAction" ||
 		method == "/rbac.RbacService/ValidateAccess" ||
 		method == "/dns.DnsService/GetA" ||
@@ -470,8 +470,8 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// needed by the admin.
 	if application == "admin" ||
-		method == "/services.PackageDiscovery/GetServicesDescriptor" ||
-		method == "/services.ServiceRepository/DownloadBundle" {
+		method == "/packages.PackageDiscovery/GetServicesDescriptor" ||
+		method == "/packages.ServiceRepository/DownloadBundle" {
 		hasAccess = true
 	}
 

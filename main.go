@@ -140,14 +140,7 @@ func main() {
 		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
 
 		// *** Those informations are optional they are in the configuration of the service.
-		publishCommand_id := publishCommand.String("id", "", "The service id. (Optional)")
-		publishCommand_name := publishCommand.String("name", "", "You must specify an service name. (Optional)")
-		publishCommand_discovery := publishCommand.String("discovery", "", "You must specified the domain of the discovery service where to publish your service (Optional)")
-		publishCommand_repository := publishCommand.String("repository", "", "You must specified the domain of the repository service where to publish your service (Optional)")
-		publishCommand_publisher_id := publishCommand.String("publisher", "", "The publisher id. (Optional)")
-		publishCommand_description := publishCommand.String("description", "", "You must specify a service description. (Optional)")
-		publishCommand_version := publishCommand.String("version", "", "You must specified the version of the service. (Optional)")
-		publishCommand_keywords := publishCommand.String("keywords", "", "You must give keywords. (Optional)")
+		publishCommand_organization := publishCommand.String("o", "", "The Organization that publish the service. (Optional)")
 		publishCommand_plaform := publishCommand.String("platform", "", "(Optional)")
 
 		// Install certificates command.
@@ -253,12 +246,6 @@ func main() {
 				os.Exit(1)
 			}
 
-			if *deployCommand_organization == "" {
-				fmt.Print("You must sepcie the organization name")
-				deployCommand.PrintDefaults()
-				os.Exit(1)
-			}
-
 			if *deployCommand_user == "" {
 				fmt.Print("You must authenticate yourself")
 				deployCommand.PrintDefaults()
@@ -313,88 +300,13 @@ func main() {
 				os.Exit(1)
 			}
 
-			// Set the config.json file in path if not already there.
-			if !strings.HasSuffix(*publishCommand_path, "/config.json") {
-				if !strings.HasSuffix(*publishCommand_path, "/") {
-					*publishCommand_path += "/"
-				}
-				*publishCommand_path += "config.json"
-			}
-
-			config := make(map[string]interface{})
-			data, err := ioutil.ReadFile(*publishCommand_path)
-			if err != nil {
-				fmt.Println("fail to read config.json file ", err)
-				os.Exit(1)
-			}
-
-			err = json.Unmarshal(data, &config)
-			if err != nil {
-				fmt.Println("fail to read config.json file json content!", err)
-				os.Exit(1)
-			}
-
-			if *publishCommand_id == "" {
-				*publishCommand_id = config["Id"].(string)
-			}
-
-			if *publishCommand_name == "" {
-				*publishCommand_name = config["Name"].(string)
-			}
-
-			if *publishCommand_publisher_id == "" {
-				*publishCommand_publisher_id = config["PublisherId"].(string)
-			}
-			if *publishCommand_description == "" {
-				*publishCommand_publisher_id = config["Description"].(string)
-			}
-
-			if *publishCommand_version == "" {
-				log.Println("No version was given, the actual version is ", config["Version"].(string), " please specify a version with the option -version ")
-				os.Exit(1)
-			}
-
 			// Detect the platform if none was given...
 			if *publishCommand_plaform == "" {
 				*publishCommand_plaform = runtime.GOOS + "_" + runtime.GOARCH
 			}
 
-			if *publishCommand_discovery == "" {
-				discoveries := config["Discoveries"].([]interface{})
-				if len(discoveries) > 0 {
-					*publishCommand_discovery = discoveries[0].(string)
-				} else {
-					fmt.Println("No services discoveries was found in config.json! Please use the option -discovery to specify one.")
-					os.Exit(1)
-				}
-			}
-
-			if *publishCommand_repository == "" {
-				repositories := config["Repositories"].([]interface{})
-				if len(repositories) > 0 {
-					*publishCommand_repository = repositories[0].(string)
-				} else {
-					fmt.Println("No services repositories was found in config.json! Please use the option -repository to specify one.")
-					os.Exit(1)
-				}
-			}
-
-			keywords := make([]string, 0)
-			if *publishCommand_keywords != "" {
-				keywords = strings.Split(*publishCommand_keywords, ",")
-				for i := 0; i < len(keywords); i++ {
-					keywords[i] = strings.TrimSpace(keywords[i])
-				}
-			} else {
-				// Append existing keywords.
-				keywords_ := config["Keywords"].([]interface{})
-				for i := 0; i < len(keywords_); i++ {
-					keywords[i] = keywords_[i].(string)
-				}
-			}
-
 			// Pulish the services.
-			publish(g, *publishCommand_path, *publishCommand_id, *publishCommand_name, *publishCommand_publisher_id, *publishCommand_discovery, *publishCommand_repository, *publishCommand_description, *publishCommand_version, *publishCommand_plaform, keywords, *publishCommand_address, *publishCommand_user, *publishCommand_pwd)
+			publish(g, *publishCommand_user, *publishCommand_pwd, *publishCommand_address, *publishCommand_organization, *publishCommand_path, *publishCommand_plaform)
 		}
 
 	} else {
@@ -454,7 +366,7 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string) error {
 
-	log.Println("deploy application...", name, " to address ", address)
+	log.Println("deploy application...", name, " to address ", address, " user ", user)
 
 	// Authenticate the user in order to get the token
 	resource_client, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
@@ -499,11 +411,10 @@ func deploy(g *Globule, name string, organization string, path string, address s
  * care to include all dependencies, dll... to be sure your services will run
  * as expected.
  */
-func publish(g *Globule, path string, serviceName string, serviceId string, publisherId string, discoveryId string, repositoryId string, description string, version string, platform string, keywords []string, address string, user string, pwd string) error {
-	log.Println("publish service...", serviceId, "at address", address)
+func publish(g *Globule, user, pwd, domain, organization, path, platform string) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -517,25 +428,25 @@ func publish(g *Globule, path string, serviceName string, serviceId string, publ
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, _, err := admin_client_.UploadServicePackage(path, publisherId, serviceName, serviceId, version, token, address, platform)
+	path_, _, err := admin_client_.UploadServicePackage(user, organization, token, domain, path, platform)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = admin_client_.PublishService(user, path_, serviceName, serviceId, publisherId, discoveryId, repositoryId, description, version, platform, keywords, token, address)
+	err = admin_client_.PublishService(user, organization, token, domain, path_, path, platform)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Service", serviceId, "was pulbish successfully!")
+	log.Println("Service was pulbish successfully!")
 	return nil
 }
 
@@ -544,74 +455,27 @@ func publish(g *Globule, path string, serviceName string, serviceId string, publ
  * The server must have run at least once before that command is call. Each service must
  * have been run at least one to appear in the installation.
  */
-/**
-
-ADD /usr/local/lib/libplctag.so /usr/local/lib
-ADD /usr/local/lib/libgrpc++.so /usr/local/lib
-ADD /usr/local/lib/libgrpc++.so.1 /usr/local/lib
-ADD /usr/local/lib/libgrpc++.so.1.20.0 /usr/local/lib
-ADD /usr/local/lib/libprotobuf.so /usr/local/lib
-ADD /usr/local/lib/libprotobuf.so.20 /usr/local/lib
-ADD /usr/local/lib/libprotobuf.so.20.0.1 /usr/local/lib
-ADD /usr/local/lib/libgrpc.so /usr/local/lib
-ADD /usr/local/lib/libgrpc.so.7 /usr/local/lib
-ADD /usr/local/lib/libgrpc.so.7.0.0 /usr/local/lib
-ADD /usr/local/lib/libgpr.so /usr/local/lib
-ADD /usr/local/lib/libgpr.so.7 /usr/local/lib
-ADD /usr/local/lib/libgpr.so.7.0.0 /usr/local/lib
-*/
 func install(g *Globule, path string) {
 	// That function is use to install globular at a given repository.
 	fmt.Println("install globular in directory: ", path)
 
-	// I will generate the docker files.
-	dockerfile := `#-- Docker install. --
-FROM ubuntu
-RUN apt-get update && apt-get install -y gnupg2 \
-    wget \
-  && rm -rf /var/lib/apt/lists/*
-RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg && apt-key add 41EFC99D.gpg
-RUN apt-get update && apt-get install -y \
-  build-essential \
-  curl \
-  mongodb
-
-# -- Install prometheus
-RUN wget https://github.com/prometheus/prometheus/releases/download/v2.17.0/prometheus-2.17.0.linux-amd64.tar.gz
-RUN tar -xf prometheus-2.17.0.linux-amd64.tar.gz
-RUN cp prometheus-2.17.0.linux-amd64/prometheus /usr/local/bin/
-RUN cp prometheus-2.17.0.linux-amd64/promtool /usr/local/bin/
-RUN cp -r prometheus-2.17.0.linux-amd64/consoles /etc/prometheus/
-RUN cp -r prometheus-2.17.0.linux-amd64/console_libraries /etc/prometheus/
-RUN rm -rf prometheus-2.17.0.linux-amd64*
-
-# -- Install alert manager
-RUN wget https://github.com/prometheus/alertmanager/releases/download/v0.20.0/alertmanager-0.20.0.linux-amd64.tar.gz
-RUN tar -xf alertmanager-0.20.0.linux-amd64.tar.gz
-RUN cp alertmanager-0.20.0.linux-amd64/alertmanager /usr/local/bin
-RUN rm -rf alertmanager-0.20.0.linux-amd64*
-
-# -- Install node exporter
-RUN wget https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-amd64.tar.gz
-RUN tar -xf node_exporter-0.18.1.linux-amd64.tar.gz
-RUN cp node_exporter-0.18.1.linux-amd64/node_exporter /usr/local/bin
-RUN rm -rf node_exporter-0.18.1.linux-amd64*
-
-# -- Install unix odbc drivers.
-RUN curl http://www.unixodbc.org/unixODBC-2.3.7.tar.gz --output unixODBC-2.3.7.tar.gz
-RUN tar -xvf unixODBC-2.3.7.tar.gz
-RUN rm unixODBC-2.3.7.tar.gz
-WORKDIR unixODBC-2.3.7
-RUN ./configure && make all install clean && ldconfig
-
-# -- Copy globular files.
-RUN mkdir /globular
-ADD Globular /globular
-COPY bin /globular/bin
-COPY proto /globular/proto
-COPY services /globular/services
-COPY webroot /globular/webroot
-`
+	// I will set the docker file depending of the arch.
+	var dockerfile string
+	if runtime.GOARCH == "amd64" {
+		data, err := ioutil.ReadFile("Dockerfile_amd64")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		dockerfile = string(data)
+	} else if runtime.GOARCH == "arm64" {
+		data, err := ioutil.ReadFile("Dockerfile_arm64")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		dockerfile = string(data)
+	}
 
 	Utility.CreateDirIfNotExist(path)
 
@@ -648,7 +512,6 @@ COPY webroot /globular/webroot
 
 	// Now I will copy the prototype files of the internal gRPC service
 	// admin, resource, ca and services.
-	log.Println("---> source path is ", dir)
 	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
 	Utility.CreateDirIfNotExist(path + "/proto")
 	err = Utility.CopyFile(serviceDir+"/proto/admin.proto", path+"/proto/admin.proto")
@@ -663,7 +526,11 @@ COPY webroot /globular/webroot
 	if err != nil {
 		log.Println("fail to copy with error ", err)
 	}
-	err = Utility.CopyFile(serviceDir+"/proto/services.proto", path+"/proto/services.proto")
+	err = Utility.CopyFile(serviceDir+"/proto/packages.proto", path+"/proto/packages.proto")
+	if err != nil {
+		log.Println("fail to copy with error ", err)
+	}
+	err = Utility.CopyFile(serviceDir+"/proto/lb.proto", path+"/proto/lb.proto")
 	if err != nil {
 		log.Println("fail to copy with error ", err)
 	}

@@ -33,6 +33,7 @@ func GetClientConfig(address string, name string, port int, path string) (map[st
 	// In case of local service I will get the service value directly from
 	// the configuration file.
 	serverConfig, err = getLocalConfig()
+
 	isLocal := true
 	if err == nil {
 		if serverConfig["Domain"] != address {
@@ -123,12 +124,12 @@ func InstallCertificates(domain string, port int, path string) (string, string, 
  */
 func getLocalConfig() (map[string]interface{}, error) {
 
-	if !Utility.Exists(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT") {
+	if !Utility.Exists(os.TempDir() + "/GLOBULAR_ROOT") {
 		return nil, errors.New("No local Globular instance found!")
 	}
 
 	config := make(map[string]interface{}, 0)
-	root, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	root, err := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +140,7 @@ func getLocalConfig() (map[string]interface{}, error) {
 	}
 
 	root_ := string(root)[0:index]
-	data, err := ioutil.ReadFile(root_ + string(os.PathSeparator) + "config" + string(os.PathSeparator) + "config.json")
+	data, err := ioutil.ReadFile(root_ + "/config/config.json")
 
 	if err != nil {
 		return nil, err
@@ -149,7 +150,6 @@ func getLocalConfig() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return config, nil
 }
 

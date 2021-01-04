@@ -1,0 +1,46 @@
+#-- Docker install. --
+FROM ubuntu
+RUN apt-get update && apt-get install -y gnupg2 \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
+RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg && apt-key add 41EFC99D.gpg
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  curl \
+  mongodb
+
+# -- Install prometheus
+RUN wget https://github.com/prometheus/prometheus/releases/download/v2.23.0/prometheus-2.23.0.linux-amd64.tar.gz
+RUN tar -xf prometheus-2.23.0.linux-amd64.tar.gz
+RUN cp prometheus-2.23.0.linux-amd64/prometheus /usr/local/bin/
+RUN cp prometheus-2.23.0.linux-amd64/promtool /usr/local/bin/
+RUN cp -r prometheus-2.23.0.linux-amd64/consoles /etc/prometheus/
+RUN cp -r prometheus-2.23.0.linux-amd64/console_libraries /etc/prometheus/
+RUN rm -rf prometheus-2.23.0.linux-amd64*
+
+# -- Install alert manager
+RUN wget https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz
+RUN tar -xf alertmanager-0.21.0.linux-amd64.tar.gz
+RUN cp alertmanager-0.21.0.linux-amd64/alertmanager /usr/local/bin
+RUN rm -rf alertmanager-0.21.0.linux-amd64*
+
+# -- Install node exporter
+RUN wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+RUN tar -xf node_exporter-1.0.1.linux-amd64.tar.gz
+RUN cp node_exporter-1.0.1.linux-amd64/node_exporter /usr/local/bin
+RUN rm -rf node_exporter-1.0.1.linux-amd64*
+
+# -- Install unix odbc drivers.
+RUN curl http://www.unixodbc.org/unixODBC-2.3.7.tar.gz --output unixODBC-2.3.7.tar.gz
+RUN tar -xvf unixODBC-2.3.7.tar.gz
+RUN rm unixODBC-2.3.7.tar.gz
+WORKDIR unixODBC-2.3.7
+RUN ./configure && make all install clean && ldconfig
+
+# -- Copy globular files.
+RUN mkdir /globular
+ADD Globular /globular
+COPY bin /globular/bin
+COPY proto /globular/proto
+COPY services /globular/services
+COPY webroot /globular/webroot

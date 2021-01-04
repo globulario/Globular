@@ -147,30 +147,31 @@ func (self *Globule) startLoadBalancing() {
 
 			// Report load balancing informations.
 			case load_info := <-self.lb_load_info_channel:
+				if load_info != nil {
 
-				// Create the array if it not exist.
-				if loads[load_info.ServerInfo.Name] == nil {
-					loads[load_info.ServerInfo.Name] = make([]*lbpb.LoadInfo, 0)
-				}
+					// Create the array if it not exist.
+					if loads[load_info.ServerInfo.Name] == nil {
+						loads[load_info.ServerInfo.Name] = make([]*lbpb.LoadInfo, 0)
+					}
 
-				// Test if the server info exist.
-				exist := false
+					// Test if the server info exist.
+					exist := false
 
-				// Here I will append all existing load info except the new one.
-				if loads[load_info.ServerInfo.Name] != nil {
-					for i := 0; i < len(loads[load_info.ServerInfo.Name]); i++ {
-						if loads[load_info.ServerInfo.Name][i].GetServerInfo().GetId() == load_info.ServerInfo.Id {
-							exist = true
-							loads[load_info.ServerInfo.Name][i] = load_info
-							break
+					// Here I will append all existing load info except the new one.
+					if loads[load_info.ServerInfo.Name] != nil {
+						for i := 0; i < len(loads[load_info.ServerInfo.Name]); i++ {
+							if loads[load_info.ServerInfo.Name][i].GetServerInfo().GetId() == load_info.ServerInfo.Id {
+								exist = true
+								loads[load_info.ServerInfo.Name][i] = load_info
+								break
+							}
 						}
 					}
-				}
 
-				if !exist {
-					loads[load_info.ServerInfo.Name] = append(loads[load_info.ServerInfo.Name], load_info)
+					if !exist {
+						loads[load_info.ServerInfo.Name] = append(loads[load_info.ServerInfo.Name], load_info)
+					}
 				}
-
 			// Remove the server from the list of candidate.
 			case server_info := <-self.lb_remove_candidate_info_channel:
 				//log.Println("----> remove server from canditate list ", server_info)

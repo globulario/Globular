@@ -267,10 +267,10 @@ func (self *Globule) registerMethods() error {
 			"/event.EventService/UnSubscribe", "/event.EventService/OnEvent",
 			"/event.EventService/Quit",
 			"/event.EventService/Publish",
-			"/services.PackageDiscovery/FindServices",
-			"/services.PackageDiscovery/GetServiceDescriptor",
-			"/services.PackageDiscovery/GetServicesDescriptor",
-			"/services.ServiceRepository/downloadBundle",
+			"/packages.PackageDiscovery/FindServices",
+			"/packages.PackageDiscovery/GetServiceDescriptor",
+			"/packages.PackageDiscovery/GetServicesDescriptor",
+			"/packages.ServiceRepository/downloadBundle",
 			"/persistence.PersistenceService/Find",
 			"/persistence.PersistenceService/FindOne",
 			"/persistence.PersistenceService/Count",
@@ -701,6 +701,27 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	// Now I will set the reference for
+	// Contact...
+	for i := 0; i < len(rqst.Account.Contacts); i++ {
+		self.addAccountContact(rqst.Account.GetId(), rqst.Account.Contacts[i])
+	}
+
+	// Organizations
+	for i := 0; i < len(rqst.Account.Organizations); i++ {
+		self.createCrossReferences(rqst.Account.Organizations[i], "Organizations", "accounts", rqst.Account.GetId(), "Accounts", "organizations")
+	}
+
+	// Roles
+	for i := 0; i < len(rqst.Account.Roles); i++ {
+		self.createCrossReferences(rqst.Account.Roles[i], "Roles", "members", rqst.Account.GetId(), "Accounts", "roles")
+	}
+
+	// Groups
+	for i := 0; i < len(rqst.Account.Groups); i++ {
+		self.createCrossReferences(rqst.Account.Groups[i], "Groups", "members", rqst.Account.GetId(), "Accounts", "groups")
+	}
+
 	// Now I will
 	return &resourcepb.RegisterAccountRsp{
 		Result: tokenString, // Return the token string.
@@ -808,17 +829,25 @@ func (self *Globule) GetAccounts(rqst *resourcepb.GetAccountsRqst, stream resour
 	return nil
 }
 
-//* Add contact to a given account *
-func (self *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.AddAccountContactRqst) (*resourcepb.AddAccountContactRsp, error) {
+func (self *Globule) addAccountContact(accountId string, contactId string) error {
 
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
-	err = self.createReference(p, rqst.AccountId, "Accounts", "contacts", rqst.ContactId, "Accounts")
+	err = self.createReference(p, accountId, "Accounts", "contacts", contactId, "Accounts")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Add contact to a given account *
+func (self *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.AddAccountContactRqst) (*resourcepb.AddAccountContactRsp, error) {
+
+	err := self.addAccountContact(rqst.AccountId, rqst.ContactId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1261,6 +1290,18 @@ func (self *Globule) CreateRole(ctx context.Context, rqst *resourcepb.CreateRole
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Now I will set the reference for
+
+	// members...
+	for i := 0; i < len(rqst.Role.Members); i++ {
+		self.createCrossReferences(rqst.Role.Members[i], "Accounts", "roles", rqst.Role.GetId(), "Roles", "members")
+	}
+
+	// Organizations
+	for i := 0; i < len(rqst.Role.Organizations); i++ {
+		self.createCrossReferences(rqst.Role.Organizations[i], "Organizations", "roles", rqst.Role.GetId(), "Roles", "organizations")
 	}
 
 	return &resourcepb.CreateRoleRsp{Result: true}, nil
@@ -2290,6 +2331,26 @@ func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.Cr
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// accounts...
+	for i := 0; i < len(rqst.Organization.Accounts); i++ {
+		self.createCrossReferences(rqst.Organization.Accounts[i], "Accounts", "organizations", rqst.Organization.GetId(), "Organizations", "accounts")
+	}
+
+	// groups...
+	for i := 0; i < len(rqst.Organization.Groups); i++ {
+		self.createCrossReferences(rqst.Organization.Groups[i], "Groups", "organizations", rqst.Organization.GetId(), "Organizations", "groups")
+	}
+
+	// roles...
+	for i := 0; i < len(rqst.Organization.Roles); i++ {
+		self.createCrossReferences(rqst.Organization.Roles[i], "Roles", "organizations", rqst.Organization.GetId(), "Organizations", "roles")
+	}
+
+	// applications...
+	for i := 0; i < len(rqst.Organization.Applications); i++ {
+		self.createCrossReferences(rqst.Organization.Roles[i], "Applications", "organizations", rqst.Organization.GetId(), "Organizations", "applications")
 	}
 
 	return &resourcepb.CreateOrganizationRsp{

@@ -20,8 +20,8 @@ import (
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
-	"github.com/globulario/services/golang/services/service_client"
-	"github.com/globulario/services/golang/services/servicespb"
+	"github.com/globulario/services/golang/packages/packages_client"
+	"github.com/globulario/services/golang/packages/packagespb"
 	"github.com/golang/protobuf/jsonpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
@@ -63,7 +63,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					// each channel has it event...
 					uuid := Utility.RandomUUID()
 					fct := func(evt *eventpb.Event) {
-						descriptor := new(servicespb.PackageDescriptor)
+						descriptor := new(packagespb.PackageDescriptor)
 						jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
 
 						// here I will update the service if it's version is lower
@@ -127,8 +127,8 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 // Start service discovery
 func (self *Globule) startPackagesDiscoveryService() error {
 	// The service discovery.
-	id := string(servicespb.File_proto_services_proto.Services().Get(0).FullName())
-	services_discovery_server, err := self.startInternalService(id, servicespb.File_proto_services_proto.Path(), self.PackagesDiscoveryPort, self.PackagesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	id := string(packagespb.File_proto_packages_proto.Services().Get(0).FullName())
+	services_discovery_server, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.PackagesDiscoveryPort, self.PackagesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
@@ -137,7 +137,7 @@ func (self *Globule) startPackagesDiscoveryService() error {
 			log.Fatalf("could not start services discovery service %s: %s", self.getDomain(), err)
 		}
 
-		servicespb.RegisterPackageDiscoveryServer(services_discovery_server, self)
+		packagespb.RegisterPackageDiscoveryServer(services_discovery_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -159,9 +159,9 @@ func (self *Globule) startPackagesDiscoveryService() error {
 
 // Start service repository
 func (self *Globule) startPackagesRepositoryService() error {
-	id := string(servicespb.File_proto_services_proto.Services().Get(1).FullName())
+	id := string(packagespb.File_proto_packages_proto.Services().Get(1).FullName())
 
-	services_repository_server, err := self.startInternalService(id, servicespb.File_proto_services_proto.Path(), self.PackagesRepositoryPort, self.PackagesRepositoryProxy,
+	services_repository_server, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.PackagesRepositoryPort, self.PackagesRepositoryProxy,
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -175,7 +175,7 @@ func (self *Globule) startPackagesRepositoryService() error {
 			log.Fatalf("could not start services repository service %s: %s", self.getDomain(), err)
 		}
 
-		servicespb.RegisterPackageRepositoryServer(services_repository_server, self)
+		packagespb.RegisterPackageRepositoryServer(services_repository_server, self)
 
 		go func() {
 			// no web-rpc server.
@@ -208,7 +208,7 @@ func (self *Globule) getServiceConfigByName(name string) []map[string]interface{
 }
 
 // Discovery
-func (self *Globule) FindPackages(ctx context.Context, rqst *servicespb.FindPackagesDescriptorRequest) (*servicespb.FindPackagesDescriptorResponse, error) {
+func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPackagesDescriptorRequest) (*packagespb.FindPackagesDescriptorResponse, error) {
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
@@ -230,10 +230,10 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *servicespb.FindPack
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*servicespb.PackageDescriptor, len(data))
+	descriptors := make([]*packagespb.PackageDescriptor, len(data))
 	for i := 0; i < len(data); i++ {
 		descriptor := data[i].(map[string]interface{})
-		descriptors[i] = new(servicespb.PackageDescriptor)
+		descriptors[i] = new(packagespb.PackageDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Name = descriptor["name"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
@@ -264,13 +264,13 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *servicespb.FindPack
 	}
 
 	// Return the list of Service Descriptor.
-	return &servicespb.FindPackagesDescriptorResponse{
+	return &packagespb.FindPackagesDescriptorResponse{
 		Results: descriptors,
 	}, nil
 }
 
 //* Return the list of all services *
-func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *servicespb.GetPackageDescriptorRequest) (*servicespb.GetPackageDescriptorResponse, error) {
+func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.GetPackageDescriptorRequest) (*packagespb.GetPackageDescriptorResponse, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -293,17 +293,17 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *servicespb.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service descriptor with id "+rqst.ServiceId+" was found for publisher id "+rqst.PublisherId)))
 	}
 
-	descriptors := make([]*servicespb.PackageDescriptor, len(values))
+	descriptors := make([]*packagespb.PackageDescriptor, len(values))
 	for i := 0; i < len(values); i++ {
 
 		descriptor := values[i].(map[string]interface{})
-		descriptors[i] = new(servicespb.PackageDescriptor)
+		descriptors[i] = new(packagespb.PackageDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Name = descriptor["name"].(string)
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
 		descriptors[i].Version = descriptor["version"].(string)
-		descriptors[i].Type = servicespb.PackageType(Utility.ToInt(descriptor["type"]))
+		descriptors[i].Type = packagespb.PackageType(Utility.ToInt(descriptor["type"]))
 
 		if descriptor["keywords"] != nil {
 			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
@@ -335,13 +335,13 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *servicespb.
 	})
 
 	// Return the list of Service Descriptor.
-	return &servicespb.GetPackageDescriptorResponse{
+	return &packagespb.GetPackageDescriptorResponse{
 		Results: descriptors,
 	}, nil
 }
 
 //* Return the list of all services *
-func (self *Globule) GetPackagesDescriptor(rqst *servicespb.GetPackagesDescriptorRequest, stream servicespb.PackageDiscovery_GetPackagesDescriptorServer) error {
+func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescriptorRequest, stream packagespb.PackageDiscovery_GetPackagesDescriptorServer) error {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return status.Errorf(
@@ -356,16 +356,16 @@ func (self *Globule) GetPackagesDescriptor(rqst *servicespb.GetPackagesDescripto
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	descriptors := make([]*servicespb.PackageDescriptor, 0)
+	descriptors := make([]*packagespb.PackageDescriptor, 0)
 	for i := 0; i < len(data); i++ {
-		descriptor := new(servicespb.PackageDescriptor)
+		descriptor := new(packagespb.PackageDescriptor)
 
 		descriptor.Id = data[i].(map[string]interface{})["id"].(string)
 		descriptor.Name = data[i].(map[string]interface{})["name"].(string)
 		descriptor.Description = data[i].(map[string]interface{})["description"].(string)
 		descriptor.PublisherId = data[i].(map[string]interface{})["publisherid"].(string)
 		descriptor.Version = data[i].(map[string]interface{})["version"].(string)
-		descriptor.Type = servicespb.PackageType(Utility.ToInt(data[i].(map[string]interface{})["type"]))
+		descriptor.Type = packagespb.PackageType(Utility.ToInt(data[i].(map[string]interface{})["type"]))
 
 		if data[i].(map[string]interface{})["keywords"] != nil {
 			data[i].(map[string]interface{})["keywords"] = []interface{}(data[i].(map[string]interface{})["keywords"].(primitive.A))
@@ -393,15 +393,15 @@ func (self *Globule) GetPackagesDescriptor(rqst *servicespb.GetPackagesDescripto
 		descriptors = append(descriptors, descriptor)
 		// send at each 20
 		if i%20 == 0 {
-			stream.Send(&servicespb.GetPackagesDescriptorResponse{
+			stream.Send(&packagespb.GetPackagesDescriptorResponse{
 				Results: descriptors,
 			})
-			descriptors = make([]*servicespb.PackageDescriptor, 0)
+			descriptors = make([]*packagespb.PackageDescriptor, 0)
 		}
 	}
 
 	if len(descriptors) > 0 {
-		stream.Send(&servicespb.GetPackagesDescriptorResponse{
+		stream.Send(&packagespb.GetPackagesDescriptorResponse{
 			Results: descriptors,
 		})
 	}
@@ -412,7 +412,7 @@ func (self *Globule) GetPackagesDescriptor(rqst *servicespb.GetPackagesDescripto
 
 /**
  */
-func (self *Globule) SetPackageDescriptor(ctx context.Context, rqst *servicespb.SetPackageDescriptorRequest) (*servicespb.SetPackageDescriptorResponse, error) {
+func (self *Globule) SetPackageDescriptor(ctx context.Context, rqst *packagespb.SetPackageDescriptorRequest) (*packagespb.SetPackageDescriptorResponse, error) {
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
@@ -440,13 +440,13 @@ func (self *Globule) SetPackageDescriptor(ctx context.Context, rqst *servicespb.
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &servicespb.SetPackageDescriptorResponse{
+	return &packagespb.SetPackageDescriptorResponse{
 		Result: true,
 	}, nil
 }
 
 //* Publish a service to service discovery *
-func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *servicespb.PublishPackageDescriptorRequest) (*servicespb.PublishPackageDescriptorResponse, error) {
+func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *packagespb.PublishPackageDescriptorRequest) (*packagespb.PublishPackageDescriptorResponse, error) {
 
 	// Here I will save the descriptor inside the storage...
 	p, err := self.getPersistenceStore()
@@ -494,6 +494,7 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 
 	// The key will be the descriptor string itself.
 	jsonStr, err := Utility.ToJson(rqst.Descriptor_)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -508,15 +509,15 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *service
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	return &servicespb.PublishPackageDescriptorResponse{
+	return &packagespb.PublishPackageDescriptorResponse{
 		Result: true,
 	}, nil
 }
 
 // Repository
 /** Download a service from a service directory **/
-func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stream servicespb.PackageRepository_DownloadBundleServer) error {
-	bundle := new(servicespb.ServiceBundle)
+func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stream packagespb.PackageRepository_DownloadBundleServer) error {
+	bundle := new(packagespb.PackageBundle)
 	bundle.Plaform = rqst.Plaform
 	bundle.Descriptor_ = rqst.Descriptor_
 
@@ -538,7 +539,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 		return err
 	}
 
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", `{"_id":"`+id+`"}`, "")
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "PackageBundle", `{"_id":"`+id+`"}`, "")
 	if err != nil {
 		return err
 	}
@@ -563,7 +564,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 		var data [BufferSize]byte
 		bytesread, err := buffer.Read(data[0:BufferSize])
 		if bytesread > 0 {
-			rqst := &servicespb.DownloadBundleResponse{
+			rqst := &packagespb.DownloadBundleResponse{
 				Data: data[0:bytesread],
 			}
 			// send the data to the server.
@@ -581,7 +582,7 @@ func (self *Globule) DownloadBundle(rqst *servicespb.DownloadBundleRequest, stre
 }
 
 /** Upload a service to a service directory **/
-func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBundleServer) error {
+func (self *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBundleServer) error {
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
@@ -589,7 +590,7 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			// end of stream...
-			stream.SendAndClose(&servicespb.UploadBundleResponse{
+			stream.SendAndClose(&packagespb.UploadBundleResponse{
 				Result: true,
 			})
 			err = nil
@@ -605,7 +606,7 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 
 	// The buffer that contain the
 	dec := gob.NewDecoder(&buffer)
-	bundle := new(servicespb.ServiceBundle)
+	bundle := new(packagespb.PackageBundle)
 	err := dec.Decode(bundle)
 	if err != nil {
 		return err
@@ -623,7 +624,7 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 			// Publish change into discoveries...
 			for i := 0; i < len(bundle.Descriptor_.Discoveries); i++ {
 				discoveryId := bundle.Descriptor_.Discoveries[i]
-				discoveryService, err := service_client.NewPackagesDiscoveryService_Client(discoveryId, "services.PackageDiscovery")
+				discoveryService, err := packages_client.NewPackagesDiscoveryService_Client(discoveryId, "packages.PackageDiscovery")
 				if err != nil {
 					return err
 				}
@@ -652,7 +653,7 @@ func (self *Globule) UploadBundle(stream servicespb.PackageRepository_UploadBund
 		return err
 	}
 
-	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "ServiceBundle", `{"_id":"`+id+`"}`, jsonStr, `[{"upsert": true}]`)
-	log.Println("---------> 650 ", err)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "PackageBundle", `{"_id":"`+id+`"}`, jsonStr, `[{"upsert": true}]`)
+
 	return err
 }
