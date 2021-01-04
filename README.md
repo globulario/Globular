@@ -105,7 +105,7 @@ confirm_password (TYPE_STRING) => 1234
 
 ### Create an organization
 
-``sh
+``` sh
 resource.ResourceService@globular.cloud:10003> call CreateOrganization
 organization::id (TYPE_STRING) => globulario
 organization::name (TYPE_STRING) => globulario
