@@ -103,7 +103,7 @@ confirm_password (TYPE_STRING) => 1234
 
 ```
 
-### Create an organization
+### How to register an organization
 
 ``` sh
 resource.ResourceService@globular.cloud:10003> call CreateOrganization
