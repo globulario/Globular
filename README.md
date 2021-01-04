@@ -115,7 +115,7 @@ organization::name (TYPE_STRING) => globulario
 ```
 ### Create a role
 
-There is tow default roles define in Globular, 'sa' and 'guest'. Given 'sa' role to any user can be dangerous, in the other hand 'guest' is to restrictive... In order to give permission to user to execute action you must create role. Here as example I will create the role 'devel' and set actions in it...
+There is tow default roles define in Globular, 'sa' and 'guest'. Given 'sa' role to any user can be dangerous, in the other hand 'guest' is to restrictive... In order to give permission to user to execute action you must create role. Here's as example I will create the role 'devel' and set actions in it and also set user's who can play that role...
 
 ``` sh
 resource.ResourceService@globular.cloud:10003> call CreateRole
