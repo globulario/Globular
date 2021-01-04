@@ -60,21 +60,17 @@ $ evans --host globular.cloud -r --tls --cacert "/tmp/config/tls/globular.cloud/
 Most of action are not accessible without token. For example you cannot create organization, user without being authenticate as 'sa'. To do so you must autenticate yourself as 'sa' the default password is 'adminadmin'
 
 ``` sh
-
 resource.ResourceService@globular.cloud:10003> call Authenticate
 name (TYPE_STRING) => sa
 password (TYPE_STRING) => adminadmin
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZW1haWwiOiJhZG1pbkBnbG9idWxhci5hcHAiLCJleHAiOjE2MDk3NzIyMDB9.tNRE8M_mR8p-mO9a1OoijoFs5D8FDEYK0sp5AKXCOOs"
 }
-
 ```
 Now exit from event and reopen a new session with the token,
 
 ``` sh
-
 $ evans --host globular.cloud -r --tls --cacert "/tmp/config/tls/globular.cloud/ca.crt" --cert  "/tmp/config/tls/globular.cloud/client.crt" --certkey "/tmp/config/tls/globular.cloud/client.pem" --port 10003 --header token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZW1haWwiOiJhZG1pbkBnbG9idWxhci5hcHAiLCJleHAiOjE2MDk3NzIyMDB9.tNRE8M_mR8p-mO9a1OoijoFs5D8FDEYK0sp5AKXCOOs"
-
 ```
 You are now logged as sa and you can create a user and an organization.
 
@@ -84,7 +80,6 @@ You are now logged as sa and you can create a user and an organization.
 To register a user from the sa session execute,
 
 ``` sh
-
 resource.ResourceService@globular.cloud:10003> call RegisterAccount
 account::id (TYPE_STRING) => steve
 account::name (TYPE_STRING) => steve
@@ -100,7 +95,6 @@ confirm_password (TYPE_STRING) => 1234
 {
   "result": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InN0ZXZlIiwiZW1haWwiOiJzdGV2ZUBnbG9idWxhci5jbG91ZCIsImV4cCI6MTYwOTc3MjUxMX0.iFbxttFitF6VPWGGw5i36cXwdrsAM5DIe6szC-WI-MU"
 }
-
 ```
 
 ### How to register an organization
@@ -119,3 +113,25 @@ organization::name (TYPE_STRING) => globulario
   "result":true
 }
 ```
+### Create a role
+
+There is tow default roles define in Globular, 'sa' and 'guest'. Given 'sa' role to any user can be dangerous, in the other hand 'guest' is to restrictive... In order to give permission to user to execute action you must create role. Here as example I will create the role 'devel' and set actions in it...
+
+``` sh
+resource.ResourceService@globular.cloud:10003> call CreateRole
+role::id (TYPE_STRING) => devel
+role::name (TYPE_STRING) => devel
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/PublishService
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/DeployApplication
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/UploadServicePackage
+<repeated> role::actions (TYPE_STRING) => 
+<repeated> role::members (TYPE_STRING) => steve
+<repeated> role::members (TYPE_STRING) => dave
+<repeated> role::members (TYPE_STRING) => 
+<repeated> role::organizations (TYPE_STRING) => globulario
+<repeated> role::organizations (TYPE_STRING) => 
+{
+  "result": true
+}
+```
+Now user's steve and dave can publish service and deploy application.
