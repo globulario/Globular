@@ -41,18 +41,97 @@ $ evans --port 10001 -r
 If your server has a domain and it secured with tls, you must get access to certificate. To do so execute the following command,
 
 ``` sh
-$ Globular certificates -domain=globular.live -path=/tmp/tata -port=80
+$ Globular certificates -domain=globular.cloud -path=/tmp -port=80
 $ Your certificate are installed: 
-$ cacert:  /tmp/tata/config/tls/globular.live/ca.crt
-$ cert:  /tmp/tata/config/tls/globular.live/client.crt
-$ certkey:  /tmp/tata/config/tls/globular.live/client.pem
+$ cacert:  /tmp/config/tls/globular.cloud/ca.crt
+$ cert:  /tmp/config/tls/globular.cloud/client.crt
+$ certkey:  /tmp/config/tls/globular.cloud/client.pem
 ```
 ** Note that you must have Globular in your path or be in the same directory as the exec.
 
 So to log into evans you must do the following command,
 ``` sh
-$ evans --host globular.live -r --tls --cacert "/tmp/tata/config/tls/globular.live/ca.crt" --cert  "/tmp/tata/config/tls/globular.live/client.crt" --certkey "/tmp/tata/config/tls/globular.live/client.pem" --port 10003
+$ evans --host globular.cloud -r --tls --cacert "/tmp/config/tls/globular.cloud/ca.crt" --cert  "/tmp/config/tls/globular.cloud/client.crt" --certkey "/tmp/config/tls/globular.cloud/client.pem" --port 10003
 ```
 ** if you got access denied try the command with sudo, or change permission on the certificate by given read access to your user.
 
+### How to log with a token.
 
+Most of action are not accessible without token. For example you cannot create organization, user without being authenticate as 'sa'. To do so you must autenticate yourself as 'sa' the default password is 'adminadmin'
+
+``` sh
+resource.ResourceService@globular.cloud:10003> call Authenticate
+name (TYPE_STRING) => sa
+password (TYPE_STRING) => adminadmin
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZW1haWwiOiJhZG1pbkBnbG9idWxhci5hcHAiLCJleHAiOjE2MDk3NzIyMDB9.tNRE8M_mR8p-mO9a1OoijoFs5D8FDEYK0sp5AKXCOOs"
+}
+```
+Now exit from event and reopen a new session with the token,
+
+``` sh
+$ evans --host globular.cloud -r --tls --cacert "/tmp/config/tls/globular.cloud/ca.crt" --cert  "/tmp/config/tls/globular.cloud/client.crt" --certkey "/tmp/config/tls/globular.cloud/client.pem" --port 10003 --header token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhIiwiZW1haWwiOiJhZG1pbkBnbG9idWxhci5hcHAiLCJleHAiOjE2MDk3NzIyMDB9.tNRE8M_mR8p-mO9a1OoijoFs5D8FDEYK0sp5AKXCOOs"
+```
+You are now logged as sa and you can create a user and an organization.
+
+
+### How to register a user.
+
+To register a user from the sa session execute,
+
+``` sh
+resource.ResourceService@globular.cloud:10003> call RegisterAccount
+account::id (TYPE_STRING) => steve
+account::name (TYPE_STRING) => steve
+account::email (TYPE_STRING) => steve@globular.cloud
+account::password (TYPE_STRING) => 1234
+<repeated> account::contacts (TYPE_STRING) => dave
+<repeated> account::contacts (TYPE_STRING) => 
+<repeated> account::organizations (TYPE_STRING) => globulario
+<repeated> account::organizations (TYPE_STRING) => 
+<repeated> account::groups (TYPE_STRING) => 
+<repeated> account::roles (TYPE_STRING) => 
+confirm_password (TYPE_STRING) => 1234
+{
+  "result": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InN0ZXZlIiwiZW1haWwiOiJzdGV2ZUBnbG9idWxhci5jbG91ZCIsImV4cCI6MTYwOTc3MjUxMX0.iFbxttFitF6VPWGGw5i36cXwdrsAM5DIe6szC-WI-MU"
+}
+```
+
+### How to register an organization
+
+``` sh
+resource.ResourceService@globular.cloud:10003> call CreateOrganization
+organization::id (TYPE_STRING) => globulario
+organization::name (TYPE_STRING) => globulario
+<repeated> organization::accounts (TYPE_STRING) => steve
+<repeated> organization::accounts (TYPE_STRING) => dave
+<repeated> organization::accounts (TYPE_STRING) => 
+<repeated> organization::groups (TYPE_STRING) => 
+<repeated> organization::roles (TYPE_STRING) => 
+<repeated> organization::applications (TYPE_STRING) => 
+{
+  "result":true
+}
+```
+### Create a role
+
+There is tow default roles define in Globular, 'sa' and 'guest'. Given 'sa' role to any user can be dangerous, in the other hand 'guest' is to restrictive... In order to give permission to user to execute action you must create role. Here's as example I will create the role 'devel' and set actions in it and also set user's who can play that role...
+
+``` sh
+resource.ResourceService@globular.cloud:10003> call CreateRole
+role::id (TYPE_STRING) => devel
+role::name (TYPE_STRING) => devel
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/PublishService
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/DeployApplication
+<repeated> role::actions (TYPE_STRING) => /admin.AdminService/UploadServicePackage
+<repeated> role::actions (TYPE_STRING) => 
+<repeated> role::members (TYPE_STRING) => steve
+<repeated> role::members (TYPE_STRING) => dave
+<repeated> role::members (TYPE_STRING) => 
+<repeated> role::organizations (TYPE_STRING) => globulario
+<repeated> role::organizations (TYPE_STRING) => 
+{
+  "result": true
+}
+```
+Now user's steve and dave can publish service and deploy application.
