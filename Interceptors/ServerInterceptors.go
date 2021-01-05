@@ -7,9 +7,9 @@ package Interceptors
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-
 	"log"
 	"strings"
 	"time"
@@ -46,6 +46,9 @@ var (
 	// That will contain the permission in memory to limit the number
 	// of resource request...
 	cache *storage_store.BigCache_store
+
+	// keep map in memory.
+	ressourceInfos map[string][]*rbacpb.ResourceInfos
 )
 
 /**
@@ -148,14 +151,82 @@ func refreshToken(domain string, token string) (string, error) {
 	return resource_client.RefreshToken(token)
 }
 
-func validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
+/**
+ * Keep method info in memory.
+ */
+func getActionResourceInfos(domain, method string) ([]*rbacpb.ResourceInfos, error) {
+
+	// init the ressourceInfos
+	if ressourceInfos == nil {
+		ressourceInfos = make(map[string][]*rbacpb.ResourceInfos, 0)
+	}
+
+	if val, ok := ressourceInfos["method"]; ok {
+		return val, nil
+	}
+
+	rbac_client_, err := GetRbacClient(domain)
+	if err != nil {
+		return nil, err
+	}
+
+	//do something here
+	infos, err := rbac_client_.GetActionResourceInfos(method)
+	if err != nil {
+		return nil, err
+	}
+
+	ressourceInfos[method] = infos
+
+	return infos, nil
+
+}
+
+func validateAction(domain, method, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
+
+	id := domain + method + subject
+	for i := 0; i < len(infos); i++ {
+		id += infos[i].Permission + infos[i].Path
+	}
+
+	// generate a uuid for the action and it's ressource permissions.
+	uuid := Utility.GenerateUUID(id)
+
+	item, err := getCache().GetItem(uuid)
+	if err == nil {
+		// Here I will test if the permission has expired...
+		hasAccess_ := make(map[string]interface{})
+		err := json.Unmarshal(item, &hasAccess_)
+		expiredAt := time.Unix(int64(hasAccess_["expiredAt"].(float64)), 0)
+		hasAccess__ := hasAccess_["hasAccess"].(bool)
+		if err == nil && time.Now().Before(expiredAt) && hasAccess__ {
+			return true, nil
+		}
+	}
 
 	rbac_client_, err := GetRbacClient(domain)
 	if err != nil {
 		return false, err
 	}
+	hasAccess, err := rbac_client_.ValidateAction(method, subject, subjectType, infos)
+	if err != nil {
+		return false, err
+	}
+
+	// Here I will set the access in the cache.
+	hasAccess_, _ := json.Marshal(map[string]interface{}{"hasAccess": hasAccess, "expiredAt": time.Now().Add(time.Minute * 15).Unix()})
+	getCache().SetItem(uuid, hasAccess_)
+
+	return hasAccess, nil
+
+}
+
+func validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
+
 	hasAccess := false
-	infos, err := rbac_client_.GetActionResourceInfos(method)
+
+	infos, err := getActionResourceInfos(domain, method)
+
 	if err != nil {
 		infos = make([]*rbacpb.ResourceInfos, 0)
 	} else {
@@ -174,7 +245,7 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 
 	// TODO keep to value in cache for keep speed.
 
-	hasAccess, err = rbac_client_.ValidateAction(method, subject, subjectType, infos)
+	hasAccess, err = validateAction(domain, method, subject, subjectType, infos)
 	if err != nil {
 		return false, err
 	}
@@ -335,21 +406,26 @@ type ServerStreamInterceptorStream struct {
 	token       string
 	application string
 	clientId    string
+	uuid        string
 }
 
 func (l ServerStreamInterceptorStream) SetHeader(m metadata.MD) error {
+	log.Println("==> SetHeader")
 	return l.inner.SetHeader(m)
 }
 
 func (l ServerStreamInterceptorStream) SendHeader(m metadata.MD) error {
+	log.Println("==> SendHeader")
 	return l.inner.SendHeader(m)
 }
 
 func (l ServerStreamInterceptorStream) SetTrailer(m metadata.MD) {
+	log.Println("==> SetTrailer")
 	l.inner.SetTrailer(m)
 }
 
 func (l ServerStreamInterceptorStream) Context() context.Context {
+	log.Println("==> Context")
 	return l.inner.Context()
 }
 
@@ -366,8 +442,17 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 	l.inner.RecvMsg(rqst)
 
 	hasAccess := l.clientId == "sa" ||
-		l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo" ||
-		l.method == "/admin.AdminService/DeployApplication"
+		l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
+
+	if hasAccess {
+		return nil
+	}
+
+	// if the cache contain the uuid it means permission is allowed
+	_, err := getCache().GetItem(l.uuid)
+	if err == nil {
+		return nil
+	}
 
 	// Test if peer has access
 	if !hasAccess && len(l.clientId) > 0 {
@@ -388,6 +473,9 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 		log.Println("validation fail ", err)
 		return err
 	}
+
+	// set empty item to set haAccess.
+	getCache().SetItem(l.uuid, []byte{})
 
 	return nil
 }
@@ -420,23 +508,14 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	var clientId string
 	var err error
-	// If the call come from a local client it has hasAccess
-	hasAccess := false
-
 	peer_, _ := peer.FromContext(stream.Context())
 	address := peer_.Addr.String()
 	address = address[0:strings.Index(address, ":")]
-	if Utility.IsLocal(address) {
-		hasAccess = true
-	}
 
 	if len(token) > 0 {
 		clientId, _, _, err = ValidateToken(token)
 		if err != nil {
 			return err
-		}
-		if clientId == "sa" {
-			hasAccess = true
 		}
 	}
 
@@ -468,25 +547,14 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 		lb_client.ReportLoadInfo(load_info)
 	}
 
-	// needed by the admin.
-	if application == "admin" ||
-		method == "/packages.PackageDiscovery/GetServicesDescriptor" ||
-		method == "/packages.ServiceRepository/DownloadBundle" {
-		hasAccess = true
-	}
+	// The uuid will be use to set hasAccess into the cache.
+	uuid := Utility.RandomUUID()
 
-	if !hasAccess {
-		// TODO validate gRpc method access
-		hasAccess = true // for convenience...
-	}
+	// Start streaming.
+	err = handler(srv, ServerStreamInterceptorStream{uuid: uuid, inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
 
-	// Return here if access is denied.
-	if !hasAccess {
-		return errors.New("Permission denied to execute method " + method)
-	}
-
-	// Now the permissions
-	err = handler(srv, ServerStreamInterceptorStream{inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
+	// Remove the uuid from the cache
+	getCache().RemoveItem(uuid)
 
 	if err != nil {
 		return err

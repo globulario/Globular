@@ -869,7 +869,7 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *rbacpb.DeleteAll
 
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-
+	// first I will test if permissions is define
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
 		// In that case I will try to get parent ressource permission.
@@ -879,9 +879,14 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 			return self.validateAccess(subject, subjectType, name, path[0:strings.LastIndex(path, "/")])
 		}
 
+		if strings.Index(err.Error(), "leveldb: not found") != -1 {
+			return true, false, err
+		}
+		// if no permission are define for a ressource anyone can access it.
 		return false, false, err
 	}
 
+	log.Println("-----------------> 886 ", permissions)
 	// Test if the Subject is owner of the ressource in that case I will git him access.
 	owners := permissions.Owners
 	isOwner := false
@@ -940,7 +945,6 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 	}
 
 	////////////////////// Test if the access is denied first. /////////////////////
-
 	accessDenied := false
 
 	// Here the Subject is not the owner...
@@ -1239,7 +1243,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 	// So first of all I will validate the actions itself...
 	if subjectType == rbacpb.SubjectType_APPLICATION {
-		//log.Println("-----> validate action ", action, subject, resources)
+
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
 			return false, err
@@ -1263,8 +1267,6 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 			return false, err
 		}
 		values = values_.(map[string]interface{})
-
-		// Here I will test if one of the role of the account has access to
 		// call the rpc method.
 		if values["roles"].(primitive.A) != nil {
 			roles := []interface{}(values["roles"].(primitive.A))
@@ -1295,32 +1297,36 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 	if !hasAccess {
 		err := errors.New("Access denied for " + subject + " to call method " + action)
 		return false, err
+	} else if subjectType == rbacpb.SubjectType_ROLE {
+		return true, nil
 	}
 
-	// log.Println("Access allow for " + subject + " to call method " + action)
+	log.Println("Access allow for " + subject + " to call method " + action)
 
 	// Here I will validate the access for a given subject...
-	if subjectType != rbacpb.SubjectType_ROLE {
-		// Now I will validate the resource access.
-		// infos
 
-		permissions_, _ := self.getActionResourcesPermissions(action)
-		if len(resources) > 0 {
-			if permissions_ == nil {
-				err := errors.New("No resources path are given for validations!")
-				return false, err
-			}
-			for i := 0; i < len(resources); i++ {
-				if len(resources[i].Path) > 0 { // Here if the path is empty i will simply not validate it.
-					hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-					if hasAccess == false || accessDenied == true {
-						err := errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
-						return false, err
-					}
+	log.Println("validate ressource access for ", subject)
+	// Now I will validate the resource access.
+	// infos
+	permissions_, _ := self.getActionResourcesPermissions(action)
+	if len(resources) > 0 {
+		if permissions_ == nil {
+			err := errors.New("No resources path are given for validations!")
+			return false, err
+		}
+		for i := 0; i < len(resources); i++ {
+			if len(resources[i].Path) > 0 { // Here if the path is empty i will simply not validate it.
+				hasAccess, accessDenied, _ := self.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
+				if hasAccess == false || accessDenied == true {
+					err := errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
+					return false, err
+				} else if hasAccess == true {
+					return true, nil
 				}
 			}
 		}
 	}
+
 	return true, nil
 }
 
@@ -1328,7 +1334,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateActionRqst) (*rbacpb.ValidateActionRsp, error) {
 
 	// If the address is local I will give the permission.
-	// log.Println("-----> validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
+	log.Println("validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 
 	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 	if err != nil {

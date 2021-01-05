@@ -608,6 +608,9 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	for {
 		msg, err := stream.Recv()
+		if msg == nil {
+			return errors.New("fail to run action adminpb.AdminService.DeployApplication!")
+		}
 		if len(msg.Name) > 0 {
 			name = msg.Name
 		}
@@ -1038,6 +1041,10 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 
 	for {
 		msg, err := stream.Recv()
+		if msg == nil {
+			return errors.New("Fail to upload service package!")
+		}
+
 		if err == nil {
 			if len(msg.Organization) > 0 {
 				if !self.isOrganizationMemeber(msg.User, msg.Organization) {
@@ -1045,6 +1052,7 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 				}
 			}
 		}
+
 		if err == io.EOF || len(msg.Data) == 0 {
 			// end of stream...
 			stream.SendAndClose(&adminpb.UploadServicePackageResponse{
@@ -1113,6 +1121,7 @@ func (self *Globule) publishPackage(user string, organization string, discovery 
 	// Test the permission before actualy publish the package.
 	hasAccess, isDenied, err := self.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "publish", path_)
 	if !hasAccess || isDenied || err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -1124,18 +1133,21 @@ func (self *Globule) publishPackage(user string, organization string, discovery 
 	// Save the permissions.
 	err = self.setResourcePermissions(path_, permissions)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	// Fist of all publish the package descriptor.
 	err = services_discovery.PublishPackageDescriptor(descriptor)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	// Upload the service to the repository.
 	err = services_repository.UploadBundle(discovery, descriptor.Id, descriptor.PublisherId, platform, path)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -1143,6 +1155,7 @@ func (self *Globule) publishPackage(user string, organization string, discovery 
 	var marshaler jsonpb.Marshaler
 	data, err := marshaler.MarshalToString(descriptor)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -1214,12 +1227,13 @@ func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) er
 
 	for i := 0; i < len(descriptor.Repositories); i++ {
 
-		services_repository, err := packages_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "packages.ServiceRepository")
+		services_repository, err := packages_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "packages.PackageRepository")
 		if err != nil {
 			return err
 		}
 
 		log.Println("--> try to download service from ", descriptor.Repositories[i])
+
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 
 		if err == nil {

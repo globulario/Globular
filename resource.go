@@ -270,7 +270,7 @@ func (self *Globule) registerMethods() error {
 			"/packages.PackageDiscovery/FindServices",
 			"/packages.PackageDiscovery/GetServiceDescriptor",
 			"/packages.PackageDiscovery/GetServicesDescriptor",
-			"/packages.ServiceRepository/downloadBundle",
+			"/packages.PackageRepository/downloadBundle",
 			"/persistence.PersistenceService/Find",
 			"/persistence.PersistenceService/FindOne",
 			"/persistence.PersistenceService/Count",

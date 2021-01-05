@@ -446,23 +446,38 @@ func (self *Globule) toMap() map[string]interface{} {
 	return _map_
 }
 
+func processIsRuning(pid int) bool {
+	_, err := os.FindProcess(int(pid))
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 func (self *Globule) getPortsInUse() []int {
 	portsInUse := make([]int, 0)
 	// I will test if the port is already taken by e services.
 	self.services.Range(func(key, value interface{}) bool {
 		m := value.(*sync.Map)
-		pid, hasProcess := m.Load("Process")
+		pid_, hasProcess := m.Load("Process")
+
 		if hasProcess {
+			pid := Utility.ToInt(pid_)
 			if pid != -1 {
-				p, _ := m.Load("Port")
-				portsInUse = append(portsInUse, Utility.ToInt(p))
+				if processIsRuning(pid) {
+					p, _ := m.Load("Port")
+					portsInUse = append(portsInUse, Utility.ToInt(p))
+				}
 			}
 		}
-		proxyPid, hasProxyProcess := m.Load("ProxyProcess")
+		proxyPid_, hasProxyProcess := m.Load("ProxyProcess")
 		if hasProxyProcess {
+			proxyPid := Utility.ToInt(proxyPid_)
 			if proxyPid != -1 {
-				p, _ := m.Load("Proxy")
-				portsInUse = append(portsInUse, Utility.ToInt(p))
+				if processIsRuning(proxyPid) {
+					p, _ := m.Load("Proxy")
+					portsInUse = append(portsInUse, Utility.ToInt(p))
+				}
 			}
 		}
 		return true
@@ -489,14 +504,14 @@ func (self *Globule) isPortAvailable(port int) bool {
 			return false
 		}
 	}
-
+	// wait before interogate the next port
+	time.Sleep(500 * time.Millisecond)
 	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
 	if err == nil {
 		defer l.Close()
 		return true
 	}
-	// wait before interogate the next port
-	time.Sleep(250 * time.Millisecond)
+
 	return false
 }
 
@@ -1126,7 +1141,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		port := getIntVal(s, "Port")
 		if !self.isPortAvailable(port) {
 			port, err = self.getNextAvailablePort()
-
 			if err != nil {
 				return -1, -1, err
 			}
@@ -1199,6 +1213,9 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
 			}
 
+			// Terminate it proxy process.
+			Utility.TerminateProcess(proxyPid, 0)
+
 			s.Store("Process", -1)
 			s.Store("ProxyProcess", -1)
 
@@ -1208,7 +1225,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 		// get another port.
 		proxy := getIntVal(s, "Proxy")
-		log.Println("--------> service try to get proxy port ", proxy, " for service ", getStringVal(s, "Name"))
 		if !self.isPortAvailable(proxy) {
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
@@ -1289,6 +1305,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 							// I will log the program error into the admin logger.
 							self.logServiceInfo(getStringVal(s, "Name"), errb.String())
 						}
+						log.Println("-------------> process ", getStringVal(s, "Name"), getIntVal(s, "Port"), pid, " is exit!")
 					}
 				}(s)
 			}
