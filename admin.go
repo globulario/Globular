@@ -1691,6 +1691,11 @@ func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.S
 	return &adminpb.SetEnvironmentVariableResponse{}, nil
 }
 
+// Get environement variable.
+func (self *Globule) GetEnvironmentVariable(ctx context.Context, rqst *adminpb.GetEnvironmentVariableRequest) (*adminpb.GetEnvironmentVariableResponse, error) {
+	return nil, nil
+}
+
 // Delete environement variable.
 func (self *Globule) UnsetEnvironmentVariable(ctx context.Context, rqst *adminpb.UnsetEnvironmentVariableRequest) (*adminpb.UnsetEnvironmentVariableResponse, error) {
 	err := os.Unsetenv(rqst.Name)

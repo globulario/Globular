@@ -1304,8 +1304,8 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 	log.Println("Access allow for " + subject + " to call method " + action)
 
 	// Here I will validate the access for a given subject...
-
 	log.Println("validate ressource access for ", subject)
+
 	// Now I will validate the resource access.
 	// infos
 	permissions_, _ := self.getActionResourcesPermissions(action)
@@ -1335,7 +1335,6 @@ func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateAc
 
 	// If the address is local I will give the permission.
 	log.Println("validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
-
 	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 	if err != nil {
 		return nil, status.Errorf(
