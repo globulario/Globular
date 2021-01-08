@@ -602,7 +602,7 @@ func (self *Globule) initDirectories() {
 /**
  * Close the server.
  */
-func (self *Globule) KillProcess() {
+func (self *Globule) KillProcess_() {
 	// Here I will kill proxies if there are running.
 	Utility.KillProcessByName("grpcwebproxy")
 
@@ -1542,7 +1542,7 @@ func (self *Globule) initServices() {
 	}
 
 	// Kill previous instance of the program...
-	self.KillProcess()
+	self.KillProcess_()
 
 	// Start the load balancer.
 	err := self.startLoadBalancingService()

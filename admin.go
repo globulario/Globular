@@ -11,6 +11,8 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/sys/windows/registry"
+
 	"regexp"
 	"strings"
 	"sync"
@@ -24,6 +26,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"reflect"
+	"runtime"
 
 	"github.com/globulario/Globular/security"
 	"github.com/globulario/services/golang/packages/packagespb"
@@ -1632,6 +1635,50 @@ func (self *Globule) stopExternalApplication(serviceId string) error {
 	return self.ExternalApplications[serviceId].srv.Process.Signal(os.Interrupt)
 }
 
+// Kill process by id
+func (self *Globule) KillProcess(ctx context.Context, rqst *adminpb.KillProcessRequest) (*adminpb.KillProcessResponse, error) {
+	pid := int(rqst.Pid)
+	err := Utility.TerminateProcess(pid, 0)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.KillProcessResponse{}, nil
+}
+
+// Kill process by name
+func (self *Globule) KillProcesses(ctx context.Context, rqst *adminpb.KillProcessesRequest) (*adminpb.KillProcessesResponse, error) {
+	err := Utility.KillProcessByName(rqst.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.KillProcessesResponse{}, nil
+}
+
+// Return the list of process id with a given name.
+func (self *Globule) GetPids(ctx context.Context, rqst *adminpb.GetPidsRequest) (*adminpb.GetPidsResponse, error) {
+	pids_, err := Utility.GetProcessIdsByName(rqst.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	pids := make([]int32, len(pids_))
+	for i := 0; i < len(pids_); i++ {
+		pids[i] = int32(pids_[i])
+	}
+
+	return &adminpb.GetPidsResponse{
+		Pids: pids,
+	}, nil
+}
+
 // Register external service to be start by Globular in order to run
 func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *adminpb.RegisterExternalApplicationRequest) (*adminpb.RegisterExternalApplicationResponse, error) {
 
@@ -1663,26 +1710,82 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 
 // Run an external command must be use with care.
 func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*adminpb.RunCmdResponse, error) {
-
 	baseCmd := rqst.Cmd
 	cmdArgs := rqst.Args
-
+	isBlocking := rqst.Blocking
+	pid := -1
 	cmd := exec.Command(baseCmd, cmdArgs...)
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	output := ""
+
+	if isBlocking {
+		out, err := cmd.Output()
+		if cmd.Process != nil {
+			pid = cmd.Process.Pid
+		}
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		output = string(out)
+	} else {
+		var err error
+		err = cmd.Start()
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+		if cmd.Process != nil {
+			pid = cmd.Process.Pid
+		}
 	}
 
 	return &adminpb.RunCmdResponse{
-		Result: string(out),
+		Result: string(output),
+		Pid:    int32(pid),
 	}, nil
+}
+
+func setEnvironmentVariable(key string, value string) error {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\ControlSet001\Control\Session Manager\Environment`, registry.ALL_ACCESS)
+	if err != nil {
+		return err
+	}
+	defer k.Close()
+
+	err = k.SetStringValue(key, value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unsetEnvironmentVariable(key string) error {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\ControlSet001\Control\Session Manager\Environment`, registry.ALL_ACCESS)
+	if err != nil {
+		return err
+	}
+	defer k.Close()
+
+	err = k.DeleteValue(key)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Set environement variable.
 func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.SetEnvironmentVariableRequest) (*adminpb.SetEnvironmentVariableResponse, error) {
-	err := os.Setenv(rqst.Name, rqst.Value)
+	var err error
+	if runtime.GOOS == "windows" {
+		err = setEnvironmentVariable(rqst.Name, rqst.Value)
+	} else {
+		err = os.Setenv(rqst.Name, rqst.Value)
+
+	}
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1698,7 +1801,14 @@ func (self *Globule) GetEnvironmentVariable(ctx context.Context, rqst *adminpb.G
 
 // Delete environement variable.
 func (self *Globule) UnsetEnvironmentVariable(ctx context.Context, rqst *adminpb.UnsetEnvironmentVariableRequest) (*adminpb.UnsetEnvironmentVariableResponse, error) {
-	err := os.Unsetenv(rqst.Name)
+
+	var err error
+	if runtime.GOOS == "windows" {
+		err = unsetEnvironmentVariable(rqst.Name)
+	} else {
+		err = os.Unsetenv(rqst.Name)
+
+	}
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
