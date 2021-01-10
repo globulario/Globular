@@ -505,7 +505,7 @@ func (self *Globule) isPortAvailable(port int) bool {
 		}
 	}
 	// wait before interogate the next port
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
 	if err == nil {
 		defer l.Close()
