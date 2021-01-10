@@ -1231,6 +1231,7 @@ func (self *Globule) GetActionResourceInfos(ctx context.Context, rqst *rbacpb.Ge
  * Validate an action and also validate it resources
  */
 func (self *Globule) validateAction(action string, subject string, subjectType rbacpb.SubjectType, resources []*rbacpb.ResourceInfos) (bool, error) {
+	log.Println("Validate action ", action, "for", subject)
 	p, err := self.getPersistenceStore()
 	if err != nil {
 		return false, err
@@ -1262,6 +1263,12 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 		}
 		values = values_.(map[string]interface{})
 	} else if subjectType == rbacpb.SubjectType_ACCOUNT {
+
+		// If the user is the super admin i will return true.
+		if subject == "sa" {
+			return true, nil
+		}
+
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
 			return false, err

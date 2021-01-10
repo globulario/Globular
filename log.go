@@ -64,7 +64,7 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 	info.Method = service
 	info.Date = time.Now().Unix()
 	info.Message = message
-	info.Type = logpb.LogType_ERROR_MESSAGE // not necessarely errors..
+	info.Level = logpb.LogLevel_INFO_MESSAGE // not necessarely errors..
 	self.log(info)
 
 	return nil
@@ -87,10 +87,10 @@ func (self *Globule) logInfo(application string, method string, token string, er
 	info.Date = time.Now().Unix()
 	if err_ != nil {
 		info.Message = err_.Error()
-		info.Type = logpb.LogType_ERROR_MESSAGE
+		info.Level = logpb.LogLevel_ERROR_MESSAGE
 		logger.Error(info.Message)
 	} else {
-		info.Type = logpb.LogType_INFO_MESSAGE
+		info.Level = logpb.LogLevel_INFO_MESSAGE
 		logger.Info(info.Message)
 	}
 
@@ -107,38 +107,39 @@ func (self *Globule) getLogInfoKeyValue(info *logpb.LogInfo) (string, string, er
 	}
 
 	key := ""
-	if info.GetType() == logpb.LogType_INFO_MESSAGE {
 
-		// Append the log in leveldb
-		key += "/infos/" + info.Method + Utility.ToString(info.Date)
-
-		// Set the application in the path
-		if len(info.Application) > 0 {
-			key += "/" + info.Application
-		}
-		// Set the User Name if available.
-		if len(info.UserName) > 0 {
-			key += "/" + info.UserName
-		}
-
-		key += "/" + Utility.GenerateUUID(jsonStr)
-
-	} else {
-
-		key += "/errors/" + info.Method + Utility.ToString(info.Date)
-
-		// Set the application in the path
-		if len(info.Application) > 0 {
-			key += "/" + info.Application
-		}
-		// Set the User Name if available.
-		if len(info.UserName) > 0 {
-			key += "/" + info.UserName
-		}
-
-		key += "/" + Utility.GenerateUUID(jsonStr)
-
+	if info.GetLevel() == logpb.LogLevel_INFO_MESSAGE {
+		key += "/info"
+	} else if info.GetLevel() == logpb.LogLevel_DEBUG_MESSAGE {
+		key += "/debug"
+	} else if info.GetLevel() == logpb.LogLevel_ERROR_MESSAGE {
+		key += "/error"
+	} else if info.GetLevel() == logpb.LogLevel_FATAL_MESSAGE {
+		key += "/fatal"
+	} else if info.GetLevel() == logpb.LogLevel_TRACE_MESSAGE {
+		key += "/trace"
+	} else if info.GetLevel() == logpb.LogLevel_WARN_MESSAGE {
+		key += "/warning"
 	}
+
+	// Set the application in the path
+	if len(info.Application) > 0 {
+		key += "/" + info.Application
+	}
+
+	// Set the User Name if available.
+	if len(info.UserName) > 0 {
+		key += "/" + info.UserName
+	}
+
+	if len(info.Method) > 0 {
+		key += "/" + info.Method
+	}
+
+	key += "/" + Utility.ToString(info.Date)
+
+	key += "/" + Utility.GenerateUUID(jsonStr)
+
 	return key, jsonStr, nil
 }
 
@@ -146,10 +147,12 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserName) > 0 {
+
 		name, _, _, err := Interceptors.ValidateToken(info.UserName)
 		if err == nil {
 			info.UserName = name
 		}
+
 		info.UserId = info.UserName // keep only the user name
 		if info.UserName == "sa" {
 			return nil // not log sa activities...
@@ -218,7 +221,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 		if i == max-1 {
 			// I will send the stream at each 100 logs...
 			rsp := &logpb.GetLogRsp{
-				Info: infos,
+				Infos: infos,
 			}
 			// Send the infos
 			err = stream.Send(rsp)
@@ -236,7 +239,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 	// Send the last infos...
 	if len(infos) > 0 {
 		rsp := &logpb.GetLogRsp{
-			Info: infos,
+			Infos: infos,
 		}
 		err = stream.Send(rsp)
 		if err != nil {
@@ -299,12 +302,7 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *logpb.DeleteLogRqst) (
 //* Clear logs. info or errors *
 func (self *Globule) ClearAllLog(ctx context.Context, rqst *logpb.ClearAllLogRqst) (*logpb.ClearAllLogRsp, error) {
 	var err error
-
-	if rqst.Type == logpb.LogType_ERROR_MESSAGE {
-		err = self.deleteLog("/errors/*")
-	} else {
-		err = self.deleteLog("/infos/*")
-	}
+	err = self.deleteLog(rqst.Query)
 
 	if err != nil {
 		return nil, status.Errorf(

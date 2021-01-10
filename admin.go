@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/sys/windows/registry"
+	// "golang.org/x/sys/windows/registry"
 
 	"regexp"
 	"strings"
@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"os/exec"
 	"reflect"
-	"runtime"
 
 	"github.com/globulario/Globular/security"
 	"github.com/globulario/services/golang/packages/packagespb"
@@ -1747,45 +1746,10 @@ func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*
 	}, nil
 }
 
-func setEnvironmentVariable(key string, value string) error {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\ControlSet001\Control\Session Manager\Environment`, registry.ALL_ACCESS)
-	if err != nil {
-		return err
-	}
-	defer k.Close()
-
-	err = k.SetStringValue(key, value)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func unsetEnvironmentVariable(key string) error {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\ControlSet001\Control\Session Manager\Environment`, registry.ALL_ACCESS)
-	if err != nil {
-		return err
-	}
-	defer k.Close()
-
-	err = k.DeleteValue(key)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Set environement variable.
 func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.SetEnvironmentVariableRequest) (*adminpb.SetEnvironmentVariableResponse, error) {
-	var err error
-	if runtime.GOOS == "windows" {
-		err = setEnvironmentVariable(rqst.Name, rqst.Value)
-	} else {
-		err = os.Setenv(rqst.Name, rqst.Value)
+	err := Utility.SetEnvironmentVariable(rqst.Name, rqst.Value)
 
-	}
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1796,19 +1760,21 @@ func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.S
 
 // Get environement variable.
 func (self *Globule) GetEnvironmentVariable(ctx context.Context, rqst *adminpb.GetEnvironmentVariableRequest) (*adminpb.GetEnvironmentVariableResponse, error) {
-	return nil, nil
+	value, err := Utility.GetEnvironmentVariable(rqst.Name)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+	return &adminpb.GetEnvironmentVariableResponse{
+		Value: value,
+	}, nil
 }
 
 // Delete environement variable.
 func (self *Globule) UnsetEnvironmentVariable(ctx context.Context, rqst *adminpb.UnsetEnvironmentVariableRequest) (*adminpb.UnsetEnvironmentVariableResponse, error) {
 
-	var err error
-	if runtime.GOOS == "windows" {
-		err = unsetEnvironmentVariable(rqst.Name)
-	} else {
-		err = os.Unsetenv(rqst.Name)
-
-	}
+	err := Utility.UnsetEnvironmentVariable(rqst.Name)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

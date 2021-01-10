@@ -306,14 +306,18 @@ func (self *Globule) setActionResourcesPermissions(permissions map[string]interf
 // Retreive the ressource infos from the database.
 func (self *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
 	data, err := self.permissions.GetItem(action)
+	infos_ := make([]*rbacpb.ResourceInfos, 0)
 	if err != nil {
-		return nil, err
+		if strings.Index(err.Error(), "leveldb: not found") == -1 {
+			return nil, err
+		} else {
+			// no infos_ found...
+			return infos_, nil
+		}
 	}
-
 	infos := make([]interface{}, 0)
 	err = json.Unmarshal(data, &infos)
 
-	infos_ := make([]*rbacpb.ResourceInfos, 0)
 	for i := 0; i < len(infos); i++ {
 		info := infos[i].(map[string]interface{})
 		infos_ = append(infos_, &rbacpb.ResourceInfos{Index: int32(Utility.ToInt(info["index"])), Permission: info["permission"].(string)})
