@@ -158,6 +158,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 
 }
 
+// Save the configuration file.
 func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self.toMap())

@@ -468,7 +468,6 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 					exist = true
 					// save the config.
 					self.saveConfig()
-
 					break
 				}
 			}
@@ -489,18 +488,18 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 	if err != nil {
 		return nil, err
 	}
-	rolesInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
+	groupsInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Print role info.
-	for i := 0; i < len(rolesInfo); i++ {
-		name := rolesInfo[i][0].([]interface{})[0].(string)
-		id := Utility.GenerateUUID(rolesInfo[i][1].([]interface{})[0].(string))
-		self.createRole(id, name, []string{})
+	// Print group info.
+	for i := 0; i < len(groupsInfo); i++ {
+		name := groupsInfo[i][0].([]interface{})[0].(string)
+		id := Utility.GenerateUUID(groupsInfo[i][1].([]interface{})[0].(string))
+		self.createGroup(id, name, []string{}) // The group member will be set latter in that function.
 	}
 
 	// Synchronize account and user info...
@@ -510,12 +509,6 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
-	if err != nil {
-		return nil, err
 	}
 
 	for i := 0; i < len(accountsInfo); i++ {
@@ -530,31 +523,18 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 
 				id := Utility.GenerateUUID(strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)))
 				if len(id) > 0 {
-					roles := make([]interface{}, 0)
-					roles = append(roles, "guest")
-					// Here I will set the roles of the user.
+					groups := make([]string, 0)
+					// Here I will set the user groups.
 					if len(accountsInfo[i][3].([]interface{})) > 0 {
 						for j := 0; j < len(accountsInfo[i][3].([]interface{})); j++ {
-							roles = append(roles, Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)))
+							groups = append(groups, Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)))
 						}
 					}
 
 					// Try to create account...
-					err := self.registerAccount(id, name, email, id, roles)
+					err := self.registerAccount(id, name, email, id, []string{}, []string{}, []string{"guest"}, groups)
 					if err != nil {
-						rolesStr := `[{"$ref":"Roles","$id":"guest","$db":"local_resource"}`
-						for j := 0; j < len(accountsInfo[i][3].([]interface{})); j++ {
-							rolesStr += `,{"$ref":"Roles","$id":"` + Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)) + `","$db":"local_resource"}`
-						}
-
-						rolesStr += `]`
-						err := p.UpdateOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+id+`"}`, `{ "$set":{"roles":`+rolesStr+`}}`, "")
-						if err != nil {
-							return nil, status.Errorf(
-								codes.Internal,
-								Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-						}
-
+						return nil, err
 					}
 				}
 			} else {
@@ -577,7 +557,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 	}, nil
 }
 
-func (self *Globule) registerAccount(id string, name string, email string, password string, roles []interface{}) error {
+func (self *Globule) registerAccount(id string, name string, email string, password string, organizations []string, contacts []string, roles []string, groups []string) error {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
@@ -603,15 +583,6 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	account["email"] = email
 	account["password"] = Utility.GenerateUUID(password) // hide the password...
 
-	account["roles"] = make([]map[string]interface{}, 0)
-	for i := 0; i < len(roles); i++ {
-		role := make(map[string]interface{}, 0)
-		role["$id"] = roles[i]
-		role["$ref"] = "Roles"
-		role["$db"] = "local_resource"
-		account["roles"] = append(account["roles"].([]map[string]interface{}), role)
-	}
-
 	// Here I will insert the account in the database.
 	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Accounts", account, "")
 
@@ -621,9 +592,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	// Each account will have their own database and a use that can read and write
 	// into it.
 	// Here I will wrote the script for mongoDB...
-	createUserScript := fmt.Sprintf(
-		"db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});",
-		name, name, password, name)
+	createUserScript := fmt.Sprintf("db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});", name, name, password, name)
 
 	p_, err := self.getPersistenceSaConnection()
 	if err != nil {
@@ -655,6 +624,27 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 		return errors.New("No persistence service are available to store resource information.")
 	}
 
+	// Now I will set the reference for
+	// Contact...
+	for i := 0; i < len(contacts); i++ {
+		self.addAccountContact(id, contacts[i])
+	}
+
+	// Organizations
+	for i := 0; i < len(organizations); i++ {
+		self.createCrossReferences(organizations[i], "Organizations", "accounts", id, "Accounts", "organizations")
+	}
+
+	// Roles
+	for i := 0; i < len(roles); i++ {
+		self.createCrossReferences(roles[i], "Roles", "members", id, "Accounts", "roles")
+	}
+
+	// Groups
+	for i := 0; i < len(groups); i++ {
+		self.createCrossReferences(groups[i], "Groups", "members", id, "Accounts", "groups")
+	}
+
 	return nil
 
 }
@@ -675,7 +665,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 
 	}
 
-	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Account.Password, []interface{}{"guest"})
+	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Account.Password, rqst.Account.Organizations, rqst.Account.Contacts, rqst.Account.Roles, rqst.Account.Groups)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -703,27 +693,6 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	// Now I will set the reference for
-	// Contact...
-	for i := 0; i < len(rqst.Account.Contacts); i++ {
-		self.addAccountContact(rqst.Account.GetId(), rqst.Account.Contacts[i])
-	}
-
-	// Organizations
-	for i := 0; i < len(rqst.Account.Organizations); i++ {
-		self.createCrossReferences(rqst.Account.Organizations[i], "Organizations", "accounts", rqst.Account.GetId(), "Accounts", "organizations")
-	}
-
-	// Roles
-	for i := 0; i < len(rqst.Account.Roles); i++ {
-		self.createCrossReferences(rqst.Account.Roles[i], "Roles", "members", rqst.Account.GetId(), "Accounts", "roles")
-	}
-
-	// Groups
-	for i := 0; i < len(rqst.Account.Groups); i++ {
-		self.createCrossReferences(rqst.Account.Groups[i], "Groups", "members", rqst.Account.GetId(), "Accounts", "groups")
 	}
 
 	// Now I will
@@ -2666,31 +2635,40 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 	return &resourcepb.DeleteOrganizationRsp{Result: true}, nil
 }
 
-//* Register a new group
-func (self *Globule) CreateGroup(ctx context.Context, rqst *resourcepb.CreateGroupRqst) (*resourcepb.CreateGroupRsp, error) {
+func (self *Globule) createGroup(id, name string, members []string) error {
 	// Get the persistence connection
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Here I will first look if a peer with a same name already exist on the
 	// resources...
-	count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+rqst.Group.Id+`"}`, "")
+	count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+id+`"}`, "")
 	if count > 0 {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Group with name '"+rqst.Group.Id+"' already exist!")))
+		return errors.New("Group with name '" + id + "' already exist!")
 	}
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
 	g := make(map[string]interface{}, 0)
-	g["_id"] = rqst.Group.Id
-	g["name"] = rqst.Group.Name
-	g["members"] = make([]interface{}, 0)
+	g["_id"] = id
+	g["name"] = name
+	g["members"] = members
 
 	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Groups", g, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//* Register a new group
+func (self *Globule) CreateGroup(ctx context.Context, rqst *resourcepb.CreateGroupRqst) (*resourcepb.CreateGroupRsp, error) {
+	// Get the persistence connection
+	err := self.createGroup(rqst.Group.Id, rqst.Group.Name, rqst.Group.Members)
+
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
