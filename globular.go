@@ -708,6 +708,9 @@ func (self *Globule) Serve() {
 	// lisen
 	err := self.Listen()
 
+	// Keep watching if the config file was modify by external agent.
+	self.watchConfigFile()
+
 	log.Println("Globular is running!")
 	if err != nil {
 		log.Println(err)
@@ -1040,7 +1043,7 @@ func (self *Globule) stopServices() {
 	for _, s := range self.getServices() {
 		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
-			self.stopService(getStringVal(s, "Id"))
+			self.stopService(s)
 		}
 	}
 
@@ -1245,7 +1248,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// save service config.
 		self.saveServiceConfig(s)
 
-		// save it to the config.
+		// save it to the config because pid and proxy pid have change.
 		self.saveConfig()
 		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
@@ -1362,17 +1365,21 @@ func (self *Globule) initService(s *sync.Map) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-		_, hasProcess := s.Load("Process")
-		if !hasProcess {
-			s.Store("Process", -1)
-		}
-		if hasChange || getIntVal(s, "Process") == -1 {
-			self.setService(s)
-			_, _, err := self.startService(s)
-			if err != nil {
-				return err
+		if hasChange {
+			state := getStringVal(s, "State")
+			if state == "stop" {
+				self.stopService(s)
+			} else {
+				// here the service will try to restart.
+				_, _, err := self.startService(s)
+				if err != nil {
+					s.Store("State", "Failed")
+					return err
+				}
 			}
+			self.setService(s)
 			self.saveConfig()
+
 		}
 	}
 
@@ -1487,7 +1494,6 @@ func (self *Globule) initServices() {
 								if s["Id"] == nil {
 									s["Id"] = Utility.RandomUUID()
 								}
-								s["configPath"] = path
 
 								s_ := new(sync.Map)
 								for k, v := range s {

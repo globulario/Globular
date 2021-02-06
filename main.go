@@ -609,7 +609,6 @@ func install(g *Globule, path string) {
 									config["CertFile"] = ""
 									config["KeyFile"] = ""
 									config["TLS"] = false
-									delete(config, "configPath")
 
 									str, _ := Utility.ToJson(&config)
 									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/"+"config.json", []byte(str), 0644)

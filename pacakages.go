@@ -78,7 +78,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 										if Utility.ToInt(strings.Split(version, ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
 											if Utility.ToInt(strings.Split(version, ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
 												if Utility.ToInt(strings.Split(version, ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-													self.stopService(getStringVal(s, "Id"))
+													self.stopService(s)
 													self.deleteService(getStringVal(s, "Id"))
 													err := self.installService(descriptor)
 													if err != nil {

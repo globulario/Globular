@@ -158,6 +158,61 @@ func (self *Globule) getConfig() map[string]interface{} {
 
 }
 
+func watchFile(filePath string) error {
+	initialStat, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+
+	for {
+		stat, err := os.Stat(filePath)
+		if err != nil {
+			return err
+		}
+
+		if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+
+	}
+
+	return nil
+}
+
+func (self *Globule) watchConfigFile() {
+
+	doneChan := make(chan bool)
+
+	go func(doneChan chan bool) {
+		defer func() {
+			doneChan <- true
+		}()
+
+		err := watchFile(self.config + string(os.PathSeparator) + "config.json")
+		if err != nil {
+			fmt.Println(err)
+		}
+		// Run only if the server is running
+		if !self.exit_ {
+			// Here I will test if the configuration has change.
+			log.Println("configuration was changed and save from external actions.")
+
+			// Here I will read the file.
+			data, _ := ioutil.ReadFile(self.config + string(os.PathSeparator) + "config.json")
+			config := make(map[string]interface{}, 0)
+			json.Unmarshal(data, &config)
+			self.setConfig(config)
+
+			self.watchConfigFile() // watch again...
+		}
+	}(doneChan)
+
+	<-doneChan
+
+}
+
 // Save the configuration file.
 func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
@@ -167,7 +222,6 @@ func (self *Globule) saveConfig() {
 	} else {
 		log.Panicln(err)
 	}
-
 }
 
 /**
@@ -259,21 +313,11 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 		return false
 	}
 
-	_, hasConfigPath := config.Load("configPath")
-	if !hasConfigPath {
-		config_ := self.getService(getStringVal(config, "Id"))
-		if config_ != nil {
-			config.Range(func(k, v interface{}) bool {
-				config_.Store(k, v)
-				return true
-			})
-			// save the globule configuration.
-			self.saveConfig()
-		}
+	// Here I will
+	configPath := self.getServiceConfigPath(config)
+	if len(configPath) == 0 {
 		return false
 	}
-
-	// Here I will
 
 	// set the domain of the service.
 	config.Store("Domain", self.getDomain())
@@ -282,13 +326,8 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 	config.Store("Path", strings.ReplaceAll(getStringVal(config, "Path"), "\\", "/"))
 	config.Store("Proto", strings.ReplaceAll(getStringVal(config, "Proto"), "\\", "/"))
 
-	_, hasConfigPath = config.Load("hasConfigPath")
-	if hasConfigPath {
-		config.Store("configPath", strings.ReplaceAll(getStringVal(config, "configPath"), "\\", "/"))
-	}
-
 	// so here I will get the previous information...
-	f, err := os.Open(getStringVal(config, "configPath"))
+	f, err := os.Open(configPath)
 
 	if err == nil {
 		b, err := ioutil.ReadAll(f)
@@ -301,7 +340,10 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 				config__[k.(string)] = v
 				return true
 			})
+
+			// Test if there change from the original value's
 			if reflect.DeepEqual(config_, config__) {
+				log.Println("the values has not change since last read ", configPath)
 				f.Close()
 				// set back the path's info.
 				return false
@@ -310,7 +352,7 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 			// sync the data/config file with the service file.
 			jsonStr, _ := Utility.ToJson(config__)
 			// here I will write the file
-			err = ioutil.WriteFile(getStringVal(config, "configPath"), []byte(jsonStr), 0644)
+			err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
 			if err != nil {
 				return false
 			}
@@ -343,16 +385,7 @@ func (self *Globule) saveServiceConfig(config *sync.Map) bool {
 	return true
 }
 
-// Save a service configuration
-func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
-	// Save service...
-	config := make(map[string]interface{}, 0)
-	err := json.Unmarshal([]byte(rqst.Config), &config)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
+func (self *Globule) setConfig(config map[string]interface{}) {
 
 	// if the configuration is one of services...
 	if config["Id"] != nil {
@@ -364,11 +397,17 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 	} else if config["Services"] != nil {
 		// Here I will save the configuration
+
 		self.Name = config["Name"].(string)
+
 		self.PortHttp = Utility.ToInt(config["PortHttp"].(float64))
 		self.PortHttps = Utility.ToInt(config["PortHttps"].(float64))
+
+		// The port range
 		self.PortsRange = config["PortsRange"].(string)
+
 		self.AdminEmail = config["AdminEmail"].(string)
+
 		self.Country = config["Country"].(string)
 		self.State = config["State"].(string)
 		self.City = config["City"].(string)
@@ -415,7 +454,23 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 			setValues(s_, s.(map[string]interface{}))
 			self.initService(s_)
 		}
+	}
+}
 
+// Save a service configuration
+func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
+	// Save service...
+	config := make(map[string]interface{}, 0)
+	err := json.Unmarshal([]byte(rqst.Config), &config)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	// Set config will apply configuration
+	self.setConfig(config)
+	if config["Services"] != nil {
 		// save the application server.
 		self.saveConfig()
 	}
@@ -1280,7 +1335,6 @@ func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) er
 			// I will replace the path inside the config...
 			execName := s["Path"].(string)[strings.LastIndex(s["Path"].(string), "/")+1:]
 			s["Path"] = path + "/" + execName
-			s["configPath"] = configs[0]
 			s["Proto"] = protos[0]
 
 			err = os.Chmod(s["Path"].(string), 0755)
@@ -1378,7 +1432,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 		if ok {
 			if getStringVal(s, "PublisherId") == rqst.PublisherId && id == rqst.ServiceId && getStringVal(s, "Version") == rqst.Version {
 
-				self.stopService(id.(string))
+				self.stopService(s)
 				self.deleteService(id.(string))
 
 				// Get the list of method to remove from the list of actions.
@@ -1434,12 +1488,22 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	}, nil
 }
 
-func (self *Globule) stopService(serviceId string) error {
+/**
+ * Retunr the path of config.json for a given services.
+ */
+func (self *Globule) getServiceConfigPath(s *sync.Map) string {
 
-	s := self.getService(serviceId)
-	if s == nil {
-		return errors.New("No service found with id " + serviceId)
+	path := getStringVal(s, "Path")
+	index := strings.LastIndex(path, "/")
+	if index == -1 {
+		return ""
 	}
+
+	path = path[0:index] + "/config.json"
+	return path
+}
+
+func (self *Globule) stopService(s *sync.Map) error {
 
 	// Set keep alive to false...
 	s.Store("KeepAlive", false)
@@ -1485,9 +1549,10 @@ func (self *Globule) stopService(serviceId string) error {
 
 	// sync the data/config file with the service file.
 	jsonStr, _ := Utility.ToJson(config)
-	configPath := getStringVal(s, "configPath")
+
+	// here I will write the file
+	configPath := self.getServiceConfigPath(s)
 	if len(configPath) > 0 {
-		// here I will write the file
 		err := ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
 		if err != nil {
 			return err
@@ -1504,7 +1569,7 @@ func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceR
 
 	s := self.getService(rqst.ServiceId)
 	if s != nil {
-		err := self.stopService(rqst.ServiceId)
+		err := self.stopService(s)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1514,8 +1579,12 @@ func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceR
 		// Close all services with a given name.
 		services := self.getServiceConfigByName(rqst.ServiceId)
 		for i := 0; i < len(services); i++ {
-			s := services[i]
-			err := self.stopService(s["Id"].(string))
+			serviceId := services[i]["Id"].(string)
+			s := self.getService(serviceId)
+			if s == nil {
+				return nil, errors.New("No service found with id " + serviceId)
+			}
+			err := self.stopService(s)
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
