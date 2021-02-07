@@ -300,9 +300,15 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 		descriptors[i] = new(packagespb.PackageDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Name = descriptor["name"].(string)
-		descriptors[i].Description = descriptor["description"].(string)
-		descriptors[i].PublisherId = descriptor["publisherid"].(string)
-		descriptors[i].Version = descriptor["version"].(string)
+		if descriptor["description"] != nil {
+			descriptors[i].Description = descriptor["description"].(string)
+		}
+		if descriptor["publisherid"] != nil {
+			descriptors[i].PublisherId = descriptor["publisherid"].(string)
+		}
+		if descriptor["publisherid"] != nil {
+			descriptors[i].Version = descriptor["version"].(string)
+		}
 		descriptors[i].Type = packagespb.PackageType(Utility.ToInt(descriptor["type"]))
 
 		if descriptor["keywords"] != nil {

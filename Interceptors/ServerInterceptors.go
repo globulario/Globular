@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/davecourtois/Utility"
@@ -48,7 +49,7 @@ var (
 	cache *storage_store.BigCache_store
 
 	// keep map in memory.
-	ressourceInfos map[string][]*rbacpb.ResourceInfos
+	ressourceInfos sync.Map //map[string][]*rbacpb.ResourceInfos
 )
 
 /**
@@ -157,12 +158,9 @@ func refreshToken(domain string, token string) (string, error) {
 func getActionResourceInfos(domain, method string) ([]*rbacpb.ResourceInfos, error) {
 
 	// init the ressourceInfos
-	if ressourceInfos == nil {
-		ressourceInfos = make(map[string][]*rbacpb.ResourceInfos, 0)
-	}
-
-	if val, ok := ressourceInfos["method"]; ok {
-		return val, nil
+	val, ok := ressourceInfos.Load(method)
+	if ok {
+		return val.([]*rbacpb.ResourceInfos), nil
 	}
 
 	rbac_client_, err := GetRbacClient(domain)
@@ -176,7 +174,7 @@ func getActionResourceInfos(domain, method string) ([]*rbacpb.ResourceInfos, err
 		return nil, err
 	}
 
-	ressourceInfos[method] = infos
+	ressourceInfos.Store(method, infos)
 
 	return infos, nil
 
