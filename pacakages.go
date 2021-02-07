@@ -78,7 +78,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 										if Utility.ToInt(strings.Split(version, ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
 											if Utility.ToInt(strings.Split(version, ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
 												if Utility.ToInt(strings.Split(version, ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-													self.stopService(getStringVal(s, "Id"))
+													self.stopService(s)
 													self.deleteService(getStringVal(s, "Id"))
 													err := self.installService(descriptor)
 													if err != nil {
@@ -128,11 +128,11 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 func (self *Globule) startPackagesDiscoveryService() error {
 	// The service discovery.
 	id := string(packagespb.File_proto_packages_proto.Services().Get(0).FullName())
-	services_discovery_server, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.PackagesDiscoveryPort, self.PackagesDiscoveryProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	services_discovery_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.PackagesDiscoveryPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not start services discovery service %s: %s", self.getDomain(), err)
 		}
@@ -161,7 +161,7 @@ func (self *Globule) startPackagesDiscoveryService() error {
 func (self *Globule) startPackagesRepositoryService() error {
 	id := string(packagespb.File_proto_packages_proto.Services().Get(1).FullName())
 
-	services_repository_server, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.PackagesRepositoryPort, self.PackagesRepositoryProxy,
+	services_repository_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(),
 		self.Protocol == "https",
 		Interceptors.ServerUnaryInterceptor,
 		Interceptors.ServerStreamInterceptor)
@@ -170,7 +170,7 @@ func (self *Globule) startPackagesRepositoryService() error {
 		self.inernalServices = append(self.inernalServices, services_repository_server)
 
 		// Create the channel to listen on admin port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.PackagesRepositoryPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not start services repository service %s: %s", self.getDomain(), err)
 		}

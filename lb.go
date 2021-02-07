@@ -21,12 +21,12 @@ import (
  * Start the load balancing service.
  */
 func (self *Globule) startLoadBalancingService() error {
-	load_balancer, err := self.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), self.LoadBalancingServicePort, self.LoadBalancingServiceProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	load_balancer, port, err := self.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil && load_balancer != nil {
 
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.LoadBalancingServicePort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err == nil {
 			lbpb.RegisterLoadBalancingServiceServer(load_balancer, self)
 

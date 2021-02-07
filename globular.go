@@ -83,27 +83,11 @@ type Globule struct {
 	Name string // The service name
 
 	// Globualr specifics ports.
-	PortHttp                  int    // The port of the http file server.
-	PortHttps                 int    // The secure port
-	AdminPort                 int    // The admin port
-	AdminProxy                int    // The admin proxy port.
-	LogPort                   int    // The port to get log.
-	LogProxy                  int    // Log proxy
-	RbacPort                  int    // RBAC port
-	RbacProxy                 int    // RBAC proxy
-	AdminEmail                string // The admin email
-	ResourcePort              int    // The resource management service port
-	ResourceProxy             int    // The resource management proxy port
-	CertificateAuthorityPort  int    // The certificate authority port
-	CertificateAuthorityProxy int    // The certificate authority proxy port
-	PackagesDiscoveryPort     int    // The Packages discovery port
-	PackagesDiscoveryProxy    int    // The Packages discovery proxy port
-	PackagesRepositoryPort    int    // The Packages repository port
-	PackagesRepositoryProxy   int    // The Packages repository proxy port
-	LoadBalancingServicePort  int    // The load balancing service port
-	LoadBalancingServiceProxy int    // The load balancing proxy port
-	PortsRange                string // The range of port to be use for the service. ex 10000-10200
-	DbIpV4                    string // The address of the database ex 0.0.0.0:27017
+	PortHttp   int    // The port of the http file server.
+	PortHttps  int    // The secure port
+	AdminEmail string // The admin email
+	PortsRange string // The range of port to be use for the service. ex 10000-10200
+	DbIpV4     string // The address of the database ex 0.0.0.0:27017
 
 	// can be https or http.
 	Protocol string // The protocol of the service.
@@ -277,25 +261,6 @@ func NewGlobule() *Globule {
 	} else {
 		// save the configuration to set the port number.
 		g.AdminEmail = "admin@globular.app"
-
-		portRange := strings.Split(g.PortsRange, "-")
-		start := Utility.ToInt(portRange[0])
-		g.AdminPort = start + 1
-		g.AdminProxy = start + 2
-		g.ResourcePort = start + 3
-		g.ResourceProxy = start + 4
-		g.PackagesDiscoveryPort = start + 5
-		g.PackagesDiscoveryProxy = start + 6
-		g.PackagesRepositoryPort = start + 7
-		g.PackagesRepositoryProxy = start + 8
-		g.CertificateAuthorityPort = start + 9
-		g.CertificateAuthorityProxy = start + 10
-		g.LoadBalancingServicePort = start + 11
-		g.LoadBalancingServiceProxy = start + 12
-		g.LogPort = start + 13
-		g.LogProxy = start + 14
-		g.RbacPort = start + 15
-		g.RbacProxy = start + 16
 	}
 
 	// Keep in global var to by http handlers.
@@ -456,6 +421,7 @@ func processIsRuning(pid int) bool {
 
 func (self *Globule) getPortsInUse() []int {
 	portsInUse := make([]int, 0)
+
 	// I will test if the port is already taken by e services.
 	self.services.Range(func(key, value interface{}) bool {
 		m := value.(*sync.Map)
@@ -470,6 +436,7 @@ func (self *Globule) getPortsInUse() []int {
 				}
 			}
 		}
+
 		proxyPid_, hasProxyProcess := m.Load("ProxyProcess")
 		if hasProxyProcess {
 			proxyPid := Utility.ToInt(proxyPid_)
@@ -491,7 +458,7 @@ func (self *Globule) getPortsInUse() []int {
  */
 func (self *Globule) isPortAvailable(port int) bool {
 	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 17 // The first 12 addresse are reserver by internal service...
+	start := Utility.ToInt(portRange[0])
 	end := Utility.ToInt(portRange[1])
 
 	if port < start || port > end {
@@ -520,7 +487,7 @@ func (self *Globule) isPortAvailable(port int) bool {
  **/
 func (self *Globule) getNextAvailablePort() (int, error) {
 	portRange := strings.Split(self.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 17 // The first 17 addresse are reserver by internal service...
+	start := Utility.ToInt(portRange[0]) + 1 // The first port of the range will be reserve to http configuration handler.
 	end := Utility.ToInt(portRange[1])
 
 	for i := start; i < end; i++ {
@@ -702,11 +669,17 @@ func (self *Globule) Serve() {
 	// set the services.
 	self.initServices()
 
+	// start internal services. (need persistence service to manage permissions)
+	self.startInternalServices()
+
 	// Here I will save the server attribute
 	self.saveConfig()
 
 	// lisen
 	err := self.Listen()
+
+	// Keep watching if the config file was modify by external agent.
+	self.watchConfigFile()
 
 	log.Println("Globular is running!")
 	if err != nil {
@@ -933,7 +906,7 @@ func (self *Globule) keepServiceAlive(s *sync.Map) {
 /**
  * Start internal service admin and resource are use that function.
  */
-func (self *Globule) startInternalService(id string, proto string, port int, proxy int, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, error) {
+func (self *Globule) startInternalService(id string, proto string, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, int, error) {
 	log.Println("Start internal service ", id)
 
 	s := self.getService(id)
@@ -982,25 +955,44 @@ func (self *Globule) startInternalService(id string, proto string, port int, pro
 	s.Store("Name", id)
 	s.Store("Id", id)
 	s.Store("Proto", proto)
-	s.Store("Port", port)
-	s.Store("Proxy", proxy)
+	s.Store("Port", 0)
+	s.Store("Proxy", 0)
 	s.Store("TLS", hasTls)
-	s.Store("ProxyProcess", -1)
-
+	s.Store("ProxyProcess", -1) // must be use to reserve the port...
+	s.Store("Process", -1)
 	self.setService(s)
+
+	// Todo get next available ports.
+	port, err := self.getNextAvailablePort()
+	s.Store("Port", port)
+	s.Store("Process", 0) // must be set to 0 reserve the port
+	self.setService(s)
+
+	if err != nil {
+		return nil, -1, err
+	}
+
+	proxy, err := self.getNextAvailablePort()
+	s.Store("Process", -1) // must be use to reserve the port...
+	s.Store("Proxy", proxy)
+	self.setService(s)
+
+	if err != nil {
+		return nil, -1, err
+	}
 
 	// save the config.
 	self.saveConfig()
 
 	// start the proxy
-	_, err := self.startProxy(s, port, proxy)
+	_, err = self.startProxy(s, port, proxy)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	self.inernalServices = append(self.inernalServices, grpcServer)
 
-	return grpcServer, nil
+	return grpcServer, port, nil
 }
 
 /**
@@ -1040,7 +1032,7 @@ func (self *Globule) stopServices() {
 	for _, s := range self.getServices() {
 		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
-			self.stopService(getStringVal(s, "Id"))
+			self.stopService(s)
 		}
 	}
 
@@ -1226,13 +1218,18 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// get another port.
 		proxy := getIntVal(s, "Proxy")
 		if !self.isPortAvailable(proxy) {
+			s.Store("Process", 0) // needed to reverve the port...
+			self.setService(s)
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
 				s.Store("Proxy", -1)
 
 				return -1, -1, err
 			}
+			// Set back the process
+			s.Store("Process", -1)
 			s.Store("Proxy", proxy)
+
 			self.setService(s)
 		}
 
@@ -1245,7 +1242,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		// save service config.
 		self.saveServiceConfig(s)
 
-		// save it to the config.
+		// save it to the config because pid and proxy pid have change.
 		self.saveConfig()
 		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
@@ -1362,17 +1359,21 @@ func (self *Globule) initService(s *sync.Map) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 		hasChange := self.saveServiceConfig(s)
-		_, hasProcess := s.Load("Process")
-		if !hasProcess {
-			s.Store("Process", -1)
-		}
-		if hasChange || getIntVal(s, "Process") == -1 {
-			self.setService(s)
-			_, _, err := self.startService(s)
-			if err != nil {
-				return err
+		if hasChange {
+			state := getStringVal(s, "State")
+			if state == "stop" {
+				self.stopService(s)
+			} else {
+				// here the service will try to restart.
+				_, _, err := self.startService(s)
+				if err != nil {
+					s.Store("State", "Failed")
+					return err
+				}
 			}
+			self.setService(s)
 			self.saveConfig()
+
 		}
 	}
 
@@ -1487,7 +1488,6 @@ func (self *Globule) initServices() {
 								if s["Id"] == nil {
 									s["Id"] = Utility.RandomUUID()
 								}
-								s["configPath"] = path
 
 								s_ := new(sync.Map)
 								for k, v := range s {
@@ -1987,13 +1987,7 @@ func (self *Globule) GetAbsolutePath(path string) string {
 
 }
 
-/**
- * Listen for new connection.
- */
-func (self *Globule) Listen() error {
-
-	// Here I will subscribe to event service to keep then up to date.
-	self.subscribers = self.keepServicesUpToDate()
+func (self *Globule) startInternalServices() error {
 
 	// Start internal services.
 
@@ -2038,6 +2032,19 @@ func (self *Globule) Listen() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+/**
+ * Listen for new connection.
+ */
+func (self *Globule) Listen() error {
+
+	// Here I will subscribe to event service to keep then up to date.
+	self.subscribers = self.keepServicesUpToDate()
+
+	var err error
 
 	// Must be started before other services.
 	go func() {
