@@ -204,6 +204,9 @@ func (self *Globule) watchConfigFile() {
 
 // Save the configuration file.
 func (self *Globule) saveConfig() {
+	if self.exit_ {
+		return // not writting the config file when the server is closing.
+	}
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self.toMap())
 	if err == nil {
@@ -1677,7 +1680,26 @@ func (self *Globule) restartServices() {
 	// Stop all external services.
 	self.stopServices()
 
-	log.Println("--> restart...")
+	ticker := time.NewTicker(1 * time.Second)
+	done := make(chan bool)
+	delay := 5
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+
+				fmt.Println("restart in ", delay, "second")
+				delay--
+			}
+		}
+	}()
+
+	time.Sleep(time.Duration(delay) * time.Second)
+	ticker.Stop()
+	done <- true
+
 	rerunDetached()
 
 	os.Exit(0) // exit the process to release all ressources.

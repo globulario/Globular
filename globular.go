@@ -190,6 +190,9 @@ type Globule struct {
 	// The http server
 	http_server  *http.Server
 	https_server *http.Server
+
+	// temporary array to be use to get next available port.
+	portsInUse []int
 }
 
 /**
@@ -420,7 +423,7 @@ func processIsRuning(pid int) bool {
 }
 
 func (self *Globule) getPortsInUse() []int {
-	portsInUse := make([]int, 0)
+	portsInUse := self.portsInUse
 
 	// I will test if the port is already taken by e services.
 	self.services.Range(func(key, value interface{}) bool {
@@ -471,6 +474,7 @@ func (self *Globule) isPortAvailable(port int) bool {
 			return false
 		}
 	}
+
 	// wait before interogate the next port
 	time.Sleep(100 * time.Millisecond)
 	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
@@ -492,6 +496,7 @@ func (self *Globule) getNextAvailablePort() (int, error) {
 
 	for i := start; i < end; i++ {
 		if self.isPortAvailable(i) {
+			self.portsInUse = append(self.portsInUse, i)
 			return i, nil
 		}
 	}
@@ -671,9 +676,6 @@ func (self *Globule) Serve() {
 
 	// start internal services. (need persistence service to manage permissions)
 	self.startInternalServices()
-
-	// Here I will save the server attribute
-	self.saveConfig()
 
 	// lisen
 	err := self.Listen()
@@ -962,10 +964,11 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 	s.Store("Process", -1)
 	self.setService(s)
 
+	self.portsInUse = make([]int, 0)
+
 	// Todo get next available ports.
 	port, err := self.getNextAvailablePort()
 	s.Store("Port", port)
-	s.Store("Process", 0) // must be set to 0 reserve the port
 	self.setService(s)
 
 	if err != nil {
@@ -973,7 +976,6 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 	}
 
 	proxy, err := self.getNextAvailablePort()
-	s.Store("Process", -1) // must be use to reserve the port...
 	s.Store("Proxy", proxy)
 	self.setService(s)
 
@@ -982,7 +984,7 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 	}
 
 	// save the config.
-	self.saveConfig()
+	//self.saveConfig()
 
 	// start the proxy
 	_, err = self.startProxy(s, port, proxy)
@@ -1001,7 +1003,6 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
 		self.inernalServices[i].Stop()
-
 	}
 }
 
@@ -1129,6 +1130,8 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			s.Store("KeyFile", "")
 		}
 
+		self.portsInUse = make([]int, 0)
+
 		// Get the next available port.
 		port := getIntVal(s, "Port")
 		if !self.isPortAvailable(port) {
@@ -1210,15 +1213,13 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 			s.Store("Process", -1)
 			s.Store("ProxyProcess", -1)
-
-			self.saveConfig()
+			self.setService(s)
 
 		}(s, p)
 
 		// get another port.
 		proxy := getIntVal(s, "Proxy")
 		if !self.isPortAvailable(proxy) {
-			s.Store("Process", 0) // needed to reverve the port...
 			self.setService(s)
 			proxy, err = self.getNextAvailablePort()
 			if err != nil {
@@ -1227,7 +1228,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 				return -1, -1, err
 			}
 			// Set back the process
-			s.Store("Process", -1)
 			s.Store("Proxy", proxy)
 
 			self.setService(s)
@@ -1372,7 +1372,7 @@ func (self *Globule) initService(s *sync.Map) error {
 				}
 			}
 			self.setService(s)
-			self.saveConfig()
+			//self.saveConfig()
 
 		}
 	}
@@ -1495,7 +1495,6 @@ func (self *Globule) initServices() {
 								}
 
 								self.setService(s_)
-								self.saveConfig()
 							}
 						}
 					} else {

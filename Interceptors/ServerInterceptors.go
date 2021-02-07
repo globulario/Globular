@@ -381,10 +381,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	}
 
 	var result interface{}
-
-	if Utility.GetProperty(info.Server, "Id") != nil {
-		fmt.Println("421 execute request ", Utility.GetProperty(info.Server, "Id").(string))
-	}
 	result, err = handler(ctx, rqst)
 	// Send log message.
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {

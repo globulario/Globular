@@ -57,7 +57,7 @@ func (self *Globule) startResourceService() error {
 			pid := getIntVal(s, "ProxyProcess")
 			Utility.TerminateProcess(pid, 0)
 			s.Store("ProxyProcess", -1)
-			self.saveConfig()
+			self.setService(s)
 		}()
 
 		// In order to be able to give permission to a server

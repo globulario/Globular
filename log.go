@@ -43,7 +43,7 @@ func (self *Globule) startLogService() error {
 			pid := getIntVal(s, "ProxyProcess")
 			Utility.TerminateProcess(pid, 0)
 			s.Store("ProxyProcess", -1)
-			self.saveConfig()
+			self.setService(s)
 		}()
 	}
 
