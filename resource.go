@@ -34,12 +34,12 @@ import (
 
 func (self *Globule) startResourceService() error {
 	id := string(resourcepb.File_proto_resource_proto.Services().Get(0).FullName())
-	resource_server, err := self.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), self.ResourcePort, self.ResourceProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	resource_server, port, err := self.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, resource_server)
 
 		// Create the channel to listen on resource port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.ResourcePort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
 		}

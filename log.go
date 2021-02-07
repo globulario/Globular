@@ -21,12 +21,12 @@ import (
 // Start internal logging services.
 func (self *Globule) startLogService() error {
 	id := string(logpb.File_proto_log_proto.Services().Get(0).FullName())
-	log_server, err := self.startInternalService(id, logpb.File_proto_log_proto.Path(), self.LogPort, self.LogProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	log_server, port, err := self.startInternalService(id, logpb.File_proto_log_proto.Path(), self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, log_server)
 
 		// Create the channel to listen on resource port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.LogPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
 		}

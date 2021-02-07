@@ -20,12 +20,12 @@ import (
 
 func (self *Globule) startRbacService() error {
 	id := string(rbacpb.File_proto_rbac_proto.Services().Get(0).FullName())
-	rbac_server, err := self.startInternalService(id, rbacpb.File_proto_rbac_proto.Path(), self.RbacPort, self.RbacProxy, self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	rbac_server, port, err := self.startInternalService(id, rbacpb.File_proto_rbac_proto.Path(), self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, rbac_server)
 
 		// Create the channel to listen on resource port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.RbacPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
 		}

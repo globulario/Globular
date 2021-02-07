@@ -53,14 +53,14 @@ import (
 
 func (self *Globule) startAdminService() error {
 	id := string(adminpb.File_proto_admin_proto.Services().Get(0).FullName())
-	admin_server, err := self.startInternalService(id, adminpb.File_proto_admin_proto.Path(), self.AdminPort, self.AdminProxy, self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	admin_server, port, err := self.startInternalService(id, adminpb.File_proto_admin_proto.Path(), self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, admin_server)
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
 
 		// Create the channel to listen on admin port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.AdminPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			return err
 		}
@@ -93,17 +93,8 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["Name"] = self.Name
 	config["PortHttp"] = self.PortHttp
 	config["PortHttps"] = self.PortHttps
-	config["AdminPort"] = self.AdminPort
-	config["AdminProxy"] = self.AdminProxy
 	config["AdminEmail"] = self.AdminEmail
 	config["AlternateDomains"] = self.AlternateDomains
-	config["ResourcePort"] = self.ResourcePort
-	config["ResourceProxy"] = self.ResourceProxy
-	config["PackagesDiscoveryPort"] = self.PackagesDiscoveryPort
-	config["PackagesDiscoveryProxy"] = self.PackagesDiscoveryProxy
-	config["PackagesRepositoryPort"] = self.PackagesRepositoryPort
-	config["PackagesRepositoryProxy"] = self.PackagesRepositoryProxy
-	config["LoadBalancingServiceProxy"] = self.LoadBalancingServiceProxy
 	config["SessionTimeout"] = self.SessionTimeout
 	config["Discoveries"] = self.Discoveries
 	config["PortsRange"] = self.PortsRange
@@ -116,8 +107,6 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["ExternalApplications"] = self.ExternalApplications
 	config["CertURL"] = self.CertURL
 	config["CertStableURL"] = self.CertStableURL
-	config["CertificateAuthorityPort"] = self.CertificateAuthorityPort
-	config["CertificateAuthorityProxy"] = self.CertificateAuthorityProxy
 	config["CertExpirationDelay"] = self.CertExpirationDelay
 	config["CertPassword"] = self.CertPassword
 	config["Country"] = self.Country
@@ -396,32 +385,16 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 		}
 
 	} else if config["Services"] != nil {
+
 		// Here I will save the configuration
-
-		self.Name = config["Name"].(string)
-
-		self.PortHttp = Utility.ToInt(config["PortHttp"].(float64))
-		self.PortHttps = Utility.ToInt(config["PortHttps"].(float64))
-
-		// The port range
-		self.PortsRange = config["PortsRange"].(string)
-
 		self.AdminEmail = config["AdminEmail"].(string)
 
 		self.Country = config["Country"].(string)
 		self.State = config["State"].(string)
 		self.City = config["City"].(string)
 		self.Organization = config["Organization"].(string)
-		self.AdminPort = Utility.ToInt(config["AdminPort"].(float64))
-		self.AdminProxy = Utility.ToInt(config["AdminProxy"].(float64))
-		self.ResourcePort = Utility.ToInt(config["ResourcePort"].(float64))
-		self.ResourceProxy = Utility.ToInt(config["ResourceProxy"].(float64))
-		self.PackagesDiscoveryPort = Utility.ToInt(config["PackagesDiscoveryPort"].(float64))
-		self.PackagesDiscoveryProxy = Utility.ToInt(config["PackagesDiscoveryProxy"].(float64))
-		self.PackagesRepositoryPort = Utility.ToInt(config["PackagesRepositoryPort"].(float64))
-		self.PackagesRepositoryProxy = Utility.ToInt(config["PackagesRepositoryProxy"].(float64))
-		self.CertificateAuthorityPort = Utility.ToInt(config["CertificateAuthorityPort"].(float64))
-		self.CertificateAuthorityProxy = Utility.ToInt(config["CertificateAuthorityProxy"].(float64))
+		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
+		self.Name = config["Name"].(string)
 
 		if config["DnsUpdateIpInfos"] != nil {
 			self.DnsUpdateIpInfos = config["DnsUpdateIpInfos"].([]interface{})
@@ -431,9 +404,43 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 			self.AlternateDomains = config["AlternateDomains"].([]interface{})
 		}
 
-		self.Protocol = config["Protocol"].(string)
-		self.Domain = config["Domain"].(string)
-		self.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
+		restartServices := false
+
+		httpPort := Utility.ToInt(config["PortHttp"].(float64))
+		if httpPort != self.PortHttp {
+			self.PortHttp = httpPort
+			restartServices = true
+		}
+
+		httpsPort := Utility.ToInt(config["PortHttps"].(float64))
+		if httpsPort != self.PortHttps {
+			self.PortHttps = httpsPort
+			restartServices = true
+		}
+
+		protocol := config["Protocol"].(string)
+		if self.Protocol != protocol {
+			self.Protocol = protocol
+			restartServices = true
+		}
+
+		// The port range
+		portsRange := config["PortsRange"].(string)
+		if portsRange != self.PortsRange {
+			self.PortsRange = config["PortsRange"].(string)
+			restartServices = true
+		}
+
+		domain := config["Domain"].(string)
+		if self.Domain != domain {
+			self.Domain = domain
+			restartServices = true
+		}
+
+		if restartServices {
+			// This will restart the service.
+			defer self.restartServices()
+		}
 
 		// Save Discoveries.
 		self.Discoveries = make([]string, 0)
@@ -1520,10 +1527,6 @@ func (self *Globule) stopService(s *sync.Map) error {
 		}
 	}
 
-	// Here I will wait util the port is releaser...
-
-	self.getNextAvailablePort()
-
 	_, hasProxyProcessPid := s.Load("ProxyProcess")
 	if !hasProxyProcessPid {
 		s.Store("ProxyProcess", -1)
@@ -1645,6 +1648,25 @@ func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartS
 	return &adminpb.RestartServicesResponse{}, nil
 }
 
+// That command is use to restart a new instance of the globular.
+func rerunDetached() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	cmd := exec.Command(os.Args[0], []string{}...)
+	cmd.Dir = cwd
+	err = cmd.Start()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	cmd.Process.Release()
+	log.Println(os.Args[0])
+	return nil
+}
+
 func (self *Globule) restartServices() {
 
 	// Stop all internal services
@@ -1656,9 +1678,9 @@ func (self *Globule) restartServices() {
 	self.stopServices()
 
 	log.Println("--> restart...")
+	rerunDetached()
 
-	// Start services
-	self.Serve()
+	os.Exit(0) // exit the process to release all ressources.
 
 }
 

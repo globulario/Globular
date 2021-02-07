@@ -12,9 +12,9 @@ import (
 
 	"strconv"
 
+	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/ca/capb"
-	"github.com/davecourtois/Utility"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,14 +22,13 @@ import (
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
 	id := string(capb.File_proto_ca_proto.Services().Get(0).FullName())
-	certificate_authority_server, err := self.startInternalService(id,
-		capb.File_proto_ca_proto.Path(), self.CertificateAuthorityPort, self.CertificateAuthorityProxy, false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	certificate_authority_server, port, err := self.startInternalService(id, capb.File_proto_ca_proto.Path(), false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
 
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, certificate_authority_server)
 
 		// Create the channel to listen on admin port.
-		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(self.CertificateAuthorityPort))
+		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
 			log.Fatalf("could not certificate authority signing  service %s: %s", self.Name, err)
 		}
