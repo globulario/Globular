@@ -1085,7 +1085,15 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 	proxyPid := -1
 	pid := getIntVal(s, "Process")
 	if pid != -1 {
-		Utility.TerminateProcess(pid, 0)
+		if runtime.GOOS == "windows" {
+			// Program written with dotnet on window need this command to stop...
+			kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(pid))
+			kill.Stderr = os.Stderr
+			kill.Stdout = os.Stdout
+			kill.Run()
+		} else {
+			Utility.TerminateProcess(pid, 0)
+		}
 	}
 
 	servicePath := getStringVal(s, "Path")
@@ -1372,8 +1380,6 @@ func (self *Globule) initService(s *sync.Map) error {
 				}
 			}
 			self.setService(s)
-			//self.saveConfig()
-
 		}
 	}
 

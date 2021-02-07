@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	// "golang.org/x/sys/windows/registry"
@@ -1524,9 +1525,18 @@ func (self *Globule) stopService(s *sync.Map) error {
 
 	pid := getIntVal(s, "Process")
 	if pid != -1 {
-		err := Utility.TerminateProcess(pid, 0)
-		if err != nil {
-			log.Println("fail to teminate process ", pid)
+
+		if runtime.GOOS == "windows" {
+			// Program written with dotnet on window need this command to stop...
+			kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(pid))
+			kill.Stderr = os.Stderr
+			kill.Stdout = os.Stdout
+			kill.Run()
+		} else {
+			err := Utility.TerminateProcess(pid, 0)
+			if err != nil {
+				log.Println("fail to teminate process ", pid)
+			}
 		}
 	}
 
@@ -1535,7 +1545,6 @@ func (self *Globule) stopService(s *sync.Map) error {
 		s.Store("ProxyProcess", -1)
 	}
 	pid = getIntVal(s, "ProxyProcess")
-
 	if pid != -1 {
 		err := Utility.TerminateProcess(pid, 0)
 		if err != nil {
@@ -1566,7 +1575,7 @@ func (self *Globule) stopService(s *sync.Map) error {
 	}
 
 	// self.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
-
+	self.saveConfig()
 	return nil
 }
 
