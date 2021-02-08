@@ -318,9 +318,13 @@ func (self *Globule) getCache() *storage_store.BigCache_store {
 
 // Little shortcut to get access to map value in one step.
 func setValues(m *sync.Map, values map[string]interface{}) {
+	if m == nil {
+		m = new(sync.Map)
+	}
 	for k, v := range values {
 		m.Store(k, v)
 	}
+
 }
 
 func getStringVal(m *sync.Map, k string) string {

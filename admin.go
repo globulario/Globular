@@ -462,8 +462,12 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 		for id, s := range config["Services"].(map[string]interface{}) {
 			// Attach the actual process and proxy process to the configuration object.
 			s_ := self.getService(id)
+			if s_ == nil {
+				s_ = new(sync.Map)
+			}
 			setValues(s_, s.(map[string]interface{}))
 			self.initService(s_)
+			self.setService(s_)
 		}
 	}
 }
