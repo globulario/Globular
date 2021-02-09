@@ -441,6 +441,17 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 			restartServices = true
 		}
 
+		if config["LdapSyncInfos"] != nil {
+			for _, ldapSyncInfos := range config["LdapSyncInfos"].(map[string]interface{}) {
+				// update each ldap infos...
+				for i := 0; i < len(ldapSyncInfos.([]interface{})); i++ {
+					self.synchronizeLdap(ldapSyncInfos.([]interface{})[i].(map[string]interface{}))
+				}
+
+			}
+
+		}
+
 		if restartServices {
 			// This will restart the service.
 			defer self.restartServices()

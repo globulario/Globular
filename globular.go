@@ -661,6 +661,7 @@ func (self *Globule) Serve() {
 		// Start the monitoring service with prometheus.
 		self.startPrometheus()
 	}
+
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -966,14 +967,13 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 	s.Store("TLS", hasTls)
 	s.Store("ProxyProcess", -1) // must be use to reserve the port...
 	s.Store("Process", -1)
-	self.setService(s)
 
 	self.portsInUse = make([]int, 0)
 
 	// Todo get next available ports.
 	port, err := self.getNextAvailablePort()
+
 	s.Store("Port", port)
-	self.setService(s)
 
 	if err != nil {
 		return nil, -1, err
@@ -981,14 +981,12 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 
 	proxy, err := self.getNextAvailablePort()
 	s.Store("Proxy", proxy)
+
 	self.setService(s)
 
 	if err != nil {
 		return nil, -1, err
 	}
-
-	// save the config.
-	//self.saveConfig()
 
 	// start the proxy
 	_, err = self.startProxy(s, port, proxy)
@@ -2041,6 +2039,9 @@ func (self *Globule) startInternalServices() error {
 	if err != nil {
 		return err
 	}
+
+	// save the config.
+	self.saveConfig()
 
 	return nil
 }

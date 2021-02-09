@@ -432,37 +432,20 @@ func (self *Globule) createCrossReferences(sourceId, sourceCollection, sourceFie
 
 }
 
-/** Append new LDAP synchronization informations. **/
-func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.SynchronizeLdapRqst) (*resourcepb.SynchronizeLdapRsp, error) {
+// TODO update the account and group if they already exist...
+func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 
-	if rqst.SyncInfo == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync infos was given!")))
-	}
+	log.Println("----------> synchronyse ldap:", syncInfo)
 
-	if rqst.SyncInfo.UserSyncInfos == nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync users infos was given!")))
-	}
-
-	syncInfo, err := Utility.ToMap(rqst.SyncInfo)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	if self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] == nil {
-		self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = make([]interface{}, 0)
-		self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{}), syncInfo)
+	if self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] == nil {
+		self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = make([]interface{}, 0)
+		self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{}), syncInfo)
 	} else {
-		syncInfos := self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{})
+		syncInfos := self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{})
 		exist := false
 		for i := 0; i < len(syncInfos); i++ {
-			if syncInfos[i].(map[string]interface{})["ldapSeriveId"] == syncInfo["ldapSeriveId"] {
-				if syncInfos[i].(map[string]interface{})["connectionId"] == syncInfo["connectionId"] {
+			if syncInfos[i].(map[string]interface{})["LdapSeriveId"] == syncInfo["LdapSeriveId"] {
+				if syncInfos[i].(map[string]interface{})["ConnectionId"] == syncInfo["ConnectionId"] {
 					// set the connection info.
 					syncInfos[i] = syncInfo
 					exist = true
@@ -474,10 +457,9 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 		}
 
 		if !exist {
-			self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["ldapSeriveId"].(string)].([]interface{}), syncInfo)
+			self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{}), syncInfo)
 			// save the config.
 			self.saveConfig()
-
 		}
 	}
 
@@ -486,13 +468,15 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 	// Searh for roles.
 	ldap_, err := self.getLdapClient()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	groupsInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.GroupSyncInfos.Base, rqst.SyncInfo.GroupSyncInfos.Query, []string{rqst.SyncInfo.GroupSyncInfos.Id, "distinguishedName"})
+	connectionId := syncInfo["ConnectionId"].(string)
+	groupSyncInfos := syncInfo["GroupSyncInfos"].(map[string]interface{})
+	log.Println("----> ", groupSyncInfos)
+
+	groupsInfo, err := ldap_.Search(connectionId, groupSyncInfos["Base"].(string), groupSyncInfos["Query"].(string), []string{groupSyncInfos["Id"].(string), "distinguishedName"})
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Print group info.
@@ -500,21 +484,23 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 		name := groupsInfo[i][0].([]interface{})[0].(string)
 		id := Utility.GenerateUUID(groupsInfo[i][1].([]interface{})[0].(string))
 		self.createGroup(id, name, []string{}) // The group member will be set latter in that function.
+		log.Println("synchronize group ", name)
 	}
 
 	// Synchronize account and user info...
-	accountsInfo, err := ldap_.Search(rqst.SyncInfo.ConnectionId, rqst.SyncInfo.UserSyncInfos.Base, rqst.SyncInfo.UserSyncInfos.Query, []string{rqst.SyncInfo.UserSyncInfos.Id, rqst.SyncInfo.UserSyncInfos.Email, "distinguishedName", "memberOf"})
-
+	userSyncInfos := syncInfo["UserSyncInfos"].(map[string]interface{})
+	log.Println("----> ", userSyncInfos)
+	accountsInfo, err := ldap_.Search(connectionId, userSyncInfos["Base"].(string), userSyncInfos["Query"].(string), []string{userSyncInfos["Id"].(string), userSyncInfos["Email"].(string), "distinguishedName", "memberOf"})
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		log.Println("----> ", err)
+		return err
 	}
 
 	for i := 0; i < len(accountsInfo); i++ {
 		// Print the list of account...
 		// I will not set the password...
 		name := strings.ToLower(accountsInfo[i][0].([]interface{})[0].(string))
+		log.Println("synchronize account ", name)
 
 		if len(accountsInfo[i][1].([]interface{})) > 0 {
 			email := strings.ToLower(accountsInfo[i][1].([]interface{})[0].(string))
@@ -534,22 +520,53 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 					// Try to create account...
 					err := self.registerAccount(id, name, email, id, []string{}, []string{}, []string{"guest"}, groups)
 					if err != nil {
-						return nil, err
+						log.Println("---> error ", err)
+						// TODO if the account already exist simply udate it values.
 					}
 				}
 			} else {
-
-				return nil, status.Errorf(
-					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("account "+strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string))+" has no email configured! ")))
+				return errors.New("account " + strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)) + " has no email configured! ")
 			}
 		}
 	}
+	return nil
+}
 
+/** Append new LDAP synchronization informations. **/
+func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.SynchronizeLdapRqst) (*resourcepb.SynchronizeLdapRsp, error) {
+
+	if rqst.SyncInfo == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync infos was given!")))
+	}
+
+	/** Ldap user informations **/
+	if rqst.SyncInfo.UserSyncInfos == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync users infos was given!")))
+	}
+
+	/** Ldap group informations **/
 	if rqst.SyncInfo.GroupSyncInfos == nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync groups infos was given!")))
+	}
+
+	syncInfo, err := Utility.ToMap(rqst.SyncInfo)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	err = self.synchronizeLdap(syncInfo)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &resourcepb.SynchronizeLdapRsp{
