@@ -1254,6 +1254,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 		// save it to the config because pid and proxy pid have change.
 		self.saveConfig()
+		
 		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
 	} else if getStringVal(s, "Protocol") == "http" {

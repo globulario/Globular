@@ -80,7 +80,6 @@ func (self *Globule) startAdminService() error {
 			pid := getIntVal(s, "ProxyProcess")
 			Utility.TerminateProcess(pid, 0)
 			s.Store("ProxyProcess", -1)
-			self.saveConfig()
 		}()
 
 	}
@@ -436,6 +435,7 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 		}
 
 		domain := config["Domain"].(string)
+
 		if self.Domain != domain {
 			self.Domain = domain
 			restartServices = true
@@ -477,6 +477,8 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 				s_ = new(sync.Map)
 			}
 			setValues(s_, s.(map[string]interface{}))
+			log.Println("------------------> domain is ", getStringVal(s_, "Domain"), domain)
+			s_.Store("Domain", domain)
 			self.initService(s_)
 			self.setService(s_)
 		}
@@ -494,11 +496,12 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Set config will apply configuration
-	self.setConfig(config)
-	if config["Services"] != nil {
-		// save the application server.
-		self.saveConfig()
+	// Here I will save the server attribute
+	str, err := Utility.ToJson(config)
+	if err == nil {
+		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+	} else {
+		log.Panicln(err)
 	}
 
 	// return the new configuration file...
@@ -886,8 +889,6 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	}
-
-	self.saveConfig()
 
 	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
 
@@ -1695,6 +1696,9 @@ func rerunDetached() error {
 }
 
 func (self *Globule) restartServices() {
+	if self.exit_ {
+		return // already restarting I will ingnore the call.
+	}
 
 	// Stop all internal services
 	self.stopInternalServices()
