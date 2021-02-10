@@ -1254,7 +1254,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 		// save it to the config because pid and proxy pid have change.
 		self.saveConfig()
-		
+
 		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
 	} else if getStringVal(s, "Protocol") == "http" {
@@ -1450,9 +1450,10 @@ func (self *Globule) initServices() {
 			delay := cert.NotAfter.Sub(time.Now()) - time.Duration(15*time.Minute)
 			timeout := time.NewTimer(delay)
 			go func() {
+				// Wait to restart the server to regenerate new certificates...
 				<-timeout.C
-				//self.Certificate = ""
-				//self.restartServices()
+				self.Certificate = ""
+				self.restartServices()
 			}()
 		}
 	}
