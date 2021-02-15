@@ -49,7 +49,7 @@ var (
 	cache *storage_store.BigCache_store
 
 	// keep map in memory.
-	ressourceInfos sync.Map //map[string][]*rbacpb.ResourceInfos
+	ressourceInfos sync.Map
 )
 
 /**

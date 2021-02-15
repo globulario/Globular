@@ -489,10 +489,8 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 
 	// Synchronize account and user info...
 	userSyncInfos := syncInfo["UserSyncInfos"].(map[string]interface{})
-	log.Println("----> ", userSyncInfos)
 	accountsInfo, err := ldap_.Search(connectionId, userSyncInfos["Base"].(string), userSyncInfos["Query"].(string), []string{userSyncInfos["Id"].(string), userSyncInfos["Email"].(string), "distinguishedName", "memberOf"})
 	if err != nil {
-		log.Println("----> ", err)
 		return err
 	}
 
@@ -599,6 +597,15 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	account["name"] = name
 	account["email"] = email
 	account["password"] = Utility.GenerateUUID(password) // hide the password...
+	// List of aggregation.
+	account["roles"] = make([]interface{}, 0)
+	account["groups"] = make([]interface{}, 0)
+	account["organizations"] = make([]interface{}, 0)
+
+	// append guest role if not already exist.
+	if !Utility.Contains(roles, "guest") {
+		roles = append(roles, "guest")
+	}
 
 	// Here I will insert the account in the database.
 	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Accounts", account, "")
@@ -2022,7 +2029,7 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcep
 	infos := make([]*structpb.Struct, 0)
 	for i := 0; i < len(values); i++ {
 		values_ := values[i].(map[string]interface{})
-		info, err := structpb.NewStruct(map[string]interface{}{"_id": values_["_id"], "name": values_["_id"], "path": values_["path"], "creation_date": values_["creation_date"], "last_deployed": values_["last_deployed"]})
+		info, err := structpb.NewStruct(map[string]interface{}{"_id": values_["_id"], "name": values_["_id"], "path": values_["path"], "creation_date": values_["creation_date"], "last_deployed": values_["last_deployed"], "icon": values_["icon"], "description": values_["description"]})
 		if err == nil {
 			infos = append(infos, info)
 		} else {
