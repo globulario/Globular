@@ -404,22 +404,18 @@ type ServerStreamInterceptorStream struct {
 }
 
 func (l ServerStreamInterceptorStream) SetHeader(m metadata.MD) error {
-	log.Println("==> SetHeader")
 	return l.inner.SetHeader(m)
 }
 
 func (l ServerStreamInterceptorStream) SendHeader(m metadata.MD) error {
-	log.Println("==> SendHeader")
 	return l.inner.SendHeader(m)
 }
 
 func (l ServerStreamInterceptorStream) SetTrailer(m metadata.MD) {
-	log.Println("==> SetTrailer")
 	l.inner.SetTrailer(m)
 }
 
 func (l ServerStreamInterceptorStream) Context() context.Context {
-	log.Println("==> Context")
 	return l.inner.Context()
 }
 

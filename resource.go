@@ -47,7 +47,6 @@ func (self *Globule) startResourceService() error {
 		resourcepb.RegisterResourceServiceServer(resource_server, self)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
-
 		go func() {
 			// no web-rpc server.
 			if err = resource_server.Serve(lis); err != nil {
@@ -75,6 +74,7 @@ func (self *Globule) startResourceService() error {
 					if ip != Utility.MyIP() {
 						self.registerIpToDns()
 					}
+					self.removeExpiredSessions()
 				case <-self.exit:
 					return
 				}
@@ -157,6 +157,75 @@ func (self *Globule) getServiceMethods(name string, path string) []string {
 	}
 
 	return methods
+}
+
+// Remove expired session...
+func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) error {
+	log.Println("----------> session need to be remove: ", accountId)
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	session := make(map[string]interface{}, 0)
+	session["_id"] = accountId
+	session["state"] = 1
+	session["lastStateTime"] = time.Unix(expiredAt, 0).UTC().Format("2006-01-02T15:04:05-0700")
+	jsonStr, err := Utility.ToJson(session)
+	if err != nil {
+		return err
+	}
+
+	err = p.ReplaceOne(context.Background(), "local_resource", accountId+"_db", "Sessions", `{"_id":"`+accountId+`"}`, jsonStr, "")
+	if err != nil {
+		return err
+	}
+
+	evtHub, err := self.getEventHub()
+	if err != nil {
+		return err
+	}
+
+	// Publish the event on the network...
+	evtHub.Publish("session_state_"+accountId+"_change_event", []byte(jsonStr))
+
+	// Now I will remove the token...
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+accountId+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (self *Globule) removeExpiredSessions() error {
+	// I will iterate over the list token and close expired session...
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	tokens, err := p.Find(context.Background(), "local_resource", "local_resource", "Tokens", `{}`, ``)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i].(map[string]interface{})
+		accountId := token["_id"].(string)
+		expiredAt := int64(Utility.ToInt(token["expireAt"]))
+		if expiredAt < time.Now().Unix() {
+			self.removeExpiredSession(accountId, expiredAt)
+		}
+	}
+
+	return nil
+
 }
 
 func (self *Globule) setServiceMethods(name string, path string) {
@@ -1102,6 +1171,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 	}
 
 	log.Println("token was refresh with success for entity named ", name, "!!")
+
 	// return the token string.
 	return &resourcepb.RefreshTokenRsp{
 		Token: tokenString,
