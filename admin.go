@@ -447,7 +447,6 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 				for i := 0; i < len(ldapSyncInfos.([]interface{})); i++ {
 					self.synchronizeLdap(ldapSyncInfos.([]interface{})[i].(map[string]interface{}))
 				}
-
 			}
 
 		}
