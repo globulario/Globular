@@ -1007,7 +1007,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 		}
 
 		name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1091,7 +1091,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 
 	// save the newly create token into the database.
 	name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, "")
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
