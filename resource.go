@@ -327,6 +327,7 @@ func (self *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.Res
 }
 
 func (self *Globule) createApplicationConnection() error {
+	log.Println("create applications connections")
 	p, err := self.getPersistenceSaConnection()
 	if err != nil {
 		return err
@@ -335,17 +336,19 @@ func (self *Globule) createApplicationConnection() error {
 	store, err := self.getPersistenceStore()
 	applications, _ := store.Find(context.Background(), "local_resource", "local_resource", "Applications", "{}", "")
 	if err != nil {
+		log.Println("fail to get applications informations ", err)
 		return err
 	}
 	address, port := self.getBackendAddress()
 	for i := 0; i < len(applications); i++ {
 		application := applications[i].(map[string]interface{})
-		// Open the user database connection.
 
 		err = p.CreateConnection(application["_id"].(string)+"_db", application["_id"].(string)+"_db", address, float64(port), 0, application["_id"].(string), application["password"].(string), 5000, "", false)
 		if err != nil {
-			return err
+			log.Println("** fail to create connection for application ", application["_id"].(string), err)
+
 		}
+		log.Println("-> connection created for application: ", application["_id"].(string))
 	}
 
 	return nil
