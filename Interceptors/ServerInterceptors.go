@@ -311,6 +311,8 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 		method == "/packages.PackageDiscovery/GetServicesDescriptor" ||
 		method == "/rbac.RbacService/ValidateAction" ||
 		method == "/rbac.RbacService/ValidateAccess" ||
+		method == "/rbac.RbacService/GetResourcePermissions" ||
+		method == "/rbac.RbacService/GetResourcePermission" ||
 		method == "/dns.DnsService/GetA" ||
 		method == "/dns.DnsService/GetAAAA" ||
 		method == "/resource.ResourceService/Log" {

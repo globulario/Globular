@@ -1992,6 +1992,8 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		method == "/resource.ResourceService/ValidateToken" ||
 		method == "/rbac.RbacService/ValidateAction" ||
 		method == "/rbac.RbacService/ValidateAccess" ||
+		method == "/rbac.RbacService/GetResourcePermissions" ||
+		method == "/rbac.RbacService/GetResourcePermission" ||
 		method == "/resource.LogService/Log" ||
 		method == "/resource.LogService/GetLog" {
 		hasAccess = true

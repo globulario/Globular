@@ -227,6 +227,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Per
 			}
 		}
 	}
+
 	// simply marshal the permission and put it into the store.
 	data, err := json.Marshal(permissions)
 	if err != nil {
