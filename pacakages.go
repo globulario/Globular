@@ -212,12 +212,16 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPack
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("FIND_PACKAGES_GET_STORE_ERR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	kewordsStr, err := Utility.ToJson(rqst.Keywords)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("FIND_PACKAGES_MARSHAL_JSON_ERR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Test...
@@ -227,7 +231,7 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPack
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("FIND_PACKAGES_FIND_ERR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	descriptors := make([]*packagespb.PackageDescriptor, len(data))
@@ -275,7 +279,7 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_PACKAGE_DESCRIPTOR_GET_STORE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	query := `{"id":"` + rqst.ServiceId + `", "publisherid":"` + rqst.PublisherId + `"}`
@@ -284,13 +288,13 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_PACKAGE_DESCRIPTOR_FIND_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	if len(values) == 0 {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service descriptor with id "+rqst.ServiceId+" was found for publisher id "+rqst.PublisherId)))
+			Utility.JsonErrorStr("GET_PACKAGE_DESCRIPTOR_NOT_FOUND_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New("No service descriptor with id "+rqst.ServiceId+" was found for publisher id "+rqst.PublisherId)))
 	}
 
 	descriptors := make([]*packagespb.PackageDescriptor, len(values))
@@ -352,14 +356,14 @@ func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescripto
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_PACKAGES_DESCRIPTOR_GET_STORE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	data, err := p.Find(context.Background(), "local_resource", "local_resource", "Services", `{}`, "")
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_PACKAGES_DESCRIPTOR_FIND_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	descriptors := make([]*packagespb.PackageDescriptor, 0)

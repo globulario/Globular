@@ -218,12 +218,17 @@ func (self *Globule) saveConfig() {
 
 /**
  * Test if a process with a given name is Running on the server.
+ * By default that function is accessible by sa only.
  */
 func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRunningProcessRequest) (*adminpb.HasRunningProcessResponse, error) {
 	ids, err := Utility.GetProcessIdsByName(rqst.Name)
+
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("HAS_RUNNING_PROCESS_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
 	if len(ids) == 0 {
 		return &adminpb.HasRunningProcessResponse{
 			Result: false,
@@ -235,35 +240,9 @@ func (self *Globule) HasRunningProcess(ctx context.Context, rqst *adminpb.HasRun
 	}, nil
 }
 
-// Install certificates from a given server at a given path.
-func (self *Globule) InstallCertificates(ctx context.Context, rqst *adminpb.InstallCertificatesRequest) (*adminpb.InstallCertificatesResponse, error) {
-	path := rqst.Path
-	if len(path) == 0 {
-		path = os.TempDir()
-	}
-
-	port := 80
-	if rqst.Port != 0 {
-		port = int(rqst.Port)
-	}
-
-	key, cert, ca, err := security.InstallCertificates(rqst.Domain, port, path)
-
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
-	return &adminpb.InstallCertificatesResponse{
-		Certkey: key,
-		Cert:    cert,
-		Cacert:  ca,
-	}, nil
-}
-
 /**
- * Return globular configuration.
+ * Get the server configuration with all it install services configuration.
+ * That function is protected, by default only sa role has access to this information.
  */
 func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 
@@ -271,7 +250,7 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigR
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_FULL_CONFIG_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.GetConfigResponse{
@@ -280,7 +259,9 @@ func (self *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConfigR
 
 }
 
-// Return the configuration.
+// That function return minimal configuration information.
+// that function must be accessible by all role, by default guess role has access to this information.
+//
 func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
 	map_, _ := Utility.ToMap(self.getConfig())
 	obj, err := structpb.NewStruct(map_)
@@ -288,7 +269,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigReque
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_CONFIG_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.GetConfigResponse{
@@ -484,7 +465,8 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 	}
 }
 
-// Save a service configuration
+// Save a server/service configuration.
+// That function must be accessible by Root only.
 func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
 	// Save service...
 	config := make(map[string]interface{}, 0)
@@ -492,15 +474,22 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SAVE_CONFIG_UNMARSHAL_JSON_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(config)
 	if err == nil {
-		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr("SAVE_CONFIG_WRITE_FILE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+		}
 	} else {
-		log.Panicln(err)
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("SAVE_CONFIG_MARSHAL_JSON_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// return the new configuration file...
@@ -512,14 +501,19 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 // Uninstall application...
 func (self *Globule) UninstallApplication(ctx context.Context, rqst *adminpb.UninstallApplicationRequest) (*adminpb.UninstallApplicationResponse, error) {
-
-	return nil, nil
+	// TODO Implement it!
+	return nil, status.Errorf(
+		codes.Internal,
+		Utility.JsonErrorStr("GLOBULAR_UNIMPLEMENTED", Utility.FunctionName(), Utility.FileLine(), errors.New("Not implemented!")))
 }
 
 // Install web Application
 func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.InstallApplicationRequest) (*adminpb.InstallApplicationResponse, error) {
 	// Get the package bundle from the repository and install it on the server.
-	return nil, nil
+	// TODO Implement it!
+	return nil, status.Errorf(
+		codes.Internal,
+		Utility.JsonErrorStr("GLOBULAR_UNIMPLEMENTED", Utility.FunctionName(), Utility.FileLine(), errors.New("Not implemented!")))
 }
 
 // Intall
@@ -842,13 +836,13 @@ func (self *Globule) registerSa() error {
 	return self.registerMethods()
 }
 
-//Set the root password
+// Set the root password
 func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootPasswordRequest) (*adminpb.SetRootPasswordResponse, error) {
 	// Here I will set the root password.
 	if self.RootPassword != rqst.OldPassword {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong password given!")))
+			Utility.JsonErrorStr("SET_ROOT_PASSWORD_WRONG_PASSWORD_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong password given!")))
 	}
 
 	// Now I will update de sa password.
@@ -862,41 +856,51 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_ROOT_GET_STORE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// I will execute the sript with the admin function.
+	// I will execute the script with the admin function.
 	address, _ := self.getBackendAddress()
 	if address == "0.0.0.0" {
 		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", rqst.OldPassword, changeRootPasswordScript)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("SET_ROOT_RUN_ADMIN_CMD_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	} else {
 		p_, err := self.getPersistenceSaConnection()
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("SET_ROOT_GET_SA_CONNECTION_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, changeRootPasswordScript)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("SET_ROOT_RUN_ADMIN_CMD_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	}
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
-
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("SET_ROOT_READ_LOCAL_TOKEN_FILE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+	}
 	return &adminpb.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
 
 }
 
+/**
+ * Set account passowrd.
+ *
+ * new_password: new password /TODO validate
+ * old_password: old password to authenticate the user.
+ */
 func (self *Globule) setPassword(accountId string, oldPassword string, newPassword string) error {
 
 	// First of all I will get the user information from the database.
@@ -994,17 +998,24 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *adminpb.SetPasswordR
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_PASSWORD_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	token, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("SET_PASSWORD_READ_LOCAL_TOKEN_FILE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	return &adminpb.SetPasswordResponse{
 		Token: string(token),
 	}, nil
 
 }
 
-//Set the root password
+// Set the root password
+//
 func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest) (*adminpb.SetEmailResponse, error) {
 
 	// Here I will set the root password.
@@ -1013,14 +1024,14 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_EMAIL_FIND_GET_STORE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_EMAIL_FIND_ACCOUNT_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	account := values.(map[string]interface{})
@@ -1028,7 +1039,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	if account["email"].(string) != rqst.OldEmail {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given!")))
+			Utility.JsonErrorStr("SET_EMAIL_WRONG_EMAIL_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given!")))
 	}
 
 	account["email"] = rqst.NewEmail
@@ -1063,7 +1074,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_EMAIL_SAVE_ACCOUNT_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// read the local token.
@@ -1071,7 +1082,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_EMAIL_READ_LOCAL_TOKEN_FILE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Return the token.
@@ -1083,11 +1094,10 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 //Set the root email
 func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmailRequest) (*adminpb.SetRootEmailResponse, error) {
 	// Here I will set the root password.
-
 	if self.AdminEmail != rqst.OldEmail {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given, old email is "+rqst.OldEmail+" not "+self.AdminEmail+"!")))
+			Utility.JsonErrorStr("SET_ROOT_EMAIL_WRONG_EMAIL_ERR", Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong email given, old email is "+rqst.OldEmail+" not "+self.AdminEmail+"!")))
 	}
 
 	// Now I will update de sa password.
@@ -1101,7 +1111,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_ROOT_EMAIL_FIND_ACCOUNT_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// Return the token.
@@ -1119,20 +1129,25 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("UPLOAD_SERVICE_PACKAGE_CREATE_DIR_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	defer fo.Close()
 
 	for {
 		msg, err := stream.Recv()
 		if msg == nil {
-			return errors.New("Fail to upload service package!")
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr("UPLOAD_SERVICE_EMPTY_MSG_RECEIVED_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to upload service package!")))
+
 		}
 
 		if err == nil {
 			if len(msg.Organization) > 0 {
 				if !self.isOrganizationMemeber(msg.User, msg.Organization) {
-					return errors.New(msg.User + " is not a member of " + msg.Organization)
+					return status.Errorf(
+						codes.Internal,
+						Utility.JsonErrorStr("UPLOAD_SERVICE_ORGANIZATION_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New(msg.User+" is not a member of "+msg.Organization)))
 				}
 			}
 		}
@@ -1145,7 +1160,9 @@ func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServ
 			err = nil
 			break
 		} else if err != nil {
-			return err
+			return status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr("UPLOAD_SERVICE_STREAM_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		} else {
 			fo.Write(msg.Data)
 		}
@@ -1292,7 +1309,7 @@ func (self *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishSe
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("PUBLISH_SERVICE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.PublishServiceResponse{
@@ -1408,14 +1425,14 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 	if services_discovery == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
+			Utility.JsonErrorStr("INSTALL_SERVICE_PACKAGE_DISCOVERY_ERROR", Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
 	}
 
 	descriptors, err := services_discovery.GetPackageDescriptor(rqst.ServiceId, rqst.PublisherId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("INSTALL_SERVICE_GET_PACKAGE_DESCRIPTOR_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	log.Println("step 1: get service dscriptor")
@@ -1428,14 +1445,15 @@ func (self *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallSe
 			break
 		}
 	}
-	log.Println("--> service descriptor receiced whit id ", descriptor.GetId())
+
 	err = self.installService(descriptor)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("INSTALL_SERVICE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("Service was install!")
 	return &adminpb.InstallServiceResponse{
 		Result: true,
 	}, nil
@@ -1448,7 +1466,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("UNINSTALL_SERVICE_GET_STORE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// First of all I will stop the running service(s) instance.
@@ -1503,7 +1521,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("UNINSTALL_SERVICE_REMOVE_DIR_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	// save the config.
@@ -1603,7 +1621,7 @@ func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceR
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("STOP_SERVICE_NOT_FOUND_ERR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	} else {
 		// Close all services with a given name.
@@ -1612,13 +1630,15 @@ func (self *Globule) StopService(ctx context.Context, rqst *adminpb.StopServiceR
 			serviceId := services[i]["Id"].(string)
 			s := self.getService(serviceId)
 			if s == nil {
-				return nil, errors.New("No service found with id " + serviceId)
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr("STOP_SERVICE_NOT_FOUND_ERR", Utility.FunctionName(), Utility.FileLine(), errors.New("No service found with id "+serviceId)))
 			}
 			err := self.stopService(s)
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+					Utility.JsonErrorStr("STOP_SERVICE_ERR", Utility.FunctionName(), Utility.FileLine(), err))
 			}
 		}
 	}
@@ -1645,7 +1665,7 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+					Utility.JsonErrorStr("START_SERVICE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 			}
 			proxy_pid = int64(proxy_pid_)
 			service_pid = int64(service_pid_)
@@ -1655,7 +1675,7 @@ func (self *Globule) StartService(ctx context.Context, rqst *adminpb.StartServic
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("START_SERVICE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		proxy_pid = int64(proxy_pid_)
 		service_pid = int64(service_pid_)
@@ -1702,8 +1722,6 @@ func (self *Globule) restartServices() {
 	// Stop all internal services
 	self.stopInternalServices()
 
-	log.Println("--> stop external services")
-
 	// Stop all external services.
 	self.stopServices()
 
@@ -1727,6 +1745,9 @@ func (self *Globule) restartServices() {
 	ticker.Stop()
 	done <- true
 
+	log.Println("Globular process will now restart...")
+
+	// Restart a new process.
 	rerunDetached()
 
 	os.Exit(0) // exit the process to release all ressources.
@@ -1782,7 +1803,7 @@ func (self *Globule) KillProcess(ctx context.Context, rqst *adminpb.KillProcessR
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("KILL_PROCESS_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.KillProcessResponse{}, nil
@@ -1794,7 +1815,7 @@ func (self *Globule) KillProcesses(ctx context.Context, rqst *adminpb.KillProces
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("KILL_PROCESSES_BY_NAME_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.KillProcessesResponse{}, nil
@@ -1806,7 +1827,7 @@ func (self *Globule) GetPids(ctx context.Context, rqst *adminpb.GetPidsRequest) 
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_PROCESS_IDS_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	pids := make([]int32, len(pids_))
@@ -1840,7 +1861,7 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("REGISTER_EXTERNAL_APPLICATION_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &adminpb.RegisterExternalApplicationResponse{
@@ -1865,7 +1886,7 @@ func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("RUN_COMMAND_RUN_BLOCKING_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		output = string(out)
 	} else {
@@ -1874,7 +1895,7 @@ func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr("RUN_COMMAND_RUN_NON_BLOCKING_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		if cmd.Process != nil {
 			pid = cmd.Process.Pid
@@ -1894,7 +1915,7 @@ func (self *Globule) SetEnvironmentVariable(ctx context.Context, rqst *adminpb.S
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("SET_ENVIRONMENT_VARIABLE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	return &adminpb.SetEnvironmentVariableResponse{}, nil
 }
@@ -1905,7 +1926,7 @@ func (self *Globule) GetEnvironmentVariable(ctx context.Context, rqst *adminpb.G
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("GET_ENVIRONMENT_VARIABLE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	return &adminpb.GetEnvironmentVariableResponse{
 		Value: value,
@@ -1919,7 +1940,44 @@ func (self *Globule) UnsetEnvironmentVariable(ctx context.Context, rqst *adminpb
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr("UNSET_ENVIRONMENT_VARIABLE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
 	}
 	return &adminpb.UnsetEnvironmentVariableResponse{}, nil
+}
+
+///////////////////////////////////// API //////////////////////////////////////
+
+// Get certificates from the server and copy them into the the a given directory.
+// path: The path where to copy the certificates
+// port: The server configuration port the default is 80.
+//
+// ex. Here is an exemple of the command run from the shell,
+//
+// Globular certificates -domain=globular.cloud -path=/tmp -port=80
+//
+// The command can return
+func (self *Globule) InstallCertificates(ctx context.Context, rqst *adminpb.InstallCertificatesRequest) (*adminpb.InstallCertificatesResponse, error) {
+	path := rqst.Path
+	if len(path) == 0 {
+		path = os.TempDir()
+	}
+
+	port := 80
+	if rqst.Port != 0 {
+		port = int(rqst.Port)
+	}
+
+	key, cert, ca, err := security.InstallCertificates(rqst.Domain, port, path)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr("INSTALL_CERTIFICATES_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.InstallCertificatesResponse{
+		Certkey: key,
+		Cert:    cert,
+		Cacert:  ca,
+	}, nil
 }
