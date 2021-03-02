@@ -54,6 +54,7 @@ So to log into evans you must do the following command,
 $ evans --host globular.cloud -r --tls --cacert "/tmp/config/tls/globular.cloud/ca.crt" --cert  "/tmp/config/tls/globular.cloud/client.crt" --certkey "/tmp/config/tls/globular.cloud/client.pem" --port 10003
 ```
 ** if you got access denied try the command with sudo, or change permission on the certificate by given read access to your user.
+
 ** Also be sure that the port is the gRpc port and not the proxy port, if you give the wrong port number you will reiceive 'x509: certificate signed by unknown authority' for proxy port and 'connection refused' for port that dosen't exist. You can can get configuration info at http route /config of your server.
 
 ### How to log with a token.
