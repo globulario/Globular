@@ -201,7 +201,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("GET_LOG_READ_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
@@ -211,7 +211,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("GET_LOG_JSON_DECODER_TOKEN_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	infos := make([]*logpb.LogInfo, 0)
@@ -223,7 +223,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr("GET_LOG_JSON_UNMARSHAL_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		// append the info inside the stream.
 		infos = append(infos, &info)
@@ -237,7 +237,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 			if err != nil {
 				return status.Errorf(
 					codes.Internal,
-					Utility.JsonErrorStr("GET_LOG_SEND_STREAM_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
 			infos = make([]*logpb.LogInfo, 0)
 			i = 0
@@ -254,7 +254,7 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
-				Utility.JsonErrorStr("GET_LOG_SEND_STREAM_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	}
 
@@ -300,7 +300,7 @@ func (self *Globule) DeleteLog(ctx context.Context, rqst *logpb.DeleteLogRqst) (
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("DELETE_LOG_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &logpb.DeleteLogRsp{
@@ -316,7 +316,7 @@ func (self *Globule) ClearAllLog(ctx context.Context, rqst *logpb.ClearAllLogRqs
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("CLEAR_ALL_LOG_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &logpb.ClearAllLogRsp{

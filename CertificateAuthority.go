@@ -121,7 +121,7 @@ func (self *Globule) SignCertificate(ctx context.Context, rqst *capb.SignCertifi
 
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("SIGN_CERTIFICATE_ERROR", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 
 	}
 
@@ -138,7 +138,7 @@ func (self *Globule) GetCaCertificate(ctx context.Context, rqst *capb.GetCaCerti
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr("GET_CA_CERTIFICATE", Utility.FunctionName(), Utility.FileLine(), err))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
 	return &capb.GetCaCertificateResponse{

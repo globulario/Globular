@@ -2753,11 +2753,18 @@ func (self *Globule) createGroup(id, name string, members []string) error {
 	g := make(map[string]interface{}, 0)
 	g["_id"] = id
 	g["name"] = name
-	g["members"] = members
 
 	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Groups", g, "")
 	if err != nil {
 		return err
+	}
+
+	// Create references.
+	for i := 0; i < len(members); i++ {
+		err := self.createCrossReferences(id, "Groups", "members", members[i], "Accounts", "groups")
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	return nil
@@ -2861,9 +2868,12 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 	group := values.(map[string]interface{})
 
 	// I will remove it from accounts...
-	members := []interface{}(group["members"].(primitive.A))
-	for j := 0; j < len(members); j++ {
-		self.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
+
+	if group["members"] != nil {
+		members := []interface{}(group["members"].(primitive.A))
+		for j := 0; j < len(members); j++ {
+			self.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
+		}
 	}
 
 	// I will remove it from organizations...

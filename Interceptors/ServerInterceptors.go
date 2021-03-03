@@ -19,6 +19,8 @@ import (
 	globular "github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/lb/load_balancing_client"
+	"github.com/globulario/services/golang/log/log_client"
+	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
@@ -40,6 +42,9 @@ var (
 	// The load balancer client.
 	lb_client_ *load_balancing_client.Lb_Client
 
+	// The logger.
+	log_client_ *log_client.Log_Client
+
 	// The map will contain connection with other server of same kind to load
 	// balance the server charge.
 	clients map[string]globular.Client
@@ -51,6 +56,18 @@ var (
 	// keep map in memory.
 	ressourceInfos sync.Map
 )
+
+func GetLogClient(domain string) (*log_client.Log_Client, error) {
+	var err error
+	if log_client_ == nil {
+		log_client_, err = log_client.NewLogService_Client(domain, "log.LogService")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return log_client_, nil
+}
 
 /**
  * Get a the local resource client.
@@ -384,9 +401,15 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	var result interface{}
 	result, err = handler(ctx, rqst)
+
 	// Send log message.
 	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
-		// resource_client.Log(application, clientId, method, err)
+		if err != nil {
+			logger, err_ := GetLogClient(domain)
+			if err_ == nil {
+				logger.Log(application, clientId, method, logpb.LogLevel_ERROR_MESSAGE, err.Error())
+			}
+		}
 	}
 
 	return result, err
@@ -544,6 +567,13 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 
 	// Start streaming.
 	err = handler(srv, ServerStreamInterceptorStream{uuid: uuid, inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
+
+	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
+		logger, err_ := GetLogClient(domain)
+		if err_ == nil {
+			logger.Log(application, clientId, method, logpb.LogLevel_ERROR_MESSAGE, err.Error())
+		}
+	}
 
 	// Remove the uuid from the cache
 	getCache().RemoveItem(uuid)
