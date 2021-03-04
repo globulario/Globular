@@ -176,7 +176,10 @@ func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) err
 		return err
 	}
 
-	err = p.ReplaceOne(context.Background(), "local_resource", accountId+"_db", "Sessions", `{"_id":"`+accountId+`"}`, jsonStr, "")
+	dbName := strings.ReplaceAll(accountId, ".", "_")
+	dbName = strings.ReplaceAll(dbName, "@", "_")
+
+	err = p.ReplaceOne(context.Background(), "local_resource", dbName+"_db", "Sessions", `{"_id":"`+accountId+`"}`, jsonStr, "")
 	if err != nil {
 		return err
 	}
@@ -653,7 +656,7 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	}
 
 	// first of all the Persistence service must be active.
-	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+id+`"}`, "")
+	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+id+`"},{"name":"`+id+`"} ]}`, "")
 	if err != nil {
 		return err
 	}
@@ -952,14 +955,15 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountE
 		return nil, err
 	}
 	// Test with the _id
-	count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.Id+`"}`, "")
+	accountId := rqst.Id
+	count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, "")
 	if count > 0 {
 		exist = true
 	}
 
 	// Test with the name
 	if !exist {
-		count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+rqst.Id+`"}`, "")
+		count, _ := p.Count(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, "")
 		if count > 0 {
 			exist = true
 		}
@@ -1189,7 +1193,7 @@ func (self *Globule) isOrganizationMemeber(account string, organization string) 
 		return false
 	}
 
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+account+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+account+`"},{"name":"`+account+`"} ]}`, ``)
 	if err != nil {
 		return false
 	}
@@ -1216,8 +1220,8 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 	if err != nil {
 		return nil, err
 	}
-
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.Id+`"}`, ``)
+	accountId := rqst.Id
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1252,7 +1256,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 	}
 
 	// Try to delete the account...
-	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.Id+`"}`, "")
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1668,11 +1672,12 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.Rem
 
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	accountId := rqst.AccountId
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account named "+rqst.AccountId+" exist!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account named "+accountId+" exist!")))
 	}
 
 	account := values.(map[string]interface{})
@@ -1700,7 +1705,7 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.Rem
 		account["roles"] = roles
 		jsonStr := serialyseObject(account)
 
-		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, jsonStr, ``)
+		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+rqst.AccountId+`"},{"name":"`+rqst.AccountId+`"} ]}`, jsonStr, ``)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,

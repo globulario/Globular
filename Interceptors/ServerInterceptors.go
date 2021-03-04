@@ -209,6 +209,7 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 
 	item, err := getCache().GetItem(uuid)
 	if err == nil {
+
 		// Here I will test if the permission has expired...
 		hasAccess_ := make(map[string]interface{})
 		err := json.Unmarshal(item, &hasAccess_)
@@ -231,7 +232,6 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 	// Here I will set the access in the cache.
 	hasAccess_, _ := json.Marshal(map[string]interface{}{"hasAccess": hasAccess, "expiredAt": time.Now().Add(time.Minute * 15).Unix()})
 	getCache().SetItem(uuid, hasAccess_)
-
 	return hasAccess, nil
 
 }
@@ -568,7 +568,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// Start streaming.
 	err = handler(srv, ServerStreamInterceptorStream{uuid: uuid, inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
 
-	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
+	if len(application) > 0 && len(clientId) > 0 && clientId != "sa" && err != nil {
 		logger, err_ := GetLogClient(domain)
 		if err_ == nil {
 			logger.Log(application, clientId, method, logpb.LogLevel_ERROR_MESSAGE, err.Error())
