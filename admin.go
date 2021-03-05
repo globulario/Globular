@@ -517,7 +517,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 }
 
 // Intall
-func (self *Globule) installApplication(domain, name, organization, version, description string, r io.Reader) error {
+func (self *Globule) installApplication(domain, name, organization, version, description string, r io.Reader, actions []string, keywords []string) error {
 	// Here I will extract the file.
 	Utility.ExtractTarGz(r)
 
@@ -562,6 +562,8 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	application["organization"] = organization
 	application["version"] = version
 	application["description"] = description
+	application["actions"] = actions
+	application["keywords"] = keywords
 
 	if len(domain) > 0 {
 		if Utility.Exists(self.webRoot + "/" + domain) {
@@ -609,7 +611,10 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 		}
 
 	} else {
-		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }}`, "")
+		actions_, _ := Utility.ToJson(actions)
+		keywords_, _ := Utility.ToJson(keywords)
+
+		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"organization":"`+organization+`"},"$set":{"description":"`+description+`"}, "$set":{"version":"`+version+`"}}`, "")
 		if err != nil {
 			return err
 		}
@@ -685,7 +690,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	var repositoryId string
 	var discoveryId string
 	var keywords []string
-
+	var actions []string
 	for {
 		msg, err := stream.Recv()
 		if msg == nil {
@@ -719,6 +724,9 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 			discoveryId = msg.Discovery
 		}
 
+		if len(msg.Actions) > 0 {
+			actions = msg.Actions
+		}
 		if err == io.EOF {
 			// end of stream...
 			stream.SendAndClose(&adminpb.DeployApplicationResponse{
@@ -759,7 +767,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = self.installApplication(domain, name, organization, version, description, r)
+	err = self.installApplication(domain, name, organization, version, description, r, actions, keywords)
 
 	return err
 }
@@ -909,7 +917,7 @@ func (self *Globule) setPassword(accountId string, oldPassword string, newPasswo
 		return err
 	}
 
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+accountId+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, ``)
 	if err != nil {
 		return err
 	}
@@ -1026,8 +1034,8 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
-
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+rqst.AccountId+`"}`, ``)
+	accountId := rqst.AccountId
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+accountId+`"},{"name":"`+accountId+`"} ]}`, ``)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

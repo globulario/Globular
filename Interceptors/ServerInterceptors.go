@@ -209,6 +209,7 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 
 	item, err := getCache().GetItem(uuid)
 	if err == nil {
+
 		// Here I will test if the permission has expired...
 		hasAccess_ := make(map[string]interface{})
 		err := json.Unmarshal(item, &hasAccess_)
@@ -231,7 +232,6 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 	// Here I will set the access in the cache.
 	hasAccess_, _ := json.Marshal(map[string]interface{}{"hasAccess": hasAccess, "expiredAt": time.Now().Add(time.Minute * 15).Unix()})
 	getCache().SetItem(uuid, hasAccess_)
-
 	return hasAccess, nil
 
 }

@@ -968,7 +968,7 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 
 				// Here I will test if a newer token exist for that user if it's the case
 				// I will not refresh that token.
-				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+subject+`"},{"name":"`+subject+`"} ]}`, ``)
 				if err != nil {
 					return false, false, errors.New("No account named " + subject + " exist!")
 				}
@@ -1091,7 +1091,7 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 
 				// Here I will test if a newer token exist for that user if it's the case
 				// I will not refresh that token.
-				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, ``)
+				values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+subject+`"},{"name":"`+subject+`"} ]}`, ``)
 				if err == nil {
 					// from the account I will get the list of group.
 					account := values.(map[string]interface{})
@@ -1245,7 +1245,6 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 	// So first of all I will validate the actions itself...
 	if subjectType == rbacpb.SubjectType_APPLICATION {
-
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
 			return false, err
@@ -1270,7 +1269,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 			return true, nil
 		}
 
-		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"_id":"`+subject+`"}`, "")
+		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Accounts", `{"$or":[{"_id":"`+subject+`"},{"name":"`+subject+`"} ]}`, "")
 		if err != nil {
 			return false, err
 		}
@@ -1342,7 +1341,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateActionRqst) (*rbacpb.ValidateActionRsp, error) {
 
 	// If the address is local I will give the permission.
-	log.Println("validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
+	//log.Println("validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 	hasAccess, err := self.validateAction(rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)
 	if err != nil {
 		return nil, status.Errorf(
