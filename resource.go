@@ -554,7 +554,8 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 	// Print group info.
 	for i := 0; i < len(groupsInfo); i++ {
 		name := groupsInfo[i][0].([]interface{})[0].(string)
-		id := Utility.GenerateUUID(groupsInfo[i][1].([]interface{})[0].(string))
+		//id := Utility.GenerateUUID(groupsInfo[i][1].([]interface{})[0].(string))
+		id := groupsInfo[i][1].([]interface{})[0].(string)
 		self.createGroup(id, name, []string{}) // The group member will be set latter in that function.
 		log.Println("synchronize group ", name)
 	}
@@ -576,14 +577,15 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 			email := strings.ToLower(accountsInfo[i][1].([]interface{})[0].(string))
 
 			if len(email) > 0 {
-
-				id := Utility.GenerateUUID(strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)))
+				//id := Utility.GenerateUUID(strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string)))
+				id := strings.ToLower(accountsInfo[i][2].([]interface{})[0].(string))
 				if len(id) > 0 {
 					groups := make([]string, 0)
 					// Here I will set the user groups.
 					if len(accountsInfo[i][3].([]interface{})) > 0 {
 						for j := 0; j < len(accountsInfo[i][3].([]interface{})); j++ {
-							groups = append(groups, Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)))
+							groups = append(groups, accountsInfo[i][3].([]interface{})[j].(string))
+							//groups = append(groups, Utility.GenerateUUID(accountsInfo[i][3].([]interface{})[j].(string)))
 						}
 					}
 

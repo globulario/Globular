@@ -568,7 +568,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	// Start streaming.
 	err = handler(srv, ServerStreamInterceptorStream{uuid: uuid, inner: stream, method: method, domain: domain, token: token, application: application, clientId: clientId, peer: domain})
 
-	if (len(application) > 0 && len(clientId) > 0 && clientId != "sa") || err != nil {
+	if len(application) > 0 && len(clientId) > 0 && clientId != "sa" && err != nil {
 		logger, err_ := GetLogClient(domain)
 		if err_ == nil {
 			logger.Log(application, clientId, method, logpb.LogLevel_ERROR_MESSAGE, err.Error())
