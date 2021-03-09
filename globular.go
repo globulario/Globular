@@ -685,10 +685,11 @@ func (self *Globule) Serve() {
 	// lisen
 	err := self.Listen()
 
+	log.Println("Globular is running!")
+
 	// Keep watching if the config file was modify by external agent.
 	self.watchConfigFile()
 
-	log.Println("Globular is running!")
 	if err != nil {
 		log.Println(err)
 	}
