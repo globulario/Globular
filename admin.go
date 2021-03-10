@@ -429,7 +429,6 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 					self.synchronizeLdap(ldapSyncInfos.([]interface{})[i].(map[string]interface{}))
 				}
 			}
-
 		}
 
 		if restartServices {

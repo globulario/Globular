@@ -512,14 +512,14 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 
 	log.Println("----------> synchronyse ldap:", syncInfo)
 
-	if self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] == nil {
-		self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = make([]interface{}, 0)
-		self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{}), syncInfo)
+	if self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] == nil {
+		self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = make([]interface{}, 0)
+		self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
 	} else {
-		syncInfos := self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{})
+		syncInfos := self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{})
 		exist := false
 		for i := 0; i < len(syncInfos); i++ {
-			if syncInfos[i].(map[string]interface{})["LdapSeriveId"] == syncInfo["LdapSeriveId"] {
+			if syncInfos[i].(map[string]interface{})["LdapServiceId"] == syncInfo["LdapServiceId"] {
 				if syncInfos[i].(map[string]interface{})["ConnectionId"] == syncInfo["ConnectionId"] {
 					// set the connection info.
 					syncInfos[i] = syncInfo
@@ -532,19 +532,17 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 		}
 
 		if !exist {
-			self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapSeriveId"].(string)].([]interface{}), syncInfo)
+			self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
 			// save the config.
 			self.saveConfig()
 		}
 	}
 
-	// Cast the the correct type.
-
-	// Searh for roles.
 	ldap_, err := self.getLdapClient()
 	if err != nil {
 		return err
 	}
+
 	connectionId := syncInfo["ConnectionId"].(string)
 	groupSyncInfos := syncInfo["GroupSyncInfos"].(map[string]interface{})
 	log.Println("----> ", groupSyncInfos)

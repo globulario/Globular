@@ -685,10 +685,11 @@ func (self *Globule) Serve() {
 	// lisen
 	err := self.Listen()
 
+	log.Println("Globular is running!")
+
 	// Keep watching if the config file was modify by external agent.
 	self.watchConfigFile()
 
-	log.Println("Globular is running!")
 	if err != nil {
 		log.Println(err)
 	}
@@ -1313,7 +1314,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 							// I will log the program error into the admin logger.
 							self.logServiceInfo(getStringVal(s, "Name"), errb.String())
 						}
-						log.Println("-------------> process ", getStringVal(s, "Name"), getIntVal(s, "Port"), pid, " is exit!")
 					}
 				}(s)
 			}
