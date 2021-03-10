@@ -664,6 +664,29 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 
 	err := self.publishPackage(user, organization, discoveryId, repositoryId, "webapp", path, descriptor)
 
+	// Create the permission...
+	permissions := &rbacpb.Permissions{
+		Allowed: []*rbacpb.Permission{
+			//  Exemple of possible permission values.
+			&rbacpb.Permission{
+				Name:          "read", // member of the organization can publish the service.
+				Applications:  []string{name},
+				Accounts:      []string{},
+				Groups:        []string{},
+				Peers:         []string{},
+				Organizations: []string{organization},
+			},
+		},
+		Denied: []*rbacpb.Permission{},
+		Owners: &rbacpb.Permission{
+			Name:     "owner",
+			Accounts: []string{user},
+		},
+	}
+
+	// Set the permissions.
+	err = self.setResourcePermissions("/"+name, permissions)
+
 	if err != nil {
 		return err
 	}
@@ -766,6 +789,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
+	log.Println("----------------> actions: ", actions)
 	err = self.installApplication(domain, name, organization, version, description, r, actions, keywords)
 
 	return err
