@@ -367,8 +367,6 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " domain:" + domain + " application:" + application)
-		fmt.Println(err)
-		log.Println("validation fail ", err)
 		return nil, err
 	}
 
@@ -484,8 +482,6 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
 	if !hasAccess {
 		err := errors.New("Permission denied to execute method " + l.method + " user:" + l.clientId + " domain:" + l.domain + " application:" + l.application)
-		fmt.Println(err)
-		log.Println("validation fail ", err)
 		return err
 	}
 

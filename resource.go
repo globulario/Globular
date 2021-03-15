@@ -2001,17 +2001,21 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		method == "/rbac.RbacService/ValidateAccess" ||
 		method == "/rbac.RbacService/GetResourcePermissions" ||
 		method == "/rbac.RbacService/GetResourcePermission" ||
-		method == "/resource.LogService/Log" ||
-		method == "/resource.LogService/GetLog" {
+		method == "/log.LogService/Log" ||
+		method == "/log.LogService/DeleteLog" ||
+		method == "/log.LogService/GetLog" ||
+		method == "/log.LogService/ClearAllLog" {
 		hasAccess = true
 	}
+	var clientId string
 
 	// Test if the user has access to execute the method
 	if len(token) > 0 && !hasAccess {
 		var expiredAt int64
+		var err error
 
 		/*clientId*/
-		clientId, _, expiredAt, err := Interceptors.ValidateToken(token)
+		clientId, _, expiredAt, err = Interceptors.ValidateToken(token)
 		if err != nil {
 			return nil, err
 		}
@@ -2033,8 +2037,10 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 	}
 
 	if !hasAccess {
-		err := errors.New("Permission denied to execute method " + method)
-		// self.logInfo(application, method, token, err)
+
+		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " application:" + application)
+		self.logInfo(application, method, token, err)
+
 		return nil, err
 	}
 

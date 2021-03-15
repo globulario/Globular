@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/log/logpb"
@@ -144,6 +146,7 @@ func (self *Globule) getLogInfoKeyValue(info *logpb.LogInfo) (string, string, er
 }
 
 func (self *Globule) log(info *logpb.LogInfo) error {
+	fmt.Println("-------> log information!")
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserName) > 0 {
@@ -166,6 +169,9 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 		return err
 	}
 
+	fmt.Println("------->key ", key)
+	fmt.Println("------->value ", jsonStr)
+
 	// Append the error in leveldb
 	self.logs.SetItem(key, []byte(jsonStr))
 	eventHub, err := self.getEventHub()
@@ -173,7 +179,8 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 		return err
 	}
 
-	eventHub.Publish(info.Method, []byte(jsonStr))
+	// That must be use to keep all logger upto date...
+	eventHub.Publish("new_error_log_evt", []byte(jsonStr))
 
 	return nil
 }
@@ -262,14 +269,15 @@ func (self *Globule) GetLog(rqst *logpb.GetLogRqst, stream logpb.LogService_GetL
 }
 
 func (self *Globule) deleteLog(query string) error {
-
+	log.Println("query ", query)
 	// First of all I will retreive the log info with a given date.
 	data, err := self.logs.GetItem(query)
 	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
-
+	log.Println("---------> data ", string(data))
 	// read open bracket
 	_, err = jsonDecoder.Token()
 	if err != nil {
+		log.Println("---------> err ", err)
 		return err
 	}
 
@@ -278,11 +286,13 @@ func (self *Globule) deleteLog(query string) error {
 
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
+			log.Println("---------> err ", err)
 			return err
 		}
 
 		key, _, err := self.getLogInfoKeyValue(&info)
 		if err != nil {
+			log.Println("---------> err ", err)
 			return err
 		}
 

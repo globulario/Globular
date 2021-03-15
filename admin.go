@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"time"
 
+	"golang.org/x/net/html"
+
 	// "golang.org/x/sys/windows/registry"
 
 	"regexp"
@@ -622,6 +624,13 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 
 	// here is a little workaround to be sure the bundle.js file will not be cached in the brower...
 	indexHtml, err := ioutil.ReadFile(abosolutePath + "/index.html")
+
+	// Parse the index html file to be sure the file is valid.
+	_, err = html.Parse(strings.NewReader(string(indexHtml)))
+	if err != nil {
+		return err
+	}
+
 	if err == nil {
 		var re = regexp.MustCompile(`\/bundle\.js(\?updated=\d*)?`)
 		indexHtml_ := re.ReplaceAllString(string(indexHtml), "/bundle.js?updated="+Utility.ToString(time.Now().Unix()))
