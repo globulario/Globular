@@ -456,7 +456,6 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 				s_ = new(sync.Map)
 			}
 			setValues(s_, s.(map[string]interface{}))
-			log.Println("------------------> domain is ", getStringVal(s_, "Domain"), domain)
 			s_.Store("Domain", domain)
 			self.initService(s_)
 			self.setService(s_)
@@ -789,8 +788,17 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	log.Println("----------------> actions: ", actions)
 	err = self.installApplication(domain, name, organization, version, description, r, actions, keywords)
+	if err != nil {
+		return err
+	}
+
+	// Now I will send the update application event.
+	eventClient, err := self.getEventHub()
+	if err == nil {
+		log.Println("-------> sent event ", "update_"+domain+"_"+name+"_evt", []byte(version))
+		eventClient.Publish("update_"+strings.Split(domain, ":")[0]+"_"+name+"_evt", []byte(version))
+	}
 
 	return err
 }
