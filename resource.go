@@ -770,7 +770,7 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 	}
 
 	// Generate a token to identify the user.
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Name, rqst.Account.Email)
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Id, rqst.Account.Name, rqst.Account.Email)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -784,8 +784,8 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Tokens", map[string]interface{}{"_id": name, "expireAt": Utility.ToString(expireAt)}, "")
+	id, _, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Tokens", map[string]interface{}{"_id": id, "expireAt": Utility.ToString(expireAt)}, "")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1001,15 +1001,15 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	// in case of sa user.(admin)
 	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
 		// Generate a token to identify the user.
-		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
+		tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
-		name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
+		id, _, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+		err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+id+`"}`, `{"_id":"`+id+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1065,7 +1065,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// Generate a token to identify the user.
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, values[0].(map[string]interface{})["name"].(string), values[0].(map[string]interface{})["email"].(string))
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, values[0].(map[string]interface{})["_id"].(string), values[0].(map[string]interface{})["name"].(string), values[0].(map[string]interface{})["email"].(string))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1092,8 +1092,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// save the newly create token into the database.
-	name, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
-	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
+	id, _, _, expireAt, _ := Interceptors.ValidateToken(tokenString)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+id+`"}`, `{"_id":"`+id+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1121,7 +1121,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 	}
 
 	// first of all I will validate the current token.
-	name, email, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+	id, name, email, expireAt, err := Interceptors.ValidateToken(rqst.Token)
 
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "token is expired") {
@@ -1140,7 +1140,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `[{"Projection":{"expireAt":1}}]`)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+id+`"}`, `[{"Projection":{"expireAt":1}}]`)
 	if err == nil && values != nil {
 		lastTokenInfo := values.(map[string]interface{})
 		savedTokenExpireAt := time.Unix(int64(lastTokenInfo["expireAt"].(int32)), 0)
@@ -1156,7 +1156,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 		}
 	}
 
-	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, name, email)
+	tokenString, err := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, id, name, email)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(
@@ -1165,9 +1165,9 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 	}
 
 	// get back the new expireAt
-	name, _, expireAt, _ = Interceptors.ValidateToken(tokenString)
+	id, name, _, expireAt, _ = Interceptors.ValidateToken(tokenString)
 
-	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+name+`"}`, `{"_id":"`+name+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+id+`"}`, `{"_id":"`+id+`","expireAt":`+Utility.ToString(expireAt)+`}`, `[{"upsert":true}]`)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(
@@ -2011,7 +2011,7 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		var err error
 
 		/*clientId*/
-		clientId, _, expiredAt, err = Interceptors.ValidateToken(token)
+		clientId, _, _, expiredAt, err = Interceptors.ValidateToken(token)
 		if err != nil {
 			return nil, err
 		}
@@ -2062,7 +2062,7 @@ func (self *Globule) streamResourceInterceptor(srv interface{}, stream grpc.Serv
 
 //* Validate a token *
 func (self *Globule) ValidateToken(ctx context.Context, rqst *resourcepb.ValidateTokenRqst) (*resourcepb.ValidateTokenRsp, error) {
-	clientId, _, expireAt, err := Interceptors.ValidateToken(rqst.Token)
+	clientId, _, _, expireAt, err := Interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2086,7 +2086,7 @@ func (self *Globule) authenticateClient(ctx context.Context) (string, string, in
 		token := strings.Join(md["token"], "")
 		// In that case no token was given...
 		if len(token) > 0 {
-			userId, _, expired, err = Interceptors.ValidateToken(token)
+			userId, _, _, expired, err = Interceptors.ValidateToken(token)
 		}
 		return applicationId, userId, expired, err
 	}

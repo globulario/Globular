@@ -342,7 +342,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	var err error
 
 	if len(token) > 0 {
-		clientId, _, _, err = ValidateToken(token)
+		clientId, _, _, _, err = ValidateToken(token)
 		if err != nil {
 			log.Println("token validation fail with error: ", err)
 			return nil, err
@@ -524,7 +524,7 @@ func ServerStreamInterceptor(srv interface{}, stream grpc.ServerStream, info *gr
 	address = address[0:strings.Index(address, ":")]
 
 	if len(token) > 0 {
-		clientId, _, _, err = ValidateToken(token)
+		clientId, _, _, _, err = ValidateToken(token)
 		if err != nil {
 			return err
 		}

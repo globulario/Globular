@@ -149,15 +149,16 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 	fmt.Println("-------> log information!")
 
 	// The userId can be a single string or a JWT token.
-	if len(info.UserName) > 0 {
+	if len(info.UserId) > 0 {
 
-		name, _, _, err := Interceptors.ValidateToken(info.UserName)
+		id, name, _, _, err := Interceptors.ValidateToken(info.UserId)
 		if err == nil {
-			info.UserName = name
+			info.UserId = id
 		}
 
-		info.UserId = info.UserName // keep only the user name
-		if info.UserName == "sa" {
+		info.UserId = id
+		info.UserName = name // keep only the user name
+		if info.UserId == "sa" {
 			return nil // not log sa activities...
 		}
 	} else {

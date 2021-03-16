@@ -147,19 +147,19 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		username, _, expiresAt, err := Interceptors.ValidateToken(token)
+		id, username, _, expiresAt, err := Interceptors.ValidateToken(token)
 		user = username
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
 		} else {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", username, rbacpb.SubjectType_ACCOUNT, infos)
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
 			}
 
-			hasAccess, hasAccessDenied, err = globule.validateAccess(username, rbacpb.SubjectType_ACCOUNT, "write", path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
@@ -272,18 +272,18 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		username, _, expiresAt, err := Interceptors.ValidateToken(token)
+		id /*username*/, _, _, expiresAt, err := Interceptors.ValidateToken(token)
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
 		} else {
-			hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", username, rbacpb.SubjectType_ACCOUNT, infos)
+			hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
 			}
 
-			hasAccess, hasAccessDenied, err = globule.validateAccess(username, rbacpb.SubjectType_ACCOUNT, "read", upath)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", upath)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return

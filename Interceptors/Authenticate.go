@@ -30,6 +30,7 @@ func (a *Authentication) RequireTransportSecurity() bool {
 // Create a struct that will be encoded to a JWT.
 // We add jwt.StandardClaims as an embedded type, to provide fields like expiry time
 type Claims struct {
+	ID       string `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 
@@ -37,13 +38,14 @@ type Claims struct {
 }
 
 // Generate a token for a ginven user.
-func GenerateToken(jwtKey []byte, timeout time.Duration, userName string, email string) (string, error) {
+func GenerateToken(jwtKey []byte, timeout time.Duration, id string, userName string, email string) (string, error) {
 
 	// Declare the expiration time of the token
 	expirationTime := time.Now().Add(timeout * time.Millisecond)
 
 	// Create the JWT claims, which includes the username and expiry time
 	claims := &Claims{
+		ID:       id,
 		Username: userName,
 		Email:    email,
 		StandardClaims: jwt.StandardClaims{
@@ -65,7 +67,7 @@ func GenerateToken(jwtKey []byte, timeout time.Duration, userName string, email 
 }
 
 /** Validate a Token **/
-func ValidateToken(token string) (string, string, int64, error) {
+func ValidateToken(token string) (string, string, string, int64, error) {
 
 	// Initialize a new instance of `Claims`
 	claims := &Claims{}
@@ -81,12 +83,12 @@ func ValidateToken(token string) (string, string, int64, error) {
 	})
 
 	if err != nil {
-		return claims.Username, claims.Email, claims.ExpiresAt, err
+		return claims.ID, claims.Username, claims.Email, claims.ExpiresAt, err
 	}
 
 	if !tkn.Valid {
-		return claims.Username, claims.Email, claims.ExpiresAt, fmt.Errorf("invalid token!")
+		return claims.ID, claims.Username, claims.Email, claims.ExpiresAt, fmt.Errorf("invalid token!")
 	}
 
-	return claims.Username, claims.Email, claims.ExpiresAt, nil
+	return claims.ID, claims.Username, claims.Email, claims.ExpiresAt, nil
 }

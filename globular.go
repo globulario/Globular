@@ -303,6 +303,57 @@ func NewGlobule() *Globule {
 }
 
 /**
+ * Send a application notification.
+ * That function will send notification to all connected user of that application.
+ */
+func (self *Globule) sendApplicationNotification(application string, message string) error {
+
+	// That service made user of persistence service.
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	/** The notification object. */
+	notification := make(map[string]interface{}, 0)
+	id := time.Now().Unix()
+	notification["_id"] = id
+	notification["_type"] = 1
+	notification["_text"] = message
+	notification["_recipient"] = application
+	notification["_date"] = id
+
+	// Now I will retreive the application icon...
+	data, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+application+`"}`, `[{"Projection":{"icon":1}}]`)
+	if err != nil {
+		return err
+	}
+
+	jsonStr, err := Utility.ToJson(data)
+	if err != nil {
+		return err
+	}
+	notification["_sender"] = jsonStr
+
+	_, err = p.InsertOne(context.Background(), "local_resource", application+"_db", "Notifications", notification, "")
+	if err != nil {
+		return err
+	}
+
+	jsonStr, err = Utility.ToJson(notification)
+	if err != nil {
+		return err
+	}
+
+	eventHub, err := self.getEventHub()
+	if err != nil {
+		return err
+	}
+
+	return eventHub.Publish(application+"_notification_event", []byte(jsonStr))
+}
+
+/**
  * A singleton use to access the cache.
  */
 func (self *Globule) getCache() *storage_store.BigCache_store {
@@ -634,7 +685,7 @@ func (self *Globule) Serve() {
 		}
 
 		// The token that identify the server with other services
-		token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
+		token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
 		err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 		if err != nil {
 			log.Panicln(err)
@@ -647,7 +698,7 @@ func (self *Globule) Serve() {
 			for {
 				select {
 				case <-ticker.C:
-					token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", self.AdminEmail)
+					token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
 					err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
 					if err != nil {
 						log.Println(err)
@@ -2093,8 +2144,6 @@ func (self *Globule) Listen() error {
 	return err
 }
 
-///////// Implement the User Interface. ////////////
-
 /**
  * Return the admin email.
  */
@@ -2126,8 +2175,6 @@ func (self *Globule) GetPrivateKey() crypto.PrivateKey {
 	}
 	return privateKey
 }
-
-///////// End of Implement the User Interface. ////////////
 
 /**
  * That function work correctly, but the DNS fail time to time to give the

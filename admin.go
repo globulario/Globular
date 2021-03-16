@@ -521,6 +521,20 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	// Here I will extract the file.
 	Utility.ExtractTarGz(r)
 
+	// remove temporary files.
+	defer os.RemoveAll(Utility.GenerateUUID(name))
+
+	// Here I will test that the index.html file is not corrupted...
+	__indexHtml__, err := ioutil.ReadFile(Utility.GenerateUUID(name) + "/index.html")
+	if err != nil {
+
+		return err
+	}
+	// The file must contain a linq to a bundle.js file.
+	if strings.Index(string(__indexHtml__), "/bundle.js") == -1 {
+		return errors.New("something wrong append the index.html file does not contain the bundle.js file... " + string(__indexHtml__))
+	}
+
 	// Copy the files to it final destination
 	abosolutePath := self.webRoot
 
@@ -538,9 +552,6 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	if Utility.Exists(abosolutePath) {
 		os.RemoveAll(abosolutePath)
 	}
-
-	// remove temporary files.
-	defer os.RemoveAll(Utility.GenerateUUID(name))
 
 	// Recreate the dir and move file in it.
 	Utility.CreateDirIfNotExist(abosolutePath)
@@ -632,6 +643,9 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	if err == nil {
 		var re = regexp.MustCompile(`\/bundle\.js(\?updated=\d*)?`)
 		indexHtml_ := re.ReplaceAllString(string(indexHtml), "/bundle.js?updated="+Utility.ToString(time.Now().Unix()))
+		if strings.Index(indexHtml_, "/bundle.js?updated=") == -1 {
+			return errors.New("something wrong append the index.html file does not contain the bundle.js file... " + indexHtml_)
+		}
 		// save it back.
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
 	}
@@ -781,11 +795,20 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		discoveryId = domain
 	}
 
+	p, err := self.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+	previous, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `[{"Projection":{"version":1}}]`)
+	if err != nil {
+		return err
+	}
+
 	// Now I will save the bundle into a file in the temp directory.
 	path := os.TempDir() + "/" + Utility.RandomUUID()
 	defer os.RemoveAll(path)
 
-	err := ioutil.WriteFile(path, buffer.Bytes(), 0644)
+	err = ioutil.WriteFile(path, buffer.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
@@ -802,14 +825,26 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-	// Now I will send the update application event.
-	eventClient, err := self.getEventHub()
-	if err == nil {
-		log.Println("-------> sent event ", "update_"+domain+"_"+name+"_evt", []byte(version))
-		eventClient.Publish("update_"+strings.Split(domain, ":")[0]+"_"+name+"_evt", []byte(version))
-	}
+	// If the version has change I will notify current users and undate the applications.
+	if previous.(map[string]interface{})["version"].(string) != version {
+		eventClient, err := self.getEventHub()
+		if err == nil {
+			eventClient.Publish("update_"+strings.Split(domain, ":")[0]+"_"+name+"_evt", []byte(version))
+		}
 
-	return err
+		/** The message to send from the notification */
+		message := `<div style="display: flex; flex-direction: column">
+              <div>A new version of <span style="font-weight: 500;">` + name + `</span> (v.` + version + `) is available.
+              </div>
+              <div>
+                Press <span style="font-weight: 500;">f5</span> to refresh the page.
+              </div>
+            </div>
+            `
+
+		return self.sendApplicationNotification(name, message)
+	}
+	return nil
 }
 
 /** Create the super administrator in the db. **/
