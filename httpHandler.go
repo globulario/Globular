@@ -234,6 +234,28 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	upath = path.Clean(upath)
 
+	// Now I will test if a token is given in the header and manage it file access.
+	application := r.Header.Get("application")
+
+	// If the path is '/' it mean's no application name was given and we are
+	// at the root.
+	if upath == "/" {
+		// if a default application is define in the globule i will use it.
+		if len(globule.IndexApplication) > 0 {
+			upath += "/" + globule.IndexApplication
+			application = globule.IndexApplication
+		}
+
+	} else if strings.Count(upath, "/") == 1 {
+		if strings.HasSuffix(upath, ".js") ||
+			strings.HasSuffix(upath, ".json") ||
+			strings.HasSuffix(upath, ".css") ||
+			strings.HasSuffix(upath, ".htm") ||
+			strings.HasSuffix(upath, ".html") {
+			upath = "/" + globule.IndexApplication + "/" + upath
+		}
+	}
+
 	//path to file
 	name := path.Join(dir, upath)
 
@@ -242,8 +264,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = globule.creds + upath
 	}
 
-	// Now I will test if a token is given in the header and manage it file access.
-	application := r.Header.Get("application")
 	token := r.Header.Get("token")
 
 	// domain := r.Header.Get("domain")
@@ -290,12 +310,20 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// if the file dosent exist...
+	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
+		name = path.Join(dir, globule.IndexApplication+"/"+upath)
+	}
+
 	//check if file exists
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
+
 			http.Error(w, "File "+upath+" not found!", http.StatusBadRequest)
 			return
+
 		}
 	}
 

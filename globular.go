@@ -105,6 +105,7 @@ type Globule struct {
 
 	Domain           string        // The principale domain
 	AlternateDomains []interface{} // Alternate domain for multiple domains
+	IndexApplication string // If defined It will be use as the entry point where not application path was given in the url.
 
 	// Certificate generation variables.
 	CertExpirationDelay int

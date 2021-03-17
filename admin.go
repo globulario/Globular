@@ -115,6 +115,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["State"] = self.State
 	config["City"] = self.City
 	config["Organization"] = self.Organization
+	config["IndexApplication"] = self.IndexApplication
 
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
