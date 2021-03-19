@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package mail;
+
+option go_package="mail/mailpb";
+
+message Connection {
+	string id = 1;
+	string host = 3;
+	string user = 6;
+	string password = 7;
+	int32 port = 8;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+
+message CarbonCopy {
+	string address = 1;
+	string name = 2;
+}
+
+message Attachement {
+	string fileName = 1;
+	bytes fileData = 2;
+}
+
+enum BodyType{
+	TEXT = 0;
+	HTML = 1;
+}
+
+message Email {
+    string from = 2;
+	repeated string to = 3;
+	repeated CarbonCopy cc = 4;
+	string subject = 5;
+	string body = 6;
+	BodyType bodyType = 7;
+}
+
+message SendEmailRqst {
+	string id = 1; 		// The connection id
+	Email email = 2;
+}
+
+message SendEmailRsp {
+	bool result = 1;
+}
+
+message SendEmailWithAttachementsRqst {
+	string id = 1; 		// The connection id
+	oneof data {
+		Email email = 2; // Contain the email message data
+		Attachement attachements = 3; // Contain attachements data (chunk data...)
+	}
+}
+
+message SendEmailWithAttachementsRsp {
+	bool result = 1;
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+service MailService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+	
+	// Send a simple email whitout file.
+	rpc SendEmail(SendEmailRqst) returns (SendEmailRsp){};
+	
+	// Send email with attachements.
+	rpc SendEmailWithAttachements(stream SendEmailWithAttachementsRqst) returns (SendEmailWithAttachementsRsp){};
+	
+	
+}

@@ -800,9 +800,15 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	if err != nil {
 		return err
 	}
+
+	var previousVersion string
 	previous, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `[{"Projection":{"version":1}}]`)
-	if err != nil {
-		return err
+	if err == nil {
+		if previous != nil {
+			if previous.(map[string]interface{})["version"] != nil {
+				previousVersion = previous.(map[string]interface{})["version"].(string)
+			}
+		}
 	}
 
 	// Now I will save the bundle into a file in the temp directory.
@@ -827,7 +833,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	}
 
 	// If the version has change I will notify current users and undate the applications.
-	if previous.(map[string]interface{})["version"].(string) != version {
+	if previousVersion != version {
 		eventClient, err := self.getEventHub()
 		if err == nil {
 			eventClient.Publish("update_"+strings.Split(domain, ":")[0]+"_"+name+"_evt", []byte(version))

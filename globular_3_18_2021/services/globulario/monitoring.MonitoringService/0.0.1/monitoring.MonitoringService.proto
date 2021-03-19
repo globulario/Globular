@@ -1,0 +1,249 @@
+/**
+ * You can use monitoring as starter project.
+ */
+syntax = "proto3";
+package monitoring;
+
+option go_package="monitoring/monitoringpb";
+
+enum StoreType{
+	PROMETHEUS = 0;
+}
+
+// Connection to time series server.
+message Connection {
+	string id = 1;
+	string host = 2;
+	StoreType store = 3;
+	int32 port = 4;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+message AlertsRequest {
+	  string connectionId = 1;
+}
+
+
+message AlertsResponse {
+	  string results = 1;
+}
+
+message AlertManagersRequest {
+	  string connectionId = 1;
+}
+
+message AlertManagersResponse{
+	 string results = 1;
+}
+
+message CleanTombstonesRequest {
+	  string connectionId = 1;
+}
+
+message CleanTombstonesResponse{
+	 bool result = 1;
+}
+
+message ConfigRequest {
+	string connectionId = 1;
+}
+
+message ConfigResponse{
+	string results = 1;
+}
+
+
+message DeleteSeriesRequest{
+	string connectionId = 1;
+	repeated string matches = 2;
+	double startTime = 3;
+	double endTime = 4;
+}
+
+message DeleteSeriesResponse{
+	bool result = 1;
+}
+
+message FlagsRequest{
+	string connectionId = 1;
+}
+
+message FlagsResponse{
+	string results = 1;
+}
+
+message LabelNamesRequest{
+	string connectionId = 1;
+}
+
+message LabelNamesResponse{
+	repeated string labels = 1;
+	string warnings = 2;
+}
+
+message LabelValuesRequest{
+	string connectionId = 1;
+	string label = 2;
+	int64 startTime = 3;
+	int64 endTime = 4;
+}
+
+message LabelValuesResponse{
+	string labelValues = 1;
+	string warnings = 2;
+}
+
+message QueryRequest{
+	string connectionId = 1;
+	string query = 2;
+	double ts = 3; // unix time
+}
+
+message QueryResponse{
+	string value = 1;
+	string warnings = 2;
+}
+
+message QueryRangeRequest{
+	string connectionId = 1;
+	string query = 2;
+	double startTime = 3;
+	double endTime = 4;
+	double step = 5;
+}
+
+message QueryRangeResponse{
+	string value = 1;
+	string warnings = 2;
+}
+
+message SeriesRequest{
+	string connectionId = 1;
+	repeated string matches = 2;
+	double startTime = 3;
+	double endTime = 4;
+}
+
+message SeriesResponse{
+	string LabelSet = 1;
+	string warnings = 2;
+}
+
+message SnapshotRequest{
+	string connectionId = 1;
+	bool skipHead = 2;
+}
+
+message SnapshotResponse{
+	string result = 1;
+}
+
+message RulesRequest{
+	string connectionId = 1;
+}
+
+message RulesResponse{
+	string result = 1;
+}
+
+message TargetsRequest{
+	string connectionId = 1;
+}
+
+message TargetsResponse{
+	string result = 1;
+}
+
+message TargetsMetadataRequest{
+	string connectionId = 1;
+	string matchTarget = 2;
+	string metric = 3;
+	string limit = 4;
+}
+
+message TargetsMetadataResponse{
+	string result = 1; // a json array containning metric metadata.
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+service MonitoringService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+	
+	// Alerts returns a list of all active alerts.
+	rpc Alerts(AlertsRequest) returns (AlertsResponse);
+
+	// AlertManagers returns an overview of the current state of the Prometheus alert manager discovery.
+  	rpc AlertManagers(AlertManagersRequest) returns (AlertManagersResponse);
+	
+	// CleanTombstones removes the deleted data from disk and cleans up the existing tombstones.
+	rpc CleanTombstones(CleanTombstonesRequest) returns (CleanTombstonesResponse);
+	
+	// Config returns the current Prometheus configuration.
+	rpc Config(ConfigRequest) returns (ConfigResponse);
+	
+	// DeleteSeries deletes data for a selection of series in a time range.
+	rpc DeleteSeries(DeleteSeriesRequest) returns (DeleteSeriesResponse);
+	
+	// Flags returns the flag values that Prometheus was launched with.
+	rpc Flags(FlagsRequest) returns(FlagsResponse);
+	
+	// LabelNames returns all the unique label names present in the block in sorted order.
+	rpc LabelNames(LabelNamesRequest) returns(LabelNamesResponse);
+	
+	// LabelValues performs a query for the values of the given label.
+	rpc LabelValues(LabelValuesRequest) returns(LabelValuesResponse);
+	
+	// Query performs a query for the given time.
+	rpc Query(QueryRequest) returns(QueryResponse);
+	
+	// QueryRange performs a query for the given range.
+	rpc QueryRange(QueryRangeRequest) returns(stream QueryRangeResponse);
+	
+	// Series finds series by label matchers.
+	rpc Series(SeriesRequest) returns(SeriesResponse);
+	
+	// Snapshot creates a snapshot of all current data into snapshots/<datetime>-<rand>
+	// under the TSDB's data directory and returns the directory as response.
+	rpc Snapshot(SnapshotRequest) returns(SnapshotResponse);
+	
+	// Rules returns a list of alerting and recording rules that are currently loaded.
+	rpc Rules(RulesRequest) returns(RulesResponse);
+	
+	// Targets returns an overview of the current state of the Prometheus target discovery.
+	rpc Targets(TargetsRequest) returns(TargetsResponse);
+	
+	// TargetsMetadata returns metadata about metrics currently scraped by the target.
+	rpc TargetsMetadata(TargetsMetadataRequest) returns(TargetsMetadataResponse);
+	
+}

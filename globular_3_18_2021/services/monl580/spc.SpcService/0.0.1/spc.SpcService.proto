@@ -1,0 +1,38 @@
+/**
+ * You can use  as starter project.
+ */
+syntax = "proto3";
+
+package spc;
+
+option go_package="spc/spcpb";
+
+message CreateAnalyseRqst {
+	string data = 1; // JSON array string
+	double tolzon = 2;
+	double lotol = 3;
+	double uptol = 4;
+	string toltype = 5; // TODO change double to string
+	bool ispopulation = 6;
+	string tests = 7; // JSON array string
+}
+
+message CreateAnalyseRsp {
+	string result = 1; // The result.
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+service SpcService {
+	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
+	// Send analyse results message.
+	rpc CreateAnalyse(CreateAnalyseRqst) returns (CreateAnalyseRsp){};
+}

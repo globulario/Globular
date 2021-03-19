@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package sql;
+
+option go_package="sql/sqlpb";
+
+message Connection {
+	string id = 1;
+	string name = 2;
+	string host = 3;
+	string charset = 4;
+	string driver = 5;
+	string user = 6;
+	string password = 7;
+	int32 port = 8;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+// Ping Connection
+message PingConnectionRqst {
+	string id = 1;
+}
+
+message PingConnectionRsp {
+	string result = 1;
+}
+
+message Query {
+	string connectionId = 1; // The connection id.
+	string query = 2; // the query string.
+	string parameters = 3; // because parameters can be of various type I will use a JSON string here.
+}
+
+message QueryContextRqst {
+	Query query = 1;
+}
+
+message QueryContextRsp {
+	// The header contain result columns information and can be usefull to display data.
+	// - DatabaseTypeName The sql type name
+	// - Name The name of the column
+	// - Scale The digit scale.
+	// - Precision The digit precision
+	// - IsNillable True if the value can be null
+	// The header is alwas send in the first message of the stream
+	// Name are alwas given but DatabaseTypeName can be empty depending of the
+	// driver use, mySql has value but odbc donsent have it.
+	oneof result {
+		string header = 1;
+		
+		// The data is alway an array of rows so [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
+		// The data contain in the array can be Null, Number, String or Bool. Date values
+		// are converted to unix time. (must be multiplicate by 1000)
+		string rows = 2;
+    }
+	
+}
+
+message ExecContextRqst {
+	Query query = 1;
+	bool tx = 2; // Use a transaction.
+}
+
+message ExecContextRsp {
+	int64 affectedRows = 1;
+	int64 lastId = 2;
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+// Sql service.
+// The first step is to create a connection.
+// With that connection you can,
+// - Ping the sql server
+// - Execute sql operation UPDATE, DELETE, UPDATE with ExecContext
+// - Execute sql SELECT operation with QueryContext
+// You can also delete the create connection with DeleteConnection.
+service SqlService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+	
+	// Ping existing connection.
+	rpc Ping(PingConnectionRqst) returns (PingConnectionRsp) {};
+	
+	// That query return zero or more Rows as a reults, SQL SELECT
+	rpc QueryContext(QueryContextRqst) returns (stream QueryContextRsp) {};
+	
+	// Exec Query SQL CREATE and INSERT. Return number of affected rows and last id 
+	// if there is an id.
+	rpc ExecContext(ExecContextRqst) returns (ExecContextRsp) {};
+}

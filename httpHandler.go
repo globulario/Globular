@@ -311,7 +311,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// if the file dosent exist...
+	// if the file dosent exist... I will try to get it from the index application...
 	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
 		name = path.Join(dir, globule.IndexApplication+"/"+upath)
 	}

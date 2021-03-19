@@ -1,0 +1,34 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+package echo;
+
+option go_package="echo/echopb";
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+  int32 message_count = 2;
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+service EchoService {
+	
+  // Stop the server.
+  rpc Stop(StopRequest) returns (StopResponse);
+	
+  // One request followed by one response
+  // The server returns the client message as-is.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+}

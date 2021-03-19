@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package ldap;
+
+option go_package="ldap/ldappb";
+
+message Connection {
+	string id = 1;
+	string host = 2;
+	string user = 3;
+	string password = 4;
+	int32 port = 5;
+}
+
+// Create connection
+message CreateConnectionRqst {
+	Connection connection = 1;
+}
+
+message CreateConnectionRsp {
+	bool result = 1;
+}
+
+// Delete connection
+message DeleteConnectionRqst {
+	string id = 1;
+}
+
+message DeleteConnectionRsp {
+	bool result = 1;
+}
+
+// Close connection.
+message CloseRqst {
+	string id = 1;
+}
+
+message CloseRsp {
+	bool result = 1;
+}
+
+message Search{
+	string id = 1; // The connection id
+	string baseDN = 2; // The base domain name.
+	string filter = 3; // The Filter expression.
+	repeated string attributes = 4; // The list of attributes to retreives.
+}
+
+message SearchRqst {
+	Search search = 1;
+}
+
+message SearchResp {
+	string result = 1; // Contain a JSON string with the results.
+}
+
+// Authenticate request.
+message AuthenticateRqst {
+	string id = 1;
+	string login = 2;
+	string pwd = 3;
+}
+
+message AuthenticateRsp {
+	bool result = 1;
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+// TODO support TLS conncetion.
+service LdapService {
+  	// Stop the server.
+ 	rpc Stop(StopRequest) returns (StopResponse);
+	
+	// Create a connection.
+	rpc CreateConnection(CreateConnectionRqst) returns (CreateConnectionRsp){};
+	
+	// Delete a connection.
+	rpc DeleteConnection(DeleteConnectionRqst) returns (DeleteConnectionRsp){};
+
+	// Close connection. * Open is create at search time. But close must
+	// be explicitly call when the connection is no more use.
+	rpc Close(CloseRqst) returns (CloseRsp){};
+	
+	// Search over LDAP server
+	rpc Search(SearchRqst) returns (SearchResp){};
+	
+	// Authenticate a user to a given ldap server (connection id)
+	rpc Authenticate(AuthenticateRqst) returns (AuthenticateRsp){};
+}
+

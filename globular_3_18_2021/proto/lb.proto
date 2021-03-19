@@ -1,0 +1,75 @@
+/**
+ * Management of load on a cluster.
+ */
+syntax = "proto3";
+package lb;
+
+option go_package="lb/lbpb";
+
+/** 
+ * That structure contain necessary information to get 
+ */
+message ServerInfo {
+	/** The service instance id unique on the domain **/
+	string id = 1;
+	
+	/** The service name, multiple instance can share the same name **/
+	string name = 2;
+	
+	/** The domain of the service **/
+	string domain = 3;
+
+	/** The service port **/
+	int32 port = 4;
+}
+
+/**
+ * That message contain information about server load.
+ */
+message LoadInfo {
+	
+	/** The server info **/
+	ServerInfo serverInfo = 1;
+	
+	/** The cpu usage */
+	double load1 = 2; // during the last minutes
+	double load5 = 3; // the last five minutes
+	double load15 = 4; // the last 
+	
+}
+
+/** Return the list of servers for a given service. **/
+message GetCanditatesRequest {
+	string serviceName = 1;
+}
+
+message GetCanditatesResponse {
+	repeated ServerInfo servers = 1;
+}
+
+/** 
+ * Report load to the load balancer.
+ */
+message ReportLoadInfoRequest{
+	LoadInfo info = 1;
+}
+
+message ReportLoadInfoResponse{
+	
+}
+
+/**
+ * That service is use to 
+ */
+service LoadBalancingService {
+	/** 
+	 * Return the list of servers in order of availability (lower loaded at first).
+	 */
+	rpc GetCanditates(GetCanditatesRequest) returns(GetCanditatesResponse){};
+	
+	/**
+	 * Report load to the load balancer from the client.
+	 */
+  	rpc reportLoadInfo(stream ReportLoadInfoRequest) returns (ReportLoadInfoResponse) {};
+}
+

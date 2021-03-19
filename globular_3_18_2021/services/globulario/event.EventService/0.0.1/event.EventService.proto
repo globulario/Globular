@@ -1,0 +1,87 @@
+/**
+ * You can use echo as starter project.
+ */
+syntax = "proto3";
+package event;
+
+option go_package="event/eventpb";
+
+message Event{
+	string name = 1; // The event Topic.
+	bytes data = 2; // must be anything...
+}
+
+message QuitRequest{
+	string uuid = 1;
+}
+
+message QuitResponse{
+	bool result = 1;
+}
+
+message OnEventRequest{
+	string uuid = 1;
+}
+
+message OnEventResponse{
+	Event evt = 1;
+}
+
+message SubscribeRequest {
+  string name = 1; // the event Topic.
+  string uuid = 2; // the subscriber uuid
+}
+
+message SubscribeResponse {
+  bool result = 1;
+}
+
+message UnSubscribeRequest {
+  string name = 1; // the event Topic.
+  string uuid = 2; // the subscriber uuid.
+}
+
+message UnSubscribeResponse {
+  bool result = 1; // must return true
+}
+
+message PublishRequest{
+	Event evt = 1; // The event to publish on channel
+}
+
+message PublishResponse{
+	bool result = 1; // must return true
+}
+
+message StopRequest {
+	
+}
+
+message StopResponse {
+	
+}
+
+/**
+ * A gRpc event bus.
+ */
+service EventService {
+  // Stop the server.
+  rpc Stop(StopRequest) returns (StopResponse);
+
+  // One stream by client.
+  rpc OnEvent(OnEventRequest) returns (stream OnEventResponse) {};
+
+  // Return from OnEvent.
+  rpc Quit(QuitRequest) returns (QuitResponse){};
+
+  // Connect to an event channel or create it if it not already exist
+  // and stay in that function until UnSubscribe is call.
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse) {};
+
+  // Disconnect to an event channel.(Return from Subscribe)
+  rpc UnSubscribe(UnSubscribeRequest) returns (UnSubscribeResponse) {};
+
+  // Publish event on channel.
+  rpc Publish(PublishRequest) returns (PublishResponse) {};
+  
+}

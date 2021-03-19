@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package rbac;
+
+option go_package="rbac/rbacpb";
+
+////////////////////////////////////////////////////////////////////////////////
+// Role Based Access Control.
+////////////////////////////////////////////////////////////////////////////////
+
+// Permission message struct.
+message Permission {
+	string name = 1; // read, write, delete ... what you need
+	repeated string applications = 2;
+	repeated string peers = 3;
+	repeated string accounts = 4;
+	repeated string groups = 5;
+	repeated string organizations = 6;
+}
+
+message Permissions {
+	Permission owners = 1;
+	repeated Permission allowed = 2;
+	repeated Permission denied = 3;
+}
+
+message ActionResourceParameterPermission {
+	int32 index = 1;
+	string permission = 2;
+}
+
+/** Append a permission owner **/
+
+/** Return a resource permissions **/
+message GetResourcePermissionsRqst{
+	string path = 1;
+}
+
+/** Delete resource permissions **/
+message GetResourcePermissionsRsp{
+	Permissions permissions = 1;
+}
+
+/** Delete a resource permissions **/
+message DeleteResourcePermissionsRqst{
+	string path = 1;
+}
+
+/** Return permissions **/
+message DeleteResourcePermissionsRsp{
+	Permissions permissions = 1;
+}
+
+/** Delete specific resource permission **/
+message DeleteResourcePermissionRqst{
+	string path = 1;
+	string name = 2;
+	PermissionType type = 3;
+}
+
+/** Delete permissions **/
+message DeleteResourcePermissionRsp{
+	/** do nothing **/
+}
+
+/** Set all resource permissions **/
+message SetResourcePermissionsRqst{
+	string path = 1;
+	Permissions permissions = 2;
+}
+
+message SetResourcePermissionsRsp{
+	/** nothing here **/
+}
+
+enum PermissionType {
+	DENIED = 0;
+	ALLOWED = 1;
+}
+
+message GetResourcePermissionRqst{
+	string path = 1;
+	string name = 2;
+	PermissionType type = 3;
+}
+
+message GetResourcePermissionRsp{
+	Permission permission = 1;
+}
+
+message SetResourcePermissionRqst{
+	string path = 1;
+	Permission permission = 2;
+	PermissionType type = 3;
+}
+
+message SetResourcePermissionRsp{
+	/** nothing here **/
+}
+
+message AddResourceOwnerRqst{
+	string path = 1;
+	string subject = 2;
+	SubjectType type = 3;
+}
+
+message AddResourceOwnerRsp {
+	
+}
+
+message RemoveResourceOwnerRqst{
+	string path = 1;
+	string subject = 2;
+	SubjectType type = 3;
+}
+
+message RemoveResourceOwnerRsp {
+	
+}
+
+enum SubjectType {
+	ACCOUNT = 0;
+	PEER = 1;
+	GROUP= 2;
+	ORGANIZATION = 3;
+	APPLICATION = 4;
+	ROLE = 5;
+}
+	
+message DeleteAllAccessRqst {
+	string subject = 1;
+	SubjectType type = 2;
+}
+
+message DeleteAllAccessRsp {
+	
+}
+
+message ValidateAccessRqst {
+	string subject = 1;
+	SubjectType type = 2;
+	string path = 3; // The Resource path
+	string permission = 4; // the name of the permission (read, write, execute...)
+}
+
+message ValidateAccessRsp {
+	bool result = 1;
+}
+
+message GetActionResourceInfosRqst{
+	string action = 1;
+}
+
+message ResourceInfos {
+	int32 index = 1; // The parameter index.
+	string permission = 2; // The permission name, read, write, ect...
+	string path = 3; // The resource path (use by ValidateActionRsp)
+}
+
+message GetActionResourceInfosRsp{
+	repeated ResourceInfos infos = 1;
+}
+
+message ValidateActionRqst {
+	string subject = 1;
+	SubjectType type = 2;
+	string action = 3; // The Action path (grpc path)
+	repeated ResourceInfos infos = 4; // The resource information associated with the rpc call.
+}
+
+message ValidateActionRsp {
+	bool result = 1;
+}
+
+
+/**
+ * The service to control action and resource access.
+ */
+service RbacService {
+
+	/** Set resource permissions this method will replace existing permission at once **/
+	rpc SetResourcePermissions(SetResourcePermissionsRqst) returns(SetResourcePermissionsRqst);
+	
+	/** Delete a resource permissions (when a resource is deleted) **/
+	rpc DeleteResourcePermissions(DeleteResourcePermissionsRqst) returns(DeleteResourcePermissionsRqst);
+	
+	/** Delete a specific resource permission **/
+	rpc DeleteResourcePermission(DeleteResourcePermissionRqst) returns(DeleteResourcePermissionRqst);
+	
+	/** Get specific resource permission  ex. read permission... **/
+	rpc GetResourcePermission(GetResourcePermissionRqst) returns(GetResourcePermissionRsp);
+	
+	/** Set specific resource permission  ex. read permission... **/
+	rpc SetResourcePermission(SetResourcePermissionRqst) returns(SetResourcePermissionRsp);
+	
+	/** Get resource permissions **/
+	rpc GetResourcePermissions(GetResourcePermissionsRqst) returns(GetResourcePermissionsRsp);
+	
+	/** Add resource owner do nothing if it already exist */
+	rpc AddResourceOwner(AddResourceOwnerRqst) returns(AddResourceOwnerRsp);
+	
+	/** Remove resource owner */
+	rpc RemoveResourceOwner(RemoveResourceOwnerRqst) returns(RemoveResourceOwnerRsp);
+	
+	/** That function must be call when a subject is removed to clean up permissions. */
+	rpc DeleteAllAccess(DeleteAllAccessRqst) returns (DeleteAllAccessRsp);
+	
+	/** Validate if a user can get access to a given Resource for a given operation (read, write...) */
+	rpc ValidateAccess(ValidateAccessRqst) returns(ValidateAccessRsp);
+		
+	/////////////////////////// Rpc Action Valdisation ////////////////////////////////
+	
+	/** Return the action ressource informations. */
+	rpc GetActionResourceInfos(GetActionResourceInfosRqst) returns(GetActionResourceInfosRsp);
+	
+	/** Validate the actions */
+	rpc ValidateAction(ValidateActionRqst) returns(ValidateActionRsp);
+	
+}
