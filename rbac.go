@@ -887,7 +887,6 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 		return false, false, err
 	}
 
-	log.Println("-----------------> 886 ", permissions)
 	// Test if the Subject is owner of the ressource in that case I will git him access.
 	owners := permissions.Owners
 	isOwner := false

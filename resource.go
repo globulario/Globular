@@ -355,9 +355,6 @@ func (self *Globule) registerMethods() error {
 		log.Println("role guest was created!")
 	}
 
-	// Create connection application.
-	self.createApplicationConnection()
-
 	return nil
 }
 
@@ -509,8 +506,6 @@ func (self *Globule) createCrossReferences(sourceId, sourceCollection, sourceFie
 
 // TODO update the account and group if they already exist...
 func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
-
-	log.Println("----------> synchronyse ldap:", syncInfo)
 
 	if self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] == nil {
 		self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = make([]interface{}, 0)

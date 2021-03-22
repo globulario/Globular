@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"fmt"
-
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/log/logpb"
@@ -67,6 +65,22 @@ func (self *Globule) logServiceInfo(service string, message string) error {
 	info.Date = time.Now().Unix()
 	info.Message = message
 	info.Level = logpb.LogLevel_INFO_MESSAGE // not necessarely errors..
+	self.log(info)
+
+	return nil
+}
+
+func (self *Globule) logServiceError(service string, message string) error {
+
+	// Here I will use event to publish log information...
+	info := new(logpb.LogInfo)
+	info.Application = ""
+	info.UserId = "globular"
+	info.UserName = "globular"
+	info.Method = service
+	info.Date = time.Now().Unix()
+	info.Message = message
+	info.Level = logpb.LogLevel_ERROR_MESSAGE
 	self.log(info)
 
 	return nil
@@ -146,7 +160,6 @@ func (self *Globule) getLogInfoKeyValue(info *logpb.LogInfo) (string, string, er
 }
 
 func (self *Globule) log(info *logpb.LogInfo) error {
-	fmt.Println("-------> log information!")
 
 	// The userId can be a single string or a JWT token.
 	if len(info.UserId) > 0 {
@@ -169,9 +182,6 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("------->key ", key)
-	fmt.Println("------->value ", jsonStr)
 
 	// Append the error in leveldb
 	self.logs.SetItem(key, []byte(jsonStr))
@@ -274,11 +284,9 @@ func (self *Globule) deleteLog(query string) error {
 	// First of all I will retreive the log info with a given date.
 	data, err := self.logs.GetItem(query)
 	jsonDecoder := json.NewDecoder(strings.NewReader(string(data)))
-	log.Println("---------> data ", string(data))
 	// read open bracket
 	_, err = jsonDecoder.Token()
 	if err != nil {
-		log.Println("---------> err ", err)
 		return err
 	}
 
@@ -287,7 +295,6 @@ func (self *Globule) deleteLog(query string) error {
 
 		err := jsonpb.UnmarshalNext(jsonDecoder, &info)
 		if err != nil {
-			log.Println("---------> err ", err)
 			return err
 		}
 

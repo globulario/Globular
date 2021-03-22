@@ -105,7 +105,7 @@ type Globule struct {
 
 	Domain           string        // The principale domain
 	AlternateDomains []interface{} // Alternate domain for multiple domains
-	IndexApplication string // If defined It will be use as the entry point where not application path was given in the url.
+	IndexApplication string        // If defined It will be use as the entry point where not application path was given in the url.
 
 	// Certificate generation variables.
 	CertExpirationDelay int
@@ -956,7 +956,9 @@ func (self *Globule) keepServiceAlive(s *sync.Map) {
 
 	// Wait for process to return.
 	p.Wait()
-
+	if self.exit_ {
+		return
+	}
 	_, _, err = self.startService(s)
 	if err != nil {
 		return
@@ -1134,10 +1136,8 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 	_, hasProcess := s.Load("Process")
 	if !hasProcess {
 		s.Store("Process", -1)
-		s.Store("ProxyProcess", -1)
 	}
 
-	proxyPid := -1
 	pid := getIntVal(s, "Process")
 	if pid != -1 {
 		if runtime.GOOS == "windows" {
@@ -1151,8 +1151,15 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		}
 	}
 
+	// save the process -1 in the map.
+	s.Store("Process", -1)
+	self.setService(s)
+
 	servicePath := getStringVal(s, "Path")
 	serviceName := getStringVal(s, "Name")
+
+	proxyPid := getIntVal(s, "ProxyProcess")
+
 	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "packages.PackageDiscovery" {
 		// I will test if the service is find if not I will try to set path
 		// to standard dist directory structure.
@@ -1193,10 +1200,12 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			s.Store("KeyFile", "")
 		}
 
+		// Reset the list of port in user.
 		self.portsInUse = make([]int, 0)
 
 		// Get the next available port.
 		port := getIntVal(s, "Port")
+
 		if !self.isPortAvailable(port) {
 			port, err = self.getNextAvailablePort()
 			if err != nil {
@@ -1242,6 +1251,11 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			log.Println("Service ", getStringVal(s, "Name")+":"+getStringVal(s, "Id"), "started with pid:", getIntVal(s, "Process"))
 		}
 
+		// Now I specific services necessary actions...
+		if getStringVal(s, "Name") == "persistence.PersistenceService" {
+			self.persistence_client_ = nil
+		}
+
 		// save the services in the map.
 		go func(s *sync.Map, p *exec.Cmd) {
 
@@ -1261,53 +1275,61 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
+
 			if err != nil {
 				// I will log the program error into the admin logger.
-				self.logServiceInfo(getStringVal(s, "Name"), err.Error())
+				self.logServiceError(getStringVal(s, "Name"), err.Error())
 			}
 
 			// Print the error
 			if len(errb.String()) > 0 {
 				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
+				self.logServiceError(getStringVal(s, "Name"), errb.String())
 			}
 
-			// Terminate it proxy process.
-			Utility.TerminateProcess(proxyPid, 0)
+			if !getBoolVal(s, "KeepAlive") {
+				// Terminate it proxy process if not keep alive.
+				Utility.TerminateProcess(proxyPid, 0)
+				s.Store("ProxyProcess", -1)
+			}
 
+			self.logServiceInfo(getStringVal(s, "Name"), "Service stop.")
 			s.Store("Process", -1)
-			s.Store("ProxyProcess", -1)
+
 			self.setService(s)
 
 		}(s, p)
 
 		// get another port.
-		proxy := getIntVal(s, "Proxy")
-		if !self.isPortAvailable(proxy) {
-			self.setService(s)
-			proxy, err = self.getNextAvailablePort()
-			if err != nil {
-				s.Store("Proxy", -1)
+		if proxyPid == -1 {
+			proxy := getIntVal(s, "Proxy")
+			if !self.isPortAvailable(proxy) {
+				self.setService(s)
+				proxy, err = self.getNextAvailablePort()
+				if err != nil {
+					s.Store("Proxy", -1)
 
+					return -1, -1, err
+				}
+				// Set back the process
+				s.Store("Proxy", proxy)
+
+				self.setService(s)
+			}
+
+			// Start the proxy.
+			proxyPid, err = self.startProxy(s, port, proxy)
+			if err != nil {
 				return -1, -1, err
 			}
-			// Set back the process
-			s.Store("Proxy", proxy)
 
-			self.setService(s)
 		}
-
-		// Start the proxy.
-		proxyPid, err = self.startProxy(s, port, proxy)
-		if err != nil {
-			return -1, -1, err
-		}
-
 		// save service config.
 		self.saveServiceConfig(s)
 
 		// save it to the config because pid and proxy pid have change.
 		self.saveConfig()
-
+		proxy := getIntVal(s, "Proxy")
 		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
 
 	} else if getStringVal(s, "Protocol") == "http" {
@@ -1417,6 +1439,7 @@ func (self *Globule) initService(s *sync.Map) error {
 			s.Store("CertFile", "")
 			s.Store("KeyFile", "")
 		}
+
 	}
 
 	// any other http server except this one...
@@ -1615,6 +1638,8 @@ func (self *Globule) initServices() {
 		// Remove existing process information.
 		s.Store("Process", -1)
 		s.Store("ProxyProcess", -1)
+		self.saveServiceConfig(s)
+
 		log.Println("Init service: ", getStringVal(s, "Name"))
 		err := self.initService(s)
 		if err != nil {
@@ -1890,7 +1915,12 @@ inhibit_rules:
 func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
 	// That service made user of persistence service.
 	if self.persistence_client_ != nil {
-		return self.persistence_client_, nil
+		// Here I will also test the connection...
+		err := self.persistence_client_.Ping("local_resource")
+		if err == nil {
+			return self.persistence_client_, nil
+		}
+		self.persistence_client_ = nil // set back value to nil.
 	}
 
 	configs := self.getServiceConfigByName("persistence.PersistenceService")
@@ -1915,6 +1945,9 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 	if err != nil {
 		return nil, err
 	}
+
+	// Now I will initialyse the application connections...
+	self.createApplicationConnection()
 
 	return self.persistence_client_, nil
 }
