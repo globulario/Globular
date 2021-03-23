@@ -40,6 +40,8 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 	w.WriteHeader(http.StatusCreated)
 
 	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "ca.crt")
@@ -57,6 +59,8 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 	w.WriteHeader(http.StatusCreated)
 
 	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "san.conf")
@@ -74,6 +78,10 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+
 	w.WriteHeader(http.StatusCreated)
 
 	// sign the certificate.
@@ -102,6 +110,9 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
