@@ -182,7 +182,7 @@ func (self *Globule) watchConfigFile() {
 			doneChan <- true
 		}()
 
-		err := watchFile(self.config + string(os.PathSeparator) + "config.json")
+		err := watchFile(self.config + "/" + "config.json")
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -192,7 +192,7 @@ func (self *Globule) watchConfigFile() {
 			log.Println("configuration was changed and save from external actions.")
 
 			// Here I will read the file.
-			data, _ := ioutil.ReadFile(self.config + string(os.PathSeparator) + "config.json")
+			data, _ := ioutil.ReadFile(self.config + "/" + "config.json")
 			config := make(map[string]interface{}, 0)
 			json.Unmarshal(data, &config)
 			self.setConfig(config)
@@ -213,7 +213,7 @@ func (self *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(self.toMap())
 	if err == nil {
-		ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		ioutil.WriteFile(self.config+"/"+"config.json", []byte(str), 0644)
 	} else {
 		log.Panicln(err)
 	}
@@ -282,7 +282,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigReque
 
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config *sync.Map) bool {
-	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	root, _ := ioutil.ReadFile(os.TempDir() + "/" + "GLOBULAR_ROOT")
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
 	if !Utility.IsLocal(getStringVal(config, "Domain")) && root_ != self.path {
@@ -481,7 +481,7 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(config)
 	if err == nil {
-		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"config.json", []byte(str), 0644)
+		err := ioutil.WriteFile(self.config+"/"+"config.json", []byte(str), 0644)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -873,7 +873,7 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Here I will create super admin if it not already exist.
-	dataPath := self.data + string(os.PathSeparator) + "mongodb-data"
+	dataPath := self.data + "/" + "mongodb-data"
 
 	if !Utility.Exists(dataPath) {
 		// Kill mongo db server if the process already run...
@@ -974,7 +974,7 @@ func (self *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRootP
 		}
 	}
 
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + "/" + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1092,7 +1092,7 @@ func (self *Globule) SetPassword(ctx context.Context, rqst *adminpb.SetPasswordR
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + "/" + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1169,7 +1169,7 @@ func (self *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequest
 	}
 
 	// read the local token.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + "/" + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1198,7 +1198,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 	self.saveConfig()
 
 	// read the local token.
-	token, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + self.getDomain() + "_token")
+	token, err := ioutil.ReadFile(os.TempDir() + "/" + self.getDomain() + "_token")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1214,7 +1214,7 @@ func (self *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootEmai
 // Upload a service package.
 func (self *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServicePackageServer) error {
 	// The bundle will cantain the necessary information to install the service.
-	path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
+	path := os.TempDir() + "/" + Utility.RandomUUID()
 
 	fo, err := os.Create(path)
 	if err != nil {
@@ -1605,7 +1605,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 
 	// Now I will remove the service.
 	// Service are located into the packagespb...
-	path := self.path + string(os.PathSeparator) + "services" + string(os.PathSeparator) + rqst.PublisherId + string(os.PathSeparator) + rqst.ServiceId + string(os.PathSeparator) + rqst.Version
+	path := self.path + "/" + "services" + "/" + rqst.PublisherId + "/" + rqst.ServiceId + "/" + rqst.Version
 
 	// remove directory and sub-directory.
 	err = os.RemoveAll(path)

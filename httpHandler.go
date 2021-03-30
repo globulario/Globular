@@ -44,7 +44,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 	w.WriteHeader(http.StatusCreated)
 
-	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "ca.crt")
+	crt, err := ioutil.ReadFile(globule.creds + "/" + "ca.crt")
 	if err != nil {
 		http.Error(w, "Client ca cert not found!", http.StatusBadRequest)
 		return
@@ -63,7 +63,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 	w.WriteHeader(http.StatusCreated)
 
-	crt, err := ioutil.ReadFile(globule.creds + string(os.PathSeparator) + "san.conf")
+	crt, err := ioutil.ReadFile(globule.creds + "/" + "san.conf")
 	if err != nil {
 		http.Error(w, "Client Subject Alernate Name configuration found!", http.StatusBadRequest)
 		return
@@ -224,10 +224,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 
 	//if empty, set current directory
-	dir := string(webRoot)
-	if dir == "" {
-		dir = "."
-	}
+	dir := globule.webRoot
 
 	// If a directory with the same name as the host in the request exist
 	// it will be taken as root. Permission will be manage by the resource
@@ -238,42 +235,41 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//add prefix and clean
-	upath := r.URL.Path
-	if !strings.HasPrefix(upath, "/") {
-		upath = "/" + upath
-		r.URL.Path = upath
-	}
+	rqst_path := path.Clean(r.URL.Path)
 
-	upath = path.Clean(upath)
+	if rqst_path == "/null" {
+		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
+	}
 
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
 
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
-	if upath == "/" {
+
+	if rqst_path == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
-			upath += "/" + globule.IndexApplication
+			rqst_path += globule.IndexApplication
 			application = globule.IndexApplication
 		}
 
-	} else if strings.Count(upath, "/") == 1 {
-		if strings.HasSuffix(upath, ".js") ||
-			strings.HasSuffix(upath, ".json") ||
-			strings.HasSuffix(upath, ".css") ||
-			strings.HasSuffix(upath, ".htm") ||
-			strings.HasSuffix(upath, ".html") {
-			upath = "/" + globule.IndexApplication + "/" + upath
+	} else if strings.Count(rqst_path, "/") == 1 {
+		if strings.HasSuffix(rqst_path, ".js") ||
+			strings.HasSuffix(rqst_path, ".json") ||
+			strings.HasSuffix(rqst_path, ".css") ||
+			strings.HasSuffix(rqst_path, ".htm") ||
+			strings.HasSuffix(rqst_path, ".html") {
+			rqst_path = "/" + globule.IndexApplication + rqst_path
 		}
 	}
 
 	//path to file
-	name := path.Join(dir, upath)
+	name := path.Join(dir, rqst_path)
 
 	// this is the ca certificate use to sign client certificate.
-	if upath == "/ca.crt" {
-		name = globule.creds + upath
+	if rqst_path == "/ca.crt" {
+		name = globule.creds + rqst_path
 	}
 
 	token := r.Header.Get("token")
@@ -295,7 +291,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// validate ressource access...
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", upath)
+		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
 		if !hasAccess || hasAccessDenied || err != nil {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
@@ -315,7 +311,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 				//return
 			}
 
-			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", upath)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
@@ -325,7 +321,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if the file dosent exist... I will try to get it from the index application...
 	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
-		name = path.Join(dir, globule.IndexApplication+"/"+upath)
+		name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
 	}
 
 	//check if file exists
@@ -333,7 +329,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if os.IsNotExist(err) {
 
-			http.Error(w, "File "+upath+" not found!", http.StatusBadRequest)
+			http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
 			return
 
 		}
@@ -353,7 +349,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 				line := scanner.Text()
 				if strings.HasPrefix(line, "import") {
 					if strings.Index(line, `'@`) > -1 {
-						path_, err := resolveImportPath(upath, line)
+						path_, err := resolveImportPath(rqst_path, line)
 						if err == nil {
 							line = line[0:strings.Index(line, `'@`)] + `'` + path_ + `'`
 							hasChange = true

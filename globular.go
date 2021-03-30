@@ -27,6 +27,7 @@ import (
 
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/file/file_client"
 	"github.com/globulario/services/golang/ldap/ldap_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/struCoder/pidusage"
@@ -60,7 +61,6 @@ import (
 
 // Global variable.
 var (
-	webRoot string
 	globule *Globule
 )
 
@@ -172,6 +172,7 @@ type Globule struct {
 	persistence_client_ *persistence_client.Persistence_Client
 	ldap_client_        *ldap_client.LDAP_Client
 	event_client_       *event_client.Event_Client
+	file_clients_       *sync.Map
 
 	// ACME protocol registration
 	registration *registration.Resource
@@ -241,8 +242,8 @@ func NewGlobule() *Globule {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
 	// Initialyse globular from it configuration file.
-	g.config = dir + string(os.PathSeparator) + "config"
-	file, err := ioutil.ReadFile(g.config + string(os.PathSeparator) + "config.json")
+	g.config = dir + "/" + "config"
+	file, err := ioutil.ReadFile(g.config + "/" + "config.json")
 
 	// Init the service with the default port address
 	if err == nil {
@@ -293,7 +294,7 @@ func NewGlobule() *Globule {
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
 	// if globular is found.
-	g.webRoot = g.path + string(os.PathSeparator) + "webroot" // The default directory to server.
+	g.webRoot = g.path + "/webroot" // The default directory to server.
 
 	if Utility.Exists(g.path+"/bin/grpcwebproxy") || Utility.Exists(g.path+"/bin/grpcwebproxy.exe") {
 		// TODO test restart with initDirectories
@@ -567,7 +568,6 @@ func (self *Globule) getNextAvailablePort() (int, error) {
 func (self *Globule) initDirectories() {
 
 	// DNS info.
-
 	self.DNS = make([]interface{}, 0)
 	self.DnsUpdateIpInfos = make([]interface{}, 0)
 
@@ -582,13 +582,12 @@ func (self *Globule) initDirectories() {
 	self.ExternalApplications = make(map[string]ExternalApplication, 0)
 
 	// keep the root in global variable for the file handler.
-	webRoot = self.webRoot
 	Utility.CreateDirIfNotExist(self.webRoot) // Create the directory if it not exist.
 
-	if !Utility.Exists(self.webRoot + string(os.PathSeparator) + "index.html") {
+	if !Utility.Exists(self.webRoot + "/index.html") {
 
 		// in that case I will create a new index.html file.
-		ioutil.WriteFile(self.webRoot+string(os.PathSeparator)+"index.html", []byte(
+		ioutil.WriteFile(self.webRoot+"/"+"index.html", []byte(
 			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 
@@ -605,19 +604,19 @@ func (self *Globule) initDirectories() {
 	}
 
 	// Create the directory if is not exist.
-	self.data = self.path + string(os.PathSeparator) + "data"
+	self.data = self.path + "/data"
 	Utility.CreateDirIfNotExist(self.data)
 
 	// Configuration directory
-	self.config = self.path + string(os.PathSeparator) + "config"
+	self.config = self.path + "/config"
 	Utility.CreateDirIfNotExist(self.config)
 
 	// Create the creds directory if it not already exist.
-	self.creds = self.config + string(os.PathSeparator) + "tls"
+	self.creds = self.config + "/tls"
 	Utility.CreateDirIfNotExist(self.creds)
 
 	// Initialyse globular from it configuration file.
-	file, err := ioutil.ReadFile(self.config + string(os.PathSeparator) + "config.json")
+	file, err := ioutil.ReadFile(self.config + "/config.json")
 
 	// Init the service with the default port address
 	if err == nil {
@@ -680,14 +679,14 @@ func (self *Globule) Serve() {
 
 		// Here it suppose to be only one server instance per computer.
 		self.jwtKey = []byte(Utility.RandomUUID())
-		err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"globular_key", []byte(self.jwtKey), 0644)
+		err = ioutil.WriteFile(os.TempDir()+"/"+"globular_key", []byte(self.jwtKey), 0644)
 		if err != nil {
 			log.Panicln(err)
 		}
 
 		// The token that identify the server with other services
 		token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
-		err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
+		err = ioutil.WriteFile(os.TempDir()+"/"+self.getDomain()+"_token", []byte(token), 0644)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -700,7 +699,7 @@ func (self *Globule) Serve() {
 				select {
 				case <-ticker.C:
 					token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
-					err = ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+self.getDomain()+"_token", []byte(token), 0644)
+					err = ioutil.WriteFile(os.TempDir()+"/"+self.getDomain()+"_token", []byte(token), 0644)
 					if err != nil {
 						log.Println(err)
 					}
@@ -726,7 +725,7 @@ func (self *Globule) Serve() {
 	}
 
 	// I will save the variable in a tmp file to be sure I can get it outside
-	ioutil.WriteFile(os.TempDir()+string(os.PathSeparator)+"GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.PortHttp)), 0644)
+	ioutil.WriteFile(os.TempDir()+"/"+"GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.PortHttp)), 0644)
 
 	// set the services.
 	self.initServices()
@@ -865,8 +864,8 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := string(os.PathSeparator) + "bin" + string(os.PathSeparator) + "grpcwebproxy"
-	if string(os.PathSeparator) == "\\" && !strings.HasSuffix(proxyPath, ".exe") {
+	proxyPath := "/bin" + "/grpcwebproxy"
+	if "/" == "\\" && !strings.HasSuffix(proxyPath, ".exe") {
 		proxyPath += ".exe" // in case of windows.
 	}
 
@@ -879,13 +878,13 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
 	hasTls := getBoolVal(s, "TLS")
 	if hasTls == true {
-		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
+		certAuthorityTrust := self.creds + "/ca.crt"
 
 		/* Services gRpc backend. */
 		proxyArgs = append(proxyArgs, "--backend_tls=true")
 		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
-		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+string(os.PathSeparator)+"client.crt")
-		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+string(os.PathSeparator)+"client.pem")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+"/"+"client.crt")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+"/"+"client.pem")
 
 		/* http2 parameters between the browser and the proxy.*/
 		proxyArgs = append(proxyArgs, "--run_http_server=false")
@@ -893,10 +892,10 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 		proxyArgs = append(proxyArgs, "--server_http_tls_port="+strconv.Itoa(proxy))
 
 		/* in case of public domain server files **/
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+string(os.PathSeparator)+"server.pem")
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+"/"+"server.pem")
 
-		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.creds+string(os.PathSeparator)+self.CertificateAuthorityBundle)
-		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.creds+string(os.PathSeparator)+self.Certificate)
+		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.creds+"/"+self.CertificateAuthorityBundle)
+		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.creds+"/"+self.Certificate)
 
 	} else {
 		// Now I will save the file with those new information in it.
@@ -981,9 +980,9 @@ func (self *Globule) startInternalService(id string, proto string, hasTls bool, 
 
 	var grpcServer *grpc.Server
 	if hasTls {
-		certAuthorityTrust := self.creds + string(os.PathSeparator) + "ca.crt"
-		certFile := self.creds + string(os.PathSeparator) + "server.crt"
-		keyFile := self.creds + string(os.PathSeparator) + "server.pem"
+		certAuthorityTrust := self.creds + "/ca.crt"
+		certFile := self.creds + "/server.crt"
+		keyFile := self.creds + "/server.pem"
 
 		s.Store("CertFile", certFile)
 		s.Store("KeyFile", keyFile)
@@ -1121,7 +1120,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 	var err error
 
-	root, _ := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "GLOBULAR_ROOT")
+	root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
 	if !Utility.IsLocal(getStringVal(s, "Domain")) && root_ != self.path {
@@ -1190,9 +1189,9 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		log.Println("Has TLS ", hasTls, getStringVal(s, "Name"))
 		if hasTls {
 			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
-			s.Store("CertFile", self.creds+string(os.PathSeparator)+"server.crt")
-			s.Store("KeyFile", self.creds+string(os.PathSeparator)+"server.pem")
+			s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
+			s.Store("CertFile", self.creds+"/"+"server.crt")
+			s.Store("KeyFile", self.creds+"/"+"server.pem")
 		} else {
 			// not secure services.
 			s.Store("CertAuthorityTrust", "")
@@ -1342,7 +1341,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			p.Stderr = &errb
 
 			// Here I will set the command dir.
-			p.Dir = servicePath[:strings.LastIndex(servicePath, string(os.PathSeparator))]
+			p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
 			p.SysProcAttr = &syscall.SysProcAttr{
 				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 			}
@@ -1430,9 +1429,9 @@ func (self *Globule) initService(s *sync.Map) error {
 		s.Store("TLS", hasTls)             // set the tls...
 		if hasTls {
 			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
-			s.Store("CertFile", self.creds+string(os.PathSeparator)+"server.crt")
-			s.Store("KeyFile", self.creds+string(os.PathSeparator)+"server.pem")
+			s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
+			s.Store("CertFile", self.creds+"/"+"server.crt")
+			s.Store("KeyFile", self.creds+"/"+"server.pem")
 		} else {
 			// not secure services.
 			s.Store("CertAuthorityTrust", "")
@@ -1545,7 +1544,7 @@ func (self *Globule) initServices() {
 	self.setActionResourcesPermissions(map[string]interface{}{"action": "/admin.AdminService/PublishService", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
 
 	// It will be execute the first time only...
-	configPath := self.config + string(os.PathSeparator) + "config.json"
+	configPath := self.config + "/config.json"
 	if !Utility.Exists(configPath) {
 
 		filepath.Walk(self.getBasePath(), func(path string, info os.FileInfo, err error) error {
@@ -1613,9 +1612,9 @@ func (self *Globule) initServices() {
 			s.Store("TLS", hasTls)             // set the tls...
 			if hasTls {
 				// Set TLS local services configuration here.
-				s.Store("CertAuthorityTrust", self.creds+string(os.PathSeparator)+"ca.crt")
-				s.Store("CertFile", self.creds+string(os.PathSeparator)+"server.crt")
-				s.Store("KeyFile", self.creds+string(os.PathSeparator)+"server.pem")
+				s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
+				s.Store("CertFile", self.creds+"/"+"server.crt")
+				s.Store("KeyFile", self.creds+"/"+"server.pem")
 			} else {
 				// not secure services.
 				s.Store("CertAuthorityTrust", "")
@@ -1656,7 +1655,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	endIndex := strings.LastIndex(importPath, `'`)
 	importPath_ := importPath[startIndex:endIndex]
 
-	filepath.Walk(webRoot+path[0:strings.Index(path, "/")],
+	filepath.Walk(globule.webRoot+path[0:strings.Index(path, "/")],
 		func(path string, info os.FileInfo, err error) error {
 			path = strings.ReplaceAll(path, "\\", "/")
 			if err != nil {
@@ -1671,7 +1670,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 			return nil
 		})
 
-	importPath_ = strings.Replace(importPath_, strings.Replace(webRoot, "\\", "/", -1), "", -1)
+	importPath_ = strings.Replace(importPath_, strings.Replace(globule.webRoot, "\\", "/", -1), "", -1)
 
 	// Now i will make the path relative.
 	importPath__ := strings.Split(importPath_, "/")
@@ -1697,7 +1696,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	}
 
 	// remove the
-	importPath_ = strings.Replace(importPath_, webRoot, "", 1)
+	importPath_ = strings.Replace(importPath_, globule.webRoot, "", 1)
 
 	// remove the root path part and the leading / caracter.
 	return importPath_, nil
@@ -1711,9 +1710,9 @@ func (self *Globule) startPrometheus() error {
 	var err error
 
 	// Here I will start promethus.
-	dataPath := self.data + string(os.PathSeparator) + "prometheus-data"
+	dataPath := self.data + "/prometheus-data"
 	Utility.CreateDirIfNotExist(dataPath)
-	if !Utility.Exists(self.config + string(os.PathSeparator) + "prometheus.yml") {
+	if !Utility.Exists(self.config + "/prometheus.yml") {
 		config := `# my global config
 global:
   scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -1758,13 +1757,13 @@ scrape_configs:
     static_configs:
     - targets: ['localhost:2112']
 `
-		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"prometheus.yml", []byte(config), 0644)
+		err := ioutil.WriteFile(self.config+"/"+"prometheus.yml", []byte(config), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	if !Utility.Exists(self.config + string(os.PathSeparator) + "alertmanager.yml") {
+	if !Utility.Exists(self.config + "/alertmanager.yml") {
 		config := `global:
   resolve_timeout: 5m
 
@@ -1785,13 +1784,13 @@ inhibit_rules:
       severity: 'warning'
     equal: ['alertname', 'dev', 'instance']
 `
-		err := ioutil.WriteFile(self.config+string(os.PathSeparator)+"alertmanager.yml", []byte(config), 0644)
+		err := ioutil.WriteFile(self.config+"/"+"alertmanager.yml", []byte(config), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+string(os.PathSeparator)+"prometheus.yml", "--storage.tsdb.path", dataPath)
+	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+"/"+"prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheusCmd.Start()
 	prometheusCmd.SysProcAttr = &syscall.SysProcAttr{
 		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
@@ -1884,7 +1883,7 @@ inhibit_rules:
 
 	}()
 
-	alertmanager := exec.Command("alertmanager", "--config.file", self.config+string(os.PathSeparator)+"alertmanager.yml")
+	alertmanager := exec.Command("alertmanager", "--config.file", self.config+"/"+"alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
 		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
@@ -2060,6 +2059,25 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 	return self.event_client_, err
 }
 
+/**
+ * The file client is use to access file directory where users and application
+ * upload their file. File upload and download are manage by the file service and
+ * not by http handler.
+ */
+func (self *Globule) GetFileClient(id string) (*file_client.File_Client, error) {
+
+	if self.file_clients_ == nil {
+		self.file_clients_ = new(sync.Map)
+	} else {
+		c_, ok := self.file_clients_.Load(id)
+		if ok {
+			return c_.(*file_client.File_Client), nil
+		}
+	}
+
+	return nil, errors.New("No file client found on the server with id '" + id + "'")
+}
+
 func (self *Globule) GetAbsolutePath(path string) string {
 
 	path = strings.ReplaceAll(path, "\\", "/")
@@ -2069,12 +2087,14 @@ func (self *Globule) GetAbsolutePath(path string) string {
 
 	if len(path) > 1 {
 		if strings.HasPrefix(path, "/") {
-			path = strings.ReplaceAll(self.webRoot, "\\", "/") + path
+			path = self.webRoot + path
+		} else if !strings.HasSuffix(path, "/") {
+			path = self.webRoot + "/" + path
 		} else {
-			path = strings.ReplaceAll(self.webRoot, "\\", "/") + "/" + path
+			path = self.webRoot + path
 		}
 	} else {
-		path = strings.ReplaceAll(self.webRoot, "\\", "/")
+		path = self.webRoot
 	}
 
 	return path
@@ -2171,7 +2191,7 @@ func (self *Globule) Listen() error {
 
 		// get the value from the configuration files.
 		go func() {
-			err = self.https_server.ListenAndServeTLS(self.creds+string(os.PathSeparator)+self.Certificate, self.creds+string(os.PathSeparator)+"server.pem")
+			err = self.https_server.ListenAndServeTLS(self.creds+"/"+self.Certificate, self.creds+"/"+"server.pem")
 		}()
 	}
 
@@ -2197,7 +2217,7 @@ func (self *Globule) GetRegistration() *registration.Resource {
  * and manage it...
  */
 func (self *Globule) GetPrivateKey() crypto.PrivateKey {
-	keyPem, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "client.pem")
+	keyPem, err := ioutil.ReadFile(self.creds + "/client.pem")
 	if err != nil {
 		return nil
 	}
@@ -2235,7 +2255,7 @@ func (self *Globule) obtainCertificateForCsr() error {
 		return err
 	}
 
-	csrPem, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "server.csr")
+	csrPem, err := ioutil.ReadFile(self.creds + "/server.csr")
 	if err != nil {
 		return err
 	}
@@ -2265,8 +2285,8 @@ func (self *Globule) obtainCertificateForCsr() error {
 	self.CertificateAuthorityBundle = self.getDomain() + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
-	ioutil.WriteFile(self.creds+string(os.PathSeparator)+self.Certificate, resource.Certificate, 0400)
-	ioutil.WriteFile(self.creds+string(os.PathSeparator)+self.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
+	ioutil.WriteFile(self.creds+"/"+self.Certificate, resource.Certificate, 0400)
+	ioutil.WriteFile(self.creds+"/"+self.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
 
 	// save the config with the values.
 	self.saveConfig()

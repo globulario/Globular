@@ -56,14 +56,14 @@ func (self *Globule) startCertificateAuthorityService() error {
 func (self *Globule) signCertificate(client_csr string) (string, error) {
 
 	// first of all I will save the incomming file into a temporary file...
-	client_csr_path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
+	client_csr_path := os.TempDir() + "/" + Utility.RandomUUID()
 	err := ioutil.WriteFile(client_csr_path, []byte(client_csr), 0644)
 	if err != nil {
 		return "", err
 
 	}
 
-	client_crt_path := os.TempDir() + string(os.PathSeparator) + Utility.RandomUUID()
+	client_crt_path := os.TempDir() + "/" + Utility.RandomUUID()
 
 	cmd := "openssl"
 	args := make([]string, 0)
@@ -76,15 +76,15 @@ func (self *Globule) signCertificate(client_csr string) (string, error) {
 	args = append(args, "-in")
 	args = append(args, client_csr_path)
 	args = append(args, "-CA")
-	args = append(args, self.creds+string(os.PathSeparator)+"ca.crt") // use certificate
+	args = append(args, self.creds+"/"+"ca.crt") // use certificate
 	args = append(args, "-CAkey")
-	args = append(args, self.creds+string(os.PathSeparator)+"ca.key") // and private key to sign the incommin csr
+	args = append(args, self.creds+"/"+"ca.key") // and private key to sign the incommin csr
 	args = append(args, "-set_serial")
 	args = append(args, "01")
 	args = append(args, "-out")
 	args = append(args, client_crt_path)
 	args = append(args, "-extfile")
-	args = append(args, self.creds+string(os.PathSeparator)+"san.conf")
+	args = append(args, self.creds+"/"+"san.conf")
 	args = append(args, "-extensions")
 	args = append(args, "v3_req")
 	err = exec.Command(cmd, args...).Run()
@@ -134,7 +134,7 @@ func (self *Globule) SignCertificate(ctx context.Context, rqst *capb.SignCertifi
 // ca_crt: Return the Authority Trust Certificate. (ca.crt)
 func (self *Globule) GetCaCertificate(ctx context.Context, rqst *capb.GetCaCertificateRequest) (*capb.GetCaCertificateResponse, error) {
 
-	ca_crt, err := ioutil.ReadFile(self.creds + string(os.PathSeparator) + "ca.crt")
+	ca_crt, err := ioutil.ReadFile(self.creds + "/" + "ca.crt")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

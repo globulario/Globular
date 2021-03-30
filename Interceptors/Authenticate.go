@@ -78,7 +78,7 @@ func ValidateToken(token string) (string, string, string, int64, error) {
 	// or if the signature does not match
 	tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		// Get the key from the local temp file.
-		jwtKey, err := ioutil.ReadFile(os.TempDir() + string(os.PathSeparator) + "globular_key")
+		jwtKey, err := ioutil.ReadFile(os.TempDir() + "/" + "globular_key")
 		return jwtKey, err
 	})
 
