@@ -370,6 +370,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	// Authenticate the user in order to get the token
 	resource_client, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+
 	if err != nil {
 		log.Println("fail to access resource service at "+address+" with error ", err)
 		return err

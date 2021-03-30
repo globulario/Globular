@@ -100,7 +100,9 @@ func GetClientConfig(address string, name string, port int, path string) (map[st
 		if serverConfig["AlternateDomains"] != nil {
 			alternateDomains = serverConfig["AlternateDomains"].([]interface{})
 		}
+
 		if !isLocal {
+
 			keyPath, certPath, caPath, err := getCredentialConfig(path, serverConfig["Domain"].(string), country, state, city, organization, alternateDomains, port)
 			if err != nil {
 				return nil, err
@@ -111,7 +113,6 @@ func GetClientConfig(address string, name string, port int, path string) (map[st
 			config["CertAuthorityTrust"] = caPath
 		}
 	}
-
 	return config, nil
 }
 
@@ -182,6 +183,7 @@ func getRemoteConfig(address string, port int) (map[string]interface{}, error) {
  * Get the ca certificate
  */
 func getCaCertificate(address string, port int) (string, error) {
+
 	if len(address) == 0 {
 		return "", errors.New("No address was given!")
 	}
@@ -204,6 +206,7 @@ func getCaCertificate(address string, port int) (string, error) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println(string(bodyBytes))
 		return string(bodyBytes), nil
 	}
 
@@ -220,14 +223,19 @@ func signCaCertificate(address string, csr string, port int) (string, error) {
 	// Here I will get the configuration information from http...
 	var resp *http.Response
 	var err error
+
 	var signCertificateAddress = "http://" + address + ":" + Utility.ToString(port) + "/sign_ca_certificate"
+	log.Println("----------> 228: ", signCertificateAddress)
+
 	resp, err = http.Get(signCertificateAddress + "?csr=" + csr_str)
 	if err != nil {
+		log.Println("---> 232")
 		return "", err
 	}
 
+	log.Println("----------> 236: ", signCertificateAddress)
 	defer resp.Body.Close()
-
+	log.Println("---> 232")
 	if resp.StatusCode == http.StatusCreated {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {

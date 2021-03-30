@@ -83,20 +83,21 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 
 	w.WriteHeader(http.StatusCreated)
-
+	log.Println("sign Ca Certificate Handler was call")
 	// sign the certificate.
 	csr_str := r.URL.Query().Get("csr") // the csr in base64
 	csr, err := base64.StdEncoding.DecodeString(csr_str)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Fail to decode csr base64 string", http.StatusBadRequest)
 		return
 	}
 
 	// Now I will sign the certificate.
 	crt, err := globule.signCertificate(string(csr))
-
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "fail to sign certificate!", http.StatusBadRequest)
 		return
 	}
