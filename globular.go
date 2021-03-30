@@ -125,6 +125,12 @@ type Globule struct {
 	Platform       string
 	SessionTimeout time.Duration
 
+	// There's are Directory
+	// The user's directory
+	UsersDirectory string
+	// The application directory
+	ApplicationDirectory string
+
 	// Service discoveries.
 	Discoveries []string // Contain the list of discovery service use to keep service up to date.
 
@@ -146,11 +152,13 @@ type Globule struct {
 	servicesMemoryUsage *prometheus.GaugeVec
 
 	// Directories.
-	path    string // The path of the exec...
-	webRoot string // The root of the http file server.
-	data    string // the data directory
-	creds   string // tls certificates
-	config  string // configuration directory
+	path         string // The path of the exec...
+	webRoot      string // The root of the http file server.
+	data         string // the data directory
+	creds        string // tls certificates
+	config       string // configuration directory
+	users        string // the users files directory
+	applications string // The applications
 
 	// Log store.
 	logs *storage_store.LevelDB_store
@@ -606,6 +614,14 @@ func (self *Globule) initDirectories() {
 	// Create the directory if is not exist.
 	self.data = self.path + "/data"
 	Utility.CreateDirIfNotExist(self.data)
+
+	// Files directorie that contain user's directories and application's directory
+	self.users = self.data + "/users"
+	Utility.CreateDirIfNotExist(self.users)
+
+	// Contain the application directory.
+	self.applications = self.data + "/applications"
+	Utility.CreateDirIfNotExist(self.applications)
 
 	// Configuration directory
 	self.config = self.path + "/config"
@@ -2060,7 +2076,7 @@ func (self *Globule) getEventHub() (*event_client.Event_Client, error) {
 }
 
 /**
- * The file client is use to access file directory where users and application
+ * The file client is use to access file directories where users and application
  * upload their file. File upload and download are manage by the file service and
  * not by http handler.
  */
