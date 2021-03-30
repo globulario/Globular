@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -535,11 +534,11 @@ func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stre
 	var id string
 	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
 
-	path := self.data + string(os.PathSeparator) + "packages-repository"
+	path := self.data + "/" + "packages-repository"
 
 	var err error
 	// the file must be a zipped archive that contain a .proto, .config and executable.
-	bundle.Binairies, err = ioutil.ReadFile(path + string(os.PathSeparator) + id + ".tar.gz")
+	bundle.Binairies, err = ioutil.ReadFile(path + "/" + id + ".tar.gz")
 	if err != nil {
 		return err
 	}
@@ -643,7 +642,7 @@ func (self *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBund
 		}
 	}
 
-	path := self.data + string(os.PathSeparator) + "packages-repository"
+	path := self.data + "/" + "packages-repository"
 	Utility.CreateDirIfNotExist(path)
 
 	// the file must be a zipped archive that contain a .proto, .config and executable.
