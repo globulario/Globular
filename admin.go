@@ -181,7 +181,7 @@ func (self *Globule) watchConfigFile() {
 			doneChan <- true
 		}()
 
-		err := watchFile(self.config + "/" + "config.json")
+		err := watchFile(self.config + "/config.json")
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -191,7 +191,7 @@ func (self *Globule) watchConfigFile() {
 			log.Println("configuration was changed and save from external actions.")
 
 			// Here I will read the file.
-			data, _ := ioutil.ReadFile(self.config + "/" + "config.json")
+			data, _ := ioutil.ReadFile(self.config + "/config.json")
 			config := make(map[string]interface{}, 0)
 			json.Unmarshal(data, &config)
 			self.setConfig(config)
@@ -281,7 +281,7 @@ func (self *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigReque
 
 // return true if the configuation has change.
 func (self *Globule) saveServiceConfig(config *sync.Map) bool {
-	root, _ := ioutil.ReadFile(os.TempDir() + "/" + "GLOBULAR_ROOT")
+	root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
 	if !Utility.IsLocal(getStringVal(config, "Domain")) && root_ != self.path {
@@ -696,9 +696,6 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 			&rbacpb.Permission{
 				Name:          "read", // member of the organization can publish the service.
 				Applications:  []string{name},
-				Accounts:      []string{},
-				Groups:        []string{},
-				Peers:         []string{},
 				Organizations: []string{organization},
 			},
 		},
@@ -709,9 +706,13 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		},
 	}
 
-	// Set the permissions.
-	err = self.setResourcePermissions("/"+name, permissions)
+	// Set the path of the directory where the application can store date.
+	Utility.CreateDirIfNotExist(self.applications + "/" + name)
+	if err != nil {
+		return err
+	}
 
+	err = self.setResourcePermissions(self.applications+"/"+name, permissions)
 	if err != nil {
 		return err
 	}
@@ -875,7 +876,7 @@ func (self *Globule) registerSa() error {
 	}
 
 	// Here I will create super admin if it not already exist.
-	dataPath := self.data + "/" + "mongodb-data"
+	dataPath := self.data + "/mongodb-data"
 
 	if !Utility.Exists(dataPath) {
 		// Kill mongo db server if the process already run...
@@ -1612,7 +1613,7 @@ func (self *Globule) UninstallService(ctx context.Context, rqst *adminpb.Uninsta
 
 	// Now I will remove the service.
 	// Service are located into the packagespb...
-	path := self.path + "/" + "services" + "/" + rqst.PublisherId + "/" + rqst.ServiceId + "/" + rqst.Version
+	path := self.path + "/services/" + rqst.PublisherId + "/" + rqst.ServiceId + "/" + rqst.Version
 
 	// remove directory and sub-directory.
 	err = os.RemoveAll(path)

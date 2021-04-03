@@ -597,18 +597,18 @@ func (self *Globule) initDirectories() {
 		// in that case I will create a new index.html file.
 		ioutil.WriteFile(self.webRoot+"/"+"index.html", []byte(
 			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html lang="en">
-
-	<head>
-		<meta http-equiv="content-type" content="text/html; charset=utf-8">
-		<title>Title Goes Here</title>
-	</head>
-
-	<body>
-		<p>Welcome to Globular `+self.Version+`</p>
-	</body>
-
-</html>`), 644)
+	<html lang="en">
+	
+		<head>
+			<meta http-equiv="content-type" content="text/html; charset=utf-8">
+			<title>Title Goes Here</title>
+		</head>
+	
+		<body>
+			<p>Welcome to Globular `+self.Version+`</p>
+		</body>
+	
+	</html>`), 644)
 	}
 
 	// Create the directory if is not exist.
@@ -616,11 +616,11 @@ func (self *Globule) initDirectories() {
 	Utility.CreateDirIfNotExist(self.data)
 
 	// Files directorie that contain user's directories and application's directory
-	self.users = self.data + "/users"
+	self.users = self.data + "/files/users"
 	Utility.CreateDirIfNotExist(self.users)
 
 	// Contain the application directory.
-	self.applications = self.data + "/applications"
+	self.applications = self.data + "/files/applications"
 	Utility.CreateDirIfNotExist(self.applications)
 
 	// Configuration directory
@@ -741,7 +741,7 @@ func (self *Globule) Serve() {
 	}
 
 	// I will save the variable in a tmp file to be sure I can get it outside
-	ioutil.WriteFile(os.TempDir()+"/"+"GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.PortHttp)), 0644)
+	ioutil.WriteFile(os.TempDir()+"/GLOBULAR_ROOT", []byte(self.path+":"+Utility.ToString(self.PortHttp)), 0644)
 
 	// set the services.
 	self.initServices()
@@ -881,7 +881,7 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 
 	// Now I will start the proxy that will be use by javascript client.
 	proxyPath := "/bin" + "/grpcwebproxy"
-	if "/" == "\\" && !strings.HasSuffix(proxyPath, ".exe") {
+	if !strings.HasSuffix(proxyPath, ".exe") && runtime.GOOS == "windows" {
 		proxyPath += ".exe" // in case of windows.
 	}
 
@@ -899,8 +899,8 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 		/* Services gRpc backend. */
 		proxyArgs = append(proxyArgs, "--backend_tls=true")
 		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
-		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+"/"+"client.crt")
-		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+"/"+"client.pem")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+self.creds+"/client.crt")
+		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+self.creds+"/client.pem")
 
 		/* http2 parameters between the browser and the proxy.*/
 		proxyArgs = append(proxyArgs, "--run_http_server=false")
@@ -908,7 +908,7 @@ func (self *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
 		proxyArgs = append(proxyArgs, "--server_http_tls_port="+strconv.Itoa(proxy))
 
 		/* in case of public domain server files **/
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+"/"+"server.pem")
+		proxyArgs = append(proxyArgs, "--server_tls_key_file="+self.creds+"/server.pem")
 
 		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+self.creds+"/"+self.CertificateAuthorityBundle)
 		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+self.creds+"/"+self.Certificate)
@@ -1202,9 +1202,9 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		log.Println("Has TLS ", hasTls, getStringVal(s, "Name"))
 		if hasTls {
 			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
-			s.Store("CertFile", self.creds+"/"+"server.crt")
-			s.Store("KeyFile", self.creds+"/"+"server.pem")
+			s.Store("CertAuthorityTrust", self.creds+"/ca.crt")
+			s.Store("CertFile", self.creds+"/server.crt")
+			s.Store("KeyFile", self.creds+"/server.pem")
 		} else {
 			// not secure services.
 			s.Store("CertAuthorityTrust", "")
@@ -1226,12 +1226,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			s.Store("Port", port)
 			self.setService(s)
 
-		}
-
-		// File service need root...
-		if getStringVal(s, "Name") == "file.FileService" {
-			// Set it root to the globule root.
-			s.Store("Root", globule.webRoot)
 		}
 
 		err = os.Chmod(servicePath, 0755)
@@ -1441,9 +1435,9 @@ func (self *Globule) initService(s *sync.Map) error {
 		s.Store("TLS", hasTls)             // set the tls...
 		if hasTls {
 			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
-			s.Store("CertFile", self.creds+"/"+"server.crt")
-			s.Store("KeyFile", self.creds+"/"+"server.pem")
+			s.Store("CertAuthorityTrust", self.creds+"/ca.crt")
+			s.Store("CertFile", self.creds+"/server.crt")
+			s.Store("KeyFile", self.creds+"/server.pem")
 		} else {
 			// not secure services.
 			s.Store("CertAuthorityTrust", "")
@@ -1624,9 +1618,9 @@ func (self *Globule) initServices() {
 			s.Store("TLS", hasTls)             // set the tls...
 			if hasTls {
 				// Set TLS local services configuration here.
-				s.Store("CertAuthorityTrust", self.creds+"/"+"ca.crt")
-				s.Store("CertFile", self.creds+"/"+"server.crt")
-				s.Store("KeyFile", self.creds+"/"+"server.pem")
+				s.Store("CertAuthorityTrust", self.creds+"/ca.crt")
+				s.Store("CertFile", self.creds+"/server.crt")
+				s.Store("KeyFile", self.creds+"/server.pem")
 			} else {
 				// not secure services.
 				s.Store("CertAuthorityTrust", "")
@@ -1644,6 +1638,7 @@ func (self *Globule) initServices() {
 	if err != nil {
 		log.Println(err)
 	}
+
 	log.Println("Init external services: ")
 	for _, s := range self.getServices() {
 		// Remove existing process information.
@@ -1651,7 +1646,14 @@ func (self *Globule) initServices() {
 		s.Store("ProxyProcess", -1)
 		self.saveServiceConfig(s)
 
-		log.Println("Init service: ", getStringVal(s, "Name"))
+		// The service name.
+		name := getStringVal(s, "Name")
+
+		log.Println("Init service: ", name)
+		if name == "file.FileService" {
+			s.Store("Root", self.data+"/files")
+		}
+
 		err := self.initService(s)
 		if err != nil {
 			log.Println(err)
@@ -1769,7 +1771,7 @@ scrape_configs:
     static_configs:
     - targets: ['localhost:2112']
 `
-		err := ioutil.WriteFile(self.config+"/"+"prometheus.yml", []byte(config), 0644)
+		err := ioutil.WriteFile(self.config+"/prometheus.yml", []byte(config), 0644)
 		if err != nil {
 			return err
 		}
@@ -1796,13 +1798,13 @@ inhibit_rules:
       severity: 'warning'
     equal: ['alertname', 'dev', 'instance']
 `
-		err := ioutil.WriteFile(self.config+"/"+"alertmanager.yml", []byte(config), 0644)
+		err := ioutil.WriteFile(self.config+"/alertmanager.yml", []byte(config), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+"/"+"prometheus.yml", "--storage.tsdb.path", dataPath)
+	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", self.config+"/prometheus.yml", "--storage.tsdb.path", dataPath)
 	err = prometheusCmd.Start()
 	prometheusCmd.SysProcAttr = &syscall.SysProcAttr{
 		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
@@ -1895,7 +1897,7 @@ inhibit_rules:
 
 	}()
 
-	alertmanager := exec.Command("alertmanager", "--config.file", self.config+"/"+"alertmanager.yml")
+	alertmanager := exec.Command("alertmanager", "--config.file", self.config+"/alertmanager.yml")
 	alertmanager.SysProcAttr = &syscall.SysProcAttr{
 		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
@@ -2203,7 +2205,7 @@ func (self *Globule) Listen() error {
 
 		// get the value from the configuration files.
 		go func() {
-			err = self.https_server.ListenAndServeTLS(self.creds+"/"+self.Certificate, self.creds+"/"+"server.pem")
+			err = self.https_server.ListenAndServeTLS(self.creds+"/"+self.Certificate, self.creds+"/server.pem")
 		}()
 	}
 

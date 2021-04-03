@@ -636,7 +636,7 @@ func install(g *Globule, path string) {
 
 	// Here I will copy the proxy.
 	globularExec := os.Args[0]
-	if "/" == "\\" && !strings.HasSuffix(globularExec, ".exe") {
+	if runtime.GOOS == "windows" && !strings.HasSuffix(globularExec, ".exe") {
 		globularExec += ".exe" // in case of windows
 	}
 
@@ -652,13 +652,13 @@ func install(g *Globule, path string) {
 
 	// Copy the bin file from globular
 	Utility.CreateDirIfNotExist(path + "/" + "bin")
-	err = Utility.CopyDir(dir+"/"+"bin", path+"/"+"bin")
+	err = Utility.CopyDir(dir+"/bin", path+"/bin")
 	if err != nil {
 		log.Panicln("--> fail to copy bin ", err)
 	}
 
 	// Change the files permission to add execute write.
-	files, err := ioutil.ReadDir(path + "/" + "bin")
+	files, err := ioutil.ReadDir(path + "/bin")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -690,7 +690,7 @@ func install(g *Globule, path string) {
 
 	for _, f := range files {
 		if !f.IsDir() {
-			err = os.Chmod(path+"/"+"bin"+"/"+f.Name(), 0755)
+			err = os.Chmod(path+"/bin/"+f.Name(), 0755)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -764,7 +764,7 @@ func install(g *Globule, path string) {
 									config["TLS"] = false
 
 									str, _ := Utility.ToJson(&config)
-									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/"+"config.json", []byte(str), 0644)
+									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 
 									// Copy the proto file.
 									if Utility.Exists(protoPath) {
@@ -810,7 +810,7 @@ func install(g *Globule, path string) {
 ENTRYPOINT ["/globular/Globular"]`
 
 	// save docker.
-	err = ioutil.WriteFile(path+"/"+"Dockerfile", []byte(dockerfile), 0644)
+	err = ioutil.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
 	if err != nil {
 		log.Println(err)
 	}

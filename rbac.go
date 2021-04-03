@@ -53,7 +53,7 @@ func (self *Globule) setEntityResourcePermissions(entity string, path string) er
 	// Here I will retreive the actual list of paths use by this user.
 	data, err := self.permissions.GetItem(entity)
 	paths := make([]string, 0)
-
+	log.Println("data ", string(data))
 	if err == nil {
 		err := json.Unmarshal(data, &paths)
 		if err != nil {
@@ -76,53 +76,60 @@ func (self *Globule) setEntityResourcePermissions(entity string, path string) er
 }
 
 func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Permissions) error {
-
 	// First of all I need to remove the existing permission.
 	self.deleteResourcePermissions(path, permissions)
-
 	// Allowed resources
 	allowed := permissions.Allowed
 	if allowed != nil {
+
 		for i := 0; i < len(allowed); i++ {
 
 			// Accounts
-			for j := 0; j < len(allowed[i].Accounts); j++ {
-
-				err := self.setEntityResourcePermissions(allowed[i].Accounts[j], path)
-				if err != nil {
-					return err
+			if allowed[i].Accounts != nil {
+				for j := 0; j < len(allowed[i].Accounts); j++ {
+					err := self.setEntityResourcePermissions(allowed[i].Accounts[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Groups
-			for j := 0; j < len(allowed[i].Groups); j++ {
-				err := self.setEntityResourcePermissions(allowed[i].Groups[j], path)
-				if err != nil {
-					return err
+			if allowed[i].Groups != nil {
+				for j := 0; j < len(allowed[i].Groups); j++ {
+					err := self.setEntityResourcePermissions(allowed[i].Groups[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Organizations
-			for j := 0; j < len(allowed[i].Organizations); j++ {
-				err := self.setEntityResourcePermissions(allowed[i].Organizations[j], path)
-				if err != nil {
-					return err
+			if allowed[i].Organizations != nil {
+				for j := 0; j < len(allowed[i].Organizations); j++ {
+					err := self.setEntityResourcePermissions(allowed[i].Organizations[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Applications
-			for j := 0; j < len(allowed[i].Applications); j++ {
-				err := self.setEntityResourcePermissions(allowed[i].Applications[j], path)
-				if err != nil {
-					return err
+			if allowed[i].Applications != nil {
+				for j := 0; j < len(allowed[i].Applications); j++ {
+					err := self.setEntityResourcePermissions(allowed[i].Applications[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
-
 			// Peers
-			for j := 0; j < len(allowed[i].Peers); j++ {
-				err := self.setEntityResourcePermissions(allowed[i].Peers[j], path)
-				if err != nil {
-					return err
+			if allowed[i].Peers != nil {
+				for j := 0; j < len(allowed[i].Peers); j++ {
+					err := self.setEntityResourcePermissions(allowed[i].Peers[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -133,41 +140,52 @@ func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Per
 	if denied != nil {
 		for i := 0; i < len(denied); i++ {
 			// Acccounts
-			for j := 0; j < len(denied[i].Accounts); j++ {
-				err := self.setEntityResourcePermissions(denied[i].Accounts[j], path)
-				if err != nil {
-					return err
+			if denied[i].Accounts != nil {
+				for j := 0; j < len(denied[i].Accounts); j++ {
+					err := self.setEntityResourcePermissions(denied[i].Accounts[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
+
 			// Applications
-			for j := 0; j < len(denied[i].Applications); j++ {
-				err := self.setEntityResourcePermissions(denied[i].Applications[j], path)
-				if err != nil {
-					return err
+			if denied[i].Applications != nil {
+				for j := 0; j < len(denied[i].Applications); j++ {
+					err := self.setEntityResourcePermissions(denied[i].Applications[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Peers
-			for j := 0; j < len(denied[i].Peers); j++ {
-				err := self.setEntityResourcePermissions(denied[i].Peers[j], path)
-				if err != nil {
-					return err
+			if denied[i].Peers != nil {
+				for j := 0; j < len(denied[i].Peers); j++ {
+					err := self.setEntityResourcePermissions(denied[i].Peers[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Groups
-			for j := 0; j < len(denied[i].Groups); j++ {
-				err := self.setEntityResourcePermissions(denied[i].Groups[j], path)
-				if err != nil {
-					return err
+			if denied[i].Groups != nil {
+				for j := 0; j < len(denied[i].Groups); j++ {
+					err := self.setEntityResourcePermissions(denied[i].Groups[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
 			// Organizations
-			for j := 0; j < len(denied[i].Organizations); j++ {
-				err := self.setEntityResourcePermissions(denied[i].Organizations[j], path)
-				if err != nil {
-					return err
+			if denied[i].Organizations != nil {
+				for j := 0; j < len(denied[i].Organizations); j++ {
+					err := self.setEntityResourcePermissions(denied[i].Organizations[j], path)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
