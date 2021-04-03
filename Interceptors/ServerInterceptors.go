@@ -354,6 +354,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 	// Test if peer has access
 	if !hasAccess && len(clientId) > 0 {
+		fmt.Println("--------> interceptor validate action: ", method, clientId)
 		hasAccess, _ = validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT, domain)
 	}
 

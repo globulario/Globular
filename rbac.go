@@ -888,6 +888,9 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *rbacpb.DeleteAll
 
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
+
+	log.Println("---> validate access ", subject, name, path)
+
 	// first I will test if permissions is define
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {

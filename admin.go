@@ -710,7 +710,7 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		return err
 	}
 
-	err = self.setResourcePermissions(self.applications+"/"+name, permissions)
+	err = self.setResourcePermissions("/applications/"+name, permissions)
 	if err != nil {
 		return err
 	}

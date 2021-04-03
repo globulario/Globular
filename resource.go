@@ -1069,9 +1069,8 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// Create the user file directory.
-
-	path := self.users + "/" + user
-	if !Utility.Exists(path) {
+	path := "/users/" + user
+	if !Utility.Exists(self.users + "/" + user) {
 		Utility.CreateDirIfNotExist(path)
 		permissions := &rbacpb.Permissions{
 			Allowed: []*rbacpb.Permission{
@@ -1101,7 +1100,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 		}
 
 		// Set the path of the directory where the application can store date.
-		Utility.CreateDirIfNotExist(path)
+		Utility.CreateDirIfNotExist(self.users + "/" + user)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
