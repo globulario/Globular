@@ -1172,7 +1172,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 
 	servicePath := getStringVal(s, "Path")
 	serviceName := getStringVal(s, "Name")
-
 	proxyPid := getIntVal(s, "ProxyProcess")
 
 	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "packages.PackageDiscovery" {
@@ -1196,9 +1195,7 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			if err != nil {
 				return -1, -1, errors.New("No prototype file was found for path '" + path_)
 			}
-
 			s.Store("Proto", files[0])
-
 		}
 
 		hasTls := getBoolVal(s, "TLS")
@@ -1248,7 +1245,6 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 		}
 
 		err = p.Start()
-
 		if err != nil {
 			s.Store("State", "fail")
 			s.Store("Process", -1)

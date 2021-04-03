@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	//	"time"
-
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 
@@ -520,20 +519,23 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 // Intall
 func (self *Globule) installApplication(domain, name, organization, version, description string, r io.Reader, actions []string, keywords []string) error {
 	// Here I will extract the file.
-	Utility.ExtractTarGz(r)
-
-	// remove temporary files.
-	defer os.RemoveAll(Utility.GenerateUUID(name))
-
-	// Here I will test that the index.html file is not corrupted...
-	__indexHtml__, err := ioutil.ReadFile(Utility.GenerateUUID(name) + "/index.html")
+	__extracted_path__, err := Utility.ExtractTarGz(r)
 	if err != nil {
-
 		return err
 	}
+
+	// remove temporary files.
+	defer os.RemoveAll(__extracted_path__)
+
+	// Here I will test that the index.html file is not corrupted...
+	__indexHtml__, err := ioutil.ReadFile(__extracted_path__ + "/index.html")
+	if err != nil {
+		return err
+	}
+
 	// The file must contain a linq to a bundle.js file.
-	if strings.Index(string(__indexHtml__), "/bundle.js") == -1 {
-		return errors.New("something wrong append the index.html file does not contain the bundle.js file... " + string(__indexHtml__))
+	if strings.Index(string(__indexHtml__), "./bundle.js") == -1 {
+		return errors.New("539 something wrong append the index.html file does not contain the bundle.js file... " + string(__indexHtml__))
 	}
 
 	// Copy the files to it final destination
@@ -556,7 +558,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 
 	// Recreate the dir and move file in it.
 	Utility.CreateDirIfNotExist(abosolutePath)
-	Utility.CopyDirContent(Utility.GenerateUUID(name), abosolutePath)
+	Utility.CopyDir(__extracted_path__+"/.", abosolutePath)
 
 	// Now I will create the application database in the persistence store,
 	// and the Application entry in the database.
@@ -645,7 +647,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 		var re = regexp.MustCompile(`\/bundle\.js(\?updated=\d*)?`)
 		indexHtml_ := re.ReplaceAllString(string(indexHtml), "/bundle.js?updated="+Utility.ToString(time.Now().Unix()))
 		if strings.Index(indexHtml_, "/bundle.js?updated=") == -1 {
-			return errors.New("something wrong append the index.html file does not contain the bundle.js file... " + indexHtml_)
+			return errors.New("651 something wrong append the index.html file does not contain the bundle.js file... " + indexHtml_)
 		}
 		// save it back.
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
@@ -1430,19 +1432,24 @@ func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) er
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 
 		if err == nil {
-
 			// Create the file.
 			r := bytes.NewReader(bundle.Binairies)
-			Utility.ExtractTarGz(r)
-
-			// This is the directory path inside the archive.
-			id := descriptor.PublisherId + "%" + descriptor.Name + "%" + descriptor.Version + "%" + descriptor.Id + "%" + globular.GetPlatform()
+			_extracted_path_, err := Utility.ExtractTarGz(r)
+			defer os.Remove(_extracted_path_)
+			if err != nil {
+				if err.Error() != "EOF" {
+					// report the error and try to continue...
+					log.Println(err)
+				}
+			}
 
 			// I will save the binairy in file...
-			Utility.CreateDirIfNotExist(self.path + "/services")
-			Utility.CopyDirContent(self.path+"/"+id, self.path+"/services")
+			Utility.CreateDirIfNotExist(self.path + "/services/")
+			err = Utility.CopyDir(_extracted_path_+"/"+descriptor.PublisherId, self.path+"/services/")
+			if err != nil {
+				return err
+			}
 
-			defer os.RemoveAll(self.path + "/" + id)
 			path := self.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
 			configs, _ := Utility.FindFileByName(path, "config.json")
 
