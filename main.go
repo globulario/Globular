@@ -144,11 +144,29 @@ func main() {
 		publishCommand_organization := publishCommand.String("o", "", "The Organization that publish the service. (Optional)")
 		publishCommand_plaform := publishCommand.String("platform", "", "(Optional)")
 
-		// Install certificates command.
+		// Install certificates on a server from a local service command.
 		installCertificatesCommand := flag.NewFlagSet("certificates", flag.ExitOnError)
 		installCertificatesCommand_path := installCertificatesCommand.String("path", "", "You must specify where to install certificate (Required)")
 		installCertificatesCommand_port := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
 		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
+
+		// Install a service on the server.
+		install_service_command := flag.NewFlagSet("install_service", flag.ExitOnError)
+		install_service_command_publisher := install_service_command.String("publisher", "", "The publisher id (Required)")
+		install_service_command_discovery := install_service_command.String("discovery", "", "The addresse where the service was publish (Required)")
+		install_service_command_service := install_service_command.String("service", "", " the service name ex file.FileService (Required)")
+		install_service_command_address := install_service_command.String("a", "", "The domain of the server where to install the service (Required)")
+		install_service_command_user := install_service_command.String("u", "", "The user name. (Required)")
+		install_service_command_pwd := install_service_command.String("p", "", "The user password. (Required)")
+
+		// Uninstall a service on the server.
+		uninstall_service_command := flag.NewFlagSet("uninstall_service", flag.ExitOnError)
+		uninstall_service_command_service := uninstall_service_command.String("service", "", " the service name ex file.FileService (Required)")
+		uninstall_service_command_publisher := uninstall_service_command.String("publisher", "", "The publisher id (Required)")
+		uninstall_service_command_version := uninstall_service_command.String("vesrion", "", " The service vesion(Required)")
+		uninstall_service_command_address := uninstall_service_command.String("a", "", "The domain of the server where to install the service (Required)")
+		uninstall_service_command_user := uninstall_service_command.String("u", "", "The user name. (Required)")
+		uninstall_service_command_pwd := uninstall_service_command.String("p", "", "The user password. (Required)")
 
 		switch os.Args[1] {
 		case "start":
@@ -163,11 +181,79 @@ func main() {
 			installCommand.Parse(os.Args[2:])
 		case "uninstall":
 			unstallCommand.Parse(os.Args[2:])
+		case "install_service":
+			install_service_command.Parse(os.Args[2:])
+		case "uninstall_service":
+			uninstall_service_command.Parse(os.Args[2:])
 		case "certificates":
 			installCertificatesCommand.Parse(os.Args[2:])
+
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if install_service_command.Parsed() {
+			if *install_service_command_service == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no service name was given!")
+				os.Exit(1)
+			}
+			if *install_service_command_discovery == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no discovery adress was given!")
+				os.Exit(1)
+			}
+			if *install_service_command_publisher == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no publiser was given!")
+				os.Exit(1)
+			}
+			if *install_service_command_address == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no domain was given!")
+				os.Exit(1)
+			}
+			if *install_service_command_user == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+			if *install_service_command_pwd == "" {
+				install_service_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+			install_service(g, *install_service_command_service, *install_service_command_discovery, *install_service_command_publisher, *install_service_command_address, *install_service_command_user, *install_service_command_pwd)
+		}
+
+		if uninstall_service_command.Parsed() {
+			if *uninstall_service_command_service == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+			if *uninstall_service_command_publisher == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+
+			if *uninstall_service_command_address == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+			if *uninstall_service_command_user == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+			if *uninstall_service_command_pwd == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+			if *uninstall_service_command_version == "" {
+				install_service_command.PrintDefaults()
+				os.Exit(1)
+			}
+			uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
 		}
 
 		if installCertificatesCommand.Parsed() {
@@ -449,6 +535,71 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 	}
 
 	log.Println("Service was pulbish successfully!")
+	return nil
+}
+
+func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
+
+	// Authenticate the user in order to get the token
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := resource_client_.Authenticate(user, pwd)
+	if err != nil {
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user, pwd string) error {
+
+	// Authenticate the user in order to get the token
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := resource_client_.Authenticate(user, pwd)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	err = admin_client_.UninstallService(token, domain, user, serviceId, publisherId, version)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	return nil
 }
 
