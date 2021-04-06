@@ -2,15 +2,20 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -114,7 +119,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
-
+	log.Println("upload was called... ")
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
@@ -130,6 +135,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
+	log.Println("path: ", path)
 
 	// If application is defined.
 	token := r.Header.Get("token")
@@ -139,6 +145,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	user := ""
 	infos := []*rbacpb.ResourceInfos{}
 
+	// Here I will validate applications...
 	if len(application) != 0 {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
@@ -167,7 +174,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
-				// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
 			}
 
@@ -201,8 +208,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			globule.addResourceOwner(path+"/"+files[i].Filename, application, rbacpb.SubjectType_APPLICATION)
 		}
 
-		// Create the file.
-		out, err := os.Create(globule.webRoot + path + "/" + files[i].Filename)
+		// Create the file depending if the path is users, applications or something else...
+		path_ := path + "/" + files[i].Filename
+		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
+			path_ = globule.data + "/files" + path_
+		} else {
+			path_ = globule.webRoot + path_
+		}
+
+		out, err := os.Create(path_)
 
 		defer out.Close()
 		if err != nil {
@@ -214,7 +228,137 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(w, err)
 			return
 		}
+
+		// Now from the file extension i will retreive it mime type.
+		fileExtension := path_[strings.LastIndex(path_, "."):]
+		fileType := mime.TypeByExtension(fileExtension)
+
+		if len(fileType) > 0 {
+			if strings.HasPrefix(fileType, "text/") {
+				indexFile(path_, fileType)
+			} else if strings.HasPrefix(fileType, "video/") {
+				setVideoGifAndStream(path_, fileType)
+			}
+		}
+
 	}
+}
+
+// Set file indexation to be able to search text file on the server.
+func indexFile(path string, fileType string) error {
+	log.Println("---------> index file ", path, fileType)
+	return nil
+}
+
+// Here that function will be use to process the video create a gif and streaming folder form ffmeg.
+func setVideoGifAndStream(path string, fileType string) error {
+	log.Println("-----> set video stream ", path, fileType)
+
+	// So here the first step will be to create a gif file that will be use as
+	// thumbnail.
+	err := createVideoPreview(path, 20, 256)
+	if err != nil {
+		return err
+	}
+
+	err = createVideoStream(path, fileType)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Convert all kind of video to mp4 so all browser will be able to read it.
+ */
+func createVideoStream(path string, fileType string) error {
+	if fileType == "video/mp4" {
+		// Already a mp4
+		return nil
+	}
+
+	path_ := path[0:strings.LastIndex(path, "/")]
+	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
+	output := path_ + "/" + name_ + ".mp4"
+
+	//
+	defer os.Remove(path)
+
+	var cmd *exec.Cmd
+
+	// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
+	cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		return err
+	}
+
+	return nil
+}
+
+// Here I will create video
+func createVideoPreview(path string, nb int, height int) error {
+
+	duration := getVideoDuration(path)
+	if duration == 0 {
+		return errors.New("the video lenght is 0 sec")
+	}
+
+	path_ := path[0:strings.LastIndex(path, "/")]
+	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
+	output := path_ + "/.hidden/" + name_ + "/__preview__"
+	Utility.CreateDirIfNotExist(output)
+
+	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -r 14.5500/20 -f image2 preview_%05d.jpg
+	//cmd := exec.Command("ffmpeg", "-i", path, "-r", Utility.ToString(duration)+"/"+Utility.ToString(nb), "-f", "image2", "preview_%05d.jpg")
+	start := .1 * duration
+	laps := 120 // 1 minutes
+
+	cmd := exec.Command("ffmpeg", "-i", path, "-ss", Utility.ToString(start), "-t", Utility.ToString(laps), "-vf", "scale="+Utility.ToString(height)+":-1,fps=.250", "preview_%05d.jpg")
+	cmd.Dir = output // the output directory...
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		return err
+	}
+
+	return nil
+}
+
+func getVideoDuration(path string) float64 {
+
+	// ffprobe -v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=duration bob_ross_img-0-Animated.mp4
+	cmd := exec.Command("ffprobe", `-v`, `quiet`, `-print_format`, `compact=print_section=0:nokey=1:escape=csv`, `-show_entries`, `format=duration`, path)
+
+	cmd.Dir = os.TempDir()
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	if err != nil {
+		return 0.0
+	}
+
+	log.Println(string(out.Bytes()))
+
+	duration, _ := strconv.ParseFloat(strings.TrimSpace(string(out.Bytes())), 64)
+
+	return duration
 }
 
 // Custom file server implementation.
@@ -224,6 +368,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
 
 	//if empty, set current directory
+
 	dir := globule.webRoot
 
 	// If a directory with the same name as the host in the request exist
@@ -264,8 +409,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") {
+		dir = globule.data + "/files"
+	}
+
 	//path to file
 	name := path.Join(dir, rqst_path)
+	log.Println("Try to access file...", name)
 
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {

@@ -525,7 +525,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	}
 
 	// remove temporary files.
-	defer os.RemoveAll(__extracted_path__)
+	//defer os.RemoveAll(__extracted_path__)
 
 	// Here I will test that the index.html file is not corrupted...
 	__indexHtml__, err := ioutil.ReadFile(__extracted_path__ + "/index.html")
