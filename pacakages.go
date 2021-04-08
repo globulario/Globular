@@ -249,6 +249,13 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPack
 				descriptors[i].Keywords[j] = descriptor["keywords"].([]interface{})[j].(string)
 			}
 		}
+		if descriptor["actions"] != nil {
+			descriptor["actions"] = []interface{}(descriptor["actions"].(primitive.A))
+			descriptors[i].Actions = make([]string, len(descriptor["actions"].([]interface{})))
+			for j := 0; j < len(descriptor["actions"].([]interface{})); j++ {
+				descriptors[i].Actions[j] = descriptor["actions"].([]interface{})[j].(string)
+			}
+		}
 		if descriptor["discoveries"] != nil {
 			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
 			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
@@ -322,6 +329,14 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 			}
 		}
 
+		if descriptor["actions"] != nil {
+			descriptor["actions"] = []interface{}(descriptor["actions"].(primitive.A))
+			descriptors[i].Actions = make([]string, len(descriptor["actions"].([]interface{})))
+			for j := 0; j < len(descriptor["actions"].([]interface{})); j++ {
+				descriptors[i].Actions[j] = descriptor["actions"].([]interface{})[j].(string)
+			}
+		}
+
 		if descriptor["discoveries"] != nil {
 			descriptor["discoveries"] = []interface{}(descriptor["discoveries"].(primitive.A))
 			descriptors[i].Discoveries = make([]string, len(descriptor["discoveries"].([]interface{})))
@@ -383,6 +398,15 @@ func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescripto
 				descriptor.Keywords[j] = data[i].(map[string]interface{})["keywords"].([]interface{})[j].(string)
 			}
 		}
+
+		if data[i].(map[string]interface{})["actions"] != nil {
+			data[i].(map[string]interface{})["actions"] = []interface{}(data[i].(map[string]interface{})["actions"].(primitive.A))
+			descriptor.Actions = make([]string, len(data[i].(map[string]interface{})["actions"].([]interface{})))
+			for j := 0; j < len(data[i].(map[string]interface{})["actions"].([]interface{})); j++ {
+				descriptor.Actions[j] = data[i].(map[string]interface{})["actions"].([]interface{})[j].(string)
+			}
+		}
+
 		if data[i].(map[string]interface{})["discoveries"] != nil {
 			data[i].(map[string]interface{})["discoveries"] = []interface{}(data[i].(map[string]interface{})["discoveries"].(primitive.A))
 			descriptor.Discoveries = make([]string, len(data[i].(map[string]interface{})["discoveries"].([]interface{})))

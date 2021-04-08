@@ -163,10 +163,28 @@ func main() {
 		uninstall_service_command := flag.NewFlagSet("uninstall_service", flag.ExitOnError)
 		uninstall_service_command_service := uninstall_service_command.String("service", "", " the service name ex file.FileService (Required)")
 		uninstall_service_command_publisher := uninstall_service_command.String("publisher", "", "The publisher id (Required)")
-		uninstall_service_command_version := uninstall_service_command.String("vesrion", "", " The service vesion(Required)")
+		uninstall_service_command_version := uninstall_service_command.String("version", "", " The service vesion(Required)")
 		uninstall_service_command_address := uninstall_service_command.String("a", "", "The domain of the server where to install the service (Required)")
 		uninstall_service_command_user := uninstall_service_command.String("u", "", "The user name. (Required)")
 		uninstall_service_command_pwd := uninstall_service_command.String("p", "", "The user password. (Required)")
+
+		// Install a application on the server.
+		install_application_command := flag.NewFlagSet("install_application", flag.ExitOnError)
+		install_application_command_publisher := install_application_command.String("publisher", "", "The publisher id (Required)")
+		install_application_command_discovery := install_application_command.String("discovery", "", "The addresse where the application was publish (Required)")
+		install_application_command_name := install_application_command.String("application", "", " the application name (Required)")
+		install_application_command_address := install_application_command.String("a", "", "The domain of the server where to install the application (Required)")
+		install_application_command_user := install_application_command.String("u", "", "The user name. (Required)")
+		install_application_command_pwd := install_application_command.String("p", "", "The user password. (Required)")
+
+		// Uninstall a service on the server.
+		uninstall_application_command := flag.NewFlagSet("uninstall_application", flag.ExitOnError)
+		uninstall_application_command_name := uninstall_application_command.String("application", "", " the application name (Required)")
+		uninstall_application_command_publisher := uninstall_application_command.String("publisher", "", "The publisher id (Required)")
+		uninstall_application_command_version := uninstall_application_command.String("version", "", " The application vesion(Required)")
+		uninstall_application_command_address := uninstall_application_command.String("a", "", "The domain where the application is runing (Required)")
+		uninstall_application_command_user := uninstall_application_command.String("u", "", "The user name. (Required)")
+		uninstall_application_command_pwd := uninstall_application_command.String("p", "", "The user password. (Required)")
 
 		switch os.Args[1] {
 		case "start":
@@ -185,6 +203,10 @@ func main() {
 			install_service_command.Parse(os.Args[2:])
 		case "uninstall_service":
 			uninstall_service_command.Parse(os.Args[2:])
+		case "install_application":
+			install_application_command.Parse(os.Args[2:])
+		case "uninstall_application":
+			uninstall_application_command.Parse(os.Args[2:])
 		case "certificates":
 			installCertificatesCommand.Parse(os.Args[2:])
 
@@ -254,6 +276,75 @@ func main() {
 				os.Exit(1)
 			}
 			uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
+		}
+
+		if install_application_command.Parsed() {
+			if *install_application_command_name == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no application name was given!")
+				os.Exit(1)
+			}
+			if *install_application_command_discovery == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no discovery adress was given!")
+				os.Exit(1)
+			}
+			if *install_application_command_publisher == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no publiser was given!")
+				os.Exit(1)
+			}
+			if *install_application_command_address == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no domain was given!")
+				os.Exit(1)
+			}
+			if *install_application_command_user == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+			if *install_application_command_pwd == "" {
+				install_application_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+			install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd)
+		}
+
+		if uninstall_application_command.Parsed() {
+			if *uninstall_application_command_name == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no application name was given!")
+				os.Exit(1)
+			}
+			if *uninstall_application_command_publisher == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no publisher was given!")
+				os.Exit(1)
+			}
+
+			if *uninstall_application_command_address == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no domain was given!")
+				os.Exit(1)
+			}
+			if *uninstall_application_command_user == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+			if *uninstall_application_command_pwd == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+			if *uninstall_application_command_version == "" {
+				uninstall_application_command.PrintDefaults()
+				fmt.Println("no version was given!")
+				os.Exit(1)
+			}
+			uninstall_application(g, *uninstall_application_command_name, *uninstall_application_command_publisher, *uninstall_application_command_version, *uninstall_application_command_address, *uninstall_application_command_user, *uninstall_application_command_pwd)
 		}
 
 		if installCertificatesCommand.Parsed() {
@@ -561,7 +652,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
+	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, serviceId)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -594,7 +685,72 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.UninstallService(token, domain, user, serviceId, publisherId, version)
+	err = admin_client_.UninstallService(token, domain, user, publisherId, serviceId, version)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string) error {
+
+	// Authenticate the user in order to get the token
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := resource_client_.Authenticate(user, pwd)
+	if err != nil {
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func uninstall_application(g *Globule, applicationId, publisherId, version, domain, user, pwd string) error {
+
+	// Authenticate the user in order to get the token
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := resource_client_.Authenticate(user, pwd)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	err = admin_client_.UninstallApplication(token, domain, user, publisherId, applicationId, version)
 	if err != nil {
 		log.Println(err)
 		return err

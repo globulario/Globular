@@ -1750,22 +1750,19 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.Rem
 	return &resourcepb.RemoveAccountRoleRsp{Result: true}, nil
 }
 
-//* Delete an application from the server. *
-func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.DeleteApplicationRqst) (*resourcepb.DeleteApplicationRsp, error) {
+func (self *Globule) deleteApplication(applicationId string) error {
 
 	// That service made user of persistence service.
 	p, err := self.getPersistenceStore()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Here I will test if a newer token exist for that user if it's the case
 	// I will not refresh that token.
-	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, ``)
+	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+applicationId+`"}`, ``)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	application := values.(map[string]interface{})
@@ -1776,69 +1773,74 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.Del
 
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.ApplicationId, organizationId, "applications", "Applications")
+			self.deleteReference(p, applicationId, organizationId, "applications", "Applications")
 		}
 	}
 
 	// I will remove the directory.
 	err = os.RemoveAll(application["path"].(string))
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Now I will remove the database create for the application.
-	err = p.DeleteDatabase(context.Background(), "local_resource", rqst.ApplicationId+"_db")
+	err = p.DeleteDatabase(context.Background(), "local_resource", applicationId+"_db")
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Finaly I will remove the entry in  the table.
-	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+rqst.ApplicationId+`"}`, "")
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+applicationId+`"}`, "")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Delete permissions
-	err = p.Delete(context.Background(), "local_resource", "local_resource", "Permissions", `{"owner":"`+rqst.ApplicationId+`"}`, "")
+	err = p.Delete(context.Background(), "local_resource", "local_resource", "Permissions", `{"owner":"`+applicationId+`"}`, "")
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
 	// Drop the application user.
 	// Here I will drop the db user.
 	dropUserScript := fmt.Sprintf(
 		`db=db.getSiblingDB('admin');db.dropUser('%s', {w: 'majority', wtimeout: 4000})`,
-		rqst.ApplicationId)
+		applicationId)
 
 	// I will execute the sript with the admin function.
 	address, _ := self.getBackendAddress()
 	if address == "0.0.0.0" {
 		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, dropUserScript)
 		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			return err
 		}
 	} else {
 		p_, err := self.getPersistenceSaConnection()
 		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			return err
 		}
 		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, dropUserScript)
 		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			return err
 		}
 	}
+
+	// Now I will remove the application directory from the webroot...
+	log.Println("remove directory ", self.webRoot+"/"+applicationId)
+	os.RemoveAll(self.webRoot + "/" + applicationId)
+
+	return nil
+
+}
+
+//* Delete an application from the server. *
+func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.DeleteApplicationRqst) (*resourcepb.DeleteApplicationRsp, error) {
+
+	// That service made user of persistence service.
+	err := self.deleteApplication(rqst.ApplicationId)
+	return nil, status.Errorf(
+		codes.Internal,
+		Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 
 	// TODO delete dir permission associate with the application.
 
