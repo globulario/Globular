@@ -1070,43 +1070,9 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 
 	// Create the user file directory.
 	path := "/users/" + user
-	if !Utility.Exists(self.users + "/" + user) {
-		Utility.CreateDirIfNotExist(path)
-		permissions := &rbacpb.Permissions{
-			Allowed: []*rbacpb.Permission{
-				//  Exemple of possible permission values.
-				&rbacpb.Permission{
-					Name:          "read", // member of the organization can publish the service.
-					Applications:  []string{},
-					Accounts:      []string{user},
-					Groups:        []string{},
-					Peers:         []string{},
-					Organizations: []string{},
-				},
-			},
-			Denied: []*rbacpb.Permission{},
-			Owners: &rbacpb.Permission{
-				Name:     "owner",
-				Accounts: []string{user},
-			},
-		}
+	Utility.CreateDirIfNotExist(self.data + "/files" + path)
 
-		// Set the permissions of the application itself.
-		err = self.setResourcePermissions(path, permissions)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-
-		// Set the path of the directory where the application can store date.
-		Utility.CreateDirIfNotExist(self.users + "/" + user)
-		if err != nil {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-		}
-	}
+	self.addResourceOwner(path, user, rbacpb.SubjectType_ACCOUNT)
 
 	name_ := values[0].(map[string]interface{})["name"].(string)
 	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")

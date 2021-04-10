@@ -791,12 +791,19 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 				Name:          "read", // member of the organization can publish the service.
 				Applications:  []string{name},
 				Organizations: []string{organization},
+				Accounts:      []string{},
+				Groups:        []string{},
+				Peers:         []string{},
 			},
 		},
 		Denied: []*rbacpb.Permission{},
 		Owners: &rbacpb.Permission{
-			Name:     "owner",
-			Accounts: []string{user},
+			Name:          "owner",
+			Accounts:      []string{user},
+			Applications:  []string{},
+			Groups:        []string{},
+			Peers:         []string{},
+			Organizations: []string{},
 		},
 	}
 
@@ -1395,8 +1402,12 @@ func (self *Globule) publishPackage(user string, organization string, discovery 
 			},
 			Denied: []*rbacpb.Permission{},
 			Owners: &rbacpb.Permission{
-				Name:     "owner",
-				Accounts: []string{user},
+				Name:          "owner",
+				Accounts:      []string{user},
+				Applications:  []string{},
+				Groups:        []string{},
+				Peers:         []string{},
+				Organizations: []string{},
 			},
 		}
 
