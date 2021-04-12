@@ -517,7 +517,8 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 }
 
 // Intall
-func (self *Globule) installApplication(domain, name, organization, version, description string, r io.Reader, actions []string, keywords []string) error {
+func (self *Globule) installApplication(domain, name, organization, version, description string, icon string, r io.Reader, actions []string, keywords []string) error {
+
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
 	if err != nil {
@@ -525,7 +526,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	}
 
 	// remove temporary files.
-	//defer os.RemoveAll(__extracted_path__)
+	defer os.RemoveAll(__extracted_path__)
 
 	// Here I will test that the index.html file is not corrupted...
 	__indexHtml__, err := ioutil.ReadFile(__extracted_path__ + "/index.html")
@@ -578,6 +579,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	application["description"] = description
 	application["actions"] = actions
 	application["keywords"] = keywords
+	application["icon"] = icon
 
 	if len(domain) > 0 {
 		if Utility.Exists(self.webRoot + "/" + domain) {
@@ -628,7 +630,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 		actions_, _ := Utility.ToJson(actions)
 		keywords_, _ := Utility.ToJson(keywords)
 
-		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"organization":"`+organization+`"},"$set":{"description":"`+description+`"}, "$set":{"version":"`+version+`"}}`, "")
+		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"organization":"`+organization+`"},"$set":{"description":"`+description+`"},"$set":{"icon":"`+icon+`"}, "$set":{"version":"`+version+`"}}`, "")
 		if err != nil {
 			return err
 		}
@@ -656,7 +658,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	return err
 }
 
-func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId string, keywords []string) error {
+func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId string, keywords []string) error {
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
@@ -672,6 +674,7 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		Version:      version,
 		Description:  description,
 		Repositories: []string{},
+		Icon:         icon,
 		Type:         packagespb.PackageType_APPLICATION_TYPE,
 	}
 
@@ -739,6 +742,8 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	var discoveryId string
 	var keywords []string
 	var actions []string
+	var icon string
+
 	for {
 		msg, err := stream.Recv()
 		if msg == nil {
@@ -775,6 +780,11 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		if len(msg.Actions) > 0 {
 			actions = msg.Actions
 		}
+
+		if len(msg.Icon) > 0 {
+			icon = msg.Icon
+		}
+
 		if err == io.EOF {
 			// end of stream...
 			stream.SendAndClose(&adminpb.DeployApplicationResponse{
@@ -823,14 +833,14 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-	err = self.publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId, keywords)
+	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId, keywords)
 	if err != nil {
 		return err
 	}
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = self.installApplication(domain, name, organization, version, description, r, actions, keywords)
+	err = self.installApplication(domain, name, organization, version, description, icon, r, actions, keywords)
 	if err != nil {
 		return err
 	}

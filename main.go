@@ -453,7 +453,7 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string) error {
 
-	log.Println("deploy application...", name, " to address ", address, " user ", user)
+	log.Println("deploy application", name, " to address ", address, " user ", user)
 
 	// Authenticate the user in order to get the token
 	resource_client, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
@@ -651,8 +651,11 @@ func install(g *Globule, path string) {
 	}
 
 	// Copy the bin file from globular
+	log.Println(path + "/" + "bin")
+
 	Utility.CreateDirIfNotExist(path + "/" + "bin")
-	err = Utility.CopyDir(dir+"/bin", path+"/bin")
+
+	err = Utility.CopyDir(dir+"/bin/.", path+"/bin")
 	if err != nil {
 		log.Panicln("--> fail to copy bin ", err)
 	}
