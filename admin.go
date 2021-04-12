@@ -589,7 +589,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 		r := bytes.NewReader(bundle.Binairies)
 
 		// Now I will install the applicaiton.
-		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, r, descriptor.Actions, descriptor.Keywords)
+		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -605,14 +605,9 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 
 }
 
-<<<<<<< HEAD
 // Intall
-func (self *Globule) installApplication(domain, name, organization, version, description string, icon string, r io.Reader, actions []string, keywords []string) error {
+func (self *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string) error {
 
-=======
-// Install application.
-func (self *Globule) installApplication(domain, name, publisherId, version, description string, r io.Reader, actions []string, keywords []string) error {
->>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
 	if err != nil {
@@ -674,6 +669,7 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 	application["actions"] = actions
 	application["keywords"] = keywords
 	application["icon"] = icon
+	application["alias"] = alias
 
 	if len(domain) > 0 {
 		if Utility.Exists(self.webRoot + "/" + domain) {
@@ -724,11 +720,8 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 		actions_, _ := Utility.ToJson(actions)
 		keywords_, _ := Utility.ToJson(keywords)
 
-<<<<<<< HEAD
-		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"organization":"`+organization+`"},"$set":{"description":"`+description+`"},"$set":{"icon":"`+icon+`"}, "$set":{"version":"`+version+`"}}`, "")
-=======
-		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"publisherid":"`+publisherId+`"},"$set":{"description":"`+description+`"}, "$set":{"version":"`+version+`"}}`, "")
->>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
+		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"publisherid":"`+publisherId+`"},"$set":{"description":"`+description+`"},"$set":{"alias":"`+alias+`"},"$set":{"icon":"`+icon+`"}, "$set":{"version":"`+version+`"}}`, "")
+
 		if err != nil {
 			return err
 		}
@@ -756,11 +749,9 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 	return err
 }
 
-<<<<<<< HEAD
-func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId string, keywords []string) error {
-=======
-func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId string, actions []string, keywords []string) error {
->>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
+func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId string, actions, keywords []string) error {
+
+	log.Println("--------------------> alias 754 ", alias)
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
@@ -776,11 +767,9 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		Version:      version,
 		Description:  description,
 		Repositories: []string{},
-<<<<<<< HEAD
 		Icon:         icon,
-=======
+		Alias:        alias,
 		Actions:      []string{},
->>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 		Type:         packagespb.PackageType_APPLICATION_TYPE,
 	}
 
@@ -860,6 +849,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	var keywords []string
 	var actions []string
 	var icon string
+	var alias string
 
 	for {
 		msg, err := stream.Recv()
@@ -869,6 +859,11 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		if len(msg.Name) > 0 {
 			name = msg.Name
 		}
+
+		if len(msg.Alias) > 0 {
+			alias = msg.Alias
+		}
+
 		if len(msg.Domain) > 0 {
 			domain = msg.Domain
 		}
@@ -950,18 +945,15 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-<<<<<<< HEAD
-	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId, keywords)
-=======
-	err = self.publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId, actions, keywords)
->>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
+	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId, actions, keywords)
+
 	if err != nil {
 		return err
 	}
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = self.installApplication(domain, name, organization, version, description, icon, r, actions, keywords)
+	err = self.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords)
 	if err != nil {
 		return err
 	}

@@ -242,6 +242,8 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPack
 		descriptors[i].Description = descriptor["description"].(string)
 		descriptors[i].PublisherId = descriptor["publisherid"].(string)
 		descriptors[i].Version = descriptor["version"].(string)
+		descriptors[i].Icon = descriptor["icon"].(string)
+		descriptors[i].Alias = descriptor["alias"].(string)
 		if descriptor["keywords"] != nil {
 			descriptor["keywords"] = []interface{}(descriptor["keywords"].(primitive.A))
 			descriptors[i].Keywords = make([]string, len(descriptor["keywords"].([]interface{})))
@@ -310,6 +312,14 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 		descriptors[i] = new(packagespb.PackageDescriptor)
 		descriptors[i].Id = descriptor["id"].(string)
 		descriptors[i].Name = descriptor["name"].(string)
+		if descriptor["alias"] != nil {
+			descriptors[i].Alias = descriptor["alias"].(string)
+		} else {
+			descriptors[i].Alias = descriptors[i].Name
+		}
+		if descriptor["icon"] != nil {
+			descriptors[i].Icon = descriptor["icon"].(string)
+		}
 		if descriptor["description"] != nil {
 			descriptors[i].Description = descriptor["description"].(string)
 		}
@@ -389,6 +399,8 @@ func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescripto
 		descriptor.Description = data[i].(map[string]interface{})["description"].(string)
 		descriptor.PublisherId = data[i].(map[string]interface{})["publisherid"].(string)
 		descriptor.Version = data[i].(map[string]interface{})["version"].(string)
+		descriptor.Icon = data[i].(map[string]interface{})["icon"].(string)
+		descriptor.Alias = data[i].(map[string]interface{})["alias"].(string)
 		descriptor.Type = packagespb.PackageType(Utility.ToInt(data[i].(map[string]interface{})["type"]))
 
 		if data[i].(map[string]interface{})["keywords"] != nil {

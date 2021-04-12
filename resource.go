@@ -2117,7 +2117,7 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcep
 	infos := make([]*structpb.Struct, 0)
 	for i := 0; i < len(values); i++ {
 		values_ := values[i].(map[string]interface{})
-		info, err := structpb.NewStruct(map[string]interface{}{"_id": values_["_id"], "name": values_["_id"], "path": values_["path"], "creation_date": values_["creation_date"], "last_deployed": values_["last_deployed"], "icon": values_["icon"], "description": values_["description"]})
+		info, err := structpb.NewStruct(map[string]interface{}{"_id": values_["_id"], "name": values_["_id"], "path": values_["path"], "creation_date": values_["creation_date"], "last_deployed": values_["last_deployed"], "alias": values_["alias"], "icon": values_["icon"], "description": values_["description"]})
 		if err == nil {
 			infos = append(infos, info)
 		} else {
