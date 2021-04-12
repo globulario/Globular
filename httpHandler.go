@@ -201,7 +201,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Here I will set the ressource owner.
-
 		if len(user) > 0 {
 			globule.addResourceOwner(path+"/"+files[i].Filename, user, rbacpb.SubjectType_ACCOUNT)
 		} else if len(application) > 0 {
@@ -316,7 +315,7 @@ func createVideoPreview(path string, nb int, height int) error {
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
 	Utility.CreateDirIfNotExist(output)
 
-	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -r 14.5500/20 -f image2 preview_%05d.jpg
+	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
 	//cmd := exec.Command("ffmpeg", "-i", path, "-r", Utility.ToString(duration)+"/"+Utility.ToString(nb), "-f", "image2", "preview_%05d.jpg")
 	start := .1 * duration
 	laps := 120 // 1 minutes

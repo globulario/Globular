@@ -50,15 +50,23 @@ func (self *Globule) startRbacService() error {
 }
 
 func (self *Globule) setEntityResourcePermissions(entity string, path string) error {
+	log.Println(80, "-----------------------> set entity ressource permission ", entity, path)
 	// Here I will retreive the actual list of paths use by this user.
 	data, err := self.permissions.GetItem(entity)
-	paths := make([]string, 0)
-	log.Println("data ", string(data))
+	paths_ := make([]interface{}, 0)
+	log.Println("entity", entity, "data", string(data))
 	if err == nil {
-		err := json.Unmarshal(data, &paths)
+		err := json.Unmarshal(data, &paths_)
 		if err != nil {
+			log.Println("-----------> ", entity, path)
+			log.Println(string(data))
 			return err
 		}
+	}
+
+	paths := make([]string, len(paths_))
+	for i := 0; i < len(paths_); i++ {
+		paths[i] = paths_[i].(string)
 	}
 
 	if !Utility.Contains(paths, path) {
@@ -76,12 +84,14 @@ func (self *Globule) setEntityResourcePermissions(entity string, path string) er
 }
 
 func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Permissions) error {
+
 	// First of all I need to remove the existing permission.
 	self.deleteResourcePermissions(path, permissions)
+
 	// Allowed resources
 	allowed := permissions.Allowed
 	if allowed != nil {
-
+		log.Println(87)
 		for i := 0; i < len(allowed); i++ {
 
 			// Accounts
@@ -123,6 +133,7 @@ func (self *Globule) setResourcePermissions(path string, permissions *rbacpb.Per
 					}
 				}
 			}
+
 			// Peers
 			if allowed[i].Peers != nil {
 				for j := 0; j < len(allowed[i].Peers); j++ {
@@ -271,42 +282,42 @@ func (self *Globule) SetResourcePermissions(ctx context.Context, rqst *rbacpb.Se
 	return &rbacpb.SetResourcePermissionsRqst{}, nil
 }
 
-func remove(s []string, r string) []string {
-	for i, v := range s {
-		if v == r {
-			return append(s[:i], s[i+1:]...)
-		}
-	}
-	return s
-}
-
 /**
  * Remove a resource path for an entity.
  */
 func (self *Globule) deleteEntityResourcePermissions(entity string, path string) error {
+
 	data, err := self.permissions.GetItem(entity)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	paths := make([]string, 0)
 	err = json.Unmarshal(data, &paths)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
-	// Here I will
-	if Utility.Contains(paths, path) {
-		paths = remove(paths, path)
-		data, err = json.Marshal(paths)
-		if err != nil {
-			return err
-		}
+	// Here I will remove the path itself.
+	paths = Utility.RemoveString(paths, path)
 
-		return self.permissions.SetItem(entity, data)
+	// Now I will remove all other path that start with this one...
+	for i := 0; i < len(paths); {
+		if strings.HasPrefix(paths[i], path) {
+			paths = Utility.RemoveString(paths, paths[i])
+		} else {
+			i++
+		}
 	}
 
-	return nil
+	data, err = json.Marshal(paths)
+	if err != nil {
+		return err
+	}
+	return self.permissions.SetItem(entity, data)
+
 }
 
 // Remouve a ressource permission
@@ -459,11 +470,15 @@ func (self *Globule) deleteResourcePermissions(path string, permissions *rbacpb.
 		}
 	}
 
+	// Remove sub-permissions...
+	self.permissions.RemoveItem(path + "*")
+
 	return self.permissions.RemoveItem(path)
 
 }
 
 func (self *Globule) getResourcePermissions(path string) (*rbacpb.Permissions, error) {
+	log.Println("get permissions for path ", path)
 	data, err := self.permissions.GetItem(path)
 	if err != nil {
 		return nil, status.Errorf(
@@ -481,9 +496,10 @@ func (self *Globule) getResourcePermissions(path string) (*rbacpb.Permissions, e
 
 //* Delete a resource permissions (when a resource is deleted) *
 func (self *Globule) DeleteResourcePermissions(ctx context.Context, rqst *rbacpb.DeleteResourcePermissionsRqst) (*rbacpb.DeleteResourcePermissionsRqst, error) {
-
+	log.Println("delete ressource permission for path ", rqst.Path)
 	permissions, err := self.getResourcePermissions(rqst.Path)
 	if err != nil {
+		log.Println(err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -491,6 +507,7 @@ func (self *Globule) DeleteResourcePermissions(ctx context.Context, rqst *rbacpb
 
 	err = self.deleteResourcePermissions(rqst.Path, permissions)
 	if err != nil {
+		log.Println(err)
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -625,9 +642,30 @@ func (self *Globule) GetResourcePermissions(ctx context.Context, rqst *rbacpb.Ge
 func (self *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
-		return err
+		if strings.Index(err.Error(), "leveldb: not found") != -1 {
+			// So here I will create the permissions object...
+			permissions = &rbacpb.Permissions{
+				Allowed: []*rbacpb.Permission{},
+				Denied:  []*rbacpb.Permission{},
+				Owners: &rbacpb.Permission{
+					Name:          "owner",
+					Accounts:      []string{},
+					Applications:  []string{},
+					Groups:        []string{},
+					Peers:         []string{},
+					Organizations: []string{},
+				},
+			}
+		} else {
+			return err
+		}
+		// associate with the path.
+		err = self.setResourcePermissions(path, permissions)
+		if err != nil {
+			return err
+		}
 	}
-
+	log.Println("add ressource owner: ", subject, path)
 	// Owned resources
 	owners := permissions.Owners
 	if subjectType == rbacpb.SubjectType_ACCOUNT {
@@ -652,11 +690,10 @@ func (self *Globule) addResourceOwner(path string, subject string, subjectType r
 		}
 	}
 	permissions.Owners = owners
-	err = self.setResourcePermissions(subject, permissions)
+	err = self.setResourcePermissions(path, permissions)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -683,23 +720,23 @@ func (self *Globule) removeResourceOwner(owner string, subjectType rbacpb.Subjec
 	owners := permissions.Owners
 	if subjectType == rbacpb.SubjectType_ACCOUNT {
 		if Utility.Contains(owners.Accounts, owner) {
-			owners.Accounts = remove(owners.Accounts, owner)
+			owners.Accounts = Utility.RemoveString(owners.Accounts, owner)
 		}
 	} else if subjectType == rbacpb.SubjectType_APPLICATION {
 		if Utility.Contains(owners.Applications, owner) {
-			owners.Applications = remove(owners.Applications, owner)
+			owners.Applications = Utility.RemoveString(owners.Applications, owner)
 		}
 	} else if subjectType == rbacpb.SubjectType_GROUP {
 		if Utility.Contains(owners.Groups, owner) {
-			owners.Groups = remove(owners.Groups, owner)
+			owners.Groups = Utility.RemoveString(owners.Groups, owner)
 		}
 	} else if subjectType == rbacpb.SubjectType_ORGANIZATION {
 		if Utility.Contains(owners.Organizations, owner) {
-			owners.Organizations = remove(owners.Organizations, owner)
+			owners.Organizations = Utility.RemoveString(owners.Organizations, owner)
 		}
 	} else if subjectType == rbacpb.SubjectType_PEER {
 		if Utility.Contains(owners.Peers, owner) {
-			owners.Peers = remove(owners.Peers, owner)
+			owners.Peers = Utility.RemoveString(owners.Peers, owner)
 		}
 	}
 
@@ -908,6 +945,8 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 		return false, false, err
 	}
 
+	log.Println("----------------> 932 ", permissions)
+
 	// Test if the Subject is owner of the ressource in that case I will git him access.
 	owners := permissions.Owners
 	isOwner := false
@@ -917,7 +956,10 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 			subjectStr = "Account"
 			if owners.Accounts != nil {
 				if Utility.Contains(owners.Accounts, subject) {
+
 					isOwner = true
+				} else {
+					log.Println(subject, "is not the owner of ", path)
 				}
 			}
 		} else if subjectType == rbacpb.SubjectType_APPLICATION {
@@ -953,6 +995,7 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 
 	// If the user is the owner no other validation are required.
 	if isOwner {
+		log.Println(subject, "is the owner of ", path)
 		return true, false, nil
 	}
 
@@ -1255,6 +1298,7 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 	log.Println("Validate action ", action, "for", subject)
 	p, err := self.getPersistenceStore()
 	if err != nil {
+
 		return false, err
 	}
 
@@ -1267,18 +1311,21 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 	if subjectType == rbacpb.SubjectType_APPLICATION {
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
+			log.Println("access refuse for execute action ", action, "to", subject, err)
 			return false, err
 		}
 		values = values_.(map[string]interface{})
 	} else if subjectType == rbacpb.SubjectType_PEER {
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Peers", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
+			log.Println("access refuse for execute action ", action, "to", subject, err)
 			return false, err
 		}
 		values = values_.(map[string]interface{})
 	} else if subjectType == rbacpb.SubjectType_ROLE {
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+subject+`"}`, "")
 		if err != nil {
+			log.Println("access refuse for execute action ", action, "to", subject, err)
 			return false, err
 		}
 		values = values_.(map[string]interface{})

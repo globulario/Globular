@@ -501,24 +501,118 @@ func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigReq
 
 // Uninstall application...
 func (self *Globule) UninstallApplication(ctx context.Context, rqst *adminpb.UninstallApplicationRequest) (*adminpb.UninstallApplicationResponse, error) {
-	// TODO Implement it!
-	return nil, status.Errorf(
-		codes.Internal,
-		Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Not implemented!")))
+
+	// Here I will also remove the application permissions...
+	if rqst.DeletePermissions {
+		log.Println("remove applicaiton permissions to...")
+	}
+
+	log.Println("remove applicaiton ", rqst.ApplicationId)
+
+	// Same as delete applicaitons.
+	err := self.deleteApplication(rqst.ApplicationId)
+	if err != nil {
+		return nil,
+			status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	return &adminpb.UninstallApplicationResponse{
+		Result: true,
+	}, nil
 }
 
 // Install web Application
 func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.InstallApplicationRequest) (*adminpb.InstallApplicationResponse, error) {
 	// Get the package bundle from the repository and install it on the server.
-	// TODO Implement it!
-	return nil, status.Errorf(
-		codes.Internal,
-		Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Not implemented!")))
+	log.Println("Try to install application " + rqst.ApplicationId)
+
+	// Connect to the dicovery services
+	var package_discovery *packages_client.PackagesDiscovery_Client
+	var err error
+	package_discovery, err = packages_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "packages.PackageDiscovery")
+
+	if package_discovery == nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to connect to "+rqst.DicorveryId)))
+	}
+
+	descriptors, err := package_discovery.GetPackageDescriptor(rqst.ApplicationId, rqst.PublisherId)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
+	log.Println("step 1: get application descriptor")
+	// The first element in the array is the most recent descriptor
+	// so if no version is given the most recent will be taken.
+	descriptor := descriptors[0]
+	for i := 0; i < len(descriptors); i++ {
+		if descriptors[i].Version == rqst.Version {
+			descriptor = descriptors[i]
+			break
+		}
+	}
+
+	log.Println("step 2: try to dowload application bundle")
+	if len(descriptor.Repositories) == 0 {
+
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No service repository was found for application "+descriptor.Id)))
+		}
+
+	}
+
+	for i := 0; i < len(descriptor.Repositories); i++ {
+
+		package_repository, err := packages_client.NewServicesRepositoryService_Client(descriptor.Repositories[i], "packages.PackageRepository")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		log.Println("--> try to download application bundle from ", descriptor.Repositories[i])
+		bundle, err := package_repository.DownloadBundle(descriptor, "webapp")
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+		// Create the file.
+		r := bytes.NewReader(bundle.Binairies)
+
+		// Now I will install the applicaiton.
+		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, r, descriptor.Actions, descriptor.Keywords)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		}
+
+	}
+
+	log.Println("application was install!")
+	return &adminpb.InstallApplicationResponse{
+		Result: true,
+	}, nil
+
 }
 
+<<<<<<< HEAD
 // Intall
 func (self *Globule) installApplication(domain, name, organization, version, description string, icon string, r io.Reader, actions []string, keywords []string) error {
 
+=======
+// Install application.
+func (self *Globule) installApplication(domain, name, publisherId, version, description string, r io.Reader, actions []string, keywords []string) error {
+>>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
 	if err != nil {
@@ -574,7 +668,7 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
 	application["path"] = "/" + name // The path must be the same as the application name.
-	application["organization"] = organization
+	application["publisherid"] = publisherId
 	application["version"] = version
 	application["description"] = description
 	application["actions"] = actions
@@ -630,7 +724,11 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 		actions_, _ := Utility.ToJson(actions)
 		keywords_, _ := Utility.ToJson(keywords)
 
+<<<<<<< HEAD
 		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"organization":"`+organization+`"},"$set":{"description":"`+description+`"},"$set":{"icon":"`+icon+`"}, "$set":{"version":"`+version+`"}}`, "")
+=======
+		err := store.UpdateOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, `{ "$set":{ "last_deployed":`+Utility.ToString(time.Now().Unix())+` }, "$set":{"keywords":`+keywords_+`}, "$set":{"actions":`+actions_+`},"$set":{"publisherid":"`+publisherId+`"},"$set":{"description":"`+description+`"}, "$set":{"version":"`+version+`"}}`, "")
+>>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 		if err != nil {
 			return err
 		}
@@ -658,7 +756,11 @@ func (self *Globule) installApplication(domain, name, organization, version, des
 	return err
 }
 
+<<<<<<< HEAD
 func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId string, keywords []string) error {
+=======
+func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId string, actions []string, keywords []string) error {
+>>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
@@ -674,7 +776,11 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		Version:      version,
 		Description:  description,
 		Repositories: []string{},
+<<<<<<< HEAD
 		Icon:         icon,
+=======
+		Actions:      []string{},
+>>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 		Type:         packagespb.PackageType_APPLICATION_TYPE,
 	}
 
@@ -690,6 +796,10 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		descriptor.Keywords = keywords
 	}
 
+	if len(actions) > 0 {
+		descriptor.Actions = actions
+	}
+
 	err := self.publishPackage(user, organization, discoveryId, repositoryId, "webapp", path, descriptor)
 
 	// Create the permission...
@@ -700,12 +810,19 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 				Name:          "read", // member of the organization can publish the service.
 				Applications:  []string{name},
 				Organizations: []string{organization},
+				Accounts:      []string{},
+				Groups:        []string{},
+				Peers:         []string{},
 			},
 		},
 		Denied: []*rbacpb.Permission{},
 		Owners: &rbacpb.Permission{
-			Name:     "owner",
-			Accounts: []string{user},
+			Name:          "owner",
+			Accounts:      []string{user},
+			Applications:  []string{},
+			Groups:        []string{},
+			Peers:         []string{},
+			Organizations: []string{},
 		},
 	}
 
@@ -833,7 +950,11 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
+<<<<<<< HEAD
 	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, repositoryId, discoveryId, keywords)
+=======
+	err = self.publishApplication(user, organization, path, name, domain, version, description, repositoryId, discoveryId, actions, keywords)
+>>>>>>> a3a021346469e3c4843a6ce7f9f622aa0705ba4e
 	if err != nil {
 		return err
 	}
@@ -1311,8 +1432,12 @@ func (self *Globule) publishPackage(user string, organization string, discovery 
 			},
 			Denied: []*rbacpb.Permission{},
 			Owners: &rbacpb.Permission{
-				Name:     "owner",
-				Accounts: []string{user},
+				Name:          "owner",
+				Accounts:      []string{user},
+				Applications:  []string{},
+				Groups:        []string{},
+				Peers:         []string{},
+				Organizations: []string{},
 			},
 		}
 
