@@ -1047,8 +1047,6 @@ func (self *Globule) registerSa() error {
 	// wait 15 seconds that the server restart.
 	self.waitForMongo(60, true)
 
-	self.createApplicationConnection()
-
 	// Get the list of all services method.
 	return self.registerMethods()
 }
