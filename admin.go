@@ -589,7 +589,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 		r := bytes.NewReader(bundle.Binairies)
 
 		// Now I will install the applicaiton.
-		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords)
+		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords, descriptor.Roles)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -606,7 +606,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 }
 
 // Intall
-func (self *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string) error {
+func (self *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string, roles []*packagespb.Role) error {
 
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
@@ -727,6 +727,32 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 		}
 	}
 
+	// Now I will create/update roles define in the application descriptor...
+	for i := 0; i < len(roles); i++ {
+		role := roles[i]
+		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Name+`"}`, "")
+		if err != nil || count == 0 {
+			r := make(map[string]interface{})
+			r["_id"] = role.Name
+			r["name"] = role.Name
+			r["actions"] = role.Actions
+			r["members"] = []string{}
+			_, err := store.InsertOne(context.Background(), "local_resource", "local_resource", "Roles", r, "")
+			if err != nil {
+				return err
+			}
+		} else {
+			actions_, err := Utility.ToJson(role.Actions)
+			if err != nil {
+				return err
+			}
+			err = store.UpdateOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Name+`"}`, `{ "$set":{"actions":`+actions_+`}}`, "")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// here is a little workaround to be sure the bundle.js file will not be cached in the brower...
 	indexHtml, err := ioutil.ReadFile(abosolutePath + "/index.html")
 
@@ -749,9 +775,8 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 	return err
 }
 
-func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId string, actions, keywords []string) error {
+func (self *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId string, actions, keywords []string, roles []*adminpb.Role) error {
 
-	log.Println("--------------------> alias 754 ", alias)
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
@@ -771,6 +796,7 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 		Alias:        alias,
 		Actions:      []string{},
 		Type:         packagespb.PackageType_APPLICATION_TYPE,
+		Roles:        []*packagespb.Role{},
 	}
 
 	if len(repositoryId) > 0 {
@@ -850,6 +876,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	var actions []string
 	var icon string
 	var alias string
+	var roles []*adminpb.Role
 
 	for {
 		msg, err := stream.Recv()
@@ -887,6 +914,10 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		}
 		if len(msg.Discovery) > 0 {
 			discoveryId = msg.Discovery
+		}
+
+		if len(msg.Roles) > 0 {
+			roles = msg.Roles
 		}
 
 		if len(msg.Actions) > 0 {
@@ -945,15 +976,23 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 		return err
 	}
 
-	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId, actions, keywords)
+	err = self.publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId, actions, keywords, roles)
 
 	if err != nil {
 		return err
 	}
 
+	// convert struct...
+	roles_ := make([]*packagespb.Role, len(roles))
+	for i := 0; i < len(roles); i++ {
+		roles_[i] = new(packagespb.Role)
+		roles_[i].Name = roles[i].Name
+		roles_[i].Actions = roles[i].Actions
+	}
+
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = self.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords)
+	err = self.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords, roles_)
 	if err != nil {
 		return err
 	}
