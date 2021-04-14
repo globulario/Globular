@@ -15,6 +15,8 @@ import (
 	"google.golang.org/grpc/codes"
 
 	//	"google.golang.org/grpc/peer"
+	"github.com/globulario/Globular/Interceptors"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -926,8 +928,6 @@ func (self *Globule) DeleteAllAccess(ctx context.Context, rqst *rbacpb.DeleteAll
 // Return  accessAllowed, accessDenied, error
 func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
 
-	log.Println("---> validate access ", subject, name, path)
-
 	// first I will test if permissions is define
 	permissions, err := self.getResourcePermissions(path)
 	if err != nil {
@@ -944,8 +944,6 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 		// if no permission are define for a ressource anyone can access it.
 		return false, false, err
 	}
-
-	log.Println("----------------> 932 ", permissions)
 
 	// Test if the Subject is owner of the ressource in that case I will git him access.
 	owners := permissions.Owners
@@ -1260,6 +1258,8 @@ func (self *Globule) validateAccess(subject string, subjectType rbacpb.SubjectTy
 
 //* Validate if a account can get access to a given ressource for a given operation (read, write...) That function is recursive. *
 func (self *Globule) ValidateAccess(ctx context.Context, rqst *rbacpb.ValidateAccessRqst) (*rbacpb.ValidateAccessRsp, error) {
+	// Here I will get information from context.
+
 	hasAccess, accessDenied, err := self.validateAccess(rqst.Subject, rqst.Type, rqst.Permission, rqst.Path)
 	if err != nil || !hasAccess || accessDenied {
 		return nil, status.Errorf(
@@ -1406,6 +1406,51 @@ func (self *Globule) validateAction(action string, subject string, subjectType r
 
 //* Validate the actions...
 func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateActionRqst) (*rbacpb.ValidateActionRsp, error) {
+
+	// So here From the context I will validate if the application can execute the action...
+	var clientId string
+	var application string
+	var err error
+
+	// Now I will index the conversation to be retreivable for it creator...
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		application = strings.Join(md["application"], "")
+		token := strings.Join(md["token"], "")
+		if len(token) > 0 {
+			clientId, _, _, _, err = Interceptors.ValidateToken(token)
+			if err != nil {
+				return nil, status.Errorf(
+					codes.Internal,
+					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+			}
+
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No token was given!")))
+
+		}
+	}
+
+	// In the account must match the information in the token.
+	if rqst.Type == rbacpb.SubjectType_ACCOUNT {
+
+		if clientId != rqst.Subject {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong account id your not authenticated as "+rqst.Subject)))
+		}
+	}
+
+	// Test if the action permission is at application level.
+	if len(application) > 0 {
+		hasAccess, err := self.validateAction(rqst.Action, application, rbacpb.SubjectType_APPLICATION, rqst.Infos)
+		if err == nil && hasAccess {
+			return &rbacpb.ValidateActionRsp{
+				Result: hasAccess,
+			}, nil
+		}
+	}
 
 	// If the address is local I will give the permission.
 	//log.Println("validate action ", rqst.Action, rqst.Subject, rqst.Type, rqst.Infos)

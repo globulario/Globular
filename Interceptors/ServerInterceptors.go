@@ -197,7 +197,7 @@ func getActionResourceInfos(domain, method string) ([]*rbacpb.ResourceInfos, err
 
 }
 
-func validateAction(domain, method, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
+func validateAction(token string, application string, domain string, organization string, method, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
 
 	id := domain + method + subject
 	for i := 0; i < len(infos); i++ {
@@ -224,7 +224,7 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 	if err != nil {
 		return false, err
 	}
-	hasAccess, err := rbac_client_.ValidateAction(method, subject, subjectType, infos)
+	hasAccess, err := rbac_client_.ValidateAction(token, application, domain, organization, method, subject, subjectType, infos)
 	if err != nil {
 		return false, err
 	}
@@ -236,7 +236,7 @@ func validateAction(domain, method, subject string, subjectType rbacpb.SubjectTy
 
 }
 
-func validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
+func validateActionRequest(token string, application string, organization string, rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType, domain string) (bool, error) {
 
 	hasAccess := false
 
@@ -260,7 +260,7 @@ func validateActionRequest(rqst interface{}, method string, subject string, subj
 
 	// TODO keep to value in cache for keep speed.
 
-	hasAccess, err = validateAction(domain, method, subject, subjectType, infos)
+	hasAccess, err = validateAction(token, application, domain, organization, method, subject, subjectType, infos)
 	if err != nil {
 		return false, err
 	}
@@ -277,6 +277,7 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	var token string
 	var application string
 	var domain string // This is the target domain, the one use in TLS certificate.
+	var organization string
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 
@@ -355,15 +356,15 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 	// Test if peer has access
 	if !hasAccess && len(clientId) > 0 {
 		fmt.Println("--------> interceptor validate action: ", method, clientId)
-		hasAccess, _ = validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT, domain)
+		hasAccess, _ = validateActionRequest(token, application, organization, rqst, method, clientId, rbacpb.SubjectType_ACCOUNT, domain)
 	}
 
 	if !hasAccess && len(application) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, method, application, rbacpb.SubjectType_APPLICATION, domain)
+		hasAccess, _ = validateActionRequest(token, application, organization, rqst, method, application, rbacpb.SubjectType_APPLICATION, domain)
 	}
 
 	if !hasAccess {
-		hasAccess, _ = validateActionRequest(rqst, method, p.Addr.String(), rbacpb.SubjectType_PEER, domain)
+		hasAccess, _ = validateActionRequest(token, application, organization, rqst, method, p.Addr.String(), rbacpb.SubjectType_PEER, domain)
 	}
 
 	if !hasAccess {
@@ -417,14 +418,15 @@ func ServerUnaryInterceptor(ctx context.Context, rqst interface{}, info *grpc.Un
 
 // A wrapper for the real grpc.ServerStream
 type ServerStreamInterceptorStream struct {
-	inner       grpc.ServerStream
-	method      string
-	domain      string
-	peer        string
-	token       string
-	application string
-	clientId    string
-	uuid        string
+	inner        grpc.ServerStream
+	method       string
+	domain       string
+	organization string
+	peer         string
+	token        string
+	application  string
+	clientId     string
+	uuid         string
 }
 
 func (l ServerStreamInterceptorStream) SetHeader(m metadata.MD) error {
@@ -470,15 +472,15 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 
 	// Test if peer has access
 	if !hasAccess && len(l.clientId) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.clientId, rbacpb.SubjectType_ACCOUNT, l.domain)
+		hasAccess, _ = validateActionRequest(l.token, l.application, l.organization, rqst, l.method, l.clientId, rbacpb.SubjectType_ACCOUNT, l.domain)
 	}
 
 	if !hasAccess && len(l.application) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.application, rbacpb.SubjectType_APPLICATION, l.domain)
+		hasAccess, _ = validateActionRequest(l.token, l.application, l.organization, rqst, l.method, l.application, rbacpb.SubjectType_APPLICATION, l.domain)
 	}
 
 	if !hasAccess && len(l.peer) > 0 {
-		hasAccess, _ = validateActionRequest(rqst, l.method, l.peer, rbacpb.SubjectType_PEER, l.domain)
+		hasAccess, _ = validateActionRequest(l.token, l.application, l.organization, rqst, l.method, l.peer, rbacpb.SubjectType_PEER, l.domain)
 	}
 
 	if !hasAccess {
