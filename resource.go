@@ -1069,7 +1069,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// Create the user file directory.
-	path := "/users/" + user
+	path := "/users/" + values[0].(map[string]interface{})["name"].(string)
 	Utility.CreateDirIfNotExist(self.data + "/files" + path)
 
 	self.addResourceOwner(path, user, rbacpb.SubjectType_ACCOUNT)
@@ -2834,25 +2834,28 @@ func (self *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb
 	for i := 0; i < len(groups); i++ {
 
 		g := &resourcepb.Group{Name: groups[i].(map[string]interface{})["name"].(string), Id: groups[i].(map[string]interface{})["_id"].(string), Members: make([]string, 0)}
-		members := []interface{}(groups[i].(map[string]interface{})["members"].(primitive.A))
-		g.Members = make([]string, 0)
-		for j := 0; j < len(members); j++ {
-			g.Members = append(g.Members, members[j].(map[string]interface{})["$id"].(string))
-		}
 
-		values = append(values, g)
-		if len(values) >= maxSize {
-			err := stream.Send(
-				&resourcepb.GetGroupsRsp{
-					Groups: values,
-				},
-			)
-			if err != nil {
-				return status.Errorf(
-					codes.Internal,
-					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		if groups[i].(map[string]interface{})["members"] != nil {
+			members := []interface{}(groups[i].(map[string]interface{})["members"].(primitive.A))
+			g.Members = make([]string, 0)
+			for j := 0; j < len(members); j++ {
+				g.Members = append(g.Members, members[j].(map[string]interface{})["$id"].(string))
 			}
-			values = make([]*resourcepb.Group, 0)
+
+			values = append(values, g)
+			if len(values) >= maxSize {
+				err := stream.Send(
+					&resourcepb.GetGroupsRsp{
+						Groups: values,
+					},
+				)
+				if err != nil {
+					return status.Errorf(
+						codes.Internal,
+						Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+				}
+				values = make([]*resourcepb.Group, 0)
+			}
 		}
 	}
 
