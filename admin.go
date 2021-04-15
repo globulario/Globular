@@ -589,7 +589,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 		r := bytes.NewReader(bundle.Binairies)
 
 		// Now I will install the applicaiton.
-		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords, descriptor.Roles)
+		err = self.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords, descriptor.Roles, descriptor.Groups)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -606,7 +606,7 @@ func (self *Globule) InstallApplication(ctx context.Context, rqst *adminpb.Insta
 }
 
 // Intall
-func (self *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string, roles []*packagespb.Role) error {
+func (self *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string, roles []*packagespb.Role, groups []*packagespb.Group) error {
 
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
@@ -730,10 +730,10 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 	// Now I will create/update roles define in the application descriptor...
 	for i := 0; i < len(roles); i++ {
 		role := roles[i]
-		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Name+`"}`, "")
+		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Id+`"}`, "")
 		if err != nil || count == 0 {
 			r := make(map[string]interface{})
-			r["_id"] = role.Name
+			r["_id"] = role.Id
 			r["name"] = role.Name
 			r["actions"] = role.Actions
 			r["members"] = []string{}
@@ -746,11 +746,33 @@ func (self *Globule) installApplication(domain, name, publisherId, version, desc
 			if err != nil {
 				return err
 			}
-			err = store.UpdateOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Name+`"}`, `{ "$set":{"actions":`+actions_+`}}`, "")
+			err = store.UpdateOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Id+`"}`, `{ "$set":{"name":"`+role.Name+`"}}, { "$set":{"actions":`+actions_+`}}`, "")
 			if err != nil {
 				return err
 			}
 		}
+	}
+
+	for i := 0; i < len(groups); i++ {
+		group := groups[i]
+		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+group.Id+`"}`, "")
+		if err != nil || count == 0 {
+			g := make(map[string]interface{})
+			g["_id"] = group.Id
+			g["name"] = group.Name
+			g["members"] = []string{}
+			_, err := store.InsertOne(context.Background(), "local_resource", "local_resource", "Groups", g, "")
+			if err != nil {
+				return err
+			}
+		} else {
+
+			err = store.UpdateOne(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+group.Id+`"}`, `{ "$set":{"name":"`+group.Name+`"}}`, "")
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// here is a little workaround to be sure the bundle.js file will not be cached in the brower...
@@ -877,6 +899,7 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	var icon string
 	var alias string
 	var roles []*adminpb.Role
+	var groups []*adminpb.Group
 
 	for {
 		msg, err := stream.Recv()
@@ -918,6 +941,10 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 
 		if len(msg.Roles) > 0 {
 			roles = msg.Roles
+		}
+
+		if len(msg.Groups) > 0 {
+			groups = msg.Groups
 		}
 
 		if len(msg.Actions) > 0 {
@@ -986,13 +1013,21 @@ func (self *Globule) DeployApplication(stream adminpb.AdminService_DeployApplica
 	roles_ := make([]*packagespb.Role, len(roles))
 	for i := 0; i < len(roles); i++ {
 		roles_[i] = new(packagespb.Role)
+		roles_[i].Id = roles[i].Id
 		roles_[i].Name = roles[i].Name
 		roles_[i].Actions = roles[i].Actions
 	}
 
+	groups_ := make([]*packagespb.Group, len(groups))
+	for i := 0; i < len(groups); i++ {
+		groups_[i] = new(packagespb.Group)
+		groups_[i].Id = groups[i].Id
+		groups_[i].Name = groups[i].Name
+	}
+
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = self.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords, roles_)
+	err = self.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords, roles_, groups_)
 	if err != nil {
 		return err
 	}
