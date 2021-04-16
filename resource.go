@@ -417,6 +417,12 @@ func (self *Globule) createApplicationConnection() error {
 			log.Println("** fail to create connection for application ", application["_id"].(string), err)
 
 		}
+
+		// Here I will se ownership to files in the directories.
+		err = self.addResourceOwner("/applications/"+application["_id"].(string), application["_id"].(string), rbacpb.SubjectType_APPLICATION)
+		if err != nil {
+			return err
+		}
 		log.Println("-> connection created for application: ", application["_id"].(string))
 	}
 

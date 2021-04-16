@@ -1415,6 +1415,16 @@ func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateAc
 	// Now I will index the conversation to be retreivable for it creator...
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
+		// Test if the action permission is at application level.
+		if len(application) > 0 {
+			hasAccess, err := self.validateAction(rqst.Action, application, rbacpb.SubjectType_APPLICATION, rqst.Infos)
+			if err == nil && hasAccess {
+				return &rbacpb.ValidateActionRsp{
+					Result: hasAccess,
+				}, nil
+			}
+		}
+
 		token := strings.Join(md["token"], "")
 		if len(token) > 0 {
 			clientId, _, _, _, err = Interceptors.ValidateToken(token)
@@ -1423,11 +1433,6 @@ func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateAc
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
-
-		} else {
-			return nil, status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No token was given!")))
 
 		}
 	}
@@ -1439,16 +1444,6 @@ func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateAc
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong account id your not authenticated as "+rqst.Subject)))
-		}
-	}
-
-	// Test if the action permission is at application level.
-	if len(application) > 0 {
-		hasAccess, err := self.validateAction(rqst.Action, application, rbacpb.SubjectType_APPLICATION, rqst.Infos)
-		if err == nil && hasAccess {
-			return &rbacpb.ValidateActionRsp{
-				Result: hasAccess,
-			}, nil
 		}
 	}
 

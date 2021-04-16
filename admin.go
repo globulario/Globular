@@ -839,37 +839,13 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 
 	err := self.publishPackage(user, organization, discoveryId, repositoryId, "webapp", path, descriptor)
 
-	// Create the permission...
-	permissions := &rbacpb.Permissions{
-		Allowed: []*rbacpb.Permission{
-			//  Exemple of possible permission values.
-			&rbacpb.Permission{
-				Name:          "read", // member of the organization can publish the service.
-				Applications:  []string{name},
-				Organizations: []string{organization},
-				Accounts:      []string{},
-				Groups:        []string{},
-				Peers:         []string{},
-			},
-		},
-		Denied: []*rbacpb.Permission{},
-		Owners: &rbacpb.Permission{
-			Name:          "owner",
-			Accounts:      []string{user},
-			Applications:  []string{},
-			Groups:        []string{},
-			Peers:         []string{},
-			Organizations: []string{},
-		},
-	}
-
 	// Set the path of the directory where the application can store date.
 	Utility.CreateDirIfNotExist(self.applications + "/" + name)
 	if err != nil {
 		return err
 	}
 
-	err = self.setResourcePermissions("/applications/"+name, permissions)
+	err = self.addResourceOwner("/applications/"+name, name, rbacpb.SubjectType_APPLICATION)
 	if err != nil {
 		return err
 	}

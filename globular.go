@@ -1959,9 +1959,6 @@ func (self *Globule) getPersistenceSaConnection() (*persistence_client.Persisten
 		return nil, err
 	}
 
-	// Now I will initialyse the application connections...
-	self.createApplicationConnection()
-
 	return self.persistence_client_, nil
 }
 
@@ -2023,6 +2020,10 @@ func (self *Globule) waitForMongo(timeout int, withAuth bool) error {
 
 		return self.waitForMongo(timeout, withAuth)
 	}
+
+	// Now I will initialyse the application connections...
+	self.createApplicationConnection()
+
 	return nil
 }
 
