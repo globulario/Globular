@@ -639,6 +639,10 @@ func (self *Globule) initDirectories() {
 		json.Unmarshal(file, &self)
 	}
 
+	// Convert video file if there some to be convert.
+	go func() {
+		convertVideo()
+	}()
 	log.Println("Globular is running!")
 }
 

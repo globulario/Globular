@@ -236,11 +236,78 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(fileType, "text/") {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
-				setVideoGifAndStream(path_, fileType)
+
+				err := createVideoPreview(path_, 20, 80)
+				if err != nil {
+					log.Println(err)
+				}
+				if !strings.HasSuffix(path_, ".mp4") {
+					// Mark for conversion...
+					taskLstFile := globule.data + "/files/convert_video.task"
+					if Utility.Exists(taskLstFile) {
+						f, err := os.OpenFile(taskLstFile,
+							os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+						if err != nil {
+							log.Println(err)
+						}
+						defer f.Close()
+						if _, err := f.WriteString(path_ + ";"); err != nil {
+							log.Println(err)
+						}
+					} else {
+						if err := ioutil.WriteFile(taskLstFile, []byte(path_+";"), 0644); err != nil {
+							log.Println(err)
+						}
+					}
+				}
+
+				// Here I will call convert video
+				go func() {
+					convertVideo()
+				}()
+
 			}
 		}
 
 	}
+}
+
+func convertVideo() {
+	taskLstFile := globule.data + "/files/convert_video.task"
+
+	pids, err := Utility.GetProcessIdsByName("ffmpeg")
+	if err == nil {
+		if len(pids) > 0 {
+			return // already running...
+		}
+	}
+
+	data, err := ioutil.ReadFile(taskLstFile)
+	if err != nil {
+		log.Println("fail to read file ", taskLstFile, err)
+		return
+	}
+
+	videos := strings.Split(string(data), ";")
+
+	for i := 0; i < len(videos); i++ {
+		if len(videos[i]) > 0 {
+			log.Println("-------> convert video: ", videos[i])
+			createVideoStream(videos[i])
+
+			// update the file...
+			taskLst := ""
+			for j := i + 1; j < len(videos); j++ {
+				taskLst += videos[j] + ";"
+			}
+
+			if err := ioutil.WriteFile(taskLstFile, []byte(taskLst), 0644); err != nil {
+				log.Println(err)
+			}
+
+		}
+	}
+
 }
 
 // Set file indexation to be able to search text file on the server.
@@ -249,39 +316,15 @@ func indexFile(path string, fileType string) error {
 	return nil
 }
 
-// Here that function will be use to process the video create a gif and streaming folder form ffmeg.
-func setVideoGifAndStream(path string, fileType string) error {
-	log.Println("-----> set video stream ", path, fileType)
-
-	// So here the first step will be to create a gif file that will be use as
-	// thumbnail.
-	err := createVideoPreview(path, 20, 256)
-	if err != nil {
-		return err
-	}
-
-	err = createVideoStream(path, fileType)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 /**
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
-func createVideoStream(path string, fileType string) error {
-	if fileType == "video/mp4" {
-		// Already a mp4
-		return nil
-	}
+func createVideoStream(path string) error {
 
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/" + name_ + ".mp4"
 
-	//
 	defer os.Remove(path)
 
 	var cmd *exec.Cmd
