@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -237,30 +238,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
 
-				err := createVideoPreview(path_, 20, 80)
-				if err != nil {
-					log.Println(err)
-				}
-				if !strings.HasSuffix(path_, ".mp4") {
-					// Mark for conversion...
-					taskLstFile := globule.data + "/files/convert_video.task"
-					if Utility.Exists(taskLstFile) {
-						f, err := os.OpenFile(taskLstFile,
-							os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-						if err != nil {
-							log.Println(err)
-						}
-						defer f.Close()
-						if _, err := f.WriteString(path_ + ";"); err != nil {
-							log.Println(err)
-						}
-					} else {
-						if err := ioutil.WriteFile(taskLstFile, []byte(path_+";"), 0644); err != nil {
-							log.Println(err)
-						}
-					}
-				}
-
 				// Here I will call convert video
 				go func() {
 					convertVideo()
@@ -272,8 +249,37 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func visit(files *[]string) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+		mimeType := ""
+		if strings.Index(info.Name(), ".") != -1 {
+			fileExtension := info.Name()[strings.LastIndex(info.Name(), "."):]
+			mimeType = mime.TypeByExtension(fileExtension)
+		} else {
+			f_, err := os.Open(path)
+			defer f_.Close()
+			if err != nil {
+				return nil
+			}
+			mimeType, _ = Utility.GetFileContentType(f_)
+		}
+		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
+			*files = append(*files, path)
+		}
+		return nil
+	}
+}
+
 func convertVideo() {
-	taskLstFile := globule.data + "/files/convert_video.task"
 
 	pids, err := Utility.GetProcessIdsByName("ffmpeg")
 	if err == nil {
@@ -281,30 +287,22 @@ func convertVideo() {
 			return // already running...
 		}
 	}
+	var files []string
 
-	data, err := ioutil.ReadFile(taskLstFile)
+	err = filepath.Walk(globule.data+"/files", visit(&files))
 	if err != nil {
-		log.Println("fail to read file ", taskLstFile, err)
+		log.Println(err)
 		return
 	}
+	for _, file := range files {
+		fmt.Println(file)
 
-	videos := strings.Split(string(data), ";")
+		for i := 0; i < len(files); i++ {
+			if len(files[i]) > 0 {
+				log.Println("-------> convert video: ", files[i])
+				createVideoStream(files[i])
 
-	for i := 0; i < len(videos); i++ {
-		if len(videos[i]) > 0 {
-			log.Println("-------> convert video: ", videos[i])
-			createVideoStream(videos[i])
-
-			// update the file...
-			taskLst := ""
-			for j := i + 1; j < len(videos); j++ {
-				taskLst += videos[j] + ";"
 			}
-
-			if err := ioutil.WriteFile(taskLstFile, []byte(taskLst), 0644); err != nil {
-				log.Println(err)
-			}
-
 		}
 	}
 
@@ -320,6 +318,11 @@ func indexFile(path string, fileType string) error {
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
 func createVideoStream(path string) error {
+	// Create a video preview
+	err := createVideoPreview(path, 20, 128)
+	if err != nil {
+		log.Println(err)
+	}
 
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
@@ -336,7 +339,7 @@ func createVideoStream(path string) error {
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
@@ -356,6 +359,10 @@ func createVideoPreview(path string, nb int, height int) error {
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
+	// Recreate the preview...
+	if Utility.Exists(output) {
+		os.Remove(output)
+	}
 	Utility.CreateDirIfNotExist(output)
 
 	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
