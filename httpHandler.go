@@ -403,8 +403,6 @@ func getVideoDuration(path string) float64 {
 		return 0.0
 	}
 
-	log.Println(string(out.Bytes()))
-
 	duration, _ := strconv.ParseFloat(strings.TrimSpace(string(out.Bytes())), 64)
 
 	return duration
