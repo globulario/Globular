@@ -232,14 +232,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Now from the file extension i will retreive it mime type.
 		fileExtension := path_[strings.LastIndex(path_, "."):]
 		fileType := mime.TypeByExtension(fileExtension)
-
+		path_ = strings.ReplaceAll(path_, "\\", "/")
 		if len(fileType) > 0 {
 			if strings.HasPrefix(fileType, "text/") {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
-				log.Println("--------> upload video ", path_)
 				if strings.HasSuffix(path_, ".mp4") {
-					log.Println("-------> generate video preview: ", path_)
 					err := createVideoPreview(path_, 20, 128)
 					if err != nil {
 						log.Println(err)
@@ -282,7 +280,7 @@ func visit(files *[]string) filepath.WalkFunc {
 			mimeType, _ = Utility.GetFileContentType(f_)
 		}
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
-			*files = append(*files, path)
+			*files = append(*files, strings.ReplaceAll(path, "\\", "/"))
 		}
 		return nil
 	}
@@ -305,6 +303,7 @@ func convertVideo() {
 	}
 	for _, file := range files {
 		log.Println("-------> convert video: ", file)
+		file = strings.ReplaceAll(file, "\\", "/")
 		createVideoStream(file)
 	}
 
@@ -320,12 +319,6 @@ func indexFile(path string, fileType string) error {
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
 func createVideoStream(path string) error {
-	// Create a video preview
-
-	err := createVideoPreview(path, 20, 128)
-	if err != nil {
-		log.Println(err)
-	}
 
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
@@ -342,10 +335,17 @@ func createVideoStream(path string) error {
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
+	}
+
+	// Create a video preview
+	log.Println("create preview ", path)
+	err = createVideoPreview(output, 20, 128)
+	if err != nil {
+		log.Println(err)
 	}
 
 	return nil
