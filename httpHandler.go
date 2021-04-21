@@ -211,9 +211,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + files[i].Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
-			path_ = globule.data + "/files" + path_
+			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
 		} else {
-			path_ = globule.webRoot + path_
+			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
 		out, err := os.Create(path_)
@@ -237,11 +237,20 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(fileType, "text/") {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
+				log.Println("--------> upload video ", path_)
+				if strings.HasSuffix(path_, ".mp4") {
+					log.Println("-------> generate video preview: ", path_)
+					err := createVideoPreview(path_, 20, 128)
+					if err != nil {
+						log.Println(err)
+					}
 
-				// Here I will call convert video
-				go func() {
-					convertVideo()
-				}()
+				} else {
+					// Here I will call convert video
+					go func() {
+						convertVideo()
+					}()
+				}
 
 			}
 		}
@@ -295,15 +304,8 @@ func convertVideo() {
 		return
 	}
 	for _, file := range files {
-		fmt.Println(file)
-
-		for i := 0; i < len(files); i++ {
-			if len(files[i]) > 0 {
-				log.Println("-------> convert video: ", files[i])
-				createVideoStream(files[i])
-
-			}
-		}
+		log.Println("-------> convert video: ", file)
+		createVideoStream(file)
 	}
 
 }
@@ -319,6 +321,7 @@ func indexFile(path string, fileType string) error {
  */
 func createVideoStream(path string) error {
 	// Create a video preview
+
 	err := createVideoPreview(path, 20, 128)
 	if err != nil {
 		log.Println(err)
@@ -360,10 +363,10 @@ func createVideoPreview(path string, nb int, height int) error {
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
 	// Recreate the preview...
-	if Utility.Exists(output) {
-		os.Remove(output)
-	}
+	os.Remove(output)
+
 	Utility.CreateDirIfNotExist(output)
+	log.Println("Create preview in ", output)
 
 	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
 	//cmd := exec.Command("ffmpeg", "-i", path, "-r", Utility.ToString(duration)+"/"+Utility.ToString(nb), "-f", "image2", "preview_%05d.jpg")
