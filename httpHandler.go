@@ -244,7 +244,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 					}
 
 				} else {
-					// Here I will call convert video
+					// Here I will call convert video...
 					go func() {
 						convertVideo()
 					}()
@@ -281,6 +281,8 @@ func visit(files *[]string) filepath.WalkFunc {
 		}
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
 			*files = append(*files, strings.ReplaceAll(path, "\\", "/"))
+		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
+			createVideoPreview(strings.ReplaceAll(path, "\\", "/"), 20, 128)
 		}
 		return nil
 	}
@@ -362,6 +364,10 @@ func createVideoPreview(path string, nb int, height int) error {
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
+	if Utility.Exists(output) {
+		return nil
+	}
+
 	// Recreate the preview...
 	os.Remove(output)
 

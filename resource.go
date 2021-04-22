@@ -75,6 +75,8 @@ func (self *Globule) startResourceService() error {
 						self.registerIpToDns()
 					}
 					self.removeExpiredSessions()
+					// Get the list of video
+					convertVideo()
 				case <-self.exit:
 					return
 				}
