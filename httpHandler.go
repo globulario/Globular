@@ -120,6 +120,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+
 	log.Println("upload was called... ")
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
@@ -252,12 +255,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 			}
 		}
-
 	}
 }
 
 func visit(files *[]string) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
+		path = strings.ReplaceAll(path, "\\", "/")
 		if err != nil {
 			log.Println(err)
 			return nil
@@ -279,10 +282,11 @@ func visit(files *[]string) filepath.WalkFunc {
 			}
 			mimeType, _ = Utility.GetFileContentType(f_)
 		}
+
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
-			*files = append(*files, strings.ReplaceAll(path, "\\", "/"))
+			*files = append(*files, path)
 		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
-			createVideoPreview(strings.ReplaceAll(path, "\\", "/"), 20, 128)
+			createVideoPreview(path, 20, 128)
 		}
 		return nil
 	}
