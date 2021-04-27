@@ -139,8 +139,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
-	log.Println("path: ", path)
-
+	log.Println("----------> path: ", path)
+	log.Println("---------->", 143)
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -157,6 +157,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			log.Println("---------->", 160)
 			//return
 		}
 
@@ -165,6 +166,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("---------->", 169)
 		}
 	}
 
@@ -175,17 +177,20 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("---------->", 180)
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("---------->", 186)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("---------->", 192)
 			}
 		}
 	}
@@ -330,7 +335,7 @@ func createVideoStream(path string) error {
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/" + name_ + ".mp4"
 
-	defer os.Remove(path)
+	defer os.RemoveAll(path)
 
 	var cmd *exec.Cmd
 
@@ -366,20 +371,16 @@ func createVideoPreview(path string, nb int, height int) error {
 	}
 
 	path_ := path[0:strings.LastIndex(path, "/")]
-	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
+	name_ := path[strings.LastIndex(path, "/")+1 : strings.LastIndex(path, ".")]
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
 	if Utility.Exists(output) {
 		return nil
 	}
 
-	// Recreate the preview...
-	os.Remove(output)
-
 	Utility.CreateDirIfNotExist(output)
 	log.Println("Create preview in ", output)
 
 	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
-	//cmd := exec.Command("ffmpeg", "-i", path, "-r", Utility.ToString(duration)+"/"+Utility.ToString(nb), "-f", "image2", "preview_%05d.jpg")
 	start := .1 * duration
 	laps := 120 // 1 minutes
 
@@ -394,6 +395,14 @@ func createVideoPreview(path string, nb int, height int) error {
 	if err != nil {
 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
+	}
+
+	evtHub, err := globule.getEventHub()
+	if err == nil {
+		path_ := strings.ReplaceAll(path, globule.data+"/files", "")
+		path_ = path_[0:strings.LastIndex(path_, "/")]
+
+		evtHub.Publish("reload_dir_event", []byte(path_))
 	}
 
 	return nil

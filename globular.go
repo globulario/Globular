@@ -57,7 +57,15 @@ import (
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/persistence/persistence_store"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-)
+	// OAuth2
+	/*
+		errors_ "github.com/go-oauth2/oauth2/errors"
+		"github.com/go-oauth2/oauth2/generates"
+		"github.com/go-oauth2/oauth2/manage"
+		"github.com/go-oauth2/oauth2/models"
+		"github.com/go-oauth2/oauth2/server"
+		"github.com/go-oauth2/oauth2/store"
+	*/)
 
 // Global variable.
 var (
@@ -122,6 +130,7 @@ type Globule struct {
 	CertStableURL              string
 
 	Version        string
+	Build          int64
 	Platform       string
 	SessionTimeout time.Duration
 
@@ -170,7 +179,7 @@ type Globule struct {
 	cache *storage_store.BigCache_store
 
 	// Create the JWT key used to create the signature
-	jwtKey       []byte
+	jwtKey       []byte // This is the client secret.
 	RootPassword string
 
 	// local store.
@@ -214,6 +223,7 @@ func NewGlobule() *Globule {
 	g := new(Globule)
 
 	g.Version = "1.0.0" // Automate version...
+	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.RootPassword = "adminadmin"
 
@@ -1080,6 +1090,8 @@ func (self *Globule) stopInternalServices() {
 	for i := 0; i < len(self.inernalServices); i++ {
 		self.inernalServices[i].Stop()
 	}
+
+	Utility.KillProcessByName("grpcwebproxy")
 }
 
 /**
@@ -1271,19 +1283,31 @@ func (self *Globule) startService(s *sync.Map) (int, int, error) {
 			s.Store("State", "running")
 			self.keepServiceAlive(s)
 
-			// display the message in the console.
-			reader := bufio.NewReader(pipe)
-			line, err := reader.ReadString('\n')
-			for err == nil {
-				line, err = reader.ReadString('\n')
-				if err == nil {
-					log.Println(line)
+			output := make(chan string)
+			done := make(chan bool)
+
+			// Process message util the command is done.
+			go func() {
+				for {
+					select {
+					case <-done:
+						break
+
+					case line := <-output:
+						log.Println(line)
+						self.logServiceInfo(getStringVal(s, "Name"), line)
+					}
 				}
-				self.logServiceInfo(getStringVal(s, "Name"), line)
-			}
+
+			}()
+
+			// Start reading the output
+			go ReadOutput(output, pipe)
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
+			done <- true
+			pipe.Close()
 
 			if err != nil {
 				// I will log the program error into the admin logger.
@@ -2195,6 +2219,106 @@ func (self *Globule) Listen() error {
 	// handle the Interrupt
 	// set the register sa user.
 	self.registerSa()
+	/*
+		// Now here I will set OAuth2 handlers...
+		manager := manage.NewDefaultManager()
+		manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
+
+		// token store
+		manager.MustTokenStorage(store.NewMemoryTokenStore())
+
+		// generate jwt access token
+		// manager.MapAccessGenerate(generates.NewJWTAccessGenerate("", []byte("00000000"), jwt.SigningMethodHS512))
+		manager.MapAccessGenerate(generates.NewAccessGenerate())
+
+		clientStore := store.NewClientStore()
+		clientStore.Set(idvar, &models.Client{
+			ID:     idvar,
+			Secret: secretvar,
+			Domain: domainvar,
+		})
+		manager.MapClientStorage(clientStore)
+
+		srv := server.NewServer(server.NewConfig(), manager)
+
+		srv.SetPasswordAuthorizationHandler(func(username, password string) (userID string, err error) {
+			if username == "test" && password == "test" {
+				userID = "test"
+			}
+			return
+		})
+
+		srv.SetUserAuthorizationHandler(userAuthorizeHandler)
+
+		srv.SetInternalErrorHandler(func(err error) (re *errors_.Response) {
+			log.Println("Internal Error:", err.Error())
+			return
+		})
+
+		srv.SetResponseErrorHandler(func(re *errors_.Response) {
+			log.Println("Response Error:", re.Error.Error())
+		})
+
+		http.HandleFunc("/login", loginHandler)
+		http.HandleFunc("/auth", authHandler)
+
+		http.HandleFunc("/oauth/authorize", func(w http.ResponseWriter, r *http.Request) {
+			if dumpvar {
+				dumpRequest(os.Stdout, "authorize", r)
+			}
+
+			store, err := session.Start(r.Context(), w, r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var form url.Values
+			if v, ok := store.Get("ReturnUri"); ok {
+				form = v.(url.Values)
+			}
+			r.Form = form
+
+			store.Delete("ReturnUri")
+			store.Save()
+
+			err = srv.HandleAuthorizeRequest(w, r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+		})
+
+		http.HandleFunc("/oauth/token", func(w http.ResponseWriter, r *http.Request) {
+			if dumpvar {
+				_ = dumpRequest(os.Stdout, "token", r) // Ignore the error
+			}
+
+			err := srv.HandleTokenRequest(w, r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		})
+
+		http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			if dumpvar {
+				_ = dumpRequest(os.Stdout, "test", r) // Ignore the error
+			}
+			token, err := srv.ValidationBearerToken(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			data := map[string]interface{}{
+				"expires_in": int64(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn()).Sub(time.Now()).Seconds()),
+				"client_id":  token.GetClientID(),
+				"user_id":    token.GetUserID(),
+			}
+			e := json.NewEncoder(w)
+			e.SetIndent("", "  ")
+			e.Encode(data)
+		})
+	*/
 
 	// Start the http server.
 	if self.Protocol == "https" {
@@ -2210,6 +2334,7 @@ func (self *Globule) Listen() error {
 
 		// get the value from the configuration files.
 		go func() {
+
 			err = self.https_server.ListenAndServeTLS(self.creds+"/"+self.Certificate, self.creds+"/server.pem")
 		}()
 	}

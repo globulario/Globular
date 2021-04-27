@@ -1994,7 +1994,9 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 
 	var err error
 	// Here some method are accessible by default.
-	if method == "/resource.ResourceService/GetAllActions" ||
+	if method == "/admin.adminService/GetConfig" ||
+		method == "/admin.adminService/DownloadGlobular" ||
+		method == "/resource.ResourceService/GetAllActions" ||
 		method == "/resource.ResourceService/RegisterAccount" ||
 		method == "/resource.ResourceService/GetAccounts" ||
 		method == "/resource.ResourceService/RegisterPeer" ||
