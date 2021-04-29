@@ -33,8 +33,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	config := globule.getConfig()
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(config)
@@ -46,8 +45,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	setupResponse(&w, r)
 	w.WriteHeader(http.StatusCreated)
 
 	crt, err := ioutil.ReadFile(globule.creds + "/" + "ca.crt")
@@ -65,9 +63,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
-	w.WriteHeader(http.StatusCreated)
+	setupResponse(&w, r)
 
 	crt, err := ioutil.ReadFile(globule.creds + "/" + "san.conf")
 	if err != nil {
@@ -79,14 +75,21 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+ * Setup allow Cors policies.
+ */
+func setupResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, domain, application, token")
+}
+
+/**
  * Sign ca certificate request and return a certificate.
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
 	log.Println("sign Ca Certificate Handler was call")
@@ -118,10 +121,8 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
-	w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Authorization, Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+	log.Println("upload file request was called!")
+	setupResponse(&w, r)
 
 	log.Println("upload was called... ")
 	// I will
@@ -424,8 +425,7 @@ func getVideoDuration(path string) float64 {
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+	setupResponse(&w, r)
 
 	//if empty, set current directory
 
