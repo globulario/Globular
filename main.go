@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
@@ -186,6 +188,22 @@ func main() {
 		uninstall_application_command_user := uninstall_application_command.String("u", "", "The user name. (Required)")
 		uninstall_application_command_pwd := uninstall_application_command.String("p", "", "The user password. (Required)")
 
+		// push globular update.
+		update_globular_command := flag.NewFlagSet("update", flag.ExitOnError)
+		update_globular_command_exec_path := update_globular_command.String("path", "", " the path to the new executable to update from")
+		update_globular_command_address := update_globular_command.String("a", "", "The domain of the server where to push the update(Required)")
+		update_globular_command_user := update_globular_command.String("u", "", "The user name. (Required)")
+		update_globular_command_pwd := update_globular_command.String("p", "", "The user password. (Required)")
+		update_globular_command_platform := update_globular_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
+
+		// pull globular update
+		update_globular_from_command := flag.NewFlagSet("update_from", flag.ExitOnError)
+		update_globular_command_from_source := update_globular_from_command.String("source", "", " the address of the server from where to update the a given server.")
+		update_globular_from_command_dest := update_globular_from_command.String("a", "", "The domain of the server to update (Required)")
+		update_globular_from_command_user := update_globular_from_command.String("u", "", "The user name. (Required)")
+		update_globular_from_command_pwd := update_globular_from_command.String("p", "", "The user password. (Required)")
+		update_globular_from_command_platform := update_globular_from_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
+
 		switch os.Args[1] {
 		case "start":
 			startCommand.Parse(os.Args[2:])
@@ -199,6 +217,10 @@ func main() {
 			installCommand.Parse(os.Args[2:])
 		case "uninstall":
 			unstallCommand.Parse(os.Args[2:])
+		case "update":
+			update_globular_command.Parse(os.Args[2:])
+		case "update_from":
+			update_globular_from_command.Parse(os.Args[2:])
 		case "install_service":
 			install_service_command.Parse(os.Args[2:])
 		case "uninstall_service":
@@ -276,6 +298,66 @@ func main() {
 				os.Exit(1)
 			}
 			uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
+		}
+
+		if update_globular_command.Parsed() {
+			if *update_globular_command_exec_path == "" {
+				update_globular_command.PrintDefaults()
+				fmt.Println("no executable path was given!")
+				os.Exit(1)
+			}
+
+			if *update_globular_command_address == "" {
+				update_globular_command.PrintDefaults()
+				fmt.Println("no domain was given!")
+				os.Exit(1)
+			}
+			if *update_globular_command_user == "" {
+				update_globular_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+			if *update_globular_command_pwd == "" {
+				update_globular_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+			if *update_globular_command_platform == "" {
+				*update_globular_command_platform = runtime.GOOS + ":" + runtime.GOARCH
+			}
+
+			update_globular(g, *update_globular_command_exec_path, *update_globular_command_address, *update_globular_command_user, *update_globular_command_pwd, *update_globular_command_platform)
+		}
+
+		if update_globular_from_command.Parsed() {
+			if *update_globular_command_from_source == "" {
+				update_globular_from_command.PrintDefaults()
+				fmt.Println("no address was given to update Globular from")
+				os.Exit(1)
+			}
+
+			if *update_globular_from_command_dest == "" {
+				update_globular_command.PrintDefaults()
+				fmt.Println("no domain was given!")
+				os.Exit(1)
+			}
+			if *update_globular_from_command_user == "" {
+				update_globular_from_command.PrintDefaults()
+				fmt.Println("no user (for domain) was given!")
+				os.Exit(1)
+			}
+
+			if *update_globular_from_command_pwd == "" {
+				update_globular_from_command.PrintDefaults()
+				fmt.Println("no password (for domain) was given!")
+				os.Exit(1)
+			}
+
+			if *update_globular_from_command_platform == "" {
+				*update_globular_from_command_platform = runtime.GOOS + ":" + runtime.GOARCH
+			}
+
+			update_globular_from(g, *update_globular_command_from_source, *update_globular_from_command_dest, *update_globular_from_command_user, *update_globular_from_command_pwd, *update_globular_from_command_platform)
 		}
 
 		if install_application_command.Parsed() {
@@ -579,6 +661,87 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	log.Println("Application", name, "was deployed successfully!")
 	return nil
+}
+
+/**
+ * Push globular update on a given server.
+ * ex.
+ * sudo ./Globular update -path=/home/dave/go/src/github.com/globulario/Globular/Globular -a=globular.cloud -u=sa -p=adminadmin
+ */
+func update_globular(g *Globule, path, domain, user, pwd string, platform string) error {
+
+	// Authenticate the user in order to get the token
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+
+	token, err := resource_client_.Authenticate(user, pwd)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	_, err = admin_client_.Update(path, platform, token, domain)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Pull globular update from a given server to a given destination.
+ * ex.
+ * ./Globular update_from -a=globular.cloud -p=adminadmin -source=globular.cloud -u=sa
+ */
+func update_globular_from(g *Globule, src, dest, user, pwd string, platform string) error {
+	log.Println("pull globular update from ", src, " to ", dest)
+
+	admin_source, err := admin_client.NewAdminService_Client(src, "admin.AdminService")
+	if err != nil {
+		return err
+	}
+
+	// From the source I will download the new executable and save it in the
+	// temp directory...
+	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
+	Utility.CreateDirIfNotExist(path)
+
+	admin_source.DownloadGlobular(src, platform, path)
+
+	path_ := path
+	path_ += "/Globular"
+	if runtime.GOOS == "windows" {
+		path_ += ".exe"
+	}
+
+	if !Utility.Exists(path) {
+		err := errors.New(path_ + " not found!")
+		return err
+		log.Println("---> the executable path was not found!")
+	}
+
+	defer os.RemoveAll(path)
+
+	err = update_globular(g, path_, dest, user, pwd, platform)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Send the command.
+	return nil
+
 }
 
 /**

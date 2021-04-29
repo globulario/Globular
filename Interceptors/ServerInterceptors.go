@@ -458,7 +458,8 @@ func (l ServerStreamInterceptorStream) RecvMsg(rqst interface{}) error {
 	l.inner.RecvMsg(rqst)
 
 	hasAccess := l.clientId == "sa" ||
-		l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
+		l.method == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo" ||
+		l.method == "/admin.adminService/DownloadGlobular"
 
 	if hasAccess {
 		return nil

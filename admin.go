@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"golang.org/x/net/html"
 
 	// "golang.org/x/sys/windows/registry"
+	"path/filepath"
 
 	"regexp"
 	"strings"
@@ -100,6 +102,7 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["Discoveries"] = self.Discoveries
 	config["PortsRange"] = self.PortsRange
 	config["Version"] = self.Version
+	config["Build"] = self.Build
 	config["Platform"] = self.Platform
 	config["DNS"] = self.DNS
 	config["Protocol"] = self.Protocol
@@ -115,6 +118,10 @@ func (self *Globule) getConfig() map[string]interface{} {
 	config["City"] = self.City
 	config["Organization"] = self.Organization
 	config["IndexApplication"] = self.IndexApplication
+	config["Path"] = self.path
+	config["Files"] = self.data + "/files"
+	config["Data"] = self.data
+	config["Config"] = self.config
 
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
@@ -848,6 +855,136 @@ func (self *Globule) publishApplication(user, organization, path, name, domain, 
 	err = self.addResourceOwner("/applications/"+name, name, rbacpb.SubjectType_APPLICATION)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+/**
+ * Update Globular itself with a new version.
+ */
+func (self *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
+	// The buffer that will receive the service executable.
+	var buffer bytes.Buffer
+	var platform string
+	for {
+		msg, err := stream.Recv()
+		if msg == nil {
+			return errors.New("fail to run action adminpb.AdminService_UpdateServer!")
+		}
+
+		if len(msg.Platform) > 0 {
+			platform = msg.Platform
+		}
+
+		if err == io.EOF {
+			// end of stream...
+			stream.SendAndClose(&adminpb.UpdateResponse{})
+			err = nil
+			break
+		} else if err != nil {
+			return err
+		} else if len(msg.Data) == 0 {
+			break
+		} else {
+			buffer.Write(msg.Data)
+		}
+	}
+
+	if len(platform) == 0 {
+		return errors.New("No platform was given!")
+	}
+
+	platform_ := runtime.GOOS + ":" + runtime.GOARCH
+	if platform != platform_ {
+		return errors.New("Wrong executable platform to update from! wants " + platform_ + " not " + platform)
+	}
+
+	ex, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Dir(ex)
+
+	path += "/Globular"
+	if runtime.GOOS == "windows" {
+		path += ".exe"
+	}
+
+	// Move the actual file to other file...
+	err = os.Rename(path, path+"_"+Utility.ToString(self.Build))
+	if err != nil {
+		return err
+	}
+
+	/** So here I will change the current server path and save the new executable **/
+	err = ioutil.WriteFile(path, buffer.Bytes(), 0755)
+	if err != nil {
+		return err
+	}
+
+	// set the build time to now...
+	self.Build = time.Now().Unix()
+	self.saveConfig()
+
+	// This will restart the service.
+	defer self.restartServices()
+
+	return nil
+}
+
+// Download the actual globular exec file.
+func (self *Globule) DownloadGlobular(rqst *adminpb.DownloadGlobularRequest, stream adminpb.AdminService_DownloadGlobularServer) error {
+	platform := rqst.Platform
+
+	if len(platform) == 0 {
+		return errors.New("No platform was given!")
+	}
+
+	platform_ := runtime.GOOS + ":" + runtime.GOARCH
+	if platform != platform_ {
+		return errors.New("Wrong executable platform to update from! wants " + platform_ + " not " + platform)
+	}
+
+	ex, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Dir(ex)
+	path += "/Globular"
+	if runtime.GOOS == "windows" {
+		path += ".exe"
+	}
+
+	// No I will stream the result over the networks.
+	data, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer data.Close()
+
+	reader := bufio.NewReader(data)
+
+	const BufferSize = 1024 * 5 // the chunck size.
+
+	for {
+		var data [BufferSize]byte
+		bytesread, err := reader.Read(data[0:BufferSize])
+		if bytesread > 0 {
+			rqst := &adminpb.DownloadGlobularResponse{
+				Data: data[0:bytesread],
+			}
+			// send the data to the server.
+			err = stream.Send(rqst)
+		}
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1610,7 +1747,7 @@ func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) er
 			// Create the file.
 			r := bytes.NewReader(bundle.Binairies)
 			_extracted_path_, err := Utility.ExtractTarGz(r)
-			defer os.Remove(_extracted_path_)
+			defer os.RemoveAll(_extracted_path_)
 			if err != nil {
 				if err.Error() != "EOF" {
 					// report the error and try to continue...
@@ -1971,20 +2108,20 @@ func (self *Globule) RestartServices(ctx context.Context, rqst *adminpb.RestartS
 
 // That command is use to restart a new instance of the globular.
 func rerunDetached() error {
+
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Println(err)
 		return err
 	}
-	cmd := exec.Command(os.Args[0], []string{}...)
+
+	path := os.Args[0]
+	cmd := exec.Command(path, []string{}...)
 	cmd.Dir = cwd
 	err = cmd.Start()
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	cmd.Process.Release()
-	log.Println(os.Args[0])
 	return nil
 }
 
@@ -2143,43 +2280,123 @@ func (self *Globule) RegisterExternalApplication(ctx context.Context, rqst *admi
 	}, nil
 }
 
+/**
+ * Read output and send it to a channel.
+ */
+func ReadOutput(output chan string, rc io.ReadCloser) {
+
+	cutset := "\r\n"
+	for {
+		buf := make([]byte, 3000)
+		n, err := rc.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				break
+			}
+		}
+		text := strings.TrimSpace(string(buf[:n]))
+		for {
+			// Take the index of any of the given cutset
+			n := strings.IndexAny(text, cutset)
+			if n == -1 {
+				// If not found, but still have data, send it
+				if len(text) > 0 {
+					output <- text
+				}
+				break
+			}
+			// Send data up to the found cutset
+			output <- text[:n]
+			// If cutset is last element, stop there.
+			if n == len(text) {
+				break
+			}
+			// Shift the text and start again.
+			text = text[n+1:]
+		}
+	}
+
+}
+
 // Run an external command must be use with care.
-func (self *Globule) RunCmd(ctx context.Context, rqst *adminpb.RunCmdRequest) (*adminpb.RunCmdResponse, error) {
+func (self *Globule) RunCmd(rqst *adminpb.RunCmdRequest, stream adminpb.AdminService_RunCmdServer) error {
+
 	baseCmd := rqst.Cmd
 	cmdArgs := rqst.Args
 	isBlocking := rqst.Blocking
 	pid := -1
 	cmd := exec.Command(baseCmd, cmdArgs...)
-	output := ""
-
 	if isBlocking {
-		out, err := cmd.Output()
-		if cmd.Process != nil {
-			pid = cmd.Process.Pid
-		}
+
+		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			return nil, status.Errorf(
+			return status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-		output = string(out)
+
+		output := make(chan string)
+		done := make(chan bool)
+
+		// Process message util the command is done.
+		go func() {
+			for {
+				select {
+				case <-done:
+					break
+
+				case result := <-output:
+					if cmd.Process != nil {
+						pid = cmd.Process.Pid
+					}
+
+					stream.Send(
+						&adminpb.RunCmdResponse{
+							Pid:    int32(pid),
+							Result: result,
+						},
+					)
+				}
+			}
+
+		}()
+
+		// Start reading the output
+		go ReadOutput(output, stdout)
+
+		cmd.Run()
+
+		cmd.Wait()
+
+		// Close the output.
+		stdout.Close()
+		done <- true
+
 	} else {
 		var err error
 		err = cmd.Start()
 		if err != nil {
-			return nil, status.Errorf(
+			return status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 		if cmd.Process != nil {
 			pid = cmd.Process.Pid
 		}
+
+		stream.Send(
+			&adminpb.RunCmdResponse{
+				Pid:    int32(pid),
+				Result: "",
+			},
+		)
+
 	}
 
-	return &adminpb.RunCmdResponse{
-		Result: string(output),
-		Pid:    int32(pid),
-	}, nil
+	return nil
 }
 
 // Set environement variable.
