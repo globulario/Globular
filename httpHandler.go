@@ -140,8 +140,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path = r.FormValue("path")
-	log.Println("----------> path: ", path)
-	log.Println("---------->", 143)
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -158,7 +156,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			log.Println("---------->", 160)
 			//return
 		}
 
@@ -167,7 +164,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
-			log.Println("---------->", 169)
 		}
 	}
 
@@ -178,20 +174,17 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
-			log.Println("---------->", 180)
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
-				log.Println("---------->", 186)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
-				log.Println("---------->", 192)
 			}
 		}
 	}
@@ -435,6 +428,8 @@ func getVideoDuration(path string) float64 {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupResponse(&w, r)
+
+	console.log("------------> ", r.Host)
 
 	//if empty, set current directory
 

@@ -1,5 +1,4 @@
 package main
-
 import (
 	"encoding/json"
 	"errors"
@@ -28,7 +27,7 @@ func (g *Globule) Start(s service.Service) error {
 	} else {
 		logger.Info("Running under service manager.")
 	}
-
+	
 	// Start should not block. Do the actual work async.
 	go g.run()
 	return nil
@@ -39,6 +38,7 @@ func (g *Globule) run() error {
 	// start globular and wait on exit chan...
 	go func() {
 		g.Serve()
+	
 		log.Println("globular serve at domain ", g.Domain)
 	}()
 
@@ -1129,7 +1129,7 @@ func install(g *Globule, path string) {
 	}
 
 	dockerfile += `WORKDIR /globular
-ENTRYPOINT ["/globular/Globular"]`
+	ENTRYPOINT ["/globular/Globular"]`
 
 	// save docker.
 	err = ioutil.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
