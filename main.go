@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"errors"
@@ -27,7 +28,7 @@ func (g *Globule) Start(s service.Service) error {
 	} else {
 		logger.Info("Running under service manager.")
 	}
-	
+
 	// Start should not block. Do the actual work async.
 	go g.run()
 	return nil
@@ -38,7 +39,7 @@ func (g *Globule) run() error {
 	// start globular and wait on exit chan...
 	go func() {
 		g.Serve()
-	
+
 		log.Println("globular serve at domain ", g.Domain)
 	}()
 
@@ -1034,7 +1035,7 @@ func install(g *Globule, path string) {
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
-					config := make(map[string]interface{}, 0)
+					config := make(map[string]interface{})
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {

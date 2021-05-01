@@ -30,33 +30,33 @@ import (
 /**
  * Subscribe to Discoverie's and repositories to keep services up to date.
  */
-func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
+func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
-	// append itself to service discoveries...
-	subscribers := make(map[string]map[string][]string, 0)
+	// append itglobule to service discoveries...
+	subscribers := make(map[string]map[string][]string)
 
 	// Connect to service update events...
-	for i := 0; i < len(self.Discoveries); i++ {
-		log.Println("Connect to discovery event hub ", self.Discoveries[i])
-		address := self.Discoveries[i]
-		if address == self.Domain {
-			address += ":" + Utility.ToString(self.PortHttp)
+	for i := 0; i < len(globule.Discoveries); i++ {
+		log.Println("Connect to discovery event hub ", globule.Discoveries[i])
+		address := globule.Discoveries[i]
+		if address == globule.Domain {
+			address += ":" + Utility.ToString(globule.PortHttp)
 		}
 
 		eventHub, err := event_client.NewEventService_Client(address, "event.EventService")
 		if err == nil {
-			log.Println("Connected with event service at ", self.Discoveries[i])
-			if subscribers[self.Discoveries[i]] == nil {
-				subscribers[self.Discoveries[i]] = make(map[string][]string)
+			log.Println("Connected with event service at ", globule.Discoveries[i])
+			if subscribers[globule.Discoveries[i]] == nil {
+				subscribers[globule.Discoveries[i]] = make(map[string][]string)
 			}
 
-			for _, s := range self.getServices() {
+			for _, s := range globule.getServices() {
 				_, hasPublisherId := s.Load("PublisherId")
 				if hasPublisherId {
 					id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Name") + ":SERVICE_PUBLISH_EVENT"
 
-					if subscribers[self.Discoveries[i]][id] == nil {
-						subscribers[self.Discoveries[i]][id] = make([]string, 0)
+					if subscribers[globule.Discoveries[i]][id] == nil {
+						subscribers[globule.Discoveries[i]][id] = make([]string, 0)
 					}
 
 					// each channel has it event...
@@ -66,7 +66,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 						jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
 
 						// here I will update the service if it's version is lower
-						for _, s := range self.getServices() {
+						for _, s := range globule.getServices() {
 							_, hasPublisherId := s.Load("PublisherId")
 							if hasPublisherId {
 								if getStringVal(s, "Name") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
@@ -77,14 +77,14 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 										if Utility.ToInt(strings.Split(version, ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
 											if Utility.ToInt(strings.Split(version, ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
 												if Utility.ToInt(strings.Split(version, ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-													self.stopService(s)
-													self.deleteService(getStringVal(s, "Id"))
-													err := self.installService(descriptor)
+													globule.stopService(s)
+													globule.deleteService(getStringVal(s, "Id"))
+													err := globule.installService(descriptor)
 													if err != nil {
 														fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
 													} else {
 														s.Store("KeepUpToDate", true)
-														self.saveConfig()
+														globule.saveConfig()
 														fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
 													}
 												}
@@ -100,10 +100,10 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					// So here I will subscribe to service update event.
 					// try 5 time wait 5 second before given up.
 					registered := false
-					for nbTry := 5; registered == false && nbTry > 0; nbTry-- {
+					for nbTry := 5; !registered && nbTry > 0; nbTry-- {
 						err := eventHub.Subscribe(id, uuid, fct)
 						if err == nil {
-							subscribers[self.Discoveries[i]][id] = append(subscribers[self.Discoveries[i]][id], uuid)
+							subscribers[globule.Discoveries[i]][id] = append(subscribers[globule.Discoveries[i]][id], uuid)
 							log.Println("subscription to ", id, " succeed!")
 							registered = true
 						} else {
@@ -115,7 +115,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 				}
 			}
 			// keep on memorie...
-			self.discorveriesEventHub[self.Discoveries[i]] = eventHub
+			globule.discorveriesEventHub[globule.Discoveries[i]] = eventHub
 		}
 
 	}
@@ -124,19 +124,19 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 }
 
 // Start service discovery
-func (self *Globule) startPackagesDiscoveryService() error {
+func (globule *Globule) startPackagesDiscoveryService() error {
 	// The service discovery.
 	id := string(packagespb.File_proto_packages_proto.Services().Get(0).FullName())
-	services_discovery_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor)
+	services_discovery_server, port, err := globule.startInternalService(id, packagespb.File_proto_packages_proto.Path(), globule.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor)
 	if err == nil {
-		self.inernalServices = append(self.inernalServices, services_discovery_server)
+		globule.inernalServices = append(globule.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
-			log.Fatalf("could not start services discovery service %s: %s", self.getDomain(), err)
+			log.Fatalf("could not start services discovery service %s: %s", globule.getDomain(), err)
 		}
 
-		packagespb.RegisterPackageDiscoveryServer(services_discovery_server, self)
+		packagespb.RegisterPackageDiscoveryServer(services_discovery_server, globule)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -144,12 +144,11 @@ func (self *Globule) startPackagesDiscoveryService() error {
 			if err := services_discovery_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
-			s := self.getService(id)
+			s := globule.getService(id)
 			pid := getIntVal(s, "ProxyProcess")
 			Utility.TerminateProcess(pid, 0)
 			s.Store("ProxyProcess", -1)
-			self.setService(s)
-			return
+			globule.setService(s)
 		}()
 	}
 	return err
@@ -157,24 +156,24 @@ func (self *Globule) startPackagesDiscoveryService() error {
 }
 
 // Start service repository
-func (self *Globule) startPackagesRepositoryService() error {
+func (globule *Globule) startPackagesRepositoryService() error {
 	id := string(packagespb.File_proto_packages_proto.Services().Get(1).FullName())
 
-	services_repository_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(),
-		self.Protocol == "https",
+	services_repository_server, port, err := globule.startInternalService(id, packagespb.File_proto_packages_proto.Path(),
+		globule.Protocol == "https",
 		interceptors.ServerUnaryInterceptor,
 		interceptors.ServerStreamInterceptor)
 
 	if err == nil {
-		self.inernalServices = append(self.inernalServices, services_repository_server)
+		globule.inernalServices = append(globule.inernalServices, services_repository_server)
 
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
-			log.Fatalf("could not start services repository service %s: %s", self.getDomain(), err)
+			log.Fatalf("could not start services repository service %s: %s", globule.getDomain(), err)
 		}
 
-		packagespb.RegisterPackageRepositoryServer(services_repository_server, self)
+		packagespb.RegisterPackageRepositoryServer(services_repository_server, globule)
 
 		go func() {
 			// no web-rpc server.
@@ -194,10 +193,10 @@ func (self *Globule) startPackagesRepositoryService() error {
 /**
  * Return the list of service configuaration with a given name.
  **/
-func (self *Globule) getServiceConfigByName(name string) []map[string]interface{} {
+func (globule *Globule) getServiceConfigByName(name string) []map[string]interface{} {
 	configs := make([]map[string]interface{}, 0)
 
-	for _, config := range self.getConfig()["Services"].(map[string]interface{}) {
+	for _, config := range globule.getConfig()["Services"].(map[string]interface{}) {
 		if config.(map[string]interface{})["Name"].(string) == name {
 			configs = append(configs, config.(map[string]interface{}))
 		}
@@ -207,9 +206,9 @@ func (self *Globule) getServiceConfigByName(name string) []map[string]interface{
 }
 
 // Discovery
-func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPackagesDescriptorRequest) (*packagespb.FindPackagesDescriptorResponse, error) {
+func (globule *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPackagesDescriptorRequest) (*packagespb.FindPackagesDescriptorResponse, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -282,8 +281,8 @@ func (self *Globule) FindPackages(ctx context.Context, rqst *packagespb.FindPack
 }
 
 //* Return the list of all services *
-func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.GetPackageDescriptorRequest) (*packagespb.GetPackageDescriptorResponse, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.GetPackageDescriptorRequest) (*packagespb.GetPackageDescriptorResponse, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -375,8 +374,8 @@ func (self *Globule) GetPackageDescriptor(ctx context.Context, rqst *packagespb.
 }
 
 //* Return the list of all services *
-func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescriptorRequest, stream packagespb.PackageDiscovery_GetPackagesDescriptorServer) error {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescriptorRequest, stream packagespb.PackageDiscovery_GetPackagesDescriptorServer) error {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
@@ -457,8 +456,8 @@ func (self *Globule) GetPackagesDescriptor(rqst *packagespb.GetPackagesDescripto
 
 /**
  */
-func (self *Globule) SetPackageDescriptor(ctx context.Context, rqst *packagespb.SetPackageDescriptorRequest) (*packagespb.SetPackageDescriptorResponse, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) SetPackageDescriptor(ctx context.Context, rqst *packagespb.SetPackageDescriptorRequest) (*packagespb.SetPackageDescriptorResponse, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -491,19 +490,19 @@ func (self *Globule) SetPackageDescriptor(ctx context.Context, rqst *packagespb.
 }
 
 //* Publish a service to service discovery *
-func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *packagespb.PublishPackageDescriptorRequest) (*packagespb.PublishPackageDescriptorResponse, error) {
+func (globule *Globule) PublishPackageDescriptor(ctx context.Context, rqst *packagespb.PublishPackageDescriptorRequest) (*packagespb.PublishPackageDescriptorResponse, error) {
 
 	// Here I will save the descriptor inside the storage...
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	// Append the self domain to the list of discoveries where the services can be found.
-	if !Utility.Contains(rqst.Descriptor_.Discoveries, self.getDomain()) {
-		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, self.getDomain())
+	// Append the globule domain to the list of discoveries where the services can be found.
+	if !Utility.Contains(rqst.Descriptor_.Discoveries, globule.getDomain()) {
+		rqst.Descriptor_.Discoveries = append(rqst.Descriptor_.Discoveries, globule.getDomain())
 	}
 
 	// Here I will test if the services already exist...
@@ -537,7 +536,7 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *package
 
 	}
 
-	// The key will be the descriptor string itself.
+	// The key will be the descriptor string itglobule.
 	jsonStr, err := Utility.ToJson(rqst.Descriptor_)
 
 	if err != nil {
@@ -561,16 +560,15 @@ func (self *Globule) PublishPackageDescriptor(ctx context.Context, rqst *package
 
 // Repository
 /** Download a service from a service directory **/
-func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stream packagespb.PackageRepository_DownloadBundleServer) error {
+func (globule *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stream packagespb.PackageRepository_DownloadBundleServer) error {
 	bundle := new(packagespb.PackageBundle)
 	bundle.Plaform = rqst.Plaform
 	bundle.Descriptor_ = rqst.Descriptor_
 
 	// Generate the bundle id....
-	var id string
-	id = bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
+	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
 
-	path := self.data + "/" + "packages-repository"
+	path := globule.data + "/" + "packages-repository"
 
 	var err error
 	// the file must be a zipped archive that contain a .proto, .config and executable.
@@ -579,7 +577,7 @@ func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stre
 		return err
 	}
 
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -594,7 +592,7 @@ func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stre
 
 	// Test if the values change over time.
 	if Utility.CreateDataChecksum(bundle.Binairies) != checksum["checksum"].(string) {
-		return errors.New("The bundle data cheksum is not valid!")
+		return errors.New("the bundle data cheksum is not valid")
 	}
 
 	const BufferSize = 1024 * 5 // the chunck size.
@@ -627,7 +625,7 @@ func (self *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, stre
 }
 
 /** Upload a service to a service directory **/
-func (self *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBundleServer) error {
+func (globule *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBundleServer) error {
 
 	// The bundle will cantain the necessary information to install the service.
 	var buffer bytes.Buffer
@@ -661,7 +659,7 @@ func (self *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBund
 	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + bundle.Plaform
 	log.Println(id)
 
-	repositoryId := self.Domain
+	repositoryId := globule.Domain
 	if len(repositoryId) > 0 {
 		// Now I will append the address of the repository into the service descriptor.
 		if !Utility.Contains(bundle.Descriptor_.Repositories, repositoryId) {
@@ -678,17 +676,17 @@ func (self *Globule) UploadBundle(stream packagespb.PackageRepository_UploadBund
 		}
 	}
 
-	path := self.data + "/" + "packages-repository"
+	path := globule.data + "/" + "packages-repository"
 	Utility.CreateDirIfNotExist(path)
 
 	// the file must be a zipped archive that contain a .proto, .config and executable.
-	err = ioutil.WriteFile(path+"/"+id+".tar.gz", bundle.Binairies, 777)
+	err = ioutil.WriteFile(path+"/"+id+".tar.gz", bundle.Binairies, 0644)
 	if err != nil {
 		return err
 	}
 
 	checksum := Utility.CreateDataChecksum(bundle.Binairies)
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}

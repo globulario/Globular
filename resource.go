@@ -169,7 +169,7 @@ func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) err
 		return err
 	}
 
-	session := make(map[string]interface{}, 0)
+	session := make(map[string]interface{})
 	session["_id"] = accountId
 	session["state"] = 1
 	session["lastStateTime"] = time.Unix(expiredAt, 0).UTC().Format("2006-01-02T15:04:05-0700")
@@ -1351,7 +1351,7 @@ func (self *Globule) createRole(id string, name string, actions []string) error 
 	}
 
 	// Here will create the new role.
-	role := make(map[string]interface{}, 0)
+	role := make(map[string]interface{})
 	role["_id"] = id
 	role["name"] = name
 	role["actions"] = actions
@@ -1486,7 +1486,7 @@ func serialyseObject(obj map[string]interface{}) string {
 	jsonStr = strings.ReplaceAll(jsonStr, `"$id"`, `"__b__"`)
 	jsonStr = strings.ReplaceAll(jsonStr, `"$db"`, `"__c__"`)
 
-	obj_ := make(map[string]interface{}, 0)
+	obj_ := make(map[string]interface{})
 
 	json.Unmarshal([]byte(jsonStr), &obj_)
 	jsonStr, _ = Utility.ToJson(obj_)
@@ -2177,7 +2177,7 @@ func (self *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.Register
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	peer := make(map[string]interface{}, 0)
+	peer := make(map[string]interface{})
 	peer["_id"] = _id
 	peer["domain"] = rqst.Peer.Domain
 	peer["actions"] = make([]interface{}, 0)
@@ -2420,7 +2420,7 @@ func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.Cr
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	g := make(map[string]interface{}, 0)
+	g := make(map[string]interface{})
 	g["_id"] = rqst.Organization.Id
 	g["name"] = rqst.Organization.Name
 
@@ -2782,7 +2782,7 @@ func (self *Globule) createGroup(id, name string, members []string) error {
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	g := make(map[string]interface{}, 0)
+	g := make(map[string]interface{})
 	g["_id"] = id
 	g["name"] = name
 

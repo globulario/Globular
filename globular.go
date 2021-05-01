@@ -47,7 +47,6 @@ import (
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/storage/storage_store"
 	"github.com/go-acme/lego/certcrypto"
-	/*"github.com/go-acme/lego/certificate"*/
 	"github.com/go-acme/lego/challenge/http01"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
@@ -242,13 +241,13 @@ func NewGlobule() *Globule {
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
-	g.Services = make(map[string]interface{}, 0)
+	g.Services = make(map[string]interface{})
 	g.services = new(sync.Map)
 
 	g.inernalServices = make([]*grpc.Server, 0)
 
 	// Contain the list of ldap syncronization info.
-	g.LdapSyncInfos = make(map[string]interface{}, 0)
+	g.LdapSyncInfos = make(map[string]interface{})
 
 	// Configuration must be reachable before services initialysation
 
@@ -333,7 +332,7 @@ func (self *Globule) sendApplicationNotification(application string, message str
 	}
 
 	/** The notification object. */
-	notification := make(map[string]interface{}, 0)
+	notification := make(map[string]interface{})
 	id := time.Now().Unix()
 	notification["_id"] = id
 	notification["_type"] = 1
@@ -592,7 +591,7 @@ func (self *Globule) initDirectories() {
 	self.discorveriesEventHub = make(map[string]*event_client.Event_Client, 0)
 
 	// Set the share service info...
-	self.Services = make(map[string]interface{}, 0)
+	self.Services = make(map[string]interface{})
 
 	// Set external map services.
 	self.ExternalApplications = make(map[string]ExternalApplication, 0)
@@ -2408,10 +2407,10 @@ func (self *Globule) obtainCertificateForCsr() error {
 		return err
 	}
 	/*
-	cert_rqst := certificate.ObtainForCSRRequest{
-		CSR:    csr,
-		Bundle: true,
-	}*/
+		cert_rqst := certificate.ObtainForCSRRequest{
+			CSR:    csr,
+			Bundle: true,
+		}*/
 
 	resource, err := client.Certificate.ObtainForCSR(*csr, true)
 	if err != nil {

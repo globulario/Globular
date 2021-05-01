@@ -92,7 +92,7 @@ func (self *Globule) startAdminService() error {
 
 func (self *Globule) getConfig() map[string]interface{} {
 
-	config := make(map[string]interface{}, 0)
+	config := make(map[string]interface{})
 	config["Name"] = self.Name
 	config["PortHttp"] = self.PortHttp
 	config["PortHttps"] = self.PortHttps
@@ -199,7 +199,7 @@ func (self *Globule) watchConfigFile() {
 
 			// Here I will read the file.
 			data, _ := ioutil.ReadFile(self.config + "/config.json")
-			config := make(map[string]interface{}, 0)
+			config := make(map[string]interface{})
 			json.Unmarshal(data, &config)
 			self.setConfig(config)
 
@@ -476,7 +476,7 @@ func (self *Globule) setConfig(config map[string]interface{}) {
 // That function must be accessible by Root only.
 func (self *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
 	// Save service...
-	config := make(map[string]interface{}, 0)
+	config := make(map[string]interface{})
 	err := json.Unmarshal([]byte(rqst.Config), &config)
 	if err != nil {
 		return nil, status.Errorf(
@@ -1770,7 +1770,7 @@ func (self *Globule) installService(descriptor *packagespb.PackageDescriptor) er
 				return errors.New("No configuration file was found")
 			}
 
-			s := make(map[string]interface{}, 0)
+			s := make(map[string]interface{})
 			data, err := ioutil.ReadFile(configs[0])
 			if err != nil {
 				return err
