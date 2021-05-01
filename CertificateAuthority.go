@@ -13,8 +13,8 @@ import (
 	"strconv"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/ca/capb"
+	"github.com/globulario/services/golang/interceptors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,7 +22,7 @@ import (
 func (self *Globule) startCertificateAuthorityService() error {
 	// The Certificate Authority
 	id := string(capb.File_proto_ca_proto.Services().Get(0).FullName())
-	certificate_authority_server, port, err := self.startInternalService(id, capb.File_proto_ca_proto.Path(), false, Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	certificate_authority_server, port, err := self.startInternalService(id, capb.File_proto_ca_proto.Path(), false, interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor)
 
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, certificate_authority_server)

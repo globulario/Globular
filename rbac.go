@@ -10,12 +10,13 @@ import (
 	"strings"
 
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 
 	//	"google.golang.org/grpc/peer"
-	"github.com/globulario/Globular/Interceptors"
+
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -1427,7 +1428,7 @@ func (self *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.ValidateAc
 
 		token := strings.Join(md["token"], "")
 		if len(token) > 0 {
-			clientId, _, _, _, err = Interceptors.ValidateToken(token)
+			clientId, _, _, _, err = interceptors.ValidateToken(token)
 			if err != nil {
 				return nil, status.Errorf(
 					codes.Internal,

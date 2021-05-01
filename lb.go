@@ -13,7 +13,7 @@ import (
 	"os/signal"
 	"strconv"
 
-	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/lb/lbpb"
 )
 
@@ -21,7 +21,7 @@ import (
  * Start the load balancing service.
  */
 func (self *Globule) startLoadBalancingService() error {
-	load_balancer, port, err := self.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+	load_balancer, port, err := self.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), self.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil && load_balancer != nil {
 
 		// First of all I will creat a listener.

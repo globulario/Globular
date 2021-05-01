@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
@@ -164,7 +164,7 @@ func (self *Globule) log(info *logpb.LogInfo) error {
 	// The userId can be a single string or a JWT token.
 	if len(info.UserId) > 0 {
 
-		id, name, _, _, err := Interceptors.ValidateToken(info.UserId)
+		id, name, _, _, err := interceptors.ValidateToken(info.UserId)
 		if err == nil {
 			info.UserId = id
 		}

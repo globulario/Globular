@@ -28,6 +28,7 @@ import (
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/file/file_client"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/ldap/ldap_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/struCoder/pidusage"
@@ -39,7 +40,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	// Interceptor for authentication, event, log...
-	"github.com/globulario/Globular/Interceptors"
 
 	// Client services.
 	"crypto"
@@ -52,10 +52,10 @@ import (
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
 
-	"github.com/globulario/Globular/security"
 	globular "github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/lb/lbpb"
 	"github.com/globulario/services/golang/persistence/persistence_store"
+	"github.com/globulario/services/golang/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	// OAuth2
 	/*
@@ -715,7 +715,7 @@ func (self *Globule) Serve() {
 		}
 
 		// The token that identify the server with other services
-		token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
+		token, _ := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
 		err = ioutil.WriteFile(os.TempDir()+"/"+self.getDomain()+"_token", []byte(token), 0644)
 		if err != nil {
 			log.Panicln(err)
@@ -728,7 +728,7 @@ func (self *Globule) Serve() {
 			for {
 				select {
 				case <-ticker.C:
-					token, _ := Interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
+					token, _ := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
 					err = ioutil.WriteFile(os.TempDir()+"/"+self.getDomain()+"_token", []byte(token), 0644)
 					if err != nil {
 						log.Println(err)

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/Interceptors"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 )
 
@@ -169,7 +169,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id, username, _, expiresAt, err := Interceptors.ValidateToken(token)
+		id, username, _, expiresAt, err := interceptors.ValidateToken(token)
 		user = username
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
@@ -514,7 +514,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id /*username*/, _, _, expiresAt, err := Interceptors.ValidateToken(token)
+		id /*username*/, _, _, expiresAt, err := interceptors.ValidateToken(token)
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return

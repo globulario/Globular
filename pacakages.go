@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/Globular/Interceptors"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/packages/packages_client"
 	"github.com/globulario/services/golang/packages/packagespb"
 	"github.com/golang/protobuf/jsonpb"
@@ -127,7 +127,7 @@ func (self *Globule) keepServicesUpToDate() map[string]map[string][]string {
 func (self *Globule) startPackagesDiscoveryService() error {
 	// The service discovery.
 	id := string(packagespb.File_proto_packages_proto.Services().Get(0).FullName())
-	services_discovery_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.Protocol == "https", Interceptors.ServerUnaryInterceptor, Interceptors.ServerStreamInterceptor)
+	services_discovery_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(), self.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor)
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_discovery_server)
 		// Create the channel to listen on admin port.
@@ -162,8 +162,8 @@ func (self *Globule) startPackagesRepositoryService() error {
 
 	services_repository_server, port, err := self.startInternalService(id, packagespb.File_proto_packages_proto.Path(),
 		self.Protocol == "https",
-		Interceptors.ServerUnaryInterceptor,
-		Interceptors.ServerStreamInterceptor)
+		interceptors.ServerUnaryInterceptor,
+		interceptors.ServerStreamInterceptor)
 
 	if err == nil {
 		self.inernalServices = append(self.inernalServices, services_repository_server)
