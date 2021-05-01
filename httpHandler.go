@@ -428,9 +428,6 @@ func getVideoDuration(path string) float64 {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupResponse(&w, r)
-
-	console.log("------------> ", r.Host)
-
 	//if empty, set current directory
 
 	dir := globule.webRoot

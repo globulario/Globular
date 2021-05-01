@@ -47,7 +47,7 @@ import (
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/storage/storage_store"
 	"github.com/go-acme/lego/certcrypto"
-	"github.com/go-acme/lego/certificate"
+	/*"github.com/go-acme/lego/certificate"*/
 	"github.com/go-acme/lego/challenge/http01"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
@@ -71,8 +71,6 @@ import (
 var (
 	globule *Globule
 )
-
-const serviceStartDelay = 2 // wait tow second.
 
 type ExternalApplication struct {
 	Id   string
@@ -2409,13 +2407,13 @@ func (self *Globule) obtainCertificateForCsr() error {
 	if err != nil {
 		return err
 	}
-
+	/*
 	cert_rqst := certificate.ObtainForCSRRequest{
 		CSR:    csr,
 		Bundle: true,
-	}
+	}*/
 
-	resource, err := client.Certificate.ObtainForCSR(cert_rqst)
+	resource, err := client.Certificate.ObtainForCSR(*csr, true)
 	if err != nil {
 		return err
 	}
