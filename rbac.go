@@ -1394,16 +1394,16 @@ func (globule *Globule) validateAction(action string, subject string, subjectTyp
 	permissions_, _ := globule.getActionResourcesPermissions(action)
 	if len(resources) > 0 {
 		if permissions_ == nil {
-			err := errors.New("No resources path are given for validations!")
+			err := errors.New("no resources path are given for validations")
 			return false, err
 		}
 		for i := 0; i < len(resources); i++ {
 			if len(resources[i].Path) > 0 { // Here if the path is empty i will simply not validate it.
 				hasAccess, accessDenied, _ := globule.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-				if hasAccess == false || accessDenied == true {
-					err := errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
+				if !hasAccess || accessDenied {
+					err := errors.New("subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
 					return false, err
-				} else if hasAccess == true {
+				} else if hasAccess {
 					return true, nil
 				}
 			}
