@@ -656,10 +656,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-
 	log.Println("Application", name, "was deployed successfully!")
 	return nil
 }

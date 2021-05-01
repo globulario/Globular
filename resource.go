@@ -32,19 +32,19 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func (self *Globule) startResourceService() error {
+func (globule *Globule) startResourceService() error {
 	id := string(resourcepb.File_proto_resource_proto.Services().Get(0).FullName())
-	resource_server, port, err := self.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), self.Protocol == "https", self.unaryResourceInterceptor, self.streamResourceInterceptor)
+	resource_server, port, err := globule.startInternalService(id, resourcepb.File_proto_resource_proto.Path(), globule.Protocol == "https", globule.unaryResourceInterceptor, globule.streamResourceInterceptor)
 	if err == nil {
-		self.inernalServices = append(self.inernalServices, resource_server)
+		globule.inernalServices = append(globule.inernalServices, resource_server)
 
 		// Create the channel to listen on resource port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err != nil {
-			log.Fatalf("could not start resource service %s: %s", self.getDomain(), err)
+			log.Fatalf("could not start resource service %s: %s", globule.getDomain(), err)
 		}
 
-		resourcepb.RegisterResourceServiceServer(resource_server, self)
+		resourcepb.RegisterResourceServiceServer(resource_server, globule)
 
 		// Here I will make a signal hook to interrupt to exit cleanly.
 		go func() {
@@ -52,11 +52,11 @@ func (self *Globule) startResourceService() error {
 			if err = resource_server.Serve(lis); err != nil {
 				log.Println(err)
 			}
-			s := self.getService(id)
+			s := globule.getService(id)
 			pid := getIntVal(s, "ProxyProcess")
 			Utility.TerminateProcess(pid, 0)
 			s.Store("ProxyProcess", -1)
-			self.setService(s)
+			globule.setService(s)
 		}()
 
 		// In order to be able to give permission to a server
@@ -67,17 +67,17 @@ func (self *Globule) startResourceService() error {
 		ticker_ := time.NewTicker(5 * time.Second)
 		go func() {
 			ip := Utility.MyIP()
-			self.registerIpToDns()
+			globule.registerIpToDns()
 			for {
 				select {
 				case <-ticker_.C:
 					if ip != Utility.MyIP() {
-						self.registerIpToDns()
+						globule.registerIpToDns()
 					}
-					self.removeExpiredSessions()
+					globule.removeExpiredSessions()
 					// Get the list of video
 					convertVideo()
-				case <-self.exit:
+				case <-globule.exit:
 					return
 				}
 			}
@@ -90,14 +90,14 @@ func (self *Globule) startResourceService() error {
  * Return the list of method's for a given service, the path is the path of the
  * proto file.
  */
-func (self *Globule) getServiceMethods(name string, path string) []string {
+func (globule *Globule) getServiceMethods(name string, path string) []string {
 	methods := make([]string, 0)
 
-	configs := self.getServiceConfigByName(name)
+	configs := globule.getServiceConfigByName(name)
 
 	if len(configs) == 0 {
 		// Test for name with pattern _server
-		configs = self.getServiceConfigByName(name + "_server")
+		configs = globule.getServiceConfigByName(name + "_server")
 		if len(configs) == 0 {
 			return nil
 		}
@@ -162,9 +162,9 @@ func (self *Globule) getServiceMethods(name string, path string) []string {
 }
 
 // Remove expired session...
-func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) error {
+func (globule *Globule) removeExpiredSession(accountId string, expiredAt int64) error {
 	log.Println("----------> session need to be remove: ", accountId)
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) err
 		return err
 	}
 
-	evtHub, err := self.getEventHub()
+	evtHub, err := globule.getEventHub()
 	if err != nil {
 		return err
 	}
@@ -204,11 +204,11 @@ func (self *Globule) removeExpiredSession(accountId string, expiredAt int64) err
 
 }
 
-func (self *Globule) removeExpiredSessions() error {
+func (globule *Globule) removeExpiredSessions() error {
 	// I will iterate over the list token and close expired session...
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (self *Globule) removeExpiredSessions() error {
 		accountId := token["_id"].(string)
 		expiredAt := int64(Utility.ToInt(token["expireAt"]))
 		if expiredAt < time.Now().Unix() {
-			self.removeExpiredSession(accountId, expiredAt)
+			globule.removeExpiredSession(accountId, expiredAt)
 		}
 	}
 
@@ -233,7 +233,7 @@ func (self *Globule) removeExpiredSessions() error {
 
 }
 
-func (self *Globule) setServiceMethods(name string, path string) {
+func (globule *Globule) setServiceMethods(name string, path string) {
 
 	// here I will parse the service defintion file to extract the
 	// service difinition.
@@ -287,15 +287,15 @@ func (self *Globule) setServiceMethods(name string, path string) {
 			path := "/" + packageName + "." + serviceName + "/" + methodName
 			//log.Println(path)
 			// So here I will register the method into the backend.
-			self.methods = append(self.methods, path)
+			globule.methods = append(globule.methods, path)
 		}
 	}
 }
 
 // Method must be register in order to be assign to role.
-func (self *Globule) registerMethods() error {
+func (globule *Globule) registerMethods() error {
 	// Here I will create the sa role if it dosen't exist.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (self *Globule) registerMethods() error {
 	admin := make(map[string]interface{})
 	admin["_id"] = "sa"
 	admin["name"] = "sa"
-	admin["actions"] = self.methods
+	admin["actions"] = globule.methods
 	jsonStr, _ := Utility.ToJson(admin)
 
 	// I will set the role actions...
@@ -364,22 +364,22 @@ func (self *Globule) registerMethods() error {
 When gRPC service methode are called they must validate the ressource pass in parameters.
 So each service is reponsible to give access permissions requirement.
 */
-func (self *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
+func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
 	// So here I will keep values in local storage.cap()
 	data, err := json.Marshal(permissions["resources"])
 	if err != nil {
 		return err
 	}
-	self.permissions.SetItem(permissions["action"].(string), data)
+	globule.permissions.SetItem(permissions["action"].(string), data)
 	return nil
 }
 
 // Retreive the ressource infos from the database.
-func (self *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
-	data, err := self.permissions.GetItem(action)
+func (globule *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
+	data, err := globule.permissions.GetItem(action)
 	infos_ := make([]*rbacpb.ResourceInfos, 0)
 	if err != nil {
-		if strings.Index(err.Error(), "leveldb: not found") == -1 {
+		if !strings.Contains(err.Error(), "leveldb: not found") {
 			return nil, err
 		} else {
 			// no infos_ found...
@@ -397,20 +397,20 @@ func (self *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.Res
 	return infos_, err
 }
 
-func (self *Globule) createApplicationConnection() error {
+func (globule *Globule) createApplicationConnection() error {
 	log.Println("create applications connections")
-	p, err := self.getPersistenceSaConnection()
+	p, err := globule.getPersistenceSaConnection()
 	if err != nil {
 		return err
 	}
 
-	store, err := self.getPersistenceStore()
+	store, err := globule.getPersistenceStore()
 	applications, _ := store.Find(context.Background(), "local_resource", "local_resource", "Applications", "{}", "")
 	if err != nil {
 		log.Println("fail to get applications informations ", err)
 		return err
 	}
-	address, port := self.getBackendAddress()
+	address, port := globule.getBackendAddress()
 	for i := 0; i < len(applications); i++ {
 		application := applications[i].(map[string]interface{})
 
@@ -421,7 +421,7 @@ func (self *Globule) createApplicationConnection() error {
 		}
 
 		// Here I will se ownership to files in the directories.
-		err = self.addResourceOwner("/applications/"+application["_id"].(string), application["_id"].(string), rbacpb.SubjectType_APPLICATION)
+		err = globule.addResourceOwner("/applications/"+application["_id"].(string), application["_id"].(string), rbacpb.SubjectType_APPLICATION)
 		if err != nil {
 			return err
 		}
@@ -431,7 +431,7 @@ func (self *Globule) createApplicationConnection() error {
 	return nil
 }
 
-func (self *Globule) deleteReference(p persistence_store.Store, refId, targetId, targetField, targetCollection string) error {
+func (globule *Globule) deleteReference(p persistence_store.Store, refId, targetId, targetField, targetCollection string) error {
 
 	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", targetCollection, `{"_id":"`+targetId+`"}`, ``)
 	if err != nil {
@@ -463,7 +463,7 @@ func (self *Globule) deleteReference(p persistence_store.Store, refId, targetId,
 	return nil
 }
 
-func (self *Globule) createReference(p persistence_store.Store, id, sourceCollection, field, targetId, targetCollection string) error {
+func (globule *Globule) createReference(p persistence_store.Store, id, sourceCollection, field, targetId, targetCollection string) error {
 	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", sourceCollection, `{"_id":"`+id+`"}`, ``)
 	if err != nil {
 		return err
@@ -494,32 +494,32 @@ func (self *Globule) createReference(p persistence_store.Store, id, sourceCollec
 	return nil
 }
 
-func (self *Globule) createCrossReferences(sourceId, sourceCollection, sourceField, targetId, targetCollection, targetField string) error {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) createCrossReferences(sourceId, sourceCollection, sourceField, targetId, targetCollection, targetField string) error {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
 
-	err = self.createReference(p, targetId, targetCollection, targetField, sourceId, sourceCollection)
+	err = globule.createReference(p, targetId, targetCollection, targetField, sourceId, sourceCollection)
 	if err != nil {
 		//return err
 		log.Println(err)
 	}
 
-	err = self.createReference(p, sourceId, sourceCollection, sourceField, targetId, targetCollection)
+	err = globule.createReference(p, sourceId, sourceCollection, sourceField, targetId, targetCollection)
 
 	return err
 
 }
 
 // TODO update the account and group if they already exist...
-func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
+func (globule *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 
-	if self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] == nil {
-		self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = make([]interface{}, 0)
-		self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
+	if globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] == nil {
+		globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = make([]interface{}, 0)
+		globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
 	} else {
-		syncInfos := self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{})
+		syncInfos := globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{})
 		exist := false
 		for i := 0; i < len(syncInfos); i++ {
 			if syncInfos[i].(map[string]interface{})["LdapServiceId"] == syncInfo["LdapServiceId"] {
@@ -528,20 +528,20 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 					syncInfos[i] = syncInfo
 					exist = true
 					// save the config.
-					self.saveConfig()
+					globule.saveConfig()
 					break
 				}
 			}
 		}
 
 		if !exist {
-			self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(self.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
+			globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)] = append(globule.LdapSyncInfos[syncInfo["LdapServiceId"].(string)].([]interface{}), syncInfo)
 			// save the config.
-			self.saveConfig()
+			globule.saveConfig()
 		}
 	}
 
-	ldap_, err := self.getLdapClient()
+	ldap_, err := globule.getLdapClient()
 	if err != nil {
 		return err
 	}
@@ -559,7 +559,7 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 	for i := 0; i < len(groupsInfo); i++ {
 		name := groupsInfo[i][0].([]interface{})[0].(string)
 		id := Utility.GenerateUUID(groupsInfo[i][1].([]interface{})[0].(string))
-		self.createGroup(id, name, []string{}) // The group member will be set latter in that function.
+		globule.createGroup(id, name, []string{}) // The group member will be set latter in that function.
 		log.Println("synchronize group ", name)
 	}
 
@@ -592,7 +592,7 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 					}
 
 					// Try to create account...
-					err := self.registerAccount(id, name, email, id, []string{}, []string{}, []string{"guest"}, groups)
+					err := globule.registerAccount(id, name, email, id, []string{}, []string{}, []string{"guest"}, groups)
 					if err != nil {
 						log.Println("---> error ", err)
 						// TODO if the account already exist simply udate it values.
@@ -607,26 +607,26 @@ func (self *Globule) synchronizeLdap(syncInfo map[string]interface{}) error {
 }
 
 /** Append new LDAP synchronization informations. **/
-func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.SynchronizeLdapRqst) (*resourcepb.SynchronizeLdapRsp, error) {
+func (globule *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.SynchronizeLdapRqst) (*resourcepb.SynchronizeLdapRsp, error) {
 
 	if rqst.SyncInfo == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync infos was given!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no LDAP sync infos was given")))
 	}
 
 	/** Ldap user informations **/
 	if rqst.SyncInfo.UserSyncInfos == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync users infos was given!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no LDAP sync users infos was given")))
 	}
 
 	/** Ldap group informations **/
 	if rqst.SyncInfo.GroupSyncInfos == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No LDAP sync groups infos was given!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no LDAP sync groups infos was given")))
 	}
 
 	syncInfo, err := Utility.ToMap(rqst.SyncInfo)
@@ -636,7 +636,7 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = self.synchronizeLdap(syncInfo)
+	err = globule.synchronizeLdap(syncInfo)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -648,10 +648,10 @@ func (self *Globule) SynchronizeLdap(ctx context.Context, rqst *resourcepb.Synch
 	}, nil
 }
 
-func (self *Globule) registerAccount(id string, name string, email string, password string, organizations []string, contacts []string, roles []string, groups []string) error {
+func (globule *Globule) registerAccount(id string, name string, email string, password string, organizations []string, contacts []string, roles []string, groups []string) error {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -685,6 +685,9 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 
 	// Here I will insert the account in the database.
 	_, err = p.InsertOne(context.Background(), "local_resource", "local_resource", "Accounts", account, "")
+	if err != nil {
+		return err
+	}
 
 	// replace @ and . by _
 	name = strings.ReplaceAll(strings.ReplaceAll(name, "@", "_"), ".", "_")
@@ -694,26 +697,26 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 	// Here I will wrote the script for mongoDB...
 	createUserScript := fmt.Sprintf("db=db.getSiblingDB('%s_db');db.createCollection('user_data');db=db.getSiblingDB('admin');db.createUser({user: '%s', pwd: '%s',roles: [{ role: 'dbOwner', db: '%s_db' }]});", name, name, password, name)
 
-	p_, err := self.getPersistenceSaConnection()
+	p_, err := globule.getPersistenceSaConnection()
 	if err != nil {
 		return err
 	}
 
 	// I will execute the sript with the admin function.
-	address, port := self.getBackendAddress()
+	address, port := globule.getBackendAddress()
 	if address == "0.0.0.0" {
-		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, createUserScript)
+		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", globule.RootPassword, createUserScript)
 		if err != nil {
 			return err
 		}
 	} else {
-		p_, err := self.getPersistenceSaConnection()
+		p_, err := globule.getPersistenceSaConnection()
 		if err != nil {
 			return err
 		}
 		log.Println("----> try to create account ", account)
 		log.Println(createUserScript)
-		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, createUserScript)
+		err = p_.RunAdminCmd("local_resource", "sa", globule.RootPassword, createUserScript)
 		if err != nil {
 			return err
 		}
@@ -721,28 +724,28 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 
 	err = p_.CreateConnection(name+"_db", name+"_db", address, float64(port), 0, name, password, 5000, "", false)
 	if err != nil {
-		return errors.New("No persistence service are available to store resource information.")
+		return errors.New("no persistence service are available to store resource information")
 	}
 
 	// Now I will set the reference for
 	// Contact...
 	for i := 0; i < len(contacts); i++ {
-		self.addAccountContact(id, contacts[i])
+		globule.addAccountContact(id, contacts[i])
 	}
 
 	// Organizations
 	for i := 0; i < len(organizations); i++ {
-		self.createCrossReferences(organizations[i], "Organizations", "accounts", id, "Accounts", "organizations")
+		globule.createCrossReferences(organizations[i], "Organizations", "accounts", id, "Accounts", "organizations")
 	}
 
 	// Roles
 	for i := 0; i < len(roles); i++ {
-		self.createCrossReferences(roles[i], "Roles", "members", id, "Accounts", "roles")
+		globule.createCrossReferences(roles[i], "Roles", "members", id, "Accounts", "roles")
 	}
 
 	// Groups
 	for i := 0; i < len(groups); i++ {
-		self.createCrossReferences(groups[i], "Groups", "members", id, "Accounts", "groups")
+		globule.createCrossReferences(groups[i], "Groups", "members", id, "Accounts", "groups")
 	}
 
 	return nil
@@ -750,22 +753,22 @@ func (self *Globule) registerAccount(id string, name string, email string, passw
 }
 
 /* Register a new Account */
-func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.RegisterAccountRqst) (*resourcepb.RegisterAccountRsp, error) {
+func (globule *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.RegisterAccountRqst) (*resourcepb.RegisterAccountRsp, error) {
 	if rqst.ConfirmPassword != rqst.Account.Password {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Fail to confirm your password!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("fail to confirm your password")))
 
 	}
 
 	if rqst.Account == nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No account information was given!")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no account information was given")))
 
 	}
 
-	err := self.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Account.Password, rqst.Account.Organizations, rqst.Account.Contacts, rqst.Account.Roles, rqst.Account.Groups)
+	err := globule.registerAccount(rqst.Account.Name, rqst.Account.Name, rqst.Account.Email, rqst.Account.Password, rqst.Account.Organizations, rqst.Account.Contacts, rqst.Account.Roles, rqst.Account.Groups)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -773,14 +776,14 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 	}
 
 	// Generate a token to identify the user.
-	tokenString, err := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, rqst.Account.Id, rqst.Account.Name, rqst.Account.Email)
+	tokenString, err := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, rqst.Account.Id, rqst.Account.Name, rqst.Account.Email)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -802,9 +805,9 @@ func (self *Globule) RegisterAccount(ctx context.Context, rqst *resourcepb.Regis
 }
 
 //* Return the list accounts *
-func (self *Globule) GetAccounts(rqst *resourcepb.GetAccountsRqst, stream resourcepb.ResourceService_GetAccountsServer) error {
+func (globule *Globule) GetAccounts(rqst *resourcepb.GetAccountsRqst, stream resourcepb.ResourceService_GetAccountsServer) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -902,14 +905,14 @@ func (self *Globule) GetAccounts(rqst *resourcepb.GetAccountsRqst, stream resour
 	return nil
 }
 
-func (self *Globule) addAccountContact(accountId string, contactId string) error {
+func (globule *Globule) addAccountContact(accountId string, contactId string) error {
 
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
 
-	err = self.createReference(p, accountId, "Accounts", "contacts", contactId, "Accounts")
+	err = globule.createReference(p, accountId, "Accounts", "contacts", contactId, "Accounts")
 	if err != nil {
 		return err
 	}
@@ -918,9 +921,9 @@ func (self *Globule) addAccountContact(accountId string, contactId string) error
 }
 
 //* Add contact to a given account *
-func (self *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.AddAccountContactRqst) (*resourcepb.AddAccountContactRsp, error) {
+func (globule *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.AddAccountContactRqst) (*resourcepb.AddAccountContactRsp, error) {
 
-	err := self.addAccountContact(rqst.AccountId, rqst.ContactId)
+	err := globule.addAccountContact(rqst.AccountId, rqst.ContactId)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -931,14 +934,14 @@ func (self *Globule) AddAccountContact(ctx context.Context, rqst *resourcepb.Add
 }
 
 //* Remove a contact from a given account *
-func (self *Globule) RemoveAccountContact(ctx context.Context, rqst *resourcepb.RemoveAccountContactRqst) (*resourcepb.RemoveAccountContactRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveAccountContact(ctx context.Context, rqst *resourcepb.RemoveAccountContactRqst) (*resourcepb.RemoveAccountContactRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
 	// That service made user of persistence service.
-	err = self.deleteReference(p, rqst.AccountId, rqst.ContactId, "contacts", "Accounts")
+	err = globule.deleteReference(p, rqst.AccountId, rqst.ContactId, "contacts", "Accounts")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -948,10 +951,10 @@ func (self *Globule) RemoveAccountContact(ctx context.Context, rqst *resourcepb.
 	return &resourcepb.RemoveAccountContactRsp{Result: true}, nil
 }
 
-func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountExistRqst) (*resourcepb.AccountExistRsp, error) {
+func (globule *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountExistRqst) (*resourcepb.AccountExistRsp, error) {
 	var exist bool
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -993,18 +996,18 @@ func (self *Globule) AccountExist(ctx context.Context, rqst *resourcepb.AccountE
 // That function test if the password is the correct one for a given user
 // if it is a token is generate and that token will be use by other service
 // to validate permission over the requested resourcepb.
-func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.AuthenticateRqst) (*resourcepb.AuthenticateRsp, error) {
+func (globule *Globule) Authenticate(ctx context.Context, rqst *resourcepb.AuthenticateRqst) (*resourcepb.AuthenticateRsp, error) {
 
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
 	// in case of sa user.(admin)
-	if (rqst.Password == self.RootPassword && rqst.Name == "sa") || (rqst.Password == self.RootPassword && rqst.Name == self.AdminEmail) {
+	if (rqst.Password == globule.RootPassword && rqst.Name == "sa") || (rqst.Password == globule.RootPassword && rqst.Name == globule.AdminEmail) {
 		// Generate a token to identify the user.
-		tokenString, err := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, "sa", "sa", self.AdminEmail)
+		tokenString, err := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, "sa", "sa", globule.AdminEmail)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1019,7 +1022,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 
-		// self.setTokenByAddress(ctx, tokenString)
+		// globule.setTokenByAddress(ctx, tokenString)
 
 		/** Return the token only **/
 		return &resourcepb.AuthenticateRsp{
@@ -1027,7 +1030,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 		}, nil
 	}
 
-	values, err := p.Find(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
+	values, _ := p.Find(context.Background(), "local_resource", "local_resource", "Accounts", `{"name":"`+rqst.Name+`"}`, "")
 	if len(values) == 0 {
 		values, err = p.Find(context.Background(), "local_resource", "local_resource", "Accounts", `{"email":"`+rqst.Name+`"}`, "")
 		if err != nil {
@@ -1045,7 +1048,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 
 	if values[0].(map[string]interface{})["password"].(string) != Utility.GenerateUUID(rqst.Password) {
 
-		ldap_, err := self.getLdapClient()
+		ldap_, err := globule.getLdapClient()
 		if err != nil {
 			return nil, err
 		}
@@ -1059,7 +1062,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 		}
 
 		// Set the password whit
-		err = self.setPassword(values[0].(map[string]interface{})["_id"].(string), values[0].(map[string]interface{})["password"].(string), rqst.Password)
+		err = globule.setPassword(values[0].(map[string]interface{})["_id"].(string), values[0].(map[string]interface{})["password"].(string), rqst.Password)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1069,7 +1072,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 
 	user := values[0].(map[string]interface{})["_id"].(string)
 	// Generate a token to identify the user.
-	tokenString, err := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, user, values[0].(map[string]interface{})["name"].(string), values[0].(map[string]interface{})["email"].(string))
+	tokenString, err := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, user, values[0].(map[string]interface{})["name"].(string), values[0].(map[string]interface{})["email"].(string))
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1078,14 +1081,14 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 
 	// Create the user file directory.
 	path := "/users/" + values[0].(map[string]interface{})["name"].(string)
-	Utility.CreateDirIfNotExist(self.data + "/files" + path)
+	Utility.CreateDirIfNotExist(globule.data + "/files" + path)
 
-	self.addResourceOwner(path, user, rbacpb.SubjectType_ACCOUNT)
+	globule.addResourceOwner(path, user, rbacpb.SubjectType_ACCOUNT)
 
 	name_ := values[0].(map[string]interface{})["name"].(string)
 	name_ = strings.ReplaceAll(strings.ReplaceAll(name_, ".", "_"), "@", "_")
 
-	p_, err := self.getPersistenceSaConnection()
+	p_, err := globule.getPersistenceSaConnection()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1093,12 +1096,12 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// Open the user database connection.
-	address, port := self.getBackendAddress()
+	address, port := globule.getBackendAddress()
 	err = p_.CreateConnection(name_+"_db", name_+"_db", address, float64(port), 0, name_, rqst.Password, 5000, "", false)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No persistence service are available to store resource information.")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("no persistence service are available to store resource information")))
 	}
 
 	// save the newly create token into the database.
@@ -1111,7 +1114,7 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 	}
 
 	// save the token for the default session time.
-	//self.setTokenByAddress(ctx, tokenString)
+	//globule.setTokenByAddress(ctx, tokenString)
 
 	// Here I got the token I will now put it in the cache.
 	return &resourcepb.AuthenticateRsp{
@@ -1122,10 +1125,10 @@ func (self *Globule) Authenticate(ctx context.Context, rqst *resourcepb.Authenti
 /**
  * Refresh token get a new token.
  */
-func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshTokenRqst) (*resourcepb.RefreshTokenRsp, error) {
+func (globule *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshTokenRqst) (*resourcepb.RefreshTokenRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1145,7 +1148,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 	if time.Unix(expireAt, 0).Before(time.Now().AddDate(0, 0, -7)) {
 		return nil, status.Errorf(
 			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("The token cannot be refresh after 7 day")))
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("the token cannot be refresh after 7 day")))
 	}
 
 	// Here I will test if a newer token exist for that user if it's the case
@@ -1158,7 +1161,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 		log.Println("newly created token expire at ", time.Unix(expireAt, 0).String())
 		// That mean a newer token was already refresh.
 		if time.Unix(expireAt, 0).Before(savedTokenExpireAt) {
-			err := errors.New("That token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token.")
+			err := errors.New("that token cannot not be refresh because a newer one already exist. You need to re-authenticate in order to get a new token")
 			log.Println(err)
 			return nil, status.Errorf(
 				codes.Internal,
@@ -1166,7 +1169,7 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 		}
 	}
 
-	tokenString, err := interceptors.GenerateToken(self.jwtKey, self.SessionTimeout, id, name, email)
+	tokenString, err := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, id, name, email)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(
@@ -1194,9 +1197,9 @@ func (self *Globule) RefreshToken(ctx context.Context, rqst *resourcepb.RefreshT
 }
 
 // Test if account is a member of organisation.
-func (self *Globule) isOrganizationMemeber(account string, organization string) bool {
+func (globule *Globule) isOrganizationMemeber(account string, organization string) bool {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return false
 	}
@@ -1222,9 +1225,9 @@ func (self *Globule) isOrganizationMemeber(account string, organization string) 
 }
 
 //* Delete an account *
-func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteAccountRqst) (*resourcepb.DeleteAccountRsp, error) {
+func (globule *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteAccountRqst) (*resourcepb.DeleteAccountRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1243,7 +1246,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 		organizations := []interface{}(account["organizations"].(primitive.A))
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Id, organizationId, "accounts", "Accounts")
+			globule.deleteReference(p, rqst.Id, organizationId, "accounts", "Accounts")
 		}
 	}
 
@@ -1251,7 +1254,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 		groups := []interface{}(account["groups"].(primitive.A))
 		for i := 0; i < len(groups); i++ {
 			groupId := groups[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Id, groupId, "members", "Accounts")
+			globule.deleteReference(p, rqst.Id, groupId, "members", "Accounts")
 		}
 	}
 
@@ -1259,7 +1262,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 		roles := []interface{}(account["roles"].(primitive.A))
 		for i := 0; i < len(roles); i++ {
 			roleId := roles[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.Id, roleId, "members", "Accounts")
+			globule.deleteReference(p, rqst.Id, roleId, "members", "Accounts")
 		}
 	}
 
@@ -1291,22 +1294,22 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 		name)
 
 	// I will execute the sript with the admin function.
-	address, _ := self.getBackendAddress()
+	address, _ := globule.getBackendAddress()
 	if address == "0.0.0.0" {
-		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, dropUserScript)
+		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", globule.RootPassword, dropUserScript)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
 	} else {
-		p_, err := self.getPersistenceSaConnection()
+		p_, err := globule.getPersistenceSaConnection()
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 		}
-		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, dropUserScript)
+		err = p_.RunAdminCmd("local_resource", "sa", globule.RootPassword, dropUserScript)
 		if err != nil {
 			log.Println(err)
 			return nil, status.Errorf(
@@ -1323,7 +1326,7 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	p_, _ := self.getPersistenceSaConnection()
+	p_, _ := globule.getPersistenceSaConnection()
 	err = p_.DeleteConnection(name + "_db")
 	if err != nil {
 		return nil, status.Errorf(
@@ -1336,9 +1339,9 @@ func (self *Globule) DeleteAccount(ctx context.Context, rqst *resourcepb.DeleteA
 	}, nil
 }
 
-func (self *Globule) createRole(id string, name string, actions []string) error {
+func (globule *Globule) createRole(id string, name string, actions []string) error {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -1365,9 +1368,9 @@ func (self *Globule) createRole(id string, name string, actions []string) error 
 }
 
 //* Create a role with given action list *
-func (self *Globule) CreateRole(ctx context.Context, rqst *resourcepb.CreateRoleRqst) (*resourcepb.CreateRoleRsp, error) {
+func (globule *Globule) CreateRole(ctx context.Context, rqst *resourcepb.CreateRoleRqst) (*resourcepb.CreateRoleRsp, error) {
 	// That service made user of persistence service.
-	err := self.createRole(rqst.Role.Id, rqst.Role.Name, rqst.Role.Actions)
+	err := globule.createRole(rqst.Role.Id, rqst.Role.Name, rqst.Role.Actions)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1378,20 +1381,20 @@ func (self *Globule) CreateRole(ctx context.Context, rqst *resourcepb.CreateRole
 
 	// members...
 	for i := 0; i < len(rqst.Role.Members); i++ {
-		self.createCrossReferences(rqst.Role.Members[i], "Accounts", "roles", rqst.Role.GetId(), "Roles", "members")
+		globule.createCrossReferences(rqst.Role.Members[i], "Accounts", "roles", rqst.Role.GetId(), "Roles", "members")
 	}
 
 	// Organizations
 	for i := 0; i < len(rqst.Role.Organizations); i++ {
-		self.createCrossReferences(rqst.Role.Organizations[i], "Organizations", "roles", rqst.Role.GetId(), "Roles", "organizations")
+		globule.createCrossReferences(rqst.Role.Organizations[i], "Organizations", "roles", rqst.Role.GetId(), "Roles", "organizations")
 	}
 
 	return &resourcepb.CreateRoleRsp{Result: true}, nil
 }
 
-func (self *Globule) GetRoles(rqst *resourcepb.GetRolesRqst, stream resourcepb.ResourceService_GetRolesServer) error {
+func (globule *Globule) GetRoles(rqst *resourcepb.GetRolesRqst, stream resourcepb.ResourceService_GetRolesServer) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -1498,16 +1501,20 @@ func serialyseObject(obj map[string]interface{}) string {
 }
 
 //* Delete a role with a given id *
-func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRoleRqst) (*resourcepb.DeleteRoleRsp, error) {
+func (globule *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRoleRqst) (*resourcepb.DeleteRoleRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
 	// Remove references
 	values, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+rqst.RoleId+`"}`, ``)
+	if err != nil {
+		return nil, err
+	}
+
 	role := values.(map[string]interface{})
 	roleId := role["_id"].(string)
 
@@ -1516,7 +1523,7 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 		accounts := []interface{}(role["members"].(primitive.A))
 		for i := 0; i < len(accounts); i++ {
 			accountId := accounts[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, accountId, roleId, "roles", "Accounts")
+			globule.deleteReference(p, accountId, roleId, "roles", "Accounts")
 		}
 	}
 
@@ -1525,7 +1532,7 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 		organizations := []interface{}(role["organizations"].(primitive.A))
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, rqst.RoleId, organizationId, "roles", "Roles")
+			globule.deleteReference(p, rqst.RoleId, organizationId, "roles", "Roles")
 		}
 	}
 
@@ -1542,9 +1549,9 @@ func (self *Globule) DeleteRole(ctx context.Context, rqst *resourcepb.DeleteRole
 }
 
 //* Append an action to existing role. *
-func (self *Globule) AddRoleActions(ctx context.Context, rqst *resourcepb.AddRoleActionsRqst) (*resourcepb.AddRoleActionsRsp, error) {
+func (globule *Globule) AddRoleActions(ctx context.Context, rqst *resourcepb.AddRoleActionsRqst) (*resourcepb.AddRoleActionsRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1598,10 +1605,10 @@ func (self *Globule) AddRoleActions(ctx context.Context, rqst *resourcepb.AddRol
 }
 
 //* Remove an action to existing role. *
-func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *resourcepb.RemoveRoleActionRqst) (*resourcepb.RemoveRoleActionRsp, error) {
+func (globule *Globule) RemoveRoleAction(ctx context.Context, rqst *resourcepb.RemoveRoleActionRqst) (*resourcepb.RemoveRoleActionRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1658,9 +1665,9 @@ func (self *Globule) RemoveRoleAction(ctx context.Context, rqst *resourcepb.Remo
 }
 
 //* Add role to a given account *
-func (self *Globule) AddAccountRole(ctx context.Context, rqst *resourcepb.AddAccountRoleRqst) (*resourcepb.AddAccountRoleRsp, error) {
+func (globule *Globule) AddAccountRole(ctx context.Context, rqst *resourcepb.AddAccountRoleRqst) (*resourcepb.AddAccountRoleRsp, error) {
 	// That service made user of persistence service.
-	err := self.createCrossReferences(rqst.RoleId, "Roles", "members", rqst.AccountId, "Accounts", "roles")
+	err := globule.createCrossReferences(rqst.RoleId, "Roles", "members", rqst.AccountId, "Accounts", "roles")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1671,9 +1678,9 @@ func (self *Globule) AddAccountRole(ctx context.Context, rqst *resourcepb.AddAcc
 }
 
 //* Remove a role from a given account *
-func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.RemoveAccountRoleRqst) (*resourcepb.RemoveAccountRoleRsp, error) {
+func (globule *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.RemoveAccountRoleRqst) (*resourcepb.RemoveAccountRoleRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1703,7 +1710,7 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.Rem
 			}
 		}
 
-		if needSave == false {
+		if !needSave  {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Account named "+rqst.AccountId+" does not contain role "+rqst.RoleId+"!")))
@@ -1724,10 +1731,10 @@ func (self *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.Rem
 	return &resourcepb.RemoveAccountRoleRsp{Result: true}, nil
 }
 
-func (self *Globule) deleteApplication(applicationId string) error {
+func (globule *Globule) deleteApplication(applicationId string) error {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -1747,7 +1754,7 @@ func (self *Globule) deleteApplication(applicationId string) error {
 
 		for i := 0; i < len(organizations); i++ {
 			organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-			self.deleteReference(p, applicationId, organizationId, "applications", "Applications")
+			globule.deleteReference(p, applicationId, organizationId, "applications", "Applications")
 		}
 	}
 
@@ -1782,36 +1789,36 @@ func (self *Globule) deleteApplication(applicationId string) error {
 		applicationId)
 
 	// I will execute the sript with the admin function.
-	address, _ := self.getBackendAddress()
+	address, _ := globule.getBackendAddress()
 	if address == "0.0.0.0" {
-		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", self.RootPassword, dropUserScript)
+		err = p.RunAdminCmd(context.Background(), "local_resource", "sa", globule.RootPassword, dropUserScript)
 		if err != nil {
 			return err
 		}
 	} else {
-		p_, err := self.getPersistenceSaConnection()
+		p_, err := globule.getPersistenceSaConnection()
 		if err != nil {
 			return err
 		}
-		err = p_.RunAdminCmd("local_resource", "sa", self.RootPassword, dropUserScript)
+		err = p_.RunAdminCmd("local_resource", "sa", globule.RootPassword, dropUserScript)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Now I will remove the application directory from the webroot...
-	log.Println("remove directory ", self.webRoot+"/"+applicationId)
-	os.RemoveAll(self.webRoot + "/" + applicationId)
+	log.Println("remove directory ", globule.webRoot+"/"+applicationId)
+	os.RemoveAll(globule.webRoot + "/" + applicationId)
 
 	return nil
 
 }
 
 //* Delete an application from the server. *
-func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.DeleteApplicationRqst) (*resourcepb.DeleteApplicationRsp, error) {
+func (globule *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.DeleteApplicationRqst) (*resourcepb.DeleteApplicationRsp, error) {
 
 	// That service made user of persistence service.
-	err := self.deleteApplication(rqst.ApplicationId)
+	err := globule.deleteApplication(rqst.ApplicationId)
 	return nil, status.Errorf(
 		codes.Internal,
 		Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
@@ -1824,9 +1831,9 @@ func (self *Globule) DeleteApplication(ctx context.Context, rqst *resourcepb.Del
 }
 
 //* Append an action to existing application. *
-func (self *Globule) AddApplicationActions(ctx context.Context, rqst *resourcepb.AddApplicationActionsRqst) (*resourcepb.AddApplicationActionsRsp, error) {
+func (globule *Globule) AddApplicationActions(ctx context.Context, rqst *resourcepb.AddApplicationActionsRqst) (*resourcepb.AddApplicationActionsRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1878,10 +1885,10 @@ func (self *Globule) AddApplicationActions(ctx context.Context, rqst *resourcepb
 }
 
 //* Remove an action to existing application. *
-func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *resourcepb.RemoveApplicationActionRqst) (*resourcepb.RemoveApplicationActionRsp, error) {
+func (globule *Globule) RemoveApplicationAction(ctx context.Context, rqst *resourcepb.RemoveApplicationActionRqst) (*resourcepb.RemoveApplicationActionRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -1936,14 +1943,14 @@ func (self *Globule) RemoveApplicationAction(ctx context.Context, rqst *resource
 /**
  * Return the list of all actions avalaible on the server.
  */
-func (self *Globule) GetAllActions(ctx context.Context, rqst *resourcepb.GetAllActionsRqst) (*resourcepb.GetAllActionsRsp, error) {
-	return &resourcepb.GetAllActionsRsp{Actions: self.methods}, nil
+func (globule *Globule) GetAllActions(ctx context.Context, rqst *resourcepb.GetAllActionsRqst) (*resourcepb.GetAllActionsRsp, error) {
+	return &resourcepb.GetAllActionsRsp{Actions: globule.methods}, nil
 }
 
 //////////////////////////// Loggin info ///////////////////////////////////////
-func (self *Globule) validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType) (bool, error) {
+func (globule *Globule) validateActionRequest(rqst interface{}, method string, subject string, subjectType rbacpb.SubjectType) (bool, error) {
 	hasAccess := false
-	infos, err := self.getActionResourcesPermissions(method)
+	infos, err := globule.getActionResourcesPermissions(method)
 	if err != nil {
 		infos = make([]*rbacpb.ResourceInfos, 0)
 	} else {
@@ -1960,7 +1967,7 @@ func (self *Globule) validateActionRequest(rqst interface{}, method string, subj
 		}
 	}
 
-	hasAccess, err = self.validateAction(method, subject, rbacpb.SubjectType_ACCOUNT, infos)
+	hasAccess, err = globule.validateAction(method, subject, rbacpb.SubjectType_ACCOUNT, infos)
 	if err != nil {
 		return false, err
 	}
@@ -1969,7 +1976,7 @@ func (self *Globule) validateActionRequest(rqst interface{}, method string, subj
 }
 
 // unaryInterceptor calls authenticateClient with current context
-func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (globule *Globule) unaryResourceInterceptor(ctx context.Context, rqst interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	method := info.FullMethod
 
 	// The token and the application id.
@@ -2031,25 +2038,25 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 		}
 
 		if expiredAt < time.Now().Unix() {
-			return nil, errors.New("The token is expired!")
+			return nil, errors.New("the token is expired")
 		}
 
 		hasAccess = clientId == "sa"
 		if !hasAccess {
-			hasAccess, _ = self.validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT)
+			hasAccess, _ = globule.validateActionRequest(rqst, method, clientId, rbacpb.SubjectType_ACCOUNT)
 		}
 	}
 
 	// Test if the application has access to execute the method.
 	if len(application) > 0 && !hasAccess {
 		// TODO validate rpc method access
-		hasAccess, _ = self.validateActionRequest(rqst, method, application, rbacpb.SubjectType_APPLICATION)
+		hasAccess, _ = globule.validateActionRequest(rqst, method, application, rbacpb.SubjectType_APPLICATION)
 	}
 
 	if !hasAccess {
 
 		err := errors.New("Permission denied to execute method " + method + " user:" + clientId + " application:" + application)
-		self.logInfo(application, method, token, err)
+		globule.logInfo(application, method, token, err)
 
 		return nil, err
 	}
@@ -2062,7 +2069,7 @@ func (self *Globule) unaryResourceInterceptor(ctx context.Context, rqst interfac
 }
 
 // Stream interceptor.
-func (self *Globule) streamResourceInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+func (globule *Globule) streamResourceInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 
 	err := handler(srv, stream)
 	if err != nil {
@@ -2075,7 +2082,7 @@ func (self *Globule) streamResourceInterceptor(srv interface{}, stream grpc.Serv
 ///////////////////////  resource management. /////////////////
 
 //* Validate a token *
-func (self *Globule) ValidateToken(ctx context.Context, rqst *resourcepb.ValidateTokenRqst) (*resourcepb.ValidateTokenRsp, error) {
+func (globule *Globule) ValidateToken(ctx context.Context, rqst *resourcepb.ValidateTokenRqst) (*resourcepb.ValidateTokenRsp, error) {
 	clientId, _, _, expireAt, err := interceptors.ValidateToken(rqst.Token)
 	if err != nil {
 		return nil, status.Errorf(
@@ -2088,29 +2095,10 @@ func (self *Globule) ValidateToken(ctx context.Context, rqst *resourcepb.Validat
 	}, nil
 }
 
-// authenticateAgent check the client credentials
-func (self *Globule) authenticateClient(ctx context.Context) (string, string, int64, error) {
-	var userId string
-	var applicationId string
-	var expired int64
-	var err error
-
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		applicationId = strings.Join(md["application"], "")
-		token := strings.Join(md["token"], "")
-		// In that case no token was given...
-		if len(token) > 0 {
-			userId, _, _, expired, err = interceptors.ValidateToken(token)
-		}
-		return applicationId, userId, expired, err
-	}
-	return "", "", 0, fmt.Errorf("missing credentials")
-}
-
-func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcepb.GetAllApplicationsInfoRqst) (*resourcepb.GetAllApplicationsInfoRsp, error) {
+func (globule *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcepb.GetAllApplicationsInfoRqst) (*resourcepb.GetAllApplicationsInfoRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2155,11 +2143,11 @@ func (self *Globule) GetAllApplicationsInfo(ctx context.Context, rqst *resourcep
 ////////////////////////////////////////////////////////////////////////////////
 
 //* Register a new Peer on the network *
-func (self *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.RegisterPeerRqst) (*resourcepb.RegisterPeerRsp, error) {
+func (globule *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.RegisterPeerRqst) (*resourcepb.RegisterPeerRsp, error) {
 	// A peer want to be part of the network.
 
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2195,9 +2183,9 @@ func (self *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.Register
 }
 
 //* Return the list of authorized peers *
-func (self *Globule) GetPeers(rqst *resourcepb.GetPeersRqst, stream resourcepb.ResourceService_GetPeersServer) error {
+func (globule *Globule) GetPeers(rqst *resourcepb.GetPeersRqst, stream resourcepb.ResourceService_GetPeersServer) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -2259,9 +2247,9 @@ func (self *Globule) GetPeers(rqst *resourcepb.GetPeersRqst, stream resourcepb.R
 }
 
 //* Remove a peer from the network *
-func (self *Globule) DeletePeer(ctx context.Context, rqst *resourcepb.DeletePeerRqst) (*resourcepb.DeletePeerRsp, error) {
+func (globule *Globule) DeletePeer(ctx context.Context, rqst *resourcepb.DeletePeerRqst) (*resourcepb.DeletePeerRsp, error) {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2291,9 +2279,9 @@ func (self *Globule) DeletePeer(ctx context.Context, rqst *resourcepb.DeletePeer
 }
 
 //* Add peer action permission *
-func (self *Globule) AddPeerActions(ctx context.Context, rqst *resourcepb.AddPeerActionsRqst) (*resourcepb.AddPeerActionsRsp, error) {
+func (globule *Globule) AddPeerActions(ctx context.Context, rqst *resourcepb.AddPeerActionsRqst) (*resourcepb.AddPeerActionsRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2347,9 +2335,9 @@ func (self *Globule) AddPeerActions(ctx context.Context, rqst *resourcepb.AddPee
 }
 
 //* Remove peer action permission *
-func (self *Globule) RemovePeerAction(ctx context.Context, rqst *resourcepb.RemovePeerActionRqst) (*resourcepb.RemovePeerActionRsp, error) {
+func (globule *Globule) RemovePeerAction(ctx context.Context, rqst *resourcepb.RemovePeerActionRqst) (*resourcepb.RemovePeerActionRsp, error) {
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2401,10 +2389,10 @@ func (self *Globule) RemovePeerAction(ctx context.Context, rqst *resourcepb.Remo
 }
 
 //* Register a new organization
-func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.CreateOrganizationRqst) (*resourcepb.CreateOrganizationRsp, error) {
+func (globule *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.CreateOrganizationRqst) (*resourcepb.CreateOrganizationRsp, error) {
 
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2439,22 +2427,22 @@ func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.Cr
 
 	// accounts...
 	for i := 0; i < len(rqst.Organization.Accounts); i++ {
-		self.createCrossReferences(rqst.Organization.Accounts[i], "Accounts", "organizations", rqst.Organization.GetId(), "Organizations", "accounts")
+		globule.createCrossReferences(rqst.Organization.Accounts[i], "Accounts", "organizations", rqst.Organization.GetId(), "Organizations", "accounts")
 	}
 
 	// groups...
 	for i := 0; i < len(rqst.Organization.Groups); i++ {
-		self.createCrossReferences(rqst.Organization.Groups[i], "Groups", "organizations", rqst.Organization.GetId(), "Organizations", "groups")
+		globule.createCrossReferences(rqst.Organization.Groups[i], "Groups", "organizations", rqst.Organization.GetId(), "Organizations", "groups")
 	}
 
 	// roles...
 	for i := 0; i < len(rqst.Organization.Roles); i++ {
-		self.createCrossReferences(rqst.Organization.Roles[i], "Roles", "organizations", rqst.Organization.GetId(), "Organizations", "roles")
+		globule.createCrossReferences(rqst.Organization.Roles[i], "Roles", "organizations", rqst.Organization.GetId(), "Organizations", "roles")
 	}
 
 	// applications...
 	for i := 0; i < len(rqst.Organization.Applications); i++ {
-		self.createCrossReferences(rqst.Organization.Roles[i], "Applications", "organizations", rqst.Organization.GetId(), "Organizations", "applications")
+		globule.createCrossReferences(rqst.Organization.Roles[i], "Applications", "organizations", rqst.Organization.GetId(), "Organizations", "applications")
 	}
 
 	return &resourcepb.CreateOrganizationRsp{
@@ -2463,9 +2451,9 @@ func (self *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb.Cr
 }
 
 //* Return the list of organizations
-func (self *Globule) GetOrganizations(rqst *resourcepb.GetOrganizationsRqst, stream resourcepb.ResourceService_GetOrganizationsServer) error {
+func (globule *Globule) GetOrganizations(rqst *resourcepb.GetOrganizationsRqst, stream resourcepb.ResourceService_GetOrganizationsServer) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -2571,8 +2559,8 @@ func (self *Globule) GetOrganizations(rqst *resourcepb.GetOrganizationsRqst, str
 }
 
 //* Add Account *
-func (self *Globule) AddOrganizationAccount(ctx context.Context, rqst *resourcepb.AddOrganizationAccountRqst) (*resourcepb.AddOrganizationAccountRsp, error) {
-	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "accounts", rqst.AccountId, "Accounts", "organizations")
+func (globule *Globule) AddOrganizationAccount(ctx context.Context, rqst *resourcepb.AddOrganizationAccountRqst) (*resourcepb.AddOrganizationAccountRsp, error) {
+	err := globule.createCrossReferences(rqst.OrganizationId, "Organizations", "accounts", rqst.AccountId, "Accounts", "organizations")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2583,8 +2571,8 @@ func (self *Globule) AddOrganizationAccount(ctx context.Context, rqst *resourcep
 }
 
 //* Add Group *
-func (self *Globule) AddOrganizationGroup(ctx context.Context, rqst *resourcepb.AddOrganizationGroupRqst) (*resourcepb.AddOrganizationGroupRsp, error) {
-	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "groups", rqst.GroupId, "Groups", "organizations")
+func (globule *Globule) AddOrganizationGroup(ctx context.Context, rqst *resourcepb.AddOrganizationGroupRqst) (*resourcepb.AddOrganizationGroupRsp, error) {
+	err := globule.createCrossReferences(rqst.OrganizationId, "Organizations", "groups", rqst.GroupId, "Groups", "organizations")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2595,8 +2583,8 @@ func (self *Globule) AddOrganizationGroup(ctx context.Context, rqst *resourcepb.
 }
 
 //* Add Role *
-func (self *Globule) AddOrganizationRole(ctx context.Context, rqst *resourcepb.AddOrganizationRoleRqst) (*resourcepb.AddOrganizationRoleRsp, error) {
-	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "roles", rqst.RoleId, "Roles", "organizations")
+func (globule *Globule) AddOrganizationRole(ctx context.Context, rqst *resourcepb.AddOrganizationRoleRqst) (*resourcepb.AddOrganizationRoleRsp, error) {
+	err := globule.createCrossReferences(rqst.OrganizationId, "Organizations", "roles", rqst.RoleId, "Roles", "organizations")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2607,8 +2595,8 @@ func (self *Globule) AddOrganizationRole(ctx context.Context, rqst *resourcepb.A
 }
 
 //* Add Application *
-func (self *Globule) AddOrganizationApplication(ctx context.Context, rqst *resourcepb.AddOrganizationApplicationRqst) (*resourcepb.AddOrganizationApplicationRsp, error) {
-	err := self.createCrossReferences(rqst.OrganizationId, "Organizations", "applications", rqst.ApplicationId, "Applications", "organizations")
+func (globule *Globule) AddOrganizationApplication(ctx context.Context, rqst *resourcepb.AddOrganizationApplicationRqst) (*resourcepb.AddOrganizationApplicationRsp, error) {
+	err := globule.createCrossReferences(rqst.OrganizationId, "Organizations", "applications", rqst.ApplicationId, "Applications", "organizations")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2619,18 +2607,18 @@ func (self *Globule) AddOrganizationApplication(ctx context.Context, rqst *resou
 }
 
 //* Remove Account *
-func (self *Globule) RemoveOrganizationAccount(ctx context.Context, rqst *resourcepb.RemoveOrganizationAccountRqst) (*resourcepb.RemoveOrganizationAccountRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveOrganizationAccount(ctx context.Context, rqst *resourcepb.RemoveOrganizationAccountRqst) (*resourcepb.RemoveOrganizationAccountRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.AccountId, rqst.OrganizationId, "accounts", "Organizations")
+	err = globule.deleteReference(p, rqst.AccountId, rqst.OrganizationId, "accounts", "Organizations")
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.OrganizationId, rqst.AccountId, "organizations", "Accounts")
+	err = globule.deleteReference(p, rqst.OrganizationId, rqst.AccountId, "organizations", "Accounts")
 	if err != nil {
 		return nil, err
 	}
@@ -2639,18 +2627,18 @@ func (self *Globule) RemoveOrganizationAccount(ctx context.Context, rqst *resour
 }
 
 //* Remove Group *
-func (self *Globule) RemoveOrganizationGroup(ctx context.Context, rqst *resourcepb.RemoveOrganizationGroupRqst) (*resourcepb.RemoveOrganizationGroupRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveOrganizationGroup(ctx context.Context, rqst *resourcepb.RemoveOrganizationGroupRqst) (*resourcepb.RemoveOrganizationGroupRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.GroupId, rqst.OrganizationId, "groups", "Organizations")
+	err = globule.deleteReference(p, rqst.GroupId, rqst.OrganizationId, "groups", "Organizations")
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.OrganizationId, rqst.GroupId, "organizations", "Groups")
+	err = globule.deleteReference(p, rqst.OrganizationId, rqst.GroupId, "organizations", "Groups")
 	if err != nil {
 		return nil, err
 	}
@@ -2659,18 +2647,18 @@ func (self *Globule) RemoveOrganizationGroup(ctx context.Context, rqst *resource
 }
 
 //* Remove Role *
-func (self *Globule) RemoveOrganizationRole(ctx context.Context, rqst *resourcepb.RemoveOrganizationRoleRqst) (*resourcepb.RemoveOrganizationRoleRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveOrganizationRole(ctx context.Context, rqst *resourcepb.RemoveOrganizationRoleRqst) (*resourcepb.RemoveOrganizationRoleRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.RoleId, rqst.OrganizationId, "roles", "Organizations")
+	err = globule.deleteReference(p, rqst.RoleId, rqst.OrganizationId, "roles", "Organizations")
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.OrganizationId, rqst.RoleId, "organizations", "Roles")
+	err = globule.deleteReference(p, rqst.OrganizationId, rqst.RoleId, "organizations", "Roles")
 	if err != nil {
 		return nil, err
 	}
@@ -2679,18 +2667,18 @@ func (self *Globule) RemoveOrganizationRole(ctx context.Context, rqst *resourcep
 }
 
 //* Remove Application *
-func (self *Globule) RemoveOrganizationApplication(ctx context.Context, rqst *resourcepb.RemoveOrganizationApplicationRqst) (*resourcepb.RemoveOrganizationApplicationRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveOrganizationApplication(ctx context.Context, rqst *resourcepb.RemoveOrganizationApplicationRqst) (*resourcepb.RemoveOrganizationApplicationRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.ApplicationId, rqst.OrganizationId, "applications", "Organizations")
+	err = globule.deleteReference(p, rqst.ApplicationId, rqst.OrganizationId, "applications", "Organizations")
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.deleteReference(p, rqst.OrganizationId, rqst.ApplicationId, "organizations", "Applications")
+	err = globule.deleteReference(p, rqst.OrganizationId, rqst.ApplicationId, "organizations", "Applications")
 	if err != nil {
 		return nil, err
 	}
@@ -2699,10 +2687,10 @@ func (self *Globule) RemoveOrganizationApplication(ctx context.Context, rqst *re
 }
 
 //* Delete organization
-func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.DeleteOrganizationRqst) (*resourcepb.DeleteOrganizationRsp, error) {
+func (globule *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.DeleteOrganizationRqst) (*resourcepb.DeleteOrganizationRsp, error) {
 
 	// That service made user of persistence service.
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2720,7 +2708,7 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 		if groups != nil {
 			for i := 0; i < len(groups); i++ {
 				groupId := groups[i].(map[string]interface{})["$id"].(string)
-				self.deleteReference(p, rqst.Organization, groupId, "organizations", "Organizations")
+				globule.deleteReference(p, rqst.Organization, groupId, "organizations", "Organizations")
 			}
 		}
 	}
@@ -2730,7 +2718,7 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 		if roles != nil {
 			for i := 0; i < len(roles); i++ {
 				roleId := roles[i].(map[string]interface{})["$id"].(string)
-				self.deleteReference(p, rqst.Organization, roleId, "organizations", "Organizations")
+				globule.deleteReference(p, rqst.Organization, roleId, "organizations", "Organizations")
 			}
 		}
 	}
@@ -2740,7 +2728,7 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 		if applications != nil {
 			for i := 0; i < len(applications); i++ {
 				applicationId := applications[i].(map[string]interface{})["$id"].(string)
-				self.deleteReference(p, rqst.Organization, applicationId, "organizations", "Organizations")
+				globule.deleteReference(p, rqst.Organization, applicationId, "organizations", "Organizations")
 			}
 		}
 	}
@@ -2750,7 +2738,7 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 		if accounts != nil {
 			for i := 0; i < len(accounts); i++ {
 				accountsId := accounts[i].(map[string]interface{})["$id"].(string)
-				self.deleteReference(p, rqst.Organization, accountsId, "organizations", "Organizations")
+				globule.deleteReference(p, rqst.Organization, accountsId, "organizations", "Organizations")
 			}
 		}
 	}
@@ -2766,9 +2754,9 @@ func (self *Globule) DeleteOrganization(ctx context.Context, rqst *resourcepb.De
 	return &resourcepb.DeleteOrganizationRsp{Result: true}, nil
 }
 
-func (self *Globule) createGroup(id, name string, members []string) error {
+func (globule *Globule) createGroup(id, name string, members []string) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -2793,7 +2781,7 @@ func (self *Globule) createGroup(id, name string, members []string) error {
 
 	// Create references.
 	for i := 0; i < len(members); i++ {
-		err := self.createCrossReferences(id, "Groups", "members", members[i], "Accounts", "groups")
+		err := globule.createCrossReferences(id, "Groups", "members", members[i], "Accounts", "groups")
 		if err != nil {
 			log.Println(err)
 		}
@@ -2803,9 +2791,9 @@ func (self *Globule) createGroup(id, name string, members []string) error {
 }
 
 //* Register a new group
-func (self *Globule) CreateGroup(ctx context.Context, rqst *resourcepb.CreateGroupRqst) (*resourcepb.CreateGroupRsp, error) {
+func (globule *Globule) CreateGroup(ctx context.Context, rqst *resourcepb.CreateGroupRqst) (*resourcepb.CreateGroupRsp, error) {
 	// Get the persistence connection
-	err := self.createGroup(rqst.Group.Id, rqst.Group.Name, rqst.Group.Members)
+	err := globule.createGroup(rqst.Group.Id, rqst.Group.Name, rqst.Group.Members)
 
 	if err != nil {
 		return nil, status.Errorf(
@@ -2819,9 +2807,9 @@ func (self *Globule) CreateGroup(ctx context.Context, rqst *resourcepb.CreateGro
 }
 
 //* Return the list of organizations
-func (self *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb.ResourceService_GetGroupsServer) error {
+func (globule *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb.ResourceService_GetGroupsServer) error {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return err
 	}
@@ -2886,9 +2874,9 @@ func (self *Globule) GetGroups(rqst *resourcepb.GetGroupsRqst, stream resourcepb
 }
 
 //* Delete organization
-func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGroupRqst) (*resourcepb.DeleteGroupRsp, error) {
+func (globule *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGroupRqst) (*resourcepb.DeleteGroupRsp, error) {
 	// Get the persistence connection
-	p, err := self.getPersistenceStore()
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
@@ -2907,7 +2895,7 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 	if group["members"] != nil {
 		members := []interface{}(group["members"].(primitive.A))
 		for j := 0; j < len(members); j++ {
-			self.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
+			globule.deleteReference(p, rqst.Group, members[j].(map[string]interface{})["$id"].(string), "groups", members[j].(map[string]interface{})["$ref"].(string))
 		}
 	}
 
@@ -2917,7 +2905,7 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 		if organizations != nil {
 			for i := 0; i < len(organizations); i++ {
 				organizationId := organizations[i].(map[string]interface{})["$id"].(string)
-				self.deleteReference(p, rqst.Group, organizationId, "groups", "Groups")
+				globule.deleteReference(p, rqst.Group, organizationId, "groups", "Groups")
 			}
 		}
 	}
@@ -2936,9 +2924,9 @@ func (self *Globule) DeleteGroup(ctx context.Context, rqst *resourcepb.DeleteGro
 }
 
 //* Add a member account to the group *
-func (self *Globule) AddGroupMemberAccount(ctx context.Context, rqst *resourcepb.AddGroupMemberAccountRqst) (*resourcepb.AddGroupMemberAccountRsp, error) {
+func (globule *Globule) AddGroupMemberAccount(ctx context.Context, rqst *resourcepb.AddGroupMemberAccountRqst) (*resourcepb.AddGroupMemberAccountRsp, error) {
 
-	err := self.createCrossReferences(rqst.GroupId, "Groups", "members", rqst.AccountId, "Accounts", "groups")
+	err := globule.createCrossReferences(rqst.GroupId, "Groups", "members", rqst.AccountId, "Accounts", "groups")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -2949,21 +2937,21 @@ func (self *Globule) AddGroupMemberAccount(ctx context.Context, rqst *resourcepb
 }
 
 //* Remove member account from the group *
-func (self *Globule) RemoveGroupMemberAccount(ctx context.Context, rqst *resourcepb.RemoveGroupMemberAccountRqst) (*resourcepb.RemoveGroupMemberAccountRsp, error) {
-	p, err := self.getPersistenceStore()
+func (globule *Globule) RemoveGroupMemberAccount(ctx context.Context, rqst *resourcepb.RemoveGroupMemberAccountRqst) (*resourcepb.RemoveGroupMemberAccountRsp, error) {
+	p, err := globule.getPersistenceStore()
 	if err != nil {
 		return nil, err
 	}
 
 	// That service made user of persistence service.
-	err = self.deleteReference(p, rqst.AccountId, rqst.GroupId, "members", "Groups")
+	err = globule.deleteReference(p, rqst.AccountId, rqst.GroupId, "members", "Groups")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	err = self.deleteReference(p, rqst.GroupId, rqst.AccountId, "groups", "Accounts")
+	err = globule.deleteReference(p, rqst.GroupId, rqst.AccountId, "groups", "Accounts")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

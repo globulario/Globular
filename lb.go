@@ -20,22 +20,22 @@ import (
 /**
  * Start the load balancing service.
  */
-func (self *Globule) startLoadBalancingService() error {
-	load_balancer, port, err := self.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), self.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor) // must be accessible to all clients...
+func (globule *Globule) startLoadBalancingService() error {
+	load_balancer, port, err := globule.startInternalService(string(lbpb.File_proto_lb_proto.Services().Get(0).FullName()), lbpb.File_proto_lb_proto.Path(), globule.Protocol == "https", interceptors.ServerUnaryInterceptor, interceptors.ServerStreamInterceptor) // must be accessible to all clients...
 	if err == nil && load_balancer != nil {
 
 		// First of all I will creat a listener.
 		// Create the channel to listen on admin port.
 		lis, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err == nil {
-			lbpb.RegisterLoadBalancingServiceServer(load_balancer, self)
+			lbpb.RegisterLoadBalancingServiceServer(load_balancer, globule)
 
 			// Here I will make a signal hook to interrupt to exit cleanly.
 			go func() {
 				go func() {
 
 					// Run the load balancing in it own process.
-					self.startLoadBalancing()
+					globule.startLoadBalancing()
 
 					// no web-rpc server.
 					if err := load_balancer.Serve(lis); err != nil {
@@ -55,14 +55,14 @@ func (self *Globule) startLoadBalancingService() error {
 
 //*
 // Return the list of servers in order of availability (lower loaded at first).
-func (self *Globule) GetCanditates(ctx context.Context, rqst *lbpb.GetCanditatesRequest) (*lbpb.GetCanditatesResponse, error) {
+func (globule *Globule) GetCanditates(ctx context.Context, rqst *lbpb.GetCanditatesRequest) (*lbpb.GetCanditatesResponse, error) {
 
 	// The response channal.
 	canditates := make(chan []*lbpb.ServerInfo)
 
 	rqst_ := map[string]interface{}{"ServiceName": rqst.ServiceName, "Candidates": canditates}
 
-	self.lb_get_candidates_info_channel <- rqst_
+	globule.lb_get_candidates_info_channel <- rqst_
 
 	// That will return the list of candidates. (or an empty list if no candidate or services was found.
 	return &lbpb.GetCanditatesResponse{
@@ -72,7 +72,7 @@ func (self *Globule) GetCanditates(ctx context.Context, rqst *lbpb.GetCanditates
 
 //*
 // Report load to the load balancer from the client.
-func (self *Globule) ReportLoadInfo(stream lbpb.LoadBalancingService_ReportLoadInfoServer) error {
+func (globule *Globule) ReportLoadInfo(stream lbpb.LoadBalancingService_ReportLoadInfoServer) error {
 
 	for {
 		msg, err := stream.Recv()
@@ -81,14 +81,14 @@ func (self *Globule) ReportLoadInfo(stream lbpb.LoadBalancingService_ReportLoadI
 			stream.SendAndClose(&lbpb.ReportLoadInfoResponse{})
 
 			// here I will remove the server form the list of candidates.
-			self.lb_remove_candidate_info_channel <- msg.GetInfo().GetServerInfo()
+			globule.lb_remove_candidate_info_channel <- msg.GetInfo().GetServerInfo()
 
 			break
 		} else if err != nil {
 			return err
 		} else {
 			// Here I will process the request.
-			self.lb_load_info_channel <- msg.GetInfo()
+			globule.lb_load_info_channel <- msg.GetInfo()
 		}
 	}
 
@@ -124,29 +124,29 @@ func (s *loadSorter) Less(i, j int) bool {
 }
 
 // The load balancing function.
-func (self *Globule) startLoadBalancing() {
+func (globule *Globule) startLoadBalancing() {
 	fmt.Println("start load balancing")
 
 	// Here will create the action channel.
-	self.lb_load_info_channel = make(chan *lbpb.LoadInfo)
-	self.lb_remove_candidate_info_channel = make(chan *lbpb.ServerInfo)
-	self.lb_get_candidates_info_channel = make(chan map[string]interface{})
-	self.lb_stop_channel = make(chan bool)
+	globule.lb_load_info_channel = make(chan *lbpb.LoadInfo)
+	globule.lb_remove_candidate_info_channel = make(chan *lbpb.ServerInfo)
+	globule.lb_get_candidates_info_channel = make(chan map[string]interface{})
+	globule.lb_stop_channel = make(chan bool)
 
 	// Here I will keep the list of server by service name.
-	loads := make(map[string][]*lbpb.LoadInfo, 0)
+	loads := make(map[string][]*lbpb.LoadInfo)
 
 	// Start processing load balancing message.
 	go func() {
 		for {
 			select {
-			case <-self.lb_stop_channel:
+			case <-globule.lb_stop_channel:
 				log.Println("---> stop load balancer")
-				self.lb_stop_channel <- true
+				globule.lb_stop_channel <- true
 				return
 
 			// Report load balancing informations.
-			case load_info := <-self.lb_load_info_channel:
+			case load_info := <-globule.lb_load_info_channel:
 				if load_info != nil {
 
 					// Create the array if it not exist.
@@ -173,7 +173,7 @@ func (self *Globule) startLoadBalancing() {
 					}
 				}
 			// Remove the server from the list of candidate.
-			case server_info := <-self.lb_remove_candidate_info_channel:
+			case server_info := <-globule.lb_remove_candidate_info_channel:
 				//log.Println("----> remove server from canditate list ", server_info)
 				lst := make([]*lbpb.LoadInfo, 0)
 
@@ -188,7 +188,7 @@ func (self *Globule) startLoadBalancing() {
 
 				loads[server_info.Name] = lst
 				// Return the list of candidates for a given services.
-			case rqst := <-self.lb_get_candidates_info_channel:
+			case rqst := <-globule.lb_get_candidates_info_channel:
 				canditates := make([]*lbpb.ServerInfo, 0)
 
 				// From the list list of load info I will retreive the server info.

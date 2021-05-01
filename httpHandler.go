@@ -136,10 +136,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	//get the *fileheaders
 	files := formdata.File["multiplefiles"] // grab the filenames
-	var path string                         // grab the filenames
 
 	// Get the path where to upload the file.
-	path = r.FormValue("path")
+	path := r.FormValue("path")
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -155,8 +154,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// I will be threaded like a file service methode.
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
+
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("------------->", err)
 		}
 
 		// validate ressource access...
@@ -164,6 +165,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("------------->", err)
 		}
 	}
 
@@ -179,12 +181,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("------------->", err)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("------------->", err)
 			}
 		}
 	}
@@ -195,23 +199,24 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		Utility.CreateDirIfNotExist(globule.webRoot + path)
 	}
 
-	for i, _ := range files { // loop through the files one by one
-		file, err := files[i].Open()
-		defer file.Close()
+	for _, f:= range files { // loop through the files one by one
+		file, err := f.Open()
 		if err != nil {
 			log.Println(w, err)
 			return
 		}
 
+		defer file.Close()
+
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
-			globule.addResourceOwner(path+"/"+files[i].Filename, user, rbacpb.SubjectType_ACCOUNT)
+			globule.addResourceOwner(path+"/"+f.Filename, user, rbacpb.SubjectType_ACCOUNT)
 		} else if len(application) > 0 {
-			globule.addResourceOwner(path+"/"+files[i].Filename, application, rbacpb.SubjectType_APPLICATION)
+			globule.addResourceOwner(path+"/"+f.Filename, application, rbacpb.SubjectType_APPLICATION)
 		}
 
 		// Create the file depending if the path is users, applications or something else...
-		path_ := path + "/" + files[i].Filename
+		path_ := path + "/" + f.Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
 		} else {
@@ -219,8 +224,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		out, err := os.Create(path_)
+		if err != nil{
+			return
+		}
 
 		defer out.Close()
+
 		if err != nil {
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
@@ -270,15 +279,15 @@ func visit(files *[]string) filepath.WalkFunc {
 			return nil
 		}
 		mimeType := ""
-		if strings.Index(info.Name(), ".") != -1 {
+		if strings.Contains(info.Name(), ".") {
 			fileExtension := info.Name()[strings.LastIndex(info.Name(), "."):]
 			mimeType = mime.TypeByExtension(fileExtension)
 		} else {
 			f_, err := os.Open(path)
-			defer f_.Close()
 			if err != nil {
 				return nil
 			}
+			defer f_.Close()
 			mimeType, _ = Utility.GetFileContentType(f_)
 		}
 
@@ -331,10 +340,8 @@ func createVideoStream(path string) error {
 
 	defer os.RemoveAll(path)
 
-	var cmd *exec.Cmd
-
 	// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
-	cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
+	cmd := exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -419,7 +426,7 @@ func getVideoDuration(path string) float64 {
 		return 0.0
 	}
 
-	duration, _ := strconv.ParseFloat(strings.TrimSpace(string(out.Bytes())), 64)
+	duration, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
 
 	return duration
 }
@@ -499,6 +506,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || !hasAccess {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("-----------> ", err)
 		}
 
 		// validate ressource access...
@@ -506,6 +514,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("-----------> ", err)
 		}
 	}
 
@@ -515,17 +524,20 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
+			log.Println("-----------> ", err)
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("-----------> ", err)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
+				log.Println("-----------> ", err)
 			}
 		}
 	}
@@ -559,7 +571,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			for scanner.Scan() {
 				line := scanner.Text()
 				if strings.HasPrefix(line, "import") {
-					if strings.Index(line, `'@`) > -1 {
+					if strings.Contains(line, `'@`) {
 						path_, err := resolveImportPath(rqst_path, line)
 						if err == nil {
 							line = line[0:strings.Index(line, `'@`)] + `'` + path_ + `'`
