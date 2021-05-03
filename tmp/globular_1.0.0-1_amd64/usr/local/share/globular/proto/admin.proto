@@ -1,0 +1,411 @@
+/**
+ * Admin functionality.
+ */
+syntax = "proto3";
+package admin;
+
+option go_package="admin/adminpb";
+
+import "google/protobuf/struct.proto";
+
+// Return the configuration of the whole server.
+message GetConfigRequest {
+}
+
+message GetConfigResponse {
+  google.protobuf.Struct result = 1;
+}
+
+message SaveConfigRequest {
+  string config = 1; // The json string
+}
+
+message SaveConfigResponse {
+  string result = 1;
+}
+
+message StopServiceRequest {
+  string service_id = 1;
+}
+
+message StopServiceResponse {
+  bool result = 1;
+}
+
+message StartServiceRequest {
+  string service_id = 1;
+}
+
+// Return the pid of
+message StartServiceResponse {
+  int64 service_pid = 1;
+  int64 proxy_pid = 2;
+}
+
+// Restart all services.
+message RestartServicesRequest {
+}
+
+message RestartServicesResponse {
+}
+
+// Register an external service.
+message RegisterExternalApplicationRequest {
+  string service_id = 1;
+  string path = 2;
+  repeated string args = 3;
+}
+
+// Return the pid of the service.
+message RegisterExternalApplicationResponse {
+  int64 service_pid = 1;
+}
+
+message SetRootPasswordRequest{
+	string oldPassword = 1;
+	string newPassword = 2;
+}
+
+message SetRootPasswordResponse {
+	string token = 1;
+}
+
+message SetRootEmailRequest{
+	string oldEmail = 1;
+	string newEmail = 2;
+}
+
+message SetRootEmailResponse {
+	string token = 1;
+}
+
+// TODO reset password.
+
+message SetPasswordRequest{
+	string accountId = 1;
+	string oldPassword = 2;
+	string newPassword = 3;
+}
+
+message SetPasswordResponse {
+	string token = 1;
+}
+
+message SetEmailRequest{
+	string accountId = 1;
+	string oldEmail = 2;
+	string newEmail = 3;
+}
+
+message SetEmailResponse {
+	string token = 1;
+}
+
+message HasRunningProcessRequest{
+	string name = 1;
+}
+
+message HasRunningProcessResponse {
+	bool result = 1;
+}
+
+message PublishServiceRequest{
+	string serviceId = 1;
+	string serviceName = 2;
+	string user = 3;
+	string organization = 4;
+	string path = 5;
+	string dicorveryId = 6;
+	string repositoryId = 7;
+	string description = 8;
+	repeated string keywords = 9;
+	string version = 10;
+	string platform = 11;
+}
+
+message UploadServicePackageRequest{
+	string user = 1;
+	string organization = 2;
+	bytes data = 3;
+}
+
+message UploadServicePackageResponse{
+	string path = 1;
+}
+
+message PublishServiceResponse{
+	bool result = 1;
+}
+
+message InstallServiceRequest{
+	string dicorveryId = 1;
+	string serviceId = 2;
+	string publisherId = 3;
+	string version = 4;
+}
+
+message InstallServiceResponse{
+	bool result = 1;
+}
+
+message UninstallServiceRequest{
+	string serviceId = 1;
+	string publisherId = 2;
+	string version = 3;
+	bool deletePermissions = 4;
+}
+
+message UninstallServiceResponse{
+	bool result = 1;
+}
+
+message InstallApplicationRequest{
+	string dicorveryId = 1;
+	string applicationId = 2;
+	string publisherId = 3;
+	string version = 4;
+	string domain = 5; // optional usefull if your server serve multiple domain.
+}
+
+message InstallApplicationResponse{
+	bool result = 1;
+}
+
+message UninstallApplicationRequest{
+	string applicationId = 1;
+	string publisherId = 2;
+	string version = 3;
+	bool deletePermissions = 4;
+	string domain = 5; // optional usefull if your server serve multiple domain.
+}
+
+message UninstallApplicationResponse{
+	bool result = 1;
+}
+
+// Contain the information about serivces requiered by application.
+message MicroService {
+	string repositoryId = 1; // Where to search
+	string publisherId = 2; // The organization or user
+	string id = 3; // The id of the dependency
+	string version = 4; // The version of the dependency
+	string platform = 5; // The platform
+}
+
+message Role {
+	string id=1;
+	string name = 2;
+	repeated string actions = 3;
+}
+
+message Group {
+	string id=1;
+	string name = 2;
+}
+
+message DeployApplicationRequest{
+	string name = 1;
+	string domain = 2;
+	bytes data = 3;
+	string user = 4;
+	string organization = 5;
+	string version = 6;
+	repeated string keywords = 7;
+	string description = 8;
+	repeated MicroService microServices = 9;
+	repeated string actions = 10; // That need to be use by the application...
+	string repository = 11;
+	string discovery = 12;
+	string icon = 13;
+	string alias = 14;
+	repeated Role roles = 15;
+	repeated Group groups = 16;
+}
+
+message DeployApplicationResponse{
+	bool result = 1;
+}
+
+message RunCmdRequest{
+	string cmd = 1;
+	repeated string args = 2;
+	bool blocking=3;
+}
+
+message RunCmdResponse{
+	string result = 1; // The content of the result as a string.
+	int32 pid=4;
+}
+
+message SetEnvironmentVariableRequest {
+	string name = 1;
+	string value = 2;
+}
+
+message SetEnvironmentVariableResponse {
+	/** Nothing here **/
+}
+
+message GetEnvironmentVariableRequest {
+	string name = 1;
+	
+}
+
+message GetEnvironmentVariableResponse {
+	string value = 2;
+}
+
+
+message UnsetEnvironmentVariableRequest {
+	string name = 1;
+}
+
+message UnsetEnvironmentVariableResponse {
+	/** Nothing here **/
+}
+
+
+message InstallCertificatesRequest {
+   string domain = 1;
+   int32 port = 2; // 80 by default
+   string path = 3; // tmp by default
+}
+
+message InstallCertificatesResponse {
+   string cacert = 1;
+   string cert = 2;
+   string certkey = 3;
+}
+
+message KillProcessRequest{
+	int64 pid = 1;
+}
+
+message KillProcessResponse{
+
+}
+
+message KillProcessesRequest {
+	string name = 1;
+}
+
+message KillProcessesResponse {
+	
+}
+
+message GetPidsRequest {
+	string name = 1;
+}
+
+message GetPidsResponse {
+	repeated int32 pids = 1;
+}
+
+message UpdateRequest{
+	string platform = 1; // The platform
+	bytes data = 2;
+}
+
+message UpdateResponse {
+	
+}
+
+message DownloadGlobularRequest{
+	string platform = 1; // The platform
+	string source = 2; // The address of the server to update from
+}
+
+message DownloadGlobularResponse {
+	bytes data = 1;
+}
+
+service AdminService {
+  
+  // Update a given globular server (use by command line.)
+  rpc Update(stream  UpdateRequest) returns(UpdateResponse);
+
+  // Download Globular executable file.
+  rpc DownloadGlobular(DownloadGlobularRequest) returns(stream DownloadGlobularResponse);
+
+  // Install certificates from a given server at a given path.
+  rpc InstallCertificates(InstallCertificatesRequest) returns(InstallCertificatesResponse);
+		
+  //Set the root password
+  rpc SetRootPassword(SetRootPasswordRequest) returns(SetRootPasswordResponse);
+
+  //Set the root email
+  rpc SetRootEmail(SetRootEmailRequest) returns(SetRootEmailResponse);
+	
+  //Set the account password
+  rpc SetPassword(SetPasswordRequest) returns(SetPasswordResponse);
+
+  //Set the account email
+  rpc SetEmail(SetEmailRequest) returns(SetEmailResponse);
+
+  // Return configuration whitout all detail, no needed to be secure.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Return the configuration with all detail, must be secure.
+  rpc GetFullConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // Save a service configuration
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse);
+
+  // Stop a service
+  rpc StopService(StopServiceRequest) returns (StopServiceResponse);
+
+  // Start a service
+  rpc StartService(StartServiceRequest) returns (StartServiceResponse);
+
+  // Restart all Services also the http(s)
+  rpc RestartServices(RestartServicesRequest) returns (RestartServicesResponse);
+
+  // Create and upload service package
+  rpc UploadServicePackage(stream UploadServicePackageRequest) returns(UploadServicePackageResponse);
+
+  // Publish a service...
+  rpc PublishService(PublishServiceRequest) returns (PublishServiceResponse);
+
+  // Install a service...
+  rpc InstallService(InstallServiceRequest) returns (InstallServiceResponse);
+
+  // Uninstall a service...
+  rpc UninstallService(UninstallServiceRequest) returns (UninstallServiceResponse);
+
+  // Register external service to be start by Globular in order to run 
+  // as exemple MongoDB and Prometheus.
+  rpc RegisterExternalApplication(RegisterExternalApplicationRequest) returns (RegisterExternalApplicationResponse);
+
+  // Deloyed a web application to a globular node. That must be use at development mostly...
+  rpc DeployApplication(stream DeployApplicationRequest) returns (DeployApplicationResponse);
+
+  // Install application...
+  rpc InstallApplication(InstallApplicationRequest) returns (InstallApplicationResponse);
+
+  // Uninstall application...
+  rpc UninstallApplication(UninstallApplicationRequest) returns (UninstallApplicationResponse);
+
+  // Test if a process of given name is running...
+  rpc HasRunningProcess(HasRunningProcessRequest) returns(HasRunningProcessResponse);
+
+  // Run an external command.
+  rpc RunCmd(RunCmdRequest) returns(stream RunCmdResponse);
+
+  // Set environement variable.
+  rpc SetEnvironmentVariable(SetEnvironmentVariableRequest) returns(SetEnvironmentVariableResponse);
+  
+  // Get environement variable.
+  rpc GetEnvironmentVariable(GetEnvironmentVariableRequest) returns(GetEnvironmentVariableResponse);
+
+  // Unset environement variable.
+  rpc UnsetEnvironmentVariable(UnsetEnvironmentVariableRequest) returns(UnsetEnvironmentVariableResponse);
+
+  // Kill process by id
+  rpc KillProcess(KillProcessRequest) returns(KillProcessResponse);
+
+  // Kill process by name
+  rpc KillProcesses(KillProcessesRequest) returns(KillProcessesResponse);
+
+  // Return the list of process id with a given name.
+  rpc GetPids(GetPidsRequest) returns(GetPidsResponse);
+}

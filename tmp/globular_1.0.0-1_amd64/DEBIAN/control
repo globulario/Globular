@@ -1,0 +1,5 @@
+Package:globular
+Version:1.0.0
+Architecture:amd64
+Maintainer: Project developed and maitained by Globular.io for more infos <info@globular.io>
+Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.

@@ -220,6 +220,7 @@ func NewGlobule() *Globule {
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.RootPassword = "adminadmin"
+	g.IndexApplication = "globular_installer" // I will use the installer as defaut.
 
 	g.PortHttp = 80   // The default http port
 	g.PortHttps = 443 // The default https port number
@@ -251,35 +252,6 @@ func NewGlobule() *Globule {
 	// Promometheus metrics for services.
 	http.Handle("/metrics", promhttp.Handler())
 
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
-	// Initialyse globular from it configuration file.
-	g.config = dir + "/" + "config"
-	file, err := ioutil.ReadFile(g.config + "/" + "config.json")
-
-	// Init the service with the default port address
-	if err == nil {
-		// get the existing configuration.
-		err := json.Unmarshal(file, &g)
-		if err != nil {
-			log.Println("fail to initialyse the globule configuration")
-		}
-
-		// Now I will initialyse sync services map.
-		for _, v := range g.Services {
-			s := v.(map[string]interface{})
-			s_ := new(sync.Map)
-			for k_, v_ := range s {
-				s_.Store(k_, v_)
-			}
-			g.setService(s_)
-		}
-
-	} else {
-		// save the configuration to set the port number.
-		g.AdminEmail = "admin@globular.app"
-	}
-
 	// Keep in global var to by http handlers.
 	globule = g
 
@@ -304,9 +276,6 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/uploads", FileUploadHandler)
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
-
-	// if globular is found.
-	g.webRoot = g.path + "/webroot" // The default directory to server.
 
 	if Utility.Exists(g.path+"/bin/grpcwebproxy") || Utility.Exists(g.path+"/bin/grpcwebproxy.exe") {
 		// TODO test restart with initDirectories
@@ -367,7 +336,6 @@ func (globule *Globule) sendApplicationNotification(application string, message 
 	return eventHub.Publish(application+"_notification_event", []byte(jsonStr))
 }
 
-
 // Little shortcut to get access to map value in one step.
 func setValues(m *sync.Map, values map[string]interface{}) {
 	if m == nil {
@@ -427,7 +395,7 @@ func (globule *Globule) getServices() []*sync.Map {
 }
 
 func (globule *Globule) setService(s *sync.Map) {
-	id, _ := s.Load("Id") //service["Id"].(string)
+	id, _ := s.Load("Id")
 	globule.services.Store(id.(string), s)
 }
 
@@ -568,31 +536,36 @@ func (globule *Globule) initDirectories() {
 	// Set external map services.
 	globule.ExternalApplications = make(map[string]ExternalApplication)
 
-	// keep the root in global variable for the file handler.
-	Utility.CreateDirIfNotExist(globule.webRoot) // Create the directory if it not exist.
+	//////////////////////////////////////////////////////////////////////////////////////
+	// There is the default directory initialisation...
+	//////////////////////////////////////////////////////////////////////////////////////
 
-	if !Utility.Exists(globule.webRoot + "/index.html") {
-
-		// in that case I will create a new index.html file.
-		ioutil.WriteFile(globule.webRoot+"/"+"index.html", []byte(
-			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-	<html lang="en">
-	
-		<head>
-			<meta http-equiv="content-type" content="text/html; charset=utf-8">
-			<title>Title Goes Here</title>
-		</head>
-	
-		<body>
-			<p>Welcome to Globular `+globule.Version+`</p>
-		</body>
-	
-	</html>`), 0644)
-	}
+	// Display the path
+	log.Println("==--------------> ", globule.path)
 
 	// Create the directory if is not exist.
-	globule.data = globule.path + "/data"
-	Utility.CreateDirIfNotExist(globule.data)
+	if globule.path == "/usr/local/share/globular" {
+		// Here we have a linux standard installation.
+		globule.data = "/var/globular/data"
+		globule.webRoot = "/var/globular/webroot"
+		globule.config = "/etc/globular/config"
+	} else {
+
+		globule.data = globule.path + "/data"
+		Utility.CreateDirIfNotExist(globule.data)
+
+		// Configuration directory
+		globule.config = globule.path + "/config"
+		Utility.CreateDirIfNotExist(globule.config)
+
+		globule.webRoot = globule.path + "/webroot" // The default directory to server.
+		// keep the root in global variable for the file handler.
+		Utility.CreateDirIfNotExist(globule.webRoot) // Create the directory if it not exist.
+	}
+
+	// Create the creds directory if it not already exist.
+	globule.creds = globule.config + "/tls"
+	Utility.CreateDirIfNotExist(globule.creds)
 
 	// Files directorie that contain user's directories and application's directory
 	globule.users = globule.data + "/files/users"
@@ -602,20 +575,47 @@ func (globule *Globule) initDirectories() {
 	globule.applications = globule.data + "/files/applications"
 	Utility.CreateDirIfNotExist(globule.applications)
 
-	// Configuration directory
-	globule.config = globule.path + "/config"
-	Utility.CreateDirIfNotExist(globule.config)
-
-	// Create the creds directory if it not already exist.
-	globule.creds = globule.config + "/tls"
-	Utility.CreateDirIfNotExist(globule.creds)
-
 	// Initialyse globular from it configuration file.
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
 
 	// Init the service with the default port address
 	if err == nil {
-		json.Unmarshal(file, &globule)
+		err := json.Unmarshal(file, &globule)
+		if err != nil {
+			log.Println("fail to read init from ", globule.config+"/config.json", err)
+		}
+
+		// Now I will initialyse sync services map.
+		for _, v := range globule.Services {
+			s := v.(map[string]interface{})
+			s_ := new(sync.Map)
+			for k_, v_ := range s {
+				s_.Store(k_, v_)
+			}
+			globule.setService(s_)
+		}
+
+	} else {
+		log.Println("fail to read configuration ", globule.config+"/config.json", err)
+	}
+
+	if !Utility.Exists(globule.webRoot + "/index.html") {
+
+		// in that case I will create a new index.html file.
+		ioutil.WriteFile(globule.webRoot+"/"+"index.html", []byte(
+			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+		<html lang="en">
+		
+			<head>
+				<meta http-equiv="content-type" content="text/html; charset=utf-8">
+				<title>Title Goes Here</title>
+			</head>
+		
+			<body>
+				<p>Welcome to Globular `+globule.Version+`</p>
+			</body>
+		
+		</html>`), 0644)
 	}
 
 	// Convert video file if there some to be convert.
@@ -863,7 +863,7 @@ func (globule *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error
 	}
 
 	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := "/bin" + "/grpcwebproxy"
+	proxyPath := "/bin/grpcwebproxy"
 	if !strings.HasSuffix(proxyPath, ".exe") && runtime.GOOS == "windows" {
 		proxyPath += ".exe" // in case of windows.
 	}
@@ -1429,7 +1429,7 @@ func (globule *Globule) initService(s *sync.Map) error {
 	if getStringVal(s, "Protocol") == "grpc" {
 		// The domain must be set in the sever configuration and not change after that.
 		hasTls := globule.Protocol == "https" //Utility.ToBool(s["TLS"])
-		s.Store("TLS", hasTls)             // set the tls...
+		s.Store("TLS", hasTls)                // set the tls...
 		if hasTls {
 			// Set TLS local services configuration here.
 			s.Store("CertAuthorityTrust", globule.creds+"/ca.crt")
@@ -1549,7 +1549,6 @@ func (globule *Globule) initServices() {
 	// It will be execute the first time only...
 	configPath := globule.config + "/config.json"
 	if !Utility.Exists(configPath) {
-
 		filepath.Walk(globule.getBasePath(), func(path string, info os.FileInfo, err error) error {
 			path = strings.ReplaceAll(path, "\\", "/")
 			if info == nil {
@@ -1595,6 +1594,7 @@ func (globule *Globule) initServices() {
 		})
 	}
 
+	// Set service methods.
 	filepath.Walk(globule.getBasePath(), func(path string, info os.FileInfo, err error) error {
 		path = strings.ReplaceAll(path, "\\", "/")
 		if info == nil {
@@ -1609,10 +1609,12 @@ func (globule *Globule) initServices() {
 
 	// Set the certificate keys...
 	for _, s := range globule.getServices() {
+		log.Println("init service ", getStringVal(s, "Name"))
 		if getStringVal(s, "Protocol") == "grpc" {
+
 			// The domain must be set in the sever configuration and not change after that.
 			hasTls := globule.Protocol == "https" //Utility.ToBool(s["TLS"])
-			s.Store("TLS", hasTls)             // set the tls...
+			s.Store("TLS", hasTls)                // set the tls...
 			if hasTls {
 				// Set TLS local services configuration here.
 				s.Store("CertAuthorityTrust", globule.creds+"/ca.crt")
@@ -1649,6 +1651,8 @@ func (globule *Globule) initServices() {
 		log.Println("Init service: ", name)
 		if name == "file.FileService" {
 			s.Store("Root", globule.data+"/files")
+		} else if name == "conversation.ConversationService" {
+			s.Store("Root", globule.data)
 		}
 
 		err := globule.initService(s)
@@ -2378,11 +2382,6 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	if err != nil {
 		return err
 	}
-	/*
-		cert_rqst := certificate.ObtainForCSRRequest{
-			CSR:    csr,
-			Bundle: true,
-		}*/
 
 	resource, err := client.Certificate.ObtainForCSR(*csr, true)
 	if err != nil {

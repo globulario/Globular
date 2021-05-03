@@ -48,7 +48,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 	w.WriteHeader(http.StatusCreated)
 
-	crt, err := ioutil.ReadFile(globule.creds + "/" + "ca.crt")
+	crt, err := ioutil.ReadFile(globule.creds + "/ca.crt")
 	if err != nil {
 		http.Error(w, "Client ca cert not found!", http.StatusBadRequest)
 		return
@@ -65,7 +65,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
 
-	crt, err := ioutil.ReadFile(globule.creds + "/" + "san.conf")
+	crt, err := ioutil.ReadFile(globule.creds + "/san.conf")
 	if err != nil {
 		http.Error(w, "Client Subject Alernate Name configuration found!", http.StatusBadRequest)
 		return
@@ -199,7 +199,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		Utility.CreateDirIfNotExist(globule.webRoot + path)
 	}
 
-	for _, f:= range files { // loop through the files one by one
+	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
 			log.Println(w, err)
@@ -224,7 +224,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		out, err := os.Create(path_)
-		if err != nil{
+		if err != nil {
 			return
 		}
 

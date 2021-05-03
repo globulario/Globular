@@ -1,0 +1,11 @@
+
+		# Thing to do before removing
+		# Stop, Disable and Uninstall Globular service.
+		sudo systemctl stop Globular
+		sudo systemctl disable Globular
+		sudo Globular uninstall
+		sudo rm -r /etc/globular/config
+		sudo rm -r /usr/local/share/globular
+		sudo rm -r /var/globular/data
+		echo Hope again soon...
+		

@@ -92,7 +92,7 @@ func (globule *Globule) startAdminService() error {
 
 func (globule *Globule) getConfig() map[string]interface{} {
 
-	config := make(map[string]interface{})
+	config := make(map[string]interface{}, 0)
 	config["Name"] = globule.Name
 	config["PortHttp"] = globule.PortHttp
 	config["PortHttps"] = globule.PortHttps
@@ -119,17 +119,16 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config["Organization"] = globule.Organization
 	config["IndexApplication"] = globule.IndexApplication
 	config["Path"] = globule.path
-	config["Files"] = globule.data + "/files"
-	config["Data"] = globule.data
-	config["Config"] = globule.config
+	config["DataPath"] = globule.data
+	config["ConfigPath"] = globule.config
 
 	// return the full service configuration.
 	// Here I will give only the basic services informations and keep
 	// all other infromation secret.
-	config["Services"] = make(map[string]interface{})
+	config["Services"] = make(map[string]interface{}, 0)
 
 	for _, service_config := range globule.getServices() {
-		s := make(map[string]interface{})
+		s := make(map[string]interface{}, 0)
 		s["Domain"] = getStringVal(service_config, "Domain")
 		s["Port"] = getIntVal(service_config, "Port")
 		s["Proxy"] = getIntVal(service_config, "Proxy")
@@ -199,7 +198,7 @@ func (globule *Globule) watchConfigFile() {
 
 			// Here I will read the file.
 			data, _ := ioutil.ReadFile(globule.config + "/config.json")
-			config := make(map[string]interface{})
+			config := make(map[string]interface{}, 0)
 			json.Unmarshal(data, &config)
 			globule.setConfig(config)
 
@@ -315,9 +314,9 @@ func (globule *Globule) saveServiceConfig(config *sync.Map) bool {
 		b, err := ioutil.ReadAll(f)
 		if err == nil {
 			// get previous configuration...
-			config_ := make(map[string]interface{})
+			config_ := make(map[string]interface{}, 0)
 			json.Unmarshal(b, &config_)
-			config__ := make(map[string]interface{})
+			config__ := make(map[string]interface{}, 0)
 			config.Range(func(k, v interface{}) bool {
 				config__[k.(string)] = v
 				return true
@@ -476,7 +475,7 @@ func (globule *Globule) setConfig(config map[string]interface{}) {
 // That function must be accessible by Root only.
 func (globule *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfigRequest) (*adminpb.SaveConfigResponse, error) {
 	// Save service...
-	config := make(map[string]interface{})
+	config := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(rqst.Config), &config)
 	if err != nil {
 		return nil, status.Errorf(
@@ -664,7 +663,7 @@ func (globule *Globule) installApplication(domain, name, publisherId, version, d
 	}
 
 	count, err := store.Count(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+name+`"}`, "")
-	application := make(map[string]interface{})
+	application := make(map[string]interface{}, 0)
 	application["_id"] = name
 	application["password"] = Utility.GenerateUUID(name)
 	application["path"] = "/" + name // The path must be the same as the application name.
@@ -741,7 +740,7 @@ func (globule *Globule) installApplication(domain, name, publisherId, version, d
 		role := roles[i]
 		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"`+role.Id+`"}`, "")
 		if err != nil || count == 0 {
-			r := make(map[string]interface{})
+			r := make(map[string]interface{}, 0)
 			r["_id"] = role.Id
 			r["name"] = role.Name
 			r["actions"] = role.Actions
@@ -766,7 +765,7 @@ func (globule *Globule) installApplication(domain, name, publisherId, version, d
 		group := groups[i]
 		count, err := store.Count(context.Background(), "local_resource", "local_resource", "Groups", `{"_id":"`+group.Id+`"}`, "")
 		if err != nil || count == 0 {
-			g := make(map[string]interface{})
+			g := make(map[string]interface{}, 0)
 			g["_id"] = group.Id
 			g["name"] = group.Name
 			g["members"] = []string{}
@@ -1775,7 +1774,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 				return errors.New("no configuration file was found")
 			}
 
-			s := make(map[string]interface{})
+			s := make(map[string]interface{}, 0)
 			data, err := ioutil.ReadFile(configs[0])
 			if err != nil {
 				return err
@@ -2004,7 +2003,7 @@ func (globule *Globule) stopService(s *sync.Map) error {
 	s.Store("ProxyProcess", -1)
 	s.Store("State", "stopped")
 
-	config := make(map[string]interface{})
+	config := make(map[string]interface{}, 0)
 	s.Range(func(k, v interface{}) bool {
 		config[k.(string)] = v
 		return true

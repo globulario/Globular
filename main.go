@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -8,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -104,6 +106,10 @@ func main() {
 	}
 
 	s, err := service.New(g, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	errs := make(chan error, 5)
 	logger, err = s.Logger(errs)
 	if err != nil {
@@ -125,7 +131,8 @@ func main() {
 
 		// Package development environnement into a given
 		distCommand := flag.NewFlagSet("dist", flag.ExitOnError)
-		distCommand_path := distCommand.String("path", "", "You must specify the dist path. (Required)")
+		distCommand_path := distCommand.String("path", "", "You must specify the distribution path. (Required)")
+		distCommand_revision := distCommand.String("revision", "", "You must specify the package revision. (Required)")
 
 		// Deploy command
 		deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
@@ -487,11 +494,16 @@ func main() {
 		if distCommand.Parsed() {
 			// Required Flags
 			if *distCommand_path == "" {
+				fmt.Println("No path was given!")
 				distCommand.PrintDefaults()
 				os.Exit(1)
 			}
-
-			install(g, *distCommand_path)
+			if *distCommand_revision == "" {
+				fmt.Println("No revision number was given!")
+				distCommand.PrintDefaults()
+				os.Exit(1)
+			}
+			dist(g, *distCommand_path, *distCommand_revision)
 		}
 
 		if deployCommand.Parsed() {
@@ -923,10 +935,200 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
  * That function is use to install globular from the development environnement.
  * The server must have run at least once before that command is call. Each service must
  * have been run at least one to appear in the installation.
+ *
+ * The basic sequence are describe at
+ * https://www.internalpointers.com/post/build-binary-deb-package-practical-guide
+ *
+ * Dependencie script are describe at
+ *
+ * Utilisation:
+ * Globular dist -path=/tmp -revision=1
  */
-func install(g *Globule, path string) {
+func dist(g *Globule, path string, revision string) {
 	// That function is use to install globular at a given repository.
-	fmt.Println("install globular in directory: ", path)
+	fmt.Println("create distribution in ", path)
+
+	// The debian package...
+	if runtime.GOOS == "linux" {
+		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
+
+		// remove existiong files...
+		os.RemoveAll(debian_package_path)
+
+		// 1. Create the working directory
+		Utility.CreateDirIfNotExist(debian_package_path)
+
+		// 2. Create the internal structure
+
+		// globular exec and other services exec
+		distro_path := debian_package_path + "/usr/local/share/globular"
+
+		// globular data
+		data_path := debian_package_path + "/var/globular/data"
+
+		// globular webroot
+		webroot_path := debian_package_path + "/var/globular/webroot"
+
+		// globular configurations
+		config_path := debian_package_path + "/etc/globular/config"
+
+		// set the web installer in the webroot
+		if Utility.Exists(g.webRoot + "/globular_installer") {
+			Utility.CreateDirIfNotExist(webroot_path)
+			Utility.CopyDir(g.webRoot+"/globular_installer", webroot_path)
+		} else {
+			log.Println("** There's no gobular installer project found!")
+		}
+
+		// Create the bin directories.
+		Utility.CreateDirIfNotExist(distro_path)
+		Utility.CreateDirIfNotExist(data_path)
+		Utility.CreateDirIfNotExist(config_path)
+
+		// Create the distribution.
+		__dist(g, distro_path)
+
+		// 3. Create the control file
+		Utility.CreateDirIfNotExist(debian_package_path + "/DEBIAN")
+
+		packageConfig := ""
+		// Now I will create the debian.
+
+		// - Package – the name of your program;
+		packageConfig += "Package:globular\n"
+
+		// - Version – the version of your program;
+		packageConfig += "Version:" + g.Version + "\n"
+
+		// - Architecture – the target architecture
+		packageConfig += "Architecture:" + runtime.GOARCH + "\n"
+
+		// - Maintainer – the name and the email address of the person in charge of the package maintenance;
+		packageConfig += "Maintainer: Project developed and maitained by Globular.io for more infos <info@globular.io>\n"
+
+		// - Description - a brief description of the program.
+		packageConfig += "Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
+
+		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// test the
+		/*
+			installMongoScript :=`
+			cd ~/
+			wget http://downloads.mongodb.org/linux/mongodb-linux-x86_64-1.2.2.tgz
+			tar -xf mongodb-linux-x86_64-1.2.2.tgz
+			mkdir -p /var/mongodb
+			mv mongodb-linux-x86_64-1.2.2/* /var/mongodb/
+			ln -nfs /var/mongodb/bin/mongod /usr/local/sbin
+
+			# Ensures the required folders exist for MongoDB to run properly
+			mkdir -p /data/db
+			mkdir -p /usr/local/mongodb/logs
+
+			# Downloads the MongoDB init script to the /etc/init.d/ folder
+			# Renames it to mongodb and makes it executable
+			cd /etc/init.d/
+			wget http://gist.github.com/raw/162954/f5d6434099b192f2da979a0356f4ec931189ad07/gistfile1.sh
+			mv gistfile1.sh mongodb
+			chmod +x mongodb
+
+			# Ensure MongoDB starts up automatically after every system (re)boot
+			update-rc.d mongodb start 51 S .
+
+			# Starts up MongoDB right now
+			/etc/init.d/mongodb start
+			`
+		*/
+
+		// Here I will set the script to run before the installation...
+		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
+		preinst := `
+		echo "Welcome to Globular!-)"
+		`
+
+		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		postinst := `
+		# Create a link into bin to it original location.
+		 echo "install globular as service..."
+		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
+		 chmod ugo+x /usr/local/bin/Globular
+		 /usr/local/bin/Globular install
+		 systemctl start Globular
+		 systemctl enable Globular
+		 echo "To complete your server setup go to http://localhost"
+		`
+		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		prerm := `
+		# Thing to do before removing
+		# Stop, Disable and Uninstall Globular service.
+		echo "Stop runing globular service..."
+		systemctl stop Globular
+		systemctl disable Globular
+		echo "Unistall globular service..."
+		/usr/local/bin/Globular uninstall
+		`
+		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		postrm := `
+		# Thing to do after removing
+		find /usr/local/bin/Globular -xtype l -delete
+		echo "Hope to see you again soon!"
+		`
+		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// 5. Build the deb package
+		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
+		cmdOutput := &bytes.Buffer{}
+		cmd.Stdout = cmdOutput
+
+		err = cmd.Run()
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Print(cmdOutput.String())
+
+	} else {
+		fmt.Println("Only linux debian package are available as distro at the moment...")
+	}
+
+}
+
+// The globular distribution directory.
+//
+// There's some note about globular running as service...
+// ** service info https://phoenixnap.com/kb/start-stop-restart-linux-services
+// sudo systemctl start Globular
+// restart the service.
+// sudo systemctl restart Globular
+// stop the service
+// sudo systemctl stop Globular
+// enable at boot.
+// sudo systemctl enable Globular
+// disable at boot time
+// sudo systemctl disable Globular
+// cd /etc/systemd/system/
+// Permissions
+// https://ma.ttias.be/auto-restart-crashed-service-systemd/
+// https://www.digitalocean.com/community/questions/proper-permissions-for-web-server-s-directory
+
+func __dist(g *Globule, path string) {
 
 	// I will set the docker file depending of the arch.
 	var dockerfile string
@@ -967,9 +1169,7 @@ func install(g *Globule, path string) {
 	}
 
 	// Copy the bin file from globular
-	log.Println(path + "/" + "bin")
-
-	Utility.CreateDirIfNotExist(path + "/" + "bin")
+	Utility.CreateDirIfNotExist(path + "/bin")
 
 	err = Utility.CopyDir(dir+"/bin/.", path+"/bin")
 	if err != nil {
@@ -1031,7 +1231,7 @@ func install(g *Globule, path string) {
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
-					config := make(map[string]interface{})
+					config := make(map[string]interface{}, 0)
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {
@@ -1044,7 +1244,7 @@ func install(g *Globule, path string) {
 							protoPath := getStringVal(s, "Proto")
 
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
-								var serviceDir = "services" + "/"
+								var serviceDir = "services/"
 								if len(config["PublisherId"].(string)) == 0 {
 									serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string)
 								} else {
@@ -1073,8 +1273,8 @@ func install(g *Globule, path string) {
 										fmt.Println(err)
 									}
 
-									config["Path"] = destPath
-									config["Proto"] = path + "/" + serviceDir + "/" + name + ".proto"
+									config["Path"] = "/usr/local/share/globular/" + serviceDir + "/" + id + "/" + execName
+									config["Proto"] = "/usr/local/share/globular/" + serviceDir + "/" + name + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
@@ -1082,14 +1282,21 @@ func install(g *Globule, path string) {
 									config["KeyFile"] = ""
 									config["TLS"] = false
 
+									if config["Root"] != nil {
+										if name == "file.FileService" {
+											config["Root"] = "/usr/local/share/globular/data/files"
+										} else if name == "conversation.ConversationService" {
+											config["Root"] = "/usr/local/share/globular/data"
+										}
+									}
+									
 									str, _ := Utility.ToJson(&config)
 									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 
 									// Copy the proto file.
 									if Utility.Exists(protoPath) {
-										Utility.Copy(protoPath, config["Proto"].(string))
+										Utility.Copy(protoPath, path+"/"+serviceDir+"/"+name+".proto")
 									}
-
 								} else {
 									fmt.Println("executable not exist ", execPath)
 								}
@@ -1114,9 +1321,9 @@ func install(g *Globule, path string) {
 					fmt.Println("service", name, ":", id, "configuration is incomplete!")
 				}
 			} else {
-
 				// Internal services here.
 				protoPath := getStringVal(s, "Proto")
+
 				// Copy the proto file.
 				if Utility.Exists(os.Getenv("GLOBULAR_SERVICES_ROOT") + "/" + protoPath) {
 					Utility.Copy(os.Getenv("GLOBULAR_SERVICES_ROOT")+"/"+protoPath, path+"/"+protoPath)

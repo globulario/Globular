@@ -134,7 +134,7 @@ func (globule *Globule) SignCertificate(ctx context.Context, rqst *capb.SignCert
 // ca_crt: Return the Authority Trust Certificate. (ca.crt)
 func (globule *Globule) GetCaCertificate(ctx context.Context, rqst *capb.GetCaCertificateRequest) (*capb.GetCaCertificateResponse, error) {
 
-	ca_crt, err := ioutil.ReadFile(globule.creds + "/" + "ca.crt")
+	ca_crt, err := ioutil.ReadFile(globule.creds + "/ca.crt")
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,

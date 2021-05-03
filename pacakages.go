@@ -568,7 +568,7 @@ func (globule *Globule) DownloadBundle(rqst *packagespb.DownloadBundleRequest, s
 	// Generate the bundle id....
 	id := bundle.Descriptor_.PublisherId + "%" + bundle.Descriptor_.Name + "%" + bundle.Descriptor_.Version + "%" + bundle.Descriptor_.Id + "%" + rqst.Plaform
 
-	path := globule.data + "/" + "packages-repository"
+	path := globule.data + "/packages-repository"
 
 	var err error
 	// the file must be a zipped archive that contain a .proto, .config and executable.
@@ -676,7 +676,7 @@ func (globule *Globule) UploadBundle(stream packagespb.PackageRepository_UploadB
 		}
 	}
 
-	path := globule.data + "/" + "packages-repository"
+	path := globule.data + "/packages-repository"
 	Utility.CreateDirIfNotExist(path)
 
 	// the file must be a zipped archive that contain a .proto, .config and executable.

@@ -10,13 +10,12 @@ import (
 	"strings"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 
 	//	"google.golang.org/grpc/peer"
-
+	"github.com/globulario/services/golang/interceptors"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -53,7 +52,7 @@ func (globule *Globule) startRbacService() error {
 }
 
 func (globule *Globule) setEntityResourcePermissions(entity string, path string) error {
-	log.Println(80, "-----------------------> set entity ressource permission ", entity, path)
+	log.Println(80, "set entity ressource permission ", entity, path)
 	// Here I will retreive the actual list of paths use by this user.
 	data, err := globule.permissions.GetItem(entity)
 	paths_ := make([]interface{}, 0)
@@ -61,7 +60,6 @@ func (globule *Globule) setEntityResourcePermissions(entity string, path string)
 	if err == nil {
 		err := json.Unmarshal(data, &paths_)
 		if err != nil {
-			log.Println("-----------> ", entity, path)
 			log.Println(string(data))
 			return err
 		}
@@ -645,7 +643,7 @@ func (globule *Globule) GetResourcePermissions(ctx context.Context, rqst *rbacpb
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
 	permissions, err := globule.getResourcePermissions(path)
 	if err != nil {
-		if !strings.Contains(err.Error(), "leveldb: not found") {
+		if strings.Index(err.Error(), "leveldb: not found") != -1 {
 			// So here I will create the permissions object...
 			permissions = &rbacpb.Permissions{
 				Allowed: []*rbacpb.Permission{},
@@ -947,9 +945,10 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 			return globule.validateAccess(subject, subjectType, name, path[0:strings.LastIndex(path, "/")])
 		}
 
-		if !strings.Contains(err.Error(), "leveldb: not found") {
+		if strings.Contains(err.Error(), "leveldb: not found") {
 			return true, false, err
 		}
+
 		// if no permission are define for a ressource anyone can access it.
 		return false, false, err
 	}
@@ -1394,16 +1393,16 @@ func (globule *Globule) validateAction(action string, subject string, subjectTyp
 	permissions_, _ := globule.getActionResourcesPermissions(action)
 	if len(resources) > 0 {
 		if permissions_ == nil {
-			err := errors.New("no resources path are given for validations")
+			err := errors.New("No resources path are given for validations!")
 			return false, err
 		}
 		for i := 0; i < len(resources); i++ {
 			if len(resources[i].Path) > 0 { // Here if the path is empty i will simply not validate it.
 				hasAccess, accessDenied, _ := globule.validateAccess(subject, subjectType, resources[i].Permission, resources[i].Path)
-				if !hasAccess || accessDenied {
-					err := errors.New("subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
+				if hasAccess == false || accessDenied == true {
+					err := errors.New("Subject " + subject + " can call the method '" + action + "' but has not the permission to " + resources[i].Permission + " resource '" + resources[i].Path + "'")
 					return false, err
-				} else if hasAccess {
+				} else if hasAccess == true {
 					return true, nil
 				}
 			}
@@ -1424,16 +1423,6 @@ func (globule *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.Validat
 	// Now I will index the conversation to be retreivable for it creator...
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		application = strings.Join(md["application"], "")
-		// Test if the action permission is at application level.
-		if len(application) > 0 {
-			hasAccess, err := globule.validateAction(rqst.Action, application, rbacpb.SubjectType_APPLICATION, rqst.Infos)
-			if err == nil && hasAccess {
-				return &rbacpb.ValidateActionRsp{
-					Result: hasAccess,
-				}, nil
-			}
-		}
-
 		token := strings.Join(md["token"], "")
 		if len(token) > 0 {
 			clientId, _, _, _, err = interceptors.ValidateToken(token)
@@ -1442,6 +1431,11 @@ func (globule *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.Validat
 					codes.Internal,
 					Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 			}
+
+		} else {
+			return nil, status.Errorf(
+				codes.Internal,
+				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("No token was given!")))
 
 		}
 	}
@@ -1453,6 +1447,16 @@ func (globule *Globule) ValidateAction(ctx context.Context, rqst *rbacpb.Validat
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Wrong account id your not authenticated as "+rqst.Subject)))
+		}
+	}
+
+	// Test if the action permission is at application level.
+	if len(application) > 0 {
+		hasAccess, err := globule.validateAction(rqst.Action, application, rbacpb.SubjectType_APPLICATION, rqst.Infos)
+		if err == nil && hasAccess {
+			return &rbacpb.ValidateActionRsp{
+				Result: hasAccess,
+			}, nil
 		}
 	}
 

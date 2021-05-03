@@ -169,7 +169,7 @@ func (globule *Globule) removeExpiredSession(accountId string, expiredAt int64) 
 		return err
 	}
 
-	session := make(map[string]interface{})
+	session := make(map[string]interface{}, 0)
 	session["_id"] = accountId
 	session["state"] = 1
 	session["lastStateTime"] = time.Unix(expiredAt, 0).UTC().Format("2006-01-02T15:04:05-0700")
@@ -301,7 +301,7 @@ func (globule *Globule) registerMethods() error {
 	}
 
 	// Here I will persit the sa role if it dosent already exist.
-	admin := make(map[string]interface{})
+	admin := make(map[string]interface{}, 0)
 	admin["_id"] = "sa"
 	admin["name"] = "sa"
 	admin["actions"] = globule.methods
@@ -317,7 +317,7 @@ func (globule *Globule) registerMethods() error {
 
 	// I will also create the guest role, the basic one
 	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Roles", `{ "_id":"guest"}`, "")
-	guest := make(map[string]interface{})
+	guest := make(map[string]interface{}, 0)
 	if err != nil {
 		return err
 	} else if count == 0 {
@@ -668,7 +668,7 @@ func (globule *Globule) registerAccount(id string, name string, email string, pa
 	}
 
 	// set the account object and set it basic roles.
-	account := make(map[string]interface{})
+	account := make(map[string]interface{}, 0)
 	account["_id"] = id
 	account["name"] = name
 	account["email"] = email
@@ -1354,7 +1354,7 @@ func (globule *Globule) createRole(id string, name string, actions []string) err
 	}
 
 	// Here will create the new role.
-	role := make(map[string]interface{})
+	role := make(map[string]interface{}, 0)
 	role["_id"] = id
 	role["name"] = name
 	role["actions"] = actions
@@ -1489,7 +1489,7 @@ func serialyseObject(obj map[string]interface{}) string {
 	jsonStr = strings.ReplaceAll(jsonStr, `"$id"`, `"__b__"`)
 	jsonStr = strings.ReplaceAll(jsonStr, `"$db"`, `"__c__"`)
 
-	obj_ := make(map[string]interface{})
+	obj_ := make(map[string]interface{}, 0)
 
 	json.Unmarshal([]byte(jsonStr), &obj_)
 	jsonStr, _ = Utility.ToJson(obj_)
@@ -1710,7 +1710,7 @@ func (globule *Globule) RemoveAccountRole(ctx context.Context, rqst *resourcepb.
 			}
 		}
 
-		if !needSave  {
+		if !needSave {
 			return nil, status.Errorf(
 				codes.Internal,
 				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("Account named "+rqst.AccountId+" does not contain role "+rqst.RoleId+"!")))
@@ -2165,7 +2165,7 @@ func (globule *Globule) RegisterPeer(ctx context.Context, rqst *resourcepb.Regis
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	peer := make(map[string]interface{})
+	peer := make(map[string]interface{}, 0)
 	peer["_id"] = _id
 	peer["domain"] = rqst.Peer.Domain
 	peer["actions"] = make([]interface{}, 0)
@@ -2408,7 +2408,7 @@ func (globule *Globule) CreateOrganization(ctx context.Context, rqst *resourcepb
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	g := make(map[string]interface{})
+	g := make(map[string]interface{}, 0)
 	g["_id"] = rqst.Organization.Id
 	g["name"] = rqst.Organization.Name
 
@@ -2770,7 +2770,7 @@ func (globule *Globule) createGroup(id, name string, members []string) error {
 
 	// No authorization exist for that peer I will insert it.
 	// Here will create the new peer.
-	g := make(map[string]interface{})
+	g := make(map[string]interface{}, 0)
 	g["_id"] = id
 	g["name"] = name
 
