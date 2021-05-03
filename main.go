@@ -142,6 +142,7 @@ func main() {
 		deployCommand_user := deployCommand.String("u", "", "The user name. (Required)")
 		deployCommand_pwd := deployCommand.String("p", "", "The user password. (Required)")
 		deployCommand_address := deployCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
+		deployCommand_index := deployCommand.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
 
 		// Publish command.
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
@@ -186,6 +187,7 @@ func main() {
 		install_application_command_address := install_application_command.String("a", "", "The domain of the server where to install the application (Required)")
 		install_application_command_user := install_application_command.String("u", "", "The user name. (Required)")
 		install_application_command_pwd := install_application_command.String("p", "", "The user password. (Required)")
+		install_application_command_index := install_application_command.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
 
 		// Uninstall a service on the server.
 		uninstall_application_command := flag.NewFlagSet("uninstall_application", flag.ExitOnError)
@@ -399,7 +401,13 @@ func main() {
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
-			install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd)
+
+			var set_as_default bool
+			if *install_application_command_index != "" {
+				set_as_default = *install_application_command_index == "true"
+			}
+
+			install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd, set_as_default)
 		}
 
 		if uninstall_application_command.Parsed() {
@@ -537,7 +545,12 @@ func main() {
 				os.Exit(1)
 			}
 
-			deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd)
+			var set_as_default bool
+			if *deployCommand_index != "" {
+				set_as_default = *deployCommand_index == "true"
+			}
+
+			deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd, set_as_default)
 		}
 
 		if publishCommand.Parsed() {
@@ -637,7 +650,7 @@ func installCertificates(g *Globule, domain string, port int, path string) error
 /**
  * That function can be use to deploy an application on the server...
  */
-func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string) error {
+func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
 
 	log.Println("deploy application", name, " to address ", address, " user ", user)
 
@@ -662,7 +675,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	_, err = admin_client_.DeployApplication(user, name, organization, path, token, address)
+	_, err = admin_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
 		return err
@@ -824,7 +837,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, serviceId)
+	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -866,7 +879,7 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 	return nil
 }
 
-func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string) error {
+func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string, set_as_default bool) error {
 
 	// Authenticate the user in order to get the token
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
@@ -889,7 +902,7 @@ func install_application(g *Globule, applicationId, discovery, publisherId, doma
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId)
+	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId, set_as_default)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -947,7 +960,7 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 func dist(g *Globule, path string, revision string) {
 	// That function is use to install globular at a given repository.
 	fmt.Println("create distribution in ", path)
-
+	fmt.Println(Utility.IsLocal("globular.cloud"))
 	// The debian package...
 	if runtime.GOOS == "linux" {
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
@@ -1047,6 +1060,18 @@ func dist(g *Globule, path string, revision string) {
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
 		preinst := `
 		echo "Welcome to Globular!-)"
+		echo "Note on Dependencies"
+		echo "Those dependencies can be install after globular installation. It's strongly recommended"
+		echo "to have MogonDB installed, all Globular applications made use of it. But if you plan to"
+		echo "use Globular as simple webserver you can live whitout MongoDB."
+		echo "Prometheus is use to keep Globular monitoring informations."
+		echo "Youtube-dl, Transmission-cli and FFmpeg give are required if you plan to use media files (mp3, mp4...) in"
+		echo "your applications."
+		echo "- 1. MongoDB https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/"
+		echo "- 2. Prometheus https://prometheus.io/download/"
+		echo "- 3. Youtube-dl sudo apt-get install youtube-dl"
+		echo "- 4. Transmission-cli https://phil.tech/2009/How-to-Install-Transmission-CLI-to-Ubuntu-Server/"
+		echo "- 5. FFmpeg sudo apt install ffmpeg"
 		`
 
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
@@ -1110,6 +1135,7 @@ func dist(g *Globule, path string, revision string) {
 
 }
 
+// TODO summit to debian https://www.debian.org/doc/manuals/developers-reference/pkgs.html#newpackage
 // The globular distribution directory.
 //
 // There's some note about globular running as service...
@@ -1289,7 +1315,7 @@ func __dist(g *Globule, path string) {
 											config["Root"] = "/usr/local/share/globular/data"
 										}
 									}
-									
+
 									str, _ := Utility.ToJson(&config)
 									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 

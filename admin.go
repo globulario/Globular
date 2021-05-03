@@ -18,19 +18,16 @@ import (
 	// "golang.org/x/sys/windows/registry"
 	"path/filepath"
 
+	"encoding/json"
+	"os/exec"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 
-	//	"time"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/rbac/rbacpb"
-
-	//"github.com/globulario/services/golang/resource/resourcepb"
-	"encoding/json"
-	"os/exec"
-	"reflect"
 
 	"github.com/globulario/services/golang/packages/packagespb"
 	"github.com/globulario/services/golang/security"
@@ -44,14 +41,10 @@ import (
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/adminpb"
 	globular "github.com/globulario/services/golang/globular_service"
-
-	//"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/packages/packages_client"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"google.golang.org/grpc/codes"
-
-	// "google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -593,7 +586,7 @@ func (globule *Globule) InstallApplication(ctx context.Context, rqst *adminpb.In
 		r := bytes.NewReader(bundle.Binairies)
 
 		// Now I will install the applicaiton.
-		err = globule.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords, descriptor.Roles, descriptor.Groups)
+		err = globule.installApplication(rqst.Domain, descriptor.Id, descriptor.PublisherId, descriptor.Version, descriptor.Description, descriptor.Icon, descriptor.Alias, r, descriptor.Actions, descriptor.Keywords, descriptor.Roles, descriptor.Groups, rqst.SetAsDefault)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -610,7 +603,7 @@ func (globule *Globule) InstallApplication(ctx context.Context, rqst *adminpb.In
 }
 
 // Intall
-func (globule *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string, roles []*packagespb.Role, groups []*packagespb.Group) error {
+func (globule *Globule) installApplication(domain, name, publisherId, version, description string, icon string, alias string, r io.Reader, actions []string, keywords []string, roles []*packagespb.Role, groups []*packagespb.Group, set_as_default bool) error {
 
 	// Here I will extract the file.
 	__extracted_path__, err := Utility.ExtractTarGz(r)
@@ -803,6 +796,12 @@ func (globule *Globule) installApplication(domain, name, publisherId, version, d
 		}
 		// save it back.
 		ioutil.WriteFile(abosolutePath+"/index.html", []byte(indexHtml_), 0644)
+	}
+
+	if set_as_default {
+		globule.IndexApplication = name
+		// save it configuration...
+		globule.saveConfig()
 	}
 
 	return err
@@ -1017,6 +1016,7 @@ func (globule *Globule) DeployApplication(stream adminpb.AdminService_DeployAppl
 	var alias string
 	var roles []*adminpb.Role
 	var groups []*adminpb.Group
+	var set_as_default bool
 
 	for {
 		msg, err := stream.Recv()
@@ -1070,6 +1070,10 @@ func (globule *Globule) DeployApplication(stream adminpb.AdminService_DeployAppl
 
 		if len(msg.Icon) > 0 {
 			icon = msg.Icon
+		}
+
+		if msg.SetAsDefault {
+			set_as_default = true
 		}
 
 		if err == io.EOF {
@@ -1144,7 +1148,7 @@ func (globule *Globule) DeployApplication(stream adminpb.AdminService_DeployAppl
 
 	// Read bytes and extract it in the current directory.
 	r := bytes.NewReader(buffer.Bytes())
-	err = globule.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords, roles_, groups_)
+	err = globule.installApplication(domain, name, organization, version, description, icon, alias, r, actions, keywords, roles_, groups_, set_as_default)
 	if err != nil {
 		return err
 	}
@@ -2294,7 +2298,7 @@ func ReadOutput(output chan string, rc io.ReadCloser) {
 		n, err := rc.Read(buf)
 		if err != nil {
 			if err != io.EOF {
-				log.Fatal(err)
+				log.Println(err)
 			}
 			if n == 0 {
 				break
