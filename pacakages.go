@@ -31,7 +31,7 @@ import (
 
 func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]map[string][]string, discovery string) error {
 
-	log.Println("Connect to discovery event hub ", discovery)
+
 	address := discovery
 	if address == globule.Domain {
 		address += ":" + Utility.ToString(globule.PortHttp)
@@ -45,13 +45,15 @@ func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]
 		if err != nil {
 			return err
 		}
+		globule.discorveriesEventHub[discovery] = eventHub;
+		log.Println("Connect to discovery event hub ", discovery)
 	}
 
 	log.Println("Connected with event service at ", discovery)
 	if subscribers[discovery] == nil {
 		subscribers[discovery] = make(map[string][]string)
 	}
-	
+
 	_, hasPublisherId := s.Load("PublisherId")
 	if hasPublisherId {
 		id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"

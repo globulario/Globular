@@ -1128,12 +1128,14 @@ func (globule *Globule) stopServices() {
 	// Here I will disconnect service update event.
 	for id, subscriber := range globule.subscribers {
 		eventHub := globule.discorveriesEventHub[id]
-		for channelId, uuids := range subscriber {
-			for i := 0; i < len(uuids); i++ {
-				eventHub.UnSubscribe(channelId, uuids[i])
+		if eventHub != nil {
+			for channelId, uuids := range subscriber {
+				for i := 0; i < len(uuids); i++ {
+					eventHub.UnSubscribe(channelId, uuids[i])
+				}
 			}
+			eventHub.Close()
 		}
-		eventHub.Close()
 	}
 
 	// stop external service.
