@@ -211,7 +211,7 @@ func (globule *Globule) saveConfig() {
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(globule.toMap())
 	if err == nil {
-		ioutil.WriteFile(globule.config+"/"+"config.json", []byte(str), 0644)
+		ioutil.WriteFile(globule.config+"/config.json", []byte(str), 0644)
 	} else {
 		log.Panicln(err)
 	}
@@ -479,7 +479,7 @@ func (globule *Globule) SaveConfig(ctx context.Context, rqst *adminpb.SaveConfig
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(config)
 	if err == nil {
-		err := ioutil.WriteFile(globule.config+"/"+"config.json", []byte(str), 0644)
+		err := ioutil.WriteFile(globule.config+"/config.json", []byte(str), 0644)
 		if err != nil {
 			return nil, status.Errorf(
 				codes.Internal,
@@ -807,6 +807,9 @@ func (globule *Globule) installApplication(domain, name, publisherId, version, d
 	return err
 }
 
+/**
+ * Publish an application on globular server.
+ */
 func (globule *Globule) publishApplication(user, organization, path, name, domain, version, description, icon, alias, repositoryId, discoveryId string, actions, keywords []string, roles []*adminpb.Role) error {
 
 	publisherId := user
@@ -823,7 +826,8 @@ func (globule *Globule) publishApplication(user, organization, path, name, domai
 		PublisherId:  publisherId,
 		Version:      version,
 		Description:  description,
-		Repositories: []string{},
+		Repositories: []string{repositoryId},
+		Discoveries:  []string{discoveryId},
 		Icon:         icon,
 		Alias:        alias,
 		Actions:      []string{},
@@ -1293,12 +1297,13 @@ func (globule *Globule) SetRootPassword(ctx context.Context, rqst *adminpb.SetRo
 		}
 	}
 
-	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
+	token, err := globule.getToken()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
+
 	return &adminpb.SetRootPasswordResponse{
 		Token: string(token),
 	}, nil
@@ -1411,7 +1416,7 @@ func (globule *Globule) SetPassword(ctx context.Context, rqst *adminpb.SetPasswo
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
+	token, err := globule.getToken()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1488,7 +1493,7 @@ func (globule *Globule) SetEmail(ctx context.Context, rqst *adminpb.SetEmailRequ
 	}
 
 	// read the local token.
-	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
+	token, err := globule.getToken()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1517,7 +1522,7 @@ func (globule *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootE
 	globule.saveConfig()
 
 	// read the local token.
-	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
+	token, err := globule.getToken()
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1534,7 +1539,7 @@ func (globule *Globule) SetRootEmail(ctx context.Context, rqst *adminpb.SetRootE
 func (globule *Globule) UploadServicePackage(stream adminpb.AdminService_UploadServicePackageServer) error {
 	// The bundle will cantain the necessary information to install the service.
 	path := os.TempDir() + "/" + Utility.RandomUUID()
-
+	log.Println("-------> upload service package ", path)
 	fo, err := os.Create(path)
 	if err != nil {
 		return status.Errorf(
@@ -1545,13 +1550,6 @@ func (globule *Globule) UploadServicePackage(stream adminpb.AdminService_UploadS
 
 	for {
 		msg, err := stream.Recv()
-		if msg == nil {
-			return status.Errorf(
-				codes.Internal,
-				Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), errors.New("fail to upload service package")))
-
-		}
-
 		if err == nil {
 			if len(msg.Organization) > 0 {
 				if !globule.isOrganizationMemeber(msg.User, msg.Organization) {
@@ -1562,7 +1560,13 @@ func (globule *Globule) UploadServicePackage(stream adminpb.AdminService_UploadS
 			}
 		}
 
-		if err == io.EOF || len(msg.Data) == 0 {
+		if msg == nil {
+			stream.SendAndClose(&adminpb.UploadServicePackageResponse{
+				Path: path,
+			})
+			err = nil
+			break
+		} else if err == io.EOF || len(msg.Data) == 0 {
 			// end of stream...
 			stream.SendAndClose(&adminpb.UploadServicePackageResponse{
 				Path: path,
@@ -1582,6 +1586,7 @@ func (globule *Globule) UploadServicePackage(stream adminpb.AdminService_UploadS
 
 // Publish a package, the package can contain an application or a services.
 func (globule *Globule) publishPackage(user string, organization string, discovery string, repository string, platform string, path string, descriptor *packagespb.PackageDescriptor) error {
+	log.Println("Publish package for user: ", user, "organization: ", organization, "discovery: ", discovery, "repository: ", repository, "platform: ", platform)
 
 	// Connect to the dicovery services
 	services_discovery, err := packages_client.NewPackagesDiscoveryService_Client(discovery, "packages.PackageDiscovery")
@@ -1629,6 +1634,7 @@ func (globule *Globule) publishPackage(user string, organization string, discove
 		// Set the permissions.
 		err = globule.setResourcePermissions(path_, permissions)
 		if err != nil {
+			log.Println("fail to publish package with error: ", err.Error())
 			return err
 		}
 	}
@@ -1691,6 +1697,8 @@ func (globule *Globule) publishPackage(user string, organization string, discove
 		eventId += ":APPLICATION_PUBLISH_EVENT"
 	}
 
+	log.Println("Package publish sucessfully!")
+
 	return globule.discorveriesEventHub[discovery].Publish(eventId, []byte(data))
 }
 
@@ -1702,7 +1710,9 @@ func (globule *Globule) PublishService(ctx context.Context, rqst *adminpb.Publis
 	if len(rqst.Organization) > 0 {
 		publisherId = rqst.Organization
 		if !globule.isOrganizationMemeber(rqst.User, rqst.Organization) {
-			return nil, errors.New(rqst.User + " is not member of " + rqst.Organization)
+			err := errors.New(rqst.User + " is not member of " + rqst.Organization)
+			log.Println(err.Error())
+			return nil, err
 		}
 	}
 
@@ -1715,6 +1725,7 @@ func (globule *Globule) PublishService(ctx context.Context, rqst *adminpb.Publis
 		Description:  rqst.Description,
 		Keywords:     rqst.Keywords,
 		Repositories: []string{rqst.RepositoryId},
+		Discoveries:  []string{rqst.DicorveryId},
 		Type:         packagespb.PackageType_SERVICE_TYPE,
 	}
 

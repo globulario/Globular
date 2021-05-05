@@ -157,7 +157,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
-			log.Println("------------->", err)
+			log.Println(err)
 		}
 
 		// validate ressource access...
@@ -165,7 +165,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			//return
-			log.Println("------------->", err)
+			log.Println(err)
 		}
 	}
 
@@ -181,14 +181,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil || !hasAccess {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
-				log.Println("------------->", err)
+				log.Println(err)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
 				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				//return
-				log.Println("------------->", err)
+				log.Println(err)
 			}
 		}
 	}

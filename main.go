@@ -144,24 +144,27 @@ func main() {
 		deployCommand_address := deployCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
 		deployCommand_index := deployCommand.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
 
-		// Publish command.
+		// Publish Service.
+		// Service can be written in various language, however all service must contain a config.json file and a .proto file.
+		// The config.json file contain field to be inform, the service version, the discovery and the repostiory. 
+		// ex. ./Globular publish -a=globular.io -path=/tmp/echo_v_1  -o=globulario  -u=userid -p=*******
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
 		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
 		publishCommand_user := publishCommand.String("u", "", "The user name. (Required)")
 		publishCommand_pwd := publishCommand.String("p", "", "The user password. (Required)")
-		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
-
-		// *** Those informations are optional they are in the configuration of the service.
+		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to publish the service (Required)")
 		publishCommand_organization := publishCommand.String("o", "", "The Organization that publish the service. (Optional)")
-		publishCommand_plaform := publishCommand.String("platform", "", "(Optional)")
+		publishCommand_plaform := publishCommand.String("platform", "", "(Optional it take your current platform as default.)")
 
 		// Install certificates on a server from a local service command.
+		// TODO test it... (the path is not working properly, be sure permission are correctly assigned for certificates...)
 		installCertificatesCommand := flag.NewFlagSet("certificates", flag.ExitOnError)
 		installCertificatesCommand_path := installCertificatesCommand.String("path", "", "You must specify where to install certificate (Required)")
 		installCertificatesCommand_port := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
 		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
 
 		// Install a service on the server.
+		// ex. Globular install_service -publisher=globulario -discovery=globular.io -service=echo.EchoService -a=globular1.globular.io -u=sa -p=*******
 		install_service_command := flag.NewFlagSet("install_service", flag.ExitOnError)
 		install_service_command_publisher := install_service_command.String("publisher", "", "The publisher id (Required)")
 		install_service_command_discovery := install_service_command.String("discovery", "", "The addresse where the service was publish (Required)")
@@ -199,6 +202,8 @@ func main() {
 		uninstall_application_command_pwd := uninstall_application_command.String("p", "", "The user password. (Required)")
 
 		// push globular update.
+		// Update a given globular server with a new executable file. That command must be call as sa.
+		// ex. ./Globular update -path=/home/dave/go/src/github.com/globulario/Globular/Globular -a=globular.io -u=sa -p=adminadmin
 		update_globular_command := flag.NewFlagSet("update", flag.ExitOnError)
 		update_globular_command_exec_path := update_globular_command.String("path", "", " the path to the new executable to update from")
 		update_globular_command_address := update_globular_command.String("a", "", "The domain of the server where to push the update(Required)")
@@ -815,16 +820,16 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 }
 
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
-
+	log.Println("try to install service",serviceId, "on", domain)
 	// Authenticate the user in order to get the token
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
-
 	token, err := resource_client_.Authenticate(user, pwd)
 	if err != nil {
+
 		return err
 	}
 

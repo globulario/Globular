@@ -540,9 +540,6 @@ func (globule *Globule) initDirectories() {
 	// There is the default directory initialisation...
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	// Display the path
-	log.Println("==--------------> ", globule.path)
-
 	// Create the directory if is not exist.
 	if globule.path == "/usr/local/share/globular" {
 		// Here we have a linux standard installation.
@@ -602,7 +599,7 @@ func (globule *Globule) initDirectories() {
 	if !Utility.Exists(globule.webRoot + "/index.html") {
 
 		// in that case I will create a new index.html file.
-		ioutil.WriteFile(globule.webRoot+"/"+"index.html", []byte(
+		ioutil.WriteFile(globule.webRoot+"/index.html", []byte(
 			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 		<html lang="en">
 		
@@ -677,15 +674,13 @@ func (globule *Globule) Serve() {
 		}
 
 		// Here it suppose to be only one server instance per computer.
-		globule.jwtKey = []byte(Utility.RandomUUID())
-		err = ioutil.WriteFile(os.TempDir()+"/"+"globular_key", []byte(globule.jwtKey), 0644)
+		err = globule.setKey()
 		if err != nil {
 			log.Panicln(err)
 		}
 
 		// The token that identify the server with other services
-		token, _ := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, "sa", "sa", globule.AdminEmail)
-		err = ioutil.WriteFile(os.TempDir()+"/"+globule.getDomain()+"_token", []byte(token), 0644)
+		err = globule.setToken()
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -697,8 +692,7 @@ func (globule *Globule) Serve() {
 			for {
 				select {
 				case <-ticker.C:
-					token, _ := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, "sa", "sa", globule.AdminEmail)
-					err = ioutil.WriteFile(os.TempDir()+"/"+globule.getDomain()+"_token", []byte(token), 0644)
+					err = globule.setToken()
 					if err != nil {
 						log.Println(err)
 					}
@@ -757,6 +751,65 @@ func (globule *Globule) getDomain() string {
 		domain = /*globule.Name + "." +*/ domain
 	}
 	return domain
+}
+
+/**
+ * Return the local token.
+ */
+func (globule *Globule) getToken() (string, error) {
+	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
+	if err != nil {
+		return "", err
+	}
+	return string(token), nil
+}
+
+/**
+ * Remove token (for each domain/alternate domains)
+ */
+func (globule *Globule) deleteToken(){
+	os.Remove(os.TempDir()+"/"+globule.getDomain()+"_token")
+
+	// I will also generate the token for the
+	for i := 0; i < len(globule.AlternateDomains); i++ {
+		os.Remove(os.TempDir()+"/"+globule.AlternateDomains[i].(string)+"_token")
+	}
+}
+
+/**
+ * Generate a new local token that be use to communicate between local service.
+ */
+func (globule *Globule) setToken() error {
+
+	// remove previous token if some exist.
+	globule.deleteToken()
+
+	// create the token for the main domain.
+	token, _ := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, "sa", "sa", globule.AdminEmail)
+
+	err := ioutil.WriteFile(os.TempDir()+"/"+globule.getDomain()+"_token", []byte(token), 0400)
+	if err != nil {
+		return err
+	}
+
+	// I will also generate the token for the
+	for i := 0; i < len(globule.AlternateDomains); i++ {
+		err := ioutil.WriteFile(os.TempDir()+"/"+globule.AlternateDomains[i].(string)+"_token", []byte(token), 0400)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+/**
+ * Set the secret key that will be use to validate token. That key will be generate each time the server will be
+ * restarted and all token generated with previous key will be automatically invalidated...
+ */
+func (globule *Globule) setKey() error {
+	globule.jwtKey = []byte(Utility.RandomUUID())
+	return ioutil.WriteFile(os.TempDir()+"/globular_key", []byte(globule.jwtKey), 0400)
 }
 
 /**
