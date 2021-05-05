@@ -1845,6 +1845,9 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			for i:=0; i < len(descriptor.Discoveries); i++ {
 				if !Utility.Contains(globule.Discoveries, descriptor.Discoveries[i]) {
 					globule.Discoveries = append(globule.Discoveries, descriptor.Discoveries[i])
+					
+					// Keep the service updated...
+					globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i]) 
 					needSave = true
 				}
 			}
@@ -1853,6 +1856,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 				globule.saveConfig();
 			}
 
+	
 			break
 		} else {
 			log.Println("fail to download error with error ", err)

@@ -10,10 +10,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"sort"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/davecourtois/Utility"
@@ -28,6 +29,101 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]map[string][]string, discovery string) error {
+
+	log.Println("Connect to discovery event hub ", discovery)
+	address := discovery
+	if address == globule.Domain {
+		address += ":" + Utility.ToString(globule.PortHttp)
+	}
+
+	// keep on memorie...
+	eventHub := globule.discorveriesEventHub[discovery]
+	if eventHub == nil {
+		var err error
+		eventHub, err = event_client.NewEventService_Client(address, "event.EventService")
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Println("Connected with event service at ", discovery)
+	if subscribers[discovery] == nil {
+		subscribers[discovery] = make(map[string][]string)
+	}
+	
+	_, hasPublisherId := s.Load("PublisherId")
+	if hasPublisherId {
+		id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
+
+		if subscribers[discovery][id] == nil {
+			subscribers[discovery][id] = make([]string, 0)
+		}
+
+		// each channel has it event...
+		uuid := Utility.RandomUUID()
+		fct := func(evt *eventpb.Event) {
+			// The package descriptor.
+			descriptor := new(packagespb.PackageDescriptor)
+			err := jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
+
+			// here I will update the service if it's version is lower
+			if err == nil {
+				for _, s := range globule.getServices() {
+					_, hasPublisherId := s.Load("PublisherId")
+					if hasPublisherId {
+						if getStringVal(s, "Id") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
+							if getBoolVal(s, "KeepUpToDate") {
+								// Try with terminate signal...
+								err := globule.stopService(s)
+								if err != nil {
+									// Kill it in the name of...
+									proc, err := os.FindProcess(getIntVal(s, "Process"))
+									if err == nil {
+										proc.Kill()
+									}
+								}
+								globule.deleteService(getStringVal(s, "Id"))
+								err = globule.installService(descriptor)
+								if err != nil {
+									fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
+								} else {
+									s.Store("KeepUpToDate", true)
+									globule.saveConfig()
+									fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
+								}
+
+							}
+
+						}
+					}
+				}
+			} else {
+				log.Println(err)
+			}
+		}
+
+		// So here I will subscribe to service update event.
+		// try 5 time wait 5 second before given up.
+		registered := false
+		for nbTry := 5; !registered && nbTry > 0; nbTry-- {
+			err := eventHub.Subscribe(id, uuid, fct)
+			if err == nil {
+				subscribers[discovery][id] = append(subscribers[discovery][id], uuid)
+				log.Println("subscription to ", id, " succeed!")
+				registered = true
+			} else {
+				log.Println("fail to subscribe to ", id)
+				nbTry--
+				time.Sleep(1 * time.Second)
+			}
+		}
+
+	}
+
+	return nil
+}
+
 /**
  * Subscribe to Discoverie's and repositories to keep services up to date.
  */
@@ -38,96 +134,11 @@ func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
 	// Connect to service update events...
 	for i := 0; i < len(globule.Discoveries); i++ {
-		log.Println("Connect to discovery event hub ", globule.Discoveries[i])
-		address := globule.Discoveries[i]
-		if address == globule.Domain {
-			address += ":" + Utility.ToString(globule.PortHttp)
+		for _, s := range globule.getServices() {
+			globule.keepServiceUpToDate(s, subscribers, globule.Discoveries[i])
 		}
-
-		eventHub, err := event_client.NewEventService_Client(address, "event.EventService")
-		if err == nil {
-			log.Println("Connected with event service at ", globule.Discoveries[i])
-			if subscribers[globule.Discoveries[i]] == nil {
-				subscribers[globule.Discoveries[i]] = make(map[string][]string)
-			}
-
-			for _, s := range globule.getServices() {
-
-				_, hasPublisherId := s.Load("PublisherId")
-				if hasPublisherId {
-					id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
-
-					if subscribers[globule.Discoveries[i]][id] == nil {
-						subscribers[globule.Discoveries[i]][id] = make([]string, 0)
-					}
-
-					// each channel has it event...
-					uuid := Utility.RandomUUID()
-					fct := func(evt *eventpb.Event) {
-						// The package descriptor.
-						descriptor := new(packagespb.PackageDescriptor)
-						err := jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
-
-						// here I will update the service if it's version is lower
-						if err == nil {
-							for _, s := range globule.getServices() {
-								_, hasPublisherId := s.Load("PublisherId")
-								if hasPublisherId {
-									if getStringVal(s, "Id") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
-										if getBoolVal(s, "KeepUpToDate") {
-											// Try with terminate signal...
-											err := globule.stopService(s)
-											if err != nil {
-												// Kill it in the name of...
-												proc, err := os.FindProcess(getIntVal(s, "Process"))
-												if err == nil {
-													proc.Kill()
-												}
-											}
-											globule.deleteService(getStringVal(s, "Id"))
-											err = globule.installService(descriptor)
-											if err != nil {
-												fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
-											} else {
-												s.Store("KeepUpToDate", true)
-												globule.saveConfig()
-												fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
-											}
-
-										}
-
-									}
-								}
-							}
-						} else {
-							log.Println(err)
-						}
-					}
-
-					// So here I will subscribe to service update event.
-					// try 5 time wait 5 second before given up.
-					registered := false
-					for nbTry := 5; !registered && nbTry > 0; nbTry-- {
-						err := eventHub.Subscribe(id, uuid, fct)
-						if err == nil {
-							subscribers[globule.Discoveries[i]][id] = append(subscribers[globule.Discoveries[i]][id], uuid)
-							log.Println("subscription to ", id, " succeed!")
-							registered = true
-						} else {
-							log.Println("fail to subscribe to ", id)
-							nbTry--
-							time.Sleep(1 * time.Second)
-						}
-					}
-				}
-			}
-			// keep on memorie...
-			globule.discorveriesEventHub[globule.Discoveries[i]] = eventHub
-		}
-
 	}
 	return subscribers
-
 }
 
 // Start service discovery
