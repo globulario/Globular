@@ -146,7 +146,7 @@ func main() {
 
 		// Publish Service.
 		// Service can be written in various language, however all service must contain a config.json file and a .proto file.
-		// The config.json file contain field to be inform, the service version, the discovery and the repostiory. 
+		// The config.json file contain field to be inform, the service version, the discovery and the repostiory.
 		// ex. ./Globular publish -a=globular.io -path=/tmp/echo_v_1  -o=globulario  -u=userid -p=*******
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
 		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
@@ -164,18 +164,20 @@ func main() {
 		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
 
 		// Install a service on the server.
+		// That function must be run as sa.
 		// ex. Globular install_service -publisher=globulario -discovery=globular.io -service=echo.EchoService -a=globular1.globular.io -u=sa -p=*******
 		install_service_command := flag.NewFlagSet("install_service", flag.ExitOnError)
 		install_service_command_publisher := install_service_command.String("publisher", "", "The publisher id (Required)")
 		install_service_command_discovery := install_service_command.String("discovery", "", "The addresse where the service was publish (Required)")
-		install_service_command_service := install_service_command.String("service", "", " the service name ex file.FileService (Required)")
+		install_service_command_service := install_service_command.String("service", "", " the service id (uuid) (Required)")
 		install_service_command_address := install_service_command.String("a", "", "The domain of the server where to install the service (Required)")
 		install_service_command_user := install_service_command.String("u", "", "The user name. (Required)")
 		install_service_command_pwd := install_service_command.String("p", "", "The user password. (Required)")
 
 		// Uninstall a service on the server.
+		// That function must be run as sa.
 		uninstall_service_command := flag.NewFlagSet("uninstall_service", flag.ExitOnError)
-		uninstall_service_command_service := uninstall_service_command.String("service", "", " the service name ex file.FileService (Required)")
+		uninstall_service_command_service := uninstall_service_command.String("service", "", " the service uuid (Required)")
 		uninstall_service_command_publisher := uninstall_service_command.String("publisher", "", "The publisher id (Required)")
 		uninstall_service_command_version := uninstall_service_command.String("version", "", " The service vesion(Required)")
 		uninstall_service_command_address := uninstall_service_command.String("a", "", "The domain of the server where to install the service (Required)")
@@ -820,7 +822,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 }
 
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
-	log.Println("try to install service",serviceId, "on", domain)
+	log.Println("try to install service", serviceId, "on", domain)
 	// Authenticate the user in order to get the token
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {

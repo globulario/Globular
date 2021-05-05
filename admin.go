@@ -1697,14 +1697,14 @@ func (globule *Globule) publishPackage(user string, organization string, discove
 		eventId += ":APPLICATION_PUBLISH_EVENT"
 	}
 
-	log.Println("Package publish sucessfully!")
-
+	log.Println("Package publish sucessfully event send: ", eventId)
+	
 	return globule.discorveriesEventHub[discovery].Publish(eventId, []byte(data))
 }
 
 // Publish a service. The service must be install localy on the server.
 func (globule *Globule) PublishService(ctx context.Context, rqst *adminpb.PublishServiceRequest) (*adminpb.PublishServiceResponse, error) {
-
+	log.Println("try to publish service ", rqst.ServiceName, "...")
 	// Make sure the user is part of the organization if one is given.
 	publisherId := rqst.User
 	if len(rqst.Organization) > 0 {
@@ -1810,6 +1810,13 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			s["Path"] = path + "/" + execName
 			s["Proto"] = protos[0]
 
+			// Here I will get previous service values...
+			previous := globule.getService(s["Id"].(string));
+			if previous != nil {
+				s["KeepAlive"] = getBoolVal(previous, "KeepAlive")
+				s["KeepUpToDate"] = getBoolVal(previous, "KeepUpToDate")
+			}
+
 			err = os.Chmod(s["Path"].(string), 0755)
 			if err != nil {
 				log.Println(err)
@@ -1822,6 +1829,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			s_ := new(sync.Map)
 			setValues(s_, s)
 			log.Println("Service is install successfully!")
+
 			// initialyse the new service.
 			err = globule.initService(s_)
 			if err != nil {
@@ -1830,8 +1838,20 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 
 			// Here I will set the service method...
 			globule.setServiceMethods(s["Name"].(string), s["Proto"].(string))
-
 			globule.registerMethods()
+
+			// Append to the list of service discoveries.
+			needSave := false;
+			for i:=0; i < len(descriptor.Discoveries); i++ {
+				if !Utility.Contains(globule.Discoveries, descriptor.Discoveries[i]) {
+					globule.Discoveries = append(globule.Discoveries, descriptor.Discoveries[i])
+					needSave = true
+				}
+			}
+
+			if needSave {
+				globule.saveConfig();
+			}
 
 			break
 		} else {
@@ -1864,7 +1884,7 @@ func (globule *Globule) InstallService(ctx context.Context, rqst *adminpb.Instal
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	log.Println("step 1: get service dscriptor")
+	log.Println("step 1: get service descriptor")
 	// The first element in the array is the most recent descriptor
 	// so if no version is given the most recent will be taken.
 	descriptor := descriptors[0]

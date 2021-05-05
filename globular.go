@@ -198,7 +198,9 @@ type Globule struct {
 	exit            chan struct{}
 	exit_           bool
 	inernalServices []*grpc.Server
-	subscribers     map[string]map[string][]string
+
+	// keep track of services updates from external sources.
+	subscribers map[string]map[string][]string
 
 	// The http server
 	http_server  *http.Server
@@ -767,12 +769,12 @@ func (globule *Globule) getToken() (string, error) {
 /**
  * Remove token (for each domain/alternate domains)
  */
-func (globule *Globule) deleteToken(){
-	os.Remove(os.TempDir()+"/"+globule.getDomain()+"_token")
+func (globule *Globule) deleteToken() {
+	os.Remove(os.TempDir() + "/" + globule.getDomain() + "_token")
 
 	// I will also generate the token for the
 	for i := 0; i < len(globule.AlternateDomains); i++ {
-		os.Remove(os.TempDir()+"/"+globule.AlternateDomains[i].(string)+"_token")
+		os.Remove(os.TempDir() + "/" + globule.AlternateDomains[i].(string) + "_token")
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"sort"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -51,9 +52,10 @@ func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
 			}
 
 			for _, s := range globule.getServices() {
+
 				_, hasPublisherId := s.Load("PublisherId")
 				if hasPublisherId {
-					id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Name") + ":SERVICE_PUBLISH_EVENT"
+					id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
 
 					if subscribers[globule.Discoveries[i]][id] == nil {
 						subscribers[globule.Discoveries[i]][id] = make([]string, 0)
@@ -62,38 +64,43 @@ func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
 					// each channel has it event...
 					uuid := Utility.RandomUUID()
 					fct := func(evt *eventpb.Event) {
+						// The package descriptor.
 						descriptor := new(packagespb.PackageDescriptor)
-						jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
+						err := jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
 
 						// here I will update the service if it's version is lower
-						for _, s := range globule.getServices() {
-							_, hasPublisherId := s.Load("PublisherId")
-							if hasPublisherId {
-								if getStringVal(s, "Name") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
-
-									if getBoolVal(s, "KeepUpToDate") {
-										// Test if update is needed...
-										version := getStringVal(s, "Version")
-										if Utility.ToInt(strings.Split(version, ".")[0]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[0]) {
-											if Utility.ToInt(strings.Split(version, ".")[1]) <= Utility.ToInt(strings.Split(descriptor.Version, ".")[1]) {
-												if Utility.ToInt(strings.Split(version, ".")[2]) < Utility.ToInt(strings.Split(descriptor.Version, ".")[2]) {
-													globule.stopService(s)
-													globule.deleteService(getStringVal(s, "Id"))
-													err := globule.installService(descriptor)
-													if err != nil {
-														fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
-													} else {
-														s.Store("KeepUpToDate", true)
-														globule.saveConfig()
-														fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
-													}
+						if err == nil {
+							for _, s := range globule.getServices() {
+								_, hasPublisherId := s.Load("PublisherId")
+								if hasPublisherId {
+									if getStringVal(s, "Id") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
+										if getBoolVal(s, "KeepUpToDate") {
+											// Try with terminate signal...
+											err := globule.stopService(s)
+											if err != nil {
+												// Kill it in the name of...
+												proc, err := os.FindProcess(getIntVal(s, "Process"))
+												if err == nil {
+													proc.Kill()
 												}
 											}
-										}
-									}
+											globule.deleteService(getStringVal(s, "Id"))
+											err = globule.installService(descriptor)
+											if err != nil {
+												fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
+											} else {
+												s.Store("KeepUpToDate", true)
+												globule.saveConfig()
+												fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
+											}
 
+										}
+
+									}
 								}
 							}
+						} else {
+							log.Println(err)
 						}
 					}
 
