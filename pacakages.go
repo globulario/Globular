@@ -104,23 +104,9 @@ func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]
 				log.Println(err)
 			}
 		}
-
-		// So here I will subscribe to service update event.
-		// try 5 time wait 5 second before given up.
-		registered := false
-		for nbTry := 5; !registered && nbTry > 0; nbTry-- {
-			err := eventHub.Subscribe(id, uuid, fct)
-			if err == nil {
-				subscribers[discovery][id] = append(subscribers[discovery][id], uuid)
-				log.Println("subscription to ", id, " succeed!")
-				registered = true
-			} else {
-				log.Println("fail to subscribe to ", id)
-				nbTry--
-				time.Sleep(1 * time.Second)
-			}
-		}
-
+		
+		// Can block until connection was made or number of try.
+		return eventHub.Subscribe(id, uuid, fct)
 	}
 
 	return nil

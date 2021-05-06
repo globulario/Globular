@@ -27,6 +27,8 @@ import (
 
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/globulario/services/golang/file/file_client"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/ldap/ldap_client"
@@ -126,6 +128,7 @@ type Globule struct {
 	CertURL                    string
 	CertStableURL              string
 
+	// Keep the version number.
 	Version        string
 	Build          int64
 	Platform       string
@@ -139,6 +142,15 @@ type Globule struct {
 
 	// Service discoveries.
 	Discoveries []string // Contain the list of discovery service use to keep service up to date.
+
+	// If it set to true all services will be updated automaticaly.
+	KeepAllServicesUpToDate bool
+
+	// If set to true services will be keept alive by default.
+	KeepAllServicesAlive bool
+
+	// if set to true the server will be updated automaticaly.
+	KeepUpToDate bool
 
 	// DNS stuff.
 	DNS []interface{} // Domain name server use to located the server.
@@ -241,9 +253,16 @@ func NewGlobule() *Globule {
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
+	// keep up to date by default.
+	g.KeepAllServicesUpToDate = true
+	g.KeepAllServicesAlive = true
+
+	// No update globular by default.
+	g.KeepUpToDate = false
+
+	// Keep the 
 	g.Services = make(map[string]interface{})
 	g.services = new(sync.Map)
-
 	g.inernalServices = make([]*grpc.Server, 0)
 
 	// Contain the list of ldap syncronization info.
@@ -1499,6 +1518,15 @@ func (globule *Globule) initService(s *sync.Map) error {
 			s.Store("KeyFile", "")
 		}
 
+		// Set the default server value.
+		if globule.KeepAllServicesAlive {
+			s.Store("KeepAlive", true)
+		}
+
+		// Keep service up to date.
+		if globule.KeepAllServicesUpToDate {
+			s.Store("KeepUpToDate", true)
+		}
 	}
 
 	// any other http server except this one...
@@ -2227,15 +2255,47 @@ func (globule *Globule) startInternalServices() error {
 }
 
 /**
+ * Keep globular version in sync with the version from it discovery [0]...
+ */
+func (globule *Globule) keepUpToDate() error {
+	
+	if len(globule.Discoveries) == 0 {
+		return errors.New("no discovery was configure for that globule")
+	}
+
+	uuid := Utility.RandomUUID()
+	address := globule.Discoveries[0];
+
+	fct := func(evt *eventpb.Event) {
+		// The package descriptor.
+		err := jsonpb.UnmarshalString(string(evt.GetData()), nil)
+		if err == nil {
+			// do what you have todo here...
+			log.Println("received event from ", address, "for", uuid)	
+		}
+	}
+
+	eventHub, err := event_client.NewEventService_Client(address, "event.EventService")
+	if err != nil {
+		return err
+	}
+
+	id := "update_globular_event" // Subscribe to update globular event.
+	return eventHub.Subscribe(id, uuid, fct);
+}
+
+/**
  * Listen for new connection.
  */
 func (globule *Globule) Listen() error {
 
-	// Here I will subscribe to event service to keep then up to date.
+	// Keep services up to date subscription.
 	globule.subscribers = globule.keepServicesUpToDate()
 
-	var err error
+	// Keep globular up to date subscription.
+	globule.keepUpToDate();
 
+	var err error
 	// Must be started before other services.
 	go func() {
 		// local - non secure connection.
@@ -2249,106 +2309,6 @@ func (globule *Globule) Listen() error {
 	// handle the Interrupt
 	// set the register sa user.
 	globule.registerSa()
-	/*
-		// Now here I will set OAuth2 handlers...
-		manager := manage.NewDefaultManager()
-		manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
-
-		// token store
-		manager.MustTokenStorage(store.NewMemoryTokenStore())
-
-		// generate jwt access token
-		// manager.MapAccessGenerate(generates.NewJWTAccessGenerate("", []byte("00000000"), jwt.SigningMethodHS512))
-		manager.MapAccessGenerate(generates.NewAccessGenerate())
-
-		clientStore := store.NewClientStore()
-		clientStore.Set(idvar, &models.Client{
-			ID:     idvar,
-			Secret: secretvar,
-			Domain: domainvar,
-		})
-		manager.MapClientStorage(clientStore)
-
-		srv := server.NewServer(server.NewConfig(), manager)
-
-		srv.SetPasswordAuthorizationHandler(func(username, password string) (userID string, err error) {
-			if username == "test" && password == "test" {
-				userID = "test"
-			}
-			return
-		})
-
-		srv.SetUserAuthorizationHandler(userAuthorizeHandler)
-
-		srv.SetInternalErrorHandler(func(err error) (re *errors_.Response) {
-			log.Println("Internal Error:", err.Error())
-			return
-		})
-
-		srv.SetResponseErrorHandler(func(re *errors_.Response) {
-			log.Println("Response Error:", re.Error.Error())
-		})
-
-		http.HandleFunc("/login", loginHandler)
-		http.HandleFunc("/auth", authHandler)
-
-		http.HandleFunc("/oauth/authorize", func(w http.ResponseWriter, r *http.Request) {
-			if dumpvar {
-				dumpRequest(os.Stdout, "authorize", r)
-			}
-
-			store, err := session.Start(r.Context(), w, r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			var form url.Values
-			if v, ok := store.Get("ReturnUri"); ok {
-				form = v.(url.Values)
-			}
-			r.Form = form
-
-			store.Delete("ReturnUri")
-			store.Save()
-
-			err = srv.HandleAuthorizeRequest(w, r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			}
-		})
-
-		http.HandleFunc("/oauth/token", func(w http.ResponseWriter, r *http.Request) {
-			if dumpvar {
-				_ = dumpRequest(os.Stdout, "token", r) // Ignore the error
-			}
-
-			err := srv.HandleTokenRequest(w, r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		})
-
-		http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-			if dumpvar {
-				_ = dumpRequest(os.Stdout, "test", r) // Ignore the error
-			}
-			token, err := srv.ValidationBearerToken(r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			data := map[string]interface{}{
-				"expires_in": int64(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn()).Sub(time.Now()).Seconds()),
-				"client_id":  token.GetClientID(),
-				"user_id":    token.GetUserID(),
-			}
-			e := json.NewEncoder(w)
-			e.SetIndent("", "  ")
-			e.Encode(data)
-		})
-	*/
 
 	// Start the http server.
 	if globule.Protocol == "https" {
@@ -2364,7 +2324,6 @@ func (globule *Globule) Listen() error {
 
 		// get the value from the configuration files.
 		go func() {
-
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
 		}()
 	}

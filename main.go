@@ -213,7 +213,7 @@ func main() {
 		update_globular_command_pwd := update_globular_command.String("p", "", "The user password. (Required)")
 		update_globular_command_platform := update_globular_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
 
-		// pull globular update
+		// pull globular update.
 		update_globular_from_command := flag.NewFlagSet("update_from", flag.ExitOnError)
 		update_globular_command_from_source := update_globular_from_command.String("source", "", " the address of the server from where to update the a given server.")
 		update_globular_from_command_dest := update_globular_from_command.String("a", "", "The domain of the server to update (Required)")
