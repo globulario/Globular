@@ -301,7 +301,7 @@ func (globule *Globule) deleteEntityResourcePermissions(entity string, path stri
 		return err
 	}
 
-	// Here I will remove the path itglobule.
+	// Here I will remove the path itself.
 	paths = Utility.RemoveString(paths, path)
 
 	// Now I will remove all other path that start with this one...
@@ -1026,7 +1026,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 				accessDenied = Utility.Contains(denied.Accounts, subject)
 			}
 
-			// The access is not denied for the account itglobule, I will validate
+			// The access is not denied for the account itself, I will validate
 			// that the account is not part of denied group.
 			if !accessDenied {
 				// I will test if one of the group account if part of hare access denied.
@@ -1083,7 +1083,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 				accessDenied = Utility.Contains(denied.Groups, subject)
 			}
 
-			// The access is not denied for the account itglobule, I will validate
+			// The access is not denied for the account itself, I will validate
 			// that the account is not part of denied group.
 			if !accessDenied {
 				// I will test if one of the group account if part of hare access denied.
@@ -1315,7 +1315,7 @@ func (globule *Globule) validateAction(action string, subject string, subjectTyp
 	// Validate the access for a given suject...
 	hasAccess := false
 
-	// So first of all I will validate the actions itglobule...
+	// So first of all I will validate the actions itself...
 	if subjectType == rbacpb.SubjectType_APPLICATION {
 		values_, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+subject+`"}`, "")
 		if err != nil {

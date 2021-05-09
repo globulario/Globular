@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	ps "github.com/mitchellh/go-ps"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,8 +28,6 @@ import (
 
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
-	"github.com/globulario/services/golang/event/eventpb"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/globulario/services/golang/file/file_client"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/ldap/ldap_client"
@@ -238,9 +237,10 @@ func NewGlobule() *Globule {
 
 	g.PortHttp = 80   // The default http port
 	g.PortHttps = 443 // The default https port number
+	execPath := Utility.GetExecName(os.Args[0])
+	g.Name = strings.Replace(execPath, ".exe", "", -1)
 
-	g.Name = strings.Replace(Utility.GetExecName(os.Args[0]), ".exe", "", -1)
-
+	// Set the default checksum...
 	g.Protocol = "http"
 	g.Domain = "localhost"
 
@@ -260,7 +260,7 @@ func NewGlobule() *Globule {
 	// No update globular by default.
 	g.KeepUpToDate = false
 
-	// Keep the 
+	// Keep the
 	g.Services = make(map[string]interface{})
 	g.services = new(sync.Map)
 	g.inernalServices = make([]*grpc.Server, 0)
@@ -280,6 +280,9 @@ func NewGlobule() *Globule {
 
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
+
+	// The checksum handler.
+	http.HandleFunc("/checksum", getChecksumHanldler)
 
 	// Handle the get ca certificate function
 	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
@@ -598,6 +601,7 @@ func (globule *Globule) initDirectories() {
 
 	// Init the service with the default port address
 	if err == nil {
+
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
 			log.Println("fail to read init from ", globule.config+"/config.json", err)
@@ -641,27 +645,6 @@ func (globule *Globule) initDirectories() {
 		convertVideo()
 	}()
 	log.Println("Globular is running!")
-}
-
-/**
- * Close the server.
- */
-func (globule *Globule) KillProcess_() {
-	// Here I will kill proxies if there are running.
-	Utility.KillProcessByName("grpcwebproxy")
-
-	// Kill previous instance of the program...
-	for _, s := range globule.getServices() {
-		_, ok := s.Load("Path")
-		if ok {
-			name := getStringVal(s, "Path")
-			name = name[strings.LastIndex(name, "/")+1:]
-			err := Utility.KillProcessByName(name)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
 }
 
 /**
@@ -750,7 +733,19 @@ func (globule *Globule) Serve() {
 	// lisen
 	err := globule.Listen()
 
-	log.Println("Globular is running!")
+	url := globule.Protocol + "://" + globule.Domain
+
+	if globule.Protocol == "https" {
+		if globule.PortHttps != 443 {
+			url += ":" + Utility.ToString(globule.PortHttps)
+		}
+	} else if globule.Protocol == "http" {
+		if globule.PortHttp != 80 {
+			url += ":" + Utility.ToString(globule.PortHttp)
+		}
+	}
+
+	log.Println("Globular is running at address " + url)
 
 	// Keep watching if the config file was modify by external agent.
 	globule.watchConfigFile()
@@ -1127,34 +1122,24 @@ func (globule *Globule) startInternalService(id string, proto string, hasTls boo
 }
 
 /**
- * Stop internal services resource admin lb...
- */
-func (globule *Globule) stopInternalServices() {
-	for i := 0; i < len(globule.inernalServices); i++ {
-		globule.inernalServices[i].Stop()
-	}
-
-	Utility.KillProcessByName("grpcwebproxy")
-}
-
-/**
  * Stop external services.
  */
 func (globule *Globule) stopServices() {
+	log.Println("stop services...")
 	// not keep services alive because the server must exist.
 	globule.exit_ = true
 
 	// Here I will disconnect service update event.
-	for id, subscriber := range globule.subscribers {
+	for id, _ := range globule.subscribers {
 		eventHub := globule.discorveriesEventHub[id]
 		if eventHub != nil {
-			for channelId, uuids := range subscriber {
-				for i := 0; i < len(uuids); i++ {
-					eventHub.UnSubscribe(channelId, uuids[i])
-				}
-			}
 			eventHub.Close()
 		}
+	}
+
+	eventClient, err := globule.getEventHub()
+	if err == nil  && eventClient != nil {
+		eventClient.Close()
 	}
 
 	// stop external service.
@@ -1162,10 +1147,11 @@ func (globule *Globule) stopServices() {
 		globule.stopExternalApplication(externalServiceId)
 	}
 
-	// Stop proxy process...
-	for _, s := range globule.getServices() {
+	for i := 0; i < len(globule.getServices()); i++ {
+		s := globule.getServices()[i]
 		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
+			log.Println("stop service: ", getStringVal(s, "Name"))
 			globule.stopService(s)
 		}
 	}
@@ -1188,6 +1174,18 @@ func (globule *Globule) stopServices() {
 		log.Println("stop listen(http) at port ", globule.PortHttp)
 	}
 
+
+
+	// Double check that all process are terminated...
+	for i := 0; i < len(globule.getServices()); i++ {
+		s := globule.getServices()[i]
+		processPid := getIntVal(s, "Process")
+		if processPid != -1 {
+			globule.killServiceProcess(s, processPid)
+		}
+	}
+
+	globule.saveConfig()
 }
 
 /**
@@ -1569,6 +1567,29 @@ func (globule *Globule) getBasePath() string {
 	return basePath
 }
 
+func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
+
+	// also kill it proxy process if exist in that case.
+	_, hasProxyProcess := s.Load("ProxyProcess")
+	if hasProxyProcess {
+		proxyProcessPid := getIntVal(s, "ProxyProcess")
+		proxyProcess, err := os.FindProcess(proxyProcessPid)
+		if err == nil {
+			proxyProcess.Kill()
+			s.Store("ProxyProcess", -1)
+		}
+	}
+	// kill it in the name of...
+	process, err := os.FindProcess(pid)
+	if err == nil {
+		process.Kill()
+		s.Store("Process", -1)
+	}
+
+	// Set the service
+	globule.setService(s)
+}
+
 /**
  * Call once when the server start.
  */
@@ -1714,9 +1735,6 @@ func (globule *Globule) initServices() {
 		}
 	}
 
-	// Kill previous instance of the program...
-	globule.KillProcess_()
-
 	// Start the load balancer.
 	err := globule.startLoadBalancingService()
 	if err != nil {
@@ -1724,25 +1742,99 @@ func (globule *Globule) initServices() {
 	}
 
 	log.Println("Init external services: ")
+	servicesByName := make(map[string][]int, 0)
+
+	// Initialyse service
 	for _, s := range globule.getServices() {
-		// Remove existing process information.
-		s.Store("Process", -1)
-		s.Store("ProxyProcess", -1)
-		globule.saveServiceConfig(s)
-
-		// The service name.
 		name := getStringVal(s, "Name")
-
-		log.Println("Init service: ", name)
-		if name == "file.FileService" {
-			s.Store("Root", globule.data+"/files")
-		} else if name == "conversation.ConversationService" {
-			s.Store("Root", globule.data)
+		// Get existion process information.
+		_, hasProcess := s.Load("Process")
+		processPid := -1
+		if hasProcess {
+			processPid = getIntVal(s, "Process")
+			// Now I will find if the process is running
+			if processPid != -1 {
+				_, err := Utility.GetProcessRunningStatus(processPid)
+				log.Println("find process ", name, ":", processPid)
+				if err != nil {
+					globule.killServiceProcess(s, processPid)
+					processPid = -1
+				} else {
+					p, err := ps.FindProcess(processPid)
+					if err != nil {
+						log.Println("Process ", processPid, " dosent exist anymore...")
+						globule.killServiceProcess(s, processPid)
+						processPid = -1
+					} else {
+						processExist := p.Executable() == getStringVal(s, "Path")
+						if !processExist {
+							log.Println("Process ", processPid, " dosent exist anymore...")
+							globule.killServiceProcess(s, processPid)
+							processPid = -1
+						}
+					}
+				}
+			}
 		}
 
-		err := globule.initService(s)
-		if err != nil {
-			log.Println(err)
+		// Here I will keep track of the services process by it name...
+		if _, ok := servicesByName[name]; !ok {
+			//do something here
+			servicesByName[name] = make([]int, 0)
+		}
+
+		// Keep the pid.
+		servicesByName[name] = append(servicesByName[name], processPid)
+
+		// If no process already exist I will create one.
+		if processPid == -1 {
+			_, hasProxyProcess := s.Load("ProxyProcess")
+			if hasProxyProcess {
+				proxyProcessPid := getIntVal(s, "ProxyProcess")
+				proxyProcess, err := os.FindProcess(proxyProcessPid)
+				if err == nil {
+					proxyProcess.Kill()
+				}
+			}
+
+			// The service name.
+			log.Println("Init service: ", name)
+			if name == "file.FileService" {
+				s.Store("Root", globule.data+"/files")
+			} else if name == "conversation.ConversationService" {
+				s.Store("Root", globule.data)
+			}
+
+			err := globule.initService(s)
+			if err != nil {
+				log.Println(err)
+			}
+		} else {
+			log.Println("Process exist for service: ", name)
+		}
+	}
+
+	// Now I will kill all services who are not listed in the map.
+	for serviceName, pids := range servicesByName {
+		pids_, err := Utility.GetProcessIdsByName(serviceName)
+		if err == nil {
+			exist := false
+			for i := 0; i < len(pids_); i++ {
+				for j := 0; j < len(pids); j++ {
+					if pids_[i] == pids[j] {
+						exist = true
+						break
+					}
+				}
+				// If the pid is not found in the list of pids from the configuration
+				// I will remove it.
+				if !exist {
+					p, err := os.FindProcess(pids_[i])
+					if err == nil {
+						p.Kill()
+					}
+				}
+			}
 		}
 	}
 }
@@ -1832,7 +1924,7 @@ rule_files:
   # - "second_rules.yml"
 
 # A scrape configuration containing exactly one endpoint to scrape:
-# Here it's Prometheus itglobule.
+# Here it's Prometheus itself.
 scrape_configs:
   - job_name: 'prometheus'
 
@@ -2136,6 +2228,8 @@ func (globule *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
  */
 func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 
+	// Here I will get a look into the list of initialyse process before trying to connect
+	// to event service.
 	configs := globule.getServiceConfigByName("event.EventService")
 	if len(configs) == 0 {
 		return nil, errors.New("no event service was configure on that globule")
@@ -2148,16 +2242,19 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
 		globule.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
 		if err == nil {
+			
 			// Here I need to publish a fake event message to be sure the event service is listen.
-			err := globule.event_client_.Publish("__init__", []byte("This is a test!"))
+			err := globule.event_client_.Publish("__init__", []byte("is there anybody out there...?"))
 			if err != nil {
 				globule.event_client_ = nil
+				log.Println("the local event fail...")
 				return nil, err
 			}
 		}
 	}
-
+	log.Println("the local event successed!")
 	return globule.event_client_, err
+
 }
 
 /**
@@ -2255,33 +2352,79 @@ func (globule *Globule) startInternalServices() error {
 }
 
 /**
+ * retreive checksum from the server.
+ */
+func getChecksum(address string, port int) (string, error) {
+	if len(address) == 0 {
+		return "", errors.New("no address was given")
+	}
+
+	// Here I will get the configuration information from http...
+	var resp *http.Response
+	var err error
+	var url = "http://" + address + ":" + Utility.ToString(port) + "/checksum"
+	resp, err = http.Get(url)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusCreated {
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return string(bodyBytes), nil
+	}
+
+	return "", errors.New("fail to retreive checksum with error " + Utility.ToString(resp.StatusCode))
+}
+
+func (globule *Globule) watchForUpdate() {
+	for {
+
+		// stop watching if exit was call...
+		if globule.exit_ {
+			return
+		}
+
+		if len(globule.Discoveries) > 0 {
+			// Here I will retreive the checksum information from it parent.
+			discovery := globule.Discoveries[0]
+			address := strings.Split(discovery, ":")[0]
+			port := 80
+			if strings.Contains(discovery, ":") {
+				port = Utility.ToInt(strings.Split(discovery, ":")[1])
+			}
+
+			// Here I will test if the checksum has change...
+			checksum, err := getChecksum(address, port)
+			if err == nil {
+				if checksum != Utility.CreateFileChecksum(Utility.GetExecName(os.Args[0])) {
+					if globule.Domain != address && globule.KeepUpToDate {
+						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						if err != nil {
+							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
+						}
+					}
+				}
+			}
+		}
+
+		// The time here can be set to higher value.
+		time.Sleep(30 * time.Second)
+	}
+}
+
+/**
  * Keep globular version in sync with the version from it discovery [0]...
  */
-func (globule *Globule) keepUpToDate() error {
-	
-	if len(globule.Discoveries) == 0 {
-		return errors.New("no discovery was configure for that globule")
-	}
-
-	uuid := Utility.RandomUUID()
-	address := globule.Discoveries[0];
-
-	fct := func(evt *eventpb.Event) {
-		// The package descriptor.
-		err := jsonpb.UnmarshalString(string(evt.GetData()), nil)
-		if err == nil {
-			// do what you have todo here...
-			log.Println("received event from ", address, "for", uuid)	
-		}
-	}
-
-	eventHub, err := event_client.NewEventService_Client(address, "event.EventService")
-	if err != nil {
-		return err
-	}
-
-	id := "update_globular_event" // Subscribe to update globular event.
-	return eventHub.Subscribe(id, uuid, fct);
+func (globule *Globule) keepUpToDate() {
+	go func() {
+		globule.watchForUpdate()
+	}()
 }
 
 /**
@@ -2291,9 +2434,6 @@ func (globule *Globule) Listen() error {
 
 	// Keep services up to date subscription.
 	globule.subscribers = globule.keepServicesUpToDate()
-
-	// Keep globular up to date subscription.
-	globule.keepUpToDate();
 
 	var err error
 	// Must be started before other services.
@@ -2309,6 +2449,9 @@ func (globule *Globule) Listen() error {
 	// handle the Interrupt
 	// set the register sa user.
 	globule.registerSa()
+
+	// Keep globular up to date subscription.
+	globule.keepUpToDate()
 
 	// Start the http server.
 	if globule.Protocol == "https" {

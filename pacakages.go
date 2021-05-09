@@ -30,26 +30,19 @@ import (
 )
 
 func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]map[string][]string, discovery string) error {
-
-
-	address := discovery
-	if address == globule.Domain {
-		address += ":" + Utility.ToString(globule.PortHttp)
-	}
-
 	// keep on memorie...
 	eventHub := globule.discorveriesEventHub[discovery]
+	
 	if eventHub == nil {
 		var err error
-		eventHub, err = event_client.NewEventService_Client(address, "event.EventService")
+		eventHub, err = event_client.NewEventService_Client(discovery, "event.EventService")
 		if err != nil {
 			return err
 		}
-		globule.discorveriesEventHub[discovery] = eventHub;
-		log.Println("Connect to discovery event hub ", discovery)
+		globule.discorveriesEventHub[discovery] = eventHub
+		log.Println("Connected to discovery event hub ", discovery)
 	}
 
-	log.Println("Connected with event service at ", discovery)
 	if subscribers[discovery] == nil {
 		subscribers[discovery] = make(map[string][]string)
 	}
@@ -104,7 +97,7 @@ func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]
 				log.Println(err)
 			}
 		}
-		
+
 		// Can block until connection was made or number of try.
 		return eventHub.Subscribe(id, uuid, fct)
 	}
@@ -117,7 +110,7 @@ func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]
  */
 func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
 
-	// append itglobule to service discoveries...
+	// append itself to service discoveries...
 	subscribers := make(map[string]map[string][]string)
 
 	// Connect to service update events...
@@ -542,7 +535,7 @@ func (globule *Globule) PublishPackageDescriptor(ctx context.Context, rqst *pack
 
 	}
 
-	// The key will be the descriptor string itglobule.
+	// The key will be the descriptor string itself.
 	jsonStr, err := Utility.ToJson(rqst.Descriptor_)
 
 	if err != nil {

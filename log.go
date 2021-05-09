@@ -91,7 +91,7 @@ func (globule *Globule) logInfo(application string, method string, token string,
 
 	// Remove cyclic calls
 	if method == "/resource.LogService/Log" {
-		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itglobule!")
+		return errors.New("Method " + method + " cannot not be log because it will cause a circular call to itself!")
 	}
 
 	// Here I will use event to publish log information...

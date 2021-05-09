@@ -58,30 +58,15 @@ func (g *Globule) Stop(s service.Service) error {
 	logger.Info("Globular is stopping!")
 
 	// Stop external services.
-	log.Println("try to stop external services")
-
+	log.Println("try to stop services")
 	g.stopServices()
 
-	log.Println("locals services are stopped")
-
-	// Stop internal services
-	log.Println("try to stop internal services")
-	g.stopInternalServices()
-	log.Println("internal services  are stopped")
-
-	logger.Infof("Globular has been stopped!")
-	pids, err := Utility.GetProcessIdsByName("grpcwebproxy")
-	if err == nil {
-		for i := 0; i < len(pids); i++ {
-			Utility.TerminateProcess(pids[i], 0)
-		}
-	}
-	g.stopMongod()
+	err := g.stopMongod()
 
 	// Close kv stores.
 	g.logs.Close()
 	g.permissions.Close()
-
+	
 	close(g.exit)
 	return err
 }
@@ -745,8 +730,11 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	// temp directory...
 	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
 	Utility.CreateDirIfNotExist(path)
-
-	admin_source.DownloadGlobular(src, platform, path)
+	err =admin_source.DownloadGlobular(src, platform, path)
+	if err != nil {
+		log.Println("---> fail to download with ", err)
+		return err
+	}
 
 	path_ := path
 	path_ += "/Globular"
@@ -754,10 +742,9 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 		path_ += ".exe"
 	}
 
-	if !Utility.Exists(path) {
-		err := errors.New(path_ + " not found!")
+	if !Utility.Exists(path_) {
+		err := errors.New(path_ + " not found! ")
 		return err
-		log.Println("---> the executable path was not found!")
 	}
 
 	defer os.RemoveAll(path)
@@ -1088,13 +1075,22 @@ func dist(g *Globule, path string, revision string) {
 
 		postinst := `
 		# Create a link into bin to it original location.
+		# the systemd file is /etc/systemd/system/Globular.service
+		# the environement variable file is /etc/sysconfig/Globular
 		 echo "install globular as service..."
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
 		 chmod ugo+x /usr/local/bin/Globular
 		 /usr/local/bin/Globular install
-		 systemctl start Globular
+		 # here I will modify the /etc/systemd/system/Globular.service file and set 
+		 # Restart=always
+		 # RestartSec=3
+		 echo "set service configuration /etc/systemd/system/Globular.service"
+		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
+		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
+		 systemctl daemon-reload
 		 systemctl enable Globular
 		 echo "To complete your server setup go to http://localhost"
+		 echo "To start globular service 'sudo systemctl start Globular'"
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
 		if err != nil {
@@ -1107,6 +1103,7 @@ func dist(g *Globule, path string, revision string) {
 		echo "Stop runing globular service..."
 		systemctl stop Globular
 		systemctl disable Globular
+		systemctl daemon-reload
 		echo "Unistall globular service..."
 		/usr/local/bin/Globular uninstall
 		`

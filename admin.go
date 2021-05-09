@@ -205,12 +205,12 @@ func (globule *Globule) watchConfigFile() {
 
 // Save the configuration file.
 func (globule *Globule) saveConfig() {
-	if globule.exit_ {
-		return // not writting the config file when the server is closing.
-	}
+
 	// Here I will save the server attribute
 	str, err := Utility.ToJson(globule.toMap())
+
 	if err == nil {
+		log.Println("save configuration to ", globule.config+"/config.json")
 		ioutil.WriteFile(globule.config+"/config.json", []byte(str), 0644)
 	} else {
 		log.Panicln(err)
@@ -868,7 +868,7 @@ func (globule *Globule) publishApplication(user, organization, path, name, domai
 }
 
 /**
- * Update Globular itglobule with a new version.
+ * Update Globular itself with a new version.
  */
 func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 	// The buffer that will receive the service executable.
@@ -876,15 +876,7 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 	var platform string
 	for {
 		msg, err := stream.Recv()
-		if msg == nil {
-			return errors.New("fail to run action adminpb.AdminService_UpdateServer")
-		}
-
-		if len(msg.Platform) > 0 {
-			platform = msg.Platform
-		}
-
-		if err == io.EOF {
+		if err == io.EOF || msg == nil {
 			// end of stream...
 			stream.SendAndClose(&adminpb.UpdateResponse{})
 			err = nil
@@ -896,6 +888,11 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 		} else {
 			buffer.Write(msg.Data)
 		}
+
+		if len(msg.Platform) > 0 {
+			platform = msg.Platform
+		}
+
 	}
 
 	if len(platform) == 0 {
@@ -919,11 +916,18 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 		path += ".exe"
 	}
 
+	existing_checksum := Utility.CreateFileChecksum(path)
+	checksum := Utility.CreateDataChecksum(buffer.Bytes())
+	if existing_checksum == checksum{
+		return errors.New("no update to be done file are the same")
+	}
+
 	// Move the actual file to other file...
-	err = os.Rename(path, path+"_"+Utility.ToString(globule.Build))
+	err = os.Rename(path, path+"_"+checksum)
 	if err != nil {
 		return err
 	}
+
 
 	/** So here I will change the current server path and save the new executable **/
 	err = ioutil.WriteFile(path, buffer.Bytes(), 0755)
@@ -935,8 +939,11 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 	globule.Build = time.Now().Unix()
 	globule.saveConfig()
 
-	// This will restart the service.
-	defer globule.restartServices()
+	// exit
+	// globule.stopServices()
+	log.Println("stop globular made use systemctl to automaticaly restart globular")
+
+	os.Exit(0)
 
 	return nil
 }
@@ -973,7 +980,6 @@ func (globule *Globule) DownloadGlobular(rqst *adminpb.DownloadGlobularRequest, 
 	defer data.Close()
 
 	reader := bufio.NewReader(data)
-
 	const BufferSize = 1024 * 5 // the chunck size.
 
 	for {
@@ -1024,9 +1030,21 @@ func (globule *Globule) DeployApplication(stream adminpb.AdminService_DeployAppl
 
 	for {
 		msg, err := stream.Recv()
-		if msg == nil {
-			return errors.New("fail to run action adminpb.AdminService.DeployApplication")
+		if err == io.EOF || msg == nil {
+			// end of stream...
+			stream.SendAndClose(&adminpb.DeployApplicationResponse{
+				Result: true,
+			})
+			err = nil
+			break
+		} else if err != nil {
+			return err
+		} else if len(msg.Data) == 0 {
+			break
+		} else {
+			buffer.Write(msg.Data)
 		}
+
 		if len(msg.Name) > 0 {
 			name = msg.Name
 		}
@@ -1080,20 +1098,6 @@ func (globule *Globule) DeployApplication(stream adminpb.AdminService_DeployAppl
 			set_as_default = true
 		}
 
-		if err == io.EOF {
-			// end of stream...
-			stream.SendAndClose(&adminpb.DeployApplicationResponse{
-				Result: true,
-			})
-			err = nil
-			break
-		} else if err != nil {
-			return err
-		} else if len(msg.Data) == 0 {
-			break
-		} else {
-			buffer.Write(msg.Data)
-		}
 	}
 
 	if len(repositoryId) == 0 {
@@ -1698,7 +1702,7 @@ func (globule *Globule) publishPackage(user string, organization string, discove
 	}
 
 	log.Println("Package publish sucessfully event send: ", eventId)
-	
+
 	return globule.discorveriesEventHub[discovery].Publish(eventId, []byte(data))
 }
 
@@ -1758,8 +1762,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			return err
 		}
 
-		log.Println("--> try to download service from ", descriptor.Repositories[i])
-
+		log.Println("try to download service from ", descriptor.Repositories[i])
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 
 		if err == nil {
@@ -1811,7 +1814,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			s["Proto"] = protos[0]
 
 			// Here I will get previous service values...
-			previous := globule.getService(s["Id"].(string));
+			previous := globule.getService(s["Id"].(string))
 			if previous != nil {
 				s["KeepAlive"] = getBoolVal(previous, "KeepAlive")
 				s["KeepUpToDate"] = getBoolVal(previous, "KeepUpToDate")
@@ -1841,22 +1844,21 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			globule.registerMethods()
 
 			// Append to the list of service discoveries.
-			needSave := false;
-			for i:=0; i < len(descriptor.Discoveries); i++ {
+			needSave := false
+			for i := 0; i < len(descriptor.Discoveries); i++ {
 				if !Utility.Contains(globule.Discoveries, descriptor.Discoveries[i]) {
 					globule.Discoveries = append(globule.Discoveries, descriptor.Discoveries[i])
-					
+
 					// Keep the service updated...
-					globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i]) 
+					globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i])
 					needSave = true
 				}
 			}
 
 			if needSave {
-				globule.saveConfig();
+				globule.saveConfig()
 			}
 
-	
 			break
 		} else {
 			log.Println("fail to download error with error ", err)
@@ -2011,6 +2013,7 @@ func (globule *Globule) stopService(s *sync.Map) error {
 
 	pid := getIntVal(s, "Process")
 	if pid != -1 {
+		log.Println("stop service ", getStringVal(s, "Name"), "pid:", pid)
 
 		if runtime.GOOS == "windows" {
 			// Program written with dotnet on window need this command to stop...
@@ -2042,6 +2045,9 @@ func (globule *Globule) stopService(s *sync.Map) error {
 	s.Store("ProxyProcess", -1)
 	s.Store("State", "stopped")
 
+	// set the service back in the map.
+	globule.setService(s)
+
 	config := make(map[string]interface{}, 0)
 	s.Range(func(k, v interface{}) bool {
 		config[k.(string)] = v
@@ -2054,6 +2060,7 @@ func (globule *Globule) stopService(s *sync.Map) error {
 	// here I will write the file
 	configPath := globule.getServiceConfigPath(s)
 	if len(configPath) > 0 {
+		log.Println("save configuration at ", configPath)
 		err := ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
 		if err != nil {
 			return err
@@ -2061,7 +2068,7 @@ func (globule *Globule) stopService(s *sync.Map) error {
 	}
 
 	// globule.logServiceInfo(getStringVal(s, "Name"), time.Now().String()+"Service "+getStringVal(s, "Name")+" was stopped!")
-	globule.saveConfig()
+
 	return nil
 }
 
@@ -2148,63 +2155,13 @@ func (globule *Globule) RestartServices(ctx context.Context, rqst *adminpb.Resta
 	return &adminpb.RestartServicesResponse{}, nil
 }
 
-// That command is use to restart a new instance of the globular.
-func rerunDetached() error {
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	path := os.Args[0]
-	cmd := exec.Command(path, []string{}...)
-	cmd.Dir = cwd
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-	cmd.Process.Release()
-	return nil
-}
-
 func (globule *Globule) restartServices() {
 	if globule.exit_ {
 		return // already restarting I will ingnore the call.
 	}
 
-	// Stop all internal services
-	globule.stopInternalServices()
-
 	// Stop all external services.
 	globule.stopServices()
-
-	ticker := time.NewTicker(1 * time.Second)
-	done := make(chan bool)
-	delay := 5
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-
-				fmt.Println("restart in ", delay, "second")
-				delay--
-			}
-		}
-	}()
-
-	time.Sleep(time.Duration(delay) * time.Second)
-	ticker.Stop()
-	done <- true
-
-	log.Println("Globular process will now restart...")
-
-	// Restart a new process.
-	rerunDetached()
-
-	os.Exit(0) // exit the process to release all ressources.
-
 }
 
 // Start an external service here.

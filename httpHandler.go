@@ -25,6 +25,17 @@ import (
 	"github.com/globulario/services/golang/rbac/rbacpb"
 )
 
+func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
+
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/text")
+	setupResponse(&w, r)
+	w.WriteHeader(http.StatusCreated)
+
+	// Simply return the checksum of the current executable.
+	fmt.Fprint(w, Utility.CreateFileChecksum(Utility.GetExecName(os.Args[0])))
+}
+
 /**
  * Return the service configuration
  */
