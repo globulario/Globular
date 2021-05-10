@@ -918,7 +918,7 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 
 	existing_checksum := Utility.CreateFileChecksum(path)
 	checksum := Utility.CreateDataChecksum(buffer.Bytes())
-	if existing_checksum == checksum{
+	if existing_checksum == checksum {
 		return errors.New("no update needed")
 	}
 
@@ -927,7 +927,6 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 	if err != nil {
 		return err
 	}
-
 
 	/** So here I will change the current server path and save the new executable **/
 	err = ioutil.WriteFile(path, buffer.Bytes(), 0755)
@@ -1748,6 +1747,8 @@ func (globule *Globule) PublishService(ctx context.Context, rqst *adminpb.Publis
 }
 
 // Install/Update a service on globular instance.
+// TODO wrote the code to play the shell script..
+// file postinst, postrm, preinst, postinst
 func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor) error {
 	// repository must exist...
 	log.Println("step 2: try to dowload service bundle")
