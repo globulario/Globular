@@ -32,8 +32,12 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 	w.WriteHeader(http.StatusCreated)
 
-	// Simply return the checksum of the current executable.
-	fmt.Fprint(w, Utility.CreateFileChecksum(Utility.GetExecName(os.Args[0])))
+	execPath := Utility.GetExecName(os.Args[0])
+	if Utility.Exists("/usr/local/share/globular/Globular") {
+		execPath = "/usr/local/share/globular/Globular"
+	}
+
+	fmt.Fprint(w, Utility.CreateFileChecksum(execPath))
 }
 
 /**
@@ -61,7 +65,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 
 	crt, err := ioutil.ReadFile(globule.creds + "/ca.crt")
 	if err != nil {
-		http.Error(w, "Client ca cert not found!", http.StatusBadRequest)
+		http.Error(w, "Client ca cert not found", http.StatusBadRequest)
 		return
 	}
 

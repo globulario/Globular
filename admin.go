@@ -919,7 +919,7 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 	existing_checksum := Utility.CreateFileChecksum(path)
 	checksum := Utility.CreateDataChecksum(buffer.Bytes())
 	if existing_checksum == checksum{
-		return errors.New("no update to be done file are the same")
+		return errors.New("no update needed")
 	}
 
 	// Move the actual file to other file...
@@ -941,7 +941,7 @@ func (globule *Globule) Update(stream adminpb.AdminService_UpdateServer) error {
 
 	// exit
 	// globule.stopServices()
-	log.Println("stop globular made use systemctl to automaticaly restart globular")
+	log.Println("stop globular made use systemctl to restart globular automaticaly")
 
 	os.Exit(0)
 
@@ -958,7 +958,7 @@ func (globule *Globule) DownloadGlobular(rqst *adminpb.DownloadGlobularRequest, 
 
 	platform_ := runtime.GOOS + ":" + runtime.GOARCH
 	if platform != platform_ {
-		return errors.New("Wrong executable platform to update from! wants " + platform_ + " not " + platform)
+		return errors.New("Wrong executable platform to update from get " + platform + " want " + platform_)
 	}
 
 	ex, err := os.Executable()

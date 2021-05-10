@@ -732,7 +732,7 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	Utility.CreateDirIfNotExist(path)
 	err =admin_source.DownloadGlobular(src, platform, path)
 	if err != nil {
-		log.Println("---> fail to download with ", err)
+		log.Println("fail to download new globular executable file with error: ", err)
 		return err
 	}
 
@@ -765,6 +765,10 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
  * The service must contain
  * - A .proto file that define it gRPC services interface.
  * - A config.json file that define it service configuration.
+ * - (optional) A preinst shell script file that contain the script to be run before the installation
+ * - (optional) A postinst shell script file tha contain the script to be run after the installation
+ * - (optional) A prerm shell script file that contain the script to be run before the service removal
+ * - (optional) A postrm shell script file tha contain the script to be run after the service removal
  * All file in the service directory will be part of the package, so take
  * care to include all dependencies, dll... to be sure your services will run
  * as expected.
@@ -804,10 +808,14 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 		return err
 	}
 
-	log.Println("Service was pulbish successfully!")
+	log.Println("Service was pulbish successfully have a nice day folk!")
 	return nil
 }
 
+/**
+ * That function is use to intall a service at given adresse. The service Id is the unique identifier of 
+ * the service to be install.
+ */
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
 	log.Println("try to install service", serviceId, "on", domain)
 	// Authenticate the user in order to get the token

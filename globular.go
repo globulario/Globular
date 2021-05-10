@@ -10,7 +10,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	ps "github.com/mitchellh/go-ps"
 	"io"
 	"io/ioutil"
 	"log"
@@ -25,6 +24,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	ps "github.com/mitchellh/go-ps"
 
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
@@ -1138,7 +1139,7 @@ func (globule *Globule) stopServices() {
 	}
 
 	eventClient, err := globule.getEventHub()
-	if err == nil  && eventClient != nil {
+	if err == nil && eventClient != nil {
 		eventClient.Close()
 	}
 
@@ -1173,8 +1174,6 @@ func (globule *Globule) stopServices() {
 		}
 		log.Println("stop listen(http) at port ", globule.PortHttp)
 	}
-
-
 
 	// Double check that all process are terminated...
 	for i := 0; i < len(globule.getServices()); i++ {
@@ -2234,7 +2233,6 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 	if len(configs) == 0 {
 		return nil, errors.New("no event service was configure on that globule")
 	}
-
 	s := configs[0]
 
 	var err error
@@ -2242,7 +2240,6 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 		log.Println("Create connection to event hub ", s["Domain"].(string))
 		globule.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
 		if err == nil {
-			
 			// Here I need to publish a fake event message to be sure the event service is listen.
 			err := globule.event_client_.Publish("__init__", []byte("is there anybody out there...?"))
 			if err != nil {
@@ -2252,7 +2249,7 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 			}
 		}
 	}
-	log.Println("the local event successed!")
+
 	return globule.event_client_, err
 
 }
@@ -2401,12 +2398,19 @@ func (globule *Globule) watchForUpdate() {
 
 			// Here I will test if the checksum has change...
 			checksum, err := getChecksum(address, port)
+			execPath := Utility.GetExecName(os.Args[0])
+			if(Utility.Exists("/usr/local/share/globular/Globular")){
+				execPath = "/usr/local/share/globular/Globular"
+			}
 			if err == nil {
-				if checksum != Utility.CreateFileChecksum(Utility.GetExecName(os.Args[0])) {
+				if checksum != Utility.CreateFileChecksum(execPath) {
+
 					if globule.Domain != address && globule.KeepUpToDate {
 						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
+						}else{
+							log.Println("update globular checksum is ", checksum)
 						}
 					}
 				}

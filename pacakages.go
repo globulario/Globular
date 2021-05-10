@@ -30,12 +30,17 @@ import (
 )
 
 func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]map[string][]string, discovery string) error {
+	
+	address := discovery
+	if address == globule.Domain {
+		address += ":" + Utility.ToString(globule.PortHttp)
+	}
+
 	// keep on memorie...
 	eventHub := globule.discorveriesEventHub[discovery]
-	
 	if eventHub == nil {
 		var err error
-		eventHub, err = event_client.NewEventService_Client(discovery, "event.EventService")
+		eventHub, err = event_client.NewEventService_Client(address, "event.EventService")
 		if err != nil {
 			return err
 		}
