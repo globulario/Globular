@@ -1786,6 +1786,17 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			}
 
 			path := globule.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
+
+			// before I will start the service I will get a look if preinst script must be run...
+			if Utility.Exists(path + "/preinst") {
+				// I that case I will run it...
+				_, err := exec.Command("/bin/sh", path+"/preinst").Output()
+				if err != nil {
+					defer os.RemoveAll(path)
+					return err
+				}
+			}
+
 			configs, _ := Utility.FindFileByName(path, "config.json")
 
 			if len(configs) == 0 {
@@ -1853,6 +1864,15 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 					// Keep the service updated...
 					globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i])
 					needSave = true
+				}
+			}
+
+			if Utility.Exists(path + "/postinst") {
+				// I that case I will run it...
+				_, err := exec.Command("/bin/sh", path+"/postinst").Output()
+				if err != nil {
+					defer os.RemoveAll(path)
+					return err
 				}
 			}
 
