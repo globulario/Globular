@@ -66,7 +66,7 @@ func (g *Globule) Stop(s service.Service) error {
 	// Close kv stores.
 	g.logs.Close()
 	g.permissions.Close()
-	
+
 	close(g.exit)
 	return err
 }
@@ -730,7 +730,7 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	// temp directory...
 	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
 	Utility.CreateDirIfNotExist(path)
-	err =admin_source.DownloadGlobular(src, platform, path)
+	err = admin_source.DownloadGlobular(src, platform, path)
 	if err != nil {
 		log.Println("fail to download new globular executable file with error: ", err)
 		return err
@@ -813,7 +813,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 }
 
 /**
- * That function is use to intall a service at given adresse. The service Id is the unique identifier of 
+ * That function is use to intall a service at given adresse. The service Id is the unique identifier of
  * the service to be install.
  */
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
