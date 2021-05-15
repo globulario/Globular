@@ -826,7 +826,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 	token, err := resource_client_.Authenticate(user, pwd)
 	if err != nil {
-
+		log.Println("fail to authenticate with error ", err.Error())
 		return err
 	}
 
@@ -834,17 +834,18 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	// The certificates will be taken from the address
 	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to connect to admin client at ", domain, " with error ", err.Error())
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
 	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to install service with error ", serviceId, err.Error())
 		return err
 	}
 
+	log.Println("service was installed")
 	return nil
 }
 

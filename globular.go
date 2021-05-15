@@ -407,11 +407,45 @@ func getVal(m *sync.Map, k string) interface{} {
 	return v
 }
 
+func (globule *Globule) isInternalService(s *sync.Map)bool {
+	name := getStringVal(s, "Name")
+
+	return name == "packages.PackageRepository" ||
+	name == "ca.CertificateAuthority" ||
+	name == "lb.LoadBalancingService" ||
+	name == "log.LogService" ||
+	name == "resource.ResourceService" ||
+	name == "packages.PackageDiscovery" ||
+	name == "rbac.RbacService" ||
+	name == "admin.AdminService"
+
+}
+
 func (globule *Globule) getServices() []*sync.Map {
 	_services_ := make([]*sync.Map, 0)
-	// Append services into the array.
+	//Append services into the array.
 	globule.services.Range(func(key, s interface{}) bool {
-		_services_ = append(_services_, s.(*sync.Map))
+		// I will remove unfounded service from the map...
+		servicePath := getStringVal(s.(*sync.Map), "Path")
+		if !Utility.Exists(servicePath) && !globule.isInternalService(s.(*sync.Map)) {
+			// Here I will set various base on the standard dist directory structure.
+			path := globule.path + "/services/" + getStringVal(s.(*sync.Map), "PublisherId") + "/" + getStringVal(s.(*sync.Map), "Name") + "/" + getStringVal(s.(*sync.Map), "Version") + "/" + getStringVal(s.(*sync.Map), "Id")
+			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
+			servicePath = path + "/" + execName
+			if Utility.Exists(servicePath) {
+				s.(*sync.Map).Store("Path", servicePath)
+				globule.setService(s.(*sync.Map))
+				_services_ = append(_services_, s.(*sync.Map))
+			}else{
+				log.Println("No executable path was found for path ", servicePath)
+				globule.deleteService(getStringVal(s.(*sync.Map), "Id"))
+			}
+		}else{
+			// Here the service exec is found.
+			_services_ = append(_services_, s.(*sync.Map))
+		}
+
+		//_services_ = append(_services_, s.(*sync.Map))
 		return true
 	})
 
@@ -434,7 +468,10 @@ func (globule *Globule) getService(id string) *sync.Map {
 }
 
 func (globule *Globule) deleteService(id string) {
-	globule.services.Delete(id)
+	s, exist :=	globule.services.LoadAndDelete(id)
+	if exist {
+		log.Println("service", getStringVal(s.(*sync.Map), "Name"), getStringVal(s.(*sync.Map), "Id"),  "was remove from the map!")
+	}
 }
 
 func (globule *Globule) toMap() map[string]interface{} {
@@ -1147,9 +1184,9 @@ func (globule *Globule) stopServices() {
 	for externalServiceId, _ := range globule.ExternalApplications {
 		globule.stopExternalApplication(externalServiceId)
 	}
-
-	for i := 0; i < len(globule.getServices()); i++ {
-		s := globule.getServices()[i]
+	services := globule.getServices()
+	for i := 0; i < len(services); i++ {
+		s := services[i]
 		if s != nil {
 			// I will also try to keep a client connection in to communicate with the service.
 			log.Println("stop service: ", getStringVal(s, "Name"))
@@ -1176,8 +1213,8 @@ func (globule *Globule) stopServices() {
 	}
 
 	// Double check that all process are terminated...
-	for i := 0; i < len(globule.getServices()); i++ {
-		s := globule.getServices()[i]
+	for i := 0; i < len(services); i++ {
+		s := services[i]
 		processPid := getIntVal(s, "Process")
 		if processPid != -1 {
 			globule.killServiceProcess(s, processPid)
@@ -1240,6 +1277,19 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 			// Here I will set various base on the standard dist directory structure.
 			path := globule.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version") + "/" + getStringVal(s, "Id")
 			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
+			servicePath = path + "/" + execName
+
+			if !Utility.Exists(servicePath) {
+				// If the service is running...
+				if pid != -1 {
+					globule.killServiceProcess(s, pid)
+				}
+
+				globule.deleteService(getStringVal(s, "Id"))
+				defer globule.saveConfig()
+
+				return -1, -1, errors.New("No executable was found for service " + getStringVal(s, "Name") + servicePath)
+			}
 
 			s.Store("Path", path+"/"+execName)
 			_, exist := s.Load("Path")
@@ -1253,6 +1303,7 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 			if err != nil {
 				return -1, -1, errors.New("No prototype file was found for path '" + path_)
 			}
+
 			s.Store("Proto", files[0])
 		}
 
@@ -1713,7 +1764,8 @@ func (globule *Globule) initServices() {
 	})
 
 	// Set the certificate keys...
-	for _, s := range globule.getServices() {
+	services :=globule.getServices() 
+	for _, s := range services{
 		log.Println("init service ", getStringVal(s, "Name"))
 		if getStringVal(s, "Protocol") == "grpc" {
 
@@ -1744,7 +1796,8 @@ func (globule *Globule) initServices() {
 	servicesByName := make(map[string][]int, 0)
 
 	// Initialyse service
-	for _, s := range globule.getServices() {
+	
+	for _, s := range services {
 		name := getStringVal(s, "Name")
 		// Get existion process information.
 		_, hasProcess := s.Load("Process")
@@ -2237,19 +2290,17 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 
 	var err error
 	if globule.event_client_ == nil {
-		log.Println("Create connection to event hub ", s["Domain"].(string))
 		globule.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
 		if err == nil {
 			// Here I need to publish a fake event message to be sure the event service is listen.
 			err := globule.event_client_.Publish("__init__", []byte("is there anybody out there...?"))
 			if err != nil {
 				globule.event_client_ = nil
-				log.Println("the local event fail...")
 				return nil, err
 			}
 		}
 	}
-
+	log.Println("connection to local event hub succed!")
 	return globule.event_client_, err
 
 }
@@ -2399,7 +2450,7 @@ func (globule *Globule) watchForUpdate() {
 			// Here I will test if the checksum has change...
 			checksum, err := getChecksum(address, port)
 			execPath := Utility.GetExecName(os.Args[0])
-			if(Utility.Exists("/usr/local/share/globular/Globular")){
+			if Utility.Exists("/usr/local/share/globular/Globular") {
 				execPath = "/usr/local/share/globular/Globular"
 			}
 			if err == nil {
@@ -2409,7 +2460,7 @@ func (globule *Globule) watchForUpdate() {
 						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
-						}else{
+						} else {
 							log.Println("update globular checksum is ", checksum)
 						}
 					}

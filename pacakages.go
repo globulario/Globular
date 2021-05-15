@@ -62,6 +62,8 @@ func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]
 
 		// each channel has it event...
 		uuid := Utility.RandomUUID()
+		subscribers[discovery][id] = append(subscribers[discovery][id], uuid)
+		
 		fct := func(evt *eventpb.Event) {
 			// The package descriptor.
 			descriptor := new(packagespb.PackageDescriptor)

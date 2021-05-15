@@ -119,8 +119,11 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	// Here I will give only the basic services informations and keep
 	// all other infromation secret.
 	config["Services"] = make(map[string]interface{}, 0)
+	services := globule.getServices()
+	for i := 0; i < len(services); i++ {
+		service_config := services[i]
 
-	for _, service_config := range globule.getServices() {
+		// Keep only some basic services values.
 		s := make(map[string]interface{}, 0)
 		s["Domain"] = getStringVal(service_config, "Domain")
 		s["Port"] = getIntVal(service_config, "Port")
@@ -140,6 +143,8 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["CertFile"] = getStringVal(service_config, "CertFile")
 		s["KeyFile"] = getStringVal(service_config, "KeyFile")
 		s["CertAuthorityTrust"] = getStringVal(service_config, "CertAuthorityTrust")
+
+		//log.Println(s["Name"], s["Id"])
 
 		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
@@ -264,9 +269,7 @@ func (globule *Globule) GetFullConfig(ctx context.Context, rqst *adminpb.GetConf
 // that function must be accessible by all role, by default guess role has access to this information.
 //
 func (globule *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigRequest) (*adminpb.GetConfigResponse, error) {
-	map_, _ := Utility.ToMap(globule.getConfig())
-	obj, err := structpb.NewStruct(map_)
-
+	obj, err := structpb.NewStruct(globule.getConfig())
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -1790,11 +1793,15 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			// before I will start the service I will get a look if preinst script must be run...
 			if Utility.Exists(path + "/preinst") {
 				// I that case I will run it...
-				_, err := exec.Command("/bin/sh", path+"/preinst").Output()
+				log.Println("run preinst script please wait...")
+				script := exec.Command("/bin/sh", path+"/preinst")
+				err := script.Run()
 				if err != nil {
+					log.Println("error with script ", err.Error())
 					defer os.RemoveAll(path)
 					return err
 				}
+				log.Println("preinst script was execute with success! ")
 			}
 
 			configs, _ := Utility.FindFileByName(path, "config.json")
@@ -1869,11 +1876,14 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 
 			if Utility.Exists(path + "/postinst") {
 				// I that case I will run it...
-				_, err := exec.Command("/bin/sh", path+"/postinst").Output()
+				script := exec.Command("/bin/sh", path+"/postinst")
+				err := script.Run()
 				if err != nil {
+					log.Println("error with script ", err.Error())
 					defer os.RemoveAll(path)
 					return err
 				}
+				log.Println("running script ", path)
 			}
 
 			if needSave {
@@ -1893,7 +1903,7 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 
 // Install/Update a service on globular instance.
 func (globule *Globule) InstallService(ctx context.Context, rqst *adminpb.InstallServiceRequest) (*adminpb.InstallServiceResponse, error) {
-	log.Println("Try to install new service...")
+	log.Println("Try to install new service ", rqst.ServiceId, "from", rqst.DicorveryId)
 
 	// Connect to the dicovery services
 	services_discovery, err := packages_client.NewPackagesDiscoveryService_Client(rqst.DicorveryId, "packages.PackageDiscovery")
@@ -1945,18 +1955,44 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
+	log.Println("Uninstalling services ", rqst.PublisherId, rqst.ServiceId, "...")
 	// First of all I will stop the running service(s) instance.
 	for _, s := range globule.getServices() {
 		// Stop the instance of the service.
 		id, ok := s.Load("Id")
 		if ok {
-			if getStringVal(s, "PublisherId") == rqst.PublisherId && id == rqst.ServiceId && getStringVal(s, "Version") == rqst.Version {
 
+			name := getStringVal(s, "Name")
+
+			if getStringVal(s, "PublisherId") == rqst.PublisherId && id == rqst.ServiceId && getStringVal(s, "Version") == rqst.Version {
+				// First of all I will unsubcribe to the package event...
+				event_channel_id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
+				discoveries := getVal(s, "Discoveries")
+				if discoveries != nil {
+					for i := 0; i < len(discoveries.([]interface{})); i++ {
+						discovery := discoveries.([]interface{})[i].(string)
+						eventHub := globule.discorveriesEventHub[discovery]
+						if eventHub != nil {
+							listeners := globule.subscribers[discovery][event_channel_id]
+							// Keep the service updated...
+							for j := 0; j < len(listeners); j++ {
+								log.Println("Unsbuscribe to event channel ", event_channel_id, " whit listener uuid ", listeners[j])
+								eventHub.UnSubscribe(event_channel_id, listeners[j])
+							}
+						}
+					}
+				}
+
+				time.Sleep(time.Second * 5) // WAIT FOR LISTENERS TO DISCONNECT...
+
+				log.Println("stop service ", name)
 				globule.stopService(s)
+
+				log.Println("delete service ", name)
 				globule.deleteService(id.(string))
 
 				// Get the list of method to remove from the list of actions.
-				toDelete := globule.getServiceMethods(getStringVal(s, "Name"), getStringVal(s, "Proto"))
+				toDelete := globule.getServiceMethods(name, getStringVal(s, "Proto"))
 				methods := make([]string, 0)
 				for i := 0; i < len(globule.methods); i++ {
 					if !Utility.Contains(toDelete, globule.methods[i]) {
@@ -1965,6 +2001,7 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 				}
 
 				// Keep permissions use when we update a service.
+				log.Println("delete service permissions")
 				if rqst.DeletePermissions {
 					// Now I will remove action permissions
 					for i := 0; i < len(toDelete); i++ {
@@ -1983,26 +2020,32 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 				}
 
 				globule.methods = methods
+
 				globule.registerMethods() // refresh methods.
+
+				// Test if the path exit.
+				path := globule.path + "/services/" + rqst.PublisherId + "/" + name + "/" + rqst.Version + "/" + rqst.ServiceId
+				// Now I will remove the service.
+				// Service are located into the packagespb...
+				if Utility.Exists(path) {
+					// remove directory and sub-directory.
+					err = os.RemoveAll(path)
+					if err != nil {
+						return nil, status.Errorf(
+							codes.Internal,
+							Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+					}
+				}
+
 			}
 		}
 	}
 
-	// Now I will remove the service.
-	// Service are located into the packagespb...
-	path := globule.path + "/services/" + rqst.PublisherId + "/" + rqst.ServiceId + "/" + rqst.Version
-
-	// remove directory and sub-directory.
-	err = os.RemoveAll(path)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
-	}
-
 	// save the config.
-	globule.saveConfig()
+	log.Println("save globular configuration wiht service " + rqst.ServiceId + "removed")
+	defer globule.saveConfig()
 
+	log.Println("services is now uninstalled")
 	return &adminpb.UninstallServiceResponse{
 		Result: true,
 	}, nil
