@@ -817,7 +817,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
  * the service to be install.
  */
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
-	log.Println("try to install service", serviceId, "on", domain)
+	log.Println("try to install service", serviceId,"from", publisherId, "on", domain)
 	// Authenticate the user in order to get the token
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {
@@ -841,7 +841,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	// first of all I will create and upload the package on the discovery...
 	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
 	if err != nil {
-		log.Println("fail to install service with error ", serviceId, err.Error())
+		log.Println("fail to install service", serviceId, "with error ", err.Error())
 		return err
 	}
 

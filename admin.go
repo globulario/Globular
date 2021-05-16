@@ -1746,7 +1746,6 @@ func (globule *Globule) PublishService(ctx context.Context, rqst *adminpb.Publis
 	return &adminpb.PublishServiceResponse{
 		Result: true,
 	}, nil
-
 }
 
 // Install/Update a service on globular instance.
@@ -1787,7 +1786,6 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			if err != nil {
 				return err
 			}
-
 			path := globule.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
 
 			// before I will start the service I will get a look if preinst script must be run...
@@ -1867,11 +1865,11 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			for i := 0; i < len(descriptor.Discoveries); i++ {
 				if !Utility.Contains(globule.Discoveries, descriptor.Discoveries[i]) {
 					globule.Discoveries = append(globule.Discoveries, descriptor.Discoveries[i])
-
-					// Keep the service updated...
-					globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i])
 					needSave = true
 				}
+				
+				// Keep the service updated...
+				globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i])
 			}
 
 			if Utility.Exists(path + "/postinst") {
@@ -2069,7 +2067,9 @@ func (globule *Globule) getServiceConfigPath(s *sync.Map) string {
 func (globule *Globule) stopService(s *sync.Map) error {
 
 	// Set keep alive to false...
-	s.Store("KeepAlive", false)
+	s.Store("State", "terminated")
+	globule.setService(s) // set in the map...
+
 	_, hasProcessPid := s.Load("Process")
 	if !hasProcessPid {
 		s.Store("Process", -1)
@@ -2078,7 +2078,6 @@ func (globule *Globule) stopService(s *sync.Map) error {
 	pid := getIntVal(s, "Process")
 	if pid != -1 {
 		log.Println("stop service ", getStringVal(s, "Name"), "pid:", pid)
-
 		if runtime.GOOS == "windows" {
 			// Program written with dotnet on window need this command to stop...
 			kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(pid))

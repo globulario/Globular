@@ -407,17 +407,17 @@ func getVal(m *sync.Map, k string) interface{} {
 	return v
 }
 
-func (globule *Globule) isInternalService(s *sync.Map)bool {
+func (globule *Globule) isInternalService(s *sync.Map) bool {
 	name := getStringVal(s, "Name")
 
 	return name == "packages.PackageRepository" ||
-	name == "ca.CertificateAuthority" ||
-	name == "lb.LoadBalancingService" ||
-	name == "log.LogService" ||
-	name == "resource.ResourceService" ||
-	name == "packages.PackageDiscovery" ||
-	name == "rbac.RbacService" ||
-	name == "admin.AdminService"
+		name == "ca.CertificateAuthority" ||
+		name == "lb.LoadBalancingService" ||
+		name == "log.LogService" ||
+		name == "resource.ResourceService" ||
+		name == "packages.PackageDiscovery" ||
+		name == "rbac.RbacService" ||
+		name == "admin.AdminService"
 
 }
 
@@ -436,11 +436,11 @@ func (globule *Globule) getServices() []*sync.Map {
 				s.(*sync.Map).Store("Path", servicePath)
 				globule.setService(s.(*sync.Map))
 				_services_ = append(_services_, s.(*sync.Map))
-			}else{
+			} else {
 				log.Println("No executable path was found for path ", servicePath)
 				globule.deleteService(getStringVal(s.(*sync.Map), "Id"))
 			}
-		}else{
+		} else {
 			// Here the service exec is found.
 			_services_ = append(_services_, s.(*sync.Map))
 		}
@@ -455,7 +455,10 @@ func (globule *Globule) getServices() []*sync.Map {
 
 func (globule *Globule) setService(s *sync.Map) {
 	id, _ := s.Load("Id")
-	globule.services.Store(id.(string), s)
+	// I will not set the services if it
+	if getStringVal(s, "State") != "deleted" {
+		globule.services.Store(id.(string), s)
+	}
 }
 
 func (globule *Globule) getService(id string) *sync.Map {
@@ -468,9 +471,10 @@ func (globule *Globule) getService(id string) *sync.Map {
 }
 
 func (globule *Globule) deleteService(id string) {
-	s, exist :=	globule.services.LoadAndDelete(id)
+
+	s, exist := globule.services.LoadAndDelete(id)
 	if exist {
-		log.Println("service", getStringVal(s.(*sync.Map), "Name"), getStringVal(s.(*sync.Map), "Id"),  "was remove from the map!")
+		log.Println("service", getStringVal(s.(*sync.Map), "Name"), getStringVal(s.(*sync.Map), "Id"), "was remove from the map!")
 	}
 }
 
@@ -1043,6 +1047,7 @@ func (globule *Globule) keepServiceAlive(s *sync.Map) {
 		return
 	}
 
+	// In case the service must not be kept alive.
 	_, HasKeepAlive := s.Load("KeepAlive")
 	if !HasKeepAlive {
 		return
@@ -1050,6 +1055,12 @@ func (globule *Globule) keepServiceAlive(s *sync.Map) {
 	// In case the service must not be kept alive.
 	keepAlive := getBoolVal(s, "KeepAlive")
 	if !keepAlive {
+		return
+	}
+
+
+	// In case the service must not be kept alive.
+	if getStringVal(s, "State") == "terminated" || getStringVal(s, "State") == "deleted" {
 		return
 	}
 
@@ -1286,6 +1297,7 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 				}
 
 				globule.deleteService(getStringVal(s, "Id"))
+
 				defer globule.saveConfig()
 
 				return -1, -1, errors.New("No executable was found for service " + getStringVal(s, "Name") + servicePath)
@@ -1413,7 +1425,7 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 				globule.logServiceError(getStringVal(s, "Name"), errb.String())
 			}
 
-			if !getBoolVal(s, "KeepAlive") {
+			if !getBoolVal(s, "KeepAlive") || getStringVal(s, "State") == "terminated"  || getStringVal(s, "State") == "deleted" {
 				// Terminate it proxy process if not keep alive.
 				Utility.TerminateProcess(proxyPid, 0)
 				s.Store("ProxyProcess", -1)
@@ -1421,7 +1433,6 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 
 			globule.logServiceInfo(getStringVal(s, "Name"), "Service stop.")
 			s.Store("Process", -1)
-
 			globule.setService(s)
 
 		}(s, p)
@@ -1439,7 +1450,6 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 				}
 				// Set back the process
 				s.Store("Proxy", proxy)
-
 				globule.setService(s)
 			}
 
@@ -1448,8 +1458,8 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 			if err != nil {
 				return -1, -1, err
 			}
-
 		}
+
 		// save service config.
 		globule.saveServiceConfig(s)
 
@@ -1580,15 +1590,16 @@ func (globule *Globule) initService(s *sync.Map) error {
 	// any other http server except this one...
 	if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
 		hasChange := globule.saveServiceConfig(s)
-		if hasChange {
-			state := getStringVal(s, "State")
+		state := getStringVal(s, "State")
+		if hasChange || state == "stopped" {
 			if state == "stop" {
 				globule.stopService(s)
 			} else {
+				// TODO watch here wath to do if other conditio are set.
 				// here the service will try to restart.
 				_, _, err := globule.startService(s)
 				if err != nil {
-					s.Store("State", "Failed")
+					s.Store("State", "failed")
 					return err
 				}
 			}
@@ -1619,6 +1630,9 @@ func (globule *Globule) getBasePath() string {
 
 func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
 
+	// Here I will set a variable that tell globular to not keep the service alive...
+	s.Store("State", "terminated")
+
 	// also kill it proxy process if exist in that case.
 	_, hasProxyProcess := s.Load("ProxyProcess")
 	if hasProxyProcess {
@@ -1629,11 +1643,17 @@ func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
 			s.Store("ProxyProcess", -1)
 		}
 	}
+
 	// kill it in the name of...
 	process, err := os.FindProcess(pid)
 	if err == nil {
-		process.Kill()
-		s.Store("Process", -1)
+		err := process.Kill()
+		if err == nil {
+			s.Store("Process", -1)
+			s.Store("State", "stopped")
+		} else {
+			s.Store("State", "failed")
+		}
 	}
 
 	// Set the service
@@ -1764,8 +1784,8 @@ func (globule *Globule) initServices() {
 	})
 
 	// Set the certificate keys...
-	services :=globule.getServices() 
-	for _, s := range services{
+	services := globule.getServices()
+	for _, s := range services {
 		log.Println("init service ", getStringVal(s, "Name"))
 		if getStringVal(s, "Protocol") == "grpc" {
 
@@ -1796,7 +1816,7 @@ func (globule *Globule) initServices() {
 	servicesByName := make(map[string][]int, 0)
 
 	// Initialyse service
-	
+
 	for _, s := range services {
 		name := getStringVal(s, "Name")
 		// Get existion process information.
