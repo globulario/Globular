@@ -45,12 +45,10 @@ func (g *Globule) run() error {
 		log.Println("globular serve at domain ", g.Domain)
 	}()
 
-	for {
-		select {
-		case <-g.exit:
-			return nil
-		}
-	}
+	// wait for exit.
+	<-g.exit
+
+	return nil
 }
 
 func (g *Globule) Stop(s service.Service) error {
@@ -808,7 +806,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 		return err
 	}
 
-	log.Println("Service was pulbish successfully have a nice day folk!")
+	log.Println("Service was pulbish successfully have a nice day folk's!")
 	return nil
 }
 

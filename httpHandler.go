@@ -221,8 +221,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		defer file.Close()
-
+	
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, user, rbacpb.SubjectType_ACCOUNT)
@@ -240,20 +239,24 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		out, err := os.Create(path_)
 		if err != nil {
+			file.Close()
 			return
 		}
 
 		defer out.Close()
 
 		if err != nil {
+			file.Close()
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
 			log.Println(w, err)
+			file.Close()
 			return
 		}
+		file.Close()
 
 		// Now from the file extension i will retreive it mime type.
 		fileExtension := path_[strings.LastIndex(path_, "."):]
@@ -282,6 +285,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func visit(files *[]string) filepath.WalkFunc {
+
 	return func(path string, info os.FileInfo, err error) error {
 		path = strings.ReplaceAll(path, "\\", "/")
 		if err != nil {
@@ -300,10 +304,11 @@ func visit(files *[]string) filepath.WalkFunc {
 		} else {
 			f_, err := os.Open(path)
 			if err != nil {
+				f_.Close()
 				return nil
 			}
-			defer f_.Close()
 			mimeType, _ = Utility.GetFileContentType(f_)
+			f_.Close()
 		}
 
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
@@ -323,6 +328,7 @@ func convertVideo() {
 			return // already running...
 		}
 	}
+
 	var files []string
 
 	err = filepath.Walk(globule.data+"/files", visit(&files))
@@ -331,16 +337,14 @@ func convertVideo() {
 		return
 	}
 	for _, file := range files {
-		log.Println("-------> convert video: ", file)
 		file = strings.ReplaceAll(file, "\\", "/")
 		createVideoStream(file)
 	}
-
 }
 
 // Set file indexation to be able to search text file on the server.
 func indexFile(path string, fileType string) error {
-	log.Println("---------> index file ", path, fileType)
+	// log.Println("---------> index file ", path, fileType)
 	return nil
 }
 
@@ -498,7 +502,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//path to file
 	name := path.Join(dir, rqst_path)
-	log.Println("Try to access file...", name)
+	log.Println( r.RemoteAddr, " try to access file...", name)
 
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {

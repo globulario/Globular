@@ -25,16 +25,14 @@ import (
 	"syscall"
 	"time"
 
-	ps "github.com/mitchellh/go-ps"
-
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/file/file_client"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/ldap/ldap_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
+	ps "github.com/mitchellh/go-ps"
 	"github.com/struCoder/pidusage"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -152,6 +150,9 @@ type Globule struct {
 	// if set to true the server will be updated automaticaly.
 	KeepUpToDate bool
 
+	// Update delay in second...
+	WatchUpdateDelay int;
+
 	// DNS stuff.
 	DNS []interface{} // Domain name server use to located the server.
 
@@ -211,9 +212,6 @@ type Globule struct {
 	exit_           bool
 	inernalServices []*grpc.Server
 
-	// keep track of services updates from external sources.
-	subscribers map[string]map[string][]string
-
 	// The http server
 	http_server  *http.Server
 	https_server *http.Server
@@ -257,6 +255,7 @@ func NewGlobule() *Globule {
 	// keep up to date by default.
 	g.KeepAllServicesUpToDate = true
 	g.KeepAllServicesAlive = true
+	g.WatchUpdateDelay = 30 // seconds...
 
 	// No update globular by default.
 	g.KeepUpToDate = false
@@ -473,6 +472,9 @@ func (globule *Globule) getService(id string) *sync.Map {
 func (globule *Globule) deleteService(id string) {
 
 	s, exist := globule.services.LoadAndDelete(id)
+	// Kill process if not already deleted.
+	globule.killServiceProcess(s.(*sync.Map), getIntVal(s.(*sync.Map), "Process"))
+
 	if exist {
 		log.Println("service", getStringVal(s.(*sync.Map), "Name"), getStringVal(s.(*sync.Map), "Id"), "was remove from the map!")
 	}
@@ -523,7 +525,7 @@ func (globule *Globule) getPortsInUse() []int {
 			proxyPid := Utility.ToInt(proxyPid_)
 			if proxyPid != -1 {
 				if processIsRuning(proxyPid) {
-					p, _ := m.Load("Proxy")
+					p, _ := m.Load("ProxyProcess")
 					portsInUse = append(portsInUse, Utility.ToInt(p))
 				}
 			}
@@ -1039,49 +1041,6 @@ func (globule *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error
 }
 
 /**
- * That function will
- */
-func (globule *Globule) keepServiceAlive(s *sync.Map) {
-
-	if globule.exit_ {
-		return
-	}
-
-	// In case the service must not be kept alive.
-	_, HasKeepAlive := s.Load("KeepAlive")
-	if !HasKeepAlive {
-		return
-	}
-	// In case the service must not be kept alive.
-	keepAlive := getBoolVal(s, "KeepAlive")
-	if !keepAlive {
-		return
-	}
-
-
-	// In case the service must not be kept alive.
-	if getStringVal(s, "State") == "terminated" || getStringVal(s, "State") == "deleted" {
-		return
-	}
-
-	pid := getIntVal(s, "Process")
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		return
-	}
-
-	// Wait for process to return.
-	p.Wait()
-	if globule.exit_ {
-		return
-	}
-	_, _, err = globule.startService(s)
-	if err != nil {
-		return
-	}
-}
-
-/**
  * Start internal service admin and resource are use that function.
  */
 func (globule *Globule) startInternalService(id string, proto string, hasTls bool, unaryInterceptor grpc.UnaryServerInterceptor, streamInterceptor grpc.StreamServerInterceptor) (*grpc.Server, int, error) {
@@ -1178,14 +1137,7 @@ func (globule *Globule) stopServices() {
 	// not keep services alive because the server must exist.
 	globule.exit_ = true
 
-	// Here I will disconnect service update event.
-	for id, _ := range globule.subscribers {
-		eventHub := globule.discorveriesEventHub[id]
-		if eventHub != nil {
-			eventHub.Close()
-		}
-	}
-
+	// Close the event client
 	eventClient, err := globule.getEventHub()
 	if err == nil && eventClient != nil {
 		eventClient.Close()
@@ -1229,6 +1181,7 @@ func (globule *Globule) stopServices() {
 		processPid := getIntVal(s, "Process")
 		if processPid != -1 {
 			globule.killServiceProcess(s, processPid)
+			globule.setService(s)
 		}
 	}
 
@@ -1292,14 +1245,8 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 
 			if !Utility.Exists(servicePath) {
 				// If the service is running...
-				if pid != -1 {
-					globule.killServiceProcess(s, pid)
-				}
-
 				globule.deleteService(getStringVal(s, "Id"))
-
 				defer globule.saveConfig()
-
 				return -1, -1, errors.New("No executable was found for service " + getStringVal(s, "Name") + servicePath)
 			}
 
@@ -1386,8 +1333,6 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 		go func(s *sync.Map, p *exec.Cmd) {
 
 			s.Store("State", "running")
-			globule.keepServiceAlive(s)
-
 			output := make(chan string)
 			done := make(chan bool)
 
@@ -1411,7 +1356,11 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 
 			// if the process is not define.
 			err = p.Wait() // wait for the program to return
+
+			// set default value
+			s.Store("State", "stopped")
 			done <- true
+
 			pipe.Close()
 
 			if err != nil {
@@ -1423,17 +1372,12 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 			if len(errb.String()) > 0 {
 				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
 				globule.logServiceError(getStringVal(s, "Name"), errb.String())
+				s.Store("State", "failed")
 			}
 
-			if !getBoolVal(s, "KeepAlive") || getStringVal(s, "State") == "terminated"  || getStringVal(s, "State") == "deleted" {
-				// Terminate it proxy process if not keep alive.
-				Utility.TerminateProcess(proxyPid, 0)
-				s.Store("ProxyProcess", -1)
-			}
-
-			globule.logServiceInfo(getStringVal(s, "Name"), "Service stop.")
 			s.Store("Process", -1)
 			globule.setService(s)
+			globule.logServiceInfo(getStringVal(s, "Name"), "Service stop.")
 
 		}(s, p)
 
@@ -1501,8 +1445,6 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 			if err == nil {
 				go func(s *sync.Map) {
 
-					globule.keepServiceAlive(s)
-
 					// display the message in the console.
 					reader := bufio.NewReader(pipe)
 					line, err := reader.ReadString('\n')
@@ -1517,12 +1459,15 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 					if pid == -1 {
 						log.Println("No process found for service", getStringVal(s, "Name"))
 					}
+
 					p, err := os.FindProcess(pid)
 					if err == nil {
 						_, err := p.Wait()
+						s.Store("State", "stopped")
 						if err != nil {
 							// I will log the program error into the admin logger.
 							globule.logServiceInfo(getStringVal(s, "Name"), errb.String())
+							s.Store("State", "failed")
 						}
 					}
 				}(s)
@@ -1592,18 +1537,26 @@ func (globule *Globule) initService(s *sync.Map) error {
 		hasChange := globule.saveServiceConfig(s)
 		state := getStringVal(s, "State")
 		if hasChange || state == "stopped" {
-			if state == "stop" {
+
+			// Always stop the service before restarting it...
+			if state != "stopped" {
 				globule.stopService(s)
-			} else {
-				// TODO watch here wath to do if other conditio are set.
-				// here the service will try to restart.
+			}
+
+			// TODO watch here wath to do if other conditio are set.
+			// here the service will try to restart.
+			if state != "terminated" && state != "deleted" {
 				_, _, err := globule.startService(s)
 				if err != nil {
 					s.Store("State", "failed")
 					return err
 				}
+				globule.setService(s)
 			}
-			globule.setService(s)
+
+		} else if state == "deleted" {
+			// be sure the process is no more there.
+			globule.deleteService(getStringVal(s, "Id"))
 		}
 	}
 
@@ -1630,13 +1583,15 @@ func (globule *Globule) getBasePath() string {
 
 func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
 
+	proxyProcessPid := getIntVal(s, "ProxyProcess")
+	log.Println("Kill process ", getStringVal(s, "Name"), ":", proxyProcessPid)
+
 	// Here I will set a variable that tell globular to not keep the service alive...
 	s.Store("State", "terminated")
 
 	// also kill it proxy process if exist in that case.
 	_, hasProxyProcess := s.Load("ProxyProcess")
 	if hasProxyProcess {
-		proxyProcessPid := getIntVal(s, "ProxyProcess")
 		proxyProcess, err := os.FindProcess(proxyProcessPid)
 		if err == nil {
 			proxyProcess.Kill()
@@ -1655,9 +1610,6 @@ func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
 			s.Store("State", "failed")
 		}
 	}
-
-	// Set the service
-	globule.setService(s)
 }
 
 /**
@@ -1813,12 +1765,11 @@ func (globule *Globule) initServices() {
 	}
 
 	log.Println("Init external services: ")
-	servicesByName := make(map[string][]int, 0)
 
 	// Initialyse service
-
 	for _, s := range services {
 		name := getStringVal(s, "Name")
+
 		// Get existion process information.
 		_, hasProcess := s.Load("Process")
 		processPid := -1
@@ -1826,49 +1777,27 @@ func (globule *Globule) initServices() {
 			processPid = getIntVal(s, "Process")
 			// Now I will find if the process is running
 			if processPid != -1 {
-				_, err := Utility.GetProcessRunningStatus(processPid)
+				_, err := os.FindProcess(processPid)
 				log.Println("find process ", name, ":", processPid)
 				if err != nil {
 					globule.killServiceProcess(s, processPid)
+					globule.setService(s)
+
 					processPid = -1
-				} else {
-					p, err := ps.FindProcess(processPid)
-					if err != nil {
-						log.Println("Process ", processPid, " dosent exist anymore...")
-						globule.killServiceProcess(s, processPid)
-						processPid = -1
-					} else {
-						processExist := p.Executable() == getStringVal(s, "Path")
-						if !processExist {
-							log.Println("Process ", processPid, " dosent exist anymore...")
-							globule.killServiceProcess(s, processPid)
-							processPid = -1
-						}
+				}
+			} else {
+				_, hasProxyProcess := s.Load("ProxyProcess")
+				if hasProxyProcess {
+					proxyProcessPid := getIntVal(s, "ProxyProcess")
+					proxyProcess, err := os.FindProcess(proxyProcessPid)
+					if err == nil {
+						proxyProcess.Kill()
 					}
 				}
 			}
 		}
 
-		// Here I will keep track of the services process by it name...
-		if _, ok := servicesByName[name]; !ok {
-			//do something here
-			servicesByName[name] = make([]int, 0)
-		}
-
-		// Keep the pid.
-		servicesByName[name] = append(servicesByName[name], processPid)
-
-		// If no process already exist I will create one.
 		if processPid == -1 {
-			_, hasProxyProcess := s.Load("ProxyProcess")
-			if hasProxyProcess {
-				proxyProcessPid := getIntVal(s, "ProxyProcess")
-				proxyProcess, err := os.FindProcess(proxyProcessPid)
-				if err == nil {
-					proxyProcess.Kill()
-				}
-			}
-
 			// The service name.
 			log.Println("Init service: ", name)
 			if name == "file.FileService" {
@@ -1876,37 +1805,12 @@ func (globule *Globule) initServices() {
 			} else if name == "conversation.ConversationService" {
 				s.Store("Root", globule.data)
 			}
-
 			err := globule.initService(s)
 			if err != nil {
 				log.Println(err)
 			}
 		} else {
 			log.Println("Process exist for service: ", name)
-		}
-	}
-
-	// Now I will kill all services who are not listed in the map.
-	for serviceName, pids := range servicesByName {
-		pids_, err := Utility.GetProcessIdsByName(serviceName)
-		if err == nil {
-			exist := false
-			for i := 0; i < len(pids_); i++ {
-				for j := 0; j < len(pids); j++ {
-					if pids_[i] == pids[j] {
-						exist = true
-						break
-					}
-				}
-				// If the pid is not found in the list of pids from the configuration
-				// I will remove it.
-				if !exist {
-					p, err := os.FindProcess(pids_[i])
-					if err == nil {
-						p.Kill()
-					}
-				}
-			}
 		}
 	}
 }
@@ -2108,6 +2012,8 @@ inhibit_rules:
 		for {
 			select {
 			case <-ticker.C:
+				// Here I will manage the process...
+
 				globule.services.Range(func(key, s interface{}) bool {
 					pids, err := Utility.GetProcessIdsByName("Globular")
 					if err == nil {
@@ -2320,9 +2226,8 @@ func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
 			}
 		}
 	}
-	log.Println("connection to local event hub succed!")
-	return globule.event_client_, err
 
+	return globule.event_client_, err
 }
 
 /**
@@ -2451,54 +2356,162 @@ func getChecksum(address string, port int) (string, error) {
 }
 
 func (globule *Globule) watchForUpdate() {
-	for {
+	go func() {
+		for {
 
-		// stop watching if exit was call...
-		if globule.exit_ {
-			return
+			// stop watching if exit was call...
+			if globule.exit_ {
+				return
+			}
+
+			if len(globule.Discoveries) > 0 {
+				// Here I will retreive the checksum information from it parent.
+				discovery := globule.Discoveries[0]
+				address := strings.Split(discovery, ":")[0]
+				port := 80
+				if strings.Contains(discovery, ":") {
+					port = Utility.ToInt(strings.Split(discovery, ":")[1])
+				}
+
+				// Here I will test if the checksum has change...
+				checksum, err := getChecksum(address, port)
+				execPath := Utility.GetExecName(os.Args[0])
+				if Utility.Exists("/usr/local/share/globular/Globular") {
+					execPath = "/usr/local/share/globular/Globular"
+				}
+				if err == nil {
+					if checksum != Utility.CreateFileChecksum(execPath) {
+
+						if globule.Domain != address && globule.KeepUpToDate {
+							err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+							if err != nil {
+								log.Println("fail to update globular from " + discovery + " with error " + err.Error())
+							} else {
+								log.Println("update globular checksum is ", checksum)
+							}
+						}
+					}
+				}
+			}
+
+			// The time here can be set to higher value.
+			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
+	}()
+}
 
-		if len(globule.Discoveries) > 0 {
-			// Here I will retreive the checksum information from it parent.
-			discovery := globule.Discoveries[0]
-			address := strings.Split(discovery, ":")[0]
-			port := 80
-			if strings.Contains(discovery, ":") {
-				port = Utility.ToInt(strings.Split(discovery, ":")[1])
-			}
+// check if the process is actually running
+// However, on Unix systems, os.FindProcess always succeeds and returns
+// a Process for the given pid...regardless of whether the process exists
+// or not.
+func getProcessRunningStatus(pid int) (*os.Process, error) {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return nil, err
+	}
 
-			// Here I will test if the checksum has change...
-			checksum, err := getChecksum(address, port)
-			execPath := Utility.GetExecName(os.Args[0])
-			if Utility.Exists("/usr/local/share/globular/Globular") {
-				execPath = "/usr/local/share/globular/Globular"
-			}
-			if err == nil {
-				if checksum != Utility.CreateFileChecksum(execPath) {
+	//double check if process is running and alive
+	//by sending a signal 0
+	//NOTE : syscall.Signal is not available in Windows
 
-					if globule.Domain != address && globule.KeepUpToDate {
-						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
-						if err != nil {
-							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
-						} else {
-							log.Println("update globular checksum is ", checksum)
+	err = proc.Signal(syscall.Signal(0))
+	if err == nil {
+		return proc, nil
+	}
+
+	if err == syscall.ESRCH {
+		return nil, errors.New("process not running")
+	}
+
+	// default
+	return nil, errors.New("process running but query operation not permitted")
+}
+
+/**
+ * Keep process found in configuration in line with one found on the server.
+ */
+func (globule *Globule) manageProcess() {
+
+	ticker := time.NewTicker(5 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// Here I will manage the process...
+				services := globule.getServices()
+				runingProcess := make(map[string][]int)
+				proxies := make([]int, 0)
+
+				// Fist of all I will get all services process...
+				for i := 0; i < len(services); i++ {
+					s := services[i]
+					pid := getIntVal(s, "Process")
+					state := getStringVal(s, "State")
+					p, err := ps.FindProcess(pid)
+					if pid != -1 && err == nil && p != nil {
+						name := p.Executable()
+						if _, ok := runingProcess[name]; !ok {
+							runingProcess[name] = make([]int, 0)
+						}
+						runingProcess[name] = append(runingProcess[name], getIntVal(s, "Process"))
+					} else if pid == -1 || p == nil {
+						if (state == "failed" || state == "stopped" || state == "running") && len(getStringVal(s, "Path")) > 1 {
+							// make sure the process is no running...
+							if getBoolVal(s, "KeepAlive") {
+								globule.killServiceProcess(s, pid)
+								s.Store("State", "stopped")
+								globule.initService(s)
+							}
+						}
+					} else if err != nil {
+						log.Println(err)
+					}
+
+					proxies = append(proxies, getIntVal(s, "ProxyProcess"))
+				}
+
+				proxies_, _ := Utility.GetProcessIdsByName("grpcwebproxy")
+				for i := 0; i < len(proxies_); i++ {
+					proxy := proxies_[i]
+					for j := 0; j < len(proxies); j++ {
+						if proxy == proxies[j] {
+							proxy = -1
+							break
+						}
+					}
+					if proxy != -1 {
+						p, err := os.FindProcess(proxy)
+						if err == nil {
+							p.Kill()
+						}
+					}
+				}
+
+				// Now I will find process by name on the computer and kill process not found in the configuration file.
+				for name, pids := range runingProcess {
+
+					pids_, err := Utility.GetProcessIdsByName(name)
+					if err == nil {
+						for i := 0; i < len(pids_); i++ {
+							pid := pids_[i]
+							for j := 0; j < len(pids); j++ {
+								if pid == pids[j] {
+									pid = -1
+									break
+								}
+							}
+
+							if pid != -1 {
+								p, err := os.FindProcess(pid)
+								if err == nil {
+									p.Kill()
+								}
+							}
 						}
 					}
 				}
 			}
 		}
-
-		// The time here can be set to higher value.
-		time.Sleep(30 * time.Second)
-	}
-}
-
-/**
- * Keep globular version in sync with the version from it discovery [0]...
- */
-func (globule *Globule) keepUpToDate() {
-	go func() {
-		globule.watchForUpdate()
 	}()
 }
 
@@ -2506,9 +2519,6 @@ func (globule *Globule) keepUpToDate() {
  * Listen for new connection.
  */
 func (globule *Globule) Listen() error {
-
-	// Keep services up to date subscription.
-	globule.subscribers = globule.keepServicesUpToDate()
 
 	var err error
 	// Must be started before other services.
@@ -2524,9 +2534,6 @@ func (globule *Globule) Listen() error {
 	// handle the Interrupt
 	// set the register sa user.
 	globule.registerSa()
-
-	// Keep globular up to date subscription.
-	globule.keepUpToDate()
 
 	// Start the http server.
 	if globule.Protocol == "https" {
@@ -2545,6 +2552,20 @@ func (globule *Globule) Listen() error {
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
 		}()
 	}
+
+	//////////////////////////////////////////////////////////
+	// Keep the server state in sync with configuration and
+	// version.
+	//////////////////////////////////////////////////////////
+
+	// Manage Process.
+	globule.manageProcess()
+
+	// Keep globular up to date subscription.
+	globule.watchForUpdate()
+
+	// Keep service up to date.
+	globule.keepServicesToDate()
 
 	return err
 }

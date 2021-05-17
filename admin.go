@@ -283,7 +283,11 @@ func (globule *Globule) GetConfig(ctx context.Context, rqst *adminpb.GetConfigRe
 
 // return true if the configuation has change.
 func (globule *Globule) saveServiceConfig(config *sync.Map) bool {
-	root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
+	root, err := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
+	if err != nil {
+		log.Panicln(err)
+	}
+	
 	root_ := string(root)[0:strings.Index(string(root), ":")]
 
 	if !Utility.IsLocal(getStringVal(config, "Domain")) && root_ != globule.path {
@@ -1769,6 +1773,13 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 		bundle, err := services_repository.DownloadBundle(descriptor, globular.GetPlatform())
 
 		if err == nil {
+
+			previous := globule.getService(descriptor.Id)
+			if previous != nil {
+				// Uninstall the previous version...
+				globule.uninstallService(descriptor.PublisherId, descriptor.Id, descriptor.Version, false)
+			}
+
 			// Create the file.
 			r := bytes.NewReader(bundle.Binairies)
 			_extracted_path_, err := Utility.ExtractTarGz(r)
@@ -1782,10 +1793,12 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 
 			// I will save the binairy in file...
 			Utility.CreateDirIfNotExist(globule.path + "/services/")
+
 			err = Utility.CopyDir(_extracted_path_+"/"+descriptor.PublisherId, globule.path+"/services/")
 			if err != nil {
 				return err
 			}
+
 			path := globule.path + "/services/" + descriptor.PublisherId + "/" + descriptor.Name + "/" + descriptor.Version + "/" + descriptor.Id
 
 			// before I will start the service I will get a look if preinst script must be run...
@@ -1831,7 +1844,6 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 			s["Proto"] = protos[0]
 
 			// Here I will get previous service values...
-			previous := globule.getService(s["Id"].(string))
 			if previous != nil {
 				s["KeepAlive"] = getBoolVal(previous, "KeepAlive")
 				s["KeepUpToDate"] = getBoolVal(previous, "KeepUpToDate")
@@ -1867,9 +1879,6 @@ func (globule *Globule) installService(descriptor *packagespb.PackageDescriptor)
 					globule.Discoveries = append(globule.Discoveries, descriptor.Discoveries[i])
 					needSave = true
 				}
-				
-				// Keep the service updated...
-				globule.keepServiceUpToDate(s_, globule.subscribers, descriptor.Discoveries[i])
 			}
 
 			if Utility.Exists(path + "/postinst") {
@@ -1944,25 +1953,21 @@ func (globule *Globule) InstallService(ctx context.Context, rqst *adminpb.Instal
 
 }
 
-// Uninstall a service...
-func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.UninstallServiceRequest) (*adminpb.UninstallServiceResponse, error) {
+// uninstall service
+func (globule *Globule) uninstallService(publisherId string, serviceId string, version string, deletePermissions bool) error {
 	p, err := globule.getPersistenceStore()
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+		return err
 	}
 
-	log.Println("Uninstalling services ", rqst.PublisherId, rqst.ServiceId, "...")
+	log.Println("Uninstalling services ", publisherId, serviceId, "...")
 	// First of all I will stop the running service(s) instance.
 	for _, s := range globule.getServices() {
 		// Stop the instance of the service.
 		id, ok := s.Load("Id")
 		if ok {
-
 			name := getStringVal(s, "Name")
-
-			if getStringVal(s, "PublisherId") == rqst.PublisherId && id == rqst.ServiceId && getStringVal(s, "Version") == rqst.Version {
+			if getStringVal(s, "PublisherId") == publisherId && id == serviceId && getStringVal(s, "Version") == version {
 				// First of all I will unsubcribe to the package event...
 				event_channel_id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
 				discoveries := getVal(s, "Discoveries")
@@ -1971,18 +1976,18 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 						discovery := discoveries.([]interface{})[i].(string)
 						eventHub := globule.discorveriesEventHub[discovery]
 						if eventHub != nil {
-							listeners := globule.subscribers[discovery][event_channel_id]
-							// Keep the service updated...
-							for j := 0; j < len(listeners); j++ {
-								log.Println("Unsbuscribe to event channel ", event_channel_id, " whit listener uuid ", listeners[j])
-								eventHub.UnSubscribe(event_channel_id, listeners[j])
+							pid := getIntVal(s, "Process")
+							if pid != -1 {
+								uuid := Utility.GenerateUUID(getStringVal(s, "Id") + Utility.ToString(pid))
+								log.Println("Unsbuscribe to event channel ", event_channel_id, " whit listener uuid ", uuid)
+								eventHub.UnSubscribe(event_channel_id, uuid)
 							}
+
 						}
 					}
 				}
 
 				time.Sleep(time.Second * 5) // WAIT FOR LISTENERS TO DISCONNECT...
-
 				log.Println("stop service ", name)
 				globule.stopService(s)
 
@@ -2000,7 +2005,7 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 
 				// Keep permissions use when we update a service.
 				log.Println("delete service permissions")
-				if rqst.DeletePermissions {
+				if deletePermissions {
 					// Now I will remove action permissions
 					for i := 0; i < len(toDelete); i++ {
 						p.Delete(context.Background(), "local_resource", "local_resource", "ActionPermission", `{"action":"`+toDelete[i]+`"}`, "")
@@ -2022,16 +2027,14 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 				globule.registerMethods() // refresh methods.
 
 				// Test if the path exit.
-				path := globule.path + "/services/" + rqst.PublisherId + "/" + name + "/" + rqst.Version + "/" + rqst.ServiceId
+				path := globule.path + "/services/" + publisherId + "/" + name + "/" + version + "/" + serviceId
 				// Now I will remove the service.
 				// Service are located into the packagespb...
 				if Utility.Exists(path) {
 					// remove directory and sub-directory.
 					err = os.RemoveAll(path)
 					if err != nil {
-						return nil, status.Errorf(
-							codes.Internal,
-							Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+						return err
 					}
 				}
 
@@ -2040,10 +2043,23 @@ func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.Unin
 	}
 
 	// save the config.
-	log.Println("save globular configuration wiht service " + rqst.ServiceId + "removed")
+	log.Println("save globular configuration wiht service " + serviceId + "removed")
 	defer globule.saveConfig()
 
 	log.Println("services is now uninstalled")
+	return nil
+
+}
+
+// Uninstall a service...
+func (globule *Globule) UninstallService(ctx context.Context, rqst *adminpb.UninstallServiceRequest) (*adminpb.UninstallServiceResponse, error) {
+	err := globule.uninstallService(rqst.PublisherId, rqst.ServiceId, rqst.Version, rqst.DeletePermissions)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
+	}
+
 	return &adminpb.UninstallServiceResponse{
 		Result: true,
 	}, nil

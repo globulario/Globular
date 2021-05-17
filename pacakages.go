@@ -5,21 +5,16 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/event/event_client"
-	"github.com/globulario/services/golang/event/eventpb"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/packages/packages_client"
 	"github.com/globulario/services/golang/packages/packagespb"
@@ -29,107 +24,32 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (globule *Globule) keepServiceUpToDate(s *sync.Map, subscribers map[string]map[string][]string, discovery string) error {
-	
-	address := discovery
-	if address == globule.Domain {
-		address += ":" + Utility.ToString(globule.PortHttp)
-	}
-
-	// keep on memorie...
-	eventHub := globule.discorveriesEventHub[discovery]
-	if eventHub == nil {
-		var err error
-		eventHub, err = event_client.NewEventService_Client(address, "event.EventService")
-		if err != nil {
-			return err
-		}
-		globule.discorveriesEventHub[discovery] = eventHub
-		log.Println("Connected to discovery event hub ", discovery)
-	}
-
-	if subscribers[discovery] == nil {
-		subscribers[discovery] = make(map[string][]string)
-	}
-
-	_, hasPublisherId := s.Load("PublisherId")
-	if hasPublisherId {
-		id := getStringVal(s, "PublisherId") + ":" + getStringVal(s, "Id") + ":SERVICE_PUBLISH_EVENT"
-
-		if subscribers[discovery][id] == nil {
-			subscribers[discovery][id] = make([]string, 0)
-		}
-
-		// each channel has it event...
-		uuid := Utility.RandomUUID()
-		subscribers[discovery][id] = append(subscribers[discovery][id], uuid)
-		
-		fct := func(evt *eventpb.Event) {
-			// The package descriptor.
-			descriptor := new(packagespb.PackageDescriptor)
-			err := jsonpb.UnmarshalString(string(evt.GetData()), descriptor)
-
-			// here I will update the service if it's version is lower
-			if err == nil {
-				for _, s := range globule.getServices() {
-					_, hasPublisherId := s.Load("PublisherId")
-					if hasPublisherId {
-						if getStringVal(s, "Id") == descriptor.GetId() && getStringVal(s, "PublisherId") == descriptor.GetPublisherId() {
-							if getBoolVal(s, "KeepUpToDate") {
-								// Try with terminate signal...
-								err := globule.stopService(s)
-								if err != nil {
-									// Kill it in the name of...
-									proc, err := os.FindProcess(getIntVal(s, "Process"))
-									if err == nil {
-										proc.Kill()
-									}
-								}
-								globule.deleteService(getStringVal(s, "Id"))
-								err = globule.installService(descriptor)
-								if err != nil {
-									fmt.Println("fail to install service ", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion(), err)
-								} else {
-									s.Store("KeepUpToDate", true)
-									globule.saveConfig()
-									fmt.Println("service was update!", descriptor.GetPublisherId(), descriptor.GetId(), descriptor.GetVersion())
-								}
-
-							}
-
-						}
-					}
-				}
-			} else {
-				log.Println(err)
-			}
-		}
-
-		// Can block until connection was made or number of try.
-		return eventHub.Subscribe(id, uuid, fct)
-	}
-
-	return nil
-}
-
 /**
  * Subscribe to Discoverie's and repositories to keep services up to date.
  */
-func (globule *Globule) keepServicesUpToDate() map[string]map[string][]string {
+func (globule *Globule) keepServicesToDate() {
 
-	// append itself to service discoveries...
-	subscribers := make(map[string]map[string][]string)
-
-	// Connect to service update events...
-	for i := 0; i < len(globule.Discoveries); i++ {
-		for _, s := range globule.getServices() {
-			globule.keepServiceUpToDate(s, subscribers, globule.Discoveries[i])
+	ticker := time.NewTicker(time.Duration(globule.WatchUpdateDelay) * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// Connect to service update events...
+				for _, s := range globule.getServices() {
+					if getIntVal(s, "Process") != -1 {
+						// TODO implement the api where to validate the the actual service configuration and
+						// get the new one as necessary.
+						log.Println("Keep service up to date", getStringVal(s, "Name"), getStringVal(s, "Id"), getStringVal(s, "Version"))
+					}
+				}
+			}
 		}
-	}
-	return subscribers
+	}()
 }
 
-// Start service discovery
+/**
+ *
+ */
 func (globule *Globule) startPackagesDiscoveryService() error {
 	// The service discovery.
 	id := string(packagespb.File_proto_packages_proto.Services().Get(0).FullName())
