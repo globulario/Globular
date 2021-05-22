@@ -615,6 +615,7 @@ func main() {
 	}
 }
 
+
 /**
  * Service interface use to run as Windows Service or Linux deamon...
  */
@@ -815,7 +816,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
  * the service to be install.
  */
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
-	log.Println("try to install service", serviceId,"from", publisherId, "on", domain)
+	log.Println("try to install service", serviceId, "from", publisherId, "on", domain)
 	// Authenticate the user in order to get the token
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {

@@ -24,13 +24,16 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"reflect"
 
+	"github.com/emicklei/proto"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/file/file_client"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/ldap/ldap_client"
 	"github.com/globulario/services/golang/persistence/persistence_client"
+
 	ps "github.com/mitchellh/go-ps"
 	"github.com/struCoder/pidusage"
 	"google.golang.org/grpc"
@@ -52,10 +55,12 @@ import (
 	"github.com/go-acme/lego/registration"
 
 	globular "github.com/globulario/services/golang/globular_service"
-	"github.com/globulario/services/golang/lb/lbpb"
+
 	"github.com/globulario/services/golang/persistence/persistence_store"
 	"github.com/globulario/services/golang/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	// OAuth2
 	/*
 		errors_ "github.com/go-oauth2/oauth2/errors"
@@ -130,7 +135,6 @@ type Globule struct {
 	Version        string
 	Build          int64
 	Platform       string
-	SessionTimeout time.Duration
 
 	// There's are Directory
 	// The user's directory
@@ -151,7 +155,7 @@ type Globule struct {
 	KeepUpToDate bool
 
 	// Update delay in second...
-	WatchUpdateDelay int;
+	WatchUpdateDelay int
 
 	// DNS stuff.
 	DNS []interface{} // Domain name server use to located the server.
@@ -182,11 +186,7 @@ type Globule struct {
 	// Log store.
 	logs *storage_store.LevelDB_store
 
-	// RBAC store.
-	permissions *storage_store.LevelDB_store
-
 	// Create the JWT key used to create the signature
-	jwtKey       []byte // This is the client secret.
 	RootPassword string
 
 	// local store.
@@ -201,11 +201,6 @@ type Globule struct {
 	// ACME protocol registration
 	registration *registration.Resource
 
-	// load balancing action channel.
-	lb_load_info_channel             chan *lbpb.LoadInfo
-	lb_remove_candidate_info_channel chan *lbpb.ServerInfo
-	lb_get_candidates_info_channel   chan map[string]interface{}
-	lb_stop_channel                  chan bool
 
 	// exit channel.
 	exit            chan struct{}
@@ -248,7 +243,7 @@ func NewGlobule() *Globule {
 	g.DbIpV4 = "0.0.0.0:27017"
 
 	// set default values.
-	g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
+	// g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
@@ -309,11 +304,506 @@ func NewGlobule() *Globule {
 	return g
 }
 
-/**
- * Send a application notification.
- * That function will send notification to all connected user of that application.
- */
-func (globule *Globule) sendApplicationNotification(application string, message string) error {
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Configuration functionality
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+func watchFile(filePath string) error {
+	initialStat, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+
+	for {
+		stat, err := os.Stat(filePath)
+		if err != nil {
+			return err
+		}
+
+		if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+
+	}
+
+	return nil
+}
+
+func (globule *Globule) watchConfigFile() {
+
+	doneChan := make(chan bool)
+
+	go func(doneChan chan bool) {
+		defer func() {
+			doneChan <- true
+		}()
+
+		err := watchFile(globule.config + "/config.json")
+		if err != nil {
+			fmt.Println(err)
+		}
+		// Run only if the server is running
+		if !globule.exit_ {
+			// Here I will test if the configuration has change.
+			log.Println("configuration was changed and save from external actions.")
+
+			// Here I will read the file.
+			data, _ := ioutil.ReadFile(globule.config + "/config.json")
+			config := make(map[string]interface{}, 0)
+			json.Unmarshal(data, &config)
+			globule.setConfig(config)
+
+			globule.watchConfigFile() // watch again...
+		}
+	}(doneChan)
+
+	<-doneChan
+
+}
+
+// Save the configuration file.
+func (globule *Globule) saveConfig() {
+
+	// Here I will save the server attribute
+	str, err := Utility.ToJson(globule.toMap())
+
+	if err == nil {
+		log.Println("save configuration to ", globule.config+"/config.json")
+		ioutil.WriteFile(globule.config+"/config.json", []byte(str), 0644)
+	} else {
+		log.Panicln(err)
+	}
+}
+
+
+// return true if the configuation has change.
+func (globule *Globule) saveServiceConfig(config *sync.Map) bool {
+	root, err := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
+	if err != nil {
+		log.Panicln(err)
+	}
+	
+	root_ := string(root)[0:strings.Index(string(root), ":")]
+
+	if !Utility.IsLocal(getStringVal(config, "Domain")) && root_ != globule.path {
+		return false
+	}
+
+	// Here I will
+	configPath := globule.getServiceConfigPath(config)
+	if len(configPath) == 0 {
+		return false
+	}
+
+	// set the domain of the service.
+	config.Store("Domain", globule.getDomain())
+
+	// format the path's
+	config.Store("Path", strings.ReplaceAll(getStringVal(config, "Path"), "\\", "/"))
+	config.Store("Proto", strings.ReplaceAll(getStringVal(config, "Proto"), "\\", "/"))
+
+	// so here I will get the previous information...
+	f, err := os.Open(configPath)
+
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			// get previous configuration...
+			config_ := make(map[string]interface{}, 0)
+			json.Unmarshal(b, &config_)
+			config__ := make(map[string]interface{}, 0)
+			config.Range(func(k, v interface{}) bool {
+				config__[k.(string)] = v
+				return true
+			})
+
+			// Test if there change from the original value's
+			if reflect.DeepEqual(config_, config__) {
+				log.Println("the values has not change since last read ", configPath)
+				f.Close()
+				// set back the path's info.
+				return false
+			}
+
+			// sync the data/config file with the service file.
+			jsonStr, _ := Utility.ToJson(config__)
+			// here I will write the file
+			err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
+			if err != nil {
+				return false
+			}
+
+			hub, err := globule.getEventHub()
+			if err == nil {
+				// Publish event on the network to update the configuration...
+				err := hub.Publish("update_globular_service_configuration_evt", []byte(jsonStr))
+				if err != nil {
+					log.Println("fail to publish event with error: ", err)
+				}
+			}
+
+		}
+	}
+	f.Close()
+
+	// Load the services permissions.
+	// Here I will get the list of service permission and set it...
+	permissions, hasPermissions := config.Load("Permissions")
+	if hasPermissions {
+		if permissions != nil {
+			for i := 0; i < len(permissions.([]interface{})); i++ {
+				permission := permissions.([]interface{})[i].(map[string]interface{})
+				globule.setActionResourcesPermissions(permission)
+			}
+		}
+	}
+
+	return true
+}
+
+func (globule *Globule) setConfig(config map[string]interface{}) {
+
+	// if the configuration is one of services...
+	if config["Id"] != nil {
+		srv := globule.getService(config["Id"].(string))
+		if srv != nil {
+			setValues(srv, config)
+			globule.initService(srv)
+		}
+
+	} else if config["Services"] != nil {
+
+		// Here I will save the configuration
+		globule.AdminEmail = config["AdminEmail"].(string)
+
+		globule.Country = config["Country"].(string)
+		globule.State = config["State"].(string)
+		globule.City = config["City"].(string)
+		globule.Organization = config["Organization"].(string)
+		globule.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"].(float64))
+		globule.Name = config["Name"].(string)
+
+		if config["DnsUpdateIpInfos"] != nil {
+			globule.DnsUpdateIpInfos = config["DnsUpdateIpInfos"].([]interface{})
+		}
+
+		if config["AlternateDomains"] != nil {
+			globule.AlternateDomains = config["AlternateDomains"].([]interface{})
+		}
+
+		restartServices := false
+
+		httpPort := Utility.ToInt(config["PortHttp"].(float64))
+		if httpPort != globule.PortHttp {
+			globule.PortHttp = httpPort
+			restartServices = true
+		}
+
+		httpsPort := Utility.ToInt(config["PortHttps"].(float64))
+		if httpsPort != globule.PortHttps {
+			globule.PortHttps = httpsPort
+			restartServices = true
+		}
+
+		protocol := config["Protocol"].(string)
+		if globule.Protocol != protocol {
+			globule.Protocol = protocol
+			restartServices = true
+		}
+
+		// The port range
+		portsRange := config["PortsRange"].(string)
+		if portsRange != globule.PortsRange {
+			globule.PortsRange = config["PortsRange"].(string)
+			restartServices = true
+		}
+
+		domain := config["Domain"].(string)
+
+		if globule.Domain != domain {
+			globule.Domain = domain
+			restartServices = true
+		}
+
+		if restartServices {
+			// This will restart the service.
+			defer globule.restartServices()
+		}
+
+		// Save Discoveries.
+		globule.Discoveries = make([]string, 0)
+		for i := 0; i < len(config["Discoveries"].([]interface{})); i++ {
+			globule.Discoveries = append(globule.Discoveries, config["Discoveries"].([]interface{})[i].(string))
+		}
+
+		// Save DNS
+		globule.DNS = make([]interface{}, 0)
+		for i := 0; i < len(config["DNS"].([]interface{})); i++ {
+			globule.DNS = append(globule.DNS, config["DNS"].([]interface{})[i].(string))
+		}
+
+		// That will save the services if they have changed.
+		for id, s := range config["Services"].(map[string]interface{}) {
+			// Attach the actual process and proxy process to the configuration object.
+			s_ := globule.getService(id)
+			if s_ == nil {
+				s_ = new(sync.Map)
+			}
+			setValues(s_, s.(map[string]interface{}))
+			s_.Store("Domain", domain)
+			globule.initService(s_)
+			globule.setService(s_)
+		}
+	}
+}
+
+func (globule *Globule) getConfig() map[string]interface{} {
+
+	config := make(map[string]interface{}, 0)
+	config["Name"] = globule.Name
+	config["PortHttp"] = globule.PortHttp
+	config["PortHttps"] = globule.PortHttps
+	config["AdminEmail"] = globule.AdminEmail
+	config["AlternateDomains"] = globule.AlternateDomains
+	//config["SessionTimeout"] = globule.SessionTimeout
+	config["Discoveries"] = globule.Discoveries
+	config["PortsRange"] = globule.PortsRange
+	config["Version"] = globule.Version
+	config["Build"] = globule.Build
+	config["Platform"] = globule.Platform
+	config["DNS"] = globule.DNS
+	config["Protocol"] = globule.Protocol
+	config["Domain"] = globule.getDomain()
+	config["CertExpirationDelay"] = globule.CertExpirationDelay
+	config["ExternalApplications"] = globule.ExternalApplications
+	config["CertURL"] = globule.CertURL
+	config["CertStableURL"] = globule.CertStableURL
+	config["CertExpirationDelay"] = globule.CertExpirationDelay
+	config["CertPassword"] = globule.CertPassword
+	config["Country"] = globule.Country
+	config["State"] = globule.State
+	config["City"] = globule.City
+	config["Organization"] = globule.Organization
+	config["IndexApplication"] = globule.IndexApplication
+	config["Path"] = globule.path
+	config["DataPath"] = globule.data
+	config["ConfigPath"] = globule.config
+
+	// return the full service configuration.
+	// Here I will give only the basic services informations and keep
+	// all other infromation secret.
+	config["Services"] = make(map[string]interface{}, 0)
+	services := globule.getServices()
+	for i := 0; i < len(services); i++ {
+		service_config := services[i]
+
+		// Keep only some basic services values.
+		s := make(map[string]interface{}, 0)
+		s["Domain"] = getStringVal(service_config, "Domain")
+		s["Port"] = getIntVal(service_config, "Port")
+		s["Proxy"] = getIntVal(service_config, "Proxy")
+		s["TLS"] = getBoolVal(service_config, "TLS")
+		s["Version"] = getStringVal(service_config, "Version")
+		s["PublisherId"] = getStringVal(service_config, "PublisherId")
+		s["KeepUpToDate"] = getBoolVal(service_config, "KeepUpToDate")
+		s["KeepAlive"] = getBoolVal(service_config, "KeepAlive")
+		s["Description"] = getStringVal(service_config, "Description")
+		s["Keywords"] = getVal(service_config, "Keywords")
+		s["Repositories"] = getVal(service_config, "Repositories")
+		s["Discoveries"] = getVal(service_config, "Discoveries")
+		s["State"] = getStringVal(service_config, "State")
+		s["Id"] = getStringVal(service_config, "Id")
+		s["Name"] = getStringVal(service_config, "Name")
+		s["CertFile"] = getStringVal(service_config, "CertFile")
+		s["KeyFile"] = getStringVal(service_config, "KeyFile")
+		s["CertAuthorityTrust"] = getStringVal(service_config, "CertAuthorityTrust")
+
+		//log.Println(s["Name"], s["Id"])
+
+		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
+	}
+
+	return config
+
+}
+
+
+func (globule *Globule) signCertificate(client_csr string) (string, error) {
+
+	// first of all I will save the incomming file into a temporary file...
+	client_csr_path := os.TempDir() + "/" + Utility.RandomUUID()
+	err := ioutil.WriteFile(client_csr_path, []byte(client_csr), 0644)
+	if err != nil {
+		return "", err
+
+	}
+
+	client_crt_path := os.TempDir() + "/" + Utility.RandomUUID()
+
+	cmd := "openssl"
+	args := make([]string, 0)
+	args = append(args, "x509")
+	args = append(args, "-req")
+	args = append(args, "-passin")
+	args = append(args, "pass:"+globule.CertPassword)
+	args = append(args, "-days")
+	args = append(args, Utility.ToString(globule.CertExpirationDelay))
+	args = append(args, "-in")
+	args = append(args, client_csr_path)
+	args = append(args, "-CA")
+	args = append(args, globule.creds+"/ca.crt") // use certificate
+	args = append(args, "-CAkey")
+	args = append(args, globule.creds+"/ca.key") // and private key to sign the incommin csr
+	args = append(args, "-set_serial")
+	args = append(args, "01")
+	args = append(args, "-out")
+	args = append(args, client_crt_path)
+	args = append(args, "-extfile")
+	args = append(args, globule.creds+"/san.conf")
+	args = append(args, "-extensions")
+	args = append(args, "v3_req")
+	err = exec.Command(cmd, args...).Run()
+	if err != nil {
+		return "", err
+	}
+
+	// I will read back the crt file.
+	client_crt, err := ioutil.ReadFile(client_crt_path)
+
+	// remove the tow temporary files.
+	defer os.Remove(client_crt_path)
+	defer os.Remove(client_csr_path)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(client_crt), nil
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// MongoDb releadted stuff...
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** Create the super administrator in the db. **/
+func (globule *Globule) registerSa() error {
+
+	configs := globule.getServiceConfigByName("persistence.PersistenceService")
+	if len(configs) == 0 {
+		logger.Info("No persistence service was configure on that globule!")
+		return errors.New("no persistence service was configure on that globule")
+	}
+
+	// Here I will test if mongo db exist on the server.
+	existMongo := exec.Command("mongod", "--version")
+	err := existMongo.Run()
+	if err != nil {
+		logger.Info("Failt to run command mongod --version ", err.Error())
+		log.Println("fail to start mongo db!", err)
+		return err
+	}
+
+	// Here I will create super admin if it not already exist.
+	dataPath := globule.data + "/mongodb-data"
+
+	if !Utility.Exists(dataPath) {
+		// Kill mongo db server if the process already run...
+		globule.stopMongod()
+
+		// Here I will create the directory
+		err := os.MkdirAll(dataPath, os.ModeDir)
+		if err != nil {
+			return err
+		}
+
+		// Now I will start the command
+		mongod := exec.Command("mongod", "--port", "27017", "--dbpath", dataPath)
+		err = mongod.Start()
+		if err != nil {
+			return err
+		}
+
+		globule.waitForMongo(60, false)
+
+		// Now I will create a new user name sa and give it all admin write.
+		createSaScript := fmt.Sprintf(
+			`db=db.getSiblingDB('admin');db.createUser({ user: '%s', pwd: '%s', roles: ['userAdminAnyDatabase','userAdmin','readWrite','dbAdmin','clusterAdmin','readWriteAnyDatabase','dbAdminAnyDatabase']});`, "sa", globule.RootPassword) // must be change...
+
+		createSaCmd := exec.Command("mongo", "--eval", createSaScript)
+		err = createSaCmd.Run()
+		if err != nil {
+			// remove the mongodb-data
+			os.RemoveAll(dataPath)
+			return err
+		}
+		globule.stopMongod()
+	}
+
+	// Now I will start mongod with auth available.
+	mongod := exec.Command("mongod", "--auth", "--port", "27017", "--bind_ip", "0.0.0.0", "--dbpath", dataPath)
+	logger.Info("try to start mongod with path ", dataPath)
+	err = mongod.Start()
+	if err != nil {
+
+		logger.Info("Fail to strart mongo with error ", err)
+		return err
+	}
+
+	// wait 15 seconds that the server restart.
+	globule.waitForMongo(60, true)
+
+	// Get the list of all services method.
+	return globule.registerMethods()
+}
+
+
+// Remove expired session...
+func (globule *Globule) removeExpiredSession(accountId string, expiredAt int64) error {
+	log.Println("----------> session need to be remove: ", accountId)
+	p, err := globule.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	session := make(map[string]interface{}, 0)
+	session["_id"] = accountId
+	session["state"] = 1
+	session["lastStateTime"] = time.Unix(expiredAt, 0).UTC().Format("2006-01-02T15:04:05-0700")
+	jsonStr, err := Utility.ToJson(session)
+	if err != nil {
+		return err
+	}
+
+	dbName := strings.ReplaceAll(accountId, ".", "_")
+	dbName = strings.ReplaceAll(dbName, "@", "_")
+
+	err = p.ReplaceOne(context.Background(), "local_resource", dbName+"_db", "Sessions", `{"_id":"`+accountId+`"}`, jsonStr, "")
+	if err != nil {
+		return err
+	}
+
+	evtHub, err := globule.getEventHub()
+	if err != nil {
+		return err
+	}
+
+	// Publish the event on the network...
+	evtHub.Publish("session_state_"+accountId+"_change_event", []byte(jsonStr))
+
+	// Now I will remove the token...
+	err = p.DeleteOne(context.Background(), "local_resource", "local_resource", "Tokens", `{"_id":"`+accountId+`"}`, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (globule *Globule) removeExpiredSessions() error {
+	// I will iterate over the list token and close expired session...
 
 	// That service made user of persistence service.
 	p, err := globule.getPersistenceStore()
@@ -321,44 +811,265 @@ func (globule *Globule) sendApplicationNotification(application string, message 
 		return err
 	}
 
-	/** The notification object. */
-	notification := make(map[string]interface{})
-	id := time.Now().Unix()
-	notification["_id"] = id
-	notification["_type"] = 1
-	notification["_text"] = message
-	notification["_recipient"] = application
-	notification["_date"] = id
-
-	// Now I will retreive the application icon...
-	data, err := p.FindOne(context.Background(), "local_resource", "local_resource", "Applications", `{"_id":"`+application+`"}`, `[{"Projection":{"icon":1}}]`)
+	tokens, err := p.Find(context.Background(), "local_resource", "local_resource", "Tokens", `{}`, ``)
 	if err != nil {
-		return err
+		return status.Errorf(
+			codes.Internal,
+			Utility.JsonErrorStr(Utility.FunctionName(), Utility.FileLine(), err))
 	}
 
-	jsonStr, err := Utility.ToJson(data)
-	if err != nil {
-		return err
-	}
-	notification["_sender"] = jsonStr
-
-	_, err = p.InsertOne(context.Background(), "local_resource", application+"_db", "Notifications", notification, "")
-	if err != nil {
-		return err
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i].(map[string]interface{})
+		accountId := token["_id"].(string)
+		expiredAt := int64(Utility.ToInt(token["expireAt"]))
+		if expiredAt < time.Now().Unix() {
+			globule.removeExpiredSession(accountId, expiredAt)
+		}
 	}
 
-	jsonStr, err = Utility.ToJson(notification)
-	if err != nil {
-		return err
-	}
+	return nil
 
-	eventHub, err := globule.getEventHub()
-	if err != nil {
-		return err
-	}
-
-	return eventHub.Publish(application+"_notification_event", []byte(jsonStr))
 }
+
+/**
+ * Return the list of method's for a given service, the path is the path of the
+ * proto file.
+ */
+ func (globule *Globule) getServiceMethods(name string, path string) []string {
+	methods := make([]string, 0)
+
+	configs := globule.getServiceConfigByName(name)
+
+	if len(configs) == 0 {
+		// Test for name with pattern _server
+		configs = globule.getServiceConfigByName(name + "_server")
+		if len(configs) == 0 {
+			return nil
+		}
+	}
+
+	// here I will parse the service defintion file to extract the
+	// service difinition.
+	reader, _ := os.Open(path)
+	defer reader.Close()
+
+	parser := proto.NewParser(reader)
+	definition, _ := parser.Parse()
+
+	// Stack values from walking tree
+	stack := make([]interface{}, 0)
+
+	handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+		return func(p *proto.Package) {
+			*stack = append(*stack, p)
+		}
+	}(&stack)
+
+	handleService := func(stack *[]interface{}) func(*proto.Service) {
+		return func(s *proto.Service) {
+			*stack = append(*stack, s)
+		}
+	}(&stack)
+
+	handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+		return func(r *proto.RPC) {
+			*stack = append(*stack, r)
+		}
+	}(&stack)
+
+	// Walk this way
+	proto.Walk(definition,
+		proto.WithPackage(handlePackage),
+		proto.WithService(handleService),
+		proto.WithRPC(handleRpc))
+
+	var packageName string
+	var serviceName string
+	var methodName string
+
+	for len(stack) > 0 {
+		var x interface{}
+		x, stack = stack[0], stack[1:]
+		switch v := x.(type) {
+		case *proto.Package:
+			packageName = v.Name
+		case *proto.Service:
+			serviceName = v.Name
+		case *proto.RPC:
+			methodName = v.Name
+			path := "/" + packageName + "." + serviceName + "/" + methodName
+			// So here I will register the method into the backend.
+			methods = append(methods, path)
+		}
+	}
+
+	return methods
+}
+
+func (globule *Globule) setServiceMethods(name string, path string) {
+
+	// here I will parse the service defintion file to extract the
+	// service difinition.
+	reader, _ := os.Open(path)
+	defer reader.Close()
+
+	parser := proto.NewParser(reader)
+	definition, _ := parser.Parse()
+
+	// Stack values from walking tree
+	stack := make([]interface{}, 0)
+
+	handlePackage := func(stack *[]interface{}) func(*proto.Package) {
+		return func(p *proto.Package) {
+			*stack = append(*stack, p)
+		}
+	}(&stack)
+
+	handleService := func(stack *[]interface{}) func(*proto.Service) {
+		return func(s *proto.Service) {
+			*stack = append(*stack, s)
+		}
+	}(&stack)
+
+	handleRpc := func(stack *[]interface{}) func(*proto.RPC) {
+		return func(r *proto.RPC) {
+			*stack = append(*stack, r)
+		}
+	}(&stack)
+
+	// Walk this way
+	proto.Walk(definition,
+		proto.WithPackage(handlePackage),
+		proto.WithService(handleService),
+		proto.WithRPC(handleRpc))
+
+	var packageName string
+	var serviceName string
+	var methodName string
+
+	for len(stack) > 0 {
+		var x interface{}
+		x, stack = stack[0], stack[1:]
+		switch v := x.(type) {
+		case *proto.Package:
+			packageName = v.Name
+		case *proto.Service:
+			serviceName = v.Name
+		case *proto.RPC:
+			methodName = v.Name
+			path := "/" + packageName + "." + serviceName + "/" + methodName
+			//log.Println(path)
+			// So here I will register the method into the backend.
+			globule.methods = append(globule.methods, path)
+		}
+	}
+}
+
+// Method must be register in order to be assign to role.
+func (globule *Globule) registerMethods() error {
+	// Here I will create the sa role if it dosen't exist.
+	p, err := globule.getPersistenceStore()
+	if err != nil {
+		return err
+	}
+
+	// Here I will persit the sa role if it dosent already exist.
+	admin := make(map[string]interface{}, 0)
+	admin["_id"] = "sa"
+	admin["name"] = "sa"
+	admin["actions"] = globule.methods
+	jsonStr, _ := Utility.ToJson(admin)
+
+	// I will set the role actions...
+	err = p.ReplaceOne(context.Background(), "local_resource", "local_resource", "Roles", `{"_id":"sa"}`, jsonStr, `[{"upsert":true}]`)
+	if err != nil {
+		return err
+	}
+
+	log.Println("role sa with was updated!")
+
+	// I will also create the guest role, the basic one
+	count, err := p.Count(context.Background(), "local_resource", "local_resource", "Roles", `{ "_id":"guest"}`, "")
+	guest := make(map[string]interface{}, 0)
+	if err != nil {
+		return err
+	} else if count == 0 {
+		log.Println("need to create roles guest...")
+		guest["_id"] = "guest"
+		guest["name"] = "guest"
+		guest["actions"] = []string{
+			"/admin.AdminService/GetConfig",
+			"/resource.ResourceService/RegisterAccount",
+			"/resource.ResourceService/GetAccounts",
+			"/resource.ResourceService/AccountExist",
+			"/resource.ResourceService/Authenticate",
+			"/resource.ResourceService/RefreshToken",
+			"/resource.ResourceService/GetPermissions",
+			"/resource.ResourceService/GetAllFilesInfo",
+			"/resource.ResourceService/GetAllApplicationsInfo",
+			"/resource.ResourceService/GetResourceOwners",
+			"/rbac.RbacService/ValidateAction",
+			"/rbac.RbacService/ValidateAccess",
+			"/event.EventService/Subscribe",
+			"/event.EventService/UnSubscribe", 
+			"/event.EventService/OnEvent",
+			"/event.EventService/Quit",
+			"/event.EventService/Publish",
+			"/packages.PackageDiscovery/FindServices",
+			"/packages.PackageDiscovery/GetPackagesDescriptor",
+			"/packages.PackageDiscovery/GetPackageDescriptor",
+			"/packages.PackageRepository/downloadBundle",
+			"/persistence.PersistenceService/Find",
+			"/persistence.PersistenceService/FindOne",
+			"/persistence.PersistenceService/Count",
+			"/resource.ResourceService/GetAllActions"}
+
+		_, err := p.InsertOne(context.Background(), "local_resource", "local_resource", "Roles", guest, "")
+		if err != nil {
+			return err
+		}
+		log.Println("role guest was created!")
+	}
+
+	return nil
+}
+
+
+func (globule *Globule) createApplicationConnection() error {
+	log.Println("create applications connections")
+	p, err := globule.getPersistenceSaConnection()
+	if err != nil {
+		return err
+	}
+
+	store, err := globule.getPersistenceStore()
+	applications, _ := store.Find(context.Background(), "local_resource", "local_resource", "Applications", "{}", "")
+	if err != nil {
+		log.Println("fail to get applications informations ", err)
+		return err
+	}
+	address, port := globule.getBackendAddress()
+	for i := 0; i < len(applications); i++ {
+		application := applications[i].(map[string]interface{})
+
+		err = p.CreateConnection(application["_id"].(string)+"_db", application["_id"].(string)+"_db", address, float64(port), 0, application["_id"].(string), application["password"].(string), 5000, "", false)
+		if err != nil {
+			log.Println("** fail to create connection for application ", application["_id"].(string), err)
+
+		}
+/*
+		// Here I will se ownership to files in the directories.
+		err = globule.addResourceOwner("/applications/"+application["_id"].(string), application["_id"].(string), rbacpb.SubjectType_APPLICATION)
+		if err != nil {
+			return err
+		}
+		log.Println("-> connection created for application: ", application["_id"].(string))
+*/
+	}
+
+	return nil
+}
+
 
 // Little shortcut to get access to map value in one step.
 func setValues(m *sync.Map, values map[string]interface{}) {
@@ -714,13 +1425,6 @@ func (globule *Globule) Serve() {
 			log.Println(err)
 		}
 
-		// The rbac storage.
-		globule.permissions = storage_store.NewLevelDB_store()
-		err = globule.permissions.Open(`{"path":"` + globule.data + `", "name":"permissions"}`)
-		if err != nil {
-			log.Println(err)
-		}
-
 		// Here it suppose to be only one server instance per computer.
 		err = globule.setKey()
 		if err != nil {
@@ -756,14 +1460,6 @@ func (globule *Globule) Serve() {
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// First of all I will start external services.
-	for externalServiceId, _ := range globule.ExternalApplications {
-		pid, err := globule.startExternalApplication(externalServiceId)
-		if err != nil {
-			log.Println("fail to start external service: ", externalServiceId, " pid ", pid)
-		}
-	}
 
 	// I will save the variable in a tmp file to be sure I can get it outside
 	ioutil.WriteFile(os.TempDir()+"/GLOBULAR_ROOT", []byte(globule.path+":"+Utility.ToString(globule.PortHttp)), 0644)
@@ -1143,10 +1839,6 @@ func (globule *Globule) stopServices() {
 		eventClient.Close()
 	}
 
-	// stop external service.
-	for externalServiceId, _ := range globule.ExternalApplications {
-		globule.stopExternalApplication(externalServiceId)
-	}
 	services := globule.getServices()
 	for i := 0; i < len(services); i++ {
 		s := services[i]
@@ -1195,10 +1887,11 @@ func (globule *Globule) startService(s *sync.Map) (int, int, error) {
 
 	var err error
 
-	root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
-	root_ := string(root)[0:strings.Index(string(root), ":")]
+	// TODO not work when more.
+	//root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
+	//root_ := string(root)[0:strings.Index(string(root), ":")]
 
-	if !Utility.IsLocal(getStringVal(s, "Domain")) && root_ != globule.path {
+	if !Utility.IsLocal(getStringVal(s, "Domain")) /*&& root_ != globule.path*/ {
 		return -1, -1, errors.New("can not start a distant service localy")
 	}
 
@@ -1590,24 +2283,31 @@ func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
 	s.Store("State", "terminated")
 
 	// also kill it proxy process if exist in that case.
-	_, hasProxyProcess := s.Load("ProxyProcess")
-	if hasProxyProcess {
-		proxyProcess, err := os.FindProcess(proxyProcessPid)
-		if err == nil {
-			proxyProcess.Kill()
-			s.Store("ProxyProcess", -1)
+	if proxyProcessPid != -1 {
+		_, hasProxyProcess := s.Load("ProxyProcess")
+		if hasProxyProcess {
+			proxyProcess, err := os.FindProcess(proxyProcessPid)
+
+			if err == nil {
+				proxyProcess.Kill()
+				s.Store("ProxyProcess", -1)
+			}
+
 		}
+
 	}
 
-	// kill it in the name of...
-	process, err := os.FindProcess(pid)
-	if err == nil {
-		err := process.Kill()
+	if pid != -1 {
+		// kill it in the name of...
+		process, err := os.FindProcess(pid)
 		if err == nil {
-			s.Store("Process", -1)
-			s.Store("State", "stopped")
-		} else {
-			s.Store("State", "failed")
+			err := process.Kill()
+			if err == nil {
+				s.Store("Process", -1)
+				s.Store("State", "stopped")
+			} else {
+				s.Store("State", "failed")
+			}
 		}
 	}
 }
@@ -2270,58 +2970,6 @@ func (globule *Globule) GetAbsolutePath(path string) string {
 
 	return path
 
-}
-
-func (globule *Globule) startInternalServices() error {
-
-	// Start internal services.
-
-	// Admin service
-	err := globule.startAdminService()
-	if err != nil {
-		return err
-	}
-
-	// Log service
-	err = globule.startLogService()
-	if err != nil {
-		return err
-	}
-
-	// Resource service
-	err = globule.startResourceService()
-	if err != nil {
-		return err
-	}
-
-	// Start Role Based Access Control (RBAC) service.
-	err = globule.startRbacService()
-	if err != nil {
-		return err
-	}
-
-	// Directorie service
-	err = globule.startPackagesDiscoveryService()
-	if err != nil {
-		return err
-	}
-
-	// Repository service
-	err = globule.startPackagesRepositoryService()
-	if err != nil {
-		return err
-	}
-
-	// Certificate autority service.
-	err = globule.startCertificateAuthorityService()
-	if err != nil {
-		return err
-	}
-
-	// save the config.
-	globule.saveConfig()
-
-	return nil
 }
 
 /**
