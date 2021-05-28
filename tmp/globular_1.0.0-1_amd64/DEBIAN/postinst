@@ -1,8 +1,0 @@
-
-		# Create a link into bin to it original location.
-		sudo ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
-		sudo chmod ugo+x /usr/local/bin/Globular
-		sudo Globular install
-		sudo systemctl enable Globular
-		sudo systemctl start Globular
-		
