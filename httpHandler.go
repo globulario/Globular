@@ -221,7 +221,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, user, rbacpb.SubjectType_ACCOUNT)
@@ -417,13 +416,10 @@ func createVideoPreview(path string, nb int, height int) error {
 		return err
 	}
 
-	evtHub, err := globule.getEventHub()
-	if err == nil {
-		path_ := strings.ReplaceAll(path, globule.data+"/files", "")
-		path_ = path_[0:strings.LastIndex(path_, "/")]
+	path_ = strings.ReplaceAll(path, globule.data+"/files", "")
+	path_ = path_[0:strings.LastIndex(path_, "/")]
 
-		evtHub.Publish("reload_dir_event", []byte(path_))
-	}
+	globule.publish("reload_dir_event", []byte(path_))
 
 	return nil
 }
@@ -448,6 +444,61 @@ func getVideoDuration(path string) float64 {
 	duration, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
 
 	return duration
+}
+
+// That function resolve import path.
+func resolveImportPath(path string, importPath string) (string, error) {
+
+	// firt of all i will keep only the path part of the import...
+	startIndex := strings.Index(importPath, `'@`) + 1
+	endIndex := strings.LastIndex(importPath, `'`)
+	importPath_ := importPath[startIndex:endIndex]
+
+	filepath.Walk(globule.webRoot+path[0:strings.Index(path, "/")],
+		func(path string, info os.FileInfo, err error) error {
+			path = strings.ReplaceAll(path, "\\", "/")
+			if err != nil {
+				return err
+			}
+
+			if strings.HasSuffix(path, importPath_) {
+				importPath_ = path
+				return io.EOF
+			}
+
+			return nil
+		})
+
+	importPath_ = strings.Replace(importPath_, strings.Replace(globule.webRoot, "\\", "/", -1), "", -1)
+
+	// Now i will make the path relative.
+	importPath__ := strings.Split(importPath_, "/")
+	path__ := strings.Split(path, "/")
+
+	var index int
+	for ; importPath__[index] == path__[index]; index++ {
+	}
+
+	importPath_ = ""
+
+	// move up part..
+	for i := index; i < len(path__)-1; i++ {
+		importPath_ += "../"
+	}
+
+	// go down to the file.
+	for i := index; i < len(importPath__); i++ {
+		importPath_ += importPath__[i]
+		if i < len(importPath__)-1 {
+			importPath_ += "/"
+		}
+	}
+
+	// remove the
+	importPath_ = strings.Replace(importPath_, globule.webRoot, "", 1)
+
+	// remove the root path part and the leading / caracter.
+	return importPath_, nil
 }
 
 // Custom file server implementation.
@@ -502,7 +553,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//path to file
 	name := path.Join(dir, rqst_path)
-	log.Println( r.RemoteAddr, " try to access file...", name)
+	log.Println(r.RemoteAddr, " try to access file...", name)
 
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {

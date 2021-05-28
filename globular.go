@@ -16,13 +16,15 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
+	"crypto/x509"
+	"crypto"
+	"encoding/pem"
 	"github.com/globulario/services/golang/dns/dns_client"
+	"github.com/globulario/services/golang/rbac/rbacpb"
 
 	// Interceptor for authentication, event, log...
 
 	// Client services.
-	"crypto"
 	"github.com/davecourtois/Utility"
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/challenge/http01"
@@ -71,6 +73,8 @@ type Globule struct {
 	Version  string
 	Build    int64
 	Platform string
+	AdminEmail string
+	RootPassword string
 
 	// There's are Directory
 	// The user's directory
@@ -136,6 +140,8 @@ func NewGlobule() *Globule {
 	// g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
+	g.AdminEmail = "root@globular.app"
+	g.RootPassword = "adminadmin"
 
 	// keep up to date by default.
 	g.WatchUpdateDelay = 30 // seconds...
@@ -174,6 +180,109 @@ func NewGlobule() *Globule {
 	}
 
 	return g
+}
+
+func (globule *Globule) getConfig() map[string] interface{}{
+	config := make( map[string] interface{})
+
+	// TODO implement it.
+
+	return config
+}
+
+func (globule *Globule) saveConfig() error{
+	return errors.New("not implemented")
+}
+
+/**
+ * Return the admin email.
+ */
+ func (globule *Globule) GetEmail() string {
+	return globule.AdminEmail
+}
+
+/**
+ * Use the time of registration... Nil other wise.
+ */
+ func (globule *Globule) GetRegistration() *registration.Resource {
+	return globule.registration
+}
+
+/**
+ * I will reuse the client public key here as key instead of generate another key
+ * and manage it...
+ */
+func (globule *Globule) GetPrivateKey() crypto.PrivateKey {
+	keyPem, err := ioutil.ReadFile(globule.creds + "/client.pem")
+	if err != nil {
+		return nil
+	}
+
+	keyBlock, _ := pem.Decode(keyPem)
+	privateKey, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return nil
+	}
+	return privateKey
+}
+
+/**
+ * That function work correctly, but the DNS fail time to time to give the
+ * IP address that result in a fail request... The DNS must be fix!
+ */
+func (globule *Globule) obtainCertificateForCsr() error {
+
+	config := lego.NewConfig(globule)
+	config.Certificate.KeyType = certcrypto.RSA2048
+
+	client, err := lego.NewClient(config)
+	if err != nil {
+		return err
+	}
+
+	err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+	globule.registration = reg
+	if err != nil {
+		return err
+	}
+
+	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
+	if err != nil {
+		return err
+	}
+
+	csrBlock, _ := pem.Decode(csrPem)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		return err
+	}
+
+	resource, err := client.Certificate.ObtainForCSR(*csr, true)
+	if err != nil {
+		return err
+	}
+
+	// Keep certificates url in the config.
+	globule.CertURL = resource.CertURL
+	globule.CertStableURL = resource.CertStableURL
+
+	// Set the certificates paths...
+	globule.Certificate = globule.getDomain() + ".crt"
+	globule.CertificateAuthorityBundle = globule.getDomain() + ".issuer.crt"
+
+	// Save the certificate in the cerst folder.
+	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
+	ioutil.WriteFile(globule.creds+"/"+globule.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
+
+	// save the config with the values.
+	globule.saveConfig()
+
+	return nil
 }
 
 func (globule *Globule) signCertificate(client_csr string) (string, error) {
@@ -621,4 +730,35 @@ func (globule *Globule) Listen() error {
 	globule.watchForUpdate()
 
 	return err
+}
+
+//////////////////////// RBAC function //////////////////////////////////////////////
+func (globule *Globule) getResourcePermissions(path string) (*rbacpb.Permissions, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (globule *Globule) setResourcePermissions(path string, permissions *rbacpb.Permissions) error {
+	return errors.New("not implemented")
+}
+
+func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
+	return false, false, errors.New("not implemented")
+}
+
+func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
+	return nil
+}
+
+func (globule *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error){
+
+	return nil, nil
+}
+
+func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error){
+	return false, nil
+}
+
+///////////////////// event service functions ////////////////////////////////////
+func (globule *Globule) publish(event string, data []byte) error {
+	return errors.New("not implemented")
 }

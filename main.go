@@ -55,18 +55,8 @@ func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	logger.Info("Globular is stopping!")
 
-	// Stop external services.
-	log.Println("try to stop services")
-	g.stopServices()
-
-	err := g.stopMongod()
-
-	// Close kv stores.
-	g.logs.Close()
-	g.permissions.Close()
-
 	close(g.exit)
-	return err
+	return nil
 }
 
 func main() {
@@ -627,7 +617,7 @@ func installCertificates(g *Globule, domain string, port int, path string) error
 		return err
 	}
 
-	key, cert, ca, err := admin_client_.InstallCertificates(domain, port, path)
+	key, cert, ca, err := admin_client_.GetCertificates(domain, port, path)
 	if err != nil {
 		log.Println("fail to get certificates...", err)
 	}
