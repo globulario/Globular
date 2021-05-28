@@ -1,19 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,37 +14,20 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/globulario/services/golang/dns/dns_client"
-	"github.com/globulario/services/golang/event/event_client"
-	"github.com/globulario/services/golang/file/file_client"
-	"github.com/globulario/services/golang/interceptors"
-	"github.com/globulario/services/golang/ldap/ldap_client"
-	"github.com/globulario/services/golang/persistence/persistence_client"
-
-	ps "github.com/mitchellh/go-ps"
-	"github.com/struCoder/pidusage"
-	"google.golang.org/grpc"
-
-	"github.com/prometheus/client_golang/prometheus"
 
 	// Interceptor for authentication, event, log...
 
 	// Client services.
 	"crypto"
-
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/persistence/persistence_store"
-	"github.com/globulario/services/golang/security"
-	"github.com/globulario/services/golang/storage/storage_store"
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/challenge/http01"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Global variable.
@@ -69,15 +45,9 @@ type Globule struct {
 	// Globualr specifics ports.
 
 	// can be https or http.
-	Protocol string
-
+	Protocol  string
 	PortHttp  int // The port of the http file server.
 	PortHttps int // The secure port
-
-	PortsRange string // The range of port to be use for the service. ex 10000-10200
-
-	// Use to store services informations
-	Services map[string]interface{}
 
 	Domain           string        // The principale domain
 	AlternateDomains []interface{} // Alternate domain for multiple domains
@@ -110,16 +80,7 @@ type Globule struct {
 	ApplicationDirectory string
 
 	// Service discoveries.
-	Discoveries []string // Contain the list of discovery service use to keep service up to date.
-
-	// If it set to true all services will be updated automaticaly.
-	KeepAllServicesUpToDate bool
-
-	// If set to true services will be keept alive by default.
-	KeepAllServicesAlive bool
-
-	// if set to true the server will be updated automaticaly.
-	KeepUpToDate bool
+	Discoveries []string // Contain the list of discovery service use to keep services up to date.
 
 	// Update delay in second...
 	WatchUpdateDelay int
@@ -127,15 +88,6 @@ type Globule struct {
 	// DNS stuff.
 	DNS              []interface{} // Domain name server use to located the server.
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
-
-	// Monitoring
-
-	// The prometheus logging informations.
-	methodsCounterLog *prometheus.CounterVec
-
-	// Monitor the cpu usage of process.
-	servicesCpuUsage    *prometheus.GaugeVec
-	servicesMemoryUsage *prometheus.GaugeVec
 
 	// Directories.
 	path         string // The path of the exec...
@@ -150,16 +102,12 @@ type Globule struct {
 	registration *registration.Resource
 
 	// exit channel.
-	exit            chan struct{}
-	exit_           bool
-	inernalServices []*grpc.Server
+	exit  chan struct{}
+	exit_ bool
 
 	// The http server
 	http_server  *http.Server
 	https_server *http.Server
-
-	// temporary array to be use to get next available port.
-	portsInUse []int
 }
 
 /**
@@ -184,30 +132,13 @@ func NewGlobule() *Globule {
 	g.Protocol = "http"
 	g.Domain = "localhost"
 
-	// Set default values.
-	g.PortsRange = "10000-10100"
-
 	// set default values.
 	// g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 
 	// keep up to date by default.
-	g.KeepAllServicesUpToDate = true
-	g.KeepAllServicesAlive = true
 	g.WatchUpdateDelay = 30 // seconds...
-
-	// No update globular by default.
-	g.KeepUpToDate = false
-
-	// Keep the
-	g.Services = make(map[string]interface{})
-	g.inernalServices = make([]*grpc.Server, 0)
-
-	// Configuration must be reachable before services initialysation
-
-	// Promometheus metrics for services.
-	http.Handle("/metrics", promhttp.Handler())
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -299,111 +230,6 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 
 }
 
-func (globule *Globule) toMap() map[string]interface{} {
-	_map_, _ := Utility.ToMap(globule)
-	_services_ := make(map[string]interface{})
-
-	globule.services.Range(func(key, value interface{}) bool {
-		s := make(map[string]interface{})
-		value.(*sync.Map).Range(func(key, value interface{}) bool {
-			s[key.(string)] = value
-			return true
-		})
-		_services_[key.(string)] = s
-		return true
-	})
-	_map_["Services"] = _services_
-	return _map_
-}
-
-func processIsRuning(pid int) bool {
-	_, err := os.FindProcess(int(pid))
-	return err == nil
-}
-
-func (globule *Globule) getPortsInUse() []int {
-	portsInUse := globule.portsInUse
-
-	// I will test if the port is already taken by e services.
-	globule.services.Range(func(key, value interface{}) bool {
-		m := value.(*sync.Map)
-		pid_, hasProcess := m.Load("Process")
-
-		if hasProcess {
-			pid := Utility.ToInt(pid_)
-			if pid != -1 {
-				if processIsRuning(pid) {
-					p, _ := m.Load("Port")
-					portsInUse = append(portsInUse, Utility.ToInt(p))
-				}
-			}
-		}
-
-		proxyPid_, hasProxyProcess := m.Load("ProxyProcess")
-		if hasProxyProcess {
-			proxyPid := Utility.ToInt(proxyPid_)
-			if proxyPid != -1 {
-				if processIsRuning(proxyPid) {
-					p, _ := m.Load("ProxyProcess")
-					portsInUse = append(portsInUse, Utility.ToInt(p))
-				}
-			}
-		}
-		return true
-	})
-
-	return portsInUse
-}
-
-/**
- * test if a given port is avalaible.
- */
-func (globule *Globule) isPortAvailable(port int) bool {
-	portRange := strings.Split(globule.PortsRange, "-")
-	start := Utility.ToInt(portRange[0])
-	end := Utility.ToInt(portRange[1])
-
-	if port < start || port > end {
-		return false
-	}
-
-	portsInUse := globule.getPortsInUse()
-	for i := 0; i < len(portsInUse); i++ {
-		if portsInUse[i] == port {
-			return false
-		}
-	}
-
-	// wait before interogate the next port
-	time.Sleep(100 * time.Millisecond)
-	l, err := net.Listen("tcp", "0.0.0.0:"+Utility.ToString(port))
-	if err == nil {
-		defer l.Close()
-		return true
-	}
-
-	return false
-}
-
-/**
- * Return the next available port.
- **/
-func (globule *Globule) getNextAvailablePort() (int, error) {
-	portRange := strings.Split(globule.PortsRange, "-")
-	start := Utility.ToInt(portRange[0]) + 1 // The first port of the range will be reserve to http configuration handler.
-	end := Utility.ToInt(portRange[1])
-
-	for i := start; i < end; i++ {
-		if globule.isPortAvailable(i) {
-			globule.portsInUse = append(globule.portsInUse, i)
-			return i, nil
-		}
-	}
-
-	return -1, errors.New("No port are available in the range " + globule.PortsRange)
-
-}
-
 /**
  * Initialize the server directories config, data, webroot...
  */
@@ -415,13 +241,6 @@ func (globule *Globule) initDirectories() {
 
 	// Set the list of discorvery service avalaible...
 	globule.Discoveries = make([]string, 0)
-	globule.discorveriesEventHub = make(map[string]*event_client.Event_Client)
-
-	// Set the share service info...
-	globule.Services = make(map[string]interface{})
-
-	// Set external map services.
-	globule.ExternalApplications = make(map[string]ExternalApplication)
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// There is the default directory initialisation...
@@ -464,20 +283,9 @@ func (globule *Globule) initDirectories() {
 
 	// Init the service with the default port address
 	if err == nil {
-
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
 			log.Println("fail to read init from ", globule.config+"/config.json", err)
-		}
-
-		// Now I will initialyse sync services map.
-		for _, v := range globule.Services {
-			s := v.(map[string]interface{})
-			s_ := new(sync.Map)
-			for k_, v_ := range s {
-				s_.Store(k_, v_)
-			}
-			globule.setService(s_)
 		}
 
 	} else {
@@ -515,68 +323,15 @@ func (globule *Globule) initDirectories() {
  */
 func (globule *Globule) Serve() {
 
-	//globule.initDirectories()
+	globule.initDirectories()
 
-	// Reset previous connections.
-	globule.store = nil
-	globule.persistence_client_ = nil
-	globule.ldap_client_ = nil
-	globule.event_client_ = nil
-
-	// Open logs db.
-	if globule.logs == nil {
-
-		// The logs storage.
-		globule.logs = storage_store.NewLevelDB_store()
-		err := globule.logs.Open(`{"path":"` + globule.data + `", "name":"logs"}`)
-		if err != nil {
-			log.Println(err)
-		}
-
-		// Here it suppose to be only one server instance per computer.
-		err = globule.setKey()
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		// The token that identify the server with other services
-		err = globule.setToken()
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		// Here I will start the refresh token loop to refresh the server token.
-		// the token will be refresh 10 milliseconds before expiration.
-		ticker := time.NewTicker((globule.SessionTimeout - 10) * time.Millisecond)
-		go func() {
-			for {
-				select {
-				case <-ticker.C:
-					err = globule.setToken()
-					if err != nil {
-						log.Println(err)
-					}
-				case <-globule.exit:
-					return
-				}
-			}
-		}()
-
-		// Start the monitoring service with prometheus.
-		globule.startPrometheus()
-	}
+	// TODO start admin control plane services...
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// I will save the variable in a tmp file to be sure I can get it outside
 	ioutil.WriteFile(os.TempDir()+"/GLOBULAR_ROOT", []byte(globule.path+":"+Utility.ToString(globule.PortHttp)), 0644)
-
-	// set the services.
-	globule.initServices()
-
-	// start internal services. (need persistence service to manage permissions)
-	globule.startInternalServices()
 
 	// lisen
 	err := globule.Listen()
@@ -595,9 +350,6 @@ func (globule *Globule) Serve() {
 
 	log.Println("Globular is running at address " + url)
 
-	// Keep watching if the config file was modify by external agent.
-	globule.watchConfigFile()
-
 	if err != nil {
 		log.Println(err)
 	}
@@ -615,56 +367,6 @@ func (globule *Globule) getDomain() string {
 		domain = /*globule.Name + "." +*/ domain
 	}
 	return domain
-}
-
-/**
- * Return the local token.
- */
-func (globule *Globule) getToken() (string, error) {
-	token, err := ioutil.ReadFile(os.TempDir() + "/" + globule.getDomain() + "_token")
-	if err != nil {
-		return "", err
-	}
-	return string(token), nil
-}
-
-/**
- * Remove token (for each domain/alternate domains)
- */
-func (globule *Globule) deleteToken() {
-	os.Remove(os.TempDir() + "/" + globule.getDomain() + "_token")
-
-	// I will also generate the token for the
-	for i := 0; i < len(globule.AlternateDomains); i++ {
-		os.Remove(os.TempDir() + "/" + globule.AlternateDomains[i].(string) + "_token")
-	}
-}
-
-/**
- * Generate a new local token that be use to communicate between local service.
- */
-func (globule *Globule) setToken() error {
-
-	// remove previous token if some exist.
-	globule.deleteToken()
-
-	// create the token for the main domain.
-	token, _ := interceptors.GenerateToken(globule.jwtKey, globule.SessionTimeout, "sa", "sa", globule.AdminEmail)
-
-	err := ioutil.WriteFile(os.TempDir()+"/"+globule.getDomain()+"_token", []byte(token), 0400)
-	if err != nil {
-		return err
-	}
-
-	// I will also generate the token for the
-	for i := 0; i < len(globule.AlternateDomains); i++ {
-		err := ioutil.WriteFile(os.TempDir()+"/"+globule.AlternateDomains[i].(string)+"_token", []byte(token), 0400)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 /**
@@ -757,515 +459,6 @@ func testDomainIp(domain string, ip string, try int) bool {
 
 }
 
-/**
- * Start the grpc proxy.
- */
-func (globule *Globule) startProxy(s *sync.Map, port int, proxy int) (int, error) {
-	_, hasProxyProcess := s.Load("ProxyProcess")
-	if !hasProxyProcess {
-		s.Store("ProxyProcess", -1)
-	}
-	pid := getIntVal(s, "ProxyProcess")
-	if pid != -1 {
-		Utility.TerminateProcess(pid, 0)
-	}
-
-	// Now I will start the proxy that will be use by javascript client.
-	proxyPath := "/bin/grpcwebproxy"
-	if !strings.HasSuffix(proxyPath, ".exe") && runtime.GOOS == "windows" {
-		proxyPath += ".exe" // in case of windows.
-	}
-
-	proxyBackendAddress := globule.getDomain() + ":" + strconv.Itoa(port)
-	proxyAllowAllOrgins := "true"
-	proxyArgs := make([]string, 0)
-
-	// Use in a local network or in test.
-	proxyArgs = append(proxyArgs, "--backend_addr="+proxyBackendAddress)
-	proxyArgs = append(proxyArgs, "--allow_all_origins="+proxyAllowAllOrgins)
-	hasTls := getBoolVal(s, "TLS")
-	if hasTls {
-		certAuthorityTrust := globule.creds + "/ca.crt"
-
-		/* Services gRpc backend. */
-		proxyArgs = append(proxyArgs, "--backend_tls=true")
-		proxyArgs = append(proxyArgs, "--backend_tls_ca_files="+certAuthorityTrust)
-		proxyArgs = append(proxyArgs, "--backend_client_tls_cert_file="+globule.creds+"/client.crt")
-		proxyArgs = append(proxyArgs, "--backend_client_tls_key_file="+globule.creds+"/client.pem")
-
-		/* http2 parameters between the browser and the proxy.*/
-		proxyArgs = append(proxyArgs, "--run_http_server=false")
-		proxyArgs = append(proxyArgs, "--run_tls_server=true")
-		proxyArgs = append(proxyArgs, "--server_http_tls_port="+strconv.Itoa(proxy))
-
-		/* in case of public domain server files **/
-		proxyArgs = append(proxyArgs, "--server_tls_key_file="+globule.creds+"/server.pem")
-
-		proxyArgs = append(proxyArgs, "--server_tls_client_ca_files="+globule.creds+"/"+globule.CertificateAuthorityBundle)
-		proxyArgs = append(proxyArgs, "--server_tls_cert_file="+globule.creds+"/"+globule.Certificate)
-
-	} else {
-		// Now I will save the file with those new information in it.
-		proxyArgs = append(proxyArgs, "--run_http_server=true")
-		proxyArgs = append(proxyArgs, "--run_tls_server=false")
-		proxyArgs = append(proxyArgs, "--server_http_debug_port="+strconv.Itoa(proxy))
-		proxyArgs = append(proxyArgs, "--backend_tls=false")
-	}
-
-	// Keep connection open for longer exchange between client/service. Event Subscribe function
-	// is a good example of long lasting connection. (48 hours) seam to be more than enought for
-	// browser client connection maximum life.
-	proxyArgs = append(proxyArgs, "--server_http_max_read_timeout=48h")
-	proxyArgs = append(proxyArgs, "--server_http_max_write_timeout=48h")
-
-	// start the proxy service one time
-	proxyProcess := exec.Command(globule.path+proxyPath, proxyArgs...)
-	proxyProcess.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-	}
-	err := proxyProcess.Start()
-
-	if err != nil {
-		return -1, err
-	}
-
-	// save service configuration.
-	s.Store("ProxyProcess", proxyProcess.Process.Pid)
-
-	return proxyProcess.Process.Pid, nil
-}
-
-/**
- * Stop external services.
- */
-func (globule *Globule) stopServices() {
-	log.Println("stop services...")
-	// not keep services alive because the server must exist.
-	globule.exit_ = true
-
-	// Close the event client
-	eventClient, err := globule.getEventHub()
-	if err == nil && eventClient != nil {
-		eventClient.Close()
-	}
-
-	services := globule.getServices()
-	for i := 0; i < len(services); i++ {
-		s := services[i]
-		if s != nil {
-			// I will also try to keep a client connection in to communicate with the service.
-			log.Println("stop service: ", getStringVal(s, "Name"))
-			globule.stopService(s)
-		}
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if globule.https_server != nil {
-		if err := globule.https_server.Shutdown(ctx); err != nil {
-			// handle err
-			log.Println(err)
-		}
-		log.Println("stop listen(https) at port ", globule.PortHttps)
-	}
-
-	if globule.http_server != nil {
-		if err := globule.http_server.Shutdown(ctx); err != nil {
-			// handle err
-			log.Println(err)
-		}
-		log.Println("stop listen(http) at port ", globule.PortHttp)
-	}
-
-	// Double check that all process are terminated...
-	for i := 0; i < len(services); i++ {
-		s := services[i]
-		processPid := getIntVal(s, "Process")
-		if processPid != -1 {
-			globule.killServiceProcess(s, processPid)
-			globule.setService(s)
-		}
-	}
-
-	globule.saveConfig()
-}
-
-/**
- * Start services define in the configuration.
- */
-func (globule *Globule) startService(s *sync.Map) (int, int, error) {
-
-	var err error
-
-	// TODO not work when more.
-	//root, _ := ioutil.ReadFile(os.TempDir() + "/GLOBULAR_ROOT")
-	//root_ := string(root)[0:strings.Index(string(root), ":")]
-
-	if !Utility.IsLocal(getStringVal(s, "Domain")) /*&& root_ != globule.path*/ {
-		return -1, -1, errors.New("can not start a distant service localy")
-	}
-
-	// set the domain of the service.
-	s.Store("Domain", globule.getDomain())
-	s.Store("TLS", globule.Protocol == "https")
-
-	// if the service already exist.
-	_, hasProcess := s.Load("Process")
-	if !hasProcess {
-		s.Store("Process", -1)
-	}
-
-	pid := getIntVal(s, "Process")
-	if pid != -1 {
-		if runtime.GOOS == "windows" {
-			// Program written with dotnet on window need this command to stop...
-			kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(pid))
-			kill.Stderr = os.Stderr
-			kill.Stdout = os.Stdout
-			kill.Run()
-		} else {
-			Utility.TerminateProcess(pid, 0)
-		}
-	}
-
-	// save the process -1 in the map.
-	s.Store("Process", -1)
-	globule.setService(s)
-
-	servicePath := getStringVal(s, "Path")
-	serviceName := getStringVal(s, "Name")
-	proxyPid := getIntVal(s, "ProxyProcess")
-
-	if getStringVal(s, "Protocol") == "grpc" && serviceName != "ResourceReesourcervice" && serviceName != "admin.AdminService" && serviceName != "ca.CertificateAuthority" && serviceName != "packages.PackageDiscovery" {
-		// I will test if the service is find if not I will try to set path
-		// to standard dist directory structure.
-		if !Utility.Exists(servicePath) {
-			log.Println("No executable path was found for path ", servicePath)
-			// Here I will set various base on the standard dist directory structure.
-			path := globule.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version") + "/" + getStringVal(s, "Id")
-			execName := servicePath[strings.LastIndex(servicePath, "/")+1:]
-			servicePath = path + "/" + execName
-
-			if !Utility.Exists(servicePath) {
-				// If the service is running...
-				globule.deleteService(getStringVal(s, "Id"))
-				defer globule.saveConfig()
-				return -1, -1, errors.New("No executable was found for service " + getStringVal(s, "Name") + servicePath)
-			}
-
-			s.Store("Path", path+"/"+execName)
-			_, exist := s.Load("Path")
-			if !exist {
-				return -1, -1, errors.New("Fail to retreive exe path " + servicePath)
-			}
-
-			// Try to get the prototype from the standard deployement path.
-			path_ := globule.path + "/services/" + getStringVal(s, "PublisherId") + "/" + getStringVal(s, "Name") + "/" + getStringVal(s, "Version")
-			files, err := Utility.FindFileByName(path_, ".proto")
-			if err != nil {
-				return -1, -1, errors.New("No prototype file was found for path '" + path_)
-			}
-
-			s.Store("Proto", files[0])
-		}
-
-		hasTls := getBoolVal(s, "TLS")
-		log.Println("Has TLS ", hasTls, getStringVal(s, "Name"))
-		if hasTls {
-			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", globule.creds+"/ca.crt")
-			s.Store("CertFile", globule.creds+"/server.crt")
-			s.Store("KeyFile", globule.creds+"/server.pem")
-		} else {
-			// not secure services.
-			s.Store("CertAuthorityTrust", "")
-			s.Store("CertFile", "")
-			s.Store("KeyFile", "")
-		}
-
-		// Reset the list of port in user.
-		globule.portsInUse = make([]int, 0)
-
-		// Get the next available port.
-		port := getIntVal(s, "Port")
-
-		if !globule.isPortAvailable(port) {
-			port, err = globule.getNextAvailablePort()
-			if err != nil {
-				return -1, -1, err
-			}
-			s.Store("Port", port)
-			globule.setService(s)
-
-		}
-
-		err = os.Chmod(servicePath, 0755)
-		if err != nil {
-			log.Println(err)
-		}
-
-		p := exec.Command(servicePath, Utility.ToString(port))
-		var errb bytes.Buffer
-		pipe, _ := p.StdoutPipe()
-		p.Stderr = &errb
-
-		// Here I will set the command dir.
-		p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
-		p.SysProcAttr = &syscall.SysProcAttr{
-			//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-		}
-
-		err = p.Start()
-		if err != nil {
-			s.Store("State", "fail")
-			s.Store("Process", -1)
-			log.Println("Fail to start service: ", getStringVal(s, "Name"), " at port ", port, " with error ", err)
-			return -1, -1, err
-		} else {
-			pid = p.Process.Pid
-			s.Store("Process", p.Process.Pid)
-			log.Println("Service ", getStringVal(s, "Name")+":"+getStringVal(s, "Id"), "started with pid:", getIntVal(s, "Process"))
-		}
-
-		// Now I specific services necessary actions...
-		if getStringVal(s, "Name") == "persistence.PersistenceService" {
-			globule.persistence_client_ = nil
-		}
-
-		// save the services in the map.
-		go func(s *sync.Map, p *exec.Cmd) {
-
-			s.Store("State", "running")
-			output := make(chan string)
-			done := make(chan bool)
-
-			// Process message util the command is done.
-			go func() {
-				for {
-					select {
-					case <-done:
-						return
-
-					case line := <-output:
-						log.Println(line)
-						globule.logServiceInfo(getStringVal(s, "Name"), line)
-					}
-				}
-
-			}()
-
-			// Start reading the output
-			go ReadOutput(output, pipe)
-
-			// if the process is not define.
-			err = p.Wait() // wait for the program to return
-
-			// set default value
-			s.Store("State", "stopped")
-			done <- true
-
-			pipe.Close()
-
-			if err != nil {
-				// I will log the program error into the admin logger.
-				globule.logServiceError(getStringVal(s, "Name"), err.Error())
-			}
-
-			// Print the error
-			if len(errb.String()) > 0 {
-				fmt.Println("service", getStringVal(s, "Name"), "err:", errb.String())
-				globule.logServiceError(getStringVal(s, "Name"), errb.String())
-				s.Store("State", "failed")
-			}
-
-			s.Store("Process", -1)
-			globule.setService(s)
-			globule.logServiceInfo(getStringVal(s, "Name"), "Service stop.")
-
-		}(s, p)
-
-		// get another port.
-		if proxyPid == -1 {
-			proxy := getIntVal(s, "Proxy")
-			if !globule.isPortAvailable(proxy) {
-				globule.setService(s)
-				proxy, err = globule.getNextAvailablePort()
-				if err != nil {
-					s.Store("Proxy", -1)
-
-					return -1, -1, err
-				}
-				// Set back the process
-				s.Store("Proxy", proxy)
-				globule.setService(s)
-			}
-
-			// Start the proxy.
-			proxyPid, err = globule.startProxy(s, port, proxy)
-			if err != nil {
-				return -1, -1, err
-			}
-		}
-
-		// save service config.
-		globule.saveServiceConfig(s)
-
-		// save it to the config because pid and proxy pid have change.
-		globule.saveConfig()
-		proxy := getIntVal(s, "Proxy")
-		log.Println("Service "+getStringVal(s, "Name")+":"+getStringVal(s, "Id")+" is up and running at port ", port, " and proxy ", proxy)
-
-	} else if getStringVal(s, "Protocol") == "http" {
-		// any other http server except this one...
-		if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
-			p := exec.Command(servicePath, getStringVal(s, "Port"))
-
-			var errb bytes.Buffer
-			pipe, _ := p.StdoutPipe()
-			p.Stderr = &errb
-
-			// Here I will set the command dir.
-			p.Dir = servicePath[:strings.LastIndex(servicePath, "/")]
-			p.SysProcAttr = &syscall.SysProcAttr{
-				//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-			}
-
-			err = p.Start()
-
-			if err != nil {
-				// The process already exist so I will not throw an error and I will use existing process instead. I will make the
-				if err.Error() != "exec: already started" {
-					s.Store("Process", -1)
-					s.Store("State", "fail")
-					log.Println("Fail to start service: ", getStringVal(s, "Name"), " at port ", getStringVal(s, "Port"), " with error ", err)
-					return -1, -1, err
-				}
-			}
-			pid = p.Process.Pid
-			s.Store("Process", p.Process.Pid)
-			s.Store("State", "running")
-
-			if err == nil {
-				go func(s *sync.Map) {
-
-					// display the message in the console.
-					reader := bufio.NewReader(pipe)
-					line, err := reader.ReadString('\n')
-					for err == nil {
-						name := getStringVal(s, "Name")
-						log.Println(name, ":", line)
-						line, err = reader.ReadString('\n')
-					}
-
-					// if the process is not define.
-					pid := getIntVal(s, "Process")
-					if pid == -1 {
-						log.Println("No process found for service", getStringVal(s, "Name"))
-					}
-
-					p, err := os.FindProcess(pid)
-					if err == nil {
-						_, err := p.Wait()
-						s.Store("State", "stopped")
-						if err != nil {
-							// I will log the program error into the admin logger.
-							globule.logServiceInfo(getStringVal(s, "Name"), errb.String())
-							s.Store("State", "failed")
-						}
-					}
-				}(s)
-			}
-
-			// Save configuration stuff.
-			globule.setService(s)
-		}
-	}
-
-	if pid == -1 {
-		s.Store("State", "fail")
-		globule.setService(s)
-		err := errors.New("Fail to start process " + getStringVal(s, "Name"))
-		return -1, -1, err
-	}
-
-	// Return the pid of the service.
-	if proxyPid != -1 {
-		s.Store("State", "running")
-		globule.setService(s)
-		return pid, proxyPid, nil
-	}
-
-	return pid, -1, nil
-}
-
-/**
- * Init services configuration.
- */
-func (globule *Globule) initService(s *sync.Map) error {
-	_, hasProtocol := s.Load("Protocol")
-	if !hasProtocol {
-		// internal service dosent has Protocol define.
-		return nil
-	}
-
-	if getStringVal(s, "Protocol") == "grpc" {
-		// The domain must be set in the sever configuration and not change after that.
-		hasTls := globule.Protocol == "https" //Utility.ToBool(s["TLS"])
-		s.Store("TLS", hasTls)                // set the tls...
-		if hasTls {
-			// Set TLS local services configuration here.
-			s.Store("CertAuthorityTrust", globule.creds+"/ca.crt")
-			s.Store("CertFile", globule.creds+"/server.crt")
-			s.Store("KeyFile", globule.creds+"/server.pem")
-		} else {
-			// not secure services.
-			s.Store("CertAuthorityTrust", "")
-			s.Store("CertFile", "")
-			s.Store("KeyFile", "")
-		}
-
-		// Set the default server value.
-		if globule.KeepAllServicesAlive {
-			s.Store("KeepAlive", true)
-		}
-
-		// Keep service up to date.
-		if globule.KeepAllServicesUpToDate {
-			s.Store("KeepUpToDate", true)
-		}
-	}
-
-	// any other http server except this one...
-	if !strings.HasPrefix(getStringVal(s, "Name"), "Globular") {
-		hasChange := globule.saveServiceConfig(s)
-		state := getStringVal(s, "State")
-		if hasChange || state == "stopped" {
-
-			// Always stop the service before restarting it...
-			if state != "stopped" {
-				globule.stopService(s)
-			}
-
-			// TODO watch here wath to do if other conditio are set.
-			// here the service will try to restart.
-			if state != "terminated" && state != "deleted" {
-				_, _, err := globule.startService(s)
-				if err != nil {
-					s.Store("State", "failed")
-					return err
-				}
-				globule.setService(s)
-			}
-
-		} else if state == "deleted" {
-			// be sure the process is no more there.
-			globule.deleteService(getStringVal(s, "Id"))
-		}
-	}
-
-	return nil
-}
-
 func (globule *Globule) getBasePath() string {
 	// Each service contain a file name config.json that describe service.
 	// I will keep services info in services map and also it running process.
@@ -1282,704 +475,6 @@ func (globule *Globule) getBasePath() string {
 		}
 	}
 	return basePath
-}
-
-func (globule *Globule) killServiceProcess(s *sync.Map, pid int) {
-
-	proxyProcessPid := getIntVal(s, "ProxyProcess")
-	log.Println("Kill process ", getStringVal(s, "Name"), ":", proxyProcessPid)
-
-	// Here I will set a variable that tell globular to not keep the service alive...
-	s.Store("State", "terminated")
-
-	// also kill it proxy process if exist in that case.
-	if proxyProcessPid != -1 {
-		_, hasProxyProcess := s.Load("ProxyProcess")
-		if hasProxyProcess {
-			proxyProcess, err := os.FindProcess(proxyProcessPid)
-
-			if err == nil {
-				proxyProcess.Kill()
-				s.Store("ProxyProcess", -1)
-			}
-
-		}
-
-	}
-
-	if pid != -1 {
-		// kill it in the name of...
-		process, err := os.FindProcess(pid)
-		if err == nil {
-			err := process.Kill()
-			if err == nil {
-				s.Store("Process", -1)
-				s.Store("State", "stopped")
-			} else {
-				s.Store("State", "failed")
-			}
-		}
-	}
-}
-
-/**
- * Call once when the server start.
- */
-func (globule *Globule) initServices() {
-
-	log.Println("Initialyse services")
-	log.Println("local ip ", Utility.MyLocalIP())
-	log.Println("external ip ", Utility.MyIP())
-
-	// If the protocol is https I will generate the TLS certificate.
-	if globule.Protocol == "https" {
-		// security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds)
-		if len(globule.Certificate) == 0 {
-			globule.registerIpToDns()
-			log.Println(" Now let's encrypts!")
-			// Here is the command to be execute in order to ge the certificates.
-			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
-			// I need to remove the gRPC certificate and recreate it.
-
-			Utility.RemoveDirContents(globule.creds)
-
-			// recreate the certificates.
-			err := security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			err = globule.obtainCertificateForCsr()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		}
-
-		// Here I will read the certificate
-		r, _ := ioutil.ReadFile(globule.creds + "/" + globule.Certificate)
-		block, _ := pem.Decode(r)
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err == nil {
-			delay := cert.NotAfter.Sub(time.Now()) - time.Duration(15*time.Minute)
-			timeout := time.NewTimer(delay)
-			go func() {
-				// Wait to restart the server to regenerate new certificates...
-				<-timeout.C
-				globule.Certificate = ""
-				globule.restartServices()
-			}()
-		}
-	}
-
-	// That will contain all method path from the proto files.
-	globule.methods = make([]string, 0)
-	globule.methods = append(globule.methods, "/file.FileService/FileUploadHandler")
-
-	// Set local action permission
-	globule.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/DeletePermissions", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "delete"}}})
-	globule.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/SetResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	globule.setActionResourcesPermissions(map[string]interface{}{"action": "/resource.ResourceService/DeleteResourceOwner", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	globule.setActionResourcesPermissions(map[string]interface{}{"action": "/admin.AdminService/DeployApplication", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-	globule.setActionResourcesPermissions(map[string]interface{}{"action": "/admin.AdminService/PublishService", "resources": []interface{}{map[string]interface{}{"index": 0, "permission": "write"}}})
-
-	// It will be execute the first time only...
-	configPath := globule.config + "/config.json"
-	if !Utility.Exists(configPath) {
-		filepath.Walk(globule.getBasePath(), func(path string, info os.FileInfo, err error) error {
-			path = strings.ReplaceAll(path, "\\", "/")
-			if info == nil {
-				return nil
-			}
-
-			if err == nil && info.Name() == "config.json" {
-				// So here I will read the content of the file.
-				s := make(map[string]interface{})
-				config, err := ioutil.ReadFile(path)
-				if err == nil {
-					// Read the config file.
-					err := json.Unmarshal(config, &s)
-					if err == nil {
-						if s["Protocol"] != nil {
-							// If a configuration file exist It will be use to start services,
-							// otherwise the service configuration file will be use.
-							if s["Name"] == nil {
-								log.Println("---> no 'Name' attribute found in service configuration in file config ", path)
-							} else {
-
-								// if no id was given I will generate a uuid.
-								if s["Id"] == nil {
-									s["Id"] = Utility.RandomUUID()
-								}
-
-								s_ := new(sync.Map)
-								for k, v := range s {
-									s_.Store(k, v)
-								}
-
-								globule.setService(s_)
-							}
-						}
-					} else {
-						log.Println("fail to unmarshal configuration ", err)
-					}
-				} else {
-					log.Println("Fail to read config file ", path, err)
-				}
-			}
-			return nil
-		})
-	}
-
-	// Set service methods.
-	filepath.Walk(globule.getBasePath(), func(path string, info os.FileInfo, err error) error {
-		path = strings.ReplaceAll(path, "\\", "/")
-		if info == nil {
-			return nil
-		}
-		if err == nil && strings.HasSuffix(info.Name(), ".proto") {
-			name := info.Name()[0:strings.Index(info.Name(), ".")]
-			globule.setServiceMethods(name, path)
-		}
-		return nil
-	})
-
-	// Set the certificate keys...
-	services := globule.getServices()
-	for _, s := range services {
-		log.Println("init service ", getStringVal(s, "Name"))
-		if getStringVal(s, "Protocol") == "grpc" {
-
-			// The domain must be set in the sever configuration and not change after that.
-			hasTls := globule.Protocol == "https" //Utility.ToBool(s["TLS"])
-			s.Store("TLS", hasTls)                // set the tls...
-			if hasTls {
-				// Set TLS local services configuration here.
-				s.Store("CertAuthorityTrust", globule.creds+"/ca.crt")
-				s.Store("CertFile", globule.creds+"/server.crt")
-				s.Store("KeyFile", globule.creds+"/server.pem")
-			} else {
-				// not secure services.
-				s.Store("CertAuthorityTrust", "")
-				s.Store("CertFile", "")
-				s.Store("KeyFile", "")
-			}
-		}
-	}
-
-	// Start the load balancer.
-	err := globule.startLoadBalancingService()
-	if err != nil {
-		log.Println(err)
-	}
-
-	log.Println("Init external services: ")
-
-	// Initialyse service
-	for _, s := range services {
-		name := getStringVal(s, "Name")
-
-		// Get existion process information.
-		_, hasProcess := s.Load("Process")
-		processPid := -1
-		if hasProcess {
-			processPid = getIntVal(s, "Process")
-			// Now I will find if the process is running
-			if processPid != -1 {
-				_, err := os.FindProcess(processPid)
-				log.Println("find process ", name, ":", processPid)
-				if err != nil {
-					globule.killServiceProcess(s, processPid)
-					globule.setService(s)
-
-					processPid = -1
-				}
-			} else {
-				_, hasProxyProcess := s.Load("ProxyProcess")
-				if hasProxyProcess {
-					proxyProcessPid := getIntVal(s, "ProxyProcess")
-					proxyProcess, err := os.FindProcess(proxyProcessPid)
-					if err == nil {
-						proxyProcess.Kill()
-					}
-				}
-			}
-		}
-
-		if processPid == -1 {
-			// The service name.
-			log.Println("Init service: ", name)
-			if name == "file.FileService" {
-				s.Store("Root", globule.data+"/files")
-			} else if name == "conversation.ConversationService" {
-				s.Store("Root", globule.data)
-			}
-			err := globule.initService(s)
-			if err != nil {
-				log.Println(err)
-			}
-		} else {
-			log.Println("Process exist for service: ", name)
-		}
-	}
-}
-
-// That function resolve import path.
-func resolveImportPath(path string, importPath string) (string, error) {
-
-	// firt of all i will keep only the path part of the import...
-	startIndex := strings.Index(importPath, `'@`) + 1
-	endIndex := strings.LastIndex(importPath, `'`)
-	importPath_ := importPath[startIndex:endIndex]
-
-	filepath.Walk(globule.webRoot+path[0:strings.Index(path, "/")],
-		func(path string, info os.FileInfo, err error) error {
-			path = strings.ReplaceAll(path, "\\", "/")
-			if err != nil {
-				return err
-			}
-
-			if strings.HasSuffix(path, importPath_) {
-				importPath_ = path
-				return io.EOF
-			}
-
-			return nil
-		})
-
-	importPath_ = strings.Replace(importPath_, strings.Replace(globule.webRoot, "\\", "/", -1), "", -1)
-
-	// Now i will make the path relative.
-	importPath__ := strings.Split(importPath_, "/")
-	path__ := strings.Split(path, "/")
-
-	var index int
-	for ; importPath__[index] == path__[index]; index++ {
-	}
-
-	importPath_ = ""
-
-	// move up part..
-	for i := index; i < len(path__)-1; i++ {
-		importPath_ += "../"
-	}
-
-	// go down to the file.
-	for i := index; i < len(importPath__); i++ {
-		importPath_ += importPath__[i]
-		if i < len(importPath__)-1 {
-			importPath_ += "/"
-		}
-	}
-
-	// remove the
-	importPath_ = strings.Replace(importPath_, globule.webRoot, "", 1)
-
-	// remove the root path part and the leading / caracter.
-	return importPath_, nil
-}
-
-/**
- * Start prometheus.
- */
-func (globule *Globule) startPrometheus() error {
-
-	var err error
-
-	// Here I will start promethus.
-	dataPath := globule.data + "/prometheus-data"
-	Utility.CreateDirIfNotExist(dataPath)
-	if !Utility.Exists(globule.config + "/prometheus.yml") {
-		config := `# my global config
-global:
-  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-  # scrape_timeout is set to the global default (10s).
-
-# Alertmanager configuration
-alerting:
-  alertmanagers:
-  - static_configs:
-    - targets:
-      # - alertmanager:9093
-
-# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
-
-# A scrape configuration containing exactly one endpoint to scrape:
-# Here it's Prometheus itself.
-scrape_configs:
-  - job_name: 'prometheus'
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
-    static_configs:
-    - targets: ['localhost:9090']
-  
-  - job_name: 'globular_internal_services_metrics'
-    scrape_interval: 5s
-    static_configs:
-    - targets: ['localhost:` + Utility.ToString(globule.PortHttp) + `']
-    
-  - job_name: 'node_exporter_metrics'
-    scrape_interval: 5s
-    static_configs:
-    - targets: ['localhost:9100']
-    
-  - job_name: 'plc_exporter'
-    scrape_interval: 5s
-    static_configs:
-    - targets: ['localhost:2112']
-`
-		err := ioutil.WriteFile(globule.config+"/prometheus.yml", []byte(config), 0644)
-		if err != nil {
-			return err
-		}
-	}
-
-	if !Utility.Exists(globule.config + "/alertmanager.yml") {
-		config := `global:
-  resolve_timeout: 5m
-
-route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'web.hook'
-receivers:
-- name: 'web.hook'
-  webhook_configs:
-  - url: 'http://127.0.0.1:5001/'
-inhibit_rules:
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['alertname', 'dev', 'instance']
-`
-		err := ioutil.WriteFile(globule.config+"/alertmanager.yml", []byte(config), 0644)
-		if err != nil {
-			return err
-		}
-	}
-
-	prometheusCmd := exec.Command("prometheus", "--web.listen-address", "0.0.0.0:9090", "--config.file", globule.config+"/prometheus.yml", "--storage.tsdb.path", dataPath)
-	err = prometheusCmd.Start()
-	prometheusCmd.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-	}
-
-	if err != nil {
-		log.Println("fail to start prometheus ", err)
-		return err
-	}
-
-	// Here I will register various metric that I would like to have for the dashboard.
-
-	// Prometheus logging informations.
-	globule.methodsCounterLog = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "globular_methods_counter",
-		Help: "Globular services methods usage.",
-	},
-		[]string{
-			"application",
-			"user",
-			"method"},
-	)
-	prometheus.MustRegister(globule.methodsCounterLog)
-
-	// Here I will monitor the cpu usage of each services
-	globule.servicesCpuUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "globular_services_cpu_usage_counter",
-		Help: "Monitor the cpu usage of each services.",
-	},
-		[]string{
-			"id",
-			"name"},
-	)
-
-	globule.servicesMemoryUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "globular_services_memory_usage_counter",
-		Help: "Monitor the memory usage of each services.",
-	},
-		[]string{
-			"id",
-			"name"},
-	)
-
-	// Set the function into prometheus.
-	prometheus.MustRegister(globule.servicesCpuUsage)
-	prometheus.MustRegister(globule.servicesMemoryUsage)
-
-	// Start feeding the time series...
-	ticker := time.NewTicker(1 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				// Here I will manage the process...
-
-				globule.services.Range(func(key, s interface{}) bool {
-					pids, err := Utility.GetProcessIdsByName("Globular")
-					if err == nil {
-						for i := 0; i < len(pids); i++ {
-							sysInfo, err := pidusage.GetStat(pids[i])
-							if err == nil {
-								//log.Println("---> set cpu for process ", pid, getStringVal(s.(*sync.Map), "Name"), sysInfo.CPU)
-								globule.servicesCpuUsage.WithLabelValues("Globular", "Globular").Set(sysInfo.CPU)
-								globule.servicesMemoryUsage.WithLabelValues("Globular", "Globular").Set(sysInfo.Memory)
-							}
-						}
-					}
-
-					pid := getIntVal(s.(*sync.Map), "Process")
-					if pid > 0 {
-						sysInfo, err := pidusage.GetStat(pid)
-						if err == nil {
-							//log.Println("---> set cpu for process ", pid, getStringVal(s.(*sync.Map), "Name"), sysInfo.CPU)
-							globule.servicesCpuUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(sysInfo.CPU)
-							globule.servicesMemoryUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(sysInfo.Memory)
-						}
-					} else {
-						path := getStringVal(s.(*sync.Map), "Path")
-						if len(path) > 0 {
-							globule.servicesCpuUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(0)
-							globule.servicesMemoryUsage.WithLabelValues(getStringVal(s.(*sync.Map), "Id"), getStringVal(s.(*sync.Map), "Name")).Set(0)
-							//log.Println("----> process is close for ", getStringVal(s.(*sync.Map), "Name"))
-						}
-
-					}
-					return true
-				})
-			case <-globule.exit:
-				return
-			}
-		}
-
-	}()
-
-	alertmanager := exec.Command("alertmanager", "--config.file", globule.config+"/alertmanager.yml")
-	alertmanager.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-	}
-
-	err = alertmanager.Start()
-	if err != nil {
-		log.Println("fail to start prometheus alert manager", err)
-		// do not return here in that case simply continue without node exporter metrics.
-	}
-
-	node_exporter := exec.Command("node_exporter")
-	node_exporter.SysProcAttr = &syscall.SysProcAttr{
-		//CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-	}
-
-	err = node_exporter.Start()
-	if err != nil {
-		log.Println("fail to start prometheus node exporter", err)
-		// do not return here in that case simply continue without node exporter metrics.
-	}
-
-	return nil
-}
-
-/**
- * Connection with local persistence grpc service
- */
-func (globule *Globule) getPersistenceSaConnection() (*persistence_client.Persistence_Client, error) {
-	// That service made user of persistence service.
-	if globule.persistence_client_ != nil {
-		// Here I will also test the connection...
-		err := globule.persistence_client_.Ping("local_resource")
-		if err == nil {
-			return globule.persistence_client_, nil
-		}
-		globule.persistence_client_ = nil // set back value to nil.
-	}
-
-	configs := globule.getServiceConfigByName("persistence.PersistenceService")
-	if len(configs) == 0 {
-		err := errors.New("no persistence service configuration was found on that server")
-		return nil, err
-	}
-
-	var err error
-	s := configs[0]
-
-	// Cast-it to the persistence client.
-	globule.persistence_client_, err = persistence_client.NewPersistenceService_Client(s["Domain"].(string)+":"+Utility.ToString(globule.PortHttp), s["Id"].(string))
-	if err != nil {
-		return nil, err
-	}
-
-	domain, port := globule.getBackendAddress()
-
-	// Connect to the database here.
-	err = globule.persistence_client_.CreateConnection("local_resource", "local_resource", domain, Utility.ToNumeric(port), 0, "sa", globule.RootPassword, 5000, "", false)
-	if err != nil {
-		return nil, err
-	}
-
-	return globule.persistence_client_, nil
-}
-
-func (globule *Globule) getBackendAddress() (string, int32) {
-	values := strings.Split(globule.DbIpV4, ":")
-	return values[0], int32(Utility.ToInt(values[1]))
-}
-
-/**
- * Connection to mongo db local store.
- */
-func (globule *Globule) getPersistenceStore() (persistence_store.Store, error) {
-	// That service made user of persistence service.
-	if globule.store == nil {
-		globule.store = new(persistence_store.MongoStore)
-		domain, port := globule.getBackendAddress()
-		err := globule.store.Connect("local_resource", domain, port, "sa", globule.RootPassword, "local_resource", 5000, "")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return globule.store, nil
-}
-
-/** Stop mongod process **/
-func (globule *Globule) stopMongod() error {
-	closeCmd := exec.Command("mongo", "--eval", "db=db.getSiblingDB('admin');db.adminCommand( { shutdown: 1 } );")
-	err := closeCmd.Run()
-	time.Sleep(1 * time.Second)
-	return err
-}
-
-func (globule *Globule) waitForMongo(timeout int, withAuth bool) error {
-	logger.Info("Wait for starting mongo db!")
-	time.Sleep(1 * time.Second)
-	args := make([]string, 0)
-	if withAuth {
-		args = append(args, "-u")
-		args = append(args, "sa")
-		args = append(args, "-p")
-		args = append(args, globule.RootPassword)
-		args = append(args, "--authenticationDatabase")
-		args = append(args, "admin")
-	}
-	args = append(args, "--eval")
-	args = append(args, "db=db.getSiblingDB('admin');db.getMongo().getDBNames()")
-
-	script := exec.Command("mongo", args...)
-	err := script.Run()
-	if err != nil {
-		log.Println("wait for mongo...", timeout, "s")
-		logger.Info("Fail to start mongod ", err)
-		if timeout == 0 {
-			return errors.New("mongod is not responding")
-		}
-		// call again.
-		timeout -= 1
-
-		return globule.waitForMongo(timeout, withAuth)
-	}
-
-	// Now I will initialyse the application connections...
-	globule.createApplicationConnection()
-
-	return nil
-}
-
-func (globule *Globule) getLdapClient() (*ldap_client.LDAP_Client, error) {
-
-	configs := globule.getServiceConfigByName("ldap.LdapService")
-	if len(configs) == 0 {
-		return nil, errors.New("no event service was configure on that globule")
-	}
-
-	var err error
-
-	s := configs[0]
-
-	if globule.ldap_client_ == nil {
-		globule.ldap_client_, err = ldap_client.NewLdapService_Client(s["Domain"].(string)+":"+Utility.ToString(globule.PortHttp), "ldap.LdapService")
-	}
-
-	return globule.ldap_client_, err
-}
-
-/**
- * Get access to the event services.
- */
-func (globule *Globule) getEventHub() (*event_client.Event_Client, error) {
-
-	// Here I will get a look into the list of initialyse process before trying to connect
-	// to event service.
-	configs := globule.getServiceConfigByName("event.EventService")
-	if len(configs) == 0 {
-		return nil, errors.New("no event service was configure on that globule")
-	}
-	s := configs[0]
-
-	var err error
-	if globule.event_client_ == nil {
-		globule.event_client_, err = event_client.NewEventService_Client(s["Domain"].(string), s["Id"].(string))
-		if err == nil {
-			// Here I need to publish a fake event message to be sure the event service is listen.
-			err := globule.event_client_.Publish("__init__", []byte("is there anybody out there...?"))
-			if err != nil {
-				globule.event_client_ = nil
-				return nil, err
-			}
-		}
-	}
-
-	return globule.event_client_, err
-}
-
-/**
- * The file client is use to access file directories where users and application
- * upload their file. File upload and download are manage by the file service and
- * not by http handler.
- */
-func (globule *Globule) GetFileClient(id string) (*file_client.File_Client, error) {
-
-	if globule.file_clients_ == nil {
-		globule.file_clients_ = new(sync.Map)
-	} else {
-		c_, ok := globule.file_clients_.Load(id)
-		if ok {
-			return c_.(*file_client.File_Client), nil
-		}
-	}
-
-	return nil, errors.New("No file client found on the server with id '" + id + "'")
-}
-
-func (globule *Globule) GetAbsolutePath(path string) string {
-
-	path = strings.ReplaceAll(path, "\\", "/")
-	if strings.HasSuffix(path, "/") {
-		path = path[0 : len(path)-2]
-	}
-
-	if len(path) > 1 {
-		if strings.HasPrefix(path, "/") {
-			path = globule.webRoot + path
-		} else if !strings.HasSuffix(path, "/") {
-			path = globule.webRoot + "/" + path
-		} else {
-			path = globule.webRoot + path
-		}
-	} else {
-		path = globule.webRoot
-	}
-
-	return path
-
 }
 
 /**
@@ -2040,14 +535,13 @@ func (globule *Globule) watchForUpdate() {
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
 
-						if globule.Domain != address && globule.KeepUpToDate {
-							err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
-							if err != nil {
-								log.Println("fail to update globular from " + discovery + " with error " + err.Error())
-							} else {
-								log.Println("update globular checksum is ", checksum)
-							}
+						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						if err != nil {
+							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
+						} else {
+							log.Println("update globular checksum is ", checksum)
 						}
+
 					}
 				}
 			}
@@ -2086,94 +580,6 @@ func getProcessRunningStatus(pid int) (*os.Process, error) {
 }
 
 /**
- * Keep process found in configuration in line with one found on the server.
- */
-func (globule *Globule) manageProcess() {
-
-	ticker := time.NewTicker(5 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				// Here I will manage the process...
-				services := globule.getServices()
-				runingProcess := make(map[string][]int)
-				proxies := make([]int, 0)
-
-				// Fist of all I will get all services process...
-				for i := 0; i < len(services); i++ {
-					s := services[i]
-					pid := getIntVal(s, "Process")
-					state := getStringVal(s, "State")
-					p, err := ps.FindProcess(pid)
-					if pid != -1 && err == nil && p != nil {
-						name := p.Executable()
-						if _, ok := runingProcess[name]; !ok {
-							runingProcess[name] = make([]int, 0)
-						}
-						runingProcess[name] = append(runingProcess[name], getIntVal(s, "Process"))
-					} else if pid == -1 || p == nil {
-						if (state == "failed" || state == "stopped" || state == "running") && len(getStringVal(s, "Path")) > 1 {
-							// make sure the process is no running...
-							if getBoolVal(s, "KeepAlive") {
-								globule.killServiceProcess(s, pid)
-								s.Store("State", "stopped")
-								globule.initService(s)
-							}
-						}
-					} else if err != nil {
-						log.Println(err)
-					}
-
-					proxies = append(proxies, getIntVal(s, "ProxyProcess"))
-				}
-
-				proxies_, _ := Utility.GetProcessIdsByName("grpcwebproxy")
-				for i := 0; i < len(proxies_); i++ {
-					proxy := proxies_[i]
-					for j := 0; j < len(proxies); j++ {
-						if proxy == proxies[j] {
-							proxy = -1
-							break
-						}
-					}
-					if proxy != -1 {
-						p, err := os.FindProcess(proxy)
-						if err == nil {
-							p.Kill()
-						}
-					}
-				}
-
-				// Now I will find process by name on the computer and kill process not found in the configuration file.
-				for name, pids := range runingProcess {
-
-					pids_, err := Utility.GetProcessIdsByName(name)
-					if err == nil {
-						for i := 0; i < len(pids_); i++ {
-							pid := pids_[i]
-							for j := 0; j < len(pids); j++ {
-								if pid == pids[j] {
-									pid = -1
-									break
-								}
-							}
-
-							if pid != -1 {
-								p, err := os.FindProcess(pid)
-								if err == nil {
-									p.Kill()
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}()
-}
-
-/**
  * Listen for new connection.
  */
 func (globule *Globule) Listen() error {
@@ -2187,11 +593,6 @@ func (globule *Globule) Listen() error {
 		}
 		err = globule.http_server.ListenAndServe()
 	}()
-
-	// Here I will make a signal hook to interrupt to exit cleanly.
-	// handle the Interrupt
-	// set the register sa user.
-	globule.registerSa()
 
 	// Start the http server.
 	if globule.Protocol == "https" {
@@ -2216,105 +617,8 @@ func (globule *Globule) Listen() error {
 	// version.
 	//////////////////////////////////////////////////////////
 
-	// Manage Process.
-	globule.manageProcess()
-
 	// Keep globular up to date subscription.
 	globule.watchForUpdate()
 
-	// Keep service up to date.
-	globule.keepServicesToDate()
-
 	return err
-}
-
-/**
- * Return the admin email.
- */
-func (globule *Globule) GetEmail() string {
-	return globule.AdminEmail
-}
-
-/**
- * Use the time of registration... Nil other wise.
- */
-func (globule *Globule) GetRegistration() *registration.Resource {
-	return globule.registration
-}
-
-/**
- * I will reuse the client public key here as key instead of generate another key
- * and manage it...
- */
-func (globule *Globule) GetPrivateKey() crypto.PrivateKey {
-	keyPem, err := ioutil.ReadFile(globule.creds + "/client.pem")
-	if err != nil {
-		return nil
-	}
-
-	keyBlock, _ := pem.Decode(keyPem)
-	privateKey, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
-	if err != nil {
-		return nil
-	}
-	return privateKey
-}
-
-/**
- * That function work correctly, but the DNS fail time to time to give the
- * IP address that result in a fail request... The DNS must be fix!
- */
-func (globule *Globule) obtainCertificateForCsr() error {
-
-	config := lego.NewConfig(globule)
-	config.Certificate.KeyType = certcrypto.RSA2048
-
-	client, err := lego.NewClient(config)
-	if err != nil {
-		return err
-	}
-
-	err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
-	globule.registration = reg
-	if err != nil {
-		return err
-	}
-
-	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
-	if err != nil {
-		return err
-	}
-
-	csrBlock, _ := pem.Decode(csrPem)
-	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
-	if err != nil {
-		return err
-	}
-
-	resource, err := client.Certificate.ObtainForCSR(*csr, true)
-	if err != nil {
-		return err
-	}
-
-	// Keep certificates url in the config.
-	globule.CertURL = resource.CertURL
-	globule.CertStableURL = resource.CertStableURL
-
-	// Set the certificates paths...
-	globule.Certificate = globule.getDomain() + ".crt"
-	globule.CertificateAuthorityBundle = globule.getDomain() + ".issuer.crt"
-
-	// Save the certificate in the cerst folder.
-	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
-	ioutil.WriteFile(globule.creds+"/"+globule.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
-
-	// save the config with the values.
-	globule.saveConfig()
-
-	return nil
 }
