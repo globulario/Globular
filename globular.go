@@ -762,3 +762,14 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 func (globule *Globule) publish(event string, data []byte) error {
 	return errors.New("not implemented")
 }
+
+/////////////////////// services manager functions ///////////////////////////////
+/**
+ * Return an array of all services available on the globule
+ */
+func (globular *Globule) getServices() ([]map[string]interface{}, error){
+
+	services := make([]map[string]interface{}, 0)
+
+	return services, errors.New("not implemented");
+}

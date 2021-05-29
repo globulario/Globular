@@ -115,7 +115,6 @@ github.com/emersion/go-imap v1.1.0/go.mod h1:0hCeak4mA2z9hICM20jeqN6fyV0Oad0lZTy
 github.com/emersion/go-message v0.14.1/go.mod h1:N1JWdZQ2WRUalmdHAX308CWBq747VJ8oUorFI3VCBwU=
 github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
 github.com/emersion/go-smtp v0.15.0/go.mod h1:qm27SGYgoIPRot6ubfQ/GpiPy/g3PaZAVRxiO/sDUgQ=
-github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a/go.mod h1:TfbkEAFaMf4zCiWYvPESSmSfvRIVrce85WXXFJ1IeLY=
 github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594/go.mod h1:aqO8z8wPrjkscevZJFVE1wXJrLpC5LtJG7fqLOsPb2U=
 github.com/emicklei/proto v1.9.0/go.mod h1:rn1FgRS/FANiZdD2djyH7TMA9jdRDcYQ9IEN9yvjX0A=
 github.com/envoyproxy/go-control-plane v0.6.9/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
@@ -405,6 +404,7 @@ github.com/pkg/profile v1.2.1/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6J
 github.com/pkg/profile v1.5.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7 h1:AH5n8ganwKQPD8pa6u9M8TJuLN2hCcBubcRIaGwWgYo=
 github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7/go.mod h1:2Fh4ikMnX7lDL31/MpIly75tE6JIzJCV5bdSX3anemI=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=

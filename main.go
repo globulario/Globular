@@ -17,8 +17,13 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
-	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/authentication/authentication_client"
+	"github.com/globulario/services/golang/repository/repository_client"
+	"github.com/globulario/services/golang/discovery/discovery_client"
+	"github.com/globulario/services/golang/services_manager/services_manager_client"
+	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/kardianos/service"
+	
 )
 
 // This is use to display information to external service manager.
@@ -605,7 +610,6 @@ func main() {
 	}
 }
 
-
 /**
  * Service interface use to run as Windows Service or Linux deamon...
  */
@@ -636,14 +640,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	log.Println("deploy application", name, " to address ", address, " user ", user)
 
 	// Authenticate the user in order to get the token
-	resource_client, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 
 	if err != nil {
 		log.Println("fail to access resource service at "+address+" with error ", err)
 		return err
 	}
 
-	token, err := resource_client.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
 		return err
@@ -651,12 +655,12 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService") // create the resource server.
+	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
 		return err
 	}
 
-	_, err = admin_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
+	_, err = applications_manager_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
 		return err
@@ -674,13 +678,13 @@ func deploy(g *Globule, name string, organization string, path string, address s
 func update_globular(g *Globule, path, domain, user, pwd string, platform string) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -765,13 +769,13 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 func publish(g *Globule, user, pwd, domain, organization, path, platform string) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -779,20 +783,28 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	repository_client_, err := repository_client.NewRepositoryService_Client(domain, "discovery.PackageDiscovery")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	path_, _, err := admin_client_.UploadServicePackage(user, organization, token, domain, path, platform)
+	err = repository_client_.UploadServicePackage(user, organization, token, domain, path, platform)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = admin_client_.PublishService(user, organization, token, domain, path_, path, platform)
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	discovery_client_, err := discovery_client.NewDiscoveryService_Client(domain, "discovery.PackageDiscovery")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = discovery_client_.PublishService(user, organization, token, domain, path, platform)
 	if err != nil {
 		return err
 	}
@@ -808,12 +820,12 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
 	log.Println("try to install service", serviceId, "from", publisherId, "on", domain)
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate with error ", err.Error())
 		return err
@@ -821,14 +833,14 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
 	if err != nil {
-		log.Println("fail to connect to admin client at ", domain, " with error ", err.Error())
+		log.Println("fail to connect to services manager at ", domain, " with error ", err.Error())
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
+	err = services_manager_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
 	if err != nil {
 		log.Println("fail to install service", serviceId, "with error ", err.Error())
 		return err
@@ -841,13 +853,13 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -855,14 +867,14 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.UninstallService(token, domain, user, publisherId, serviceId, version)
+	err = services_manager_client_.UninstallService(token, domain, user, publisherId, serviceId, version)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -874,27 +886,27 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string, set_as_default bool) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId, set_as_default)
+	err = applications_manager_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId, set_as_default)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -906,13 +918,13 @@ func install_application(g *Globule, applicationId, discovery, publisherId, doma
 func uninstall_application(g *Globule, applicationId, publisherId, version, domain, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
 	}
 
-	token, err := resource_client_.Authenticate(user, pwd)
+	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -920,14 +932,14 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = admin_client_.UninstallApplication(token, domain, user, publisherId, applicationId, version)
+	err = applications_manager_client_.UninstallApplication(token, domain, user, publisherId, applicationId, version)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -1245,17 +1257,24 @@ func __dist(g *Globule, path string) {
 	}
 
 	// install services...
-	for _, s := range g.getServices() {
-		id := getStringVal(s, "Id")
-		_, hasName := s.Load("Name")
-		if hasName {
-			name := getStringVal(s, "Name")
+	services, err := g.getServices()
+	if err != nil {
+		log.Println("fail to retreive services whit error ", err)
+	}
+	for i := 0; i < len(services); i++ {
 
-			// I will read the configuration file to have nessecary service information
-			// to be able to create the path.
-			configPath := getStringVal(s, "Path")
-			if len(configPath) > 0 {
-				configPath = configPath[:strings.LastIndex(configPath, "/")] + "/config.json"
+		// set the service configuration...
+		s := services[i]
+		id := s["Id"].(string)
+		name := s["Name"].(string)
+
+		// I will read the configuration file to have nessecary service information
+		// to be able to create the path.
+		hasPath := s["Path"] != nil
+		if hasPath {
+			execPath := s["Path"].(string)
+			if len(execPath) > 0 {
+				configPath := execPath[:strings.LastIndex(execPath, "/")] + "/config.json"
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
@@ -1263,14 +1282,13 @@ func __dist(g *Globule, path string) {
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {
-						_, hasProto := s.Load("Proto")
-						_, hasPath := s.Load("Path")
+
+						hasProto := s["Proto"] != nil
+
 						// set the name.
-						if config["PublisherId"] != nil && config["Version"] != nil && hasPath && hasProto {
+						if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
 
-							execPath := getStringVal(s, "Path")
-							protoPath := getStringVal(s, "Proto")
-
+							protoPath := s["Proto"].(string)
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 								var serviceDir = "services/"
 								if len(config["PublisherId"].(string)) == 0 {
@@ -1350,7 +1368,7 @@ func __dist(g *Globule, path string) {
 				}
 			} else {
 				// Internal services here.
-				protoPath := getStringVal(s, "Proto")
+				protoPath := s["Proto"].(string)
 
 				// Copy the proto file.
 				if Utility.Exists(os.Getenv("GLOBULAR_SERVICES_ROOT") + "/" + protoPath) {
