@@ -2,8 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -16,9 +19,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"crypto/x509"
-	"crypto"
-	"encoding/pem"
+
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 
@@ -70,10 +71,12 @@ type Globule struct {
 	CertStableURL              string
 
 	// Keep the version number.
-	Version  string
-	Build    int64
-	Platform string
-	AdminEmail string
+	Version      string
+	Build        int64
+	Platform     string
+
+	// Admin informations.
+	AdminEmail   string
 	RootPassword string
 
 	// There's are Directory
@@ -84,7 +87,7 @@ type Globule struct {
 	ApplicationDirectory string
 
 	// Service discoveries.
-	Discoveries []string // Contain the list of discovery service use to keep services up to date.
+	Discoveries []string // Contain the list of discovery service use to keep globular up to date.
 
 	// Update delay in second...
 	WatchUpdateDelay int
@@ -182,29 +185,29 @@ func NewGlobule() *Globule {
 	return g
 }
 
-func (globule *Globule) getConfig() map[string] interface{}{
-	config := make( map[string] interface{})
+func (globule *Globule) getConfig() map[string]interface{} {
+	config := make(map[string]interface{})
 
 	// TODO implement it.
 
 	return config
 }
 
-func (globule *Globule) saveConfig() error{
+func (globule *Globule) saveConfig() error {
 	return errors.New("not implemented")
 }
 
 /**
  * Return the admin email.
  */
- func (globule *Globule) GetEmail() string {
+func (globule *Globule) GetEmail() string {
 	return globule.AdminEmail
 }
 
 /**
  * Use the time of registration... Nil other wise.
  */
- func (globule *Globule) GetRegistration() *registration.Resource {
+func (globule *Globule) GetRegistration() *registration.Resource {
 	return globule.registration
 }
 
@@ -399,6 +402,13 @@ func (globule *Globule) initDirectories() {
 
 	} else {
 		log.Println("fail to read configuration ", globule.config+"/config.json", err)
+		jsonStr, err := Utility.ToJson(&globule)
+		if err == nil {
+			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644 )
+			if err != nil {
+				log.Println("fail to write file ", globule.config+"/config.json", err)
+			}
+		}
 	}
 
 	if !Utility.Exists(globule.webRoot + "/index.html") {
@@ -439,9 +449,6 @@ func (globule *Globule) Serve() {
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// I will save the variable in a tmp file to be sure I can get it outside
-	ioutil.WriteFile(os.TempDir()+"/GLOBULAR_ROOT", []byte(globule.path+":"+Utility.ToString(globule.PortHttp)), 0644)
-
 	// lisen
 	err := globule.Listen()
 
@@ -458,7 +465,6 @@ func (globule *Globule) Serve() {
 	}
 
 	log.Println("Globular is running at address " + url)
-
 	if err != nil {
 		log.Println(err)
 	}
@@ -749,12 +755,12 @@ func (globule *Globule) addResourceOwner(path string, subject string, subjectTyp
 	return nil
 }
 
-func (globule *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error){
+func (globule *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
 
 	return nil, nil
 }
 
-func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error){
+func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
 	return false, nil
 }
 
@@ -767,9 +773,9 @@ func (globule *Globule) publish(event string, data []byte) error {
 /**
  * Return an array of all services available on the globule
  */
-func (globular *Globule) getServices() ([]map[string]interface{}, error){
+func (globular *Globule) getServices() ([]map[string]interface{}, error) {
 
 	services := make([]map[string]interface{}, 0)
 
-	return services, errors.New("not implemented");
+	return services, errors.New("not implemented")
 }
