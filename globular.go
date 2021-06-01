@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/globulario/services/golang/dns/dns_client"
+	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 
 	// Interceptor for authentication, event, log...
@@ -36,7 +38,10 @@ import (
 // Global variable.
 var (
 	globule *Globule
+	configPath = "/etc/globular/config/config.json"
 )
+
+
 
 /**
  * The web server.
@@ -193,8 +198,21 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	return config
 }
 
+/**
+ * Save the configuration
+ */
 func (globule *Globule) saveConfig() error {
-	return errors.New("not implemented")
+	jsonStr, err := Utility.ToJson(globule)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 /**
@@ -283,9 +301,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	ioutil.WriteFile(globule.creds+"/"+globule.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
 
 	// save the config with the values.
-	globule.saveConfig()
-
-	return nil
+	return globule.saveConfig()
 }
 
 func (globule *Globule) signCertificate(client_csr string) (string, error) {
@@ -739,35 +755,76 @@ func (globule *Globule) Listen() error {
 }
 
 //////////////////////// RBAC function //////////////////////////////////////////////
-func (globule *Globule) getResourcePermissions(path string) (*rbacpb.Permissions, error) {
-	return nil, errors.New("not implemented")
+var (
+	rbac_client_ *rbac_client.Rbac_Client
+	event_client_ *event_client.Event_Client
+)
+
+/**
+ * Get the rbac client.
+ */
+ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
+	var err error
+	if rbac_client_ == nil {
+		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
+		if err != nil {
+			log.Println("fail to get RBAC client with error ", err)
+			return nil, err
+		}
+
+	}
+	return rbac_client_, nil
 }
 
-func (globule *Globule) setResourcePermissions(path string, permissions *rbacpb.Permissions) error {
-	return errors.New("not implemented")
-}
-
-func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-	return false, false, errors.New("not implemented")
-}
-
+// Use rbac client here...
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
-	return nil
-}
-
-func (globule *Globule) getActionResourcesPermissions(action string) ([]*rbacpb.ResourceInfos, error) {
-
-	return nil, nil
+	rbac_client_, err := GetRbacClient(globule.Domain)
+	if err != nil {
+		return err
+	}
+	return rbac_client_.AddResourceOwner(path, subject, subjectType)
 }
 
 func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
-	return false, nil
+	rbac_client_, err := GetRbacClient(globule.Domain)
+	if err != nil {
+		return false, err
+	}
+
+	return rbac_client_.ValidateAction(method, subject, subjectType, infos)
+}
+
+func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
+	rbac_client_, err := GetRbacClient(globule.Domain)
+	if err != nil {
+		return false,false, err
+	}
+
+	return rbac_client_.ValidateAccess(subject, subjectType, name, path)
 }
 
 ///////////////////// event service functions ////////////////////////////////////
-func (globule *Globule) publish(event string, data []byte) error {
-	return errors.New("not implemented")
+func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
+	var err error
+	if event_client_ != nil {
+		return event_client_, nil
+	}
+	event_client_, err = event_client.NewEventService_Client(globule.Domain, "event.EventService")
+	if err != nil {
+		return nil, err
+	}
+
+	return event_client_, nil
 }
+
+func (globule *Globule) publish(event string, data []byte) error {
+	eventClient, err := globule.getEventClient()
+	if err != nil {
+		return err
+	}
+	return eventClient.Publish(event, data)
+}
+
 
 /////////////////////// services manager functions ///////////////////////////////
 /**
@@ -777,5 +834,5 @@ func (globular *Globule) getServices() ([]map[string]interface{}, error) {
 
 	services := make([]map[string]interface{}, 0)
 
-	return services, errors.New("not implemented")
+	return services, errors.New("--------------> not implemented")
 }
