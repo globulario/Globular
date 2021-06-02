@@ -24,6 +24,7 @@ import (
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/security"
 
 	// Interceptor for authentication, event, log...
 
@@ -37,11 +38,9 @@ import (
 
 // Global variable.
 var (
-	globule *Globule
+	globule    *Globule
 	configPath = "/etc/globular/config/config.json"
 )
-
-
 
 /**
  * The web server.
@@ -76,9 +75,9 @@ type Globule struct {
 	CertStableURL              string
 
 	// Keep the version number.
-	Version      string
-	Build        int64
-	Platform     string
+	Version  string
+	Build    int64
+	Platform string
 
 	// Admin informations.
 	AdminEmail   string
@@ -190,11 +189,14 @@ func NewGlobule() *Globule {
 	return g
 }
 
+/**
+ * Return globular configuration.
+ */
 func (globule *Globule) getConfig() map[string]interface{} {
-	config := make(map[string]interface{})
-
-	// TODO implement it.
-
+	// TODO filter unwanted attributes...
+	config, _ := Utility.ToMap(globule)
+	services, _ := globule.getServices()
+	config["Services"] = services
 	return config
 }
 
@@ -420,7 +422,7 @@ func (globule *Globule) initDirectories() {
 		log.Println("fail to read configuration ", globule.config+"/config.json", err)
 		jsonStr, err := Utility.ToJson(&globule)
 		if err == nil {
-			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644 )
+			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644)
 			if err != nil {
 				log.Println("fail to write file ", globule.config+"/config.json", err)
 			}
@@ -730,6 +732,29 @@ func (globule *Globule) Listen() error {
 
 		// if no certificates are specified I will try to get one from let's encrypts.
 		// Start https server.
+		if len(globule.Certificate) == 0 {
+			globule.registerIpToDns()
+			log.Println(" Now let's encrypts!")
+
+			// Here is the command to be execute in order to ge the certificates.
+			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
+			// I need to remove the gRPC certificate and recreate it.
+			Utility.RemoveDirContents(globule.creds)
+
+			// recreate the certificates.
+			err := security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+
+			err = globule.obtainCertificateForCsr()
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+
 		globule.https_server = &http.Server{
 			Addr: ":" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
@@ -756,14 +781,14 @@ func (globule *Globule) Listen() error {
 
 //////////////////////// RBAC function //////////////////////////////////////////////
 var (
-	rbac_client_ *rbac_client.Rbac_Client
+	rbac_client_  *rbac_client.Rbac_Client
 	event_client_ *event_client.Event_Client
 )
 
 /**
  * Get the rbac client.
  */
- func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
+func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 	var err error
 	if rbac_client_ == nil {
 		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
@@ -797,7 +822,7 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
 	rbac_client_, err := GetRbacClient(globule.Domain)
 	if err != nil {
-		return false,false, err
+		return false, false, err
 	}
 
 	return rbac_client_.ValidateAccess(subject, subjectType, name, path)
@@ -825,7 +850,6 @@ func (globule *Globule) publish(event string, data []byte) error {
 	return eventClient.Publish(event, data)
 }
 
-
 /////////////////////// services manager functions ///////////////////////////////
 /**
  * Return an array of all services available on the globule
@@ -834,5 +858,60 @@ func (globular *Globule) getServices() ([]map[string]interface{}, error) {
 
 	services := make([]map[string]interface{}, 0)
 
-	return services, errors.New("--------------> not implemented")
+	// admin, resource, ca and services.
+	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
+	if len(serviceDir) == 0 {
+		serviceDir = "/usr/local/share/globular/services"
+	}
+
+	// I will try to get configuration from services.
+	filepath.Walk(serviceDir, func(path string, info os.FileInfo, err error) error {
+		path = strings.ReplaceAll(path, "\\", "/")
+		if info == nil {
+			return nil
+		}
+
+		if err == nil && info.Name() == "config.json" {
+			// So here I will read the content of the file.
+			s := make(map[string]interface{})
+			config, err := ioutil.ReadFile(path)
+			if err == nil {
+				// Read the config file.
+				err := json.Unmarshal(config, &s)
+				if err == nil {
+					if s["Protocol"] != nil {
+						// If a configuration file exist It will be use to start services,
+						// otherwise the service configuration file will be use.
+						if s["Name"] != nil {
+
+							// if no id was given I will generate a uuid.
+							if s["Id"] == nil {
+								s["Id"] = Utility.RandomUUID()
+							}
+
+							// Here I will set the proto file path.
+							if !Utility.Exists(s["Proto"].(string)){
+								s["Proto"] = serviceDir + "/proto/" + strings.Split( s["Name"].(string), ".")[0] + ".proto"
+							}
+
+							// Now the exec path.
+							if !Utility.Exists(s["Path"].(string)){
+								s["Path"] = path[0:strings.LastIndex(path, "/")] + "/" + s["Path"].(string)[strings.LastIndex(s["Path"].(string), "/"):]
+							}
+
+							services = append(services, s)
+						}
+					}
+				} else {
+					log.Println("fail to unmarshal configuration ", err)
+				}
+			} else {
+				log.Println("Fail to read config file ", path, err)
+			}
+		}
+		return nil
+	})
+
+	// return the services configuration.
+	return services, nil
 }

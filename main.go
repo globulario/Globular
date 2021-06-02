@@ -1222,30 +1222,6 @@ func __dist(g *Globule, path string) {
 		log.Fatal(err)
 	}
 
-	// Now I will copy the prototype files of the internal gRPC service
-	// admin, resource, ca and services.
-	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
-	Utility.CreateDirIfNotExist(path + "/proto")
-	err = Utility.CopyFile(serviceDir+"/proto/admin.proto", path+"/proto/admin.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
-	err = Utility.CopyFile(serviceDir+"/proto/ca.proto", path+"/proto/ca.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
-	err = Utility.CopyFile(serviceDir+"/proto/resource.proto", path+"/proto/resource.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
-	err = Utility.CopyFile(serviceDir+"/proto/packages.proto", path+"/proto/packages.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
-	err = Utility.CopyFile(serviceDir+"/proto/lb.proto", path+"/proto/lb.proto")
-	if err != nil {
-		log.Println("fail to copy with error ", err)
-	}
 
 	for _, f := range files {
 		if !f.IsDir() {
@@ -1261,6 +1237,7 @@ func __dist(g *Globule, path string) {
 	if err != nil {
 		log.Println("fail to retreive services whit error ", err)
 	}
+
 	for i := 0; i < len(services); i++ {
 
 		// set the service configuration...
@@ -1282,13 +1259,13 @@ func __dist(g *Globule, path string) {
 					json.Unmarshal(bytes, &config)
 
 					if err == nil {
-
 						hasProto := s["Proto"] != nil
 
 						// set the name.
 						if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
-
 							protoPath := s["Proto"].(string)
+							
+
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 								var serviceDir = "services/"
 								if len(config["PublisherId"].(string)) == 0 {
