@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -83,13 +84,6 @@ type Globule struct {
 	AdminEmail   string
 	RootPassword string
 
-	// There's are Directory
-	// The user's directory
-	UsersDirectory string
-
-	// The application directory
-	ApplicationDirectory string
-
 	// Service discoveries.
 	Discoveries []string // Contain the list of discovery service use to keep globular up to date.
 
@@ -101,11 +95,12 @@ type Globule struct {
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
 	// Directories.
-	path         string // The path of the exec...
-	webRoot      string // The root of the http file server.
-	data         string // the data directory
-	creds        string // tls certificates
-	config       string // configuration directory
+	path    string // The path of the exec...
+	webRoot string // The root of the http file server.
+	data    string // the data directory
+	creds   string // tls certificates
+	config  string // configuration directory
+
 	users        string // the users files directory
 	applications string // The applications
 
@@ -132,7 +127,7 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = "globular_installer" // I will use the installer as defaut.
+	g.IndexApplication = "" // I will use the installer as defaut.
 
 	g.PortHttp = 80   // The default http port
 	g.PortHttps = 443 // The default https port number
@@ -196,7 +191,29 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	// TODO filter unwanted attributes...
 	config, _ := Utility.ToMap(globule)
 	services, _ := globule.getServices()
-	config["Services"] = services
+
+	// Get the array of service and set it back in the configurations.
+	config["Services"] = make(map[string]interface{})
+	for i := 0; i < len(services); i++ {
+
+		s := make(map[string]interface{});
+		s["AllowAllOrigins"] = services[i]["AllowAllOrigins"]
+		s["AllowedOrigins"]  = services[i]["AllowedOrigins"]
+		s["Description"] = services[i]["Description"]
+		s["Discoveries"]  = services[i]["Discoveries"]
+		s["Domain"]  = services[i]["Domain"]
+		s["Id"] = services[i]["Id"]
+		s["Keywords"] = services[i]["Keywords"]
+		s["Name"]		 = services[i]["Name"]
+		s["Port"] = services[i]["Port"]
+		s["Proxy"]= services[i]["Proxy"]
+		s["PublisherId"]= services[i]["PublisherId"]
+		s["State"]= services[i]["State"]
+		s["TLS"]= services[i]["TLS"]
+
+		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
+	}
+
 	return config
 }
 
@@ -363,7 +380,7 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 /**
  * Initialize the server directories config, data, webroot...
  */
-func (globule *Globule) initDirectories() {
+func (globule *Globule) initDirectories() error{
 
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
@@ -377,24 +394,12 @@ func (globule *Globule) initDirectories() {
 	//////////////////////////////////////////////////////////////////////////////////////
 
 	// Create the directory if is not exist.
-	if globule.path == "/usr/local/share/globular" {
-		// Here we have a linux standard installation.
-		globule.data = "/var/globular/data"
-		globule.webRoot = "/var/globular/webroot"
-		globule.config = "/etc/globular/config"
-	} else {
-
-		globule.data = globule.path + "/data"
-		Utility.CreateDirIfNotExist(globule.data)
-
-		// Configuration directory
-		globule.config = globule.path + "/config"
-		Utility.CreateDirIfNotExist(globule.config)
-
-		globule.webRoot = globule.path + "/webroot" // The default directory to server.
-		// keep the root in global variable for the file handler.
-		Utility.CreateDirIfNotExist(globule.webRoot) // Create the directory if it not exist.
-	}
+	globule.data = "/var/globular/data"
+	Utility.CreateDirIfNotExist(globule.data)
+	globule.webRoot = "/var/globular/webroot"
+	Utility.CreateDirIfNotExist(globule.webRoot)
+	globule.config = "/etc/globular/config"
+	Utility.CreateDirIfNotExist(globule.config)
 
 	// Create the creds directory if it not already exist.
 	globule.creds = globule.config + "/tls"
@@ -415,16 +420,15 @@ func (globule *Globule) initDirectories() {
 	if err == nil {
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
-			log.Println("fail to read init from ", globule.config+"/config.json", err)
+			return err
 		}
 
 	} else {
-		log.Println("fail to read configuration ", globule.config+"/config.json", err)
 		jsonStr, err := Utility.ToJson(&globule)
 		if err == nil {
 			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644)
 			if err != nil {
-				log.Println("fail to write file ", globule.config+"/config.json", err)
+				return err
 			}
 		}
 	}
@@ -452,17 +456,90 @@ func (globule *Globule) initDirectories() {
 	go func() {
 		convertVideo()
 	}()
-	log.Println("Globular is running!")
+
+}
+
+/**
+ * Here I will start the services manager who will start all microservices
+ * installed on that computer.
+ */
+func (globule *Globule) startServicesManager() error {
+
+	// Retreive all configurations
+	services, err := globule.getServices()
+	if err != nil {
+		return err
+	}
+
+	// So here here I will set tls info...
+
+	// I will try to get the services manager configuration from the
+	// services configurations list.
+	var config map[string]interface{}
+
+	for i := 0; i < len(services); i++ {
+		if services[i]["Name"].(string) == "services_manager.ServicesManagerService" {
+			config = services[i]
+		}
+		// Set the
+		if globule.Protocol == "https" {
+			// set tls file...
+			services[i]["TLS"] = true
+			services[i]["KeyFile"] = globule.creds + "/client.pem"
+			services[i]["CertFile"] = globule.creds + "/client.crt"
+			services[i]["CertAuthorityTrust"] = globule.creds + "/ca.crt"
+
+			if services[i]["CertificateAuthorityBundle"] != nil {
+				services[i]["CertificateAuthorityBundle"] = globule.CertificateAuthorityBundle
+			}
+			
+			if services[i]["Certificate"] != nil {
+				services[i]["Certificate"] = globule.Certificate
+			}
+
+		} else {
+			services[i]["TLS"] = false
+		}
+
+		// Save back the values...
+		services[i]["Domain"] = globule.Domain
+		jsonStr, err := Utility.ToJson(services[i])
+		if err == nil {
+			ioutil.WriteFile(services[i]["configPath"].(string), []byte(jsonStr), 0644)
+		}
+	}
+
+	if config == nil {
+		return errors.New("no services manager was found on that computer")
+	}
+
+	// Now I will start a detach process.
+	cmd := exec.Command(config["Path"].(string))
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	// Print the output
+	fmt.Println(string(stdout))
+
+	return nil
 }
 
 /**
  * Start serving the content.
  */
-func (globule *Globule) Serve() {
+func (globule *Globule) Serve() error{
 
+	// Initialyse directories.
 	globule.initDirectories()
 
-	// TODO start admin control plane services...
+	// Start microservice manager.
+	go func() {
+		globule.startServicesManager()
+	}()
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -482,10 +559,11 @@ func (globule *Globule) Serve() {
 		}
 	}
 
-	log.Println("Globular is running at address " + url)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
+
+	return nil
 }
 
 /**
@@ -602,7 +680,7 @@ func (globule *Globule) getBasePath() string {
 		// GLOBULAR_SERVICES_ROOT is the path of the globular service executables.
 		// if not set the services must be in the same folder as Globurar executable.
 		globularServicesRoot := os.Getenv("GLOBULAR_SERVICES_ROOT")
-		log.Println("GLOBULAR_SERVICES_ROOT ", globularServicesRoot)
+
 		if len(globularServicesRoot) > 0 {
 			basePath = globularServicesRoot
 		}
@@ -717,6 +795,28 @@ func getProcessRunningStatus(pid int) (*os.Process, error) {
  */
 func (globule *Globule) Listen() error {
 
+	// if no certificates are specified I will try to get one from let's encrypts.
+	// Start https server.
+	if len(globule.Certificate) == 0 {
+		globule.registerIpToDns()
+
+		// Here is the command to be execute in order to ge the certificates.
+		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
+		// I need to remove the gRPC certificate and recreate it.
+		Utility.RemoveDirContents(globule.creds)
+
+		// recreate the certificates.
+		err := security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+		if err != nil {
+			return err
+		}
+
+		err = globule.obtainCertificateForCsr()
+		if err != nil {
+			return err
+		}
+	}
+
 	var err error
 	// Must be started before other services.
 	go func() {
@@ -729,31 +829,6 @@ func (globule *Globule) Listen() error {
 
 	// Start the http server.
 	if globule.Protocol == "https" {
-
-		// if no certificates are specified I will try to get one from let's encrypts.
-		// Start https server.
-		if len(globule.Certificate) == 0 {
-			globule.registerIpToDns()
-			log.Println(" Now let's encrypts!")
-
-			// Here is the command to be execute in order to ge the certificates.
-			// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
-			// I need to remove the gRPC certificate and recreate it.
-			Utility.RemoveDirContents(globule.creds)
-
-			// recreate the certificates.
-			err := security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-
-			err = globule.obtainCertificateForCsr()
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-		}
 
 		globule.https_server = &http.Server{
 			Addr: ":" + strconv.Itoa(globule.PortHttps),
@@ -890,14 +965,17 @@ func (globular *Globule) getServices() ([]map[string]interface{}, error) {
 							}
 
 							// Here I will set the proto file path.
-							if !Utility.Exists(s["Proto"].(string)){
-								s["Proto"] = serviceDir + "/proto/" + strings.Split( s["Name"].(string), ".")[0] + ".proto"
+							if !Utility.Exists(s["Proto"].(string)) {
+								s["Proto"] = serviceDir + "/proto/" + strings.Split(s["Name"].(string), ".")[0] + ".proto"
 							}
 
 							// Now the exec path.
-							if !Utility.Exists(s["Path"].(string)){
+							if !Utility.Exists(s["Path"].(string)) {
 								s["Path"] = path[0:strings.LastIndex(path, "/")] + "/" + s["Path"].(string)[strings.LastIndex(s["Path"].(string), "/"):]
 							}
+
+							// Keep the configuration path in the object...
+							s["configPath"] = path
 
 							services = append(services, s)
 						}

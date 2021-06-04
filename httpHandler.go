@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -102,18 +101,17 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
  * Sign ca certificate request and return a certificate.
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
+
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	log.Println("sign Ca Certificate Handler was call")
 	// sign the certificate.
 	csr_str := r.URL.Query().Get("csr") // the csr in base64
 	csr, err := base64.StdEncoding.DecodeString(csr_str)
 
 	if err != nil {
-		log.Println(err)
 		http.Error(w, "Fail to decode csr base64 string", http.StatusBadRequest)
 		return
 	}
@@ -121,7 +119,6 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	// Now I will sign the certificate.
 	crt, err := globule.signCertificate(string(csr))
 	if err != nil {
-		log.Println(err)
 		http.Error(w, "fail to sign certificate!", http.StatusBadRequest)
 		return
 	}
@@ -136,14 +133,11 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Println("upload file request was called!")
 	setupResponse(&w, r)
 
-	log.Println("upload was called... ")
 	// I will
 	err := r.ParseMultipartForm(200000) // grab the multipart form
 	if err != nil {
-		log.Println(w, err)
 		return
 	}
 
@@ -170,17 +164,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
 
-			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
-			log.Println(err)
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			return
 		}
 
 		// validate ressource access...
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
 		if !hasAccess || hasAccessDenied || err != nil {
-			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
-			log.Println(err)
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		}
 	}
 
@@ -189,21 +180,16 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		id, username, _, expiresAt, err := interceptors.ValidateToken(token)
 		user = username
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
-			// http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
-				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				//return
-				log.Println(err)
+				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			}
-
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if !hasAccess || hasAccessDenied || err != nil {
-				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				//return
-				log.Println(err)
+				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+				return
 			}
 		}
 	}
@@ -217,7 +203,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
-			log.Println(w, err)
 			return
 		}
 
@@ -251,7 +236,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
-			log.Println(w, err)
 			file.Close()
 			return
 		}
@@ -266,11 +250,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
 				if strings.HasSuffix(path_, ".mp4") {
-					err := createVideoPreview(path_, 20, 128)
-					if err != nil {
-						log.Println(err)
-					}
-
+					createVideoPreview(path_, 20, 128)
 				} else {
 					// Here I will call convert video...
 					go func() {
@@ -288,12 +268,10 @@ func visit(files *[]string) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		path = strings.ReplaceAll(path, "\\", "/")
 		if err != nil {
-			log.Println(err)
 			return nil
 		}
 
 		if err != nil {
-			log.Println(err)
 			return nil
 		}
 		mimeType := ""
@@ -332,7 +310,6 @@ func convertVideo() {
 
 	err = filepath.Walk(globule.data+"/files", visit(&files))
 	if err != nil {
-		log.Println(err)
 		return
 	}
 	for _, file := range files {
@@ -372,13 +349,7 @@ func createVideoStream(path string) error {
 	}
 
 	// Create a video preview
-	log.Println("create preview ", path)
-	err = createVideoPreview(output, 20, 128)
-	if err != nil {
-		log.Println(err)
-	}
-
-	return nil
+	return createVideoPreview(output, 20, 128)
 }
 
 // Here I will create video
@@ -397,7 +368,6 @@ func createVideoPreview(path string, nb int, height int) error {
 	}
 
 	Utility.CreateDirIfNotExist(output)
-	log.Println("Create preview in ", output)
 
 	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
 	start := .1 * duration
@@ -553,7 +523,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//path to file
 	name := path.Join(dir, rqst_path)
-	log.Println(r.RemoteAddr, " try to access file...", name)
 
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {
@@ -574,17 +543,15 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		// I will be threaded like a file service methode.
 		hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
-			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
-			log.Println("-----------> ", err)
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			return
 		}
 
 		// validate ressource access...
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
 		if !hasAccess || hasAccessDenied || err != nil {
-			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
-			log.Println("-----------> ", err)
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			return
 		}
 	}
 
@@ -592,22 +559,18 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) != 0 && !hasAccess {
 		id /*username*/, _, _, expiresAt, err := interceptors.ValidateToken(token)
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
-			//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			//return
-			log.Println("-----------> ", err)
+			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			return
 		} else {
 			hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
-				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				//return
-				log.Println("-----------> ", err)
+				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			}
 
 			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 			if !hasAccess || hasAccessDenied || err != nil {
-				//http.Error(w, "Unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				//return
-				log.Println("-----------> ", err)
+				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+				return
 			}
 		}
 	}
@@ -621,10 +584,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-
 			http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
 			return
-
 		}
 	}
 

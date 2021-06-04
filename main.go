@@ -46,8 +46,6 @@ func (g *Globule) run() error {
 	// start globular and wait on exit chan...
 	go func() {
 		g.Serve()
-
-		log.Println("globular serve at domain ", g.Domain)
 	}()
 
 	// wait for exit.
@@ -657,6 +655,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	// The certificates will be taken from the address
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
+		log.Println("fail to connect to application manager service ", address)
 		return err
 	}
 
