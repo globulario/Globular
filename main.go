@@ -20,6 +20,7 @@ import (
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/repository/repository_client"
 	"github.com/globulario/services/golang/discovery/discovery_client"
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/kardianos/service"
@@ -57,6 +58,8 @@ func (g *Globule) run() error {
 func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	logger.Info("Globular is stopping!")
+	g.exit_ = true
+	g.stopServices();
 
 	close(g.exit)
 	return nil
@@ -65,7 +68,6 @@ func (g *Globule) Stop(s service.Service) error {
 func main() {
 
 	g := NewGlobule()
-	g.exit = make(chan struct{})
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()
 
@@ -1232,7 +1234,7 @@ func __dist(g *Globule, path string) {
 	}
 
 	// install services...
-	services, err := g.getServices()
+	services, err := config.GetServicesConfigurations()
 	if err != nil {
 		log.Println("fail to retreive services whit error ", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,11 +17,13 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
+	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
@@ -108,7 +109,7 @@ type Globule struct {
 	registration *registration.Resource
 
 	// exit channel.
-	exit  chan struct{}
+	exit  chan bool
 	exit_ bool
 
 	// The http server
@@ -123,6 +124,8 @@ func NewGlobule() *Globule {
 
 	// Here I will initialyse configuration.
 	g := new(Globule)
+	g.exit_ = false;
+	g.exit = make(chan bool)
 
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
@@ -189,32 +192,33 @@ func NewGlobule() *Globule {
  */
 func (globule *Globule) getConfig() map[string]interface{} {
 	// TODO filter unwanted attributes...
-	config, _ := Utility.ToMap(globule)
-	services, _ := globule.getServices()
+	config_, _ := Utility.ToMap(globule)
+	services, _ := config.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
-	config["Services"] = make(map[string]interface{})
-	for i := 0; i < len(services); i++ {
+	config_["Services"] = make(map[string]interface{})
 
-		s := make(map[string]interface{});
+	// Here I will set in a map and put in the Services key
+	for i := 0; i < len(services); i++ {
+		s := make(map[string]interface{})
 		s["AllowAllOrigins"] = services[i]["AllowAllOrigins"]
-		s["AllowedOrigins"]  = services[i]["AllowedOrigins"]
+		s["AllowedOrigins"] = services[i]["AllowedOrigins"]
 		s["Description"] = services[i]["Description"]
-		s["Discoveries"]  = services[i]["Discoveries"]
-		s["Domain"]  = services[i]["Domain"]
+		s["Discoveries"] = services[i]["Discoveries"]
+		s["Domain"] = services[i]["Domain"]
 		s["Id"] = services[i]["Id"]
 		s["Keywords"] = services[i]["Keywords"]
-		s["Name"]		 = services[i]["Name"]
+		s["Name"] = services[i]["Name"]
 		s["Port"] = services[i]["Port"]
-		s["Proxy"]= services[i]["Proxy"]
-		s["PublisherId"]= services[i]["PublisherId"]
-		s["State"]= services[i]["State"]
-		s["TLS"]= services[i]["TLS"]
-
-		config["Services"].(map[string]interface{})[s["Id"].(string)] = s
+		s["Proxy"] = services[i]["Proxy"]
+		s["PublisherId"] = services[i]["PublisherId"]
+		s["State"] = services[i]["State"]
+		s["TLS"] = services[i]["TLS"]
+		s["Dependencies"] = services[i]["Dependencies"]
+		config_["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
 
-	return config
+	return config_
 }
 
 /**
@@ -380,7 +384,7 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 /**
  * Initialize the server directories config, data, webroot...
  */
-func (globule *Globule) initDirectories() error{
+func (globule *Globule) initDirectories() error {
 
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
@@ -457,16 +461,17 @@ func (globule *Globule) initDirectories() error{
 		convertVideo()
 	}()
 
+	return nil
 }
 
 /**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
  */
-func (globule *Globule) startServicesManager() error {
+func (globule *Globule) startServices() error {
 
 	// Retreive all configurations
-	services, err := globule.getServices()
+	services, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -475,14 +480,10 @@ func (globule *Globule) startServicesManager() error {
 
 	// I will try to get the services manager configuration from the
 	// services configurations list.
-	var config map[string]interface{}
-
 	for i := 0; i < len(services); i++ {
-		if services[i]["Name"].(string) == "services_manager.ServicesManagerService" {
-			config = services[i]
-		}
 		// Set the
 		if globule.Protocol == "https" {
+			log.Println("start service ", services[i]["Name"], ":", services[i]["Id"])
 			// set tls file...
 			services[i]["TLS"] = true
 			services[i]["KeyFile"] = globule.creds + "/client.pem"
@@ -492,7 +493,7 @@ func (globule *Globule) startServicesManager() error {
 			if services[i]["CertificateAuthorityBundle"] != nil {
 				services[i]["CertificateAuthorityBundle"] = globule.CertificateAuthorityBundle
 			}
-			
+
 			if services[i]["Certificate"] != nil {
 				services[i]["Certificate"] = globule.Certificate
 			}
@@ -503,49 +504,76 @@ func (globule *Globule) startServicesManager() error {
 
 		// Save back the values...
 		services[i]["Domain"] = globule.Domain
-		jsonStr, err := Utility.ToJson(services[i])
+		config.SaveServiceConfiguration(services[i]) // save service values.
+		// process.StartServiceProcess()
+		portRange := "10000-10100"
+		err = process.StartServiceProcess(services[i], portRange)
 		if err == nil {
-			ioutil.WriteFile(services[i]["configPath"].(string), []byte(jsonStr), 0644)
+			err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate,  portRange)
+			if err != nil {
+				log.Println("fail to start proxy for service ", services[i]["Name"])
+			}
+		}else {
+			log.Println("fail to start service ", services[i]["Name"])
 		}
+
+		log.Println("-- service ", services[i]["Name"], ":", services[i]["Id"], "is running and listen at port ", services[i]["Port"],"and proxy", services[i]["Proxy"])
+
 	}
 
-	if config == nil {
-		return errors.New("no services manager was found on that computer")
-	}
+	// Start managing process.
+	process.ManageServicesProcess(globule.exit)
 
-	// Now I will start a detach process.
-	cmd := exec.Command(config["Path"].(string))
-	stdout, err := cmd.Output()
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-
-	// Print the output
-	fmt.Println(string(stdout))
-
+	log.Println("services are started")
+	
 	return nil
 }
 
 /**
+ * Stop all services.
+ */
+ func (globule *Globule) stopServices()error {
+	services, err := config.GetServicesConfigurations()
+	if err != nil {
+		return err
+	}
+
+	// exit channel.
+	globule.exit <- true
+
+	for i := 0; i < len(services); i++ {
+		process.KillServiceProcess(services[i])
+	}
+
+	return nil
+}
+/**
  * Start serving the content.
  */
-func (globule *Globule) Serve() error{
+func (globule *Globule) Serve() error {
 
 	// Initialyse directories.
 	globule.initDirectories()
 
 	// Start microservice manager.
-	go func() {
-		globule.startServicesManager()
-	}()
+	globule.startServices()
+
+	// Here I will listen for logger event...
+	/*
+	err := globule.subscribe("new_log_evt", logListener)
+	if err != nil {
+		return err
+	}
+	*/
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// lisen
 	err := globule.Listen()
+	if err != nil {
+		return err
+	}
 
 	url := globule.Protocol + "://" + globule.Domain
 
@@ -562,6 +590,7 @@ func (globule *Globule) Serve() error{
 	if err != nil {
 		return err
 	}
+
 
 	return nil
 }
@@ -719,15 +748,14 @@ func getChecksum(address string, port int) (string, error) {
 	return "", errors.New("fail to retreive checksum with error " + Utility.ToString(resp.StatusCode))
 }
 
+/**
+ *  Watch if globular need to be update.
+ */
 func (globule *Globule) watchForUpdate() {
 	go func() {
-		for {
+		for  !globule.exit_  {
 
 			// stop watching if exit was call...
-			if globule.exit_ {
-				return
-			}
-
 			if len(globule.Discoveries) > 0 {
 				// Here I will retreive the checksum information from it parent.
 				discovery := globule.Discoveries[0]
@@ -763,31 +791,10 @@ func (globule *Globule) watchForUpdate() {
 	}()
 }
 
-// check if the process is actually running
-// However, on Unix systems, os.FindProcess always succeeds and returns
-// a Process for the given pid...regardless of whether the process exists
-// or not.
-func getProcessRunningStatus(pid int) (*os.Process, error) {
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return nil, err
-	}
 
-	//double check if process is running and alive
-	//by sending a signal 0
-	//NOTE : syscall.Signal is not available in Windows
-
-	err = proc.Signal(syscall.Signal(0))
-	if err == nil {
-		return proc, nil
-	}
-
-	if err == syscall.ESRCH {
-		return nil, errors.New("process not running")
-	}
-
-	// default
-	return nil, errors.New("process running but query operation not permitted")
+// Simply print the values in the console...
+func logListener(evt *eventpb.Event) {
+	log.Println("---------------------> event received!")
 }
 
 /**
@@ -818,6 +825,7 @@ func (globule *Globule) Listen() error {
 	}
 
 	var err error
+
 	// Must be started before other services.
 	go func() {
 		// local - non secure connection.
@@ -925,71 +933,13 @@ func (globule *Globule) publish(event string, data []byte) error {
 	return eventClient.Publish(event, data)
 }
 
-/////////////////////// services manager functions ///////////////////////////////
-/**
- * Return an array of all services available on the globule
- */
-func (globular *Globule) getServices() ([]map[string]interface{}, error) {
-
-	services := make([]map[string]interface{}, 0)
-
-	// admin, resource, ca and services.
-	serviceDir := os.Getenv("GLOBULAR_SERVICES_ROOT")
-	if len(serviceDir) == 0 {
-		serviceDir = "/usr/local/share/globular/services"
+func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
+	eventClient, err := globule.getEventClient()
+	if err != nil {
+		return err
 	}
 
-	// I will try to get configuration from services.
-	filepath.Walk(serviceDir, func(path string, info os.FileInfo, err error) error {
-		path = strings.ReplaceAll(path, "\\", "/")
-		if info == nil {
-			return nil
-		}
-
-		if err == nil && info.Name() == "config.json" {
-			// So here I will read the content of the file.
-			s := make(map[string]interface{})
-			config, err := ioutil.ReadFile(path)
-			if err == nil {
-				// Read the config file.
-				err := json.Unmarshal(config, &s)
-				if err == nil {
-					if s["Protocol"] != nil {
-						// If a configuration file exist It will be use to start services,
-						// otherwise the service configuration file will be use.
-						if s["Name"] != nil {
-
-							// if no id was given I will generate a uuid.
-							if s["Id"] == nil {
-								s["Id"] = Utility.RandomUUID()
-							}
-
-							// Here I will set the proto file path.
-							if !Utility.Exists(s["Proto"].(string)) {
-								s["Proto"] = serviceDir + "/proto/" + strings.Split(s["Name"].(string), ".")[0] + ".proto"
-							}
-
-							// Now the exec path.
-							if !Utility.Exists(s["Path"].(string)) {
-								s["Path"] = path[0:strings.LastIndex(path, "/")] + "/" + s["Path"].(string)[strings.LastIndex(s["Path"].(string), "/"):]
-							}
-
-							// Keep the configuration path in the object...
-							s["configPath"] = path
-
-							services = append(services, s)
-						}
-					}
-				} else {
-					log.Println("fail to unmarshal configuration ", err)
-				}
-			} else {
-				log.Println("Fail to read config file ", path, err)
-			}
-		}
-		return nil
-	})
-
-	// return the services configuration.
-	return services, nil
+	// register a listener...
+	return eventClient.Subscribe(evt, globule.Name, listener)
 }
+
