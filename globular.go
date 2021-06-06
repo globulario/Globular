@@ -483,7 +483,7 @@ func (globule *Globule) startServices() error {
 	for i := 0; i < len(services); i++ {
 		// Set the
 		if globule.Protocol == "https" {
-			log.Println("start service ", services[i]["Name"], ":", services[i]["Id"])
+		
 			// set tls file...
 			services[i]["TLS"] = true
 			services[i]["KeyFile"] = globule.creds + "/client.pem"
@@ -517,7 +517,7 @@ func (globule *Globule) startServices() error {
 			log.Println("fail to start service ", services[i]["Name"])
 		}
 
-		log.Println("-- service ", services[i]["Name"], ":", services[i]["Id"], "is running and listen at port ", services[i]["Port"],"and proxy", services[i]["Proxy"])
+		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"],"and proxy", services[i]["Proxy"])
 
 	}
 
@@ -525,7 +525,7 @@ func (globule *Globule) startServices() error {
 	process.ManageServicesProcess(globule.exit)
 
 	log.Println("services are started")
-	
+
 	return nil
 }
 
@@ -559,18 +559,17 @@ func (globule *Globule) Serve() error {
 	globule.startServices()
 
 	// Here I will listen for logger event...
-	/*
 	err := globule.subscribe("new_log_evt", logListener)
 	if err != nil {
 		return err
 	}
-	*/
+	
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// lisen
-	err := globule.Listen()
+	err = globule.Listen()
 	if err != nil {
 		return err
 	}
