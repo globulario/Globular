@@ -793,7 +793,11 @@ func (globule *Globule) watchForUpdate() {
 
 // Simply print the values in the console...
 func logListener(evt *eventpb.Event) {
-	log.Println("---------------------> event received!")
+	info := make(map[string]interface{})
+	err := json.Unmarshal(evt.Data, &info)
+	if err == nil {
+		log.Println(info)
+	}
 }
 
 /**
