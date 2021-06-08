@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -23,10 +24,12 @@ import (
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
+	"github.com/gookit/color"
 
 	// Interceptor for authentication, event, log...
 
@@ -42,6 +45,8 @@ import (
 var (
 	globule    *Globule
 	configPath = "/etc/globular/config/config.json"
+	tokensPath = "/etc/globular/config/tokens"
+	keyPath    = "/etc/globular/config/keys"
 )
 
 /**
@@ -54,9 +59,10 @@ type Globule struct {
 	// Globualr specifics ports.
 
 	// can be https or http.
-	Protocol  string
-	PortHttp  int // The port of the http file server.
-	PortHttps int // The secure port
+	Protocol   string
+	PortHttp   int    // The port of the http file server.
+	PortHttps  int    // The secure port
+	PortsRange string // The range of grpc ports.
 
 	Domain           string        // The principale domain
 	AlternateDomains []interface{} // Alternate domain for multiple domains
@@ -124,7 +130,7 @@ func NewGlobule() *Globule {
 
 	// Here I will initialyse configuration.
 	g := new(Globule)
-	g.exit_ = false;
+	g.exit_ = false
 	g.exit = make(chan bool)
 
 	g.Version = "1.0.0" // Automate version...
@@ -132,8 +138,10 @@ func NewGlobule() *Globule {
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.IndexApplication = "" // I will use the installer as defaut.
 
-	g.PortHttp = 80   // The default http port
-	g.PortHttps = 443 // The default https port number
+	g.PortHttp = 80              // The default http port
+	g.PortHttps = 443            // The default https port number
+	g.PortsRange = "10000-10100" // The default port range.
+
 	execPath := Utility.GetExecName(os.Args[0])
 	g.Name = strings.Replace(execPath, ".exe", "", -1)
 
@@ -483,7 +491,7 @@ func (globule *Globule) startServices() error {
 	for i := 0; i < len(services); i++ {
 		// Set the
 		if globule.Protocol == "https" {
-		
+
 			// set tls file...
 			services[i]["TLS"] = true
 			services[i]["KeyFile"] = globule.creds + "/client.pem"
@@ -505,34 +513,76 @@ func (globule *Globule) startServices() error {
 		// Save back the values...
 		services[i]["Domain"] = globule.Domain
 		config.SaveServiceConfiguration(services[i]) // save service values.
-		// process.StartServiceProcess()
-		portRange := "10000-10100"
-		err = process.StartServiceProcess(services[i], portRange)
+
+		// Create the service process.
+		err = process.StartServiceProcess(services[i], globule.PortsRange)
 		if err == nil {
-			err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate,  portRange)
+			err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
 			if err != nil {
 				log.Println("fail to start proxy for service ", services[i]["Name"])
 			}
-		}else {
+		} else {
 			log.Println("fail to start service ", services[i]["Name"])
 		}
 
-		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"],"and proxy", services[i]["Proxy"])
-
+		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"], "and proxy", services[i]["Proxy"])
 	}
 
 	// Start managing process.
 	process.ManageServicesProcess(globule.exit)
 
+	// recreate a new local token.
 	log.Println("services are started")
 
 	return nil
 }
 
 /**
+ * Start refresh local token...
+ */
+func (globule *Globule) startRefreshLocalToken() {
+	globule.refreshLocalToken()
+	ticker := time.NewTicker(time.Duration(15*60*1000) * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// Connect to service update events...
+				// I will iterate over the list token and close expired session...
+				globule.refreshLocalToken()
+			case <-globule.exit:
+				return // exit from the loop when the service exit.
+			}
+		}
+	}()
+}
+
+/**
+ * Generate local token key, that key is use by internal service.
+ */
+func (globule *Globule) refreshLocalToken() error {
+	path := tokensPath + "/" + globule.Domain + "_token"
+
+	// remove the existing token if it already exist.
+	os.Remove(path)
+
+	key, err := ioutil.ReadFile(keyPath + "/globular_key")
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := interceptors.GenerateToken([]byte(key), time.Duration(15*60*1000), "sa", "", globule.AdminEmail)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, []byte(tokenString), 0644)
+}
+
+/**
  * Stop all services.
  */
- func (globule *Globule) stopServices()error {
+func (globule *Globule) stopServices() error {
 	services, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
@@ -547,6 +597,7 @@ func (globule *Globule) startServices() error {
 
 	return nil
 }
+
 /**
  * Start serving the content.
  */
@@ -558,12 +609,14 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	globule.startServices()
 
+	// Here I will remove the local token and recreate it...
+	globule.startRefreshLocalToken()
+
 	// Here I will listen for logger event...
 	err := globule.subscribe("new_log_evt", logListener)
 	if err != nil {
 		return err
 	}
-	
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -589,7 +642,6 @@ func (globule *Globule) Serve() error {
 	if err != nil {
 		return err
 	}
-
 
 	return nil
 }
@@ -752,7 +804,7 @@ func getChecksum(address string, port int) (string, error) {
  */
 func (globule *Globule) watchForUpdate() {
 	go func() {
-		for  !globule.exit_  {
+		for !globule.exit_ {
 
 			// stop watching if exit was call...
 			if len(globule.Discoveries) > 0 {
@@ -790,13 +842,61 @@ func (globule *Globule) watchForUpdate() {
 	}()
 }
 
-
-// Simply print the values in the console...
+// Try to display application message in a nice way
 func logListener(evt *eventpb.Event) {
 	info := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &info)
 	if err == nil {
-		log.Println(info)
+		// So here Will display message
+		var header string
+		if info["application"] != nil {
+			header = info["application"].(string)
+		}
+		messageTime := time.Unix(int64(Utility.ToInt(info["date"])), 0)
+		method := "NA"
+		if info["method"] != nil {
+			method = info["method"].(string)
+		}
+
+		if info["functionName"] != nil {
+			method += ":" + info["functionName"].(string)
+		}
+
+		header += " " + messageTime.Format("2006-01-02 15:04:05") + " " + method
+
+		if info["level"].(string) == "ERROR_MESSAGE" {
+			color.Error.Println(header)
+		} else if info["level"].(string) == "DEBUG_MESSAGE" || info["level"].(string) == "INFO_MESSAGE" {
+			color.Info.Println(header)
+		} else {
+			color.Warn.Println(header)
+		}
+
+		if info["message"] != nil {
+			// Now I will process the message itself...
+			msg := info["message"].(string)
+			// if the message is grpc error I will parse it content and display it content...
+			if strings.HasPrefix(msg, "rpc") {
+				errorDescription := make(map[string]interface{})
+				jsonStr := msg[strings.Index(msg, "{") : strings.LastIndex(msg, "}")+1]
+				err := json.Unmarshal([]byte(jsonStr), &errorDescription)
+				if err == nil {
+					if errorDescription["FileLine"] != nil {
+						fmt.Println(errorDescription["FileLine"])
+					}
+					if errorDescription["ErrorMsg"] != nil {
+						color.Comment.Println(errorDescription["ErrorMsg"])
+					}
+				}
+			} else {
+				if info["line"] != nil {
+					fmt.Println(info["line"])
+				}
+
+				color.Comment.Println(msg)
+			}
+		}
+		fmt.Println()
 	}
 }
 
@@ -945,4 +1045,3 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 	// register a listener...
 	return eventClient.Subscribe(evt, globule.Name, listener)
 }
-
