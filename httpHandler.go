@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	//"log"
+	"github.com/davecourtois/Utility"
+	"github.com/globulario/services/golang/interceptors"
+	"github.com/globulario/services/golang/rbac/rbacpb"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -18,10 +22,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/interceptors"
-	"github.com/globulario/services/golang/rbac/rbacpb"
 )
 
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
@@ -249,15 +249,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(fileType, "text/") {
 				indexFile(path_, fileType)
 			} else if strings.HasPrefix(fileType, "video/") {
-				if strings.HasSuffix(path_, ".mp4") {
-					createVideoPreview(path_, 20, 128)
-				} else {
-					// Here I will call convert video...
-					go func() {
-						convertVideo()
-					}()
-				}
-
+				// Here I will call convert video...
+				go func() {
+					convertVideo()
+				}()
 			}
 		}
 	}
@@ -291,6 +286,7 @@ func visit(files *[]string) filepath.WalkFunc {
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
 			*files = append(*files, path)
 		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
+			//log.Println("create video preview " + info.Name())
 			createVideoPreview(path, 20, 128)
 		}
 		return nil
@@ -316,6 +312,10 @@ func convertVideo() {
 		file = strings.ReplaceAll(file, "\\", "/")
 		createVideoStream(file)
 	}
+
+	// sleep a minute...
+	time.Sleep(1 * time.Minute)
+	convertVideo()
 }
 
 // Set file indexation to be able to search text file on the server.
@@ -363,6 +363,7 @@ func createVideoPreview(path string, nb int, height int) error {
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/")+1 : strings.LastIndex(path, ".")]
 	output := path_ + "/.hidden/" + name_ + "/__preview__"
+
 	if Utility.Exists(output) {
 		return nil
 	}
@@ -491,6 +492,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	rqst_path := path.Clean(r.URL.Path)
 
 	if rqst_path == "/null" {
+
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
 	}
 
@@ -517,7 +519,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") {
+	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
 	}
 
@@ -580,6 +582,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
 	}
 
+	var code string
+	// If the file is a javascript file...
+	hasChange := false
+
 	//check if file exists
 	f, err := os.Open(name)
 	if err != nil {
@@ -591,9 +597,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer f.Close()
 
-	// If the file is a javascript file...
-	var code string
-	hasChange := false
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 		if err == nil {
@@ -616,6 +619,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else if strings.HasSuffix(name, ".css") {
 		w.Header().Add("Content-Type", "text/css")
+
 	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
 		w.Header().Add("Content-Type", "text/html")
 	}

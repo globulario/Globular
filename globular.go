@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
@@ -91,6 +91,8 @@ type Globule struct {
 	AdminEmail   string
 	RootPassword string
 
+	SessionTimeout int // The time before session expire.
+
 	// Service discoveries.
 	Discoveries []string // Contain the list of discovery service use to keep globular up to date.
 
@@ -110,6 +112,8 @@ type Globule struct {
 
 	users        string // the users files directory
 	applications string // The applications
+	templates    string // the html/css templates
+	projects     string // the web projects
 
 	// ACME protocol registration
 	registration *registration.Resource
@@ -157,7 +161,8 @@ func NewGlobule() *Globule {
 	g.RootPassword = "adminadmin"
 
 	// keep up to date by default.
-	g.WatchUpdateDelay = 30 // seconds...
+	g.WatchUpdateDelay = 30      // seconds...
+	g.SessionTimeout = 60 * 1000 /*15*60*1000*/
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -386,7 +391,6 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 	}
 
 	return string(client_crt), nil
-
 }
 
 /**
@@ -409,6 +413,8 @@ func (globule *Globule) initDirectories() error {
 	globule.data = "/var/globular/data"
 	Utility.CreateDirIfNotExist(globule.data)
 	globule.webRoot = "/var/globular/webroot"
+	globule.templates = globule.data + "/files/templates"
+	globule.projects = globule.data + "/files/projects"
 	Utility.CreateDirIfNotExist(globule.webRoot)
 	globule.config = "/etc/globular/config"
 	Utility.CreateDirIfNotExist(globule.config)
@@ -466,8 +472,11 @@ func (globule *Globule) initDirectories() error {
 
 	// Convert video file if there some to be convert.
 	go func() {
-		convertVideo()
+		convertVideo() // call once and at each minutes....
 	}()
+
+	// Process templates..
+	//initHtmlFiles(globule.templates)
 
 	return nil
 }
@@ -542,7 +551,7 @@ func (globule *Globule) startServices() error {
  */
 func (globule *Globule) startRefreshLocalToken() {
 	globule.refreshLocalToken()
-	ticker := time.NewTicker(time.Duration(15*60*1000) * time.Second)
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout) * time.Millisecond)
 	go func() {
 		for {
 			select {
@@ -555,28 +564,6 @@ func (globule *Globule) startRefreshLocalToken() {
 			}
 		}
 	}()
-}
-
-/**
- * Generate local token key, that key is use by internal service.
- */
-func (globule *Globule) refreshLocalToken() error {
-	path := tokensPath + "/" + globule.Domain + "_token"
-
-	// remove the existing token if it already exist.
-	os.Remove(path)
-
-	key, err := ioutil.ReadFile(keyPath + "/globular_key")
-	if err != nil {
-		return err
-	}
-
-	tokenString, err := interceptors.GenerateToken([]byte(key), time.Duration(15*60*1000), "sa", "", globule.AdminEmail)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(path, []byte(tokenString), 0644)
 }
 
 /**
@@ -878,14 +865,18 @@ func logListener(evt *eventpb.Event) {
 			// if the message is grpc error I will parse it content and display it content...
 			if strings.HasPrefix(msg, "rpc") {
 				errorDescription := make(map[string]interface{})
-				jsonStr := msg[strings.Index(msg, "{") : strings.LastIndex(msg, "}")+1]
-				err := json.Unmarshal([]byte(jsonStr), &errorDescription)
-				if err == nil {
-					if errorDescription["FileLine"] != nil {
-						fmt.Println(errorDescription["FileLine"])
-					}
-					if errorDescription["ErrorMsg"] != nil {
-						color.Comment.Println(errorDescription["ErrorMsg"])
+				startIndex := strings.Index(msg, "{")
+				endIndex := strings.Index(msg, "}")
+				if startIndex >= 0 && endIndex > startIndex {
+					jsonStr := msg[startIndex : endIndex+1]
+					err := json.Unmarshal([]byte(jsonStr), &errorDescription)
+					if err == nil {
+						if errorDescription["FileLine"] != nil {
+							fmt.Println(errorDescription["FileLine"])
+						}
+						if errorDescription["ErrorMsg"] != nil {
+							color.Comment.Println(errorDescription["ErrorMsg"])
+						}
 					}
 				}
 			} else {
@@ -907,7 +898,7 @@ func (globule *Globule) Listen() error {
 
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
-	if len(globule.Certificate) == 0 {
+	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
 		globule.registerIpToDns()
 
 		// Here is the command to be execute in order to ge the certificates.
@@ -967,8 +958,9 @@ func (globule *Globule) Listen() error {
 
 //////////////////////// RBAC function //////////////////////////////////////////////
 var (
-	rbac_client_  *rbac_client.Rbac_Client
-	event_client_ *event_client.Event_Client
+	rbac_client_           *rbac_client.Rbac_Client
+	event_client_          *event_client.Event_Client
+	authentication_client_ *authentication_client.Authentication_Client
 )
 
 /**
@@ -1044,4 +1036,52 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 
 	// register a listener...
 	return eventClient.Subscribe(evt, globule.Name, listener)
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Authenticaiton client.
+//////////////////////////////////////////////////////////////////////////////////////////
+func (globule *Globule) getAuthenticationClient() (*authentication_client.Authentication_Client, error) {
+	var err error
+	if authentication_client_ != nil {
+		return authentication_client_, nil
+	}
+	authentication_client_, err = authentication_client.NewAuthenticationService_Client(globule.Domain, "authentication.AuthenticationService")
+	if err != nil {
+		return nil, err
+	}
+
+	return authentication_client_, nil
+}
+
+/**
+ * Generate local token key, that key is use by internal service.
+ */
+func (globule *Globule) refreshLocalToken() error {
+
+	// Try to refresh the token...
+	path := tokensPath + "/" + globule.Domain + "_token"
+	authentication_client_, err := globule.getAuthenticationClient()
+	if err == nil {
+		data, err := ioutil.ReadFile(path)
+		if err == nil {
+			tokenString, err := authentication_client_.RefreshToken(string(data))
+			if err == nil {
+				return ioutil.WriteFile(path, []byte(tokenString), 0644)
+			}
+		}
+	}
+
+	// If the token can't be refresh by the authentication service I will create a new one here...
+	key, err := ioutil.ReadFile(keyPath + "/globular_key")
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := interceptors.GenerateToken([]byte(key), time.Duration(globule.SessionTimeout), "sa", "", globule.AdminEmail)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(path, []byte(tokenString), 0644)
+
 }
