@@ -19,12 +19,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
 	"github.com/globulario/services/golang/interceptors"
+	"github.com/globulario/services/golang/log/log_client"
+	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
@@ -413,9 +416,11 @@ func (globule *Globule) initDirectories() error {
 	globule.data = "/var/globular/data"
 	Utility.CreateDirIfNotExist(globule.data)
 	globule.webRoot = "/var/globular/webroot"
-	globule.templates = globule.data + "/files/templates"
-	globule.projects = globule.data + "/files/projects"
 	Utility.CreateDirIfNotExist(globule.webRoot)
+	globule.templates = globule.data + "/files/templates"
+	Utility.CreateDirIfNotExist(globule.templates)
+	globule.projects = globule.data + "/files/projects"
+	Utility.CreateDirIfNotExist(globule.projects)
 	globule.config = "/etc/globular/config"
 	Utility.CreateDirIfNotExist(globule.config)
 
@@ -956,13 +961,15 @@ func (globule *Globule) Listen() error {
 	return err
 }
 
-//////////////////////// RBAC function //////////////////////////////////////////////
+
 var (
 	rbac_client_           *rbac_client.Rbac_Client
 	event_client_          *event_client.Event_Client
 	authentication_client_ *authentication_client.Authentication_Client
+	log_client_ *log_client.Log_Client
 )
 
+//////////////////////// RBAC function //////////////////////////////////////////////
 /**
  * Get the rbac client.
  */
@@ -1037,6 +1044,35 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 	// register a listener...
 	return eventClient.Subscribe(evt, globule.Name, listener)
 }
+
+///////////////////// log service functions ////////////////////////////////////
+
+///////////////////////  Log Services functions ////////////////////////////////////////////////
+
+/**
+ * Get the log client.
+ */
+ func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
+	var err error
+	if log_client_ == nil {
+		log_client_, err = log_client.NewLogService_Client(globule.Domain, "log.LogService")
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	return log_client_, nil
+}
+
+
+func (globule *Globule) log(fileLine, functionName,  message string, level logpb.LogLevel) {
+	log_client_, err := globule.GetLogClient()
+	if err != nil {
+		return
+	}
+	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Authenticaiton client.
