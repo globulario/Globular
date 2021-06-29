@@ -58,6 +58,7 @@ var (
 type Globule struct {
 	// The share part of the service.
 	Name string // The service name
+	Mac string // The Mac addresse
 
 	// Globualr specifics ports.
 
@@ -139,7 +140,7 @@ func NewGlobule() *Globule {
 	g := new(Globule)
 	g.exit_ = false
 	g.exit = make(chan bool)
-
+	g.Mac = Utility.MyMacAddr()
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
@@ -149,23 +150,19 @@ func NewGlobule() *Globule {
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
 
-	execPath := Utility.GetExecName(os.Args[0])
-	g.Name = strings.Replace(execPath, ".exe", "", -1)
-
 	// Set the default checksum...
 	g.Protocol = "http"
 	g.Domain = "localhost"
 
 	// set default values.
-	// g.SessionTimeout = 15 * 60 * 1000 // miliseconds.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
 	g.AdminEmail = "root@globular.app"
 	g.RootPassword = "adminadmin"
 
 	// keep up to date by default.
-	g.WatchUpdateDelay = 30      // seconds...
-	g.SessionTimeout = 60 * 1000 /*15*60*1000*/
+	g.WatchUpdateDelay = 30 // seconds...
+	g.SessionTimeout = 15 * 60 * 1000
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -539,6 +536,11 @@ func (globule *Globule) startServices() error {
 			log.Println("fail to start service ", services[i]["Name"])
 		}
 
+		// Here I will listen for logger event...
+		go func() {
+			globule.subscribe("new_log_evt", logListener)
+		}()
+
 		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"], "and proxy", services[i]["Proxy"])
 	}
 
@@ -604,17 +606,11 @@ func (globule *Globule) Serve() error {
 	// Here I will remove the local token and recreate it...
 	globule.startRefreshLocalToken()
 
-	// Here I will listen for logger event...
-	err := globule.subscribe("new_log_evt", logListener)
-	if err != nil {
-		return err
-	}
-
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// lisen
-	err = globule.Listen()
+	err := globule.Listen()
 	if err != nil {
 		return err
 	}
@@ -630,6 +626,8 @@ func (globule *Globule) Serve() error {
 			url += ":" + Utility.ToString(globule.PortHttp)
 		}
 	}
+
+	log.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
 
 	if err != nil {
 		return err
@@ -647,7 +645,7 @@ func (globule *Globule) Serve() error {
 func (globule *Globule) getDomain() string {
 	domain := globule.Domain
 	if len(globule.Name) > 0 && domain != "localhost" {
-		domain = /*globule.Name + "." +*/ domain
+		domain = globule.Name + "." + domain
 	}
 	return domain
 }
@@ -669,8 +667,14 @@ func (globule *Globule) registerIpToDns() error {
 				if err != nil {
 					return err
 				}
+
+				token, err := globule.getLocalToken()
+				if err != nil {
+					return err
+				}
+
 				// The domain is the parent domain and getDomain the sub-domain
-				_, err = dns_client_.SetA(globule.Domain, globule.getDomain(), Utility.MyIP(), 60)
+				_, err = dns_client_.SetA(token, globule.Domain, globule.getDomain(), Utility.MyIP(), 60)
 
 				if err != nil {
 					// return the setA error
@@ -740,24 +744,6 @@ func testDomainIp(domain string, ip string, try int) bool {
 		return testDomainIp(domain, ip, try)
 	}
 
-}
-
-func (globule *Globule) getBasePath() string {
-	// Each service contain a file name config.json that describe service.
-	// I will keep services info in services map and also it running process.
-	basePath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
-	// Start from development environnement.
-	if Utility.Exists("README.md") {
-		// GLOBULAR_SERVICES_ROOT is the path of the globular service executables.
-		// if not set the services must be in the same folder as Globurar executable.
-		globularServicesRoot := os.Getenv("GLOBULAR_SERVICES_ROOT")
-
-		if len(globularServicesRoot) > 0 {
-			basePath = globularServicesRoot
-		}
-	}
-	return basePath
 }
 
 /**
@@ -961,12 +947,11 @@ func (globule *Globule) Listen() error {
 	return err
 }
 
-
 var (
 	rbac_client_           *rbac_client.Rbac_Client
 	event_client_          *event_client.Event_Client
 	authentication_client_ *authentication_client.Authentication_Client
-	log_client_ *log_client.Log_Client
+	log_client_            *log_client.Log_Client
 )
 
 //////////////////////// RBAC function //////////////////////////////////////////////
@@ -1052,7 +1037,7 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 /**
  * Get the log client.
  */
- func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
+func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
 	var err error
 	if log_client_ == nil {
 		log_client_, err = log_client.NewLogService_Client(globule.Domain, "log.LogService")
@@ -1064,15 +1049,13 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 	return log_client_, nil
 }
 
-
-func (globule *Globule) log(fileLine, functionName,  message string, level logpb.LogLevel) {
+func (globule *Globule) log(fileLine, functionName, message string, level logpb.LogLevel) {
 	log_client_, err := globule.GetLogClient()
 	if err != nil {
 		return
 	}
 	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Authenticaiton client.
@@ -1120,4 +1103,19 @@ func (globule *Globule) refreshLocalToken() error {
 	}
 	return ioutil.WriteFile(path, []byte(tokenString), 0644)
 
+}
+
+/**
+ * Return the local token string
+ */
+func (globule *Globule) getLocalToken() (string, error) {
+	path := tokensPath + "/" + globule.Domain + "_token"
+
+	token, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		return "", nil
+	}
+
+	return string(token), nil
 }

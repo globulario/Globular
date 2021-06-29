@@ -17,14 +17,13 @@ import (
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
-	"github.com/globulario/services/golang/authentication/authentication_client"
-	"github.com/globulario/services/golang/repository/repository_client"
-	"github.com/globulario/services/golang/discovery/discovery_client"
-	"github.com/globulario/services/golang/config"
-	"github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
+	"github.com/globulario/services/golang/authentication/authentication_client"
+	"github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/discovery/discovery_client"
+	"github.com/globulario/services/golang/repository/repository_client"
+	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
-	
 )
 
 // This is use to display information to external service manager.
@@ -59,7 +58,7 @@ func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	logger.Info("Globular is stopping!")
 	g.exit_ = true
-	g.stopServices();
+	g.stopServices()
 
 	close(g.exit)
 	return nil
@@ -1077,6 +1076,9 @@ func dist(g *Globule, path string, revision string) {
 		echo "- 3. Youtube-dl sudo apt-get install youtube-dl"
 		echo "- 4. Transmission-cli https://phil.tech/2009/How-to-Install-Transmission-CLI-to-Ubuntu-Server/"
 		echo "- 5. FFmpeg sudo apt install ffmpeg"
+		if [ -f "/usr/local/bin/Globular" ]; then
+			rm /usr/local/bin/Globular
+		fi
 		`
 
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
@@ -1110,13 +1112,20 @@ func dist(g *Globule, path string, revision string) {
 
 		prerm := `
 		# Thing to do before removing
-		# Stop, Disable and Uninstall Globular service.
-		echo "Stop runing globular service..."
-		systemctl stop Globular
-		systemctl disable Globular
-		systemctl daemon-reload
-		echo "Unistall globular service..."
-		/usr/local/bin/Globular uninstall
+
+		if [ -f "/etc/systemd/system/Globular.service" ]; then
+			# Stop, Disable and Uninstall Globular service.
+			echo "Stop runing globular service..."
+			systemctl stop Globular
+			systemctl disable Globular
+			systemctl daemon-reload
+			rm /etc/systemd/system/Globular.service
+		fi
+
+		if [ -f "/usr/local/bin/Globular" ]; then
+			echo "Unistall globular service..."
+			/usr/local/bin/Globular uninstall
+		fi
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0755)
 		if err != nil {
@@ -1125,7 +1134,10 @@ func dist(g *Globule, path string, revision string) {
 
 		postrm := `
 		# Thing to do after removing
-		find /usr/local/bin/Globular -xtype l -delete
+		if [ -f "/usr/local/bin/Globular" ]; then
+			find /usr/local/bin/Globular -xtype l -delete
+			rm /etc/systemd/system/Globular.service
+		fi
 		echo "Hope to see you again soon!"
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
@@ -1223,7 +1235,6 @@ func __dist(g *Globule, path string) {
 		log.Fatal(err)
 	}
 
-
 	for _, f := range files {
 		if !f.IsDir() {
 			err = os.Chmod(path+"/bin/"+f.Name(), 0755)
@@ -1265,7 +1276,6 @@ func __dist(g *Globule, path string) {
 						// set the name.
 						if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
 							protoPath := s["Proto"].(string)
-							
 
 							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 								var serviceDir = "services/"
