@@ -320,7 +320,6 @@ func convertVideo() {
 
 // Set file indexation to be able to search text file on the server.
 func indexFile(path string, fileType string) error {
-	// log.Println("---------> index file ", path, fileType)
 	return nil
 }
 

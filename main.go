@@ -636,16 +636,16 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
 
-	log.Println("deploy application", name, " to address ", address, " user ", user)
+	log.Println("try to deploy application", name, " to address ", address, " with user ", user)
 
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
-
 	if err != nil {
 		log.Println("fail to access resource service at "+address+" with error ", err)
 		return err
 	}
 
+	log.Println("authenticate user ", user, " at adress ", address)
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
@@ -654,12 +654,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
+	log.Println("Connect with application manager")
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
 		log.Println("fail to connect to application manager service ", address)
 		return err
 	}
 
+	log.Println("Connect with application manager")
 	_, err = applications_manager_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
