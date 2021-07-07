@@ -32,7 +32,6 @@ import (
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
-	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
 
@@ -52,7 +51,6 @@ var (
 	globule    *Globule
 	configPath = "/etc/globular/config/config.json"
 	tokensPath = "/etc/globular/config/tokens"
-	keyPath    = "/etc/globular/config/keys"
 )
 
 /**
@@ -269,6 +267,10 @@ func (globule *Globule) GetRegistration() *registration.Resource {
 }
 
 /**
+ * That function must be use to generate public 
+ */
+
+/**
  * I will reuse the client public key here as key instead of generate another key
  * and manage it...
  */
@@ -355,7 +357,6 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
  * IP address that result in a fail request... The DNS must be fix!
  */
 func (globule *Globule) obtainCertificateForCsr() error {
-	
 	config := lego.NewConfig(globule)
 	config.Certificate.KeyType = certcrypto.RSA2048
 
@@ -364,7 +365,6 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		log.Println(err)
 		return err
 	}
-
 	// Dns registration will be use in case dns service are available.
 	if len(globule.DNS) > 0 {
 
@@ -409,13 +409,13 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	}
 
 	csrBlock, _ := pem.Decode(csrPem)
-	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	rqstForCsr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-
-	resource, err := client.Certificate.ObtainForCSR(*csr, true)
+	
+	resource, err := client.Certificate.ObtainForCSR(*rqstForCsr, true)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -646,7 +646,7 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
-
+	
 	return nil
 }
 
@@ -765,9 +765,10 @@ func (globule *Globule) registerIpToDns() error {
 					return err
 				}
 
-				// Get the local token.
-				token, err := globule.getLocalToken(globule.DNS[i].(string))
+				// That peer must be register on the dns to be able to generate a valid token.
+				token, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), globule.Mac, globule.Name, "", globule.AdminEmail)
 				if err != nil {
+					// return the setA error
 					return err
 				}
 
@@ -786,9 +787,8 @@ func (globule *Globule) registerIpToDns() error {
 	}
 
 	// Here If the DNS provides has api to update the ip address I will use it.
-	// TODO test it for different internet provider's
-
 	for i := 0; i < len(globule.DnsUpdateIpInfos); i++ {
+
 		// the api call "https://api.godaddy.com/v1/domains/globular.io/records/A/@"
 		setA := globule.DnsUpdateIpInfos[i].(map[string]interface{})["SetA"].(string)
 		key := globule.DnsUpdateIpInfos[i].(map[string]interface{})["Key"].(string)
@@ -988,15 +988,22 @@ func (globule *Globule) Listen() error {
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
-		globule.registerIpToDns()
+		// Register that peer with the dns.
+		err := globule.registerIpToDns()
+		if err != nil {
+			return err
+		}
 
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
 		// I need to remove the gRPC certificate and recreate it.
-		Utility.RemoveDirContents(globule.creds)
+		err = Utility.RemoveDirContents(globule.creds)
+		if err != nil {
+			return err
+		}
 
 		// recreate the certificates.
-		err := security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
 			return err
 		}
@@ -1067,18 +1074,8 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	return resource_client_, nil
 }
 
-// Return the list of peers managed by this server.
-func getPeers(domain string) ([]*resourcepb.Peer, error) {
-	var err error
-	resource_client_, err := GetResourceClient(globule.Domain)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource_client_.GetPeers(`"domain":"` + domain + `"`)
-}
-
 //////////////////////// RBAC function //////////////////////////////////////////////
+
 /**
  * Get the rbac client.
  */
@@ -1179,22 +1176,6 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// Authenticaiton client.
-//////////////////////////////////////////////////////////////////////////////////////////
-func (globule *Globule) getAuthenticationClient() (*authentication_client.Authentication_Client, error) {
-	var err error
-	if authentication_client_ != nil {
-		return authentication_client_, nil
-	}
-	authentication_client_, err = authentication_client.NewAuthenticationService_Client(globule.Domain, "authentication.AuthenticationService")
-	if err != nil {
-		return nil, err
-	}
-
-	return authentication_client_, nil
-}
-
 /**
  * Generate local token key, that key is use by internal service.
  */
@@ -1206,16 +1187,15 @@ func (globule *Globule) refreshLocalTokens() error {
 		log.Fatal(err)
 	}
 
+	// Remove expired token files.
 	for _, f := range files {
 		authentication_client_, err = authentication_client.NewAuthenticationService_Client(strings.ReplaceAll(f.Name(), "_token", ""), "authentication.AuthenticationService")
 		if err == nil {
 			path := tokensPath + "/" + f.Name()
 			data, err := ioutil.ReadFile(path)
 			if err == nil {
-				tokenString, err := authentication_client_.RefreshToken(string(data))
-				if err == nil {
-					ioutil.WriteFile(path, []byte(tokenString), 0644)
-				}else{
+				err := authentication_client_.ValidateToken(string(data))
+				if err != nil {
 					// remove path from the list.
 					os.Remove(path)
 				}
@@ -1223,20 +1203,14 @@ func (globule *Globule) refreshLocalTokens() error {
 		}
 	}
 
-	// If the token can't be refresh by the authentication service I will create a new one here...
-	key, err := ioutil.ReadFile(keyPath + "/globular_key")
-	if err != nil {
-		return err
-	}
-
-	tokenString, err := interceptors.GenerateToken([]byte(key), time.Duration(globule.SessionTimeout), "sa", "", globule.AdminEmail)
+	// This is the local token...
+	tokenString, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), globule.Mac, "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		return err
 	}
 
 	path := tokensPath + "/" + globule.Domain + "_token"
 	return ioutil.WriteFile(path, []byte(tokenString), 0644)
-
 }
 
 /**

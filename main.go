@@ -140,6 +140,7 @@ func main() {
 		installCertificatesCommand_port := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
 		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
 
+
 		// Install a service on the server.
 		// That function must be run as sa.
 		// ex. Globular install_service -publisher=globulario -discovery=globular.io -service=echo.EchoService -a=globular1.globular.io -u=sa -p=*******
@@ -198,6 +199,12 @@ func main() {
 		update_globular_from_command_pwd := update_globular_from_command.String("p", "", "The user password. (Required)")
 		update_globular_from_command_platform := update_globular_from_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
 
+		// Connect peer one to another. The peer Domain must be set before the calling that function.
+		connect_peer_command := flag.NewFlagSet("connect_peer", flag.ExitOnError)
+		connect_peer_command_address := connect_peer_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
+		connect_peer_command_user := connect_peer_command.String("u", "", "The user name. (Required)")
+		connect_peer_command_pwd := connect_peer_command.String("p", "", "The user password. (Required)")
+
 		switch os.Args[1] {
 		case "start":
 			startCommand.Parse(os.Args[2:])
@@ -225,10 +232,31 @@ func main() {
 			uninstall_application_command.Parse(os.Args[2:])
 		case "certificates":
 			installCertificatesCommand.Parse(os.Args[2:])
-
+		case "connect_peer":
+			connect_peer_command.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if connect_peer_command.Parsed(){
+			if *connect_peer_command_address == "" {
+				connect_peer_command.PrintDefaults()
+				fmt.Println("No peer address given!")
+				os.Exit(1)
+			}
+			if *connect_peer_command_user == "" {
+				connect_peer_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+			if *connect_peer_command_pwd == "" {
+				connect_peer_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+			connect_peer(g, *connect_peer_command, *connect_peer_command_user, *connect_peer_command_pwd)
+
 		}
 
 		if install_service_command.Parsed() {
@@ -1376,4 +1404,11 @@ func __dist(g *Globule, path string) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+/**
+ * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
+ */
+func connect_peer(g *Globule, address, user, pwd string){
+	
 }
