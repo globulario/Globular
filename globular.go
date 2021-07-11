@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
@@ -619,7 +620,7 @@ func (globule *Globule) startServices() error {
 		}
 
 		// Save back the values...
-		services[i]["Domain"] = globule.Domain
+		services[i]["Domain"] = globule.getDomain()
 		config.SaveServiceConfiguration(services[i]) // save service values.
 
 		// Create the service process.
@@ -712,7 +713,7 @@ func (globule *Globule) Serve() error {
 		return err
 	}
 
-	url := globule.Protocol + "://" + globule.Domain
+	url := globule.Protocol + "://" + globule.getDomain()
 
 	if globule.Protocol == "https" {
 		if globule.PortHttps != 443 {
@@ -760,15 +761,20 @@ func (globule *Globule) registerIpToDns() error {
 	if globule.DNS != nil {
 		if len(globule.DNS) > 0 {
 			for i := 0; i < len(globule.DNS); i++ {
+				log.Println("get ressource client")
+
 				dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[i].(string), "dns.DnsService")
 				if err != nil {
 					return err
 				}
 
+				// Here the token must be generated for the dns server...
+
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), globule.Mac, globule.Name, "", globule.AdminEmail)
+				token, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), dns_client_.GetMac(), globule.Name, "", globule.AdminEmail)
+				
 				if err != nil {
-					// return the setA error
+					fmt.Println(err)
 					return err
 				}
 
@@ -777,8 +783,11 @@ func (globule *Globule) registerIpToDns() error {
 
 				if err != nil {
 					// return the setA error
+					fmt.Println(err)
 					return err
 				}
+
+				log.Println("address was set to ", dns_client_.GetDomain(), "for", globule.getDomain(), "with value",Utility.MyIP() )
 
 				// TODO also register the ipv6 here...
 				dns_client_.Close()
@@ -901,7 +910,7 @@ func (globule *Globule) watchForUpdate() {
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
 
-						err := update_globular_from(globule, discovery, globule.Domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						} else {
@@ -985,14 +994,21 @@ func logListener(evt *eventpb.Event) {
  */
 func (globule *Globule) Listen() error {
 
+	var err error
+
+	// Must be started before other services.
+	go func() {
+		// local - non secure connection.
+		globule.http_server = &http.Server{
+			Addr: ":" + strconv.Itoa(globule.PortHttp),
+		}
+		err = globule.http_server.ListenAndServe()
+	}()
+
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
-		// Register that peer with the dns.
-		err := globule.registerIpToDns()
-		if err != nil {
-			return err
-		}
+
 
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
@@ -1008,22 +1024,20 @@ func (globule *Globule) Listen() error {
 			return err
 		}
 
+		// Register that peer with the dns.
+		err := globule.registerIpToDns()
+		if err != nil {
+			return err
+		}
+
 		err = globule.obtainCertificateForCsr()
 		if err != nil {
 			return err
 		}
 	}
 
-	var err error
 
-	// Must be started before other services.
-	go func() {
-		// local - non secure connection.
-		globule.http_server = &http.Server{
-			Addr: ":" + strconv.Itoa(globule.PortHttp),
-		}
-		err = globule.http_server.ListenAndServe()
-	}()
+
 
 	// Start the http server.
 	if globule.Protocol == "https" {
@@ -1066,11 +1080,12 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	if resource_client_ == nil {
 		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 		if err != nil {
-			log.Println("fail to get RBAC client with error ", err)
+			log.Println("fail to get ressource client with error ", err)
 			return nil, err
 		}
 
 	}
+
 	return resource_client_, nil
 }
 
@@ -1094,7 +1109,7 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 
 // Use rbac client here...
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
-	rbac_client_, err := GetRbacClient(globule.Domain)
+	rbac_client_, err := GetRbacClient(globule.getDomain())
 	if err != nil {
 		return err
 	}
@@ -1102,7 +1117,7 @@ func (globule *Globule) addResourceOwner(path string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
-	rbac_client_, err := GetRbacClient(globule.Domain)
+	rbac_client_, err := GetRbacClient(globule.getDomain())
 	if err != nil {
 		return false, err
 	}
@@ -1111,7 +1126,7 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-	rbac_client_, err := GetRbacClient(globule.Domain)
+	rbac_client_, err := GetRbacClient(globule.getDomain())
 	if err != nil {
 		return false, false, err
 	}
@@ -1125,7 +1140,7 @@ func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	if event_client_ != nil {
 		return event_client_, nil
 	}
-	event_client_, err = event_client.NewEventService_Client(globule.Domain, "event.EventService")
+	event_client_, err = event_client.NewEventService_Client(globule.getDomain(), "event.EventService")
 	if err != nil {
 		return nil, err
 	}
@@ -1209,7 +1224,7 @@ func (globule *Globule) refreshLocalTokens() error {
 		return err
 	}
 
-	path := tokensPath + "/" + globule.Domain + "_token"
+	path := tokensPath + "/" + globule.getDomain() + "_token"
 	return ioutil.WriteFile(path, []byte(tokenString), 0644)
 }
 
