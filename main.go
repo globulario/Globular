@@ -1353,9 +1353,9 @@ func __dist(g *Globule, path string) {
 
 									if config["Root"] != nil {
 										if name == "file.FileService" {
-											config["Root"] = "/usr/local/share/globular/data/files"
+											config["Root"] = "/var/globular/data/files"
 										} else if name == "conversation.ConversationService" {
-											config["Root"] = "/usr/local/share/globular/data"
+											config["Root"] = "/var/globular/data"
 										}
 									}
 
@@ -1440,7 +1440,7 @@ func connect_peer(g *Globule, address, user, pwd, secret string) error {
 		return err
 	}
 
-	key, err := security.GetPeerKey(Utility.MyMacAddr(), keyPath)
+	key, err := security.GetPeerKey(Utility.MyMacAddr())
 	if err != nil {
 		log.Println(err)
 		return err

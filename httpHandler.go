@@ -7,10 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	//"log"
-	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/interceptors"
-	"github.com/globulario/services/golang/rbac/rbacpb"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -22,6 +18,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/davecourtois/Utility"
+	"github.com/globulario/services/golang/interceptors"
+	"github.com/globulario/services/golang/rbac/rbacpb"
 )
 
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +43,25 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  * Return the service configuration
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	// if the host is not the same...
+	/*
+		if globule.Domain != r.Host {
+			//log.Println("------------> request redirected " + globule.Protocol+"://"+r.Host + r.URL.String())
+			//http.Redirect(w, r, globule.Protocol+"://"+r.Host + r.URL.String(), http.StatusMovedPermanently)
+			// return
+			client, err := globule.getHttpClient(r.Host)
+			if err == nil {
+				rsp, err := client.Get(r.URL.String())
+				if err == nil {
+				 log.Println("--------------> response found from ", r.Host, " with status ", rsp.StatusCode)
+				}else{
+					log.Println("60 ----> error ", err)
+				}
+			}else{
+				log.Println("63 ----> error ", err)
+			}
+		}
+	*/
 
 	//add prefix and clean
 	config := globule.getConfig()
@@ -177,7 +196,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id, username, _, expiresAt, err := interceptors.ValidateToken(token)
+		id, username, _, _, expiresAt, err := interceptors.ValidateToken(token)
 		user = username
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
@@ -475,7 +494,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupResponse(&w, r)
-	//if empty, set current directory
 
 	dir := globule.webRoot
 
@@ -558,7 +576,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id /*username*/, _, _, expiresAt, err := interceptors.ValidateToken(token)
+		id /*username*/, _, _, _, expiresAt, err := interceptors.ValidateToken(token)
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			return

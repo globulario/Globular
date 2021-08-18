@@ -22,6 +22,7 @@ import (
 
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
+	"github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
@@ -131,6 +132,9 @@ type Globule struct {
 	// The http server
 	http_server  *http.Server
 	https_server *http.Server
+
+	// The http client(s)
+	https_clients map[string]*http.Client
 }
 
 /**
@@ -203,6 +207,88 @@ func NewGlobule() *Globule {
 }
 
 /**
+ * Find http client associated with a given domain. Http server must be register
+ * as a peer's to be able to process http request on the same domain.
+ */
+func (globule *Globule) getHttpClient(domain string) (*http.Client, error) {
+
+	domain = strings.Split(domain, ":")[0]
+	port := 80
+	if len(strings.Split(domain, ":")) > 1 {
+		port = Utility.ToInt(strings.Split(domain, ":")[1])
+	}
+
+	resource_client_, err := GetResourceClient(domain)
+	if err != nil {
+		return nil, err
+	}
+
+	peers, err := resource_client_.GetPeers(`{"domain":"` + domain + `"}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(peers) == 0 {
+		return nil, errors.New("no peers was found for domain " + domain)
+	}
+
+	p := peers[0]
+
+	if globule.https_clients == nil {
+		globule.https_clients = make(map[string]*http.Client, 0)
+	}
+
+	// if a http client was already register then I will made use of it.
+	if globule.https_clients[p.Domain] != nil {
+		return globule.https_clients[p.Domain], nil
+	}
+
+	clientCertFile := os.TempDir() + "/config/tls/" + domain + "/client.crt"
+	clientKeyFile := os.TempDir() + "/config/tls/" + domain + "/client.pem"
+	caCertFile := os.TempDir() + "/config/tls/" + domain + "/ca.crt"
+
+	if !Utility.Exists(os.TempDir() + "/config/tls/" + domain){
+		admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+		if err != nil {
+			return nil, err
+		}
+
+		clientKeyFile,clientCertFile, caCertFile, err = admin_client_.GetCertificates(domain, port, os.TempDir())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !Utility.Exists(clientKeyFile){
+		return nil, errors.New("no client key file found at path " + clientKeyFile)
+	}
+
+	if !Utility.Exists(clientKeyFile){
+		return nil, errors.New("no client certificate file found at path " + clientCertFile)
+	}
+
+
+	if !Utility.Exists(clientKeyFile){
+		return nil, errors.New("no client CA certificate file found at path " + caCertFile)
+	}
+
+	// So here I will create the client.
+	// I will made use of the certifcate to connect.
+	t := &http.Transport{
+		TLSClientConfig: globular_service.GetTLSConfig(clientKeyFile, clientCertFile, caCertFile),
+	}
+
+	// open the client connection
+	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	
+
+	// Keep the client for further use
+	globule.https_clients[p.Domain] = &client
+
+	return &client, nil
+}
+
+/**
  * Return globular configuration.
  */
 func (globule *Globule) getConfig() map[string]interface{} {
@@ -224,6 +310,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["Id"] = services[i]["Id"]
 		s["Keywords"] = services[i]["Keywords"]
 		s["Name"] = services[i]["Name"]
+		s["Mac"] = services[i]["Mac"]
 		s["Port"] = services[i]["Port"]
 		s["Proxy"] = services[i]["Proxy"]
 		s["PublisherId"] = services[i]["PublisherId"]
@@ -268,7 +355,7 @@ func (globule *Globule) GetRegistration() *registration.Resource {
 }
 
 /**
- * That function must be use to generate public 
+ * That function must be use to generate public
  */
 
 /**
@@ -300,18 +387,26 @@ func NewDNSProviderGlobularDNS(apiAuthToken string) (*DNSProviderGlobularDNS, er
 
 func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	key, value := dns01.GetRecord(domain, keyAuth)
-	log.Println("try to set key:",key, "with value:", value)
+	log.Println("try to set key:", key, "with value:", value)
 
 	if len(globule.DNS) > 0 {
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
 		if err != nil {
 			return err
 		}
-		token, err := globule.getLocalToken(globule.DNS[0].(string))
+
+		jwtKey, err := security.GetPeerKey(dns_client_.GetMac())
 		if err != nil {
 			return err
 		}
-		err = dns_client_.SetText(token,key, []string{ value}, 30)
+		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		err = dns_client_.SetText(token, key, []string{value}, 30)
 		if err != nil {
 			log.Println("fail to set let's encrypt dns chalenge key with error ", err)
 			return err
@@ -326,7 +421,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 
 func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 	// clean up any state you created in Present, like removing the TXT record
-	
+
 	key, value := dns01.GetRecord(domain, keyAuth)
 	log.Println("clean up value key:", key, "value: ", value)
 
@@ -336,8 +431,14 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 			return err
 		}
 
-		token, err := globule.getLocalToken(globule.DNS[0].(string))
+		jwtKey, err := security.GetPeerKey(dns_client_.GetMac())
 		if err != nil {
+			return err
+		}
+		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+
+		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 
@@ -415,7 +516,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		log.Println(err)
 		return err
 	}
-	
+
 	resource, err := client.Certificate.ObtainForCSR(*rqstForCsr, true)
 	if err != nil {
 		log.Println(err)
@@ -621,6 +722,8 @@ func (globule *Globule) startServices() error {
 
 		// Save back the values...
 		services[i]["Domain"] = globule.getDomain()
+		services[i]["Mac"] = globule.Mac
+
 		config.SaveServiceConfiguration(services[i]) // save service values.
 
 		// Create the service process.
@@ -647,7 +750,7 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
-	
+
 	return nil
 }
 
@@ -761,23 +864,24 @@ func (globule *Globule) registerIpToDns() error {
 	if globule.DNS != nil {
 		if len(globule.DNS) > 0 {
 			for i := 0; i < len(globule.DNS); i++ {
-				log.Println("get ressource client")
-
 				dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[i].(string), "dns.DnsService")
 				if err != nil {
 					return err
 				}
 
-				// Here the token must be generated for the dns server...
+				key, err := security.GetPeerKey(dns_client_.GetMac())
+				if err != nil {
+					return err
+				}
 
+				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), dns_client_.GetMac(), globule.Name, "", globule.AdminEmail)
-				
+				token, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+
 				if err != nil {
 					fmt.Println(err)
 					return err
 				}
-
 				// The domain is the parent domain and getDomain the sub-domain
 				_, err = dns_client_.SetA(token, globule.Domain, globule.getDomain(), Utility.MyIP(), 60)
 
@@ -787,7 +891,7 @@ func (globule *Globule) registerIpToDns() error {
 					return err
 				}
 
-				log.Println("address was set to ", dns_client_.GetDomain(), "for", globule.getDomain(), "with value",Utility.MyIP() )
+				log.Println("address was set to ", dns_client_.GetDomain(), "for", globule.getDomain(), "with value", Utility.MyIP())
 
 				// TODO also register the ipv6 here...
 				dns_client_.Close()
@@ -996,19 +1100,9 @@ func (globule *Globule) Listen() error {
 
 	var err error
 
-	// Must be started before other services.
-	go func() {
-		// local - non secure connection.
-		globule.http_server = &http.Server{
-			Addr: ":" + strconv.Itoa(globule.PortHttp),
-		}
-		err = globule.http_server.ListenAndServe()
-	}()
-
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
-
 
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
@@ -1036,8 +1130,14 @@ func (globule *Globule) Listen() error {
 		}
 	}
 
-
-
+	// Must be started before other services.
+	go func() {
+		// local - non secure connection.
+		globule.http_server = &http.Server{
+			Addr: ":" + strconv.Itoa(globule.PortHttp),
+		}
+		err = globule.http_server.ListenAndServe()
+	}()
 
 	// Start the http server.
 	if globule.Protocol == "https" {
@@ -1218,8 +1318,14 @@ func (globule *Globule) refreshLocalTokens() error {
 		}
 	}
 
+	// The local key.
+	key, err := security.GetLocalKey()
+	if err != nil {
+		return err
+	}
+
 	// This is the local token...
-	tokenString, err := interceptors.GenerateToken(time.Duration(globule.SessionTimeout), globule.Mac, "sa", "sa", globule.AdminEmail)
+	tokenString, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		return err
 	}
