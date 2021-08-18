@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/globular_service"
@@ -51,8 +50,6 @@ import (
 // Global variable.
 var (
 	globule    *Globule
-	configPath = "/etc/globular/config/config.json"
-	tokensPath = "/etc/globular/config/tokens"
 )
 
 /**
@@ -198,10 +195,9 @@ func NewGlobule() *Globule {
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
-	if Utility.Exists(g.path+"/bin/grpcwebproxy") || Utility.Exists(g.path+"/bin/grpcwebproxy.exe") {
 		// TODO test restart with initDirectories
 		g.initDirectories()
-	}
+
 
 	return g
 }
@@ -327,16 +323,20 @@ func (globule *Globule) getConfig() map[string]interface{} {
  * Save the configuration
  */
 func (globule *Globule) saveConfig() error {
+	
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
 		return err
 	}
+
+	configPath := globule.config + "/config.json"
 
 	err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
 	if err != nil {
 		return err
 	}
 
+	log.Println("configuration was save at ", configPath)
 	return nil
 }
 
@@ -607,18 +607,56 @@ func (globule *Globule) initDirectories() error {
 	//////////////////////////////////////////////////////////////////////////////////////
 	// There is the default directory initialisation...
 	//////////////////////////////////////////////////////////////////////////////////////
+	folderPath := "/Program Files"
 
 	// Create the directory if is not exist.
 	globule.data = "/var/globular/data"
-	Utility.CreateDirIfNotExist(globule.data)
+	if Utility.Exists(folderPath){
+		globule.data = folderPath + "/Globular" + globule.data
+	}
+
+	err := Utility.CreateDirIfNotExist(globule.data)
+	if err != nil {
+		return err
+	}
+
 	globule.webRoot = "/var/globular/webroot"
-	Utility.CreateDirIfNotExist(globule.webRoot)
+	if Utility.Exists(folderPath){
+		globule.webRoot =folderPath + "/Globular"+ globule.webRoot
+	}
+	err = Utility.CreateDirIfNotExist(globule.webRoot)
+	if err != nil {
+		return err
+	}
+
 	globule.templates = globule.data + "/files/templates"
-	Utility.CreateDirIfNotExist(globule.templates)
+	err = Utility.CreateDirIfNotExist(globule.templates)
+	if err != nil {
+		return err
+	}
+
 	globule.projects = globule.data + "/files/projects"
-	Utility.CreateDirIfNotExist(globule.projects)
+	err = Utility.CreateDirIfNotExist(globule.projects)
+	if err != nil {
+		return err
+	}
+
 	globule.config = "/etc/globular/config"
-	Utility.CreateDirIfNotExist(globule.config)
+	if Utility.Exists(folderPath){
+		globule.config = folderPath + "/Globular" + globule.config
+	}
+	err = Utility.CreateDirIfNotExist(globule.config)
+	if err != nil {
+		log.Println("fail to create configuration directory  with error", err)
+		return err
+	}
+
+	// Create the tokens directory
+	err = Utility.CreateDirIfNotExist(globule.config + "/tokens")
+	if err != nil {
+		log.Println("fail to create tokens directory  with error", err)
+		return err
+	}
 
 	// Create the creds directory if it not already exist.
 	globule.creds = globule.config + "/tls"
@@ -633,16 +671,20 @@ func (globule *Globule) initDirectories() error {
 	Utility.CreateDirIfNotExist(globule.applications)
 
 	// Initialyse globular from it configuration file.
+	log.Println("try to read configuration from ", globule.config + "/config.json")
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
 
 	// Init the service with the default port address
 	if err == nil {
+		log.Println("Now I will initialyse the configuration ")
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
+			log.Println("fail to init configuation with error ", err)
 			return err
 		}
 
 	} else {
+		log.Println("fail to read config.json with error ", err)
 		jsonStr, err := Utility.ToJson(&globule)
 		if err == nil {
 			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644)
@@ -731,7 +773,7 @@ func (globule *Globule) startServices() error {
 		if err == nil {
 			err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
 			if err != nil {
-				log.Println("fail to start proxy for service ", services[i]["Name"])
+				log.Println("fail to start proxy for service ", services[i]["Name"], "with error ", err)
 			}
 		} else {
 			log.Println("fail to start service ", services[i]["Name"])
@@ -1296,6 +1338,8 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
  */
 func (globule *Globule) refreshLocalTokens() error {
 
+	tokensPath := globule.config + "/tokens"
+
 	// Here I will get the list token files in the folder...
 	files, err := ioutil.ReadDir(tokensPath)
 	if err != nil {
@@ -1338,6 +1382,7 @@ func (globule *Globule) refreshLocalTokens() error {
  * Return the local token string
  */
 func (globule *Globule) getLocalToken(domain string) (string, error) {
+	tokensPath := globule.config + "/tokens"
 	path := tokensPath + "/" + domain + "_token"
 
 	token, err := ioutil.ReadFile(path)

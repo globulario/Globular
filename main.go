@@ -30,7 +30,6 @@ import (
 
 // This is use to display information to external service manager.
 var logger service.Logger
-var keyPath = "/etc/globular/config/keys"
 
 func (g *Globule) Start(s service.Service) error {
 	if service.Interactive() {

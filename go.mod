@@ -13,6 +13,7 @@ require (
 	github.com/go-acme/lego/v4 v4.4.0
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gookit/color v1.4.2
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/kardianos/service v1.2.0
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect
 	golang.org/x/image v0.0.0-20210504121937-7319ad40d33e // indirect
