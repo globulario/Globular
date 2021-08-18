@@ -1,0 +1,58 @@
+How to setup globular developement environnement on windows.
+
+first of all install Go 1.17
+
+https://golang.org/dl/
+
+Test if go is correctly install with 
+go version
+> go version go1.17 windows/amd64
+
+Now create a dir name globulario
+
+mkdir globulario
+cd globulario
+
+Clone git pojet,
+git clone https://github.com/globulario/services.git
+git clone https://github.com/globulario/Globular.git
+git clone https://github.com/davecourtois/Utility.git
+
+Now I will compile the services. The first step is to generate gRpc files.
+To do so you must have gRpc installed on your computer. (I will not explain how to install it here).
+
+You will aslo need language specific code generator to generate globular grpc files,
+
+Go
+For go simply run,
+go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+go install google.golang.org/protobuf/cmd/protoc-gen-go
+go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+Typescript
+
+Download protoc-gen-grpc-web.exe for the platform you need. Put the exec in the bin path rename it from original name to protoc-gen-grpc-web.exe
+
+
+Generate gRpc stub...
+
+if you are in a linux shell simply run command 
+sh generateCode.sh
+
+otherwise copy all the generateCode.sh and paste it in a command prompt, it will run all command one after another.
+
+C# and C++ generator must be compile from source code, I will not define how to do it but I successfully compile it with msys2 on windows.
+
+Now to compile golang services 
+cd golang
+go mod tidy
+sh build.sh
+
+
+Now globular from globulario dir,
+cd Globular
+go mod tidy
+go build
+
+Et voila you got a working globular executable and services!
