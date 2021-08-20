@@ -138,6 +138,7 @@ from globulario
     sh generateCode.sh
     cd golang
     go mod tidy
+    sh build.sh
 
 from globulario
     go mod tidy
