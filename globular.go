@@ -607,13 +607,9 @@ func (globule *Globule) initDirectories() error {
 	//////////////////////////////////////////////////////////////////////////////////////
 	// There is the default directory initialisation...
 	//////////////////////////////////////////////////////////////////////////////////////
-	folderPath := "/Program Files"
 
 	// Create the directory if is not exist.
 	globule.data = "/var/globular/data"
-	if Utility.Exists(folderPath){
-		globule.data = folderPath + "/Globular" + globule.data
-	}
 
 	err := Utility.CreateDirIfNotExist(globule.data)
 	if err != nil {
@@ -621,9 +617,7 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	globule.webRoot = "/var/globular/webroot"
-	if Utility.Exists(folderPath){
-		globule.webRoot =folderPath + "/Globular"+ globule.webRoot
-	}
+
 	err = Utility.CreateDirIfNotExist(globule.webRoot)
 	if err != nil {
 		return err
@@ -642,9 +636,6 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	globule.config = "/etc/globular/config"
-	if Utility.Exists(folderPath){
-		globule.config = folderPath + "/Globular" + globule.config
-	}
 	err = Utility.CreateDirIfNotExist(globule.config)
 	if err != nil {
 		log.Println("fail to create configuration directory  with error", err)

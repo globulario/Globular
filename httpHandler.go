@@ -34,10 +34,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	execPath := Utility.GetExecName(os.Args[0])
 	if Utility.Exists("/usr/local/share/globular/Globular") {
 		execPath = "/usr/local/share/globular/Globular"
-	}else 	if Utility.Exists("/Program Files/Globular/usr/local/share/globular/Globular") {
-		execPath = "/Program Files/Globular/usr/local/share/globular/Globular"
 	}
-
 	fmt.Fprint(w, Utility.CreateFileChecksum(execPath))
 }
 
