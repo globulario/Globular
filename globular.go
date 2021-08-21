@@ -609,14 +609,14 @@ func (globule *Globule) initDirectories() error {
 	//////////////////////////////////////////////////////////////////////////////////////
 
 	// Create the directory if is not exist.
-	globule.data = "/var/globular/data"
+	globule.data = config.GetDataDir()
 
 	err := Utility.CreateDirIfNotExist(globule.data)
 	if err != nil {
 		return err
 	}
 
-	globule.webRoot = "/var/globular/webroot"
+	globule.webRoot = config.GetWebRootDir()
 
 	err = Utility.CreateDirIfNotExist(globule.webRoot)
 	if err != nil {
@@ -635,7 +635,7 @@ func (globule *Globule) initDirectories() error {
 		return err
 	}
 
-	globule.config = "/etc/globular/config"
+	globule.config = config.GetConfigDir()
 	err = Utility.CreateDirIfNotExist(globule.config)
 	if err != nil {
 		log.Println("fail to create configuration directory  with error", err)
