@@ -202,6 +202,29 @@ func NewGlobule() *Globule {
 	return g
 }
 
+func (globule *Globule) registerAdminAccount() error{
+	resource_client_, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return err
+	}
+
+	// Create the admin account.
+	err = resource_client_.RegisterAccount("sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Set admin role to that account.
+	err =  resource_client_.AddAccountRole("sa", "admin")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println("sa was created successfully!")
+	return nil
+}
+
 /**
  * Find http client associated with a given domain. Http server must be register
  * as a peer's to be able to process http request on the same domain.
@@ -664,7 +687,6 @@ func (globule *Globule) initDirectories() error {
 	// Initialyse globular from it configuration file.
 	log.Println("try to read configuration from ", globule.config + "/config.json")
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
-
 	// Init the service with the default port address
 	if err == nil {
 		log.Println("Now I will initialyse the configuration ")
@@ -683,6 +705,7 @@ func (globule *Globule) initDirectories() error {
 				return err
 			}
 		}
+
 	}
 
 	if !Utility.Exists(globule.webRoot + "/index.html") {
@@ -783,7 +806,9 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
-
+		// Create the admin account.
+		log.Println("create sa account")
+		globule.registerAdminAccount()
 	return nil
 }
 
