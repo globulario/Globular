@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
@@ -19,13 +20,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
-	"github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
@@ -49,7 +51,7 @@ import (
 
 // Global variable.
 var (
-	globule    *Globule
+	globule *Globule
 )
 
 /**
@@ -195,14 +197,12 @@ func NewGlobule() *Globule {
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
-		// TODO test restart with initDirectories
-		g.initDirectories()
-
+	g.initDirectories()
 
 	return g
 }
 
-func (globule *Globule) registerAdminAccount() error{
+func (globule *Globule) registerAdminAccount() error {
 	resource_client_, err := GetResourceClient(globule.Domain)
 	if err != nil {
 		return err
@@ -216,7 +216,7 @@ func (globule *Globule) registerAdminAccount() error{
 	}
 
 	// Set admin role to that account.
-	err =  resource_client_.AddAccountRole("sa", "admin")
+	err = resource_client_.AddAccountRole("sa", "admin")
 	if err != nil {
 		log.Println(err)
 		return err
@@ -266,28 +266,27 @@ func (globule *Globule) getHttpClient(domain string) (*http.Client, error) {
 	clientKeyFile := os.TempDir() + "/config/tls/" + domain + "/client.pem"
 	caCertFile := os.TempDir() + "/config/tls/" + domain + "/ca.crt"
 
-	if !Utility.Exists(os.TempDir() + "/config/tls/" + domain){
+	if !Utility.Exists(os.TempDir() + "/config/tls/" + domain) {
 		admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
 		if err != nil {
 			return nil, err
 		}
 
-		clientKeyFile,clientCertFile, caCertFile, err = admin_client_.GetCertificates(domain, port, os.TempDir())
+		clientKeyFile, clientCertFile, caCertFile, err = admin_client_.GetCertificates(domain, port, os.TempDir())
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if !Utility.Exists(clientKeyFile){
+	if !Utility.Exists(clientKeyFile) {
 		return nil, errors.New("no client key file found at path " + clientKeyFile)
 	}
 
-	if !Utility.Exists(clientKeyFile){
+	if !Utility.Exists(clientKeyFile) {
 		return nil, errors.New("no client certificate file found at path " + clientCertFile)
 	}
 
-
-	if !Utility.Exists(clientKeyFile){
+	if !Utility.Exists(clientKeyFile) {
 		return nil, errors.New("no client CA certificate file found at path " + caCertFile)
 	}
 
@@ -299,7 +298,6 @@ func (globule *Globule) getHttpClient(domain string) (*http.Client, error) {
 
 	// open the client connection
 	client := http.Client{Transport: t, Timeout: 15 * time.Second}
-	
 
 	// Keep the client for further use
 	globule.https_clients[p.Domain] = &client
@@ -343,10 +341,78 @@ func (globule *Globule) getConfig() map[string]interface{} {
 }
 
 /**
+ * That function will wath if the configuration file has change.
+ */
+func (globule *Globule) watchConfig() {
+	go func() {
+		checksum := Utility.CreateFileChecksum(globule.config + "/config.json")
+
+		for {
+			checksum_ := Utility.CreateFileChecksum(globule.config + "/config.json")
+
+			if checksum_ != checksum {
+				file, _ := ioutil.ReadFile(globule.config + "/config.json")
+				config := make(map[string]interface{})
+
+				err := json.Unmarshal(file, &config)
+
+				if err != nil {
+					log.Println("fail to init configuation with error ", err)
+					globule.saveConfig() // write back the configuration...
+				} else {
+
+					// Here I will make some validation...
+					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
+						log.Println("The domain localhost cannot be use with https, domain must contain dot's")
+					} else {
+
+						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
+						hasDomainChange := globule.Domain != config["Domain"].(string)
+						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
+						json.Unmarshal(file, &globule)
+
+						// stop the http server
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+						if err = globule.http_server.Shutdown(ctx); err != nil {
+							log.Println("fail to stop the http server with error ", err)
+						}
+
+						if globule.https_server != nil {
+							if err := globule.https_server.Shutdown(ctx); err != nil {
+								log.Println("fail to stop the https server with error ", err)
+							}
+						}
+
+						// restart
+						globule.serve()
+
+						if hasProtocolChange || hasDomainChange || certificateChange {
+							// stop services...
+							globule.stopServices()
+							// restart it...
+							globule.startServices()
+						}
+
+
+						// clear context
+						cancel()
+						
+						checksum = checksum_
+					}
+				}
+			}
+
+			time.Sleep(time.Duration(10) * time.Second)
+		}
+	}()
+}
+
+/**
  * Save the configuration
  */
 func (globule *Globule) saveConfig() error {
-	
+
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
 		return err
@@ -685,7 +751,7 @@ func (globule *Globule) initDirectories() error {
 	Utility.CreateDirIfNotExist(globule.applications)
 
 	// Initialyse globular from it configuration file.
-	log.Println("try to read configuration from ", globule.config + "/config.json")
+	log.Println("try to read configuration from ", globule.config+"/config.json")
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
 	// Init the service with the default port address
 	if err == nil {
@@ -731,9 +797,6 @@ func (globule *Globule) initDirectories() error {
 	go func() {
 		convertVideo() // call once and at each minutes....
 	}()
-
-	// Process templates..
-	//initHtmlFiles(globule.templates)
 
 	return nil
 }
@@ -806,9 +869,9 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
-		// Create the admin account.
-		log.Println("create sa account")
-		globule.registerAdminAccount()
+	// Create the admin account.
+	log.Println("create sa account")
+	globule.registerAdminAccount()
 	return nil
 }
 
@@ -851,24 +914,9 @@ func (globule *Globule) stopServices() error {
 	return nil
 }
 
-/**
- * Start serving the content.
- */
-func (globule *Globule) Serve() error {
-
-	// Initialyse directories.
-	globule.initDirectories()
-
-	// Start microservice manager.
-	globule.startServices()
-
-	// Here I will remove the local token and recreate it...
-	globule.startRefreshLocalTokens()
-
-	// Set the log information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// lisen
+// Start http/https server...
+func (globule *Globule) serve() error {
+	// start listen
 	err := globule.Listen()
 	if err != nil {
 		return err
@@ -888,11 +936,30 @@ func (globule *Globule) Serve() error {
 
 	log.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
 
-	if err != nil {
-		return err
-	}
-
 	return nil
+
+}
+
+/**
+ * Start serving the content.
+ */
+func (globule *Globule) Serve() error {
+
+	// Initialyse directories.
+	globule.initDirectories()
+
+	// Start microservice manager.
+	globule.startServices()
+
+	// Here I will remove the local token and recreate it...
+	globule.startRefreshLocalTokens()
+
+	globule.watchConfig()
+
+	// Set the log information in case of crash...
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	return globule.serve()
 }
 
 /**
@@ -1066,8 +1133,8 @@ func (globule *Globule) watchForUpdate() {
 				// Here I will test if the checksum has change...
 				checksum, err := getChecksum(address, port)
 				execPath := Utility.GetExecName(os.Args[0])
-				if Utility.Exists("/usr/local/share/globular/Globular") {
-					execPath = "/usr/local/share/globular/Globular"
+				if Utility.Exists(config.GetRootDir() + "/Globular") {
+					execPath = config.GetRootDir() + "/Globular"
 				}
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
@@ -1161,6 +1228,8 @@ func (globule *Globule) Listen() error {
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
+
+		log.Println("try to get tls certificates...")
 
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run

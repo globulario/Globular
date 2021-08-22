@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -518,9 +519,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 
+
 	if rqst_path == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
+			log.Println("------------> globule.IndexApplication", globule.IndexApplication)
 			rqst_path += globule.IndexApplication
 			application = globule.IndexApplication
 		}
@@ -556,10 +559,12 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	infos := []*rbacpb.ResourceInfos{}
 
 	if len(application) != 0 {
+		// TODO make sure all work with Index application...
+		
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", application, rbacpb.SubjectType_APPLICATION, infos)
+		/*hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			return
@@ -570,7 +575,9 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			return
-		}
+		}*/
+		hasAccess = true
+
 	}
 
 	// domain := r.Header.Get("domain")
@@ -590,6 +597,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				return
 			}
+
 		}
 	}
 
