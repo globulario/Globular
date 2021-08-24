@@ -70,6 +70,11 @@ type Globule struct {
 	PortHttps  int    // The secure port
 	PortsRange string // The range of grpc ports.
 
+	// Cors policy
+	AllowedOrigins []string
+	AllowedMethods []string 
+	AllowedHeaders []string
+
 	Domain           string        // The principale domain
 	AlternateDomains []interface{} // Alternate domain for multiple domains
 	IndexApplication string        // If defined It will be use as the entry point where not application path was given in the url.
@@ -154,6 +159,18 @@ func NewGlobule() *Globule {
 	g.PortHttp = 80              // The default http port
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
+
+	if g.AllowedOrigins == nil {
+		g.AllowedOrigins = []string{"*"}
+	}
+
+	if g.AllowedMethods == nil {
+		g.AllowedMethods = []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"}
+	}
+
+	if g.AllowedHeaders == nil {
+		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token"}
+	}
 
 	// Set the default checksum...
 	g.Protocol = "http"
@@ -773,6 +790,9 @@ func (globule *Globule) initDirectories() error {
 		}
 
 	}
+
+	// save config...
+	globule.saveConfig()
 
 	if !Utility.Exists(globule.webRoot + "/index.html") {
 

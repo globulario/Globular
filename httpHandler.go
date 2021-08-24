@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -111,9 +110,33 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  * Setup allow Cors policies.
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, domain, application, token")
+	var allowedOrigins string
+	for i:=0; i < len(globule.AllowedOrigins); i++ {
+		allowedOrigins += globule.AllowedOrigins[i]
+		if i <  len(globule.AllowedOrigins) - 1 {
+			allowedOrigins += ","
+		}
+	}
+
+	var allowedMethods string 
+	for i:=0; i < len(globule.AllowedMethods); i++ {
+		allowedMethods += globule.AllowedMethods[i]
+		if i <  len(globule.AllowedMethods) - 1 {
+			allowedMethods += ","
+		}
+	}
+
+	var allowedHeaders string
+	for i:=0; i < len(globule.AllowedHeaders); i++ {
+		allowedHeaders += globule.AllowedHeaders[i]
+		if i <  len(globule.AllowedHeaders) - 1 {
+			allowedHeaders += ","
+		}
+	}
+
+	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigins)
+	(*w).Header().Set("Access-Control-Allow-Methods", allowedMethods)
+	(*w).Header().Set("Access-Control-Allow-Headers", allowedHeaders)
 }
 
 /**
@@ -523,7 +546,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if rqst_path == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
-			log.Println("------------> globule.IndexApplication", globule.IndexApplication)
 			rqst_path += globule.IndexApplication
 			application = globule.IndexApplication
 		}
@@ -560,7 +582,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	if len(application) != 0 {
 		// TODO make sure all work with Index application...
-		
+
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
