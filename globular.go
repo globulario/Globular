@@ -35,6 +35,7 @@ import (
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
 
@@ -889,10 +890,51 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
+	
 	// Create the admin account.
 	log.Println("create sa account")
 	globule.registerAdminAccount()
+
+	// Creat application connection
+	log.Println("create application connections")
+	globule.createApplicationConnection()
+
 	return nil
+}
+
+/**
+ * Here I will create application backend connection.
+ */
+func (globule *Globule) createApplicationConnection() error{
+	resource_client_, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return err
+	}
+
+	persistence_client_, err := GetPersistenceClient(globule.Domain)
+	if err != nil {
+		return err
+	}
+
+
+	if err == nil {
+		applications, err := resource_client_.GetApplications("{}")
+		if err == nil{
+			for i:=0; i < len(applications); i++ {
+				app := applications[i]
+				log.Println(app)
+				//err := persistence_client_.CreateConnection("local_resource", "local_resource",  "localhost", 27017, 0, "sa", "adminadmin", 500, "", true)
+				err := persistence_client_.CreateConnection(app.Id + "_db", app.Id, globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true )
+				if err != nil{
+					fmt.Println("------------------------> connection connection fail : ", app.Id, err)
+				}else{
+					fmt.Println("Connection for ", app.Id, " was created successfully!")
+				}
+			}
+		}
+	}
+
+	return err
 }
 
 /**
@@ -1319,6 +1361,7 @@ var (
 	authentication_client_ *authentication_client.Authentication_Client
 	log_client_            *log_client.Log_Client
 	resource_client_       *resource_client.Resource_Client
+	persistence_client_ *persistence_client.Persistence_Client
 )
 
 //////////////////////// Resource Client ////////////////////////////////////////////
@@ -1334,6 +1377,21 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	}
 
 	return resource_client_, nil
+}
+
+//////////////////////// Resource Client ////////////////////////////////////////////
+func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client, error) {
+	var err error
+	if persistence_client_ == nil {
+		persistence_client_, err = persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
+		if err != nil {
+			log.Println("fail to get persistence client with error ", err)
+			return nil, err
+		}
+
+	}
+
+	return persistence_client_, nil
 }
 
 //////////////////////// RBAC function //////////////////////////////////////////////

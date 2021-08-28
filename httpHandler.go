@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/interceptors"
@@ -193,16 +194,22 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
-	hasAccess := true //TODO set it back to false when the
-	hasAccessDenied := false
 	user := ""
-	infos := []*rbacpb.ResourceInfos{}
+	hasAccess := true //TODO set it back to false when the
+
+
+	// TODO fix it and uncomment it...
+	//hasAccessDenied := false
+	//infos := []*rbacpb.ResourceInfos{}
 
 	// Here I will validate applications...
 	if len(application) != 0 {
+		log.Println("todo validate ", path, " for ", application)
+
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
+		/*
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
 
@@ -215,6 +222,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		}
+		*/
 	}
 
 	// domain := r.Header.Get("domain")
@@ -224,6 +232,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		} else {
+			log.Println("todo validate ", path, " for ", user, id)
+			/*
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
@@ -233,18 +243,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				return
 			}
+			*/
 		}
 	}
 
-	// Here the path dosent exist.
-	if !Utility.Exists(globule.webRoot + path) {
-		// TODO validate ressource access here
-		Utility.CreateDirIfNotExist(globule.webRoot + path)
-	}
 
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
+			log.Println("-------->", err)
 			return
 		}
 
@@ -262,7 +269,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
-
+		
 		out, err := os.Create(path_)
 		if err != nil {
 			file.Close()
@@ -272,29 +279,33 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer out.Close()
 
 		if err != nil {
+			log.Println("fail to create dir ", path_, err)
 			file.Close()
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
+			log.Println("fail to copy file  ", path_, "with error", err)
 			file.Close()
 			return
 		}
 		file.Close()
 
 		// Now from the file extension i will retreive it mime type.
-		fileExtension := path_[strings.LastIndex(path_, "."):]
-		fileType := mime.TypeByExtension(fileExtension)
-		path_ = strings.ReplaceAll(path_, "\\", "/")
-		if len(fileType) > 0 {
-			if strings.HasPrefix(fileType, "text/") {
-				indexFile(path_, fileType)
-			} else if strings.HasPrefix(fileType, "video/") {
-				// Here I will call convert video...
-				go func() {
-					convertVideo()
-				}()
+		if strings.LastIndex(path_, ".") != -1 {
+			fileExtension := path_[strings.LastIndex(path_, "."):]
+			fileType := mime.TypeByExtension(fileExtension)
+			path_ = strings.ReplaceAll(path_, "\\", "/")
+			if len(fileType) > 0 {
+				if strings.HasPrefix(fileType, "text/") {
+					indexFile(path_, fileType)
+				} else if strings.HasPrefix(fileType, "video/") {
+					// Here I will call convert video...
+					go func() {
+						convertVideo()
+					}()
+				}
 			}
 		}
 	}
@@ -672,8 +683,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if the file has change...
 	if !hasChange {
+		log.Println("server file ", name)
 		http.ServeFile(w, r, name)
 	} else {
+		log.Println("server content ", name)
 		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
 	}
 }
