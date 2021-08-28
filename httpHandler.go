@@ -683,10 +683,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if the file has change...
 	if !hasChange {
-		log.Println("server file ", name)
+		//log.Println("server file ", name)
 		http.ServeFile(w, r, name)
 	} else {
-		log.Println("server content ", name)
+		//log.Println("server content ", name)
 		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
 	}
 }
