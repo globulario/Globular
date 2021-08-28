@@ -72,7 +72,7 @@ type Globule struct {
 
 	// Cors policy
 	AllowedOrigins []string
-	AllowedMethods []string 
+	AllowedMethods []string
 	AllowedHeaders []string
 
 	Domain           string        // The principale domain
@@ -351,6 +351,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["State"] = services[i]["State"]
 		s["TLS"] = services[i]["TLS"]
 		s["Dependencies"] = services[i]["Dependencies"]
+		s["Version"] = services[i]["Version"]
 		config_["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
 
@@ -411,10 +412,9 @@ func (globule *Globule) watchConfig() {
 							globule.startServices()
 						}
 
-
 						// clear context
 						cancel()
-						
+
 						checksum = checksum_
 					}
 				}
