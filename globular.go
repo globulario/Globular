@@ -31,11 +31,11 @@ import (
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
+	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
-	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
 
@@ -823,6 +823,34 @@ func (globule *Globule) initDirectories() error {
 }
 
 /**
+ * Return the services index in a slice.
+ */
+func getObjectIndex(value, name string, objects []map[string]interface{}) int {
+	for i := 0; i < len(objects); i++ {
+		if objects[i][name].(string) == value {
+			return i
+		}
+	}
+	return -1
+}
+
+/**
+ * Insert an object to an array at a given index
+ */
+func insertObject(array []map[string]interface{}, value map[string]interface{}, index int) []map[string]interface{} {
+	return append(array[:index], append([]map[string]interface{}{value}, array[index:]...)...)
+}
+
+func removeObject(array []map[string]interface{}, index int) []map[string]interface{} {
+	return append(array[:index], array[index+1:]...)
+}
+
+func moveObject(array []map[string]interface{}, srcIndex int, dstIndex int) []map[string]interface{} {
+	value := array[srcIndex]
+	return insertObject(removeObject(array, srcIndex), value, dstIndex)
+}
+
+/**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
  */
@@ -834,7 +862,29 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-	// So here here I will set tls info...
+	// Now I will order the services in a way required service will start first...
+	servicesNames := make([]string, len(services))
+	for i := 0; i < len(services); i++ {
+		servicesNames[i] = services[i]["Name"].(string)
+	}
+
+	// Now I will move the services below all it dependencie in the array...
+	for i := 0; i < len(servicesNames); i++ {
+		index := getObjectIndex(servicesNames[i], "Name", services)
+		if services[index]["Dependencies"] != nil {
+			dependencies := services[index]["Dependencies"].([]interface{})
+
+			for j := 0; j < len(dependencies); j++ {
+				index_ := getObjectIndex(dependencies[j].(string), "Name", services)
+				if index_ != -1 {
+					if index < index_ {
+						// move the services in the array...
+						services = moveObject(services, index_, index)
+					}
+				}
+			}
+		}
+	}
 
 	// I will try to get the services manager configuration from the
 	// services configurations list.
@@ -890,7 +940,7 @@ func (globule *Globule) startServices() error {
 
 	// recreate a new local token.
 	log.Println("services are started")
-	
+
 	// Create the admin account.
 	log.Println("create sa account")
 	globule.registerAdminAccount()
@@ -905,7 +955,7 @@ func (globule *Globule) startServices() error {
 /**
  * Here I will create application backend connection.
  */
-func (globule *Globule) createApplicationConnection() error{
+func (globule *Globule) createApplicationConnection() error {
 	resource_client_, err := GetResourceClient(globule.Domain)
 	if err != nil {
 		return err
@@ -916,17 +966,16 @@ func (globule *Globule) createApplicationConnection() error{
 		return err
 	}
 
-
 	if err == nil {
 		applications, err := resource_client_.GetApplications("{}")
-		if err == nil{
-			for i:=0; i < len(applications); i++ {
+		if err == nil {
+			for i := 0; i < len(applications); i++ {
 				app := applications[i]
 				//err := persistence_client_.CreateConnection("local_resource", "local_resource",  "localhost", 27017, 0, "sa", "adminadmin", 500, "", true)
-				err := persistence_client_.CreateConnection(app.Id + "_db", app.Id, globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true )
-				if err != nil{
+				err := persistence_client_.CreateConnection(app.Id+"_db", app.Id, globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
+				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
-				}else{
+				} else {
 					fmt.Println("Connection for ", app.Id, " was created successfully!")
 				}
 			}
@@ -1360,7 +1409,7 @@ var (
 	authentication_client_ *authentication_client.Authentication_Client
 	log_client_            *log_client.Log_Client
 	resource_client_       *resource_client.Resource_Client
-	persistence_client_ *persistence_client.Persistence_Client
+	persistence_client_    *persistence_client.Persistence_Client
 )
 
 //////////////////////// Resource Client ////////////////////////////////////////////
