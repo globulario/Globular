@@ -866,15 +866,14 @@ func (globule *Globule) startServices() error {
 
 		config.SaveServiceConfiguration(services[i]) // save service values.
 
+
+
 		// Create the service process.
-		err = process.StartServiceProcess(services[i], globule.PortsRange)
-		if err == nil {
-			err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
-			if err != nil {
-				log.Println("fail to start proxy for service ", services[i]["Name"], "with error ", err)
-			}
-		} else {
+		err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
+		if err != nil {
 			log.Println("fail to start service ", services[i]["Name"])
+		}else{
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
 		}
 
 		// Here I will listen for logger event...
