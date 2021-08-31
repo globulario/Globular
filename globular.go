@@ -866,8 +866,6 @@ func (globule *Globule) startServices() error {
 
 		config.SaveServiceConfiguration(services[i]) // save service values.
 
-
-
 		// Create the service process.
 		err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
 		if err != nil {
