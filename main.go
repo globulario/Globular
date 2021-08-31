@@ -19,7 +19,7 @@ import (
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
-	"github.com/globulario/services/golang/config"
+	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/discovery/discovery_client"
 	"github.com/globulario/services/golang/repository/repository_client"
 	"github.com/globulario/services/golang/resource/resource_client"
@@ -1191,7 +1191,9 @@ func dist(g *Globule, path string, revision string) {
 		fmt.Print(cmdOutput.String())
 
 	} else {
-		fmt.Println("Only linux debian package are available as distro at the moment...")
+		fmt.Println("Create the distro at path ", path)
+		// Create the distribution.
+		__dist(g, path)
 	}
 
 }
@@ -1239,13 +1241,20 @@ func __dist(g *Globule, path string) {
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
+	// Copy the exec to...
+
 	// Here I will copy the proxy.
 	globularExec := os.Args[0]
+	destExec := "Globular"
 	if runtime.GOOS == "windows" && !strings.HasSuffix(globularExec, ".exe") {
 		globularExec += ".exe" // in case of windows
 	}
 
-	err := Utility.Copy(dir+"/"+globularExec, path+"/"+globularExec)
+	if runtime.GOOS == "windows" {
+		destExec += ".exe"
+	}
+	
+	err := Utility.Copy(globularExec, path+"/" + destExec)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1279,7 +1288,7 @@ func __dist(g *Globule, path string) {
 	}
 
 	// install services...
-	services, err := config.GetServicesConfigurations()
+	services, err := config_.GetServicesConfigurations()
 	if err != nil {
 		log.Println("fail to retreive services whit error ", err)
 	}
@@ -1341,8 +1350,8 @@ func __dist(g *Globule, path string) {
 										fmt.Println(err)
 									}
 
-									config["Path"] = "/usr/local/share/globular/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] = "/usr/local/share/globular/" + serviceDir + "/" + name + ".proto"
+									config["Path"] = config_.GetRootDir() + "/" + serviceDir + "/" + id + "/" + execName
+									config["Proto"] =  config_.GetRootDir() + "/" + serviceDir + "/" + name + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
@@ -1352,9 +1361,9 @@ func __dist(g *Globule, path string) {
 
 									if config["Root"] != nil {
 										if name == "file.FileService" {
-											config["Root"] = "/var/globular/data/files"
+											config["Root"] = config_.GetDataDir() + "/files"
 										} else if name == "conversation.ConversationService" {
-											config["Root"] = "/var/globular/data"
+											config["Root"] = config_.GetDataDir()
 										}
 									}
 

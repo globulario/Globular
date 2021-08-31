@@ -704,6 +704,8 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+	log.Println("Initialize directories")
+
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
 	globule.DnsUpdateIpInfos = make([]interface{}, 0)
@@ -717,6 +719,7 @@ func (globule *Globule) initDirectories() error {
 
 	// Create the directory if is not exist.
 	globule.data = config.GetDataDir()
+	log.Println("data: ", globule.data)
 
 	err := Utility.CreateDirIfNotExist(globule.data)
 	if err != nil {
@@ -724,6 +727,7 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	globule.webRoot = config.GetWebRootDir()
+	log.Println("WebRoot: ", globule.webRoot)
 
 	err = Utility.CreateDirIfNotExist(globule.webRoot)
 	if err != nil {
@@ -731,6 +735,7 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	globule.templates = globule.data + "/files/templates"
+
 	err = Utility.CreateDirIfNotExist(globule.templates)
 	if err != nil {
 		return err
@@ -744,6 +749,8 @@ func (globule *Globule) initDirectories() error {
 
 	globule.config = config.GetConfigDir()
 	err = Utility.CreateDirIfNotExist(globule.config)
+	log.Println("config: ", globule.config)
+
 	if err != nil {
 		log.Println("fail to create configuration directory  with error", err)
 		return err
@@ -789,7 +796,6 @@ func (globule *Globule) initDirectories() error {
 				return err
 			}
 		}
-
 	}
 
 	// save config...
