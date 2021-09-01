@@ -411,6 +411,12 @@ func (globule *Globule) watchConfig() {
 							globule.stopServices()
 							// restart it...
 							globule.startServices()
+							// start proxies
+							globule.startProxies()
+							
+							// restart watching
+							process.ManageServicesProcess(globule.exit)
+
 						}
 
 						// clear context
@@ -828,7 +834,18 @@ func (globule *Globule) initDirectories() error {
 	return nil
 }
 
-
+/**
+ * Start proxies
+ */
+func (globule *Globule) startProxies() {
+	services, err := config.GetServicesConfigurations()
+	if err == nil {
+		for i := 0; i < len(services); i++ {
+			// Here I will start the proxy
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
+		}
+	}
+}
 
 /**
  * Here I will start the services manager who will start all microservices
@@ -875,9 +892,7 @@ func (globule *Globule) startServices() error {
 		// Create the service process.
 		err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
 		if err != nil {
-			log.Println("fail to start service ", services[i]["Name"])
-		}else{
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
+			log.Println("fail to start service ", services[i]["Name"], err)
 		}
 
 		// Here I will listen for logger event...
@@ -887,9 +902,6 @@ func (globule *Globule) startServices() error {
 
 		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"], "and proxy", services[i]["Proxy"])
 	}
-
-	// Start managing process.
-	process.ManageServicesProcess(globule.exit)
 
 	// recreate a new local token.
 	log.Println("services are started")
@@ -1014,6 +1026,11 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	globule.startServices()
 
+	time.Sleep(5 * time.Second)
+
+	// start proxies
+	globule.startProxies()
+
 	// Here I will remove the local token and recreate it...
 	globule.startRefreshLocalTokens()
 
@@ -1021,6 +1038,9 @@ func (globule *Globule) Serve() error {
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Start managing process.
+	process.ManageServicesProcess(globule.exit)
 
 	return globule.serve()
 }
