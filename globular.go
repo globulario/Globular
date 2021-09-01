@@ -229,17 +229,17 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount("sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
 	// Set admin role to that account.
 	err = resource_client_.AddAccountRole("sa", "admin")
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
-	log.Println("sa was created successfully!")
+
 	return nil
 }
 
@@ -376,7 +376,6 @@ func (globule *Globule) watchConfig() {
 				err := json.Unmarshal(file, &config)
 
 				if err != nil {
-					log.Println("fail to init configuation with error ", err)
 					globule.saveConfig() // write back the configuration...
 				} else {
 
@@ -408,10 +407,13 @@ func (globule *Globule) watchConfig() {
 
 						if hasProtocolChange || hasDomainChange || certificateChange {
 							// stop services...
+							fmt.Println("Stop gRpc Services")
 							globule.stopServices()
 							// restart it...
+							fmt.Println("Start gRpc Services")
 							globule.startServices()
 							// start proxies
+							fmt.Println("Start gRpc Proxies")
 							globule.startProxies()
 							
 							// restart watching
@@ -449,7 +451,6 @@ func (globule *Globule) saveConfig() error {
 		return err
 	}
 
-	log.Println("configuration was save at ", configPath)
 	return nil
 }
 
@@ -500,7 +501,6 @@ func NewDNSProviderGlobularDNS(apiAuthToken string) (*DNSProviderGlobularDNS, er
 
 func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	key, value := dns01.GetRecord(domain, keyAuth)
-	log.Println("try to set key:", key, "with value:", value)
 
 	if len(globule.DNS) > 0 {
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
@@ -515,7 +515,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
-			fmt.Println(err)
+			
 			return err
 		}
 
@@ -524,9 +524,6 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			log.Println("fail to set let's encrypt dns chalenge key with error ", err)
 			return err
 		}
-
-		// make API request to set a TXT record on fqdn with value and TTL
-		log.Println("dns key was set in the server ", globule.DNS[0])
 	}
 
 	return nil
@@ -535,8 +532,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 	// clean up any state you created in Present, like removing the TXT record
 
-	key, value := dns01.GetRecord(domain, keyAuth)
-	log.Println("clean up value key:", key, "value: ", value)
+	key, _ := dns01.GetRecord(domain, keyAuth)
 
 	if len(globule.DNS) > 0 {
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
@@ -551,7 +547,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
-			fmt.Println(err)
+			
 			return err
 		}
 
@@ -560,9 +556,6 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 			log.Println("fail to remove challenge key with error ", err)
 			return err
 		}
-
-		// make API request to set a TXT record on fqdn with value and TTL
-		log.Println("dns key was remove from the server ", globule.DNS[0])
 	}
 	return nil
 }
@@ -577,7 +570,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 	client, err := lego.NewClient(config)
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 	// Dns registration will be use in case dns service are available.
@@ -591,7 +584,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		globularDNS, err := NewDNSProviderGlobularDNS(token)
 		if err != nil {
-			log.Println(err)
+			
 			return err
 		}
 
@@ -600,39 +593,39 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	} else {
 		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
 		if err != nil {
-			log.Println(err)
+			
 			log.Fatal(err)
 		}
 	}
 
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 	globule.registration = reg
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
 	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
 	csrBlock, _ := pem.Decode(csrPem)
 	rqstForCsr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
 	resource, err := client.Certificate.ObtainForCSR(*rqstForCsr, true)
 	if err != nil {
-		log.Println(err)
+		
 		return err
 	}
 
@@ -710,8 +703,6 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
-	log.Println("Initialize directories")
-
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
 	globule.DnsUpdateIpInfos = make([]interface{}, 0)
@@ -725,7 +716,6 @@ func (globule *Globule) initDirectories() error {
 
 	// Create the directory if is not exist.
 	globule.data = config.GetDataDir()
-	log.Println("data: ", globule.data)
 
 	err := Utility.CreateDirIfNotExist(globule.data)
 	if err != nil {
@@ -733,7 +723,6 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	globule.webRoot = config.GetWebRootDir()
-	log.Println("WebRoot: ", globule.webRoot)
 
 	err = Utility.CreateDirIfNotExist(globule.webRoot)
 	if err != nil {
@@ -755,7 +744,6 @@ func (globule *Globule) initDirectories() error {
 
 	globule.config = config.GetConfigDir()
 	err = Utility.CreateDirIfNotExist(globule.config)
-	log.Println("config: ", globule.config)
 
 	if err != nil {
 		log.Println("fail to create configuration directory  with error", err)
@@ -782,11 +770,9 @@ func (globule *Globule) initDirectories() error {
 	Utility.CreateDirIfNotExist(globule.applications)
 
 	// Initialyse globular from it configuration file.
-	log.Println("try to read configuration from ", globule.config+"/config.json")
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
 	// Init the service with the default port address
 	if err == nil {
-		log.Println("Now I will initialyse the configuration ")
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
 			log.Println("fail to init configuation with error ", err)
@@ -794,7 +780,6 @@ func (globule *Globule) initDirectories() error {
 		}
 
 	} else {
-		log.Println("fail to read config.json with error ", err)
 		jsonStr, err := Utility.ToJson(&globule)
 		if err == nil {
 			err := os.WriteFile(globule.config+"/config.json", []byte(jsonStr), 0644)
@@ -899,19 +884,13 @@ func (globule *Globule) startServices() error {
 		go func() {
 			globule.subscribe("new_log_evt", logListener)
 		}()
-
-		log.Println(services[i]["Name"], ":", services[i]["Id"], "  is running and listen at port ", services[i]["Port"], "and proxy", services[i]["Proxy"])
 	}
 
-	// recreate a new local token.
-	log.Println("services are started")
 
 	// Create the admin account.
-	log.Println("create sa account")
 	globule.registerAdminAccount()
 
 	// Creat application connection
-	log.Println("create application connections")
 	globule.createApplicationConnection()
 
 	return nil
@@ -940,8 +919,6 @@ func (globule *Globule) createApplicationConnection() error {
 				err := persistence_client_.CreateConnection(app.Id+"_db", app.Id, globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
-				} else {
-					fmt.Println("Connection for ", app.Id, " was created successfully!")
 				}
 			}
 		}
@@ -1024,8 +1001,10 @@ func (globule *Globule) Serve() error {
 	globule.initDirectories()
 
 	// Start microservice manager.
+	fmt.Println("Start gRpc Services")
 	globule.startServices()
 
+	fmt.Println("Start gRpc Proxies")
 	time.Sleep(5 * time.Second)
 
 	// start proxies
@@ -1087,7 +1066,7 @@ func (globule *Globule) registerIpToDns() error {
 				token, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 				if err != nil {
-					fmt.Println(err)
+					
 					return err
 				}
 				// The domain is the parent domain and getDomain the sub-domain
@@ -1095,11 +1074,9 @@ func (globule *Globule) registerIpToDns() error {
 
 				if err != nil {
 					// return the setA error
-					fmt.Println(err)
+					
 					return err
 				}
-
-				log.Println("address was set to ", dns_client_.GetDomain(), "for", globule.getDomain(), "with value", Utility.MyIP())
 
 				// TODO also register the ipv6 here...
 				dns_client_.Close()
@@ -1225,8 +1202,6 @@ func (globule *Globule) watchForUpdate() {
 						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
-						} else {
-							log.Println("update globular checksum is ", checksum)
 						}
 
 					}
@@ -1293,11 +1268,9 @@ func logListener(evt *eventpb.Event) {
 				if info["line"] != nil {
 					fmt.Println(info["line"])
 				}
-
 				color.Comment.Println(msg)
 			}
 		}
-		fmt.Println()
 	}
 }
 
@@ -1311,8 +1284,6 @@ func (globule *Globule) Listen() error {
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
-
-		log.Println("try to get tls certificates...")
 
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
@@ -1391,7 +1362,6 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	if resource_client_ == nil {
 		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 		if err != nil {
-			log.Println("fail to get ressource client with error ", err)
 			return nil, err
 		}
 
@@ -1425,7 +1395,6 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 	if rbac_client_ == nil {
 		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
 		if err != nil {
-			log.Println("fail to get RBAC client with error ", err)
 			return nil, err
 		}
 
