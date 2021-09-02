@@ -140,6 +140,9 @@ type Globule struct {
 
 	// The http client(s)
 	https_clients map[string]*http.Client
+
+	// Keep track of the strart time...
+	startTime time.Time
 }
 
 /**
@@ -147,8 +150,11 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
+	// Here I will keep the start time...
+
 	// Here I will initialyse configuration.
 	g := new(Globule)
+	g.startTime = time.Now()
 	g.exit_ = false
 	g.exit = make(chan bool)
 	g.Mac = Utility.MyMacAddr()
@@ -986,8 +992,11 @@ func (globule *Globule) serve() error {
 		}
 	}
 
+	elapsed := time.Since(globule.startTime)
+    
 	log.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
-
+	log.Printf("startup took %s", elapsed)
+	
 	return nil
 
 }
