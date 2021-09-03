@@ -896,7 +896,7 @@ func (globule *Globule) startServices() error {
 	// Create the admin account.
 	globule.registerAdminAccount()
 
-	// Creat application connection
+	// Create application connection
 	globule.createApplicationConnection()
 
 	return nil
