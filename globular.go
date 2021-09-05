@@ -418,10 +418,7 @@ func (globule *Globule) watchConfig() {
 							// restart it...
 							fmt.Println("Start gRpc Services")
 							globule.startServices()
-							// start proxies
-							fmt.Println("Start gRpc Proxies")
-							globule.startProxies()
-							
+
 							// restart watching
 							process.ManageServicesProcess(globule.exit)
 
@@ -826,19 +823,6 @@ func (globule *Globule) initDirectories() error {
 }
 
 /**
- * Start proxies
- */
-func (globule *Globule) startProxies() {
-	services, err := config.GetServicesConfigurations()
-	if err == nil {
-		for i := 0; i < len(services); i++ {
-			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
-		}
-	}
-}
-
-/**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
  */
@@ -1012,12 +996,6 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	fmt.Println("Start gRpc Services")
 	globule.startServices()
-
-	fmt.Println("Start gRpc Proxies")
-	time.Sleep(5 * time.Second)
-
-	// start proxies
-	globule.startProxies()
 
 	// Here I will remove the local token and recreate it...
 	globule.startRefreshLocalTokens()
