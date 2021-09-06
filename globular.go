@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
@@ -235,14 +236,14 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount("sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-		
+
 		return err
 	}
 
 	// Set admin role to that account.
 	err = resource_client_.AddAccountRole("sa", "admin")
 	if err != nil {
-		
+
 		return err
 	}
 
@@ -518,7 +519,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
-			
+
 			return err
 		}
 
@@ -550,7 +551,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
-			
+
 			return err
 		}
 
@@ -573,7 +574,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 	client, err := lego.NewClient(config)
 	if err != nil {
-		
+
 		return err
 	}
 	// Dns registration will be use in case dns service are available.
@@ -587,7 +588,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		globularDNS, err := NewDNSProviderGlobularDNS(token)
 		if err != nil {
-			
+
 			return err
 		}
 
@@ -596,39 +597,39 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	} else {
 		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
 		if err != nil {
-			
+
 			log.Fatal(err)
 		}
 	}
 
 	if err != nil {
-		
+
 		return err
 	}
 
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 	globule.registration = reg
 	if err != nil {
-		
+
 		return err
 	}
 
 	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
 	if err != nil {
-		
+
 		return err
 	}
 
 	csrBlock, _ := pem.Decode(csrPem)
 	rqstForCsr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
-		
+
 		return err
 	}
 
 	resource, err := client.Certificate.ObtainForCSR(*rqstForCsr, true)
 	if err != nil {
-		
+
 		return err
 	}
 
@@ -876,7 +877,6 @@ func (globule *Globule) startServices() error {
 		}()
 	}
 
-
 	// Create the admin account.
 	globule.registerAdminAccount()
 
@@ -977,10 +977,10 @@ func (globule *Globule) serve() error {
 	}
 
 	elapsed := time.Since(globule.startTime)
-    
+
 	log.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
 	log.Printf("startup took %s", elapsed)
-	
+
 	return nil
 
 }
@@ -1008,7 +1008,231 @@ func (globule *Globule) Serve() error {
 	// Start managing process.
 	process.ManageServicesProcess(globule.exit)
 
+	// Start envoy if is not already running...
+	envoyVersion, err := globule.getEnvoyVersion()
+	if err == nil {
+		log.Println("envoy found with version: ", envoyVersion)
+		log.Println("envoy will start...")
+		err := globule.startEnvoy()
+		if err != nil {
+			log.Println("fail to start envoy with error: ", err)
+		} else {
+			log.Println("envoy is up and running")
+		}
+	} else {
+		log.Println("Fail to get envoy with error: ", err)
+	}
+
 	return globule.serve()
+}
+
+var envoy_config_str = `
+node:
+  id: id_1
+  cluster: main
+admin:
+  access_log_path: /tmp/envoy_admin_access.log
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: "9901"
+dynamic_resources:
+  cds_config:
+    path: /etc/globular/config/envoy/cds.yaml
+  lds_config:
+    path: /etc/globular/config/envoy/lds.yaml
+`
+
+var envoy_listners_config_str = `
+resources:
+  - "@type": type.googleapis.com/envoy.config.listener.v3.Listener
+    name: grpc_listener
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 8080 }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          codec_type: auto
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/echo.EchoService" }
+                route:
+                  cluster: echo.EchoService
+                  timeout: 0s
+                  max_stream_duration:
+                    grpc_timeout_header_max: 0s
+              cors:
+                allow_origin_string_match:
+                - prefix: "*"
+                allow_methods: GET, PUT, DELETE, POST, OPTIONS
+                allow_headers: path,domain,application,token,keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
+                max_age: "1728000"
+                expose_headers: custom-header-1,grpc-status,grpc-message
+          http_filters:
+          - name: envoy.filters.http.grpc_web
+          - name: envoy.filters.http.cors
+          - name: envoy.filters.http.router
+`
+
+/**
+ * This is the default envoy configuration...
+ * There is an example configuration file.
+ * https://raw.githubusercontent.com/grpc/grpc-web/master/net/grpc/gateway/examples/echo/envoy.yaml
+ * https://medium.com/cstech/dynamic-envoy-proxy-on-linux-machine-25ccf8b159be
+ * TODO set the envoy port number in the globular configuration and other static configuration values.
+ */
+func (globule *Globule) setEnvoyConfig() error {
+	path := config.GetConfigDir() + "/envoy.yaml"
+	envoy_config_ := make(map[string]interface{})
+
+	if !Utility.Exists(path) {
+		err := yaml.Unmarshal([]byte(envoy_config_str), &envoy_config_)
+		if err != nil {
+			return err
+		}
+	} else {
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal(data, &envoy_config_)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Here I will set files where listners and clusters are define dynamically...
+	envoy_config_["dynamic_resources"].(map[string]interface{})["cds_config"].(map[string]interface{})["path"] = config.GetConfigDir() + "/envoy/cds.yaml"
+	envoy_config_["dynamic_resources"].(map[string]interface{})["lds_config"].(map[string]interface{})["path"] = config.GetConfigDir() + "/envoy/lds.yaml"
+	envoy_config_["node"].(map[string]interface{})["id"] = globule.Domain
+
+	// Here I will intialyse the cluster from a string...
+	clusters := make(map[string]interface{})
+	clusters["resources"] = make([]interface{}, 0) // simply empty the listener
+
+	listeners := make(map[string]interface{})
+	yaml.Unmarshal([]byte(envoy_listners_config_str), &listeners)
+
+	routes := make([]interface{}, 0)
+	services, _ := config.GetServicesConfigurations()
+	for i := 0; i < len(services); i++ {
+		routes = globule.setEnvoyRoute(routes, services[i])
+		clusters["resources"] = globule.setEnvoyCluster(clusters["resources"].([]interface{}), services[i])
+		services[i]["Proxy"] = 8080
+		config.SaveServiceConfiguration(services[i])
+	}
+
+	listeners["resources"].([]interface{})[0].(map[string]interface{})["filter_chains"].([]interface{})[0].(map[string]interface{})["filters"].([]interface{})[0].(map[string]interface{})["typed_config"].(map[string]interface{})["route_config"].(map[string]interface{})["virtual_hosts"].([]interface{})[0].(map[string]interface{})["routes"] = routes
+	data, err := yaml.Marshal(envoy_config_)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, data, 0644)
+	if err != nil {
+		return err
+	}
+
+	data, err = yaml.Marshal(listeners)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(config.GetConfigDir()+"/envoy/lds.yaml", data, 0644)
+	if err != nil {
+		return err
+	}
+
+	data, err = yaml.Marshal(clusters)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(config.GetConfigDir()+"/envoy/cds.yaml", data, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (globule *Globule) setEnvoyRoute(routes []interface{}, service map[string]interface{}) []interface{} {
+	route := map[string]interface{}{"match": map[string]interface{}{"prefix": "/" + service["Name"].(string)}, "route": map[string]interface{}{"cluster": service["Name"].(string), "timeout": "0s", "max_stream_duration": map[string]interface{}{"grpc_timeout_header_max": "0s"}}}
+	return append(routes, route)
+}
+
+/**
+ * Set gRpc proxy configuration in envoy.
+ */
+func (globule *Globule) setEnvoyCluster(clusters []interface{}, service map[string]interface{}) []interface{} {
+
+	cluster := map[string]interface{}{"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+		"name":                   service["Name"].(string),
+		"connect_timeout":        "0.25s",
+		"type":                   "logical_dns",
+		"http2_protocol_options": map[string]interface{}{},
+		"lb_policy":              "round_robin",
+		"load_assignment": map[string]interface{}{
+			"cluster_name": service["Name"],
+			"endpoints": []interface{}{
+				map[string]interface{}{
+					"lb_endpoints": []interface{}{
+						map[string]interface{}{
+							"endpoint": map[string]interface{}{
+								"address": map[string]interface{}{
+									"socket_address": map[string]interface{}{
+										"address":    service["Domain"],
+										"port_value": service["Port"],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}}
+
+	return append(clusters, cluster)
+}
+
+/**
+ * Start envoy...
+ */
+func (globule *Globule) startEnvoy() error {
+	err := globule.setEnvoyConfig()
+	if err != nil {
+		return err
+	}
+
+	path := config.GetConfigDir() + "/envoy.yaml"
+	cmd := exec.Command("envoy", "-c", path)
+	err = cmd.Start()
+
+	return err
+}
+
+/**
+ * Return envoy version number.
+ */
+func (globule *Globule) getEnvoyVersion() (string, error) {
+	cmd := exec.Command("envoy", "--version")
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+
+	if err != nil {
+		return "", err
+	}
+
+	return out.String(), err
 }
 
 /**
@@ -1053,7 +1277,7 @@ func (globule *Globule) registerIpToDns() error {
 				token, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 				if err != nil {
-					
+
 					return err
 				}
 				// The domain is the parent domain and getDomain the sub-domain
@@ -1061,7 +1285,7 @@ func (globule *Globule) registerIpToDns() error {
 
 				if err != nil {
 					// return the setA error
-					
+
 					return err
 				}
 
