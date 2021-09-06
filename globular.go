@@ -22,13 +22,11 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
-	"github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
@@ -139,9 +137,6 @@ type Globule struct {
 	http_server  *http.Server
 	https_server *http.Server
 
-	// The http client(s)
-	https_clients map[string]*http.Client
-
 	// Keep track of the strart time...
 	startTime time.Time
 }
@@ -248,86 +243,6 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	return nil
-}
-
-/**
- * Find http client associated with a given domain. Http server must be register
- * as a peer's to be able to process http request on the same domain.
- */
-func (globule *Globule) getHttpClient(domain string) (*http.Client, error) {
-
-	domain = strings.Split(domain, ":")[0]
-	port := 80
-	if len(strings.Split(domain, ":")) > 1 {
-		port = Utility.ToInt(strings.Split(domain, ":")[1])
-	}
-
-	resource_client_, err := GetResourceClient(domain)
-	if err != nil {
-		return nil, err
-	}
-
-	peers, err := resource_client_.GetPeers(`{"domain":"` + domain + `"}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(peers) == 0 {
-		return nil, errors.New("no peers was found for domain " + domain)
-	}
-
-	p := peers[0]
-
-	if globule.https_clients == nil {
-		globule.https_clients = make(map[string]*http.Client, 0)
-	}
-
-	// if a http client was already register then I will made use of it.
-	if globule.https_clients[p.Domain] != nil {
-		return globule.https_clients[p.Domain], nil
-	}
-
-	clientCertFile := os.TempDir() + "/config/tls/" + domain + "/client.crt"
-	clientKeyFile := os.TempDir() + "/config/tls/" + domain + "/client.pem"
-	caCertFile := os.TempDir() + "/config/tls/" + domain + "/ca.crt"
-
-	if !Utility.Exists(os.TempDir() + "/config/tls/" + domain) {
-		admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
-		if err != nil {
-			return nil, err
-		}
-
-		clientKeyFile, clientCertFile, caCertFile, err = admin_client_.GetCertificates(domain, port, os.TempDir())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if !Utility.Exists(clientKeyFile) {
-		return nil, errors.New("no client key file found at path " + clientKeyFile)
-	}
-
-	if !Utility.Exists(clientKeyFile) {
-		return nil, errors.New("no client certificate file found at path " + clientCertFile)
-	}
-
-	if !Utility.Exists(clientKeyFile) {
-		return nil, errors.New("no client CA certificate file found at path " + caCertFile)
-	}
-
-	// So here I will create the client.
-	// I will made use of the certifcate to connect.
-	t := &http.Transport{
-		TLSClientConfig: globular_service.GetTLSConfig(clientKeyFile, clientCertFile, caCertFile),
-	}
-
-	// open the client connection
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
-
-	// Keep the client for further use
-	globule.https_clients[p.Domain] = &client
-
-	return &client, nil
 }
 
 /**
