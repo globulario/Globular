@@ -21,12 +21,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
+	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/globular_service"
 	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
@@ -137,6 +138,9 @@ type Globule struct {
 	http_server  *http.Server
 	https_server *http.Server
 
+	// The http client(s)
+	https_clients map[string]*http.Client
+
 	// Keep track of the strart time...
 	startTime time.Time
 }
@@ -246,6 +250,86 @@ func (globule *Globule) registerAdminAccount() error {
 }
 
 /**
+ * Find http client associated with a given domain. Http server must be register
+ * as a peer's to be able to process http request on the same domain.
+ */
+func (globule *Globule) getHttpClient(domain string) (*http.Client, error) {
+
+	domain = strings.Split(domain, ":")[0]
+	port := 80
+	if len(strings.Split(domain, ":")) > 1 {
+		port = Utility.ToInt(strings.Split(domain, ":")[1])
+	}
+
+	resource_client_, err := GetResourceClient(domain)
+	if err != nil {
+		return nil, err
+	}
+
+	peers, err := resource_client_.GetPeers(`{"domain":"` + domain + `"}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(peers) == 0 {
+		return nil, errors.New("no peers was found for domain " + domain)
+	}
+
+	p := peers[0]
+
+	if globule.https_clients == nil {
+		globule.https_clients = make(map[string]*http.Client, 0)
+	}
+
+	// if a http client was already register then I will made use of it.
+	if globule.https_clients[p.Domain] != nil {
+		return globule.https_clients[p.Domain], nil
+	}
+
+	clientCertFile := os.TempDir() + "/config/tls/" + domain + "/client.crt"
+	clientKeyFile := os.TempDir() + "/config/tls/" + domain + "/client.pem"
+	caCertFile := os.TempDir() + "/config/tls/" + domain + "/ca.crt"
+
+	if !Utility.Exists(os.TempDir() + "/config/tls/" + domain) {
+		admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+		if err != nil {
+			return nil, err
+		}
+
+		clientKeyFile, clientCertFile, caCertFile, err = admin_client_.GetCertificates(domain, port, os.TempDir())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !Utility.Exists(clientKeyFile) {
+		return nil, errors.New("no client key file found at path " + clientKeyFile)
+	}
+
+	if !Utility.Exists(clientKeyFile) {
+		return nil, errors.New("no client certificate file found at path " + clientCertFile)
+	}
+
+	if !Utility.Exists(clientKeyFile) {
+		return nil, errors.New("no client CA certificate file found at path " + caCertFile)
+	}
+
+	// So here I will create the client.
+	// I will made use of the certifcate to connect.
+	t := &http.Transport{
+		TLSClientConfig: globular_service.GetTLSConfig(clientKeyFile, clientCertFile, caCertFile),
+	}
+
+	// open the client connection
+	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+
+	// Keep the client for further use
+	globule.https_clients[p.Domain] = &client
+
+	return &client, nil
+}
+
+/**
  * Return globular configuration.
  */
 func (globule *Globule) getConfig() map[string]interface{} {
@@ -334,6 +418,9 @@ func (globule *Globule) watchConfig() {
 							// restart it...
 							fmt.Println("Start gRpc Services")
 							globule.startServices()
+							// start proxies
+							fmt.Println("Start gRpc Proxies")
+							globule.startProxies()
 
 							// restart watching
 							process.ManageServicesProcess(globule.exit)
@@ -739,6 +826,19 @@ func (globule *Globule) initDirectories() error {
 }
 
 /**
+ * Start proxies
+ */
+func (globule *Globule) startProxies() {
+	services, err := config.GetServicesConfigurations()
+	if err == nil {
+		for i := 0; i < len(services); i++ {
+			// Here I will start the proxy
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
+		}
+	}
+}
+
+/**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
  */
@@ -912,6 +1012,12 @@ func (globule *Globule) Serve() error {
 	fmt.Println("Start gRpc Services")
 	globule.startServices()
 
+	fmt.Println("Start gRpc Proxies")
+	time.Sleep(5 * time.Second)
+
+	// start proxies
+	globule.startProxies()
+
 	// Here I will remove the local token and recreate it...
 	globule.startRefreshLocalTokens()
 
@@ -923,231 +1029,7 @@ func (globule *Globule) Serve() error {
 	// Start managing process.
 	process.ManageServicesProcess(globule.exit)
 
-	// Start envoy if is not already running...
-	envoyVersion, err := globule.getEnvoyVersion()
-	if err == nil {
-		log.Println("envoy found with version: ", envoyVersion)
-		log.Println("envoy will start...")
-		err := globule.startEnvoy()
-		if err != nil {
-			log.Println("fail to start envoy with error: ", err)
-		} else {
-			log.Println("envoy is up and running")
-		}
-	} else {
-		log.Println("Fail to get envoy with error: ", err)
-	}
-
 	return globule.serve()
-}
-
-var envoy_config_str = `
-node:
-  id: id_1
-  cluster: main
-admin:
-  access_log_path: /tmp/envoy_admin_access.log
-  address:
-    socket_address:
-      address: 0.0.0.0
-      port_value: "9901"
-dynamic_resources:
-  cds_config:
-    path: /etc/globular/config/envoy/cds.yaml
-  lds_config:
-    path: /etc/globular/config/envoy/lds.yaml
-`
-
-var envoy_listners_config_str = `
-resources:
-  - "@type": type.googleapis.com/envoy.config.listener.v3.Listener
-    name: grpc_listener
-    address:
-      socket_address: { address: 0.0.0.0, port_value: 8080 }
-    filter_chains:
-    - filters:
-      - name: envoy.filters.network.http_connection_manager
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-          codec_type: auto
-          stat_prefix: ingress_http
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: local_service
-              domains: ["*"]
-              routes:
-              - match: { prefix: "/echo.EchoService" }
-                route:
-                  cluster: echo.EchoService
-                  timeout: 0s
-                  max_stream_duration:
-                    grpc_timeout_header_max: 0s
-              cors:
-                allow_origin_string_match:
-                - prefix: "*"
-                allow_methods: GET, PUT, DELETE, POST, OPTIONS
-                allow_headers: path,domain,application,token,keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
-                max_age: "1728000"
-                expose_headers: custom-header-1,grpc-status,grpc-message
-          http_filters:
-          - name: envoy.filters.http.grpc_web
-          - name: envoy.filters.http.cors
-          - name: envoy.filters.http.router
-`
-
-/**
- * This is the default envoy configuration...
- * There is an example configuration file.
- * https://raw.githubusercontent.com/grpc/grpc-web/master/net/grpc/gateway/examples/echo/envoy.yaml
- * https://medium.com/cstech/dynamic-envoy-proxy-on-linux-machine-25ccf8b159be
- * TODO set the envoy port number in the globular configuration and other static configuration values.
- */
-func (globule *Globule) setEnvoyConfig() error {
-	path := config.GetConfigDir() + "/envoy.yaml"
-	envoy_config_ := make(map[string]interface{})
-
-	if !Utility.Exists(path) {
-		err := yaml.Unmarshal([]byte(envoy_config_str), &envoy_config_)
-		if err != nil {
-			return err
-		}
-	} else {
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		err = yaml.Unmarshal(data, &envoy_config_)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Here I will set files where listners and clusters are define dynamically...
-	envoy_config_["dynamic_resources"].(map[string]interface{})["cds_config"].(map[string]interface{})["path"] = config.GetConfigDir() + "/envoy/cds.yaml"
-	envoy_config_["dynamic_resources"].(map[string]interface{})["lds_config"].(map[string]interface{})["path"] = config.GetConfigDir() + "/envoy/lds.yaml"
-	envoy_config_["node"].(map[string]interface{})["id"] = globule.Domain
-
-	// Here I will intialyse the cluster from a string...
-	clusters := make(map[string]interface{})
-	clusters["resources"] = make([]interface{}, 0) // simply empty the listener
-
-	listeners := make(map[string]interface{})
-	yaml.Unmarshal([]byte(envoy_listners_config_str), &listeners)
-
-	routes := make([]interface{}, 0)
-	services, _ := config.GetServicesConfigurations()
-	for i := 0; i < len(services); i++ {
-		routes = globule.setEnvoyRoute(routes, services[i])
-		clusters["resources"] = globule.setEnvoyCluster(clusters["resources"].([]interface{}), services[i])
-		services[i]["Proxy"] = 8080
-		config.SaveServiceConfiguration(services[i])
-	}
-
-	listeners["resources"].([]interface{})[0].(map[string]interface{})["filter_chains"].([]interface{})[0].(map[string]interface{})["filters"].([]interface{})[0].(map[string]interface{})["typed_config"].(map[string]interface{})["route_config"].(map[string]interface{})["virtual_hosts"].([]interface{})[0].(map[string]interface{})["routes"] = routes
-	data, err := yaml.Marshal(envoy_config_)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(path, data, 0644)
-	if err != nil {
-		return err
-	}
-
-	data, err = yaml.Marshal(listeners)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(config.GetConfigDir()+"/envoy/lds.yaml", data, 0644)
-	if err != nil {
-		return err
-	}
-
-	data, err = yaml.Marshal(clusters)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(config.GetConfigDir()+"/envoy/cds.yaml", data, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (globule *Globule) setEnvoyRoute(routes []interface{}, service map[string]interface{}) []interface{} {
-	route := map[string]interface{}{"match": map[string]interface{}{"prefix": "/" + service["Name"].(string)}, "route": map[string]interface{}{"cluster": service["Name"].(string), "timeout": "0s", "max_stream_duration": map[string]interface{}{"grpc_timeout_header_max": "0s"}}}
-	return append(routes, route)
-}
-
-/**
- * Set gRpc proxy configuration in envoy.
- */
-func (globule *Globule) setEnvoyCluster(clusters []interface{}, service map[string]interface{}) []interface{} {
-
-	cluster := map[string]interface{}{"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-		"name":                   service["Name"].(string),
-		"connect_timeout":        "0.25s",
-		"type":                   "logical_dns",
-		"http2_protocol_options": map[string]interface{}{},
-		"lb_policy":              "round_robin",
-		"load_assignment": map[string]interface{}{
-			"cluster_name": service["Name"],
-			"endpoints": []interface{}{
-				map[string]interface{}{
-					"lb_endpoints": []interface{}{
-						map[string]interface{}{
-							"endpoint": map[string]interface{}{
-								"address": map[string]interface{}{
-									"socket_address": map[string]interface{}{
-										"address":    service["Domain"],
-										"port_value": service["Port"],
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}}
-
-	return append(clusters, cluster)
-}
-
-/**
- * Start envoy...
- */
-func (globule *Globule) startEnvoy() error {
-	err := globule.setEnvoyConfig()
-	if err != nil {
-		return err
-	}
-
-	path := config.GetConfigDir() + "/envoy.yaml"
-	cmd := exec.Command("envoy", "-c", path)
-	err = cmd.Start()
-
-	return err
-}
-
-/**
- * Return envoy version number.
- */
-func (globule *Globule) getEnvoyVersion() (string, error) {
-	cmd := exec.Command("envoy", "--version")
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	err := cmd.Run()
-
-	if err != nil {
-		return "", err
-	}
-
-	return out.String(), err
 }
 
 /**
