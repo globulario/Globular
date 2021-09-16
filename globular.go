@@ -416,15 +416,12 @@ func (globule *Globule) watchConfig() {
 							fmt.Println("Stop gRpc Services")
 							globule.stopServices()
 							// restart it...
-							fmt.Println("Start gRpc Services")
 							globule.startServices()
 							// start proxies
-							fmt.Println("Start gRpc Proxies")
 							globule.startProxies()
 
 							// restart watching
 							process.ManageServicesProcess(globule.exit)
-
 						}
 
 						// clear context
@@ -829,11 +826,12 @@ func (globule *Globule) initDirectories() error {
  * Start proxies
  */
 func (globule *Globule) startProxies() {
+	fmt.Println("Start gRpc proxies")
 	services, err := config.GetServicesConfigurations()
 	if err == nil {
 		for i := 0; i < len(services); i++ {
 			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt( services[i]["Process"]))
 		}
 	}
 }
@@ -843,7 +841,7 @@ func (globule *Globule) startProxies() {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
-
+	fmt.Println("Start gRpc Services")
 	// Retreive all configurations
 	services, err := config.GetServicesConfigurations()
 	if err != nil {
@@ -1009,11 +1007,7 @@ func (globule *Globule) Serve() error {
 	globule.initDirectories()
 
 	// Start microservice manager.
-	fmt.Println("Start gRpc Services")
 	globule.startServices()
-
-	fmt.Println("Start gRpc Proxies")
-	time.Sleep(5 * time.Second)
 
 	// start proxies
 	globule.startProxies()

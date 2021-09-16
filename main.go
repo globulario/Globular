@@ -1253,8 +1253,8 @@ func __dist(g *Globule, path string) {
 	if runtime.GOOS == "windows" {
 		destExec += ".exe"
 	}
-	
-	err := Utility.Copy(globularExec, path+"/" + destExec)
+
+	err := Utility.Copy(globularExec, path+"/"+destExec)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1290,7 +1290,7 @@ func __dist(g *Globule, path string) {
 	// install services...
 	services, err := config_.GetServicesConfigurations()
 	if err != nil {
-		log.Println("fail to retreive services whit error ", err)
+		log.Println("fail to retreive services with error ", err)
 	}
 
 	for i := 0; i < len(services); i++ {
@@ -1351,7 +1351,7 @@ func __dist(g *Globule, path string) {
 									}
 
 									config["Path"] = config_.GetRootDir() + "/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] =  config_.GetRootDir() + "/" + serviceDir + "/" + name + ".proto"
+									config["Proto"] = config_.GetRootDir() + "/" + serviceDir + "/" + name + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
