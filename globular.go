@@ -152,6 +152,7 @@ func NewGlobule() *Globule {
 
 	// Here I will keep the start time...
 
+
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -220,6 +221,9 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/uploads", FileUploadHandler)
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+
+	// Stop previous running process.
+	g.stopProxies()
 
 	g.initDirectories()
 
@@ -822,16 +826,29 @@ func (globule *Globule) initDirectories() error {
 	return nil
 }
 
+
+func (globule *Globule) stopProxies(){
+	execName := "grpcwebproxy"
+	if runtime.GOOS == "windows" {
+		execName += ".exe" // in case of windows
+	}
+
+	// Kill all proxies..
+	Utility.KillProcessByName(execName)
+
+}
+
 /**
  * Start proxies
  */
 func (globule *Globule) startProxies() {
 	fmt.Println("Start gRpc proxies")
+
 	services, err := config.GetServicesConfigurations()
 	if err == nil {
 		for i := 0; i < len(services); i++ {
 			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt( services[i]["Process"]))
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
 		}
 	}
 }
@@ -944,6 +961,7 @@ func (globule *Globule) startRefreshLocalTokens() {
 				// I will iterate over the list token and close expired session...
 				globule.refreshLocalTokens()
 			case <-globule.exit:
+
 				return // exit from the loop when the service exit.
 			}
 		}
@@ -1335,6 +1353,7 @@ func (globule *Globule) Listen() error {
 		// get the value from the configuration files.
 		go func() {
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
+			
 		}()
 	}
 
