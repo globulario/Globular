@@ -848,7 +848,7 @@ func (globule *Globule) startProxies() {
 	if err == nil {
 		for i := 0; i < len(services); i++ {
 			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
 		}
 	}
 }
