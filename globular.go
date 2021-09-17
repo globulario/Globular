@@ -425,7 +425,7 @@ func (globule *Globule) watchConfig() {
 							globule.startProxies()
 
 							// restart watching
-							process.ManageServicesProcess(globule.exit)
+							//process.ManageServicesProcess(globule.exit)
 						}
 
 						// clear context
@@ -848,7 +848,7 @@ func (globule *Globule) startProxies() {
 	if err == nil {
 		for i := 0; i < len(services); i++ {
 			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange)
+			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
 		}
 	}
 }
@@ -896,14 +896,19 @@ func (globule *Globule) startServices() error {
 		config.SaveServiceConfiguration(services[i]) // save service values.
 
 		// Create the service process.
-		err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
+		_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
 		if err != nil {
 			log.Println("fail to start service ", services[i]["Name"], err)
 		}
 
 		// Here I will listen for logger event...
 		go func() {
+			// subscribe to log events
 			globule.subscribe("new_log_evt", logListener)
+
+			// subscribe to serive change event.
+			globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
+			
 		}()
 	}
 
@@ -1039,7 +1044,7 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Start managing process.
-	process.ManageServicesProcess(globule.exit)
+	//process.ManageServicesProcess(globule.exit)
 
 	return globule.serve()
 }
@@ -1232,6 +1237,15 @@ func (globule *Globule) watchForUpdate() {
 			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
 	}()
+}
+
+// received when service configuration change.
+func updateServiceConfigurationListener(evt *eventpb.Event) {
+	s := make(map[string]interface{})
+	err := json.Unmarshal(evt.Data, &s)
+	if err == nil {
+		config.SetServiceConfiguration(s)
+	}
 }
 
 // Try to display application message in a nice way
