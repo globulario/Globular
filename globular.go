@@ -855,7 +855,7 @@ func (globule *Globule) startProxies() {
  */
 func (globule *Globule) startServices() error {
 	fmt.Println("Start gRpc Services")
-	
+
 	// Stop previous running process.
 	globule.stopProxies()
 
@@ -957,13 +957,14 @@ func (globule *Globule) createApplicationConnection() error {
  */
 func (globule *Globule) startRefreshLocalTokens() {
 	globule.refreshLocalTokens()
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout) * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout - 10) * time.Millisecond)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				// Connect to service update events...
 				// I will iterate over the list token and close expired session...
+				fmt.Println("refresh local token")
 				globule.refreshLocalTokens()
 			case <-globule.exit:
 
@@ -987,7 +988,6 @@ func (globule *Globule) stopServices() error {
 	globule.exit <- true
 
 	for i := 0; i < len(services); i++ {
-		fmt.Println("---------------------------> 990")
 		process.KillServiceProcess(services[i])
 	}
 
@@ -1527,6 +1527,7 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
  * Generate local token key, that key is use by internal service.
  */
 func (globule *Globule) refreshLocalTokens() error {
+
 
 	tokensPath := globule.config + "/tokens"
 
