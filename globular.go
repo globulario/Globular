@@ -152,7 +152,6 @@ func NewGlobule() *Globule {
 
 	// Here I will keep the start time...
 
-
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -221,9 +220,6 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/uploads", FileUploadHandler)
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
-
-	// Stop previous running process.
-	g.stopProxies()
 
 	g.initDirectories()
 
@@ -826,13 +822,13 @@ func (globule *Globule) initDirectories() error {
 	return nil
 }
 
-
-func (globule *Globule) stopProxies(){
+func (globule *Globule) stopProxies() {
 	execName := "grpcwebproxy"
 	if runtime.GOOS == "windows" {
 		execName += ".exe" // in case of windows
 	}
 
+	fmt.Println("Kill all proxy process")
 	// Kill all proxies..
 	Utility.KillProcessByName(execName)
 
@@ -859,6 +855,10 @@ func (globule *Globule) startProxies() {
  */
 func (globule *Globule) startServices() error {
 	fmt.Println("Start gRpc Services")
+	
+	// Stop previous running process.
+	globule.stopProxies()
+
 	// Retreive all configurations
 	services, err := config.GetServicesConfigurations()
 	if err != nil {
@@ -908,7 +908,7 @@ func (globule *Globule) startServices() error {
 
 			// subscribe to serive change event.
 			globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
-			
+
 		}()
 	}
 
@@ -977,6 +977,7 @@ func (globule *Globule) startRefreshLocalTokens() {
  * Stop all services.
  */
 func (globule *Globule) stopServices() error {
+
 	services, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
@@ -986,6 +987,7 @@ func (globule *Globule) stopServices() error {
 	globule.exit <- true
 
 	for i := 0; i < len(services); i++ {
+		fmt.Println("---------------------------> 990")
 		process.KillServiceProcess(services[i])
 	}
 
@@ -1367,7 +1369,7 @@ func (globule *Globule) Listen() error {
 		// get the value from the configuration files.
 		go func() {
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
-			
+
 		}()
 	}
 
