@@ -419,9 +419,6 @@ func (globule *Globule) watchConfig() {
 							globule.startServices()
 							// start proxies
 							globule.startProxies()
-
-							// restart watching
-							//process.ManageServicesProcess(globule.exit)
 						}
 
 						// clear context
@@ -964,7 +961,6 @@ func (globule *Globule) startRefreshLocalTokens() {
 			case <-ticker.C:
 				// Connect to service update events...
 				// I will iterate over the list token and close expired session...
-				fmt.Println("refresh local token")
 				globule.refreshLocalTokens()
 			case <-globule.exit:
 
@@ -1044,9 +1040,6 @@ func (globule *Globule) Serve() error {
 
 	// Set the log information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// Start managing process.
-	//process.ManageServicesProcess(globule.exit)
 
 	return globule.serve()
 }
