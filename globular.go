@@ -28,7 +28,6 @@ import (
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
 	"github.com/globulario/services/golang/globular_service"
-	"github.com/globulario/services/golang/interceptors"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/persistence/persistence_client"
@@ -414,21 +413,22 @@ func (globule *Globule) watchConfig() {
 						if hasProtocolChange || hasDomainChange || certificateChange {
 							// stop services...
 							fmt.Println("Stop gRpc Services")
+
 							globule.stopServices()
+
 							// restart it...
 							globule.startServices()
+
 							// start proxies
 							globule.startProxies()
 						}
 
 						// clear context
 						cancel()
-
 						checksum = checksum_
 					}
 				}
 			}
-
 			time.Sleep(time.Duration(10) * time.Second)
 		}
 	}()
@@ -512,7 +512,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -544,7 +544,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := interceptors.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -565,10 +565,10 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
  * IP address that result in a fail request... The DNS must be fix!
  */
 func (globule *Globule) obtainCertificateForCsr() error {
-	config := lego.NewConfig(globule)
-	config.Certificate.KeyType = certcrypto.RSA2048
+	config_ := lego.NewConfig(globule)
+	config_.Certificate.KeyType = certcrypto.RSA2048
 
-	client, err := lego.NewClient(config)
+	client, err := lego.NewClient(config_)
 	if err != nil {
 
 		return err
@@ -577,7 +577,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	if len(globule.DNS) > 0 {
 
 		// Get the local token.
-		token, err := globule.getLocalToken(globule.DNS[0].(string))
+		token, err := security.GetLocalToken(globule.DNS[0].(string))
 		if err != nil {
 			return err
 		}
@@ -852,6 +852,23 @@ func (globule *Globule) startProxies() {
  */
 func (globule *Globule) startServices() error {
 	fmt.Println("Start gRpc Services")
+	
+	// The local key.
+	key, err := security.GetLocalKey()
+	if err != nil {
+		return err
+	}
+
+	// This is the local token...
+	tokenString, err := security.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(globule.config + "/tokens/"+globule.getDomain()+"_token", []byte(tokenString), 0644)
+	if err != nil {
+		return err
+	}
 
 	// Stop previous running process.
 	globule.stopProxies()
@@ -950,27 +967,6 @@ func (globule *Globule) createApplicationConnection() error {
 }
 
 /**
- * Start refresh local token...
- */
-func (globule *Globule) startRefreshLocalTokens() {
-	globule.refreshLocalTokens()
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout - 10) * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				// Connect to service update events...
-				// I will iterate over the list token and close expired session...
-				globule.refreshLocalTokens()
-			case <-globule.exit:
-
-				return // exit from the loop when the service exit.
-			}
-		}
-	}()
-}
-
-/**
  * Stop all services.
  */
 func (globule *Globule) stopServices() error {
@@ -1024,6 +1020,16 @@ func (globule *Globule) serve() error {
  */
 func (globule *Globule) Serve() error {
 
+	// So here if another instance of the server exist I will kill it.
+	pids, err := Utility.GetProcessIdsByName("Globular")
+	if err == nil {
+		for i := 0; i < len(pids); i++ {
+			if pids[i] != os.Getpid() {
+				Utility.TerminateProcess(pids[i], 0)
+			}
+		}
+	}
+
 	// Initialyse directories.
 	globule.initDirectories()
 
@@ -1032,9 +1038,6 @@ func (globule *Globule) Serve() error {
 
 	// start proxies
 	globule.startProxies()
-
-	// Here I will remove the local token and recreate it...
-	globule.startRefreshLocalTokens()
 
 	globule.watchConfig()
 
@@ -1083,7 +1086,7 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+				token, err := security.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 				if err != nil {
 
@@ -1514,66 +1517,4 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 		return
 	}
 	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
-}
-
-/**
- * Generate local token key, that key is use by internal service.
- */
-func (globule *Globule) refreshLocalTokens() error {
-
-
-	tokensPath := globule.config + "/tokens"
-
-	// Here I will get the list token files in the folder...
-	files, err := ioutil.ReadDir(tokensPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Remove expired token files.
-	for _, f := range files {
-		authentication_client_, err = authentication_client.NewAuthenticationService_Client(strings.ReplaceAll(f.Name(), "_token", ""), "authentication.AuthenticationService")
-		if err == nil {
-			path := tokensPath + "/" + f.Name()
-			data, err := ioutil.ReadFile(path)
-			if err == nil {
-				err := authentication_client_.ValidateToken(string(data))
-				if err != nil {
-					// remove path from the list.
-					os.Remove(path)
-				}
-			}
-		}
-	}
-
-	// The local key.
-	key, err := security.GetLocalKey()
-	if err != nil {
-		return err
-	}
-
-	// This is the local token...
-	tokenString, err := interceptors.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
-	if err != nil {
-		return err
-	}
-
-	path := tokensPath + "/" + globule.getDomain() + "_token"
-	return ioutil.WriteFile(path, []byte(tokenString), 0644)
-}
-
-/**
- * Return the local token string
- */
-func (globule *Globule) getLocalToken(domain string) (string, error) {
-	tokensPath := globule.config + "/tokens"
-	path := tokensPath + "/" + domain + "_token"
-
-	token, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return "", nil
-	}
-
-	return string(token), nil
 }

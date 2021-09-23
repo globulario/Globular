@@ -14,7 +14,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
 	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
@@ -1432,7 +1431,7 @@ func __dist(g *Globule, path string) {
 func connect_peer(g *Globule, address, user, pwd, secret string) error {
 
 	// get the local token.
-	local_token, err := g.getLocalToken(g.getDomain())
+	local_token, err := security.GetLocalToken(g.getDomain())
 	if err != nil {
 		return nil
 	}
