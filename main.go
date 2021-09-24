@@ -698,7 +698,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	}
 
 	log.Println("Connect with application manager")
-	log.Println("--------> token ", token)
 	_, err = applications_manager_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
