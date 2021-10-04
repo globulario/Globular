@@ -95,7 +95,7 @@ type Globule struct {
 
 	// Keep the version number.
 	Version  string
-	Build    int64
+	Build    int
 	Platform string
 
 	// Admin informations.
@@ -108,7 +108,7 @@ type Globule struct {
 	Discoveries []string // Contain the list of discovery service use to keep globular up to date.
 
 	// Update delay in second...
-	WatchUpdateDelay int
+	WatchUpdateDelay int64
 
 	// DNS stuff.
 	DNS              []interface{} // Domain name server use to located the server.
@@ -190,7 +190,7 @@ func NewGlobule() *Globule {
 
 	// keep up to date by default.
 	g.WatchUpdateDelay = 30 // seconds...
-	g.SessionTimeout = 15 * 60 * 1000
+	g.SessionTimeout = 15 // in minutes
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -512,7 +512,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := security.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -544,7 +544,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := security.GenerateToken(jwtKey, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -773,6 +773,7 @@ func (globule *Globule) initDirectories() error {
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
 	// Init the service with the default port address
 	if err == nil {
+
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
 			log.Println("fail to init configuation with error ", err)
@@ -860,7 +861,7 @@ func (globule *Globule) startServices() error {
 	}
 
 	// This is the local token...
-	tokenString, err := security.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
+	tokenString, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		return err
 	}
@@ -1086,7 +1087,7 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := security.GenerateToken(key, time.Duration(globule.SessionTimeout), Utility.MyMacAddr(), "", "", globule.AdminEmail)
+				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 				if err != nil {
 
