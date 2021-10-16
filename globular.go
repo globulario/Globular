@@ -233,14 +233,12 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount(globule.Domain, "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-
 		return err
 	}
 
 	// Set admin role to that account.
 	err = resource_client_.AddAccountRole("sa", "admin")
 	if err != nil {
-
 		return err
 	}
 
@@ -844,8 +842,16 @@ func (globule *Globule) startServices() error {
 			// subscribe to serive change event.
 			globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
 
+			// subscribe to start service event
+			globule.subscribe("start_service_evt", startServiceListener)
+
+			// subscribe to stop service event.
+			globule.subscribe("stop_service_evt", stopServiceListener)
+
 		}()
 	}
+
+	//time.Sleep(time.Second * 5)
 
 	// Create the admin account.
 	globule.registerAdminAccount()
@@ -1195,6 +1201,23 @@ func (globule *Globule) watchForUpdate() {
 		}
 	}()
 }
+
+func startServiceListener(evt *eventpb.Event) {
+	s := make(map[string]interface{})
+	err := json.Unmarshal(evt.Data, &s)
+	if err == nil {
+		log.Println("service ", s["Name"].(string) + ":" +  s["Id"].(string), " is running")
+	}
+}
+
+func stopServiceListener(evt *eventpb.Event) {
+	s := make(map[string]interface{})
+	err := json.Unmarshal(evt.Data, &s)
+	if err == nil {
+		log.Println("service ", s["Name"].(string) + ":" +  s["Id"].(string), " is stoped")
+	}
+}
+
 
 // received when service configuration change.
 func updateServiceConfigurationListener(evt *eventpb.Event) {
