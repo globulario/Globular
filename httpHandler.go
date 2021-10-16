@@ -199,8 +199,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 
 	// TODO fix it and uncomment it...
-	//hasAccessDenied := false
-	//infos := []*rbacpb.ResourceInfos{}
+	hasAccessDenied := false
+	infos := []*rbacpb.ResourceInfos{}
 
 	// Here I will validate applications...
 	if len(application) != 0 {
@@ -209,10 +209,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		/*
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if err != nil || !hasAccess {
-
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 			return
 		}
@@ -222,7 +220,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess || hasAccessDenied || err != nil {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		}
-		*/
+		
 	}
 
 	// domain := r.Header.Get("domain")
@@ -233,7 +231,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		} else {
 			log.Println("todo validate ", path, " for ", user, id)
-			/*
+			
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if err != nil || !hasAccess {
 				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
@@ -243,15 +241,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 				return
 			}
-			*/
+			
 		}
 	}
-
 
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
-			log.Println("-------->", err)
 			return
 		}
 

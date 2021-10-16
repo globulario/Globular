@@ -189,7 +189,7 @@ func NewGlobule() *Globule {
 
 	// keep up to date by default.
 	g.WatchUpdateDelay = 30 // seconds...
-	g.SessionTimeout = 15 // in minutes
+	g.SessionTimeout = 15   // in minutes
 
 	// Keep in global var to by http handlers.
 	globule = g
@@ -244,7 +244,6 @@ func (globule *Globule) registerAdminAccount() error {
 
 	return nil
 }
-
 
 /**
  * Return globular configuration.
@@ -332,13 +331,22 @@ func (globule *Globule) watchConfig() {
 							// stop services...
 							fmt.Println("Stop gRpc Services")
 
-							globule.stopServices()
+							err := globule.stopServices()
+							if err != nil {
+								log.Panicln(err)
+							}
 
 							// restart it...
-							globule.startServices()
+							err = globule.startServices()
+							if err != nil {
+								log.Panicln(err)
+							}
 
 							// start proxies
-							globule.startProxies()
+							err = globule.startProxies()
+							if err != nil {
+								log.Panicln(err)
+							}
 						}
 
 						// clear context
@@ -753,16 +761,20 @@ func (globule *Globule) stopProxies() {
 /**
  * Start proxies
  */
-func (globule *Globule) startProxies() {
+func (globule *Globule) startProxies() error {
 	fmt.Println("Start gRpc proxies")
-
 	services, err := config.GetServicesConfigurations()
-	if err == nil {
-		for i := 0; i < len(services); i++ {
-			// Here I will start the proxy
-			process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(services); i++ {
+		// Here I will start the proxy
+		err := process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 /**
@@ -770,12 +782,16 @@ func (globule *Globule) startProxies() {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
-	fmt.Println("Start gRpc Services")
-	
+
 	// The local key.
 	key, err := security.GetLocalKey()
 	if err != nil {
-		return err
+		err = security.GeneratePeerKeys( Utility.MyMacAddr());
+		if err != nil {
+			return err
+		}
+		// Get the key back
+		key, _ = security.GetLocalKey()
 	}
 
 	// This is the local token...
@@ -784,7 +800,7 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(globule.config + "/tokens/"+globule.getDomain()+"_token", []byte(tokenString), 0644)
+	err = ioutil.WriteFile(globule.config+"/tokens/"+globule.getDomain()+"_token", []byte(tokenString), 0644)
 	if err != nil {
 		return err
 	}
@@ -820,18 +836,27 @@ func (globule *Globule) startServices() error {
 
 		} else {
 			services[i]["TLS"] = false
+			services[i]["KeyFile"] = ""
+			services[i]["CertFile"] = ""
+			services[i]["CertAuthorityTrust"] = ""
 		}
 
 		// Save back the values...
 		services[i]["Domain"] = globule.getDomain()
 		services[i]["Mac"] = globule.Mac
 
-		config.SaveServiceConfiguration(services[i]) // save service values.
-
-		// Create the service process.
-		_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
+		err := config.SaveServiceConfiguration(services[i]) // save service values.
+		
 		if err != nil {
-			log.Println("fail to start service ", services[i]["Name"], err)
+			log.Println("fail to save service configuration with error ", err)
+		} else {
+
+			// Create the service process.
+			_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
+
+			if err != nil {
+				log.Println("fail to start service ", services[i]["Name"], err)
+			}
 		}
 
 		// Here I will listen for logger event...
@@ -868,7 +893,7 @@ func (globule *Globule) startServices() error {
 /**
  * Update peers list.
  */
-func updatePeersEvent(evt *eventpb.Event){
+func updatePeersEvent(evt *eventpb.Event) {
 
 	// re-init the list of peers.
 	globule.initPeers()
@@ -878,7 +903,7 @@ func updatePeersEvent(evt *eventpb.Event){
 /**
  * Here I will init the list of peers.
  */
- func (globule *Globule) initPeers() error {
+func (globule *Globule) initPeers() error {
 
 	resource_client_, err := GetResourceClient(globule.Domain)
 	if err != nil {
@@ -890,15 +915,15 @@ func updatePeersEvent(evt *eventpb.Event){
 		return err
 	}
 
-	globule.peers = peers;
+	globule.peers = peers
 
 	// Subscribe to new peers event...
 	globule.subscribe("update_peers_evt", updatePeersEvent)
 
 	return nil
- }
+}
 
- // func (globule *Globule) getHttpClient
+// func (globule *Globule) getHttpClient
 
 /**
  * Here I will create application backend connection.
@@ -1206,7 +1231,7 @@ func startServiceListener(evt *eventpb.Event) {
 	s := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &s)
 	if err == nil {
-		log.Println("service ", s["Name"].(string) + ":" +  s["Id"].(string), " is running")
+		log.Println("service ", s["Name"].(string)+":"+s["Id"].(string), " is running")
 	}
 }
 
@@ -1214,10 +1239,9 @@ func stopServiceListener(evt *eventpb.Event) {
 	s := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &s)
 	if err == nil {
-		log.Println("service ", s["Name"].(string) + ":" +  s["Id"].(string), " is stoped")
+		log.Println("service ", s["Name"].(string)+":"+s["Id"].(string), " is stoped")
 	}
 }
-
 
 // received when service configuration change.
 func updateServiceConfigurationListener(evt *eventpb.Event) {
