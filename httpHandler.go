@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -18,11 +19,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"log"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/security"
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/security"
 )
 
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
@@ -112,25 +113,25 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	var allowedOrigins string
-	for i:=0; i < len(globule.AllowedOrigins); i++ {
+	for i := 0; i < len(globule.AllowedOrigins); i++ {
 		allowedOrigins += globule.AllowedOrigins[i]
-		if i <  len(globule.AllowedOrigins) - 1 {
+		if i < len(globule.AllowedOrigins)-1 {
 			allowedOrigins += ","
 		}
 	}
 
-	var allowedMethods string 
-	for i:=0; i < len(globule.AllowedMethods); i++ {
+	var allowedMethods string
+	for i := 0; i < len(globule.AllowedMethods); i++ {
 		allowedMethods += globule.AllowedMethods[i]
-		if i <  len(globule.AllowedMethods) - 1 {
+		if i < len(globule.AllowedMethods)-1 {
 			allowedMethods += ","
 		}
 	}
 
 	var allowedHeaders string
-	for i:=0; i < len(globule.AllowedHeaders); i++ {
+	for i := 0; i < len(globule.AllowedHeaders); i++ {
 		allowedHeaders += globule.AllowedHeaders[i]
-		if i <  len(globule.AllowedHeaders) - 1 {
+		if i < len(globule.AllowedHeaders)-1 {
 			allowedHeaders += ","
 		}
 	}
@@ -197,52 +198,37 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	user := ""
 	hasAccess := true //TODO set it back to false when the
 
-
 	// TODO fix it and uncomment it...
 	hasAccessDenied := false
 	infos := []*rbacpb.ResourceInfos{}
 
 	// Here I will validate applications...
 	if len(application) != 0 {
-		log.Println("todo validate ", path, " for ", application)
-
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-		if err != nil || !hasAccess {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			return
+		if hasAccess && err == nil {
+			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
 		}
-
-		// validate ressource access...
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
-		if !hasAccess || hasAccessDenied || err != nil {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-		}
-		
 	}
 
-	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id, username, _, _, expiresAt, err := security.ValidateToken(token)
+		var id, username string
+		id, username, _, _, _, err = security.ValidateToken(token)
 		user = username
-		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-		} else {
-			log.Println("todo validate ", path, " for ", user, id)
-			
+		if err == nil {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
-			if err != nil || !hasAccess {
-				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+			if hasAccess && err == nil {
+				hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
 			}
-			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
-			if !hasAccess || hasAccessDenied || err != nil {
-				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				return
-			}
-			
 		}
+	}
+
+	// validate ressource access...
+	if !hasAccess || hasAccessDenied || err != nil {
+		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+		return
 	}
 
 	for _, f := range files { // loop through the files one by one
@@ -265,7 +251,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
-		
+
 		out, err := os.Create(path_)
 		if err != nil {
 			file.Close()
@@ -310,9 +296,43 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 func visit(files *[]string) filepath.WalkFunc {
 
 	return func(path string, info os.FileInfo, err error) error {
+
 		path = strings.ReplaceAll(path, "\\", "/")
 		if err != nil {
 			return nil
+		}
+
+		if strings.HasPrefix(path, config.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden"){
+
+			// Here I will set the owner write to file inside it directory...
+			//userId :=  [0:strings.Index(path[len(config.GetDataDir() + "/files/users/"):], "/")]
+			path_ := path[len(config.GetDataDir()+"/files/users/"):]
+			index := strings.Index(path_, "/")
+			userId := ""
+			if index > 0 {
+				userId = path_[0:index]
+			} else {
+				userId = path_
+			}
+
+			if len(userId) > 0 {
+				//log.Println("----> add ressource owner ", "/users/" + path_, userId)
+				globule.addResourceOwner("/users/" + path_, userId, rbacpb.SubjectType_ACCOUNT)
+			}
+		} else if strings.HasPrefix(path, config.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden"){
+			path_ := path[len(config.GetDataDir()+"/files/applications/"):]
+			index := strings.Index(path_, "/")
+			id := ""
+			if index > 0 {
+				id = path_[0:index]
+			} else {
+				id = path_
+			}
+
+			if len(id) > 0 {
+				//log.Println("----> add ressource owner ", "/users/" + path_, userId)
+				globule.addResourceOwner("/applications/" + path_, id, rbacpb.SubjectType_APPLICATION)
+			}
 		}
 
 		if err != nil {
@@ -335,9 +355,9 @@ func visit(files *[]string) filepath.WalkFunc {
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
 			*files = append(*files, path)
 		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
-			//log.Println("create video preview " + info.Name())
 			createVideoPreview(path, 20, 128)
 		}
+
 		return nil
 	}
 }
@@ -549,7 +569,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 
-
 	if rqst_path == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
@@ -587,47 +606,31 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	infos := []*rbacpb.ResourceInfos{}
 
+	// Here I will validate applications...
 	if len(application) != 0 {
-		// TODO make sure all work with Index application...
-
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		/*hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-		if err != nil || !hasAccess {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			return
+		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
+		if hasAccess && err == nil {
+			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", rqst_path)
 		}
-
-		// validate ressource access...
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
-		if !hasAccess || hasAccessDenied || err != nil {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			return
-		}*/
-		hasAccess = true
-
 	}
 
-	// domain := r.Header.Get("domain")
 	if len(token) != 0 && !hasAccess {
-		id /*username*/, _, _, _, expiresAt, err := security.ValidateToken(token)
-		if err != nil || time.Now().Before(time.Unix(expiresAt, 0)) {
-			http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-			return
-		} else {
-			hasAccess, err = globule.validateAction("/file.FileService/ServeFileHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
-			if err != nil || !hasAccess {
-				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+		var userId string
+		if err == nil {
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", userId, rbacpb.SubjectType_ACCOUNT, infos)
+			if hasAccess && err == nil {
+				hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "write", rqst_path)
 			}
-
-			hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
-			if !hasAccess || hasAccessDenied || err != nil {
-				http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-				return
-			}
-
 		}
+	}
+
+	// validate ressource access...
+	if !hasAccess || hasAccessDenied || err != nil {
+		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+		return
 	}
 
 	// if the file dosent exist... I will try to get it from the index application...
