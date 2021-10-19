@@ -316,7 +316,6 @@ func visit(files *[]string) filepath.WalkFunc {
 			}
 
 			if len(userId) > 0 {
-				//log.Println("----> add ressource owner ", "/users/" + path_, userId)
 				globule.addResourceOwner("/users/" + path_, userId, rbacpb.SubjectType_ACCOUNT)
 			}
 		} else if strings.HasPrefix(path, config.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden"){
@@ -330,7 +329,6 @@ func visit(files *[]string) filepath.WalkFunc {
 			}
 
 			if len(id) > 0 {
-				//log.Println("----> add ressource owner ", "/users/" + path_, userId)
 				globule.addResourceOwner("/applications/" + path_, id, rbacpb.SubjectType_APPLICATION)
 			}
 		}
