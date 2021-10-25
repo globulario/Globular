@@ -231,7 +231,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// Create the admin account.
-	err = resource_client_.RegisterAccount(globule.Domain, "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+	err = resource_client_.RegisterAccount(globule.Domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
 		return err
 	}
