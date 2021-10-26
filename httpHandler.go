@@ -583,9 +583,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			rqst_path = "/" + globule.IndexApplication + rqst_path
 		}
 	}
-
+	hasAccess := true
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
+		hasAccess = false
 	}
 
 	//path to file
@@ -595,17 +596,15 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if rqst_path == "/ca.crt" {
 		name = globule.creds + rqst_path
 	}
-
 	token := r.Header.Get("token")
 
-	// domain := r.Header.Get("domain")
-	hasAccess := true // TODO set it back to false when permission system will be completed.
+	//strings.HasPrefix(rqst_path,  globule.webRoot) // TODO set it back to false when permission system will be completed.
 	hasAccessDenied := false
 	var err error
 	infos := []*rbacpb.ResourceInfos{}
-
+	
 	// Here I will validate applications...
-	if len(application) != 0 {
+	if len(application) != 0 && !hasAccess {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
