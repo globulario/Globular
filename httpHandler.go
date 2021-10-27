@@ -302,7 +302,7 @@ func visit(files *[]string) filepath.WalkFunc {
 			return nil
 		}
 
-		if strings.HasPrefix(path, config.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden"){
+		if strings.HasPrefix(path, config.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
 
 			// Here I will set the owner write to file inside it directory...
 			//userId :=  [0:strings.Index(path[len(config.GetDataDir() + "/files/users/"):], "/")]
@@ -316,9 +316,9 @@ func visit(files *[]string) filepath.WalkFunc {
 			}
 
 			if len(userId) > 0 {
-				globule.addResourceOwner("/users/" + path_, userId, rbacpb.SubjectType_ACCOUNT)
+				globule.addResourceOwner("/users/"+path_, userId, rbacpb.SubjectType_ACCOUNT)
 			}
-		} else if strings.HasPrefix(path, config.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden"){
+		} else if strings.HasPrefix(path, config.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden") {
 			path_ := path[len(config.GetDataDir()+"/files/applications/"):]
 			index := strings.Index(path_, "/")
 			id := ""
@@ -329,7 +329,7 @@ func visit(files *[]string) filepath.WalkFunc {
 			}
 
 			if len(id) > 0 {
-				globule.addResourceOwner("/applications/" + path_, id, rbacpb.SubjectType_APPLICATION)
+				globule.addResourceOwner("/applications/"+path_, id, rbacpb.SubjectType_APPLICATION)
 			}
 		}
 
@@ -563,6 +563,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
+	token := r.Header.Get("token")
 
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
@@ -583,13 +584,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			rqst_path = "/" + globule.IndexApplication + rqst_path
 		}
 	}
+
 	hasAccess := true
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
-		if !strings.Contains(rqst_path, "/.hidden/"){
+		if !strings.Contains(rqst_path, "/.hidden/") {
 			hasAccess = false
 		}
-		
+
 	}
 
 	//path to file
@@ -599,37 +601,28 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if rqst_path == "/ca.crt" {
 		name = globule.creds + rqst_path
 	}
-	token := r.Header.Get("token")
 
-	//strings.HasPrefix(rqst_path,  globule.webRoot) // TODO set it back to false when permission system will be completed.
 	hasAccessDenied := false
 	var err error
-	infos := []*rbacpb.ResourceInfos{}
-	
+	var userId string
+
+	//hasAccess = false
 	// Here I will validate applications...
 	if len(application) != 0 && !hasAccess {
-		// Test if the requester has the permission to do the upload...
-		// Here I will named the methode /file.FileService/FileUploadHandler
-		// I will be threaded like a file service methode.
-		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", rqst_path)
-		}
+		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
 	}
-
+	log.Println("------------------> 612 ", len(token), " has access ", hasAccess, rqst_path)
 	if len(token) != 0 && !hasAccess {
-		var userId string
+		userId, _, _, _, _, err = security.ValidateToken(token)
 		if err == nil {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", userId, rbacpb.SubjectType_ACCOUNT, infos)
-			if hasAccess && err == nil {
-				hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "write", rqst_path)
-			}
+			log.Println("validate access for ", userId, rqst_path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 		}
 	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
-		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+		http.Error(w, "unable to read the file " + rqst_path + " Check your access privilege", http.StatusUnauthorized)
 		return
 	}
 
