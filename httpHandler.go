@@ -586,7 +586,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	hasAccess := true
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
-		hasAccess = false
+		if !strings.Contains(rqst_path, "/.hidden/"){
+			hasAccess = false
+		}
+		
 	}
 
 	//path to file
