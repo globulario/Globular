@@ -236,7 +236,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		
+
 		defer file.Close()
 
 		// Here I will set the ressource owner.
@@ -543,7 +543,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupResponse(&w, r)
-
 	dir := globule.webRoot
 
 	// If a directory with the same name as the host in the request exist
@@ -558,7 +557,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	rqst_path := path.Clean(r.URL.Path)
 
 	if rqst_path == "/null" {
-
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
 	}
 
@@ -566,9 +564,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	application := r.Header.Get("application")
 	token := r.Header.Get("token")
 
+	if len(token) == 0 {
+		// the token can be given by the url directly...
+		token = r.URL.Query().Get("token")
+	}
+
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
-
 	if rqst_path == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
@@ -612,7 +614,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(application) != 0 && !hasAccess {
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
 	}
-	log.Println("------------------> 612 ", len(token), " has access ", hasAccess, rqst_path)
+
 	if len(token) != 0 && !hasAccess {
 		userId, _, _, _, _, err = security.ValidateToken(token)
 		if err == nil {
@@ -623,7 +625,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
-		http.Error(w, "unable to read the file " + rqst_path + " Check your access privilege", http.StatusUnauthorized)
+		http.Error(w, "unable to read the file "+rqst_path+" Check your access privilege", http.StatusUnauthorized)
 		return
 	}
 
