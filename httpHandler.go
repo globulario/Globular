@@ -236,6 +236,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
+		
+		defer file.Close()
 
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
@@ -254,7 +256,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		out, err := os.Create(path_)
 		if err != nil {
-			file.Close()
 			return
 		}
 
