@@ -463,7 +463,7 @@ func createVideoPreview(path string, nb int, height int) error {
 }
 
 func getVideoDuration(path string) float64 {
-
+	// original command...
 	// ffprobe -v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=duration bob_ross_img-0-Animated.mp4
 	cmd := exec.Command("ffprobe", `-v`, `quiet`, `-print_format`, `compact=print_section=0:nokey=1:escape=csv`, `-show_entries`, `format=duration`, path)
 
@@ -569,7 +569,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		token = r.URL.Query().Get("token")
 	}
 
-	log.Println("--------------> token ", len(token), application)
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 	if rqst_path == "/" {
