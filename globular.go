@@ -629,6 +629,10 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+	// initilayse configurations...
+	// it must be call here in order to initialyse a sync map...
+	config.GetServicesConfigurations()
+
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
 	globule.DnsUpdateIpInfos = make([]interface{}, 0)
@@ -786,7 +790,7 @@ func (globule *Globule) startServices() error {
 	// The local key.
 	key, err := security.GetLocalKey()
 	if err != nil {
-		err = security.GeneratePeerKeys( Utility.MyMacAddr());
+		err = security.GeneratePeerKeys(Utility.MyMacAddr())
 		if err != nil {
 			return err
 		}
@@ -809,7 +813,7 @@ func (globule *Globule) startServices() error {
 	globule.stopProxies()
 
 	// Retreive all configurations
-	services, err := config.GetServicesConfigurations()
+	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -817,6 +821,7 @@ func (globule *Globule) startServices() error {
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
+		fmt.Println("try to start service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
 		// Set the
 		if globule.Protocol == "https" {
 
@@ -846,7 +851,7 @@ func (globule *Globule) startServices() error {
 		services[i]["Mac"] = globule.Mac
 
 		err := config.SaveServiceConfiguration(services[i]) // save service values.
-		
+
 		if err != nil {
 			log.Println("fail to save service configuration with error ", err)
 		} else {
@@ -856,21 +861,30 @@ func (globule *Globule) startServices() error {
 
 			if err != nil {
 				log.Println("fail to start service ", services[i]["Name"], err)
+			} else {
+				// Wait until the service is running...
+				for j := 0; j < 30*1000; j++ {
+					time.Sleep(time.Millisecond * 250)
+					services[i], _ = config.GetServiceConfigurationById(services[i]["Id"].(string))
+					if services[i]["State"].(string) == "running" {
+						fmt.Println("service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
+						break
+					}
+				}
 			}
 		}
 
-		// Here I will listen for logger event...
-		go func() {
-			// subscribe to log events
-			globule.subscribe("new_log_evt", logListener)
-
-			// subscribe to serive change event.
-			globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
-
-		}()
 	}
 
-	//time.Sleep(time.Second * 5)
+	// Here I will listen for logger event...
+	go func() {
+		// subscribe to log events
+		globule.subscribe("new_log_evt", logListener)
+
+		// subscribe to serive change event.
+		globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
+
+	}()
 
 	// Create the admin account.
 	globule.registerAdminAccount()
