@@ -867,12 +867,6 @@ func (globule *Globule) startServices() error {
 			// subscribe to serive change event.
 			globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
 
-			// subscribe to start service event
-			globule.subscribe("start_service_evt", startServiceListener)
-
-			// subscribe to stop service event.
-			globule.subscribe("stop_service_evt", stopServiceListener)
-
 		}()
 	}
 
@@ -1225,22 +1219,6 @@ func (globule *Globule) watchForUpdate() {
 			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
 	}()
-}
-
-func startServiceListener(evt *eventpb.Event) {
-	s := make(map[string]interface{})
-	err := json.Unmarshal(evt.Data, &s)
-	if err == nil {
-		log.Println("service ", s["Name"].(string)+":"+s["Id"].(string), " is running")
-	}
-}
-
-func stopServiceListener(evt *eventpb.Event) {
-	s := make(map[string]interface{})
-	err := json.Unmarshal(evt.Data, &s)
-	if err == nil {
-		log.Println("service ", s["Name"].(string)+":"+s["Id"].(string), " is stoped")
-	}
 }
 
 // received when service configuration change.

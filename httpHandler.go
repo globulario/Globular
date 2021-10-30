@@ -569,6 +569,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		token = r.URL.Query().Get("token")
 	}
 
+	log.Println("--------------> token ", len(token), application)
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 	if rqst_path == "/" {
