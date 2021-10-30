@@ -769,7 +769,7 @@ func (globule *Globule) startProxies() error {
 	}
 	for i := 0; i < len(services); i++ {
 		// Here I will start the proxy
-		err := process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+		_, err := process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
 		if err != nil {
 			return err
 		}
@@ -1226,6 +1226,7 @@ func updateServiceConfigurationListener(evt *eventpb.Event) {
 	s := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &s)
 	if err == nil {
+		log.Println("update service configuration event receive: ", s)
 		config.SetServiceConfiguration(s)
 	}
 }
