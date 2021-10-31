@@ -890,10 +890,14 @@ func (globule *Globule) startServices() error {
 	// Initialise the list of peers...
 	globule.initPeers()
 
-	// Convert video file if there some to be convert.
+	// Convert video file, set permissions...
 	go func() {
 		processFiles() // Process files...
 	}()
+
+
+	// Start process monitoring with prometheus.
+	process.StartProcessMonitoring(globule.PortHttp, globule.exit) 
 
 	return nil
 }
