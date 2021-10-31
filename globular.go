@@ -742,11 +742,6 @@ func (globule *Globule) initDirectories() error {
 		</html>`), 0644)
 	}
 
-	// Convert video file if there some to be convert.
-	go func() {
-		convertVideo() // call once and at each minutes....
-	}()
-
 	return nil
 }
 
@@ -894,6 +889,11 @@ func (globule *Globule) startServices() error {
 
 	// Initialise the list of peers...
 	globule.initPeers()
+
+	// Convert video file if there some to be convert.
+	go func() {
+		processFiles() // Process files...
+	}()
 
 	return nil
 }
@@ -1394,6 +1394,7 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	if resource_client_ == nil {
 		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 		if err != nil {
+			resource_client_ = nil
 			return nil, err
 		}
 
@@ -1408,6 +1409,7 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 	if persistence_client_ == nil {
 		persistence_client_, err = persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
 		if err != nil {
+			persistence_client_ = nil
 			log.Println("fail to get persistence client with error ", err)
 			return nil, err
 		}
@@ -1427,10 +1429,11 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 	if rbac_client_ == nil {
 		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
 		if err != nil {
+			rbac_client_ = nil
 			return nil, err
 		}
-
 	}
+
 	return rbac_client_, nil
 }
 
@@ -1453,6 +1456,7 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
+	log.Println("----> 1460")
 	rbac_client_, err := GetRbacClient(globule.getDomain())
 	if err != nil {
 		return false, false, err
@@ -1516,4 +1520,135 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 		return
 	}
 	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Process files.
+//////////////////////////////////////////////////////////////////////////////
+func processFiles () {
+	convertVideo()
+
+	// sleep a minute...
+	time.Sleep(1 * time.Minute)
+
+	processFiles () 
+}
+
+func convertVideo() {
+
+	pids, err := Utility.GetProcessIdsByName("ffmpeg")
+	if err == nil {
+		if len(pids) > 0 {
+			return // already running...
+		}
+	}
+
+	var files []string
+
+	err = filepath.Walk(globule.data+"/files", visit(&files))
+	if err != nil {
+		return
+	}
+	for _, file := range files {
+		file = strings.ReplaceAll(file, "\\", "/")
+		createVideoStream(file)
+	}
+}
+
+// Set file indexation to be able to search text file on the server.
+func indexFile(path string, fileType string) error {
+	return nil
+}
+
+/**
+ * Convert all kind of video to mp4 so all browser will be able to read it.
+ */
+func createVideoStream(path string) error {
+
+	path_ := path[0:strings.LastIndex(path, "/")]
+	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
+	output := path_ + "/" + name_ + ".mp4"
+
+	defer os.RemoveAll(path)
+
+	// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
+	cmd := exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		return err
+	}
+
+	// Create a video preview
+	return createVideoPreview(output, 20, 128)
+}
+
+// Here I will create video
+func createVideoPreview(path string, nb int, height int) error {
+
+	duration := getVideoDuration(path)
+	if duration == 0 {
+		return errors.New("the video lenght is 0 sec")
+	}
+
+	path_ := path[0:strings.LastIndex(path, "/")]
+	name_ := path[strings.LastIndex(path, "/")+1 : strings.LastIndex(path, ".")]
+	output := path_ + "/.hidden/" + name_ + "/__preview__"
+
+	if Utility.Exists(output) {
+		return nil
+	}
+
+	Utility.CreateDirIfNotExist(output)
+
+	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
+	start := .1 * duration
+	laps := 120 // 1 minutes
+
+	cmd := exec.Command("ffmpeg", "-i", path, "-ss", Utility.ToString(start), "-t", Utility.ToString(laps), "-vf", "scale="+Utility.ToString(height)+":-1,fps=.250", "preview_%05d.jpg")
+	cmd.Dir = output // the output directory...
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		return err
+	}
+
+	path_ = strings.ReplaceAll(path, globule.data+"/files", "")
+	path_ = path_[0:strings.LastIndex(path_, "/")]
+
+	globule.publish("reload_dir_event", []byte(path_))
+
+	return nil
+}
+
+func getVideoDuration(path string) float64 {
+	// original command...
+	// ffprobe -v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=duration bob_ross_img-0-Animated.mp4
+	cmd := exec.Command("ffprobe", `-v`, `quiet`, `-print_format`, `compact=print_section=0:nokey=1:escape=csv`, `-show_entries`, `format=duration`, path)
+
+	cmd.Dir = os.TempDir()
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	if err != nil {
+		return 0.0
+	}
+
+	duration, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
+
+	return duration
 }

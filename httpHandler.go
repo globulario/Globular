@@ -2,10 +2,9 @@ package main
 
 import (
 	"bufio"
-	"bytes"
+
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,10 +12,8 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -192,6 +189,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path := r.FormValue("path")
+
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -218,9 +216,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		id, username, _, _, _, err = security.ValidateToken(token)
 		user = username
 		if err == nil {
+			fmt.Println("Validate account with id: ", id)
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
 			if hasAccess && err == nil {
 				hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
+				if err != nil {
+					log.Println("Fail to validate action with error ", err)
+				}
+			} else {
+				log.Println("Fail to validate action with error ", err)
 			}
 		}
 	}
@@ -361,128 +365,6 @@ func visit(files *[]string) filepath.WalkFunc {
 	}
 }
 
-func convertVideo() {
-
-	pids, err := Utility.GetProcessIdsByName("ffmpeg")
-	if err == nil {
-		if len(pids) > 0 {
-			return // already running...
-		}
-	}
-
-	var files []string
-
-	err = filepath.Walk(globule.data+"/files", visit(&files))
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		file = strings.ReplaceAll(file, "\\", "/")
-		createVideoStream(file)
-	}
-
-	// sleep a minute...
-	time.Sleep(1 * time.Minute)
-	convertVideo()
-}
-
-// Set file indexation to be able to search text file on the server.
-func indexFile(path string, fileType string) error {
-	return nil
-}
-
-/**
- * Convert all kind of video to mp4 so all browser will be able to read it.
- */
-func createVideoStream(path string) error {
-
-	path_ := path[0:strings.LastIndex(path, "/")]
-	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
-	output := path_ + "/" + name_ + ".mp4"
-
-	defer os.RemoveAll(path)
-
-	// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
-	cmd := exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
-
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return err
-	}
-
-	// Create a video preview
-	return createVideoPreview(output, 20, 128)
-}
-
-// Here I will create video
-func createVideoPreview(path string, nb int, height int) error {
-
-	duration := getVideoDuration(path)
-	if duration == 0 {
-		return errors.New("the video lenght is 0 sec")
-	}
-
-	path_ := path[0:strings.LastIndex(path, "/")]
-	name_ := path[strings.LastIndex(path, "/")+1 : strings.LastIndex(path, ".")]
-	output := path_ + "/.hidden/" + name_ + "/__preview__"
-
-	if Utility.Exists(output) {
-		return nil
-	}
-
-	Utility.CreateDirIfNotExist(output)
-
-	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
-	start := .1 * duration
-	laps := 120 // 1 minutes
-
-	cmd := exec.Command("ffmpeg", "-i", path, "-ss", Utility.ToString(start), "-t", Utility.ToString(laps), "-vf", "scale="+Utility.ToString(height)+":-1,fps=.250", "preview_%05d.jpg")
-	cmd.Dir = output // the output directory...
-
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return err
-	}
-
-	path_ = strings.ReplaceAll(path, globule.data+"/files", "")
-	path_ = path_[0:strings.LastIndex(path_, "/")]
-
-	globule.publish("reload_dir_event", []byte(path_))
-
-	return nil
-}
-
-func getVideoDuration(path string) float64 {
-	// original command...
-	// ffprobe -v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=duration bob_ross_img-0-Animated.mp4
-	cmd := exec.Command("ffprobe", `-v`, `quiet`, `-print_format`, `compact=print_section=0:nokey=1:escape=csv`, `-show_entries`, `format=duration`, path)
-
-	cmd.Dir = os.TempDir()
-
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-
-	if err != nil {
-		return 0.0
-	}
-
-	duration, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
-
-	return duration
-}
 
 // That function resolve import path.
 func resolveImportPath(path string, importPath string) (string, error) {
