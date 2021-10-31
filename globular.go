@@ -1456,7 +1456,6 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-	log.Println("----> 1460")
 	rbac_client_, err := GetRbacClient(globule.getDomain())
 	if err != nil {
 		return false, false, err
