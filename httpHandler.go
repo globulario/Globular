@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/config"
+	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
 )
@@ -63,6 +63,14 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
 	config := globule.getConfig()
+
+	// give list of path...
+	config["Root"] = config_.GetRootDir()
+	config["DataPath"] = config_.GetDataDir()
+	config["ConfigPath"] = config_.GetConfigDir()
+	config["WebRoot"] = config_.GetWebRootDir()
+
+
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
 
@@ -307,11 +315,11 @@ func visit(files *[]string) filepath.WalkFunc {
 			return nil
 		}
 
-		if strings.HasPrefix(path, config.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
+		if strings.HasPrefix(path, config_.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
 
 			// Here I will set the owner write to file inside it directory...
 			//userId :=  [0:strings.Index(path[len(config.GetDataDir() + "/files/users/"):], "/")]
-			path_ := path[len(config.GetDataDir()+"/files/users/"):]
+			path_ := path[len(config_.GetDataDir()+"/files/users/"):]
 			index := strings.Index(path_, "/")
 			userId := ""
 			if index > 0 {
@@ -323,8 +331,8 @@ func visit(files *[]string) filepath.WalkFunc {
 			if len(userId) > 0 {
 				globule.addResourceOwner("/users/"+path_, userId, rbacpb.SubjectType_ACCOUNT)
 			}
-		} else if strings.HasPrefix(path, config.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden") {
-			path_ := path[len(config.GetDataDir()+"/files/applications/"):]
+		} else if strings.HasPrefix(path, config_.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden") {
+			path_ := path[len(config_.GetDataDir()+"/files/applications/"):]
 			index := strings.Index(path_, "/")
 			id := ""
 			if index > 0 {
