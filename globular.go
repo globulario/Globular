@@ -822,8 +822,8 @@ func (globule *Globule) startServices() error {
 
 			// set tls file...
 			services[i]["TLS"] = true
-			services[i]["KeyFile"] = globule.creds + "/client.pem"
-			services[i]["CertFile"] = globule.creds + "/client.crt"
+			services[i]["KeyFile"] = globule.creds + "/server.pem"
+			services[i]["CertFile"] = globule.creds + "/server.crt"
 			services[i]["CertAuthorityTrust"] = globule.creds + "/ca.crt"
 
 			if services[i]["CertificateAuthorityBundle"] != nil {

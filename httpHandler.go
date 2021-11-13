@@ -202,7 +202,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
 	user := ""
-	hasAccess := true //TODO set it back to false when the
+	hasAccess := false
 
 	// TODO fix it and uncomment it...
 	hasAccessDenied := false
