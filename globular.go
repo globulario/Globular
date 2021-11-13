@@ -818,7 +818,7 @@ func (globule *Globule) startServices() error {
 	for i := 0; i < len(services); i++ {
 		fmt.Println("try to start service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
 		// Set the
-		if globule.Protocol == "https" {
+		if len(globule.Certificate) > 0 && globule.Protocol == "https" {
 
 			// set tls file...
 			services[i]["TLS"] = true
@@ -834,6 +834,8 @@ func (globule *Globule) startServices() error {
 				services[i]["Certificate"] = globule.Certificate
 			}
 
+			// Save service configuration values, those values will be read at local client connection,
+			config.SaveServiceConfiguration(services[i]) // save service values.
 		} else {
 			services[i]["TLS"] = false
 			services[i]["KeyFile"] = ""
@@ -847,9 +849,10 @@ func (globule *Globule) startServices() error {
 
 		err := config.SaveServiceConfiguration(services[i]) // save service values.
 
+
 		if err != nil {
 			log.Println("fail to save service configuration with error ", err)
-		} else {
+		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http"){
 
 			// Create the service process.
 			_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
@@ -1344,6 +1347,9 @@ func (globule *Globule) Listen() error {
 		if err != nil {
 			return err
 		}
+
+		// start / restart services
+		globule.startServices() 
 	}
 
 	// Must be started before other services.
