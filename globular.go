@@ -313,14 +313,15 @@ func (globule *Globule) watchConfig() {
 
 						// stop the http server
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						if globule.http_server != nil {
+							if err = globule.http_server.Shutdown(ctx); err != nil {
+								log.Println("fail to stop the http server with error ", err)
+							}
 
-						if err = globule.http_server.Shutdown(ctx); err != nil {
-							log.Println("fail to stop the http server with error ", err)
-						}
-
-						if globule.https_server != nil {
-							if err := globule.https_server.Shutdown(ctx); err != nil {
-								log.Println("fail to stop the https server with error ", err)
+							if globule.https_server != nil {
+								if err := globule.https_server.Shutdown(ctx); err != nil {
+									log.Println("fail to stop the https server with error ", err)
+								}
 							}
 						}
 
@@ -849,10 +850,9 @@ func (globule *Globule) startServices() error {
 
 		err := config.SaveServiceConfiguration(services[i]) // save service values.
 
-
 		if err != nil {
 			log.Println("fail to save service configuration with error ", err)
-		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http"){
+		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			// Create the service process.
 			_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
@@ -898,9 +898,8 @@ func (globule *Globule) startServices() error {
 		processFiles() // Process files...
 	}()
 
-
 	// Start process monitoring with prometheus.
-	process.StartProcessMonitoring(globule.PortHttp, globule.exit) 
+	process.StartProcessMonitoring(globule.PortHttp, globule.exit)
 
 	return nil
 }
@@ -1349,7 +1348,7 @@ func (globule *Globule) Listen() error {
 		}
 
 		// start / restart services
-		globule.startServices() 
+		globule.startServices()
 	}
 
 	// Must be started before other services.
@@ -1534,13 +1533,13 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 //////////////////////////////////////////////////////////////////////////////
 // Process files.
 //////////////////////////////////////////////////////////////////////////////
-func processFiles () {
+func processFiles() {
 	convertVideo()
 
 	// sleep a minute...
 	time.Sleep(1 * time.Minute)
 
-	processFiles () 
+	processFiles()
 }
 
 func convertVideo() {
