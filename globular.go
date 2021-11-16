@@ -848,6 +848,11 @@ func (globule *Globule) startServices() error {
 		services[i]["Domain"] = globule.getDomain()
 		services[i]["Mac"] = globule.Mac
 
+		// Set the session timeout in minutes (ressource has that values.)
+		if services[i]["SessionTimeout"] != nil {
+			services[i]["SessionTimeout"] = globule.SessionTimeout
+		}
+
 		err := config.SaveServiceConfiguration(services[i]) // save service values.
 
 		if err != nil {
