@@ -879,6 +879,18 @@ func (globule *Globule) startServices() error {
 
 	}
 
+	// So here I will register services permissions.
+	for i := 0; i < len(services); i++ {
+		s := services[i]
+		if s["Permissions"] != nil {
+			permissions := s["Permissions"].([]interface{})
+			for j:=0; j < len(permissions); j++ {
+				globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+			}
+		}
+	}
+
+
 	// Here I will listen for logger event...
 	go func() {
 		// subscribe to log events
@@ -1476,6 +1488,14 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 	}
 
 	return rbac_client_.ValidateAccess(subject, subjectType, name, path)
+}
+
+func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
+	rbac_client_, err := GetRbacClient(globule.getDomain())
+	if err != nil {
+		return err
+	}
+	return rbac_client_.SetActionResourcesPermissions(permissions)
 }
 
 ///////////////////// event service functions ////////////////////////////////////
