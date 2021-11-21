@@ -912,6 +912,22 @@ func (globule *Globule) startServices() error {
 
 	// Convert video file, set permissions...
 	go func() {
+		// So here I will remove files that with no subject...
+		files, err := ioutil.ReadDir(config.GetDataDir() + "/files/users")
+		for i:=0; i < len(files); i++ {
+			f := files[i]
+			if f.Name() != "sa" {
+				if !globule.accountExist(f.Name()){
+					// Here I will delete the permissission...
+					globule.deleteResourcePermissions("/users/"+f.Name())
+					os.RemoveAll(config.GetDataDir() + "/files/users/" + f.Name())
+				}
+			}
+		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
 		processFiles() // Process files...
 	}()
 
@@ -1445,6 +1461,188 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 	return persistence_client_, nil
 }
 
+/**
+ * Return an application with a given id
+ */
+ func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceClient.GetAccount(accountId)
+}
+
+func (globule *Globule) accountExist(id string) bool{
+	a, err := globule.getAccount(id)
+	if err != nil || a == nil {
+		return false
+	}
+	return true
+}
+
+/**
+ * Return a group with a given id
+ */
+func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	groups, err := resourceClient.GetGroups(`{"$or":[{"_id":"` + groupId + `"},{"name":"` + groupId + `"} ]}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(groups) == 0 {
+		return nil, errors.New("no group found wiht name or _id " + groupId)
+	}
+
+	return groups[0], nil
+}
+
+/**
+ * Test if a group exist.
+ */
+func (globule *Globule)groupExist(id string) bool{
+	g, err := globule.getGroup(id)
+	if err != nil || g == nil {
+		return false
+	}
+	return true
+}
+
+/**
+ * Return an application with a given id
+ */
+func (globule *Globule) getApplication(applicationId string) (*resourcepb.Application, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	applications, err := resourceClient.GetApplications(`{"$or":[{"_id":"` + applicationId + `"},{"name":"` + applicationId + `"} ]}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(applications) == 0 {
+		return nil, errors.New("no application found wiht name or _id " + applicationId)
+	}
+
+	return applications[0], nil
+}
+
+/**
+ * Test if a application exist.
+ */
+ func (globule *Globule) applicationExist(id string) bool{
+	g, err := globule.getApplication(id)
+	if err != nil || g == nil {
+		return false
+	}
+	return true
+}
+
+/**
+ * Return a peer with a given id
+ */
+func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	peers, err := resourceClient.GetPeers(`{"$or":[{"domain":"` + peerId + `"},{"mac":"` + peerId + `"} ]}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(peers) == 0 {
+		return nil, errors.New("no peer found wiht name or _id " + peerId)
+	}
+
+	return peers[0], nil
+}
+
+
+/**
+ * Test if a peer exist.
+ */
+ func (globule *Globule) peerExist(id string) bool{
+	g, err := globule.getPeer(id)
+	if err != nil || g == nil {
+		return false
+	}
+	return true
+}
+
+/**
+ * Return a peer with a given id
+ */
+ func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	organisations, err := resourceClient.GetOrganizations(`{"$or":[{"_id":"` + organisationId + `"},{"name":"` + organisationId + `"} ]}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(organisations) == 0 {
+		return nil, errors.New("no organization found wiht name or _id " + organisationId)
+	}
+
+	return organisations[0], nil
+}
+
+
+/**
+ * Test if a organisation exist.
+ */
+ func (globule *Globule) organisationExist(id string) bool{
+	o, err := globule.getOrganization(id)
+	if err != nil || o == nil {
+		return false
+	}
+	return true
+}
+
+/**
+ * Return a role with a given id
+ */
+func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
+	resourceClient, err := GetResourceClient(globule.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	roles, err := resourceClient.GetRoles(`{"$or":[{"_id":"` + roleId + `"},{"name":"` + roleId + `"} ]}`)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roles) == 0 {
+		return nil, errors.New("no role found wiht name or _id " + roleId)
+	}
+
+	return roles[0], nil
+}
+
+/**
+ * Test if a role exist.
+ */
+ func (globule *Globule) roleExist(id string) bool{
+	r, err := globule.getRole(id)
+	if err != nil || r == nil {
+		return false
+	}
+	return true
+}
+
 //////////////////////// RBAC function //////////////////////////////////////////////
 
 /**
@@ -1496,6 +1694,14 @@ func (globule *Globule) setActionResourcesPermissions(permissions map[string]int
 		return err
 	}
 	return rbac_client_.SetActionResourcesPermissions(permissions)
+}
+
+func (globule *Globule) deleteResourcePermissions(path string) error {
+	rbac_client_, err := GetRbacClient(globule.getDomain())
+	if err != nil {
+		return err
+	}
+	return rbac_client_.DeleteResourcePermissions(path)
 }
 
 ///////////////////// event service functions ////////////////////////////////////
@@ -1582,6 +1788,7 @@ func convertVideo() {
 	if err != nil {
 		return
 	}
+
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
 		createVideoStream(file)
