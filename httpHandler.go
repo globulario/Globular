@@ -70,7 +70,6 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["ConfigPath"] = config_.GetConfigDir()
 	config["WebRoot"] = config_.GetWebRootDir()
 
-
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
 
@@ -197,10 +196,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the path where to upload the file.
 	path := r.FormValue("path")
+	path = strings.ReplaceAll(path, "\\", "/")
 
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
+
 	user := ""
 	hasAccess := false
 
@@ -219,22 +220,29 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if len(token) != 0 && !hasAccess {
-		var id, username string
-		id, username, _, _, _, err = security.ValidateToken(token)
-		user = username
-		if err == nil {
-			fmt.Println("Validate account with id: ", id)
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", id, rbacpb.SubjectType_ACCOUNT, infos)
-			if hasAccess && err == nil {
-				hasAccess, hasAccessDenied, err = globule.validateAccess(id, rbacpb.SubjectType_ACCOUNT, "write", path)
-				if err != nil {
-					log.Println("Fail to validate action with error ", err)
-				}
-			} else {
+	// get the user id from the token...
+	if len(token) != 0 {
+		user, _, _, _, _, err = security.ValidateToken(token)
+		if err != nil {
+			user = ""
+		}
+	}
+
+	if len(user) != 0 {
+
+		if !hasAccess {
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
+		}
+		fmt.Println("Validate accees for user with id: ", user)
+		if hasAccess && err == nil {
+			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
+			if err != nil {
 				log.Println("Fail to validate action with error ", err)
 			}
+		} else {
+			log.Println("Fail to validate action with error ", err)
 		}
+
 	}
 
 	// validate ressource access...
@@ -372,7 +380,6 @@ func visit(files *[]string) filepath.WalkFunc {
 		return nil
 	}
 }
-
 
 // That function resolve import path.
 func resolveImportPath(path string, importPath string) (string, error) {
