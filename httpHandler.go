@@ -511,7 +511,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-	fmt.Println("==----------------> ", application)
 	//hasAccess = false
 	// Here I will validate applications...
 	if len(application) != 0 && !hasAccess {
