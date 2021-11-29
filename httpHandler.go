@@ -466,6 +466,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		token = r.URL.Query().Get("token")
 	}
 
+	if len(application) == 0 {
+		// the token can be given by the url directly...
+		application = r.URL.Query().Get("application")
+	}
+
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 	if rqst_path == "/" {
@@ -506,6 +511,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
+	fmt.Println("==----------------> ", application)
 	//hasAccess = false
 	// Here I will validate applications...
 	if len(application) != 0 && !hasAccess {
