@@ -133,6 +133,7 @@ YOUTUBE-dl
     sudo chmod a+rx /usr/local/bin/youtube-dl
     
 ffmpeg
+    https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
     sudo apt install -y ffmpeg
 
 gRPC

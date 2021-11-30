@@ -884,12 +884,11 @@ func (globule *Globule) startServices() error {
 		s := services[i]
 		if s["Permissions"] != nil {
 			permissions := s["Permissions"].([]interface{})
-			for j:=0; j < len(permissions); j++ {
+			for j := 0; j < len(permissions); j++ {
 				globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
 			}
 		}
 	}
-
 
 	// Here I will listen for logger event...
 	go func() {
@@ -914,12 +913,12 @@ func (globule *Globule) startServices() error {
 	go func() {
 		// So here I will remove files that with no subject...
 		files, err := ioutil.ReadDir(config.GetDataDir() + "/files/users")
-		for i:=0; i < len(files); i++ {
+		for i := 0; i < len(files); i++ {
 			f := files[i]
 			if f.Name() != "sa" {
-				if !globule.accountExist(f.Name()){
+				if !globule.accountExist(f.Name()) {
 					// Here I will delete the permissission...
-					globule.deleteResourcePermissions("/users/"+f.Name())
+					globule.deleteResourcePermissions("/users/" + f.Name())
 					os.RemoveAll(config.GetDataDir() + "/files/users/" + f.Name())
 				}
 			}
@@ -1464,7 +1463,7 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 /**
  * Return an application with a given id
  */
- func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
+func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
 	resourceClient, err := GetResourceClient(globule.Domain)
 	if err != nil {
 		return nil, err
@@ -1473,7 +1472,7 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 	return resourceClient.GetAccount(accountId)
 }
 
-func (globule *Globule) accountExist(id string) bool{
+func (globule *Globule) accountExist(id string) bool {
 	a, err := globule.getAccount(id)
 	if err != nil || a == nil {
 		return false
@@ -1505,7 +1504,7 @@ func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
 /**
  * Test if a group exist.
  */
-func (globule *Globule)groupExist(id string) bool{
+func (globule *Globule) groupExist(id string) bool {
 	g, err := globule.getGroup(id)
 	if err != nil || g == nil {
 		return false
@@ -1537,7 +1536,7 @@ func (globule *Globule) getApplication(applicationId string) (*resourcepb.Applic
 /**
  * Test if a application exist.
  */
- func (globule *Globule) applicationExist(id string) bool{
+func (globule *Globule) applicationExist(id string) bool {
 	g, err := globule.getApplication(id)
 	if err != nil || g == nil {
 		return false
@@ -1566,11 +1565,10 @@ func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
 	return peers[0], nil
 }
 
-
 /**
  * Test if a peer exist.
  */
- func (globule *Globule) peerExist(id string) bool{
+func (globule *Globule) peerExist(id string) bool {
 	g, err := globule.getPeer(id)
 	if err != nil || g == nil {
 		return false
@@ -1581,7 +1579,7 @@ func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
 /**
  * Return a peer with a given id
  */
- func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
+func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
 	resourceClient, err := GetResourceClient(globule.Domain)
 	if err != nil {
 		return nil, err
@@ -1599,11 +1597,10 @@ func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
 	return organisations[0], nil
 }
 
-
 /**
  * Test if a organisation exist.
  */
- func (globule *Globule) organisationExist(id string) bool{
+func (globule *Globule) organisationExist(id string) bool {
 	o, err := globule.getOrganization(id)
 	if err != nil || o == nil {
 		return false
@@ -1635,7 +1632,7 @@ func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
 /**
  * Test if a role exist.
  */
- func (globule *Globule) roleExist(id string) bool{
+func (globule *Globule) roleExist(id string) bool {
 	r, err := globule.getRole(id)
 	if err != nil || r == nil {
 		return false
@@ -1800,6 +1797,19 @@ func indexFile(path string, fileType string) error {
 	return nil
 }
 
+func getStreamInfos(path string)(map[string]interface{}, error){
+	
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_format", "-show_streams", "-print_format", "json", path)
+	data, _ := cmd.CombinedOutput()
+	infos := make(map[string]interface{})
+	err:= json.Unmarshal(data, &infos)
+	if err != nil {
+		return nil, err
+	}
+
+	return infos, nil
+}
+
 /**
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
@@ -1811,14 +1821,48 @@ func createVideoStream(path string) error {
 
 	defer os.RemoveAll(path)
 
-	// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
-	cmd := exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
+	// Test if cuda is available.
+	getVersion := exec.Command("ffmpeg", "-version")
+	version, _ := getVersion.CombinedOutput()
+
+
+	var cmd *exec.Cmd
+
+	streamInfos, err := getStreamInfos(path)
+	if err != nil {
+		return err
+	}
+
+	// Here I will test if the encoding is valid
+	encoding := streamInfos["streams"].([]interface{})[0].(map[string]interface{})["codec_long_name"].(string)
+	fmt.Println("video codec is ", encoding)
+
+
+	//  https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
+	if strings.Index(string(version), "--enable-cuda-nvcc") > -1{
+		log.Println("use gpu for convert ", path)
+		if strings.HasPrefix(encoding, "H.264"){
+			cmd = exec.Command("ffmpeg","-i", path, "-c:v", "h264_nvenc",  output)
+		} else if strings.HasPrefix(encoding, "H.265"){
+			// ffmpeg.exe -hwaccel cuvid -i inmovie.mov -c:v h264_nvenc -pix_fmt yuv420p -preset slow -rc vbr_hq -b:v 8M -maxrate:v 10M -c:a aac -b:a 224k outmovie.mp4
+			cmd = exec.Command("ffmpeg","-i", path, "-c:v", "hevc_nvenc",  output)
+		}
+		
+	}else{
+		log.Println("use cpu for convert ", path)
+		// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
+		if strings.HasPrefix(encoding, "H.264"){
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
+		} else if strings.HasPrefix(encoding, "H.265"){
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
+		}
+	}
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
