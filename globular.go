@@ -975,6 +975,7 @@ func (globule *Globule) initPeers() error {
  * Here I will create application backend connection.
  */
 func (globule *Globule) createApplicationConnection() error {
+	fmt.Println("Create applications connections...")
 	resource_client_, err := GetResourceClient(globule.Domain)
 	if err != nil {
 		return err
@@ -990,10 +991,11 @@ func (globule *Globule) createApplicationConnection() error {
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				app := applications[i]
-				//err := persistence_client_.CreateConnection("local_resource", "local_resource",  "localhost", 27017, 0, "sa", "adminadmin", 500, "", true)
-				err := persistence_client_.CreateConnection(app.Id+"_db", app.Id, globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
+				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
+				}else{
+					fmt.Println("connection for application ", app.Id, " was created")
 				}
 			}
 		}
