@@ -1296,7 +1296,12 @@ func logListener(evt *eventpb.Event) {
 		if info["application"] != nil {
 			header = info["application"].(string)
 		}
-		messageTime := time.Unix(int64(Utility.ToInt(info["date"])), 0)
+
+		occurences := info["occurences"].([]interface{})
+		occurence:= occurences[len(occurences) - 1].(map[string]interface{})
+		
+		// Set the occurence date.
+		messageTime := time.Unix(int64(Utility.ToInt(occurence["date"])), 0)
 		method := "NA"
 		if info["method"] != nil {
 			method = info["method"].(string)
