@@ -205,6 +205,9 @@ func NewGlobule() *Globule {
 	// Handle the get ca certificate function
 	http.HandleFunc("/get_ca_certificate", getCaCertificateHanldler)
 
+	// Return info about the server
+	http.HandleFunc("/stats", getHardwareData)
+
 	// Return the san server configuration.
 	http.HandleFunc("/get_san_conf", getSanConfigurationHandler)
 
@@ -994,7 +997,7 @@ func (globule *Globule) createApplicationConnection() error {
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
-				}else{
+				} else {
 					fmt.Println("connection for application ", app.Id, " was created")
 				}
 			}
@@ -1297,8 +1300,8 @@ func logListener(evt *eventpb.Event) {
 		}
 
 		occurences := info["occurences"].([]interface{})
-		occurence:= occurences[len(occurences) - 1].(map[string]interface{})
-		
+		occurence := occurences[len(occurences)-1].(map[string]interface{})
+
 		// Set the occurence date.
 		messageTime := time.Unix(int64(Utility.ToInt(occurence["date"])), 0)
 		method := "NA"
@@ -1804,12 +1807,12 @@ func indexFile(path string, fileType string) error {
 	return nil
 }
 
-func getStreamInfos(path string)(map[string]interface{}, error){
-	
+func getStreamInfos(path string) (map[string]interface{}, error) {
+
 	cmd := exec.Command("ffprobe", "-v", "error", "-show_format", "-show_streams", "-print_format", "json", path)
 	data, _ := cmd.CombinedOutput()
 	infos := make(map[string]interface{})
-	err:= json.Unmarshal(data, &infos)
+	err := json.Unmarshal(data, &infos)
 	if err != nil {
 		return nil, err
 	}
@@ -1832,7 +1835,6 @@ func createVideoStream(path string) error {
 	getVersion := exec.Command("ffmpeg", "-version")
 	version, _ := getVersion.CombinedOutput()
 
-
 	var cmd *exec.Cmd
 
 	streamInfos, err := getStreamInfos(path)
@@ -1844,23 +1846,22 @@ func createVideoStream(path string) error {
 	encoding := streamInfos["streams"].([]interface{})[0].(map[string]interface{})["codec_long_name"].(string)
 	fmt.Println("video codec is ", encoding)
 
-
 	//  https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
-	if strings.Index(string(version), "--enable-cuda-nvcc") > -1{
+	if strings.Index(string(version), "--enable-cuda-nvcc") > -1 {
 		log.Println("use gpu for convert ", path)
-		if strings.HasPrefix(encoding, "H.264"){
-			cmd = exec.Command("ffmpeg","-i", path, "-c:v", "h264_nvenc",  output)
-		} else if strings.HasPrefix(encoding, "H.265"){
+		if strings.HasPrefix(encoding, "H.264") {
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc", output)
+		} else if strings.HasPrefix(encoding, "H.265") {
 			// ffmpeg.exe -hwaccel cuvid -i inmovie.mov -c:v h264_nvenc -pix_fmt yuv420p -preset slow -rc vbr_hq -b:v 8M -maxrate:v 10M -c:a aac -b:a 224k outmovie.mp4
-			cmd = exec.Command("ffmpeg","-i", path, "-c:v", "hevc_nvenc",  output)
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "hevc_nvenc", output)
 		}
-		
-	}else{
+
+	} else {
 		log.Println("use cpu for convert ", path)
 		// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
-		if strings.HasPrefix(encoding, "H.264"){
+		if strings.HasPrefix(encoding, "H.264") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
-		} else if strings.HasPrefix(encoding, "H.265"){
+		} else if strings.HasPrefix(encoding, "H.265") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
 		}
 	}
