@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"strconv"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,18 +13,20 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
-	"runtime"
+
+	"github.com/davecourtois/Utility"
+	config_ "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/security"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
-	"github.com/davecourtois/Utility"
-	config_ "github.com/globulario/services/golang/config"
-	"github.com/globulario/services/golang/rbac/rbacpb"
-	"github.com/globulario/services/golang/security"
 )
 
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
@@ -84,16 +85,19 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 func dealwithErr(err error) {
 	if err != nil {
-			fmt.Println(err)
-			//os.Exit(-1)
+		fmt.Println(err)
+		//os.Exit(-1)
 	}
 }
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	runtimeOS := runtime.GOOS
+
 	// memory
 	vmStat, err := mem.VirtualMemory()
 	dealwithErr(err)
+
+	stats := make(map[string]interface{})
 
 	// disk - start from "/" mount point for Linux
 	// might have to change for Windows!!
@@ -122,6 +126,12 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	html = html + "Free memory: " + strconv.FormatUint(vmStat.Free, 10) + " bytes<br>"
 	html = html + "Percentage used memory: " + strconv.FormatFloat(vmStat.UsedPercent, 'f', 2, 64) + "%<br>"
 
+	stats["os"] = runtimeOS
+	stats["memory"] = make(map[string]interface{}, 0)
+	stats["memory"].(map[string]interface{})["total"] = strconv.FormatUint(vmStat.Total, 10)
+	stats["memory"].(map[string]interface{})["free"] = strconv.FormatUint(vmStat.Free, 10)
+	stats["memory"].(map[string]interface{})["used_percent"] = strconv.FormatFloat(vmStat.UsedPercent, 'f', 2, 64)
+
 	// get disk serial number.... strange... not available from disk package at compile time
 	// undefined: disk.GetDiskSerialNumber
 	//serial := disk.GetDiskSerialNumber("/dev/sda")
@@ -133,6 +143,11 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	html = html + "Free disk space: " + strconv.FormatUint(diskStat.Free, 10) + " bytes<br>"
 	html = html + "Percentage disk space usage: " + strconv.FormatFloat(diskStat.UsedPercent, 'f', 2, 64) + "%<br>"
 
+	stats["disk"] = make(map[string]interface{}, 0)
+	stats["disk"].(map[string]interface{})["total"] = strconv.FormatUint(diskStat.Total, 10)
+	stats["disk"].(map[string]interface{})["free"] = strconv.FormatUint(diskStat.Used, 10)
+	stats["disk"].(map[string]interface{})["used_bytes"] = strconv.FormatUint(diskStat.Used, 10)
+
 	// since my machine has one CPU, I'll use the 0 index
 	// if your machine has more than 1 CPU, use the correct index
 	// to get the proper data
@@ -143,8 +158,17 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	html = html + "Model Name: " + cpuStat[0].ModelName + "<br>"
 	html = html + "Speed: " + strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64) + " MHz <br>"
 
+	// cpu infos.
+	stats["cpu"] = make(map[string]interface{}, 0)
+	stats["cpu"].(map[string]interface{})["index_number"] = strconv.FormatInt(int64(cpuStat[0].CPU), 10)
+	stats["cpu"].(map[string]interface{})["vendor_id"] = cpuStat[0].VendorID
+	stats["cpu"].(map[string]interface{})["family"] = cpuStat[0].Family
+	stats["cpu"].(map[string]interface{})["number_of_cores"] = strconv.FormatInt(int64(cpuStat[0].Cores), 10)
+	stats["cpu"].(map[string]interface{})["model_name"] = cpuStat[0].ModelName
+	stats["cpu"].(map[string]interface{})["speed"] = strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64)
+
 	for idx, cpupercent := range percentage {
-			html = html + "Current CPU utilization: [" + strconv.Itoa(idx) + "] " + strconv.FormatFloat(cpupercent, 'f', 2, 64) + "%<br>"
+		html = html + "Current CPU utilization: [" + strconv.Itoa(idx) + "] " + strconv.FormatFloat(cpupercent, 'f', 2, 64) + "%<br>"
 	}
 
 	html = html + "Hostname: " + hostStat.Hostname + "<br>"
@@ -162,21 +186,21 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	html = html + "Host ID(uuid): " + hostStat.HostID + "<br>"
 
 	for _, interf := range interfStat {
-			html = html + "------------------------------------------------------<br>"
-			html = html + "Interface Name: " + interf.Name + "<br>"
+		html = html + "------------------------------------------------------<br>"
+		html = html + "Interface Name: " + interf.Name + "<br>"
 
-			if interf.HardwareAddr != "" {
-					html = html + "Hardware(MAC) Address: " + interf.HardwareAddr + "<br>"
-			}
+		if interf.HardwareAddr != "" {
+			html = html + "Hardware(MAC) Address: " + interf.HardwareAddr + "<br>"
+		}
 
-			for _, flag := range interf.Flags {
-					html = html + "Interface behavior or flags: " + flag + "<br>"
-			}
+		for _, flag := range interf.Flags {
+			html = html + "Interface behavior or flags: " + flag + "<br>"
+		}
 
-			for _, addr := range interf.Addrs {
-					html = html + "IPv6 or IPv4 addresses: " + addr.String() + "<br>"
+		for _, addr := range interf.Addrs {
+			html = html + "IPv6 or IPv4 addresses: " + addr.String() + "<br>"
 
-			}
+		}
 
 	}
 
