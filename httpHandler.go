@@ -174,6 +174,9 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 		for _, addr := range interf.Addrs {
 			network_interface["addresses"] = append(network_interface["addresses"].([]string), addr.String())
 		}
+
+		stats["network_interfaces"] = append(stats["network_interfaces"].([]map[string]interface{}), network_interface)
+
 	}
 
 	// generate a json output.
