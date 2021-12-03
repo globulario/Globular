@@ -121,11 +121,6 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	interfStat, err := net.Interfaces()
 	dealwithErr(err)
 
-	html := "<html>OS : " + runtimeOS + "<br>"
-	html = html + "Total memory: " + strconv.FormatUint(vmStat.Total, 10) + " bytes <br>"
-	html = html + "Free memory: " + strconv.FormatUint(vmStat.Free, 10) + " bytes<br>"
-	html = html + "Percentage used memory: " + strconv.FormatFloat(vmStat.UsedPercent, 'f', 2, 64) + "%<br>"
-
 	stats["os"] = runtimeOS
 	stats["memory"] = make(map[string]interface{}, 0)
 	stats["memory"].(map[string]interface{})["total"] = strconv.FormatUint(vmStat.Total, 10)
@@ -135,14 +130,6 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	// get disk serial number.... strange... not available from disk package at compile time
 	// undefined: disk.GetDiskSerialNumber
 	//serial := disk.GetDiskSerialNumber("/dev/sda")
-
-	//html = html + "Disk serial number: " + serial + "<br>"
-
-	html = html + "Total disk space: " + strconv.FormatUint(diskStat.Total, 10) + " bytes <br>"
-	html = html + "Used disk space: " + strconv.FormatUint(diskStat.Used, 10) + " bytes<br>"
-	html = html + "Free disk space: " + strconv.FormatUint(diskStat.Free, 10) + " bytes<br>"
-	html = html + "Percentage disk space usage: " + strconv.FormatFloat(diskStat.UsedPercent, 'f', 2, 64) + "%<br>"
-
 	stats["disk"] = make(map[string]interface{}, 0)
 	stats["disk"].(map[string]interface{})["total"] = strconv.FormatUint(diskStat.Total, 10)
 	stats["disk"].(map[string]interface{})["free"] = strconv.FormatUint(diskStat.Used, 10)
@@ -151,12 +138,6 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	// since my machine has one CPU, I'll use the 0 index
 	// if your machine has more than 1 CPU, use the correct index
 	// to get the proper data
-	html = html + "CPU index number: " + strconv.FormatInt(int64(cpuStat[0].CPU), 10) + "<br>"
-	html = html + "VendorID: " + cpuStat[0].VendorID + "<br>"
-	html = html + "Family: " + cpuStat[0].Family + "<br>"
-	html = html + "Number of cores: " + strconv.FormatInt(int64(cpuStat[0].Cores), 10) + "<br>"
-	html = html + "Model Name: " + cpuStat[0].ModelName + "<br>"
-	html = html + "Speed: " + strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64) + " MHz <br>"
 
 	// cpu infos.
 	stats["cpu"] = make(map[string]interface{}, 0)
@@ -166,47 +147,41 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	stats["cpu"].(map[string]interface{})["number_of_cores"] = strconv.FormatInt(int64(cpuStat[0].Cores), 10)
 	stats["cpu"].(map[string]interface{})["model_name"] = cpuStat[0].ModelName
 	stats["cpu"].(map[string]interface{})["speed"] = strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64)
-
+	stats["cpu"].(map[string]interface{})["utilizations"] = make([]map[string]interface{}, 0)
 	for idx, cpupercent := range percentage {
-		html = html + "Current CPU utilization: [" + strconv.Itoa(idx) + "] " + strconv.FormatFloat(cpupercent, 'f', 2, 64) + "%<br>"
+		stats["cpu"].(map[string]interface{})["utilizations"] = append(stats["cpu"].(map[string]interface{})["utilizations"].([]map[string]interface{}), map[string]interface{}{"idx": strconv.Itoa(idx), "utilization": strconv.FormatFloat(cpupercent, 'f', 2, 64)})
 	}
 
-	html = html + "Hostname: " + hostStat.Hostname + "<br>"
-	html = html + "Uptime: " + strconv.FormatUint(hostStat.Uptime, 10) + "<br>"
-	html = html + "Number of processes running: " + strconv.FormatUint(hostStat.Procs, 10) + "<br>"
+	stats["hostname"] = hostStat.Hostname
+	stats["uptime"] = strconv.FormatUint(hostStat.Uptime, 10)
+	stats["number_of_running_processes"] = strconv.FormatUint(hostStat.Procs, 10)
 
 	// another way to get the operating system name
 	// both darwin for Mac OSX, For Linux, can be ubuntu as platform
 	// and linux for OS
+	stats["os"] = hostStat.OS
+	stats["platform"] = hostStat.Platform
 
-	html = html + "OS: " + hostStat.OS + "<br>"
-	html = html + "Platform: " + hostStat.Platform + "<br>"
+	stats["network_interfaces"] = make([]map[string]interface{}, 0)
 
 	// the unique hardware id for this machine
-	html = html + "Host ID(uuid): " + hostStat.HostID + "<br>"
-
 	for _, interf := range interfStat {
-		html = html + "------------------------------------------------------<br>"
-		html = html + "Interface Name: " + interf.Name + "<br>"
+		network_interface := make(map[string]interface{}, 0)
+		network_interface["mac"] = interf.HardwareAddr
 
-		if interf.HardwareAddr != "" {
-			html = html + "Hardware(MAC) Address: " + interf.HardwareAddr + "<br>"
-		}
-
-		for _, flag := range interf.Flags {
-			html = html + "Interface behavior or flags: " + flag + "<br>"
-		}
-
+		network_interface["flags"] = interf.Flags
+		network_interface["addresses"] = make([]string, 0)
 		for _, addr := range interf.Addrs {
-			html = html + "IPv6 or IPv4 addresses: " + addr.String() + "<br>"
-
+			network_interface["addresses"] = append(network_interface["addresses"].([]string), addr.String())
 		}
-
 	}
 
-	html = html + "</html>"
+	// generate a json output.
+	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 
-	w.Write([]byte(html))
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(stats)
 
 }
 
