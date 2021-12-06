@@ -125,6 +125,7 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	stats["memory"] = make(map[string]interface{}, 0)
 	stats["memory"].(map[string]interface{})["total"] = strconv.FormatUint(vmStat.Total, 10)
 	stats["memory"].(map[string]interface{})["free"] = strconv.FormatUint(vmStat.Free, 10)
+	stats["memory"].(map[string]interface{})["used"] = strconv.FormatUint(vmStat.Used, 10)
 	stats["memory"].(map[string]interface{})["used_percent"] = strconv.FormatFloat(vmStat.UsedPercent, 'f', 2, 64)
 
 	// get disk serial number.... strange... not available from disk package at compile time
