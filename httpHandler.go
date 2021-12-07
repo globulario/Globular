@@ -314,6 +314,18 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
 
+	// If the header dosent contain the required values i I will try to get it from the 
+	// http query instead...
+	if len(token) == 0 {
+		// the token can be given by the url directly...
+		token = r.URL.Query().Get("token")
+	}
+
+	if len(application) == 0 {
+		// the token can be given by the url directly...
+		application = r.URL.Query().Get("application")
+	}
+
 	user := ""
 	hasAccess := false
 
