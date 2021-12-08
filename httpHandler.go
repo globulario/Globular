@@ -310,6 +310,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
 	path = strings.ReplaceAll(path, "\\", "/")
 
+	
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -333,6 +334,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	hasAccessDenied := false
 	infos := []*rbacpb.ResourceInfos{}
 
+	
+	log.Println("---------------------> upload file application: ", application, " path ", path)
+	
 	// Here I will validate applications...
 	if len(application) != 0 {
 		// Test if the requester has the permission to do the upload...
@@ -389,7 +393,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if len(application) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, application, rbacpb.SubjectType_APPLICATION)
 		}
-
+		
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
