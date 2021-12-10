@@ -334,9 +334,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	hasAccessDenied := false
 	infos := []*rbacpb.ResourceInfos{}
 
-	
-	log.Println("---------------------> upload file application: ", application, " path ", path)
-	
 	// Here I will validate applications...
 	if len(application) != 0 {
 		// Test if the requester has the permission to do the upload...
