@@ -75,6 +75,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["DataPath"] = config_.GetDataDir()
 	config["ConfigPath"] = config_.GetConfigDir()
 	config["WebRoot"] = config_.GetWebRootDir()
+	config["Public"] = config_.GetPublicDirs()
 
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
@@ -287,6 +288,20 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, crt)
 }
 
+// Return true if the file is found in the public path...
+func isPublic(path string) bool {
+	public := config_.GetPublicDirs()
+	path = strings.ReplaceAll(path, "\\", "/")
+	if Utility.Exists(path) {
+		for i := 0; i < len(public); i++ {
+			if strings.HasPrefix(path, public[i]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 /**
  * This code is use to upload a file into the tmp directory of the server
  * via http request.
@@ -395,7 +410,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		path_ := path + "/" + f.Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
-		} else {
+		} else if !isPublic(path_){
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
@@ -616,6 +631,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasAccess := true
+	var name string
+
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
 		if !strings.Contains(rqst_path, "/.hidden/") {
@@ -623,9 +640,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-	//path to file
-	name := path.Join(dir, rqst_path)
+	
+	// path to file
+	if !isPublic(rqst_path){
+		name = path.Join(dir, rqst_path)
+	}else{
+		name = rqst_path
+		hasAccess = true
+	}
 
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {
@@ -698,7 +720,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else if strings.HasSuffix(name, ".css") {
 		w.Header().Add("Content-Type", "text/css")
-
 	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
 		w.Header().Add("Content-Type", "text/html")
 	}

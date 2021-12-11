@@ -1796,6 +1796,14 @@ func convertVideo() {
 		return
 	}
 
+	// Also convert video from public file...
+	for i:=0; i < len(config.GetPublicDirs()); i++ {
+		err = filepath.Walk(config.GetPublicDirs()[i], visit(&files))
+		if err != nil {
+			return
+		}
+	}
+
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
 		createVideoStream(file)
@@ -1823,7 +1831,7 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 /**
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
-func createVideoStream(path string) error {
+ func createVideoStream(path string) error {
 
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
@@ -1849,11 +1857,17 @@ func createVideoStream(path string) error {
 	//  https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 	if strings.Index(string(version), "--enable-cuda-nvcc") > -1 {
 		log.Println("use gpu for convert ", path)
-		if strings.HasPrefix(encoding, "H.264") {
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc", output)
+		if strings.HasPrefix(encoding, "H.264") || strings.HasPrefix(encoding, "MPEG-4 part 2") {
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc",  "-c:a", "aac", output)
 		} else if strings.HasPrefix(encoding, "H.265") {
-			// ffmpeg.exe -hwaccel cuvid -i inmovie.mov -c:v h264_nvenc -pix_fmt yuv420p -preset slow -rc vbr_hq -b:v 8M -maxrate:v 10M -c:a aac -b:a 224k outmovie.mp4
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "hevc_nvenc", output)
+			// in future when all browser will support H.265 I will compile it with this line instead.
+			//cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "hevc_nvenc",  "-c:a", "aac", output)
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc",  "-c:a", "aac", "-pix_fmt", "yuv420p", output)
+			
+		}else{
+			err := errors.New("no encoding command foud for " + encoding)
+			fmt.Println(err.Error())
+			return err
 		}
 
 	} else {
@@ -1862,7 +1876,12 @@ func createVideoStream(path string) error {
 		if strings.HasPrefix(encoding, "H.264") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
 		} else if strings.HasPrefix(encoding, "H.265") {
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
+			// cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac",  "-pix_fmt", "yuv420p", output)
+		}else{
+			err := errors.New("no encoding command foud for " + encoding)
+			fmt.Println(err.Error())
+			return err
 		}
 	}
 
@@ -1879,6 +1898,7 @@ func createVideoStream(path string) error {
 	// Create a video preview
 	return createVideoPreview(output, 20, 128)
 }
+
 
 // Here I will create video
 func createVideoPreview(path string, nb int, height int) error {
