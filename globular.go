@@ -1876,8 +1876,9 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 		if strings.HasPrefix(encoding, "H.264") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
 		} else if strings.HasPrefix(encoding, "H.265") {
+			// in future when all browser will support H.265 I will compile it with this line instead.
 			// cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac",  "-pix_fmt", "yuv420p", output)
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac",  "-pix_fmt", "yuv420p", output)
 		}else{
 			err := errors.New("no encoding command foud for " + encoding)
 			fmt.Println(err.Error())
