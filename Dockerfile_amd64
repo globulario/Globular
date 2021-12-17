@@ -3,44 +3,76 @@ FROM ubuntu
 RUN apt-get update && apt-get install -y gnupg2 \
     wget \
   && rm -rf /var/lib/apt/lists/*
-RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg && apt-key add 41EFC99D.gpg
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
 RUN apt-get update && apt-get install -y \
   build-essential \
   curl \
+  nano \
   mongodb
 
+RUN apt-get install python3
+RUN update-alternatives --install  /usr/bin/python python /usr/bin/python3 1000 
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Moscow
+RUN apt-get install -y ffmpeg
+
 # -- Install prometheus
-RUN wget https://github.com/prometheus/prometheus/releases/download/v2.23.0/prometheus-2.23.0.linux-amd64.tar.gz
-RUN tar -xf prometheus-2.23.0.linux-amd64.tar.gz
-RUN cp prometheus-2.23.0.linux-amd64/prometheus /usr/local/bin/
-RUN cp prometheus-2.23.0.linux-amd64/promtool /usr/local/bin/
-RUN cp -r prometheus-2.23.0.linux-amd64/consoles /etc/prometheus/
-RUN cp -r prometheus-2.23.0.linux-amd64/console_libraries /etc/prometheus/
-RUN rm -rf prometheus-2.23.0.linux-amd64*
+RUN wget https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz
+RUN tar -xf prometheus-2.32.0.linux-amd64.tar.gz
+RUN cp prometheus-2.32.0.linux-amd64/prometheus /usr/local/bin/
+RUN cp prometheus-2.32.0.linux-amd64/promtool /usr/local/bin/
+RUN cp -r prometheus-2.32.0.linux-amd64/consoles /etc/prometheus/
+RUN cp -r prometheus-2.32.0.linux-amd64/console_libraries /etc/prometheus/
+RUN rm -rf prometheus-2.32.0.linux-amd64*
 
 # -- Install alert manager
-RUN wget https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz
-RUN tar -xf alertmanager-0.21.0.linux-amd64.tar.gz
-RUN cp alertmanager-0.21.0.linux-amd64/alertmanager /usr/local/bin
-RUN rm -rf alertmanager-0.21.0.linux-amd64*
+RUN wget https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz
+RUN tar -xf alertmanager-0.23.0.linux-amd64.tar.gz
+RUN cp alertmanager-0.23.0.linux-amd64/alertmanager /usr/local/bin
+RUN rm -rf alertmanager-0.23.0.linux-amd64*
 
 # -- Install node exporter
-RUN wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
-RUN tar -xf node_exporter-1.0.1.linux-amd64.tar.gz
-RUN cp node_exporter-1.0.1.linux-amd64/node_exporter /usr/local/bin
-RUN rm -rf node_exporter-1.0.1.linux-amd64*
+RUN wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+RUN tar -xf node_exporter-1.3.1.linux-amd64.tar.gz
+RUN cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
+RUN rm -rf node_exporter-1.3.1.linux-amd64*
 
 # -- Install unix odbc drivers.
-RUN curl http://www.unixodbc.org/unixODBC-2.3.7.tar.gz --output unixODBC-2.3.7.tar.gz
-RUN tar -xvf unixODBC-2.3.7.tar.gz
-RUN rm unixODBC-2.3.7.tar.gz
-WORKDIR unixODBC-2.3.7
+RUN curl http://www.unixodbc.org/unixODBC-2.3.9.tar.gz --output unixODBC-2.3.9.tar.gz
+RUN tar -xvf unixODBC-2.3.9.tar.gz
+RUN rm unixODBC-2.3.9.tar.gz
+WORKDIR unixODBC-2.3.9
 RUN ./configure && make all install clean && ldconfig
 
+# -- Install zlib
+RUN curl  https://zlib.net/zlib-1.2.11.tar.gz --output zlib-1.2.11.tar.gz
+RUN tar -xvf zlib-1.2.11.tar.gz
+RUN rm zlib-1.2.11.tar.gz
+WORKDIR zlib-1.2.11
+RUN ./configure && make all install clean && ldconfig
+
+# -- Install xapian the search engine.
+RUN curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
+RUN tar -xvf xapian-core-1.4.18.tar.xz
+RUN rm xapian-core-1.4.18.tar.xz
+WORKDIR xapian-core-1.4.18
+RUN ./configure && make all install clean && ldconfig
+
+# -- Install youtube-dl
+RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
+RUN chmod a+rx /usr/local/bin/youtube-dl
+
 # -- Copy globular files.
-RUN mkdir /globular
-ADD Globular /globular
-COPY bin /globular/bin
-COPY proto /globular/proto
-COPY services /globular/services
-COPY webroot /globular/webroot
+RUN mkdir /usr/local/share/globular
+RUN mkdir /etc/globular
+RUN mkdir /etc/globular/config
+RUN mkdir /var/globular
+RUN mkdir /var/globular/data
+RUN mkdir /var/globular/webroot
+ADD Globular /usr/local/share/globular
+COPY bin /usr/local/share/globular/bin
+COPY services /usr/local/share/globular/services
+WORKDIR /usr/local/share/globular
+ENV PATH="/usr/local/share/globular/bin:${PATH}"
+ENTRYPOINT ["/usr/local/share/globular/Globular"]

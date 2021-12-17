@@ -160,8 +160,7 @@ func NewGlobule() *Globule {
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.IndexApplication = "" // I will use the installer as defaut.
-
-	g.PortHttp = 80              // The default http port
+	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
 

@@ -1413,9 +1413,6 @@ func __dist(g *Globule, path string) {
 		}
 	}
 
-	dockerfile += `WORKDIR /globular
-	ENTRYPOINT ["/globular/Globular"]`
-
 	// save docker.
 	err = ioutil.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
 	if err != nil {
