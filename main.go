@@ -1102,18 +1102,75 @@ func dist(g *Globule, path string, revision string) {
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
 		preinst := `
 		echo "Welcome to Globular!-)"
-		echo "Note on Dependencies"
-		echo "Those dependencies can be install after globular installation. It's strongly recommended"
-		echo "to have MogonDB installed, all Globular applications made use of it. But if you plan to"
-		echo "use Globular as simple webserver you can live whitout MongoDB."
-		echo "Prometheus is use to keep Globular monitoring informations."
-		echo "Youtube-dl, Transmission-cli and FFmpeg give are required if you plan to use media files (mp3, mp4...) in"
-		echo "your applications."
-		echo "- 1. MongoDB https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/"
-		echo "- 2. Prometheus https://prometheus.io/download/"
-		echo "- 3. Youtube-dl sudo apt-get install youtube-dl"
-		echo "- 4. Transmission-cli https://phil.tech/2009/How-to-Install-Transmission-CLI-to-Ubuntu-Server/"
-		echo "- 5. FFmpeg sudo apt install ffmpeg"
+
+		echo "insall dependencies..."
+
+		apt-get update && apt-get install -y gnupg2 \
+		wget \
+		&& rm -rf /var/lib/apt/lists/*
+
+		wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
+		apt-get update && apt-get install -y \
+		build-essential \
+		curl \
+		nano \
+		mongodb
+
+		apt-get install python3
+		update-alternatives --install  /usr/bin/python python /usr/bin/python3 1000 
+
+		apt-get install -y ffmpeg
+
+		# -- Install prometheus
+		wget https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz
+		tar -xf prometheus-2.32.0.linux-amd64.tar.gz
+		cp prometheus-2.32.0.linux-amd64/prometheus /usr/local/bin/
+		cp prometheus-2.32.0.linux-amd64/promtool /usr/local/bin/
+		cp -r prometheus-2.32.0.linux-amd64/consoles /etc/prometheus/
+		cp -r prometheus-2.32.0.linux-amd64/console_libraries /etc/prometheus/
+		rm -rf prometheus-2.32.0.linux-amd64*
+
+		# -- Install alert manager
+		wget https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz
+		tar -xf alertmanager-0.23.0.linux-amd64.tar.gz
+		cp alertmanager-0.23.0.linux-amd64/alertmanager /usr/local/bin
+		rm -rf alertmanager-0.23.0.linux-amd64*
+
+		# -- Install node exporter
+		wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+		tar -xf node_exporter-1.3.1.linux-amd64.tar.gz
+		cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
+		rm -rf node_exporter-1.3.1.linux-amd64*
+
+		# -- Install unix odbc drivers.
+		curl http://www.unixodbc.org/unixODBC-2.3.9.tar.gz --output unixODBC-2.3.9.tar.gz
+		tar -xvf unixODBC-2.3.9.tar.gz
+		rm unixODBC-2.3.9.tar.gz
+		cd unixODBC-2.3.9
+		./configure && make all install clean && ldconfig
+		cd ..
+
+		# -- Install zlib
+		curl  https://zlib.net/zlib-1.2.11.tar.gz --output zlib-1.2.11.tar.gz
+		tar -xvf zlib-1.2.11.tar.gz
+		rm zlib-1.2.11.tar.gz
+		cd zlib-1.2.11
+		./configure && make all install clean && ldconfig
+		cd ..
+
+		# -- Install xapian the search engine.
+
+		curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
+		tar -xvf xapian-core-1.4.18.tar.xz
+		rm xapian-core-1.4.18.tar.xz
+		cd xapian-core-1.4.18
+		./configure && make all install clean && ldconfig
+		cd ..
+
+		# -- Install youtube-dl
+		curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
+		chmod a+rx /usr/local/bin/youtube-dl
+
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
 		fi

@@ -463,6 +463,8 @@ func visit(files *[]string) filepath.WalkFunc {
 			return nil
 		}
 
+		
+
 		if strings.HasPrefix(path, config_.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
 
 			// Here I will set the owner write to file inside it directory...
