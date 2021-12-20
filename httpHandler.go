@@ -307,7 +307,7 @@ func isPublic(path string) bool {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
-
+	
 	setupResponse(&w, r)
 
 	// I will
@@ -390,7 +390,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		return
 	}
-
+	
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
