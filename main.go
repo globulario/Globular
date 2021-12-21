@@ -1074,15 +1074,19 @@ func dist(g *Globule, path string, revision string) {
 
 		// Here I will set the script to run before the installation...
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
+		// TODO create tow version one for arm7 and one for amd64
 		preinst := `
 		echo "Welcome to Globular!-)"
 
 		echo "insall dependencies..."
 
 		apt-get update && apt-get install -y gnupg2 \
-		wget \		build-essential \
+		wget \		
+		build-essential \
 		curl \
 		nano \
+		python3 \
+		python-is-python3 \
 		openssh-server \
 		&& rm -rf /var/lib/apt/lists/*
 
@@ -1094,7 +1098,7 @@ func dist(g *Globule, path string, revision string) {
 		rm -R mongodb-linux-x86_64-ubuntu2004-5.0.5
 
 		apt-get install python3
-		update-alternatives --install  /usr/bin/python python /usr/bin/python3 1000 
+		update-alternatives --install -y  /usr/bin/python python /usr/bin/python3 1000 
 
 		apt-get install -y ffmpeg
 
@@ -1400,6 +1404,11 @@ func __dist(g *Globule, path string) {
 									if config["Root"] != nil {
 										if name == "file.FileService" {
 											config["Root"] = config_.GetDataDir() + "/files"
+
+											// I will also copy the mime type directory
+											config["Public"] = make([]string, 0)
+											Utility.CopyDir(execPath[0:lastIndex]+"/mimetypes", path+"/"+serviceDir+"/"+id)
+
 										} else if name == "conversation.ConversationService" {
 											config["Root"] = config_.GetDataDir()
 										}

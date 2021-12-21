@@ -7,7 +7,14 @@ RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg
 RUN apt-get update && apt-get install -y \
   build-essential \
   curl \
+  nano \
+  python3 \
+  python-is-python3 \
   mongodb
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Moscow
+RUN apt-get install -y ffmpeg
 
 # -- Install prometheus
 RUN wget https://github.com/prometheus/prometheus/releases/download/v2.23.0/prometheus-2.23.0.linux-armv7.tar.gz
@@ -36,6 +43,24 @@ RUN tar -xvf unixODBC-2.3.7.tar.gz
 RUN rm unixODBC-2.3.7.tar.gz
 WORKDIR unixODBC-2.3.7
 RUN ./configure && make all install clean && ldconfig
+
+# -- Install zlib
+RUN curl  https://zlib.net/zlib-1.2.11.tar.gz --output zlib-1.2.11.tar.gz
+RUN tar -xvf zlib-1.2.11.tar.gz
+RUN rm zlib-1.2.11.tar.gz
+WORKDIR zlib-1.2.11
+RUN ./configure && make all install clean && ldconfig
+
+# -- Install xapian the search engine.
+RUN curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
+RUN tar -xvf xapian-core-1.4.18.tar.xz
+RUN rm xapian-core-1.4.18.tar.xz
+WORKDIR xapian-core-1.4.18
+RUN ./configure && make all install clean && ldconfig
+
+# -- Install youtube-dl
+RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
+RUN chmod a+rx /usr/local/bin/youtube-dl
 
 # -- Copy globular files.
 RUN mkdir /globular

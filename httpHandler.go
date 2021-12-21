@@ -325,12 +325,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
 	path = strings.ReplaceAll(path, "\\", "/")
 
-	
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
 
-	// If the header dosent contain the required values i I will try to get it from the 
+	// If the header dosent contain the required values i I will try to get it from the
 	// http query instead...
 	if len(token) == 0 {
 		// the token can be given by the url directly...
@@ -405,12 +404,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if len(application) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, application, rbacpb.SubjectType_APPLICATION)
 		}
-		
+
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
-		} else if !isPublic(path_){
+		} else if !isPublic(path_) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
@@ -462,8 +461,6 @@ func visit(files *[]string) filepath.WalkFunc {
 		if err != nil {
 			return nil
 		}
-
-		
 
 		if strings.HasPrefix(path, config_.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
 
@@ -642,11 +639,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-	
+
 	// path to file
-	if !isPublic(rqst_path){
+	if !isPublic(rqst_path) {
 		name = path.Join(dir, rqst_path)
-	}else{
+	} else {
 		name = rqst_path
 		hasAccess = true
 	}
