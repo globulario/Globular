@@ -38,6 +38,9 @@ func (g *Globule) Start(s service.Service) error {
 		logger.Info("Running under service manager.")
 	}
 
+	// stop mongo demon if it running
+	Utility.KillProcessByName("mongod")
+
 	// Start should not block. Do the actual work async.
 	go g.run()
 	return nil
@@ -1069,35 +1072,6 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println(err)
 		}
 
-		// test the
-		/*
-			installMongoScript :=`
-			cd ~/
-			wget http://downloads.mongodb.org/linux/mongodb-linux-x86_64-1.2.2.tgz
-			tar -xf mongodb-linux-x86_64-1.2.2.tgz
-			mkdir -p /var/mongodb
-			mv mongodb-linux-x86_64-1.2.2/* /var/mongodb/
-			ln -nfs /var/mongodb/bin/mongod /usr/local/sbin
-
-			# Ensures the required folders exist for MongoDB to run properly
-			mkdir -p /data/db
-			mkdir -p /usr/local/mongodb/logs
-
-			# Downloads the MongoDB init script to the /etc/init.d/ folder
-			# Renames it to mongodb and makes it executable
-			cd /etc/init.d/
-			wget http://gist.github.com/raw/162954/f5d6434099b192f2da979a0356f4ec931189ad07/gistfile1.sh
-			mv gistfile1.sh mongodb
-			chmod +x mongodb
-
-			# Ensure MongoDB starts up automatically after every system (re)boot
-			update-rc.d mongodb start 51 S .
-
-			# Starts up MongoDB right now
-			/etc/init.d/mongodb start
-			`
-		*/
-
 		// Here I will set the script to run before the installation...
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
 		preinst := `
@@ -1106,15 +1080,18 @@ func dist(g *Globule, path string, revision string) {
 		echo "insall dependencies..."
 
 		apt-get update && apt-get install -y gnupg2 \
-		wget \
-		&& rm -rf /var/lib/apt/lists/*
-
-		wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
-		apt-get update && apt-get install -y \
-		build-essential \
+		wget \		build-essential \
 		curl \
 		nano \
-		mongodb
+		openssh-server \
+		&& rm -rf /var/lib/apt/lists/*
+
+		# install mongo db..
+		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
+		tar -zxvf mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
+		cp -R -n mongodb-linux-x86_64-ubuntu2004-5.0.5/bin/* /usr/local/bin
+		rm mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
+		rm -R mongodb-linux-x86_64-ubuntu2004-5.0.5
 
 		apt-get install python3
 		update-alternatives --install  /usr/bin/python python /usr/bin/python3 1000 
