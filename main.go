@@ -1521,12 +1521,6 @@ func generate_token(g *Globule, address, user, pwd string) error {
  */
 func connect_peer(g *Globule, address, token string) error {
 
-	// get the local token.
-	local_token, err := security.GetLocalToken(g.getDomain())
-	if err != nil {
-		return nil
-	}
-
 	// Create the remote ressource service
 	remote_resource_client_, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 	if err != nil {
@@ -1552,6 +1546,12 @@ func connect_peer(g *Globule, address, token string) error {
 	local_resource_client_, err := resource_client.NewResourceService_Client(g.getAddress(), "resource.ResourceService")
 	if err != nil {
 		return err
+	}
+	
+	// get the local token.
+	local_token, err := security.GetLocalToken(g.getDomain())
+	if err != nil {
+		return nil
 	}
 
 	_, _, err = local_resource_client_.RegisterPeer(local_token,  key_, peer)
