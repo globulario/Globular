@@ -10,17 +10,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
@@ -36,6 +25,17 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
+	"github.com/txn2/txeh"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
 
 	// Interceptor for authentication, event, log...
 
@@ -159,7 +159,7 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = "" // I will use the installer as defaut.
+	g.IndexApplication = ""      // I will use the installer as defaut.
 	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
@@ -178,7 +178,12 @@ func NewGlobule() *Globule {
 
 	// Set the default checksum...
 	g.Protocol = "http"
-	g.Domain = "localhost"
+	hostname, err := os.Hostname()
+	if err == nil {
+		g.Name = hostname
+	} else {
+		g.Name = "localhost"
+	}
 
 	// set default values.
 	g.CertExpirationDelay = 365
@@ -227,13 +232,13 @@ func NewGlobule() *Globule {
 }
 
 func (globule *Globule) registerAdminAccount() error {
-	resource_client_, err := GetResourceClient(globule.Domain)
+	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
 
 	// Create the admin account.
-	err = resource_client_.RegisterAccount(globule.Domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
 		return err
 	}
@@ -309,7 +314,7 @@ func (globule *Globule) watchConfig() {
 					} else {
 
 						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
-						hasDomainChange := globule.Domain != config["Domain"].(string)
+						hasDomainChange := globule.getDomain() != config["Domain"].(string)
 						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
 						json.Unmarshal(file, &globule)
 
@@ -953,7 +958,7 @@ func updatePeersEvent(evt *eventpb.Event) {
  */
 func (globule *Globule) initPeers() error {
 
-	resource_client_, err := GetResourceClient(globule.Domain)
+	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -978,12 +983,12 @@ func (globule *Globule) initPeers() error {
  */
 func (globule *Globule) createApplicationConnection() error {
 	fmt.Println("Create applications connections...")
-	resource_client_, err := GetResourceClient(globule.Domain)
+	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
 
-	persistence_client_, err := GetPersistenceClient(globule.Domain)
+	persistence_client_, err := GetPersistenceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -993,7 +998,7 @@ func (globule *Globule) createApplicationConnection() error {
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				app := applications[i]
-				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.Domain, 27017, 0, app.Id, app.Password, 500, "", true)
+				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", true)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
 				} else {
@@ -1094,11 +1099,25 @@ func (globule *Globule) Serve() error {
  * the globule asscosiate with that domain.
  */
 func (globule *Globule) getDomain() string {
-	domain := globule.Domain
-	if len(globule.Name) > 0 && domain != "localhost" {
-		domain = globule.Name + "." + domain
+	domain := globule.Name
+	if len(globule.Domain) > 0 {
+		domain = globule.Name + "." + globule.Domain
 	}
-	return domain
+
+	if len(domain) > 0 {
+		return strings.ToLower(domain)
+	}
+
+	// if no hostname or domain are found it will be use as localhost.
+	return "localhost"
+}
+
+/**
+ * Return the globule address
+ */
+func (globule *Globule) getAddress() string {
+
+	return globule.getDomain() + ":" + Utility.ToString(globule.PortHttp)
 }
 
 /**
@@ -1129,11 +1148,11 @@ func (globule *Globule) registerIpToDns() error {
 				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 				if err != nil {
-
 					return err
 				}
+
 				// The domain is the parent domain and getDomain the sub-domain
-				_, err = dns_client_.SetA(token, globule.Domain, globule.getDomain(), Utility.MyIP(), 60)
+				_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyIP(), 60)
 
 				if err != nil {
 					// return the setA error
@@ -1186,7 +1205,15 @@ func (globule *Globule) registerIpToDns() error {
 		}
 	}
 
-	return nil
+	// Finaly I will set the domain in the hosts file...
+	hosts, err := txeh.NewHostsDefault()
+	if err != nil {
+		return err
+	}
+	fmt.Println("------------> ", Utility.MyLocalIP(), globule.getDomain())
+	hosts.AddHost(Utility.MyLocalIP(), globule.getDomain())
+
+	return hosts.Save()
 }
 
 // Test if a domain is asscociated with a given ip.
@@ -1392,6 +1419,12 @@ func (globule *Globule) Listen() error {
 		globule.startServices()
 	}
 
+	// Register that peer with the dns.
+	err = globule.registerIpToDns()
+	if err != nil {
+		return err
+	}
+	
 	// Must be started before other services.
 	go func() {
 		// local - non secure connection.
@@ -1473,7 +1506,7 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
  * Return an application with a given id
  */
 func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1493,7 +1526,7 @@ func (globule *Globule) accountExist(id string) bool {
  * Return a group with a given id
  */
 func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1525,7 +1558,7 @@ func (globule *Globule) groupExist(id string) bool {
  * Return an application with a given id
  */
 func (globule *Globule) getApplication(applicationId string) (*resourcepb.Application, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1557,7 +1590,7 @@ func (globule *Globule) applicationExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1589,7 +1622,7 @@ func (globule *Globule) peerExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1621,7 +1654,7 @@ func (globule *Globule) organisationExist(id string) bool {
  * Return a role with a given id
  */
 func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
-	resourceClient, err := GetResourceClient(globule.Domain)
+	resourceClient, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -1669,7 +1702,7 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 
 // Use rbac client here...
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
-	rbac_client_, err := GetRbacClient(globule.getDomain())
+	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1677,7 +1710,7 @@ func (globule *Globule) addResourceOwner(path string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
-	rbac_client_, err := GetRbacClient(globule.getDomain())
+	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return false, err
 	}
@@ -1686,7 +1719,7 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-	rbac_client_, err := GetRbacClient(globule.getDomain())
+	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return false, false, err
 	}
@@ -1695,7 +1728,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
-	rbac_client_, err := GetRbacClient(globule.getDomain())
+	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1703,7 +1736,7 @@ func (globule *Globule) setActionResourcesPermissions(permissions map[string]int
 }
 
 func (globule *Globule) deleteResourcePermissions(path string) error {
-	rbac_client_, err := GetRbacClient(globule.getDomain())
+	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1716,7 +1749,7 @@ func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	if event_client_ != nil {
 		return event_client_, nil
 	}
-	event_client_, err = event_client.NewEventService_Client(globule.getDomain(), "event.EventService")
+	event_client_, err = event_client.NewEventService_Client(globule.getAddress(), "event.EventService")
 	if err != nil {
 		return nil, err
 	}
@@ -1750,7 +1783,7 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
 	var err error
 	if log_client_ == nil {
-		log_client_, err = log_client.NewLogService_Client(globule.Domain, "log.LogService")
+		log_client_, err = log_client.NewLogService_Client(globule.getAddress(), "log.LogService")
 		if err != nil {
 			return nil, err
 		}
@@ -1764,7 +1797,7 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 	if err != nil {
 		return
 	}
-	log_client_.Log(globule.Name, globule.Domain, functionName, level, message, fileLine, functionName)
+	log_client_.Log(globule.Name, globule.getAddress(), functionName, level, message, fileLine, functionName)
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1796,7 +1829,7 @@ func convertVideo() {
 	}
 
 	// Also convert video from public file...
-	for i:=0; i < len(config.GetPublicDirs()); i++ {
+	for i := 0; i < len(config.GetPublicDirs()); i++ {
 		err = filepath.Walk(config.GetPublicDirs()[i], visit(&files))
 		if err != nil {
 			return
@@ -1830,7 +1863,7 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 /**
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
- func createVideoStream(path string) error {
+func createVideoStream(path string) error {
 
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
@@ -1857,13 +1890,13 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 	if strings.Index(string(version), "--enable-cuda-nvcc") > -1 {
 		log.Println("use gpu for convert ", path)
 		if strings.HasPrefix(encoding, "H.264") || strings.HasPrefix(encoding, "MPEG-4 part 2") {
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc",  "-c:a", "aac", output)
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc", "-c:a", "aac", output)
 		} else if strings.HasPrefix(encoding, "H.265") {
 			// in future when all browser will support H.265 I will compile it with this line instead.
 			//cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "hevc_nvenc",  "-c:a", "aac", output)
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc",  "-c:a", "aac", "-pix_fmt", "yuv420p", output)
-			
-		}else{
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc", "-c:a", "aac", "-pix_fmt", "yuv420p", output)
+
+		} else {
 			err := errors.New("no encoding command foud for " + encoding)
 			fmt.Println(err.Error())
 			return err
@@ -1877,8 +1910,8 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 		} else if strings.HasPrefix(encoding, "H.265") {
 			// in future when all browser will support H.265 I will compile it with this line instead.
 			// cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx265", "-c:a", "aac", output)
-			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac",  "-pix_fmt", "yuv420p", output)
-		}else{
+			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", "-pix_fmt", "yuv420p", output)
+		} else {
 			err := errors.New("no encoding command foud for " + encoding)
 			fmt.Println(err.Error())
 			return err
@@ -1898,7 +1931,6 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
 	// Create a video preview
 	return createVideoPreview(output, 20, 128)
 }
-
 
 // Here I will create video
 func createVideoPreview(path string, nb int, height int) error {

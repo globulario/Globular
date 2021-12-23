@@ -23,6 +23,7 @@ import (
 	"github.com/globulario/services/golang/discovery/discovery_client"
 	"github.com/globulario/services/golang/repository/repository_client"
 	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
@@ -211,8 +212,13 @@ func main() {
 		// Connect peer one to another. The peer Domain must be set before the calling that function.
 		connect_peer_command := flag.NewFlagSet("connect_peer", flag.ExitOnError)
 		connect_peer_command_address := connect_peer_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
-		connect_peer_command_user := connect_peer_command.String("u", "", "The user name. (Required)")
-		connect_peer_command_pwd := connect_peer_command.String("p", "", "The user password. (Required)")
+		connect_peer_command_token := connect_peer_command.String("token", "", "The token valid on the destination peer (Required)")
+
+		// Generate a token from a given globule. The token can be generate as sa or any other valid user.
+		generate_token_command := flag.NewFlagSet("generate_token", flag.ExitOnError)
+		generate_token_command_address := generate_token_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
+		generate_token_command_user := generate_token_command.String("u", "", "The user name. (Required)")
+		generate_token_command_pwd := generate_token_command.String("p", "", "The user password. (Required)")
 
 		switch os.Args[1] {
 		case "start":
@@ -243,9 +249,35 @@ func main() {
 			installCertificatesCommand.Parse(os.Args[2:])
 		case "connect_peer":
 			connect_peer_command.Parse(os.Args[2:])
+		case "generate_token":
+			generate_token_command.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if generate_token_command.Parsed() {
+			address:= *generate_token_command_address 
+			if *generate_token_command_address == "" {
+				address= g.getDomain()
+			}
+
+			if *generate_token_command_user == "" {
+				generate_token_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+
+			if *generate_token_command_pwd == "" {
+				generate_token_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+
+			err = generate_token(g, address, *generate_token_command_user, *generate_token_command_pwd)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if connect_peer_command.Parsed() {
@@ -254,17 +286,13 @@ func main() {
 				fmt.Println("No peer address given!")
 				os.Exit(1)
 			}
-			if *connect_peer_command_user == "" {
+			if *connect_peer_command_token == "" {
 				connect_peer_command.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *connect_peer_command_pwd == "" {
-				connect_peer_command.PrintDefaults()
-				fmt.Println("no password was given!")
-				os.Exit(1)
-			}
-			err = connect_peer(g, *connect_peer_command_address, *connect_peer_command_user, *connect_peer_command_pwd)
+
+			err = connect_peer(g, *connect_peer_command_address, *connect_peer_command_token)
 			if err != nil {
 				log.Println(err)
 			}
@@ -1464,18 +1492,10 @@ func __dist(g *Globule, path string) {
 }
 
 /**
- * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
- * The usr and pwd are the admin password in the destionation (ns1.mycelius.com)
- * ex. ./Globular connect_peer -dest=ns1.mycelius.com -u=sa -p=adminadmin
+ * Generate a token that will be valid for 15 minutes or the session timeout delay.
  */
-func connect_peer(g *Globule, address, user, pwd string) error {
-
-	// get the local token.
-	local_token, err := security.GetLocalToken(g.getDomain())
-	if err != nil {
-		return nil
-	}
-
+func generate_token(g *Globule, address, user, pwd string) error {
+	
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
@@ -1486,6 +1506,25 @@ func connect_peer(g *Globule, address, user, pwd string) error {
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		return err
+	}
+	
+	// simply print the token in the console.
+	fmt.Println(token)
+
+	return nil
+}
+
+/**
+ * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
+ * The usr and pwd are the admin password in the destionation (ns1.mycelius.com)
+ * ex. ./Globular connect_peer -dest=ns1.mycelius.com -u=sa -p=adminadmin
+ */
+func connect_peer(g *Globule, address, token string) error {
+
+	// get the local token.
+	local_token, err := security.GetLocalToken(g.getDomain())
+	if err != nil {
+		return nil
 	}
 
 	// Create the remote ressource service
@@ -1502,19 +1541,20 @@ func connect_peer(g *Globule, address, user, pwd string) error {
 	}
 
 	// Register the peer on the remote resourse client...
-	peer, key_, err := remote_resource_client_.RegisterPeer(token, g.Mac, g.getDomain(), Utility.MyIP(), Utility.MyLocalIP(), string(key))
+	hostname, _ := os.Hostname()
+	peer, key_, err := remote_resource_client_.RegisterPeer(token,string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
 
 	// I will also register the peer to the local server, the local server must running and it domain register,
 	// he can be set in /etc/hosts if it's not a public domain.
-	local_resource_client_, err := resource_client.NewResourceService_Client(g.getDomain(), "resource.ResourceService")
+	local_resource_client_, err := resource_client.NewResourceService_Client(g.getAddress(), "resource.ResourceService")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = local_resource_client_.RegisterPeer(local_token, peer.Mac, peer.Domain, peer.ExternalIpAddress, peer.LocalIpAddress, key_)
+	_, _, err = local_resource_client_.RegisterPeer(local_token,  key_, peer)
 
 	return err
 }

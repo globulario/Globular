@@ -1,0 +1,34 @@
+To be able to use more than one computer in your local network you must configure a DNS server.
+The first step is to free the port 53. (https://www.linuxuprising.com/2020/07/ubuntu-how-to-free-up-port-53-used-by.html)
+By default that port is use by systemd-resolved service, so the first step is to stop that service.
+
+sudo systemctl stop systemd-resolved
+
+Now the second step is to configure your dns servers,
+
+sudo nano /etc/systemd/resolved.conf
+
+set the given entry...
+
+[Resolve]
+DNS=1.1.1.1
+#FallbackDNS=
+#Domains=
+#LLMNR=no
+#MulticastDNS=no
+#DNSSEC=no
+#DNSOverTLS=no
+#Cache=no
+DNSStubListener=no
+#ReadEtcHosts=yes
+
+Create a symbolic link for /run/systemd/resolve/resolv.conf with /etc/resolv.conf as the destination:
+
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+Now I will add the dns server to the list...
+
+Finaly restart the systemd-resolved service...
+
+sudo systemctl restart systemd-resolved
+

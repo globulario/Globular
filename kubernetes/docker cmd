@@ -4,10 +4,10 @@ sudo docker volume create config
 sudo docker volume create webroot
 
 # Run the image in the container.
-sudo docker run -p 10000-10100:10000-10100 -p 8080:8080 -p 9090:9090 -p 5353:5353 -p 4443:4443 -p 27017:27017 -v config:/etc/globular/config -v data:/var/globular/data -v webroot:/var/globular/webroot globular/globular
+sudo docker run -p 10000-10100:10000-10100 -p 8080:8080 -p 9090:9090 -p 5353:5353 -p 4443:4443 -p 27017:27017 -v config:/etc/globular/config -v data:/var/globular/data -v webroot:/var/globular/webroot --hostname globule0 globular/globular
 
 # Debug...
-sudo docker run -p 10000-10100:10000-10100 -p 8080:8080 -p 9090:9090 -p 5353:5353 -p 4443:4443 -p 27017:27017 -v config:/etc/globular/config -v data:/var/globular/data -v webroot:/var/globular/webroot  --rm -it --entrypoint bash globular/globular
+sudo docker run -p 10000-10100:10000-10100 -p 8080:8080 -p 9090:9090 -p 5353:5353 -p 4443:4443 -p 27017:27017 -v config:/etc/globular/config -v data:/var/globular/data -v webroot:/var/globular/webroot  --rm -it --entrypoint bash --hostname globule0 globular/globular 
 
 # Run a shell and iteract with the linux container.
 sudo docker exec -it containaner_name_here bash
