@@ -1108,17 +1108,16 @@ func dist(g *Globule, path string, revision string) {
 
 		echo "insall dependencies..."
 
-		apt-get update && apt-get install -y gnupg2 \
-		wget \		
-		curl \
-		nano \
-		python3 \
-		python-is-python3 \
-		openssh-server \
-		&& rm -rf /var/lib/apt/lists/*
+		apt-get update && apt-get install -y gnupg2 wget curl
+		apt-get install -y  nano
+		apt-get install -y  openssh-server
+		apt-get install -y  python3
+		update-alternatives --install -y  /usr/bin/python python /usr/bin/python3 1000 
+		apt-get install -y ffmpeg
+		apt-get install -y  python-is-python3
+		apt-get install build-essential
 
-		# Install the build essential.
-		sudo apt-get install build-essential
+		rm -rf /var/lib/apt/lists/*
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
@@ -1126,11 +1125,6 @@ func dist(g *Globule, path string, revision string) {
 		cp -R -n mongodb-linux-x86_64-ubuntu2004-5.0.5/bin/* /usr/local/bin
 		rm mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
 		rm -R mongodb-linux-x86_64-ubuntu2004-5.0.5
-
-		apt-get install python3
-		update-alternatives --install -y  /usr/bin/python python /usr/bin/python3 1000 
-
-		apt-get install -y ffmpeg
 
 		# -- Install prometheus
 		wget https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz
