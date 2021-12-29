@@ -257,9 +257,9 @@ func main() {
 		}
 
 		if generate_token_command.Parsed() {
-			address:= *generate_token_command_address 
+			address := *generate_token_command_address
 			if *generate_token_command_address == "" {
-				address= g.getDomain()
+				address = g.getDomain()
 			}
 
 			if *generate_token_command_user == "" {
@@ -1110,13 +1110,15 @@ func dist(g *Globule, path string, revision string) {
 
 		apt-get update && apt-get install -y gnupg2 \
 		wget \		
-		build-essential \
 		curl \
 		nano \
 		python3 \
 		python-is-python3 \
 		openssh-server \
 		&& rm -rf /var/lib/apt/lists/*
+
+		# Install the build essential.
+		sudo apt-get install build-essential
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
@@ -1206,8 +1208,8 @@ func dist(g *Globule, path string, revision string) {
 		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
 		 systemctl daemon-reload
 		 systemctl enable Globular
-		 echo "To complete your server setup go to http://localhost"
-		 echo "To start globular service 'sudo systemctl start Globular'"
+		 service Globular start
+		 
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
 		if err != nil {
@@ -1495,7 +1497,7 @@ func __dist(g *Globule, path string) {
  * Generate a token that will be valid for 15 minutes or the session timeout delay.
  */
 func generate_token(g *Globule, address, user, pwd string) error {
-	
+
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
@@ -1507,7 +1509,7 @@ func generate_token(g *Globule, address, user, pwd string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// simply print the token in the console.
 	fmt.Println(token)
 
@@ -1536,7 +1538,7 @@ func connect_peer(g *Globule, address, token string) error {
 
 	// Register the peer on the remote resourse client...
 	hostname, _ := os.Hostname()
-	peer, key_, err := remote_resource_client_.RegisterPeer(token,string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
@@ -1547,14 +1549,14 @@ func connect_peer(g *Globule, address, token string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// get the local token.
 	local_token, err := security.GetLocalToken(g.getDomain())
 	if err != nil {
 		return nil
 	}
 
-	_, _, err = local_resource_client_.RegisterPeer(local_token,  key_, peer)
+	_, _, err = local_resource_client_.RegisterPeer(local_token, key_, peer)
 
 	return err
 }
