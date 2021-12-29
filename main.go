@@ -1071,6 +1071,28 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(data_path)
 		Utility.CreateDirIfNotExist(config_path)
 
+		// Now the libraries...
+		libpath := debian_package_path + "/usr/local/lib"
+		Utility.CreateDirIfNotExist(libpath)
+
+		// zlib
+		Utility.CopyFile("/usr/local/lib/libz.a", libpath+"/libz.a")
+		Utility.CopyFile("/usr/local/lib/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+
+		// Xapian libraries
+		Utility.CopyFile("/usr/local/lib/libxapian.la", libpath+"/libxapian.la")
+		Utility.CopyFile("/usr/local/lib/libxapian.so.30.11.0", libpath+"/libxapian.so.30.11.0")
+
+		// ODBC libraries...
+		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
+		Utility.CopyFile("/usr/local/lib/libodbc.so.2.0.0", libpath+"/libodbc.so.2.0.0")
+
+		Utility.CopyFile("/usr/local/lib/libodbccr.la", libpath+"/libodbccr.la")
+		Utility.CopyFile("/usr/local/lib/libodbccr.so.2.0.0", libpath+"/libodbccr.so.2.0.0")
+
+		Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
+		Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
+
 		// Create the distribution.
 		__dist(g, distro_path)
 
@@ -1106,19 +1128,6 @@ func dist(g *Globule, path string, revision string) {
 		preinst := `
 		echo "Welcome to Globular!-)"
 
-		echo "insall dependencies..."
-
-		apt-get update && apt-get install -y gnupg2 wget curl
-		apt-get install -y  nano
-		apt-get install -y  openssh-server
-		apt-get install -y  python3
-		update-alternatives --install -y  /usr/bin/python python /usr/bin/python3 1000 
-		apt-get install -y ffmpeg
-		apt-get install -y  python-is-python3
-		apt-get install build-essential
-
-		rm -rf /var/lib/apt/lists/*
-
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
 		tar -zxvf mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
@@ -1147,37 +1156,24 @@ func dist(g *Globule, path string, revision string) {
 		cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
 		rm -rf node_exporter-1.3.1.linux-amd64*
 
-		# -- Install unix odbc drivers.
-		curl http://www.unixodbc.org/unixODBC-2.3.9.tar.gz --output unixODBC-2.3.9.tar.gz
-		tar -xvf unixODBC-2.3.9.tar.gz
-		rm unixODBC-2.3.9.tar.gz
-		cd unixODBC-2.3.9
-		./configure && make all install clean && ldconfig
-		cd ..
-
-		# -- Install zlib
-		curl  https://zlib.net/zlib-1.2.11.tar.gz --output zlib-1.2.11.tar.gz
-		tar -xvf zlib-1.2.11.tar.gz
-		rm zlib-1.2.11.tar.gz
-		cd zlib-1.2.11
-		./configure && make all install clean && ldconfig
-		cd ..
-
-		# -- Install xapian the search engine.
-
-		curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
-		tar -xvf xapian-core-1.4.18.tar.xz
-		rm xapian-core-1.4.18.tar.xz
-		cd xapian-core-1.4.18
-		./configure && make all install clean && ldconfig
-		cd ..
-
 		# -- Install youtube-dl
 		curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
 		chmod a+rx /usr/local/bin/youtube-dl
 
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
+			rm /usr/local/bin/torrent
+			rm /usr/local/bin/grpcwebproxy
+			rm /usr/local/lib/libz.so
+			rm /usr/local/lib/libz.so.1
+			rm /usr/local/lib/libodbc.so.2
+			rm /usr/local/lib/libodbc.so
+			rm /usr/local/lib/libodbccr.so.2
+			rm /usr/local/lib/libodbccr.so
+			rm /usr/local/lib/libodbcinst.so.2
+			rm /usr/local/lib/libodbcinst.so
+			rm /usr/local/lib/libxapian.so.30
+			rm /usr/local/lib/libxapian.so
 		fi
 		`
 
@@ -1192,6 +1188,9 @@ func dist(g *Globule, path string, revision string) {
 		# the environement variable file is /etc/sysconfig/Globular
 		 echo "install globular as service..."
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
+		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
+		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
+
 		 chmod ugo+x /usr/local/bin/Globular
 		 /usr/local/bin/Globular install
 		 # here I will modify the /etc/systemd/system/Globular.service file and set 
@@ -1200,6 +1199,23 @@ func dist(g *Globule, path string, revision string) {
 		 echo "set service configuration /etc/systemd/system/Globular.service"
 		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
 		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
+
+		 #create symlink
+		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so
+		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so.1
+		 ln -s /usr/local/lib/libodbc.so.2.0.0 /usr/local/lib/libodbc.so.2
+		 ln -s /usr/local/lib/libodbc.so.2.0.0 /usr/local/lib/libodbc.so
+		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so.2
+		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so
+		 ln -s /usr/local/lib/libodbcinst.so.2.0.0 /usr/local/lib/libodbcinst.so.2
+		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
+		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so.30
+		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so
+
+		 ldconfig
+		 
+		 cd; cd -
+
 		 systemctl daemon-reload
 		 systemctl enable Globular
 		 service Globular start
@@ -1237,7 +1253,21 @@ func dist(g *Globule, path string, revision string) {
 		if [ -f "/usr/local/bin/Globular" ]; then
 			find /usr/local/bin/Globular -xtype l -delete
 			rm /etc/systemd/system/Globular.service
+			rm /usr/local/bin/Globular
+			rm /usr/local/bin/torrent
+			rm /usr/local/bin/grpcwebproxy
+			rm /usr/local/lib/libz.so
+			rm /usr/local/lib/libz.so.1
+			rm /usr/local/lib/libodbc.so.2
+			rm /usr/local/lib/libodbc.so
+			rm /usr/local/lib/libodbccr.so.2
+			rm /usr/local/lib/libodbccr.so
+			rm /usr/local/lib/libodbcinst.so.2
+			rm /usr/local/lib/libodbcinst.so
+			rm /usr/local/lib/libxapian.so.30
+			rm /usr/local/lib/libxapian.so
 		fi
+		
 		echo "Hope to see you again soon!"
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
