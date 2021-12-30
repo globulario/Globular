@@ -3,7 +3,7 @@ FROM ubuntu
 RUN apt-get update && apt-get install -y gnupg2 \
     wget \
   && rm -rf /var/lib/apt/lists/*
-RUN wget https://s3-eu-west-1.amazonaws.com/deb.robustperception.io/41EFC99D.gpg && apt-key add 41EFC99D.gpg
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
 RUN apt-get update && apt-get install -y \
   build-essential \
   curl \
@@ -63,9 +63,15 @@ RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bi
 RUN chmod a+rx /usr/local/bin/youtube-dl
 
 # -- Copy globular files.
-RUN mkdir /globular
-ADD Globular /globular
-COPY bin /globular/bin
-COPY proto /globular/proto
-COPY services /globular/services
-COPY webroot /globular/webroot
+RUN mkdir /usr/local/share/globular
+RUN mkdir /etc/globular
+RUN mkdir /etc/globular/config
+RUN mkdir /var/globular
+RUN mkdir /var/globular/data
+RUN mkdir /var/globular/webroot
+ADD Globular /usr/local/share/globular
+COPY bin /usr/local/share/globular/bin
+COPY services /usr/local/share/globular/services
+WORKDIR /usr/local/share/globular
+ENV PATH="/usr/local/share/globular/bin:${PATH}"
+ENTRYPOINT ["/usr/local/share/globular/Globular"]
