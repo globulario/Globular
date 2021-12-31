@@ -577,7 +577,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
-
+	
 	setupResponse(&w, r)
 	dir := globule.webRoot
 
