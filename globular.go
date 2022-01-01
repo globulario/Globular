@@ -439,6 +439,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	key, value := dns01.GetRecord(domain, keyAuth)
 
 	if len(globule.DNS) > 0 {
+		log.Println("Let's encrypt dns challenge...")
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
 		if err != nil {
 			return err
@@ -451,10 +452,10 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 
 		if err != nil {
-
+			log.Println("fail to connect with the dns server")
 			return err
 		}
-
+		log.Println("set key value ", value)
 		err = dns_client_.SetText(token, key, []string{value}, 30)
 		if err != nil {
 			log.Println("fail to set let's encrypt dns chalenge key with error ", err)
@@ -510,29 +511,43 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		return err
 	}
 	// Dns registration will be use in case dns service are available.
-	if len(globule.DNS) > 0 {
+	// TODO dns challenge give JWS has invalid anti-replay nonce error... at the moment
+	// http chanllenge do the job but wildcald domain name are not allowed...
+	/*if len(globule.DNS) > 0 {
 
 		// Get the local token.
-		token, err := security.GetLocalToken(globule.DNS[0].(string))
+		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
+		if err != nil {
+			return err
+		}
+		defer dns_client_.Close()
+
+		// Here I will generate a token to be able to change the address
+		key, err := security.GetPeerKey(dns_client_.GetMac())
+		if err != nil {
+			return err
+		}
+
+		token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 		if err != nil {
 			return err
 		}
 
 		globularDNS, err := NewDNSProviderGlobularDNS(token)
 		if err != nil {
-
+			log.Println("fail to create new Dns provider")
 			return err
 		}
 
 		client.Challenge.SetDNS01Provider(globularDNS)
 
-	} else {
+	/*} else {*/
 		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
 		if err != nil {
 
 			log.Fatal(err)
 		}
-	}
+	/*}*/
 
 	if err != nil {
 
@@ -1147,7 +1162,6 @@ func (globule *Globule) registerIpToDns() error {
 			for i := 0; i < len(globule.DNS); i++ {
 				dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[i].(string), "dns.DnsService")
 				if err != nil {
-					fmt.Println(err)
 					return err
 				}
 				defer dns_client_.Close()
@@ -1160,7 +1174,6 @@ func (globule *Globule) registerIpToDns() error {
 				// Here I will generate a token to be able to change the address
 				key, err := security.GetPeerKey(dns_client_.GetMac())
 				if err != nil {
-					fmt.Println(err)
 					return err
 				}
 
@@ -1168,7 +1181,6 @@ func (globule *Globule) registerIpToDns() error {
 				// That peer must be register on the dns to be able to generate a valid token.
 				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
 				if err != nil {
-					fmt.Println(err)
 					return err
 				}
 
@@ -1179,8 +1191,15 @@ func (globule *Globule) registerIpToDns() error {
 					_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyIP(), 60)
 				}
 
+				for j := 0; j < len(globule.AlternateDomains); j++ {
+					if hostIsLocal(globule.DNS[i].(string)) {
+						_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), Utility.MyLocalIP(), 60)
+					} else {
+						_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), Utility.MyIP(), 60)
+					}
+				}
+
 				if err != nil {
-					fmt.Println(err)
 					return err
 				}
 
@@ -1232,7 +1251,6 @@ func (globule *Globule) registerIpToDns() error {
 		return err
 	}
 	hosts.AddHost(Utility.MyLocalIP(), globule.getDomain())
-
 	return hosts.Save()
 }
 
@@ -1473,7 +1491,6 @@ func (globule *Globule) Listen() error {
 		if err != nil {
 			return err
 		}
-
 		// recreate the certificates.
 		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
