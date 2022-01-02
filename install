@@ -1,0 +1,51 @@
+Welcome to globular, I will explain how to install and configure your Globule. The first step is to download
+globular for the platform you want. You have the choice to install globular on linux (amd64 or arm64) or on
+docker.
+
+Linux Installation
+From the directory, where the .deb package is, run the following command
+
+    sudo apt install ./globular-VERSION.deb 
+
+that will install globular at /usr/local/share/globular. By default globular will be install as a service and
+the service will be started. There is a list of command to manage the globular service.
+
+    sudo service Globular stop
+    sudo service Globular start
+    sudo service Globular restart
+
+    or 
+
+    sudo systemctl stop Globular
+    sudo systemctl start Globular
+    sudo systemctl restart Globular
+
+To disable Globular after restart,
+
+    sudo systemclt disable service 
+    sudo systemclt enable service
+
+To uninstall Globular service 
+
+    sudo systemctl stop Globular
+    cd /usr/local/share/globular
+    sudo ./Globular uninstall
+
+Globular need ffmpeg to convert all video in mp4 h.264 in that way all video will be able to be stream to any web-browser.
+If you have a nvidia GPU follow the steps decribe at https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu
+other wise install ffmpeg
+
+    sudo apt install -y ffmpeg
+
+Globular also made use of youtube-dl to download content of various website, to install it,
+
+    sudo apt install python3.8
+    sudo apt install python-is-python3
+    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
+    sudo chmod a+rx /usr/local/bin/youtube-dl
+
+Now optionaly I recommand to install those package to give remote access to your server,
+
+    sudo apt install nano
+    sudo apt install openssh-server
+
