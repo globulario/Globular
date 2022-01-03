@@ -31,20 +31,7 @@ To uninstall Globular service
     cd /usr/local/share/globular
     sudo ./Globular uninstall
 
-Globular need ffmpeg to convert all video in mp4 h.264 in that way all video will be able to be stream to any web-browser.
-If you have a nvidia GPU follow the steps decribe at https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu
-other wise install ffmpeg
-
-    sudo apt install -y ffmpeg
-
-Globular also made use of youtube-dl to download content of various website, to install it,
-
-    sudo apt install python3.8
-    sudo apt install python-is-python3
-    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
-    sudo chmod a+rx /usr/local/bin/youtube-dl
-
-Now optionaly I recommand to install those package to give remote access to your server,
+Now optionaly I recommand to install those package to give remote access to your server and a way to edit your configuration files
 
     sudo apt install nano
     sudo apt install openssh-server

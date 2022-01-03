@@ -449,14 +449,16 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
+
+		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
 
 		if err != nil {
 			log.Println("fail to connect with the dns server")
 			return err
 		}
-		log.Println("set key value ", value)
+
 		err = dns_client_.SetText(token, key, []string{value}, 30)
+
 		if err != nil {
 			log.Println("fail to set let's encrypt dns chalenge key with error ", err)
 			return err
@@ -481,7 +483,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -513,7 +515,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	// Dns registration will be use in case dns service are available.
 	// TODO dns challenge give JWS has invalid anti-replay nonce error... at the moment
 	// http chanllenge do the job but wildcald domain name are not allowed...
-	/*if len(globule.DNS) > 0 {
+	if len(globule.DNS) > 0 {
 
 		// Get the local token.
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
@@ -528,7 +530,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 			return err
 		}
 
-		token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
+		token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
 		if err != nil {
 			return err
 		}
@@ -541,13 +543,13 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		client.Challenge.SetDNS01Provider(globularDNS)
 
-	/*} else {*/
+	} else {
 		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
 		if err != nil {
 
 			log.Fatal(err)
 		}
-	/*}*/
+	}
 
 	if err != nil {
 
@@ -748,7 +750,6 @@ func (globule *Globule) initDirectories() error {
 	// I will put the domain into the
 	if globule.AlternateDomains == nil {
 		globule.AlternateDomains = make([]interface{}, 0)
-		globule.AlternateDomains = append(globule.AlternateDomains, globule.Domain)
 		globule.AlternateDomains = append(globule.AlternateDomains, globule.getDomain())
 	}
 
@@ -1179,7 +1180,7 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "", "", globule.AdminEmail)
+				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
 				if err != nil {
 					return err
 				}

@@ -1117,6 +1117,12 @@ func dist(g *Globule, path string, revision string) {
 		// - Description - a brief description of the program.
 		packageConfig += "Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
 
+		// - The project homepage 
+		packageConfig += "Homepage: https://globular.io\n"
+
+		// - The list of dependencies...
+		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~)\n"
+
 		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
 			fmt.Println(err)
@@ -1211,7 +1217,7 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
 		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so.30
 		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so
-
+		
 		 ldconfig
 		 
 		 cd; cd -
@@ -1466,6 +1472,11 @@ func __dist(g *Globule, path string) {
 										} else if name == "conversation.ConversationService" {
 											config["Root"] = config_.GetDataDir()
 										}
+									}
+
+									// Empty the list of connections if connections exist for the services.
+									if config["Connections"] != nil {
+										config["Connections"] = make(map[string]interface{})
 									}
 
 									str, _ := Utility.ToJson(&config)

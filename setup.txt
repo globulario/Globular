@@ -176,6 +176,6 @@ from globulario
     go mod tidy
     go build
 
-nano /etc/environnement
+nano /etc/environment
     set the variable to point at services directory...
     GLOBULAR_SERVICES_ROOT=/home/ubuntu/globulario/services
