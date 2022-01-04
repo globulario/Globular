@@ -988,6 +988,7 @@ func (globule *Globule) initPeers() error {
 		return err
 	}
 
+	// Return the registered peers
 	peers, err := resource_client_.GetPeers(`{}`)
 	if err != nil {
 		return err

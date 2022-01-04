@@ -361,10 +361,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get the user id from the token...
 	if len(token) != 0 {
-		user, _, _, _, _, err = security.ValidateToken(token)
+		claims, err := security.ValidateToken(token)
 		if err != nil {
 			user = ""
+		}else{
+			user = claims.Id
 		}
+
 	}
 
 	if len(user) != 0 {
@@ -664,11 +667,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(token) != 0 && !hasAccess {
-		userId, _, _, _, _, err = security.ValidateToken(token)
+		claims, err := security.ValidateToken(token)
 		if err == nil {
 			log.Println("validate access for ", userId, rqst_path)
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 		}
+		
+		userId = claims.Id
 	}
 
 	// validate ressource access...
