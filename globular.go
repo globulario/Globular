@@ -445,12 +445,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		jwtKey, err := security.GetPeerKey(dns_client_.GetMac())
-		if err != nil {
-			return err
-		}
-
-		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
 
 		if err != nil {
 			log.Println("fail to connect with the dns server")
@@ -479,11 +474,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 			return err
 		}
 
-		jwtKey, err := security.GetPeerKey(dns_client_.GetMac())
-		if err != nil {
-			return err
-		}
-		token, err := security.GenerateToken(jwtKey, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
 
 		if err != nil {
 
@@ -524,13 +515,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		}
 		defer dns_client_.Close()
 
-		// Here I will generate a token to be able to change the address
-		key, err := security.GetPeerKey(dns_client_.GetMac())
-		if err != nil {
-			return err
-		}
-
-		token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
 		if err != nil {
 			return err
 		}
@@ -815,19 +800,8 @@ func (globule *Globule) startProxies() error {
  */
 func (globule *Globule) startServices() error {
 
-	// The local key.
-	key, err := security.GetLocalKey()
-	if err != nil {
-		err = security.GeneratePeerKeys(Utility.MyMacAddr())
-		if err != nil {
-			return err
-		}
-		// Get the key back
-		key, _ = security.GetLocalKey()
-	}
-
 	// This is the local token...
-	tokenString, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
+	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		return err
 	}
@@ -1173,15 +1147,9 @@ func (globule *Globule) registerIpToDns() error {
 					resolv_conf += "nameserver " + ipv4 + "\n"
 				}
 
-				// Here I will generate a token to be able to change the address
-				key, err := security.GetPeerKey(dns_client_.GetMac())
-				if err != nil {
-					return err
-				}
-
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := security.GenerateToken(key, globule.SessionTimeout, Utility.MyMacAddr(), "sa", "", globule.AdminEmail)
+				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
 				if err != nil {
 					return err
 				}
@@ -1798,8 +1766,10 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 
 // Use rbac client here...
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
+	fmt.Println("add resource owner ", path, subject)
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
+		fmt.Println("fail to add resource owner: ", err)
 		return err
 	}
 	return rbac_client_.AddResourceOwner(path, subject, subjectType)
@@ -1819,8 +1789,8 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 	if err != nil {
 		return false, false, err
 	}
-
-	return rbac_client_.ValidateAccess(subject, subjectType, name, path)
+	hasAccess, hasAccessDenied, err := rbac_client_.ValidateAccess(subject, subjectType, name, path)
+	return hasAccess, hasAccessDenied, err 
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
