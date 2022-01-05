@@ -23,6 +23,7 @@ import (
 	"github.com/globulario/services/golang/discovery/discovery_client"
 	"github.com/globulario/services/golang/repository/repository_client"
 	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
@@ -211,8 +212,13 @@ func main() {
 		// Connect peer one to another. The peer Domain must be set before the calling that function.
 		connect_peer_command := flag.NewFlagSet("connect_peer", flag.ExitOnError)
 		connect_peer_command_address := connect_peer_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
-		connect_peer_command_user := connect_peer_command.String("u", "", "The user name. (Required)")
-		connect_peer_command_pwd := connect_peer_command.String("p", "", "The user password. (Required)")
+		connect_peer_command_token := connect_peer_command.String("token", "", "The token valid on the destination peer (Required)")
+
+		// Generate a token from a given globule. The token can be generate as sa or any other valid user.
+		generate_token_command := flag.NewFlagSet("generate_token", flag.ExitOnError)
+		generate_token_command_address := generate_token_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
+		generate_token_command_user := generate_token_command.String("u", "", "The user name. (Required)")
+		generate_token_command_pwd := generate_token_command.String("p", "", "The user password. (Required)")
 
 		switch os.Args[1] {
 		case "start":
@@ -243,9 +249,35 @@ func main() {
 			installCertificatesCommand.Parse(os.Args[2:])
 		case "connect_peer":
 			connect_peer_command.Parse(os.Args[2:])
+		case "generate_token":
+			generate_token_command.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
+		}
+
+		if generate_token_command.Parsed() {
+			address := *generate_token_command_address
+			if *generate_token_command_address == "" {
+				address = g.getDomain()
+			}
+
+			if *generate_token_command_user == "" {
+				generate_token_command.PrintDefaults()
+				fmt.Println("no user was given!")
+				os.Exit(1)
+			}
+
+			if *generate_token_command_pwd == "" {
+				generate_token_command.PrintDefaults()
+				fmt.Println("no password was given!")
+				os.Exit(1)
+			}
+
+			err = generate_token(g, address, *generate_token_command_user, *generate_token_command_pwd)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if connect_peer_command.Parsed() {
@@ -254,17 +286,13 @@ func main() {
 				fmt.Println("No peer address given!")
 				os.Exit(1)
 			}
-			if *connect_peer_command_user == "" {
+			if *connect_peer_command_token == "" {
 				connect_peer_command.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *connect_peer_command_pwd == "" {
-				connect_peer_command.PrintDefaults()
-				fmt.Println("no password was given!")
-				os.Exit(1)
-			}
-			err = connect_peer(g, *connect_peer_command_address, *connect_peer_command_user, *connect_peer_command_pwd)
+
+			err = connect_peer(g, *connect_peer_command_address, *connect_peer_command_token)
 			if err != nil {
 				log.Println(err)
 			}
@@ -1043,6 +1071,28 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(data_path)
 		Utility.CreateDirIfNotExist(config_path)
 
+		// Now the libraries...
+		libpath := debian_package_path + "/usr/local/lib"
+		Utility.CreateDirIfNotExist(libpath)
+
+		// zlib
+		Utility.CopyFile("/usr/local/lib/libz.a", libpath+"/libz.a")
+		Utility.CopyFile("/usr/local/lib/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+
+		// Xapian libraries
+		Utility.CopyFile("/usr/local/lib/libxapian.la", libpath+"/libxapian.la")
+		Utility.CopyFile("/usr/local/lib/libxapian.so.30.11.0", libpath+"/libxapian.so.30.11.0")
+
+		// ODBC libraries...
+		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
+		Utility.CopyFile("/usr/local/lib/libodbc.so.2.0.0", libpath+"/libodbc.so.2.0.0")
+
+		Utility.CopyFile("/usr/local/lib/libodbccr.la", libpath+"/libodbccr.la")
+		Utility.CopyFile("/usr/local/lib/libodbccr.so.2.0.0", libpath+"/libodbccr.so.2.0.0")
+
+		Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
+		Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
+
 		// Create the distribution.
 		__dist(g, distro_path)
 
@@ -1067,6 +1117,12 @@ func dist(g *Globule, path string, revision string) {
 		// - Description - a brief description of the program.
 		packageConfig += "Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
 
+		// - The project homepage 
+		packageConfig += "Homepage: https://globular.io\n"
+
+		// - The list of dependencies...
+		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~)\n"
+
 		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
 			fmt.Println(err)
@@ -1074,17 +1130,9 @@ func dist(g *Globule, path string, revision string) {
 
 		// Here I will set the script to run before the installation...
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
+		// TODO create tow version one for arm7 and one for amd64
 		preinst := `
 		echo "Welcome to Globular!-)"
-
-		echo "insall dependencies..."
-
-		apt-get update && apt-get install -y gnupg2 \
-		wget \		build-essential \
-		curl \
-		nano \
-		openssh-server \
-		&& rm -rf /var/lib/apt/lists/*
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
@@ -1092,11 +1140,6 @@ func dist(g *Globule, path string, revision string) {
 		cp -R -n mongodb-linux-x86_64-ubuntu2004-5.0.5/bin/* /usr/local/bin
 		rm mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
 		rm -R mongodb-linux-x86_64-ubuntu2004-5.0.5
-
-		apt-get install python3
-		update-alternatives --install  /usr/bin/python python /usr/bin/python3 1000 
-
-		apt-get install -y ffmpeg
 
 		# -- Install prometheus
 		wget https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz
@@ -1119,37 +1162,24 @@ func dist(g *Globule, path string, revision string) {
 		cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
 		rm -rf node_exporter-1.3.1.linux-amd64*
 
-		# -- Install unix odbc drivers.
-		curl http://www.unixodbc.org/unixODBC-2.3.9.tar.gz --output unixODBC-2.3.9.tar.gz
-		tar -xvf unixODBC-2.3.9.tar.gz
-		rm unixODBC-2.3.9.tar.gz
-		cd unixODBC-2.3.9
-		./configure && make all install clean && ldconfig
-		cd ..
-
-		# -- Install zlib
-		curl  https://zlib.net/zlib-1.2.11.tar.gz --output zlib-1.2.11.tar.gz
-		tar -xvf zlib-1.2.11.tar.gz
-		rm zlib-1.2.11.tar.gz
-		cd zlib-1.2.11
-		./configure && make all install clean && ldconfig
-		cd ..
-
-		# -- Install xapian the search engine.
-
-		curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
-		tar -xvf xapian-core-1.4.18.tar.xz
-		rm xapian-core-1.4.18.tar.xz
-		cd xapian-core-1.4.18
-		./configure && make all install clean && ldconfig
-		cd ..
-
 		# -- Install youtube-dl
 		curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
 		chmod a+rx /usr/local/bin/youtube-dl
 
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
+			rm /usr/local/bin/torrent
+			rm /usr/local/bin/grpcwebproxy
+			rm /usr/local/lib/libz.so
+			rm /usr/local/lib/libz.so.1
+			rm /usr/local/lib/libodbc.so.2
+			rm /usr/local/lib/libodbc.so
+			rm /usr/local/lib/libodbccr.so.2
+			rm /usr/local/lib/libodbccr.so
+			rm /usr/local/lib/libodbcinst.so.2
+			rm /usr/local/lib/libodbcinst.so
+			rm /usr/local/lib/libxapian.so.30
+			rm /usr/local/lib/libxapian.so
 		fi
 		`
 
@@ -1164,6 +1194,9 @@ func dist(g *Globule, path string, revision string) {
 		# the environement variable file is /etc/sysconfig/Globular
 		 echo "install globular as service..."
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
+		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
+		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
+
 		 chmod ugo+x /usr/local/bin/Globular
 		 /usr/local/bin/Globular install
 		 # here I will modify the /etc/systemd/system/Globular.service file and set 
@@ -1172,10 +1205,27 @@ func dist(g *Globule, path string, revision string) {
 		 echo "set service configuration /etc/systemd/system/Globular.service"
 		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
 		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
+
+		 #create symlink
+		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so
+		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so.1
+		 ln -s /usr/local/lib/libodbc.so.2.0.0 /usr/local/lib/libodbc.so.2
+		 ln -s /usr/local/lib/libodbc.so.2.0.0 /usr/local/lib/libodbc.so
+		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so.2
+		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so
+		 ln -s /usr/local/lib/libodbcinst.so.2.0.0 /usr/local/lib/libodbcinst.so.2
+		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
+		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so.30
+		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so
+		
+		 ldconfig
+		 
+		 cd; cd -
+
 		 systemctl daemon-reload
 		 systemctl enable Globular
-		 echo "To complete your server setup go to http://localhost"
-		 echo "To start globular service 'sudo systemctl start Globular'"
+		 service Globular start
+		 
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
 		if err != nil {
@@ -1209,7 +1259,21 @@ func dist(g *Globule, path string, revision string) {
 		if [ -f "/usr/local/bin/Globular" ]; then
 			find /usr/local/bin/Globular -xtype l -delete
 			rm /etc/systemd/system/Globular.service
+			rm /usr/local/bin/Globular
+			rm /usr/local/bin/torrent
+			rm /usr/local/bin/grpcwebproxy
+			rm /usr/local/lib/libz.so
+			rm /usr/local/lib/libz.so.1
+			rm /usr/local/lib/libodbc.so.2
+			rm /usr/local/lib/libodbc.so
+			rm /usr/local/lib/libodbccr.so.2
+			rm /usr/local/lib/libodbccr.so
+			rm /usr/local/lib/libodbcinst.so.2
+			rm /usr/local/lib/libodbcinst.so
+			rm /usr/local/lib/libxapian.so.30
+			rm /usr/local/lib/libxapian.so
 		fi
+		
 		echo "Hope to see you again soon!"
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
@@ -1400,9 +1464,19 @@ func __dist(g *Globule, path string) {
 									if config["Root"] != nil {
 										if name == "file.FileService" {
 											config["Root"] = config_.GetDataDir() + "/files"
+
+											// I will also copy the mime type directory
+											config["Public"] = make([]string, 0)
+											Utility.CopyDir(execPath[0:lastIndex]+"/mimetypes", path+"/"+serviceDir+"/"+id)
+
 										} else if name == "conversation.ConversationService" {
 											config["Root"] = config_.GetDataDir()
 										}
+									}
+
+									// Empty the list of connections if connections exist for the services.
+									if config["Connections"] != nil {
+										config["Connections"] = make(map[string]interface{})
 									}
 
 									str, _ := Utility.ToJson(&config)
@@ -1455,17 +1529,9 @@ func __dist(g *Globule, path string) {
 }
 
 /**
- * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
- * The usr and pwd are the admin password in the destionation (ns1.mycelius.com)
- * ex. ./Globular connect_peer -dest=ns1.mycelius.com -u=sa -p=adminadmin
+ * Generate a token that will be valid for 15 minutes or the session timeout delay.
  */
-func connect_peer(g *Globule, address, user, pwd string) error {
-
-	// get the local token.
-	local_token, err := security.GetLocalToken(g.getDomain())
-	if err != nil {
-		return nil
-	}
+func generate_token(g *Globule, address, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
@@ -1478,6 +1544,19 @@ func connect_peer(g *Globule, address, user, pwd string) error {
 	if err != nil {
 		return err
 	}
+
+	// simply print the token in the console.
+	fmt.Println(token)
+
+	return nil
+}
+
+/**
+ * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
+ * The usr and pwd are the admin password in the destionation (ns1.mycelius.com)
+ * ex. ./Globular connect_peer -dest=ns1.mycelius.com -u=sa -p=adminadmin
+ */
+func connect_peer(g *Globule, address, token string) error {
 
 	// Create the remote ressource service
 	remote_resource_client_, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
@@ -1493,19 +1572,26 @@ func connect_peer(g *Globule, address, user, pwd string) error {
 	}
 
 	// Register the peer on the remote resourse client...
-	peer, key_, err := remote_resource_client_.RegisterPeer(token, g.Mac, g.getDomain(), Utility.MyIP(), Utility.MyLocalIP(), string(key))
+	hostname, _ := os.Hostname()
+	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
 
 	// I will also register the peer to the local server, the local server must running and it domain register,
 	// he can be set in /etc/hosts if it's not a public domain.
-	local_resource_client_, err := resource_client.NewResourceService_Client(g.getDomain(), "resource.ResourceService")
+	local_resource_client_, err := resource_client.NewResourceService_Client(g.getAddress(), "resource.ResourceService")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = local_resource_client_.RegisterPeer(local_token, peer.Mac, peer.Domain, peer.ExternalIpAddress, peer.LocalIpAddress, key_)
+	// get the local token.
+	local_token, err := security.GetLocalToken(g.getDomain())
+	if err != nil {
+		return nil
+	}
+
+	_, _, err = local_resource_client_.RegisterPeer(local_token, key_, peer)
 
 	return err
 }

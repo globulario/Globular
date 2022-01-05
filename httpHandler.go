@@ -325,12 +325,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
 	path = strings.ReplaceAll(path, "\\", "/")
 
-	
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
 
-	// If the header dosent contain the required values i I will try to get it from the 
+	// If the header dosent contain the required values i I will try to get it from the
 	// http query instead...
 	if len(token) == 0 {
 		// the token can be given by the url directly...
@@ -362,14 +361,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get the user id from the token...
 	if len(token) != 0 {
-		user, _, _, _, _, err = security.ValidateToken(token)
-		if err != nil {
-			user = ""
+		var claims *security.Claims
+		claims, err = security.ValidateToken(token)
+		if err == nil{
+			user = claims.Id
 		}
+
 	}
 
 	if len(user) != 0 {
-
 		if !hasAccess {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
@@ -405,12 +405,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if len(application) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, application, rbacpb.SubjectType_APPLICATION)
 		}
-		
+
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
-		} else if !isPublic(path_){
+		} else if !isPublic(path_) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
@@ -462,8 +462,6 @@ func visit(files *[]string) filepath.WalkFunc {
 		if err != nil {
 			return nil
 		}
-
-		
 
 		if strings.HasPrefix(path, config_.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
 
@@ -580,7 +578,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
-
+	
 	setupResponse(&w, r)
 	dir := globule.webRoot
 
@@ -642,11 +640,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-	
+
 	// path to file
-	if !isPublic(rqst_path){
+	if !isPublic(rqst_path) {
 		name = path.Join(dir, rqst_path)
-	}else{
+	} else {
 		name = rqst_path
 		hasAccess = true
 	}
@@ -667,15 +665,17 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(token) != 0 && !hasAccess {
-		userId, _, _, _, _, err = security.ValidateToken(token)
+		var claims *security.Claims
+		claims, err = security.ValidateToken(token)
+		userId = claims.Id
 		if err == nil {
-			log.Println("validate access for ", userId, rqst_path)
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 		}
 	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
+		log.Println(err)
 		http.Error(w, "unable to read the file "+rqst_path+" Check your access privilege", http.StatusUnauthorized)
 		return
 	}

@@ -1,0 +1,54 @@
+Here I will explain how to setup your own dns server.
+
+The first step is to install a new globular instance.
+
+To upload your globular .deb file on the dns you can made use of scp command,
+
+    sudo scp -i "ns1.mycelius.com.pem" /tmp/globular_2022_01_02/globular_1.0.0-1.0.1_amd64.deb  ubuntu@ec2-204-236-131-178.us-west-1.compute.amazonaws.com:~/
+
+Now you must name the server with the corrent hostname
+
+    sudo nano /etc/hostname
+        ns1
+    ctrl-s 
+    ctll-x
+
+    sudo nano /etc/hosts
+        
+Next you must change the /etc/globular/config/config.json file values.
+    
+    Protocol:"https"
+    HttpPort: 80
+    HttpsPort: 443
+    Name: "ns1"
+    Domain: "mycelius.com"
+    AlternateDomains : ["ns1.mycelius.com"]
+
+And finaly you must free up the port 53
+
+1 - edit the file /etc/systemd/resolved.conf
+
+    sudo nano /etc/systemd/resolved.conf
+
+    [Resolve]
+    DNS=1.1.1.1
+    #FallbackDNS=
+    #Domains=
+    #LLMNR=no
+    #MulticastDNS=no
+    #DNSSEC=no
+    #DNSOverTLS=no
+    #Cache=no
+    DNSStubListener=no
+    #ReadEtcHosts=yes
+
+2- Create a symbolic link for /run/systemd/resolve/resolv.conf with /etc/resolv.conf as the destination:
+
+    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+
+reboot the server
+
+    sudo reboot
+
+You now have a running dns service

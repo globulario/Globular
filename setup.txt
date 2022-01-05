@@ -67,6 +67,13 @@ Et voila you got a working globular executable and services!
 Here is a detail version on how to do the same thing on a raspberry pi4
 There is the setup of the development environnement for a raspery pi.
 
+// Required...
+sudo apt update
+sudo apt install python3.8
+sudo apt install python-is-python3
+sudo apt install nano
+sudo apt install openssh-server
+
 install required tools and libraries.
 Git
     sudo apt install git-all
@@ -109,7 +116,6 @@ Xapian
 
 Protoc
     sudo apt install -y protobuf-compiler
-    sudo apt install -y protobuf-compiler
 
 MONGO
     sudo apt update
@@ -128,7 +134,8 @@ MONGO
     sudo apt-get install -y mongodb-org
 
 YOUTUBE-dl 
-    sudp apt install python
+    sudo apt install python3.8
+    sudo apt install python-is-python3
     sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
     sudo chmod a+rx /usr/local/bin/youtube-dl
     
@@ -169,6 +176,6 @@ from globulario
     go mod tidy
     go build
 
-nano /etc/environnement
+nano /etc/environment
     set the variable to point at services directory...
     GLOBULAR_SERVICES_ROOT=/home/ubuntu/globulario/services
