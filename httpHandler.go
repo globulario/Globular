@@ -373,7 +373,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccess {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
-		fmt.Println("Validate accees for user with id: ", user)
 		if hasAccess && err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if err != nil {

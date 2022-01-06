@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -769,7 +768,6 @@ func (globule *Globule) stopProxies() {
 		execName += ".exe" // in case of windows
 	}
 
-	fmt.Println("Kill all proxy process")
 	// Kill all proxies..
 	Utility.KillProcessByName(execName)
 
@@ -779,7 +777,6 @@ func (globule *Globule) stopProxies() {
  * Start proxies
  */
 func (globule *Globule) startProxies() error {
-	fmt.Println("Start gRpc proxies")
 	services, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
@@ -800,9 +797,19 @@ func (globule *Globule) startProxies() error {
  */
 func (globule *Globule) startServices() error {
 
+	// Register that peer with the dns.
+	err := globule.registerIpToDns()
+	if err != nil {
+		return err
+	}
+
+	// Here I will generate the keys for this server if not already exist.
+	security.GeneratePeerKeys(Utility.MyMacAddr())
+
 	// This is the local token...
 	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
+		log.Println("fail to generate token with error: ", err)
 		return err
 	}
 
@@ -819,6 +826,7 @@ func (globule *Globule) startServices() error {
 	if err != nil {
 		return err
 	}
+
 
 	// I will try to get the services manager configuration from the
 	// services configurations list.
@@ -876,7 +884,6 @@ func (globule *Globule) startServices() error {
 					time.Sleep(time.Millisecond * 250)
 					services[i], _ = config.GetServiceConfigurationById(services[i]["Id"].(string))
 					if services[i]["State"].(string) == "running" {
-						fmt.Println("service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
 						break
 					}
 				}
@@ -982,7 +989,6 @@ func (globule *Globule) initPeers() error {
  * Here I will create application backend connection.
  */
 func (globule *Globule) createApplicationConnection() error {
-	fmt.Println("Create applications connections...")
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
@@ -1001,8 +1007,6 @@ func (globule *Globule) createApplicationConnection() error {
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", true)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
-				} else {
-					fmt.Println("connection for application ", app.Id, " was created")
 				}
 			}
 		}
@@ -1099,24 +1103,18 @@ func (globule *Globule) Serve() error {
  * the globule asscosiate with that domain.
  */
 func (globule *Globule) getDomain() string {
-	domain := globule.Name
-	if len(globule.Domain) > 0 {
-		domain = globule.Name + "." + globule.Domain
-	}
-
-	if len(domain) > 0 {
-		return strings.ToLower(domain)
-	}
-
+	domain, _ := config.GetDomain()
+	
 	// if no hostname or domain are found it will be use as localhost.
-	return "localhost"
+	return domain
 }
 
 /**
  * Return the globule address
  */
 func (globule *Globule) getAddress() string {
-	return globule.getDomain() + ":" + Utility.ToString(globule.PortHttp)
+	address, _ := config.GetAddress() // return the address with the http port.
+	return address
 }
 
 /**
@@ -1142,7 +1140,7 @@ func (globule *Globule) registerIpToDns() error {
 				}
 				defer dns_client_.Close()
 
-				ipv4, err := getIpv4(globule.DNS[i].(string))
+				ipv4, err := Utility.GetIpv4(globule.DNS[i].(string))
 				if err == nil {
 					resolv_conf += "nameserver " + ipv4 + "\n"
 				}
@@ -1155,14 +1153,14 @@ func (globule *Globule) registerIpToDns() error {
 				}
 
 				// if the dns address is a local address i will register the local ip...
-				if hostIsLocal(globule.DNS[i].(string)) {
+				if Utility.IsLocal(globule.DNS[i].(string)) {
 					_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyLocalIP(), 60)
 				} else {
 					_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyIP(), 60)
 				}
 
 				for j := 0; j < len(globule.AlternateDomains); j++ {
-					if hostIsLocal(globule.DNS[i].(string)) {
+					if Utility.IsLocal(globule.DNS[i].(string)) {
 						_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), Utility.MyLocalIP(), 60)
 					} else {
 						_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), Utility.MyIP(), 60)
@@ -1216,68 +1214,14 @@ func (globule *Globule) registerIpToDns() error {
 	}
 
 	// Finaly I will set the domain in the hosts file...
+
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
 		return err
 	}
 	hosts.AddHost(Utility.MyLocalIP(), globule.getDomain())
 	return hosts.Save()
-}
-
-// Check if a ip is private.
-func privateIPCheck(ip string) bool {
-	ipAddress := net.ParseIP(ip)
-	return ipAddress.IsPrivate()
-}
-
-// Get the ip from an address
-func getIpv4(address string) (string, error) {
-	// remove the port number from the address
-	if strings.Contains(address, ":") {
-		address = address[0:strings.Index(address, ":")]
-	}
-
-	// Test if the hostname is in the /etc/hosts file...
-	hosts, err := txeh.NewHostsDefault()
-	if err != nil {
-		return "", err
-	}
-
-	exist, ip, _ := hosts.HostAddressLookup(address)
-	if exist {
-		return ip, nil
-	}
-
-	// I will try to resolve the address from...
-	ips, _ := net.LookupIP(address)
-	for _, ip := range ips {
-		if ipv4 := ip.To4(); ipv4 != nil {
-			return ipv4.String(), nil
-		}
-	}
-
-	return "", errors.New("no address found for domain " + address)
-}
-
-func hostIsLocal(hostname string) bool {
-
-	// remove the port number from the address
-	if strings.Contains(hostname, ":") {
-		hostname = hostname[0:strings.Index(hostname, ":")]
-	}
-
-	// Test if the hostname is in the /etc/hosts file...
-	hosts, err := txeh.NewHostsDefault()
-	if err != nil {
-		return false
-	}
-
-	exist, ip, _ := hosts.HostAddressLookup(hostname)
-	if exist {
-		return privateIPCheck(ip)
-	}
-
-	return false
+	//return nil
 }
 
 // Test if a domain is asscociated with a given ip.
@@ -1480,13 +1424,6 @@ func (globule *Globule) Listen() error {
 
 		// start / restart services
 		globule.startServices()
-	}
-
-	// Register that peer with the dns.
-	err = globule.registerIpToDns()
-	if err != nil {
-		fmt.Println("------> fail to register ip with error:", err)
-		//return err
 	}
 
 	// Must be started before other services.
@@ -1766,10 +1703,9 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 
 // Use rbac client here...
 func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
-	fmt.Println("add resource owner ", path, subject)
+
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
-		fmt.Println("fail to add resource owner: ", err)
 		return err
 	}
 	return rbac_client_.AddResourceOwner(path, subject, subjectType)
@@ -1790,7 +1726,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 		return false, false, err
 	}
 	hasAccess, hasAccessDenied, err := rbac_client_.ValidateAccess(subject, subjectType, name, path)
-	return hasAccess, hasAccessDenied, err 
+	return hasAccess, hasAccessDenied, err
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
@@ -1950,7 +1886,6 @@ func createVideoStream(path string) error {
 
 	// Here I will test if the encoding is valid
 	encoding := streamInfos["streams"].([]interface{})[0].(map[string]interface{})["codec_long_name"].(string)
-	fmt.Println("video codec is ", encoding)
 
 	//  https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 	if strings.Index(string(version), "--enable-cuda-nvcc") > -1 {
@@ -1964,7 +1899,6 @@ func createVideoStream(path string) error {
 
 		} else {
 			err := errors.New("no encoding command foud for " + encoding)
-			fmt.Println(err.Error())
 			return err
 		}
 
@@ -1990,7 +1924,6 @@ func createVideoStream(path string) error {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
 	}
 
@@ -2029,7 +1962,6 @@ func createVideoPreview(path string, nb int, height int) error {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return err
 	}
 
