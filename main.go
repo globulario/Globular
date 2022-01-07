@@ -1163,7 +1163,7 @@ func dist(g *Globule, path string, revision string) {
 		rm -rf node_exporter-1.3.1.linux-amd64*
 
 		# -- Install youtube-dl
-		curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
+		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/youtube-dl
 		chmod a+rx /usr/local/bin/youtube-dl
 
 		if [ -f "/usr/local/bin/Globular" ]; then

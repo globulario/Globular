@@ -59,7 +59,7 @@ WORKDIR xapian-core-1.4.18
 RUN ./configure && make all install clean && ldconfig
 
 # -- Install youtube-dl
-RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl --output /usr/local/bin/youtube-dl
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp  --output /usr/local/bin/youtube-dl
 RUN chmod a+rx /usr/local/bin/youtube-dl
 
 # -- Copy globular files.
