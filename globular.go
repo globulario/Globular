@@ -1317,7 +1317,6 @@ func updateServiceConfigurationListener(evt *eventpb.Event) {
 	s := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &s)
 	if err == nil {
-		log.Println("update service configuration event receive: ", s)
 		config.SetServiceConfiguration(s)
 	}
 }
