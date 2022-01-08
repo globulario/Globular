@@ -1052,19 +1052,8 @@ func dist(g *Globule, path string, revision string) {
 		// globular data
 		data_path := debian_package_path + "/var/globular/data"
 
-		// globular webroot
-		webroot_path := debian_package_path + "/var/globular/webroot"
-
 		// globular configurations
 		config_path := debian_package_path + "/etc/globular/config"
-
-		// set the web installer in the webroot
-		if Utility.Exists(g.webRoot + "/globular_installer") {
-			Utility.CreateDirIfNotExist(webroot_path)
-			Utility.CopyDir(g.webRoot+"/globular_installer", webroot_path)
-		} else {
-			log.Println("** There's no gobular installer project found!")
-		}
 
 		// Create the bin directories.
 		Utility.CreateDirIfNotExist(distro_path)
