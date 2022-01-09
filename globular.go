@@ -241,15 +241,18 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
+		fmt.Println("fail to create admin user")
 		return err
 	}
 
 	// Set admin role to that account.
 	err = resource_client_.AddAccountRole("sa", "admin")
 	if err != nil {
+		fmt.Println("fail to create admin role")
 		return err
 	}
 
+	fmt.Println("Admin User create!")
 	return nil
 }
 
@@ -797,8 +800,19 @@ func (globule *Globule) startProxies() error {
  */
 func (globule *Globule) startServices() error {
 
+	// Here only one Globular instance must run at time or trouble can happend...
+	pids, err := Utility.GetProcessIdsByName("Globular")
+	if err == nil {
+		if len(pids) > 1 {
+			fmt.Println("Globular server is already running on that computer pid:" + Utility.ToString(pids))
+			fmt.Println("Only one instance at time must runing. Close the running instance before start a new one.")
+			fmt.Println("run command 'sudo service Globular stop' to stop running service.")
+			os.Exit(3)
+		}
+	}
+
 	// Register that peer with the dns.
-	err := globule.registerIpToDns()
+	err = globule.registerIpToDns()
 	if err != nil {
 		return err
 	}
@@ -826,7 +840,6 @@ func (globule *Globule) startServices() error {
 	if err != nil {
 		return err
 	}
-
 
 	// I will try to get the services manager configuration from the
 	// services configurations list.
@@ -1104,7 +1117,7 @@ func (globule *Globule) Serve() error {
  */
 func (globule *Globule) getDomain() string {
 	domain, _ := config.GetDomain()
-	
+
 	// if no hostname or domain are found it will be use as localhost.
 	return domain
 }
