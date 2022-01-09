@@ -62,7 +62,6 @@ func (g *Globule) run() error {
 
 func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
-	logger.Info("Globular is stopping!")
 	g.exit_ = true
 
 	// Close all proxy

@@ -800,22 +800,18 @@ func (globule *Globule) startProxies() error {
  */
 func (globule *Globule) startServices() error {
 
-	// Here only one Globular instance must run at time or trouble can happend...
+	// Here I will wait to give time to globular to exit services...
 	pids, err := Utility.GetProcessIdsByName("Globular")
+	// Wait to give time for previous instance to stop...
 	if err == nil {
-		if len(pids) > 1 {
-			fmt.Println("Globular server is already running on that computer pid:" + Utility.ToString(pids))
-			fmt.Println("Only one instance at time must runing. Close the running instance before start a new one.")
-			fmt.Println("run command 'sudo service Globular stop' to stop running service.")
-			os.Exit(3)
+		for len(pids) > 1 {
+			time.Sleep(1 * time.Second)
+			pids, err = Utility.GetProcessIdsByName("Globular")
 		}
 	}
-
-	// Register that peer with the dns.
-	err = globule.registerIpToDns()
-	if err != nil {
-		return err
-	}
+	
+	// Remove all configuration lock files
+	config.RemoveAllLocks()
 
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(Utility.MyMacAddr())
@@ -838,6 +834,13 @@ func (globule *Globule) startServices() error {
 	// Retreive all configurations
 	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
+		return err
+	}
+
+	// Register that peer with the dns.
+	err = globule.registerIpToDns()
+	if err != nil {
+		fmt.Println("Fail to write Ip to hosts. ", err)
 		return err
 	}
 
@@ -1227,11 +1230,11 @@ func (globule *Globule) registerIpToDns() error {
 	}
 
 	// Finaly I will set the domain in the hosts file...
-
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
 		return err
 	}
+
 	hosts.AddHost(Utility.MyLocalIP(), globule.getDomain())
 	return hosts.Save()
 	//return nil
