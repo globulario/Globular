@@ -180,7 +180,6 @@ func NewGlobule() *Globule {
 	// Set the default checksum...
 	g.Protocol = "http"
 	g.Name, _ = config.GetHostName()
-	
 
 	// set default values.
 	g.CertExpirationDelay = 365
@@ -811,7 +810,6 @@ func (globule *Globule) startServices() error {
 			fmt.Println("wait for one of Globular process to stop ", pids)
 		}
 	}*/
-	
 
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(Utility.MyMacAddr())
@@ -899,7 +897,12 @@ func (globule *Globule) startServices() error {
 				for j := 0; j < 30*1000; j++ {
 					time.Sleep(time.Millisecond * 250)
 					services[i], _ = config.GetServiceConfigurationById(services[i]["Id"].(string))
-					if services[i]["State"].(string) == "running" {
+					if services[i]["State"] != nil {
+						if services[i]["State"].(string) == "running" {
+							break
+						}
+					}else{
+						// TODO 
 						break
 					}
 				}
@@ -936,7 +939,7 @@ func (globule *Globule) startServices() error {
 	globule.createApplicationConnection()
 
 	// Initialise the list of peers...
-	go func(){
+	go func() {
 		globule.initPeers()
 	}()
 
@@ -994,15 +997,14 @@ func (globule *Globule) initPeers() error {
 	}
 
 	// Now I will set peers in the host file.
-	for i:=0; i < len(peers); i++ {
+	for i := 0; i < len(peers); i++ {
 		// Here I will try to set the peer ip...
 		if Utility.IsLocal(peers[i].Address) {
 			globule.setHost(peers[i].LocalIpAddress, peers[i].Domain)
-		}else{
+		} else {
 			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
 		}
 	}
-
 
 	globule.peers = peers
 
@@ -1146,7 +1148,7 @@ func (globule *Globule) getAddress() string {
 	return address
 }
 
-func (globule *Globule) setHost(ipv4, domain string) error{
+func (globule *Globule) setHost(ipv4, domain string) error {
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
 		return err

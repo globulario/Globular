@@ -1305,7 +1305,7 @@ func dist(g *Globule, path string, revision string) {
 	} else {
 		fmt.Println("Create the distro at path ", path)
 		// Create the distribution.
-		__dist(g, path, "")
+		__dist(g, path, path + "/config")
 	}
 
 }
@@ -1502,8 +1502,6 @@ func __dist(g *Globule, path, config_path string) []string{
 										Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
 										ioutil.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 
-									} else {
-										ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 									}
 
 									// Copy the proto file.
