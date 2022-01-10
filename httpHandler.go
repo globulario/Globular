@@ -77,6 +77,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["WebRoot"] = config_.GetWebRootDir()
 	config["Public"] = config_.GetPublicDirs()
 
+
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
 

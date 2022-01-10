@@ -1081,8 +1081,11 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
 		Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
 
+		// Now I will create get the configuration files from service and create a copy to /etc/globular/config/services
+		// so modification will survice upgrades.
+
 		// Create the distribution.
-		__dist(g, distro_path)
+		configurations := __dist(g, distro_path, config_path)
 
 		// 3. Create the control file
 		Utility.CreateDirIfNotExist(debian_package_path + "/DEBIAN")
@@ -1105,7 +1108,7 @@ func dist(g *Globule, path string, revision string) {
 		// - Description - a brief description of the program.
 		packageConfig += "Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
 
-		// - The project homepage 
+		// - The project homepage
 		packageConfig += "Homepage: https://globular.io\n"
 
 		// - The list of dependencies...
@@ -1121,6 +1124,9 @@ func dist(g *Globule, path string, revision string) {
 		// TODO create tow version one for arm7 and one for amd64
 		preinst := `
 		echo "Welcome to Globular!-)"
+
+		# Create the directory where the service will be install.
+		mkdir /etc/globular/config/services
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
@@ -1176,6 +1182,19 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println(err)
 		}
 
+		// the list of list of configurations
+		// DEBIAN/conffiles
+		conffiles := ""
+		for i:=0; i < len(configurations); i++ {
+			conffiles += configurations[i] + "\n"
+		}
+
+		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+
 		postinst := `
 		# Create a link into bin to it original location.
 		# the systemd file is /etc/systemd/system/Globular.service
@@ -1194,6 +1213,7 @@ func dist(g *Globule, path string, revision string) {
 		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
 		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
 
+	
 		 #create symlink
 		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so
 		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so.1
@@ -1269,6 +1289,8 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println(err)
 		}
 
+		// 
+
 		// 5. Build the deb package
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
 		cmdOutput := &bytes.Buffer{}
@@ -1283,7 +1305,7 @@ func dist(g *Globule, path string, revision string) {
 	} else {
 		fmt.Println("Create the distro at path ", path)
 		// Create the distribution.
-		__dist(g, path)
+		__dist(g, path, "")
 	}
 
 }
@@ -1307,7 +1329,10 @@ func dist(g *Globule, path string, revision string) {
 // https://ma.ttias.be/auto-restart-crashed-service-systemd/
 // https://www.digitalocean.com/community/questions/proper-permissions-for-web-server-s-directory
 
-func __dist(g *Globule, path string) {
+func __dist(g *Globule, path, config_path string) []string{
+
+	// Return the configurations list
+	configs := make([]string, 0)
 
 	// I will set the docker file depending of the arch.
 	var dockerfile string
@@ -1467,8 +1492,19 @@ func __dist(g *Globule, path string) {
 										config["Connections"] = make(map[string]interface{})
 									}
 
+									config["ConfigPath"] = /*config_.GetServicesConfigDir()+*/ "/etc/globular/config/"+ serviceDir+"/"+id+"/config.json"
+									configs = append(configs,"/etc/globular/config/"+ serviceDir+"/"+id+"/config.json")
 									str, _ := Utility.ToJson(&config)
-									ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+
+									if len(config_path) > 0 {
+										// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
+										// will survive package upgrades...
+										Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
+										ioutil.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+
+									} else {
+										ioutil.WriteFile(path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+									}
 
 									// Copy the proto file.
 									if Utility.Exists(protoPath) {
@@ -1514,6 +1550,9 @@ func __dist(g *Globule, path string) {
 	if err != nil {
 		log.Println(err)
 	}
+
+	// 
+	return configs
 }
 
 /**

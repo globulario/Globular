@@ -179,12 +179,8 @@ func NewGlobule() *Globule {
 
 	// Set the default checksum...
 	g.Protocol = "http"
-	hostname, err := os.Hostname()
-	if err == nil {
-		g.Name = hostname
-	} else {
-		g.Name = "localhost"
-	}
+	g.Name, _ = config.GetHostName()
+	
 
 	// set default values.
 	g.CertExpirationDelay = 365
@@ -262,6 +258,8 @@ func (globule *Globule) registerAdminAccount() error {
 func (globule *Globule) getConfig() map[string]interface{} {
 	// TODO filter unwanted attributes...
 	config_, _ := Utility.ToMap(globule)
+	config_["Domain"], _ = config.GetDomain()
+	config_["Name"], _ = config.GetHostName()
 	services, _ := config.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
@@ -381,6 +379,7 @@ func (globule *Globule) saveConfig() error {
 	if err != nil {
 		return err
 	}
+	log.Println(jsonStr)
 
 	configPath := globule.config + "/config.json"
 
@@ -936,7 +935,9 @@ func (globule *Globule) startServices() error {
 	globule.createApplicationConnection()
 
 	// Initialise the list of peers...
-	globule.initPeers()
+	go func(){
+		globule.initPeers()
+	}()
 
 	// Convert video file, set permissions...
 	go func() {
@@ -990,6 +991,17 @@ func (globule *Globule) initPeers() error {
 	if err != nil {
 		return err
 	}
+
+	// Now I will set peers in the host file.
+	for i:=0; i < len(peers); i++ {
+		// Here I will try to set the peer ip...
+		if Utility.IsLocal(peers[i].Address) {
+			globule.setHost(peers[i].LocalIpAddress, peers[i].Domain)
+		}else{
+			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
+		}
+	}
+
 
 	globule.peers = peers
 
@@ -1133,6 +1145,16 @@ func (globule *Globule) getAddress() string {
 	return address
 }
 
+func (globule *Globule) setHost(ipv4, domain string) error{
+	hosts, err := txeh.NewHostsDefault()
+	if err != nil {
+		return err
+	}
+
+	hosts.AddHost(ipv4, domain)
+	return hosts.Save()
+}
+
 /**
  * Set the ip for a given domain or sub-domain
  */
@@ -1229,15 +1251,7 @@ func (globule *Globule) registerIpToDns() error {
 
 	}
 
-	// Finaly I will set the domain in the hosts file...
-	hosts, err := txeh.NewHostsDefault()
-	if err != nil {
-		return err
-	}
-
-	hosts.AddHost(Utility.MyLocalIP(), globule.getDomain())
-	return hosts.Save()
-	//return nil
+	return globule.setHost(Utility.MyLocalIP(), globule.getDomain())
 }
 
 // Test if a domain is asscociated with a given ip.
@@ -1445,7 +1459,7 @@ func (globule *Globule) Listen() error {
 	go func() {
 		// local - non secure connection.
 		globule.http_server = &http.Server{
-			Addr: ":" + strconv.Itoa(globule.PortHttp),
+			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttp),
 		}
 		err = globule.http_server.ListenAndServe()
 	}()
@@ -1454,7 +1468,7 @@ func (globule *Globule) Listen() error {
 	if globule.Protocol == "https" {
 
 		globule.https_server = &http.Server{
-			Addr: ":" + strconv.Itoa(globule.PortHttps),
+			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
 				ServerName: globule.getDomain(),
 			},
