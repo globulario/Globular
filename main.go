@@ -1230,9 +1230,9 @@ func dist(g *Globule, path string, revision string) {
 		 
 		 cd; cd -
 
-		 systemctl daemon-reload
-		 systemctl enable Globular
-		 service Globular start
+		 #systemctl daemon-reload
+		 #systemctl enable Globular
+		 #service Globular start
 		 
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)

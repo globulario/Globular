@@ -798,19 +798,20 @@ func (globule *Globule) startProxies() error {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
+	// Remove all configuration lock files
+	config.RemoveAllLocks()
 
 	// Here I will wait to give time to globular to exit services...
-	pids, err := Utility.GetProcessIdsByName("Globular")
+	/*pids, err := Utility.GetProcessIdsByName("Globular")
 	// Wait to give time for previous instance to stop...
 	if err == nil {
 		for len(pids) > 1 {
 			time.Sleep(1 * time.Second)
 			pids, err = Utility.GetProcessIdsByName("Globular")
+			fmt.Println("wait for one of Globular process to stop ", pids)
 		}
-	}
+	}*/
 	
-	// Remove all configuration lock files
-	config.RemoveAllLocks()
 
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(Utility.MyMacAddr())
