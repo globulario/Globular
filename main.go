@@ -64,9 +64,6 @@ func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	g.exit_ = true
 
-	// Close all proxy
-	g.stopProxies()
-
 	// Close all services.
 	g.stopServices()
 
@@ -1230,9 +1227,9 @@ func dist(g *Globule, path string, revision string) {
 		 
 		 cd; cd -
 
-		 #systemctl daemon-reload
-		 #systemctl enable Globular
-		 #service Globular start
+		 systemctl daemon-reload
+		 systemctl enable Globular
+		 service Globular start
 		 
 		`
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
