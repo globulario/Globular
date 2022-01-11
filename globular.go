@@ -867,20 +867,6 @@ func (globule *Globule) startServices() error {
 
 			if err != nil {
 				log.Println("fail to start service ", services[i]["Name"], err)
-			} else {
-				// Wait until the service is running...
-				for j := 0; j < 30*1000; j++ {
-					time.Sleep(time.Millisecond * 250)
-					services[i], _ = config.GetServiceConfigurationById(services[i]["Id"].(string))
-					if services[i]["State"] != nil {
-						if services[i]["State"].(string) == "running" {
-							break
-						}
-					} else {
-						// TODO
-						break
-					}
-				}
 			}
 		}
 
