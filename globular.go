@@ -1272,6 +1272,7 @@ func (globule *Globule) watchForUpdate() {
 
 // Try to display application message in a nice way
 func logListener(evt *eventpb.Event) {
+
 	info := make(map[string]interface{})
 	err := json.Unmarshal(evt.Data, &info)
 	if err == nil {
@@ -1718,11 +1719,18 @@ func (globule *Globule) publish(event string, data []byte) error {
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
 	eventClient, err := globule.getEventClient()
 	if err != nil {
+		if err != nil {
+			log.Panicln("------------> ", err)
+		}
 		return err
 	}
 
+	err = eventClient.Subscribe(evt, globule.Name, listener)
+	if err != nil {
+		log.Panicln("------------> ", err)
+	}
 	// register a listener...
-	return eventClient.Subscribe(evt, globule.Name, listener)
+	return err
 }
 
 ///////////////////////  Log Services functions ////////////////////////////////////////////////
