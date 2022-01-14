@@ -23,6 +23,7 @@ import (
 
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/config/config_client"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
@@ -255,11 +256,12 @@ func (globule *Globule) registerAdminAccount() error {
  * Return globular configuration.
  */
 func (globule *Globule) getConfig() map[string]interface{} {
+
 	// TODO filter unwanted attributes...
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"], _ = config.GetDomain()
 	config_["Name"], _ = config.GetHostName()
-	services, _ := config.GetServicesConfigurations()
+	services, _ := config_client.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
 	config_["Services"] = make(map[string]interface{})
@@ -641,9 +643,10 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
-	config.GetServicesConfigurations()
+	config_client.GetServicesConfigurations()
 
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
@@ -767,7 +770,7 @@ func (globule *Globule) initDirectories() error {
  * Start proxies
  */
 func (globule *Globule) startProxies() error {
-	services, err := config.GetServicesConfigurations()
+	services, err := config_client.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -786,8 +789,6 @@ func (globule *Globule) startProxies() error {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
-	// Remove all configuration lock files
-	config.RemoveAllLocks()
 
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(Utility.MyMacAddr())
@@ -821,9 +822,10 @@ func (globule *Globule) startServices() error {
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
 		fmt.Println("try to start service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
-		// Set the
+		
+		// Set the service parameters.
 		if len(globule.Certificate) > 0 && globule.Protocol == "https" {
-
+			log.Println("-------------------> https protocol ", services[i]["Name"])
 			// set tls file...
 			services[i]["TLS"] = true
 			services[i]["KeyFile"] = globule.creds + "/server.pem"
@@ -839,7 +841,7 @@ func (globule *Globule) startServices() error {
 			}
 
 			// Save service configuration values, those values will be read at local client connection,
-			config.SaveServiceConfiguration(services[i]) // save service values.
+			config_client.SaveServiceConfiguration(services[i]) // save service values.
 		} else {
 			services[i]["TLS"] = false
 			services[i]["KeyFile"] = ""
@@ -856,7 +858,7 @@ func (globule *Globule) startServices() error {
 			services[i]["SessionTimeout"] = globule.SessionTimeout
 		}
 
-		err := config.SaveServiceConfiguration(services[i]) // save service values.
+		err := config_client.SaveServiceConfiguration(services[i]) // save service values.
 
 		if err != nil {
 			log.Println("fail to save service configuration with error ", err)
@@ -887,9 +889,6 @@ func (globule *Globule) startServices() error {
 	go func() {
 		// subscribe to log events
 		globule.subscribe("new_log_evt", logListener)
-
-		// subscribe to serive change event.
-		globule.subscribe("update_globular_service_configuration_evt", updateServiceConfigurationListener)
 
 	}()
 
@@ -1012,7 +1011,7 @@ func (globule *Globule) createApplicationConnection() error {
  */
 func (globule *Globule) stopServices() error {
 
-	services, err := config.GetServicesConfigurations()
+	services, err := config_client.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -1304,15 +1303,6 @@ func (globule *Globule) watchForUpdate() {
 			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
 	}()
-}
-
-// received when service configuration change.
-func updateServiceConfigurationListener(evt *eventpb.Event) {
-	s := make(map[string]interface{})
-	err := json.Unmarshal(evt.Data, &s)
-	if err == nil {
-		config.SetServiceConfiguration(s)
-	}
 }
 
 // Try to display application message in a nice way
