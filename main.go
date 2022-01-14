@@ -73,11 +73,6 @@ func (g *Globule) Stop(s service.Service) error {
 
 func main() {
 	// be sure no lock is set.
-	config_.RemoveAllLocks()
-	defer config_.RemoveAllLocks() 
-	// Start configuration access synchronization...
-	config_.InitConfig()
-
 	g := NewGlobule()
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()

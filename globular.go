@@ -822,43 +822,8 @@ func (globule *Globule) startServices() error {
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
 		fmt.Println("try to start service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
-		
-		// Set the service parameters.
-		if len(globule.Certificate) > 0 && globule.Protocol == "https" {
-			log.Println("-------------------> https protocol ", services[i]["Name"])
-			// set tls file...
-			services[i]["TLS"] = true
-			services[i]["KeyFile"] = globule.creds + "/server.pem"
-			services[i]["CertFile"] = globule.creds + "/server.crt"
-			services[i]["CertAuthorityTrust"] = globule.creds + "/ca.crt"
-
-			if services[i]["CertificateAuthorityBundle"] != nil {
-				services[i]["CertificateAuthorityBundle"] = globule.CertificateAuthorityBundle
-			}
-
-			if services[i]["Certificate"] != nil {
-				services[i]["Certificate"] = globule.Certificate
-			}
-
-			// Save service configuration values, those values will be read at local client connection,
-			config_client.SaveServiceConfiguration(services[i]) // save service values.
-		} else {
-			services[i]["TLS"] = false
-			services[i]["KeyFile"] = ""
-			services[i]["CertFile"] = ""
-			services[i]["CertAuthorityTrust"] = ""
-		}
-
-		// Save back the values...
-		services[i]["Domain"] = globule.getDomain()
-		services[i]["Mac"] = globule.Mac
-
-		// Set the session timeout in minutes (ressource has that values.)
-		if services[i]["SessionTimeout"] != nil {
-			services[i]["SessionTimeout"] = globule.SessionTimeout
-		}
-
-		err := config_client.SaveServiceConfiguration(services[i]) // save service values.
+		services[i]["State"] = "starting"
+		config_client.SaveServiceConfiguration(services[i])
 
 		if err != nil {
 			log.Println("fail to save service configuration with error ", err)
