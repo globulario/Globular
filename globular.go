@@ -380,7 +380,6 @@ func (globule *Globule) saveConfig() error {
 	if err != nil {
 		return err
 	}
-	log.Println(jsonStr)
 
 	configPath := globule.config + "/config.json"
 
@@ -821,7 +820,6 @@ func (globule *Globule) startServices() error {
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
-		fmt.Println("try to start service name: " + services[i]["Name"].(string) + " id:" + services[i]["Id"].(string) + " running")
 		services[i]["State"] = "starting"
 		config_client.SaveServiceConfiguration(services[i])
 
@@ -857,16 +855,7 @@ func (globule *Globule) startServices() error {
 
 	}()
 
-	// Create the admin account.
-	globule.registerAdminAccount()
 
-	// Create application connection
-	globule.createApplicationConnection()
-
-	// Initialise the list of peers...
-	go func() {
-		globule.initPeers()
-	}()
 
 	// Convert video file, set permissions...
 	go func() {
@@ -993,6 +982,19 @@ func (globule *Globule) stopServices() error {
 
 // Start http/https server...
 func (globule *Globule) serve() error {
+	
+	// Create the admin account.
+	globule.registerAdminAccount()
+
+	// Create application connection
+	globule.createApplicationConnection()
+
+	// Initialise the list of peers...
+	go func() {
+		globule.initPeers()
+	}()
+
+
 	// start listen
 	err := globule.Listen()
 	if err != nil {
@@ -1719,16 +1721,10 @@ func (globule *Globule) publish(event string, data []byte) error {
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
 	eventClient, err := globule.getEventClient()
 	if err != nil {
-		if err != nil {
-			log.Panicln("------------> ", err)
-		}
 		return err
 	}
 
 	err = eventClient.Subscribe(evt, globule.Name, listener)
-	if err != nil {
-		log.Panicln("------------> ", err)
-	}
 	// register a listener...
 	return err
 }
