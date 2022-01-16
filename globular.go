@@ -313,7 +313,7 @@ func (globule *Globule) watchConfig() {
 
 					// Here I will make some validation...
 					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
-						log.Println("The domain localhost cannot be use with https, domain must contain dot's")
+						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
 					} else {
 
 						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
@@ -325,12 +325,12 @@ func (globule *Globule) watchConfig() {
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						if globule.http_server != nil {
 							if err = globule.http_server.Shutdown(ctx); err != nil {
-								log.Println("fail to stop the http server with error ", err)
+								fmt.Println("fail to stop the http server with error ", err)
 							}
 
 							if globule.https_server != nil {
 								if err := globule.https_server.Shutdown(ctx); err != nil {
-									log.Println("fail to stop the https server with error ", err)
+									fmt.Println("fail to stop the https server with error ", err)
 								}
 							}
 						}
@@ -440,7 +440,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	key, value := dns01.GetRecord(domain, keyAuth)
 
 	if len(globule.DNS) > 0 {
-		log.Println("Let's encrypt dns challenge...")
+		fmt.Println("Let's encrypt dns challenge...")
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS[0].(string), "dns.DnsService")
 		if err != nil {
 			return err
@@ -449,14 +449,14 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
 
 		if err != nil {
-			log.Println("fail to connect with the dns server")
+			fmt.Println("fail to connect with the dns server")
 			return err
 		}
 
 		err = dns_client_.SetText(token, key, []string{value}, 30)
 
 		if err != nil {
-			log.Println("fail to set let's encrypt dns chalenge key with error ", err)
+			fmt.Println("fail to set let's encrypt dns chalenge key with error ", err)
 			return err
 		}
 	}
@@ -484,7 +484,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 
 		err = dns_client_.RemoveText(token, key)
 		if err != nil {
-			log.Println("fail to remove challenge key with error ", err)
+			fmt.Println("fail to remove challenge key with error ", err)
 			return err
 		}
 	}
@@ -523,7 +523,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		globularDNS, err := NewDNSProviderGlobularDNS(token)
 		if err != nil {
-			log.Println("fail to create new Dns provider")
+			fmt.Println("fail to create new Dns provider")
 			return err
 		}
 
@@ -533,7 +533,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
 		if err != nil {
 
-			log.Fatal(err)
+			fmt.Println(err)
 		}
 	}
 
@@ -690,14 +690,14 @@ func (globule *Globule) initDirectories() error {
 	err = Utility.CreateDirIfNotExist(globule.config)
 
 	if err != nil {
-		log.Println("fail to create configuration directory  with error", err)
+		fmt.Println("fail to create configuration directory  with error", err)
 		return err
 	}
 
 	// Create the tokens directory
 	err = Utility.CreateDirIfNotExist(globule.config + "/tokens")
 	if err != nil {
-		log.Println("fail to create tokens directory  with error", err)
+		fmt.Println("fail to create tokens directory  with error", err)
 		return err
 	}
 
@@ -720,7 +720,7 @@ func (globule *Globule) initDirectories() error {
 
 		err := json.Unmarshal(file, &globule)
 		if err != nil {
-			log.Println("fail to init configuation with error ", err)
+			fmt.Println("fail to init configuation with error ", err)
 			return err
 		}
 
@@ -795,7 +795,7 @@ func (globule *Globule) startServices() error {
 	// This is the local token...
 	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
-		log.Println("fail to generate token with error: ", err)
+		fmt.Println("fail to generate token with error: ", err)
 		return err
 	}
 
@@ -824,14 +824,14 @@ func (globule *Globule) startServices() error {
 		config_client.SaveServiceConfiguration(services[i])
 
 		if err != nil {
-			log.Println("fail to save service configuration with error ", err)
+			fmt.Println("fail to save service configuration with error ", err)
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			// Create the service process.
 			_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
 
 			if err != nil {
-				log.Println("fail to start service ", services[i]["Name"], err)
+				fmt.Println("fail to start service ", services[i]["Name"], err)
 			}
 		}
 
@@ -873,7 +873,7 @@ func (globule *Globule) startServices() error {
 		}
 
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 		}
 		processFiles() // Process files...
 	}()
@@ -1015,8 +1015,8 @@ func (globule *Globule) serve() error {
 
 	elapsed := time.Since(globule.startTime)
 
-	log.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
-	log.Printf("startup took %s", elapsed)
+	fmt.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
+	fmt.Printf("startup took %s", elapsed)
 
 	return nil
 
@@ -1048,7 +1048,7 @@ func (globule *Globule) Serve() error {
 
 	globule.watchConfig()
 
-	// Set the log information in case of crash...
+	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	return globule.serve()
@@ -1223,7 +1223,7 @@ func getChecksum(address string, port int) (string, error) {
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 		}
 		return string(bodyBytes), nil
 	}
@@ -1259,7 +1259,7 @@ func (globule *Globule) watchForUpdate() {
 
 						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
-							log.Println("fail to update globular from " + discovery + " with error " + err.Error())
+							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						}
 
 					}
@@ -1374,7 +1374,10 @@ func (globule *Globule) Listen() error {
 		}
 
 		// start / restart services
-		globule.startServices()
+		fmt.Println("Succed to receive certificates you need to restart the server...")
+		os.Exit(0)
+
+		//globule.startServices()
 	}
 
 	// Must be started before other services.
@@ -1445,7 +1448,7 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 		persistence_client_, err = persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
 		if err != nil {
 			persistence_client_ = nil
-			log.Println("fail to get persistence client with error ", err)
+			fmt.Println("fail to get persistence client with error ", err)
 			return nil, err
 		}
 
@@ -1729,10 +1732,10 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 	return err
 }
 
-///////////////////////  Log Services functions ////////////////////////////////////////////////
+///////////////////////  fmt Services functions ////////////////////////////////////////////////
 
 /**
- * Get the log client.
+ * Get the fmt client.
  */
 func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
 	var err error
@@ -1841,7 +1844,7 @@ func createVideoStream(path string) error {
 
 	//  https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 	if strings.Index(string(version), "--enable-cuda-nvcc") > -1 {
-		log.Println("use gpu for convert ", path)
+		fmt.Println("use gpu for convert ", path)
 		if strings.HasPrefix(encoding, "H.264") || strings.HasPrefix(encoding, "MPEG-4 part 2") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "h264_nvenc", "-c:a", "aac", output)
 		} else if strings.HasPrefix(encoding, "H.265") {
@@ -1855,7 +1858,7 @@ func createVideoStream(path string) error {
 		}
 
 	} else {
-		log.Println("use cpu for convert ", path)
+		fmt.Println("use cpu for convert ", path)
 		// ffmpeg -i input.mkv -c:v libx264 -c:a aac output.mp4
 		if strings.HasPrefix(encoding, "H.264") {
 			cmd = exec.Command("ffmpeg", "-i", path, "-c:v", "libx264", "-c:a", "aac", output)
