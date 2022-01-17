@@ -66,6 +66,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	*/
+	serviceId := r.URL.Query().Get("id") // the csr in base64
 
 	//add prefix and clean
 	config := globule.getConfig()
@@ -77,6 +78,22 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["WebRoot"] = config_.GetWebRootDir()
 	config["Public"] = config_.GetPublicDirs()
 
+	// ask for a service configuration...
+	if len(serviceId) > 0 {
+		services := config["Services"].(map[string]interface{})
+		exist := false
+		for _, service := range services {
+			if service.(map[string]interface{})["Id"].(string) == serviceId || service.(map[string]interface{})["Name"].(string) == serviceId {
+				config = service.(map[string]interface{})
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			http.Error(w, "no service found with name or id "+serviceId, http.StatusBadRequest)
+			return
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
@@ -272,7 +289,6 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	// sign the certificate.
 	csr_str := r.URL.Query().Get("csr") // the csr in base64
 	csr, err := base64.StdEncoding.DecodeString(csr_str)
-
 	if err != nil {
 		http.Error(w, "Fail to decode csr base64 string", http.StatusBadRequest)
 		return
@@ -308,7 +324,7 @@ func isPublic(path string) bool {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
-	
+
 	setupResponse(&w, r)
 
 	// I will
@@ -364,7 +380,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) != 0 {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
-		if err == nil{
+		if err == nil {
 			user = claims.Id
 		}
 
@@ -390,7 +406,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		return
 	}
-	
+
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
 		if err != nil {
@@ -578,7 +594,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
-	
+
 	setupResponse(&w, r)
 	dir := globule.webRoot
 

@@ -285,6 +285,10 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["TLS"] = services[i]["TLS"]
 		s["Dependencies"] = services[i]["Dependencies"]
 		s["Version"] = services[i]["Version"]
+		s["CertAuthorityTrust"] = services[i]["CertAuthorityTrust"]
+		s["CertFile"] = services[i]["CertFile"]
+		s["KeyFile"] = services[i]["KeyFile"]
+		s["ConfigPath"] = services[i]["ConfigPath"]
 		config_["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
 
@@ -353,11 +357,6 @@ func (globule *Globule) watchConfig() {
 								log.Panicln(err)
 							}
 
-							// start proxies
-							err = globule.startProxies()
-							if err != nil {
-								log.Panicln(err)
-							}
 						}
 
 						// clear context
@@ -642,7 +641,6 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
-
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	config_client.GetServicesConfigurations()
@@ -766,24 +764,6 @@ func (globule *Globule) initDirectories() error {
 }
 
 /**
- * Start proxies
- */
-func (globule *Globule) startProxies() error {
-	services, err := config_client.GetServicesConfigurations()
-	if err != nil {
-		return err
-	}
-	for i := 0; i < len(services); i++ {
-		// Here I will start the proxy
-		_, err := process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-/**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
  */
@@ -832,9 +812,14 @@ func (globule *Globule) startServices() error {
 
 			if err != nil {
 				fmt.Println("fail to start service ", services[i]["Name"], err)
+
+			} else {
+				_, err = process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+				if err != nil {
+					fmt.Println("fail to start service proxy ", services[i]["Name"], err)
+				}
 			}
 		}
-
 	}
 
 	// So here I will register services permissions.
@@ -854,8 +839,6 @@ func (globule *Globule) startServices() error {
 		globule.subscribe("new_log_evt", logListener)
 
 	}()
-
-
 
 	// Convert video file, set permissions...
 	go func() {
@@ -982,7 +965,7 @@ func (globule *Globule) stopServices() error {
 
 // Start http/https server...
 func (globule *Globule) serve() error {
-	
+
 	// Create the admin account.
 	globule.registerAdminAccount()
 
@@ -993,13 +976,6 @@ func (globule *Globule) serve() error {
 	go func() {
 		globule.initPeers()
 	}()
-
-
-	// start listen
-	err := globule.Listen()
-	if err != nil {
-		return err
-	}
 
 	url := globule.Protocol + "://" + globule.getDomain()
 
@@ -1040,11 +1016,15 @@ func (globule *Globule) Serve() error {
 	// Initialyse directories.
 	globule.initDirectories()
 
+	// start listen to http(s)
+	// service must be able to get their configuration via http...
+	err = globule.Listen()
+	if err != nil {
+		return err
+	}
+
 	// Start microservice manager.
 	globule.startServices()
-
-	// start proxies
-	globule.startProxies()
 
 	globule.watchConfig()
 
@@ -1402,7 +1382,6 @@ func (globule *Globule) Listen() error {
 		// get the value from the configuration files.
 		go func() {
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
-
 		}()
 	}
 
