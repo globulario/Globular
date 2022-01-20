@@ -1490,7 +1490,7 @@ func __dist(g *Globule, path, config_path string) []string{
 										config["Connections"] = make(map[string]interface{})
 									}
 
-									config["ConfigPath"] = /*config_.GetServicesConfigDir()+*/ "/etc/globular/config/"+ serviceDir+"/"+id+"/config.json"
+									config["ConfigPath"] =config_.GetConfigDir()+ "/"+ serviceDir+"/"+id+"/config.json"
 									configs = append(configs,"/etc/globular/config/"+ serviceDir+"/"+id+"/config.json")
 									str, _ := Utility.ToJson(&config)
 
