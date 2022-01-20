@@ -37,6 +37,7 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
+	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
 
 	// Interceptor for authentication, event, log...
@@ -143,6 +144,9 @@ type Globule struct {
 
 	// Keep track of the strart time...
 	startTime time.Time
+
+	// This is use to display information to external service manager.
+	logger service.Logger
 }
 
 /**
@@ -836,7 +840,7 @@ func (globule *Globule) startServices() error {
 	// Here I will listen for logger event...
 	go func() {
 		// subscribe to log events
-		globule.subscribe("new_log_evt", logListener)
+		globule.subscribe("new_log_evt", logListener(globule))
 
 	}()
 
@@ -1253,66 +1257,76 @@ func (globule *Globule) watchForUpdate() {
 }
 
 // Try to display application message in a nice way
-func logListener(evt *eventpb.Event) {
+func logListener(g *Globule) func(evt *eventpb.Event) {
+	return func(evt *eventpb.Event) {
+		info := make(map[string]interface{})
+		err := json.Unmarshal(evt.Data, &info)
+		if err == nil {
+			// So here Will display message
+			var header string
+			if info["application"] != nil {
+				header = info["application"].(string)
+			}
 
-	info := make(map[string]interface{})
-	err := json.Unmarshal(evt.Data, &info)
-	if err == nil {
-		// So here Will display message
-		var header string
-		if info["application"] != nil {
-			header = info["application"].(string)
-		}
+			occurences := info["occurences"].([]interface{})
+			occurence := occurences[len(occurences)-1].(map[string]interface{})
 
-		occurences := info["occurences"].([]interface{})
-		occurence := occurences[len(occurences)-1].(map[string]interface{})
+			// Set the occurence date.
+			messageTime := time.Unix(int64(Utility.ToInt(occurence["date"])), 0)
+			method := "NA"
+			if info["method"] != nil {
+				method = info["method"].(string)
+			}
 
-		// Set the occurence date.
-		messageTime := time.Unix(int64(Utility.ToInt(occurence["date"])), 0)
-		method := "NA"
-		if info["method"] != nil {
-			method = info["method"].(string)
-		}
+			if info["functionName"] != nil {
+				method += ":" + info["functionName"].(string)
+			}
 
-		if info["functionName"] != nil {
-			method += ":" + info["functionName"].(string)
-		}
+			header += " " + messageTime.Format("2006-01-02 15:04:05") + " " + method
 
-		header += " " + messageTime.Format("2006-01-02 15:04:05") + " " + method
+			if info["level"].(string) == "ERROR_MESSAGE" {
+				color.Error.Println(header)
+			} else if info["level"].(string) == "DEBUG_MESSAGE" || info["level"].(string) == "INFO_MESSAGE" {
+				color.Info.Println(header)
+			} else {
+				color.Warn.Println(header)
+			}
 
-		if info["level"].(string) == "ERROR_MESSAGE" {
-			color.Error.Println(header)
-		} else if info["level"].(string) == "DEBUG_MESSAGE" || info["level"].(string) == "INFO_MESSAGE" {
-			color.Info.Println(header)
-		} else {
-			color.Warn.Println(header)
-		}
-
-		if info["message"] != nil {
-			// Now I will process the message itself...
-			msg := info["message"].(string)
-			// if the message is grpc error I will parse it content and display it content...
-			if strings.HasPrefix(msg, "rpc") {
-				errorDescription := make(map[string]interface{})
-				startIndex := strings.Index(msg, "{")
-				endIndex := strings.Index(msg, "}")
-				if startIndex >= 0 && endIndex > startIndex {
-					jsonStr := msg[startIndex : endIndex+1]
-					err := json.Unmarshal([]byte(jsonStr), &errorDescription)
-					if err == nil {
-						if errorDescription["FileLine"] != nil {
-							fmt.Println(errorDescription["FileLine"])
-						}
-						if errorDescription["ErrorMsg"] != nil {
-							color.Comment.Println(errorDescription["ErrorMsg"])
+			if info["message"] != nil {
+				// Now I will process the message itself...
+				msg := info["message"].(string)
+				// if the message is grpc error I will parse it content and display it content...
+				if strings.HasPrefix(msg, "rpc") {
+					errorDescription := make(map[string]interface{})
+					startIndex := strings.Index(msg, "{")
+					endIndex := strings.Index(msg, "}")
+					if startIndex >= 0 && endIndex > startIndex {
+						jsonStr := msg[startIndex : endIndex+1]
+						err := json.Unmarshal([]byte(jsonStr), &errorDescription)
+						if err == nil {
+							if errorDescription["FileLine"] != nil {
+								fmt.Println(errorDescription["FileLine"])
+							}
+							if errorDescription["ErrorMsg"] != nil {
+								color.Comment.Println(errorDescription["ErrorMsg"])
+							}
 						}
 					}
+				} else {
+					if info["line"] != nil {
+						fmt.Println(info["line"])
+					}
+					color.Comment.Println(msg)
 				}
-			} else {
-				if info["line"] != nil {
-					fmt.Println(info["line"])
+
+				// I will also display the message in the system logger.
+				if info["level"].(string) == "ERROR_MESSAGE" {
+					g.logger.Error(msg)
+				}else if info["level"].(string) == "WARNING_MESSAGE" {
+					g.logger.Warning(msg)
+				}else if info["level"].(string) == "INFO_MESSAGE" {
+					g.logger.Info(msg)
 				}
-				color.Comment.Println(msg)
 			}
 		}
 	}

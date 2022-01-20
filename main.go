@@ -29,15 +29,8 @@ import (
 	"github.com/kardianos/service"
 )
 
-// This is use to display information to external service manager.
-var logger service.Logger
 
 func (g *Globule) Start(s service.Service) error {
-	if service.Interactive() {
-		logger.Info("Running in terminal.")
-	} else {
-		logger.Info("Running under service manager.")
-	}
 
 	// stop mongo demon if it running
 	Utility.KillProcessByName("mongod")
@@ -94,8 +87,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Create the service logger...
 	errs := make(chan error, 5)
-	logger, err = s.Logger(errs)
+	g.logger, err = s.Logger(errs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -667,7 +661,7 @@ func main() {
 		}
 		err = s.Run()
 		if err != nil {
-			logger.Error(err)
+			g.logger.Error(err)
 		}
 	}
 
