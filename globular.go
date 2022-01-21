@@ -812,13 +812,13 @@ func (globule *Globule) startServices() error {
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			// Create the service process.
-			_, err = process.StartServiceProcess(services[i]["Id"].(string), globule.PortsRange)
+			_, err = process.StartServiceProcess(services[i], globule.PortsRange)
 
 			if err != nil {
 				fmt.Println("fail to start service ", services[i]["Name"], err)
 
 			} else {
-				_, err = process.StartServiceProxyProcess(services[i]["Id"].(string), globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+				_, err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
 				if err != nil {
 					fmt.Println("fail to start service proxy ", services[i]["Name"], err)
 				}
@@ -962,6 +962,8 @@ func (globule *Globule) stopServices() error {
 
 	for i := 0; i < len(services); i++ {
 		process.KillServiceProcess(services[i])
+		
+		
 	}
 
 	return nil

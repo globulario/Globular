@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
 )
-
 
 func (g *Globule) Start(s service.Service) error {
 
@@ -65,6 +65,18 @@ func (g *Globule) Stop(s service.Service) error {
 }
 
 func main() {
+
+	profileFileName := "globular_profile.pprof"
+	f, err := os.Create(profileFileName)
+	
+	if err != nil {
+		log.Fatal("could not create CPU profile: ", err)
+	}
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatal("could not start CPU profile: ", err)
+	}
+	defer pprof.StopCPUProfile()
+
 	// be sure no lock is set.
 	g := NewGlobule()
 	svcFlag := flag.String("service", "", "Control the system service.")
@@ -1177,7 +1189,7 @@ func dist(g *Globule, path string, revision string) {
 		// the list of list of configurations
 		// DEBIAN/conffiles
 		conffiles := ""
-		for i:=0; i < len(configurations); i++ {
+		for i := 0; i < len(configurations); i++ {
 			conffiles += configurations[i] + "\n"
 		}
 
@@ -1185,7 +1197,6 @@ func dist(g *Globule, path string, revision string) {
 		if err != nil {
 			fmt.Println(err)
 		}
-
 
 		postinst := `
 		# Create a link into bin to it original location.
@@ -1281,7 +1292,7 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println(err)
 		}
 
-		// 
+		//
 
 		// 5. Build the deb package
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
@@ -1297,7 +1308,7 @@ func dist(g *Globule, path string, revision string) {
 	} else {
 		fmt.Println("Create the distro at path ", path)
 		// Create the distribution.
-		__dist(g, path, path + "/config")
+		__dist(g, path, path+"/config")
 	}
 
 }
@@ -1321,7 +1332,7 @@ func dist(g *Globule, path string, revision string) {
 // https://ma.ttias.be/auto-restart-crashed-service-systemd/
 // https://www.digitalocean.com/community/questions/proper-permissions-for-web-server-s-directory
 
-func __dist(g *Globule, path, config_path string) []string{
+func __dist(g *Globule, path, config_path string) []string {
 
 	// Return the configurations list
 	configs := make([]string, 0)
@@ -1484,8 +1495,8 @@ func __dist(g *Globule, path, config_path string) []string{
 										config["Connections"] = make(map[string]interface{})
 									}
 
-									config["ConfigPath"] =config_.GetConfigDir()+ "/"+ serviceDir+"/"+id+"/config.json"
-									configs = append(configs,"/etc/globular/config/"+ serviceDir+"/"+id+"/config.json")
+									config["ConfigPath"] = config_.GetConfigDir() + "/" + serviceDir + "/" + id + "/config.json"
+									configs = append(configs, "/etc/globular/config/"+serviceDir+"/"+id+"/config.json")
 									str, _ := Utility.ToJson(&config)
 
 									if len(config_path) > 0 {
@@ -1541,7 +1552,7 @@ func __dist(g *Globule, path, config_path string) []string{
 		log.Println(err)
 	}
 
-	// 
+	//
 	return configs
 }
 
