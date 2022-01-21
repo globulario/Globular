@@ -832,7 +832,9 @@ func (globule *Globule) startServices() error {
 		if s["Permissions"] != nil {
 			permissions := s["Permissions"].([]interface{})
 			for j := 0; j < len(permissions); j++ {
-				globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+				if(permissions[j]!=nil){
+					globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+				}
 			}
 		}
 	}
