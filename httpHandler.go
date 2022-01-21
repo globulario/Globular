@@ -462,7 +462,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				} else if strings.HasPrefix(fileType, "video/") {
 					// Here I will call convert video...
 					go func() {
-						convertVideo()
+						convertVideo(path_[0:strings.LastIndex(path_, "/")])
 					}()
 				}
 			}

@@ -842,6 +842,9 @@ func (globule *Globule) startServices() error {
 		// subscribe to log events
 		globule.subscribe("new_log_evt", logListener(globule))
 
+		// refresh dir event
+		globule.subscribe("refresh_dir_evt", refreshDirEvent(globule))
+
 	}()
 
 	// Convert video file, set permissions...
@@ -962,8 +965,6 @@ func (globule *Globule) stopServices() error {
 
 	for i := 0; i < len(services); i++ {
 		process.KillServiceProcess(services[i])
-		
-		
 	}
 
 	return nil
@@ -1324,13 +1325,27 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 				// I will also display the message in the system logger.
 				if info["level"].(string) == "ERROR_MESSAGE" {
 					g.logger.Error(msg)
-				}else if info["level"].(string) == "WARNING_MESSAGE" {
+				} else if info["level"].(string) == "WARNING_MESSAGE" {
 					g.logger.Warning(msg)
-				}else if info["level"].(string) == "INFO_MESSAGE" {
+				} else if info["level"].(string) == "INFO_MESSAGE" {
 					g.logger.Info(msg)
 				}
 			}
 		}
+	}
+}
+
+/**
+ * That event will be trigger when the directory must be refresh...
+ */
+func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
+	return func(evt *eventpb.Event) {
+		path := string(evt.Data)
+		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/"){
+			path = config.GetDataDir() + "/files" + path
+		}
+		fmt.Println("-----------------> refresh dir event received: ", path)
+		convertVideo(path)
 	}
 }
 
@@ -1756,15 +1771,15 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 // Process files.
 //////////////////////////////////////////////////////////////////////////////
 func processFiles() {
-	convertVideo()
+	convertVideo(config.GetDataDir() + "/files")
 
 	// sleep a minute...
-	time.Sleep(1 * time.Minute)
+	time.Sleep(1 * time.Hour) // once hours I will refresh all the file.
 
 	processFiles()
 }
 
-func convertVideo() {
+func convertVideo(path string) {
 
 	pids, err := Utility.GetProcessIdsByName("ffmpeg")
 	if err == nil {
@@ -1775,7 +1790,7 @@ func convertVideo() {
 
 	var files []string
 
-	err = filepath.Walk(globule.data+"/files", visit(&files))
+	err = filepath.Walk(path, visit(&files))
 	if err != nil {
 		return
 	}
