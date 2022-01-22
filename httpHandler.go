@@ -504,7 +504,7 @@ func visit(files *[]string) filepath.WalkFunc {
 			} else {
 				id = path_
 			}
-
+			// Set the resource owner.
 			if len(id) > 0 {
 				globule.addResourceOwner("/applications/"+path_, id, rbacpb.SubjectType_APPLICATION)
 			}
