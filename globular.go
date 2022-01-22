@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/config/config_client"
@@ -312,7 +313,6 @@ func (globule *Globule) watchConfig() {
 			if checksum_ != checksum {
 				file, _ := ioutil.ReadFile(globule.config + "/config.json")
 				config := make(map[string]interface{})
-
 				err := json.Unmarshal(file, &config)
 
 				if err != nil {
@@ -767,16 +767,7 @@ func (globule *Globule) initDirectories() error {
 	return nil
 }
 
-/**
- * Here I will start the services manager who will start all microservices
- * installed on that computer.
- */
-func (globule *Globule) startServices() error {
-
-	// Here I will generate the keys for this server if not already exist.
-	security.GeneratePeerKeys(Utility.MyMacAddr())
-
-	// This is the local token...
+func (globule *Globule) refreshLocalToken() error{
 	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		fmt.Println("fail to generate token with error: ", err)
@@ -788,12 +779,42 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
+	return nil
+}
+/**
+ * Here I will start the services manager who will start all microservices
+ * installed on that computer.
+ */
+func (globule *Globule) startServices() error {
+
+	Utility.KillProcessByName("grpcwebproxy")
+
+	// Here I will generate the keys for this server if not already exist.
+	security.GeneratePeerKeys(Utility.MyMacAddr())
+
+	// This is the local token...
+	err := globule.refreshLocalToken()
+	if err != nil {
+		return err
+	}
+
 	// Retreive all configurations
 	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
 		return err
 	}
 
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout - 1) * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// refresh the token.
+				globule.refreshLocalToken()
+			}
+		}
+	}()
+	
 	// Register that peer with the dns.
 	err = globule.registerIpToDns()
 	if err != nil {
@@ -969,6 +990,8 @@ func (globule *Globule) stopServices() error {
 		process.KillServiceProcess(services[i])
 	}
 
+	Utility.KillProcessByName("grpcwebproxy")
+
 	return nil
 }
 
@@ -1040,7 +1063,63 @@ func (globule *Globule) Serve() error {
 	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	// TODO keep this address in the config somewhere... or be sure the link will always be available.
+	globule.installConsoleApplication("globule-nuc.globular.cloud");
+
 	return globule.serve()
+}
+
+/**
+ * If the console application is not installed I will install it.
+ */
+func (globule *Globule) installConsoleApplication(discovery string){
+
+	// Here I will test if the console application is install...
+	if Utility.Exists(config.GetWebRootDir() + "/console") {
+		return  // no need to install here...
+	}
+
+	address, _ := config.GetAddress()
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService")
+	if err != nil {
+		fmt.Println(err)
+		return 
+	}
+
+	// I will use the local token to do so.
+	path := config.GetConfigDir() + "/tokens/" + globule.getDomain() + "_token"
+	if !Utility.Exists(path){
+		fmt.Println("no token found for domain " + globule.getDomain() + " at path " + path)
+		return
+	}
+
+	token, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Println("fail to read token at path " + path + " with error: " + err.Error())
+		return 
+	}
+
+	// first of all I will create and upload the package on the discovery...
+	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery , "globulario", "console", true)
+	if err != nil {
+		fmt.Println("fail to install application console with error:", err)
+	}
+
+	// Display the link in the console.
+	address_ := globule.Protocol + "://" + globule.getDomain()
+	if globule.Protocol == "https" {
+		if globule.PortHttps != 443 {
+			address_ += ":" + Utility.ToString(globule.PortHttps)
+		}
+	}else{
+		if globule.PortHttp != 80 {
+			address_ += ":" + Utility.ToString(globule.PortHttp)
+		}
+	}
+
+	fmt.Println("Console application was install and ready to go at address:", address_)
 }
 
 /**
@@ -1346,7 +1425,8 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/"){
 			path = config.GetDataDir() + "/files" + path
 		}
-		fmt.Println("-----------------> refresh dir event received: ", path)
+
+		// Convert video and also index file and set permissions...
 		convertVideo(path)
 	}
 }
