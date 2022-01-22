@@ -955,6 +955,9 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 	return nil
 }
 
+/**
+ * Install Globular web application.
+ */
 func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string, set_as_default bool) error {
 
 	// Authenticate the user in order to get the token
