@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -65,17 +64,6 @@ func (g *Globule) Stop(s service.Service) error {
 }
 
 func main() {
-
-	profileFileName := "globular_profile.pprof"
-	f, err := os.Create(profileFileName)
-	
-	if err != nil {
-		log.Fatal("could not create CPU profile: ", err)
-	}
-	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal("could not start CPU profile: ", err)
-	}
-	defer pprof.StopCPUProfile()
 
 	// be sure no lock is set.
 	g := NewGlobule()

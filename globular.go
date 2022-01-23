@@ -1064,7 +1064,7 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-	globule.installConsoleApplication("globule-nuc.globular.cloud");
+	globule.installConsoleApplication("globular.io");
 
 	return globule.serve()
 }
