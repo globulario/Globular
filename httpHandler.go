@@ -64,11 +64,11 @@ func startHttpReverseProxy() {
 	add_peer_channel = make(chan *resourcepb.Peer)
 
 	// Here
-	go func() {
+	/*go func() {
 		for {
 
 		}
-	}()
+	}()*/
 }
 
 /**
