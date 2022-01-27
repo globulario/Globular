@@ -202,6 +202,9 @@ func NewGlobule() *Globule {
 
 	// Set the list of http handler.
 
+	// Start listen for http request.
+	http.HandleFunc("/", ServeFileHandler)
+
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
 
@@ -220,11 +223,9 @@ func NewGlobule() *Globule {
 	// Handle the signing certificate function.
 	http.HandleFunc("/sign_ca_certificate", signCaCertificateHandler)
 
-	// Start listen for http request.
-	http.HandleFunc("/", ServeFileHandler)
-
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
+
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -1007,6 +1008,9 @@ func (globule *Globule) serve() error {
 	// Initialise the list of peers...
 	go func() {
 		globule.initPeers()
+		
+		// Start http reverse proxy.
+		startHttpReverseProxy()
 	}()
 
 	url := globule.Protocol + "://" + globule.getDomain()

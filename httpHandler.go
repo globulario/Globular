@@ -10,6 +10,8 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,6 +23,7 @@ import (
 	"github.com/davecourtois/Utility"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
@@ -29,6 +32,48 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
+// NewProxy takes target host and creates a reverse proxy
+func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
+	url, err := url.Parse(targetHost)
+	if err != nil {
+		return nil, err
+	}
+	return httputil.NewSingleHostReverseProxy(url), nil
+}
+
+// incomming http call
+type http_call struct {
+
+	// The response writer.
+	writer http.ResponseWriter
+
+	// The input request
+	rqst *http.Request
+}
+
+// a channel to dispatch http message to other peers.
+var http_call_channel chan http_call
+
+var add_peer_channel chan *resourcepb.Peer
+
+// Process http request.
+func startHttpReverseProxy() {
+
+	// open channel...
+	http_call_channel = make(chan http_call)
+	add_peer_channel = make(chan *resourcepb.Peer)
+
+	// Here
+	go func() {
+		for {
+
+		}
+	}()
+}
+
+/**
+ * Create a checksum from a given path.
+ */
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
@@ -47,25 +92,10 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  * Return the service configuration
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	// Receive http request...
+	fmt.Println("reveice http request for: ", r.Host)
+
 	// if the host is not the same...
-	/*
-		if globule.Domain != r.Host {
-			//log.Println("------------> request redirected " + globule.Protocol+"://"+r.Host + r.URL.String())
-			//http.Redirect(w, r, globule.Protocol+"://"+r.Host + r.URL.String(), http.StatusMovedPermanently)
-			// return
-			client, err := globule.getHttpClient(r.Host)
-			if err == nil {
-				rsp, err := client.Get(r.URL.String())
-				if err == nil {
-				 log.Println("--------------> response found from ", r.Host, " with status ", rsp.StatusCode)
-				}else{
-					log.Println("60 ----> error ", err)
-				}
-			}else{
-				log.Println("63 ----> error ", err)
-			}
-		}
-	*/
 	serviceId := r.URL.Query().Get("id") // the csr in base64
 
 	//add prefix and clean
