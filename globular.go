@@ -1005,14 +1005,6 @@ func (globule *Globule) serve() error {
 	// Create application connection
 	globule.createApplicationConnection()
 
-	// Initialise the list of peers...
-	go func() {
-		globule.initPeers()
-		
-		// Start http reverse proxy.
-		startHttpReverseProxy()
-	}()
-
 	url := globule.Protocol + "://" + globule.getDomain()
 
 	if globule.Protocol == "https" {
@@ -1069,6 +1061,8 @@ func (globule *Globule) Serve() error {
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
 	globule.installConsoleApplication("globular.io");
+
+	globule.initPeers()
 
 	return globule.serve()
 }
@@ -1434,6 +1428,7 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		convertVideo(path)
 	}
 }
+
 
 /**
  * Listen for new connection.
