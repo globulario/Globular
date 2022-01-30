@@ -32,7 +32,7 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-// Find the peer with a given name and redirect the 
+// Find the peer with a given name and redirect the
 // the request to it.
 func redirectTo(host string) (bool, *resourcepb.Peer) {
 	for i := 0; i < len(globule.peers); i++ {
@@ -44,11 +44,39 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 	return false, nil
 }
 
-
 // Redirect the query to a peer one the network 
 func handleRequestAndRedirect(address string, res http.ResponseWriter, req *http.Request) {
-	ur, _ := url.Parse(globule.Protocol + "://" + address)
+
+	// So here I will require a little more info about the peers...
+	address_ := ""
+	port := 0
+	scheme := "http"
+
+	if strings.Contains(address, ":"){
+		address_ = strings.Split(address, ":")[0]
+		port = Utility.ToInt(strings.Split(address, ":")[1])
+	}
+
+	// read the actual configuration.
+	config__, err := config_.GetRemoteConfig(address_,port, "")
+
+	if err == nil {
+		// if 
+		if config__["Protocol"].(string) == "https" && len(config__["Certificate"].(string)) != 0 {
+			scheme = "https"
+			address_ += ":" + Utility.ToString(config__["PortHttps"])
+		}else if config__["Protocol"].(string) == "http"{
+			address_ += ":" + Utility.ToString(config__["PortHttp"])
+		}
+	}else{
+		address_ = address
+	}
+
+	fmt.Println("--------> redirect to address", scheme + "://" + address_)
+
+	ur, _ := url.Parse(scheme + "://" + address_)
 	proxy := httputil.NewSingleHostReverseProxy(ur)
+	
 	// Update the headers to allow for SSL redirection
 	req.URL.Host = ur.Host
 	req.URL.Scheme = ur.Scheme
