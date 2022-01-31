@@ -400,6 +400,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
+		fmt.Println("validate application permission: ", application)
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if hasAccess && err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
@@ -407,7 +408,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get the user id from the token...
-	if len(token) != 0 {
+	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		if err == nil {
