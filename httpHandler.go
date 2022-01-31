@@ -32,49 +32,74 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-// NewProxy takes target host and creates a reverse proxy
-func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
-	url, err := url.Parse(targetHost)
-	if err != nil {
-		return nil, err
-	}
-	return httputil.NewSingleHostReverseProxy(url), nil
-}
-
-// incomming http call
-type http_call struct {
-
-	// The response writer.
-	writer http.ResponseWriter
-
-	// The input request
-	rqst *http.Request
-}
-
-// a channel to dispatch http message to other peers.
-var http_call_channel chan http_call
-
-var add_peer_channel chan *resourcepb.Peer
-
-// Process http request.
-func startHttpReverseProxy() {
-
-	// open channel...
-	http_call_channel = make(chan http_call)
-	add_peer_channel = make(chan *resourcepb.Peer)
-
-	// Here
-	/*go func() {
-		for {
-
+// Find the peer with a given name and redirect the
+// the request to it.
+func redirectTo(host string) (bool, *resourcepb.Peer) {
+	for i := 0; i < len(globule.peers); i++ {
+		p := globule.peers[i]
+		if strings.HasPrefix(p.Address, host) {
+			return true, p
 		}
-	}()*/
+	}
+	return false, nil
+}
+
+// Redirect the query to a peer one the network
+func handleRequestAndRedirect(address string, res http.ResponseWriter, req *http.Request) {
+
+	// So here I will require a little more info about the peers...
+	address_ := ""
+	port := 0
+	scheme := "http"
+
+	if strings.Contains(address, ":") {
+		address_ = strings.Split(address, ":")[0]
+		port = Utility.ToInt(strings.Split(address, ":")[1])
+	}
+
+	// read the actual configuration.
+	config__, err := config_.GetRemoteConfig(address_, port, "")
+
+	if err == nil {
+		// if
+		if config__["Protocol"].(string) == "https" && len(config__["Certificate"].(string)) != 0 {
+			scheme = "https"
+			address_ += ":" + Utility.ToString(config__["PortHttps"])
+		} else if config__["Protocol"].(string) == "http" {
+			address_ += ":" + Utility.ToString(config__["PortHttp"])
+		}
+	} else {
+		address_ = address
+	}
+
+	fmt.Println("--------> redirect to address", scheme+"://"+address_)
+
+	ur, _ := url.Parse(scheme + "://" + address_)
+	proxy := httputil.NewSingleHostReverseProxy(ur)
+
+	// Update the headers to allow for SSL redirection
+	req.URL.Host = ur.Host
+	req.URL.Scheme = ur.Scheme
+	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
+	proxy.ErrorHandler = ErrHandle
+	proxy.ServeHTTP(res, req)
+}
+
+// Display error message.
+func ErrHandle(res http.ResponseWriter, req *http.Request, err error) {
+	fmt.Println(err)
 }
 
 /**
  * Create a checksum from a given path.
  */
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address ,w, r)
+		return
+	}
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
@@ -93,7 +118,11 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
-	fmt.Println("reveice http request for: ", r.Host)
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
 
 	// if the host is not the same...
 	serviceId := r.URL.Query().Get("id") // the csr in base64
@@ -140,6 +169,13 @@ func dealwithErr(err error) {
 }
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
 	runtimeOS := runtime.GOOS
 
 	// memory
@@ -152,7 +188,6 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	// might have to change for Windows!!
 	// don't have a Window to test this out, if detect OS == windows
 	// then use "\" instead of "/"
-
 	diskStat, err := disk.Usage("/")
 	dealwithErr(err)
 
@@ -242,6 +277,12 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
  * Return the ca certificate public key.
  */
 func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
@@ -260,6 +301,12 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
  * Return the server SAN configuration file.
  */
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
@@ -310,6 +357,11 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
  * Sign ca certificate request and return a certificate.
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
@@ -354,6 +406,12 @@ func isPublic(path string) bool {
  * via http request.
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
+
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
 
 	setupResponse(&w, r)
 
@@ -625,6 +683,12 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
+
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
 
 	setupResponse(&w, r)
 	dir := globule.webRoot

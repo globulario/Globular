@@ -502,10 +502,8 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 func (globule *Globule) obtainCertificateForCsr() error {
 	config_ := lego.NewConfig(globule)
 	config_.Certificate.KeyType = certcrypto.RSA2048
-
 	client, err := lego.NewClient(config_)
 	if err != nil {
-
 		return err
 	}
 	// Dns registration will be use in case dns service are available.
@@ -534,41 +532,37 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		client.Challenge.SetDNS01Provider(globularDNS)
 
 	} else {
-		err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", strconv.Itoa(globule.PortHttp)))
+		provider := http01.NewProviderServer("", strconv.Itoa(globule.PortHttp))
+		err = client.Challenge.SetHTTP01Provider(provider)
 		if err != nil {
-
-			fmt.Println(err)
+			log.Println(err)
+			return err
 		}
 	}
 
 	if err != nil {
-
 		return err
 	}
 
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 	globule.registration = reg
 	if err != nil {
-
 		return err
 	}
 
 	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
 	if err != nil {
-
 		return err
 	}
 
 	csrBlock, _ := pem.Decode(csrPem)
 	rqstForCsr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
-
 		return err
 	}
 
 	resource, err := client.Certificate.ObtainForCSR(*rqstForCsr, true)
 	if err != nil {
-
 		return err
 	}
 
@@ -1005,14 +999,6 @@ func (globule *Globule) serve() error {
 	// Create application connection
 	globule.createApplicationConnection()
 
-	// Initialise the list of peers...
-	go func() {
-		globule.initPeers()
-		
-		// Start http reverse proxy.
-		startHttpReverseProxy()
-	}()
-
 	url := globule.Protocol + "://" + globule.getDomain()
 
 	if globule.Protocol == "https" {
@@ -1069,6 +1055,8 @@ func (globule *Globule) Serve() error {
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
 	globule.installConsoleApplication("globular.io");
+
+	globule.initPeers()
 
 	return globule.serve()
 }
@@ -1434,6 +1422,7 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		convertVideo(path)
 	}
 }
+
 
 /**
  * Listen for new connection.
