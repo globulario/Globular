@@ -170,7 +170,7 @@ func NewGlobule() *Globule {
 	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
-
+	
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
 	}
