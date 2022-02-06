@@ -72,8 +72,6 @@ func handleRequestAndRedirect(address string, res http.ResponseWriter, req *http
 		address_ = address
 	}
 
-	fmt.Println("--------> redirect to address", scheme+"://"+address_)
-
 	ur, _ := url.Parse(scheme + "://" + address_)
 	proxy := httputil.NewSingleHostReverseProxy(ur)
 
@@ -97,7 +95,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
-		handleRequestAndRedirect(to.Address ,w, r)
+		handleRequestAndRedirect(to.Address, w, r)
 		return
 	}
 
@@ -391,9 +389,11 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 func isPublic(path string) bool {
 	public := config_.GetPublicDirs()
 	path = strings.ReplaceAll(path, "\\", "/")
+
 	if Utility.Exists(path) {
 		for i := 0; i < len(public); i++ {
 			if strings.HasPrefix(path, public[i]) {
+				//fmt.Println("path ", path, " was found in public folder")
 				return true
 			}
 		}
@@ -513,6 +513,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
+		// Now if the os is windows I will remove the leading /
+		if runtime.GOOS == "windows" && path_[0] == '/' {
+			path_ = path_[1:]
+		}
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
 		} else if !isPublic(path_) {
@@ -744,6 +748,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	hasAccess := true
 	var name string
 
+	//fmt.Println("try to read file: ", rqst_path)
+
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
 		if !strings.Contains(rqst_path, "/.hidden/") {
@@ -752,6 +758,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// Now if the os is windows I will remove the leading /
+	if runtime.GOOS == "windows" && rqst_path[0] == '/' {
+		rqst_path = rqst_path[1:]
+	}
 	// path to file
 	if !isPublic(rqst_path) {
 		name = path.Join(dir, rqst_path)
