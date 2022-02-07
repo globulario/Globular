@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
@@ -170,7 +171,7 @@ func NewGlobule() *Globule {
 	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
-	
+
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
 	}
@@ -225,7 +226,6 @@ func NewGlobule() *Globule {
 
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
-
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -762,7 +762,7 @@ func (globule *Globule) initDirectories() error {
 	return nil
 }
 
-func (globule *Globule) refreshLocalToken() error{
+func (globule *Globule) refreshLocalToken() error {
 	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		fmt.Println("fail to generate token with error: ", err)
@@ -776,6 +776,7 @@ func (globule *Globule) refreshLocalToken() error{
 
 	return nil
 }
+
 /**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
@@ -799,7 +800,7 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout - 1) * time.Minute)
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout-1) * time.Minute)
 	go func() {
 		for {
 			select {
@@ -809,7 +810,7 @@ func (globule *Globule) startServices() error {
 			}
 		}
 	}()
-	
+
 	// Register that peer with the dns.
 	err = globule.registerIpToDns()
 	if err != nil {
@@ -848,7 +849,7 @@ func (globule *Globule) startServices() error {
 		if s["Permissions"] != nil {
 			permissions := s["Permissions"].([]interface{})
 			for j := 0; j < len(permissions); j++ {
-				if(permissions[j]!=nil){
+				if permissions[j] != nil {
 					globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
 				}
 			}
@@ -1054,7 +1055,7 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-	globule.installConsoleApplication("globular.io");
+	globule.installConsoleApplication("globular.io")
 
 	globule.initPeers()
 
@@ -1064,11 +1065,11 @@ func (globule *Globule) Serve() error {
 /**
  * If the console application is not installed I will install it.
  */
-func (globule *Globule) installConsoleApplication(discovery string){
+func (globule *Globule) installConsoleApplication(discovery string) {
 
 	// Here I will test if the console application is install...
 	if Utility.Exists(config.GetWebRootDir() + "/console") {
-		return  // no need to install here...
+		return // no need to install here...
 	}
 
 	address, _ := config.GetAddress()
@@ -1077,12 +1078,12 @@ func (globule *Globule) installConsoleApplication(discovery string){
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService")
 	if err != nil {
 		fmt.Println(err)
-		return 
+		return
 	}
 
 	// I will use the local token to do so.
 	path := config.GetConfigDir() + "/tokens/" + globule.getDomain() + "_token"
-	if !Utility.Exists(path){
+	if !Utility.Exists(path) {
 		fmt.Println("no token found for domain " + globule.getDomain() + " at path " + path)
 		return
 	}
@@ -1090,11 +1091,11 @@ func (globule *Globule) installConsoleApplication(discovery string){
 	token, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Println("fail to read token at path " + path + " with error: " + err.Error())
-		return 
+		return
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery , "globulario", "console", true)
+	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, "globulario", "console", true)
 	if err != nil {
 		fmt.Println("fail to install application console with error:", err)
 	}
@@ -1105,7 +1106,7 @@ func (globule *Globule) installConsoleApplication(discovery string){
 		if globule.PortHttps != 443 {
 			address_ += ":" + Utility.ToString(globule.PortHttps)
 		}
-	}else{
+	} else {
 		if globule.PortHttp != 80 {
 			address_ += ":" + Utility.ToString(globule.PortHttp)
 		}
@@ -1414,7 +1415,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 	return func(evt *eventpb.Event) {
 		path := string(evt.Data)
-		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/"){
+		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/") {
 			path = config.GetDataDir() + "/files" + path
 		}
 
@@ -1422,7 +1423,6 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		convertVideo(path)
 	}
 }
-
 
 /**
  * Listen for new connection.
@@ -1880,12 +1880,26 @@ func convertVideo(path string) {
 
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
-		createVideoStream(file)
+		if strings.LastIndex(file, ".") != -1{
+			// test if the file is a video file.
+			fileExtension := path[strings.LastIndex(file, "."):]
+			fileType := mime.TypeByExtension(fileExtension)
+
+			if len(fileType) > 0 {
+				if strings.HasPrefix(fileType, "text/") {
+					indexFile(file, fileType)
+				} else if strings.HasPrefix(fileType, "video/") {
+					// Here I will call convert video...
+					createVideoStream(file)
+				}
+			}
+		}
 	}
 }
 
 // Set file indexation to be able to search text file on the server.
 func indexFile(path string, fileType string) error {
+
 	return nil
 }
 
@@ -1906,12 +1920,10 @@ func getStreamInfos(path string) (map[string]interface{}, error) {
  * Convert all kind of video to mp4 so all browser will be able to read it.
  */
 func createVideoStream(path string) error {
-
+	path = strings.ReplaceAll(path, "\\", "/")
 	path_ := path[0:strings.LastIndex(path, "/")]
 	name_ := path[strings.LastIndex(path, "/"):strings.LastIndex(path, ".")]
 	output := path_ + "/" + name_ + ".mp4"
-
-	defer os.RemoveAll(path)
 
 	// Test if cuda is available.
 	getVersion := exec.Command("ffmpeg", "-version")
@@ -1966,6 +1978,9 @@ func createVideoStream(path string) error {
 	if err != nil {
 		return err
 	}
+
+	// here I can remove the input file after it was converted.
+	os.RemoveAll(path)
 
 	// Create a video preview
 	return createVideoPreview(output, 20, 128)
