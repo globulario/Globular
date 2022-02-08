@@ -37,6 +37,7 @@ import (
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
+	"github.com/globulario/services/golang/search/search_client"
 	"github.com/globulario/services/golang/security"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
@@ -1505,6 +1506,7 @@ func (globule *Globule) Listen() error {
 var (
 	rbac_client_           *rbac_client.Rbac_Client
 	event_client_          *event_client.Event_Client
+	search_engine_client_  *search_client.Search_Client
 	authentication_client_ *authentication_client.Authentication_Client
 	log_client_            *log_client.Log_Client
 	resource_client_       *resource_client.Resource_Client
@@ -1784,6 +1786,21 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 	return rbac_client_.DeleteResourcePermissions(path)
 }
 
+///////////////////// search engine /////////////////////////////
+func (globule *Globule) getSearchClient()(*search_client.Search_Client, error){
+	
+	var err error
+	if search_engine_client_ != nil {
+		return search_engine_client_, nil
+	}
+	search_engine_client_, err = search_client.NewSearchService_Client(globule.getAddress(), "search.SearchService")
+	if err != nil {
+		return nil, err
+	}
+
+	return search_engine_client_, nil
+}
+
 ///////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	var err error
@@ -1900,6 +1917,18 @@ func convertVideo(path string) {
 
 // Set file indexation to be able to search text file on the server.
 func indexFile(path string, fileType string) error {
+
+	// Here I will index the file into the database.
+	/*client, err := globule.getSearchClient()
+	if err != nil {
+		return err
+	}
+
+	// So 
+	client.IndexFile()
+	*/
+	
+	log.Println("---------> index file: ", path, fileType)
 
 	return nil
 }
