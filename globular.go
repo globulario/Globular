@@ -1880,9 +1880,10 @@ func convertVideo(path string) {
 
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
-		if strings.LastIndex(file, ".") != -1{
+		index:=strings.LastIndex(file, ".")
+		if index != -1{
 			// test if the file is a video file.
-			fileExtension := path[strings.LastIndex(file, "."):]
+			fileExtension := file[index:]
 			fileType := mime.TypeByExtension(fileExtension)
 
 			if len(fileType) > 0 {
