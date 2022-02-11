@@ -228,6 +228,10 @@ func NewGlobule() *Globule {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
+	// Imdb movie api...
+	http.HandleFunc("/imdb_titles", getImdbTitlesHanldler)
+	http.HandleFunc("/imdb_title", getImdbTitleHanldler) 
+
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
 	g.initDirectories()
@@ -1787,8 +1791,8 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 }
 
 ///////////////////// search engine /////////////////////////////
-func (globule *Globule) getSearchClient()(*search_client.Search_Client, error){
-	
+func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
+
 	var err error
 	if search_engine_client_ != nil {
 		return search_engine_client_, nil
@@ -1865,6 +1869,31 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 func processFiles() {
 	convertVideo(config.GetDataDir() + "/files")
 
+	// Also convert video from public file...
+	for i := 0; i < len(config.GetPublicDirs()); i++ {
+		dir := config.GetPublicDirs()[i]
+		db := config.GetDataDir() + "/search"
+		
+		if runtime.GOOS == "windows" && dir[1] == ':' {
+			db += "/" + strings.ReplaceAll(dir, ":", "%")
+		}else{
+			db += dir
+		}
+
+		client, err := globule.getSearchClient()
+		if err == nil {
+			err := client.IndexDir(db, dir, "english")
+			if err != nil {
+				fmt.Println("fail to index dir " + dir + " " + err.Error())
+			}
+		}
+
+		Utility.CreateDirIfNotExist(db)
+
+		// I will index the dir content by the search engine...
+		convertVideo(dir)
+	}
+
 	// sleep a minute...
 	time.Sleep(1 * time.Hour) // once hours I will refresh all the file.
 
@@ -1887,18 +1916,10 @@ func convertVideo(path string) {
 		return
 	}
 
-	// Also convert video from public file...
-	for i := 0; i < len(config.GetPublicDirs()); i++ {
-		err = filepath.Walk(config.GetPublicDirs()[i], visit(&files))
-		if err != nil {
-			return
-		}
-	}
-
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
-		index:=strings.LastIndex(file, ".")
-		if index != -1{
+		index := strings.LastIndex(file, ".")
+		if index != -1 {
 			// test if the file is a video file.
 			fileExtension := file[index:]
 			fileType := mime.TypeByExtension(fileExtension)
@@ -1924,10 +1945,10 @@ func indexFile(path string, fileType string) error {
 		return err
 	}
 
-	// So 
+	// So
 	client.IndexFile()
 	*/
-	
+
 	log.Println("---------> index file: ", path, fileType)
 
 	return nil

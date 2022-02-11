@@ -5,6 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/StalkR/imdb"
+	"github.com/davecourtois/Utility"
+	config_ "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/resource/resourcepb"
+	"github.com/globulario/services/golang/security"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/net"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,17 +30,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/davecourtois/Utility"
-	config_ "github.com/globulario/services/golang/config"
-	"github.com/globulario/services/golang/rbac/rbacpb"
-	"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/security"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/host"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/net"
 )
 
 // Find the peer with a given name and redirect the
@@ -513,10 +513,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
+
 		// Now if the os is windows I will remove the leading /
-		if runtime.GOOS == "windows" && path_[0] == '/' {
-			path_ = path_[1:]
+		if len(path_) > 3 {
+			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
+				path_ = path_[1:]
+			}
 		}
+
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
 		} else if !isPublic(path_) {
@@ -759,8 +763,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Now if the os is windows I will remove the leading /
-	if runtime.GOOS == "windows" && rqst_path[0] == '/' {
-		rqst_path = rqst_path[1:]
+	if len(rqst_path) > 3 {
+		if runtime.GOOS == "windows" && rqst_path[0] == '/' && rqst_path[2] == ':' {
+			rqst_path = rqst_path[1:]
+		}
 	}
 	// path to file
 	if !isPublic(rqst_path) {
@@ -855,4 +861,67 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		//log.Println("server content ", name)
 		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
 	}
+}
+
+/**
+ * Return a list of IMDB titles from a keyword...
+ */
+func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
+	// if the host is not the same...
+	query := r.URL.Query().Get("query") // the csr in base64
+
+	client := http.DefaultClient
+	titles, err := imdb.SearchTitle(client, query)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(titles) == 0 {
+		fmt.Fprintf(os.Stderr, "Not found.")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(titles)
+}
+
+/**
+ * Return a json object with the movie information from imdb.
+ */
+func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
+	id := r.URL.Query().Get("id") // the csr in base64
+
+	client := http.DefaultClient
+	title, err := imdb.NewTitle(client, id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(title)
 }
