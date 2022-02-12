@@ -1872,23 +1872,6 @@ func processFiles() {
 	// Also convert video from public file...
 	for i := 0; i < len(config.GetPublicDirs()); i++ {
 		dir := config.GetPublicDirs()[i]
-		db := config.GetDataDir() + "/search"
-		
-		if runtime.GOOS == "windows" && dir[1] == ':' {
-			db += "/" + strings.ReplaceAll(dir, ":", "%")
-		}else{
-			db += dir
-		}
-
-		client, err := globule.getSearchClient()
-		if err == nil {
-			err := client.IndexDir(db, dir, "english")
-			if err != nil {
-				fmt.Println("fail to index dir " + dir + " " + err.Error())
-			}
-		}
-
-		Utility.CreateDirIfNotExist(db)
 
 		// I will index the dir content by the search engine...
 		convertVideo(dir)
