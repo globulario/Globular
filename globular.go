@@ -182,7 +182,7 @@ func NewGlobule() *Globule {
 	}
 
 	if g.AllowedHeaders == nil {
-		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token"}
+		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token", "video-path", "index-path"}
 	}
 
 	// Set the default checksum...
@@ -228,9 +228,12 @@ func NewGlobule() *Globule {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
+	// Index video... Pornhub, Youtube... etc
+	http.HandleFunc("/index_video", IndexVideoHandler) 
+
 	// Imdb movie api...
 	http.HandleFunc("/imdb_titles", getImdbTitlesHanldler)
-	http.HandleFunc("/imdb_title", getImdbTitleHanldler) 
+	http.HandleFunc("/imdb_title", getImdbTitleHanldler)
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 

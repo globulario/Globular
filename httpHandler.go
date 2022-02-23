@@ -5,17 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/StalkR/imdb"
-	"github.com/davecourtois/Utility"
-	config_ "github.com/globulario/services/golang/config"
-	"github.com/globulario/services/golang/rbac/rbacpb"
-	"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/security"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/host"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/net"
 	"io"
 	"io/ioutil"
 	"log"
@@ -30,6 +19,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/StalkR/imdb"
+	"github.com/davecourtois/Utility"
+	config_ "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/resource/resourcepb"
+	"github.com/globulario/services/golang/security"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/net"
 )
 
 // Find the peer with a given name and redirect the
@@ -401,6 +402,113 @@ func isPublic(path string) bool {
 	return false
 }
 
+func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
+
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to.Address, w, r)
+		return
+	}
+
+	setupResponse(&w, r)
+
+	var err error
+
+	// Get the path where to upload the file.
+	video_path := r.URL.Query().Get("video-path")
+	video_path = strings.ReplaceAll(video_path, "\\", "/")
+
+	// If application is defined.
+	token := r.Header.Get("token")
+	application := r.Header.Get("application")
+
+	// If the header dosent contain the required values i I will try to get it from the
+	// http query instead...
+	if len(token) == 0 {
+		// the token can be given by the url directly...
+		token = r.URL.Query().Get("token")
+	}
+
+	if len(application) == 0 {
+		// the token can be given by the url directly...
+		application = r.URL.Query().Get("application")
+	}
+
+	user := ""
+	hasAccess := false
+
+	// TODO fix it and uncomment it...
+	hasAccessDenied := false
+	infos := []*rbacpb.ResourceInfos{}
+
+	// Here I will validate applications...
+	if len(application) != 0 {
+		// Test if the requester has the permission to do the upload...
+		// Here I will named the methode /file.FileService/FileUploadHandler
+		// I will be threaded like a file service methode.
+		fmt.Println("validate application permission: ", application)
+		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
+		if hasAccess && err == nil {
+			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", video_path)
+		}
+	}
+
+	// get the user id from the token...
+	if len(token) != 0 && !hasAccess {
+		var claims *security.Claims
+		claims, err = security.ValidateToken(token)
+		if err == nil {
+			user = claims.Id
+		}
+	}
+
+	if len(user) != 0 {
+		if !hasAccess {
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
+		}
+		if hasAccess && err == nil {
+			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", video_path)
+			if err != nil {
+				log.Println("Fail to validate action with error ", err)
+			}
+		} else {
+			log.Println("Fail to validate action with error ", err)
+		}
+
+	}
+
+	// validate ressource access...
+	if !hasAccess || hasAccessDenied || err != nil {
+		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
+		return
+	}
+
+	// here in case of file uploaded from other website like pornhub...
+	video_url := r.URL.Query().Get("video-url")
+	index_path := r.URL.Query().Get("index-path")
+
+	if len(video_url) > 0 {
+
+		// Now if the os is windows I will remove the leading /
+		if len(video_path) > 3 {
+			if runtime.GOOS == "windows" && video_path[0] == '/' && video_path[2] == ':' {
+				video_path = video_path[1:]
+			}
+		}
+
+		if strings.HasPrefix(video_path, "/users") || strings.HasPrefix(video_path, "/applications") {
+			video_path = strings.ReplaceAll(globule.data+"/files"+video_path, "\\", "/")
+		} else if !isPublic(video_path) {
+			video_path = strings.ReplaceAll(globule.webRoot+video_path, "\\", "/")
+		}
+
+		err := indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
+		if err != nil {
+			http.Error(w, "Fail to upload the file "+video_url+" with error "+err.Error(), http.StatusExpectationFailed)
+		}
+	}
+}
+
 /**
  * This code is use to upload a file into the tmp directory of the server
  * via http request.
@@ -472,7 +580,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			user = claims.Id
 		}
-
 	}
 
 	if len(user) != 0 {
@@ -565,6 +672,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
 }
 
 func visit(files *[]string) filepath.WalkFunc {
