@@ -1,0 +1,98 @@
+# Liste des futur development
+ 0. A faire
+   * Pouvoir réinitialiser sont mot de passe via un email dans le cas ou le mote de passe a été oublier.
+     Retrouver un nom d'usagé en fontion d'un email.
+
+ 1. Moteur de recherche
+    * Editeur d'information des vidéo (Steve)
+    * Pouvoir suprimmer les informations d'indexation
+    * Vue mosaique des résultats de recherche
+    * Les série pouvoir créer une indexation pour un directorie contenant les video
+      d'une série. Ou d'autre directorie contenant les année... Faire une mosaique 
+      pour l'année avec toute les épisode.
+    * Pouvoir partager une fichier avec un utilisateur.
+    * Pouvoir réutiliser l'indexation existant en fonction du checsum d'un fichier.
+    * Filtre par genre ou tag dans le coté gauche ex. x blonde(15)
+                                                        brunette(25)
+                                                      x milf(50)
+
+  -- Backend
+    * Pouvoir chercher sur plusieur ordinareur une info 
+   
+ 4.  Shared (public)
+    * Upload ne fonctionne pas... (drag and drop d'un fichier)
+    * Faire une interace simple pour ajouter un nouveau shared... (actuellement c'est par la config du file-service)
+    * Faire les test pour linker vers ne NAS avec un shared de linux (samba) ou windows.
+    * Pas capable d'entrer dans un nouveau répertoire quand ont clique sur le répertoire.    
+    
+ 2.  Bitorrent
+    * Pouvoir télécharger plusieur torrent en meme temps 
+    * Etre capable de voir les torrent apres avour fermer une session
+        -- Utiliser un fichier pour communiquer avec le client.
+           Dans le client garder dans le cache les addresse de tranfert(fichier) actif.
+
+ 3. Blog 
+    * Draft -- Sert garder la list des different blog en cour de création (en mode edition)
+    * Published -- tous les contact peuvent profiter de vos talents d'auteur
+    * Archived -- Permet de garder les blog sans les afficher dans l'interface
+    * Drag and drop des film ou video a partir du gestionaire de fichier. (si une indexation existe les infos sont
+      utilisé pour créer le visuel dans le blog...
+    * Intégrer les blog avec le moteur de recherche.
+
+ 5. Video Conférence (skype)
+    * Faire un micro-serivce pour pouvoir faire sonner le cell, tablette pc pour un appel entrant.
+    ? Pouvoir avoir plusieurs participant ou (deux)
+    * Partage d'écran
+    * Faire une interface pour cette fonctionalité.
+
+ 7. Configuration des services
+    * Finalisé les interfaces de configuration des services
+    * Mise a jour des services automatique
+    * Mise a jour de globular automatique 
+
+ 6. Test 
+    * Test avec une charge élevé
+    * Tester les permissions des resource limiter l'espace par usagé.
+    * Essayer de faire tomber Globular...
+
+
+///////////////////////////////////////////////////////////////////////
+// Nouvelle fonctionalité
+
+ -1 . Gestion Réseaux,
+    * Limiter l'accèss pour le grand public...
+    * Protéger les droit d'auteur, indexation imdb...
+
+ -2 Globular.cloud
+    * Faire le site de base de globular cloud... 
+    * Enregistré un user sur le résaux, définir comment l'authentification fonctionnera.
+    * Enregistré une globule sur le dns
+    * faire un moteur de recher distribué utilisant les ressource des globules.
+    
+ -3 Metric
+    Avoir la visibilité du réseaux, 
+        * nb d'utilisateur
+        * nb de fichier
+        * nb de globule
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ Show me the money
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+1. Donate... patreon, gofundme
+2. Publicité sur globular.cloud
+3. Profil globular premium (fournir de l'espace, permettre d'etre 100% en ligne)
+4. Pemettre au gens de hoster des donnée. (Distributed hasp table) prendre 10% du revenu 
+5. Outil de dévelopement d'application web, promouvoir notre outil Globular et ses microservice
+6. Fournir des mircoservice payent et permettre au gens de vendre des microservice
+7. Appstore, magasin d'application web faite pour rouler dans globular
+8. Formation et support technique pour les entreprise et dévelloppeur. (certification)
+9. Tasse a café, figurine de Puffer le poison, t-shirt et sous-vêtement globular.
+
+
+
+
+
+    
+    
+

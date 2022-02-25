@@ -502,10 +502,18 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 			video_path = strings.ReplaceAll(globule.webRoot+video_path, "\\", "/")
 		}
 
-		err := indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
+		if strings.Contains(video_url, "pornhub") {
+			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
+		} else if strings.Contains(video_url, "xvideo") {
+			err = indexXvideosVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
+		} else if strings.Contains(video_url, "youtube") {
+			err = indexYoutubeVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
+		}
+		
 		if err != nil {
 			http.Error(w, "Fail to upload the file "+video_url+" with error "+err.Error(), http.StatusExpectationFailed)
 		}
+
 	}
 }
 
