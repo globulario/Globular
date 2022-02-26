@@ -40,9 +40,9 @@ func getTitleClient() (*title_client.Title_Client, error) {
 }
 
 // get the thumbnail fil with help of youtube dl...
-func downloadThumbnail(video_id, video_url, video_path string) (string, error){
+func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 
-	if !strings.Contains(video_path, ".mp4"){
+	if !strings.Contains(video_path, ".mp4") {
 		return "", errors.New("wrong file extension must be .mp4 video")
 	}
 
@@ -53,15 +53,15 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error){
 
 	Utility.CreateDirIfNotExist(thumbnail_path)
 
-	fmt.Println("try to run youtube-dl ",  video_url, thumbnail_path)
-	cmd := exec.Command("youtube-dl", video_url, "-o", video_id,  "--write-thumbnail", "--skip-download")
+	fmt.Println("try to run youtube-dl ", video_url, thumbnail_path)
+	cmd := exec.Command("youtube-dl", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}
-	
+
 	ext := "jpg"
 	f, err := os.Open(thumbnail_path + "/" + video_id + "." + ext)
 	if err != nil {
@@ -73,18 +73,17 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error){
 	}
 
 	defer f.Close()
-    
-    // Read entire JPG into byte slice.
-    reader := bufio.NewReader(f)
-    content, _ := ioutil.ReadAll(reader)
-    
-    // Encode as base64.
-    encoded := base64.StdEncoding.EncodeToString(content)
+
+	// Read entire JPG into byte slice.
+	reader := bufio.NewReader(f)
+	content, _ := ioutil.ReadAll(reader)
+
+	// Encode as base64.
+	encoded := base64.StdEncoding.EncodeToString(content)
 
 	// cointain the data url...
 	return "data:image/" + ext + ";base64," + encoded, nil
 }
-
 
 // Upload a video from porn hub and index it in the seach engine on the server side.
 func indexPornhubVideo(token, video_url, index_path, video_path string) error {
@@ -190,6 +189,101 @@ func indexPornhubVideo(token, video_url, index_path, video_path string) error {
 }
 
 // Upload a video from porn hub and index it in the seach engine on the server side.
+func indexXhamsterVideo(token, video_url, index_path, video_path, file_path string) error {
+
+	currentVideo := new(titlepb.Video)
+	currentVideo.Casting = make([]*titlepb.Person, 0)
+	currentVideo.Genres = []string{"adult"}
+	currentVideo.Tags = []string{} // keep empty...
+	currentVideo.URL = video_url
+	currentVideo.ID = video_url[strings.LastIndex(video_url, "-") + 1:]
+
+	currentVideo.Poster = new(titlepb.Poster)
+	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
+	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	currentVideo.Poster.URL = video_url
+	currentVideo.Poster.TitleId = currentVideo.ID
+
+	movieCollector := colly.NewCollector(
+		colly.AllowedDomains("www.xhamster.com", "xhamster.com"),
+	)
+
+	// Video title
+	movieCollector.OnHTML("body > div.main-wrap > main > div.width-wrap.with-player-container > h1", func(e *colly.HTMLElement) {
+		currentVideo.Description = strings.TrimSpace(e.Text)
+	})
+
+	// Casting, Categories, Channels
+	movieCollector.OnHTML("body > div.main-wrap > main > div.width-wrap.with-player-container > nav > ul > li > a", func(e *colly.HTMLElement) {
+		if strings.Contains(e.Attr("href"), "pornstars") {
+			p := new(titlepb.Person)
+			p.URL = e.Attr("href")
+			p.ID = strings.TrimSpace(e.Text)
+			p.FullName = strings.TrimSpace(e.Text)
+			if len(p.ID) > 0 {
+				currentVideo.Casting = append(currentVideo.Casting, p)
+			}
+		} else if strings.Contains(e.Attr("href"), "categories") {
+			tag := strings.TrimSpace(e.Text)
+			if len(tag) > 3 {
+				currentVideo.Tags = append(currentVideo.Tags, tag)
+			}
+		}else if strings.Contains(e.Attr("href"), "channels") {
+			currentVideo.PublisherId = new(titlepb.Publisher)
+			currentVideo.PublisherId.URL = e.Attr("href")
+			currentVideo.PublisherId.ID = e.Text
+			currentVideo.PublisherId.Name = e.Text
+		}
+	})
+
+	movieCollector.OnHTML(".header-icons", func(e *colly.HTMLElement) {
+
+		e.ForEach("span", func(index int, child *colly.HTMLElement) {
+			// The poster
+			str := strings.TrimSpace(child.Text)
+			
+			if strings.Contains(str, "%"){
+				percent := strings.TrimSpace(strings.ReplaceAll(str, "%", ""))
+				currentVideo.Rating = float32(Utility.ToNumeric(percent) / 10)
+				fmt.Println("----------------> .header-icons ", currentVideo.Rating )
+			}else{
+				str = strings.ReplaceAll(str, ",", "")
+				currentVideo.Count = int64(Utility.ToInt(str))
+				fmt.Println("----------------> .header-icons ", currentVideo.Count )
+			}
+			
+		})
+	})
+
+	movieCollector.OnHTML("footer", func(e *colly.HTMLElement) {
+
+		title_client_, err := getTitleClient()
+		if err != nil {
+			return
+		}
+
+		if currentVideo == nil {
+			return
+		}
+
+		err = title_client_.CreateVideo(token, index_path, currentVideo)
+		if err == nil {
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			if err != nil {
+				fmt.Println("fail to associate file with video information ", err)
+				return
+			}
+		} else {
+			fmt.Println("fail to associate file with video information ", err)
+			return
+		}
+	})
+
+	movieCollector.Visit(video_url)
+	return nil
+}
+
+// Upload a video from porn hub and index it in the seach engine on the server side.
 func indexXvideosVideo(token, video_url, index_path, video_path, file_path string) error {
 
 	currentVideo := new(titlepb.Video)
@@ -269,7 +363,7 @@ func indexXvideosVideo(token, video_url, index_path, video_path, file_path strin
 		percent = strings.ReplaceAll(percent, "%", "")
 		currentVideo.Rating = float32(Utility.ToNumeric(percent) / 10)
 	})
-	
+
 	// The tags
 	movieCollector.OnHTML("#main > div.video-metadata.video-tags-list.ordered-label-list.cropped > ul > li > a", func(e *colly.HTMLElement) {
 		href := e.Attr("href")
@@ -306,7 +400,6 @@ func indexXvideosVideo(token, video_url, index_path, video_path, file_path strin
 	return nil
 }
 
-
 ////////////////////////////////// Youtube ////////////////////////////////////////////////
 
 func indexYoutubeVideo(token, video_url, index_path, video_path, file_path string) error {
@@ -316,7 +409,7 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 	currentVideo.Genres = []string{"youtube"}
 	currentVideo.Tags = []string{} // keep empty...
 	currentVideo.URL = video_url
-	currentVideo.ID = video_url[strings.LastIndex(video_url, "=") + 1 :]
+	currentVideo.ID = video_url[strings.LastIndex(video_url, "=")+1:]
 
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
@@ -328,20 +421,20 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 	url := `https://noembed.com/embed?url=` + video_url
 	var myClient = &http.Client{Timeout: 5 * time.Second}
 	r, err := myClient.Get(url)
-    if err != nil {
-        return err
-    }
-    defer r.Body.Close()
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
 
 	target := make(map[string]interface{})
-    json.NewDecoder(r.Body).Decode(&target)
+	json.NewDecoder(r.Body).Decode(&target)
 
 	// console.log()
 	currentVideo.PublisherId = new(titlepb.Publisher)
 	currentVideo.PublisherId.URL = target["author_url"].(string)
-	currentVideo.PublisherId.ID = target["author_name"].(string) 
+	currentVideo.PublisherId.ID = target["author_name"].(string)
 	currentVideo.PublisherId.Name = target["author_name"].(string)
-	currentVideo.Description =  target["title"].(string) 
+	currentVideo.Description = target["title"].(string)
 
 	title_client_, err := getTitleClient()
 	if err != nil {
@@ -363,7 +456,6 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 		fmt.Println("fail to associate file with video information ", err)
 		return err
 	}
-
 
 	return nil
 }

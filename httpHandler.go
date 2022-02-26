@@ -506,6 +506,8 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
 		} else if strings.Contains(video_url, "xvideo") {
 			err = indexXvideosVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
+		} else if strings.Contains(video_url, "xhamster") {
+			err = indexXhamsterVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "youtube") {
 			err = indexYoutubeVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		}
