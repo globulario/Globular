@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1063,8 +1064,14 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-	globule.installConsoleApplication("globular.io")
 
+	// The user console
+	globule.installApplication("console", "globular.io")
+
+	// The media player application
+	globule.installApplication("media", "globular.io")
+
+	// Init peers
 	globule.initPeers()
 
 	return globule.serve()
@@ -1073,10 +1080,10 @@ func (globule *Globule) Serve() error {
 /**
  * If the console application is not installed I will install it.
  */
-func (globule *Globule) installConsoleApplication(discovery string) {
+func (globule *Globule) installApplication(application, discovery string) {
 
 	// Here I will test if the console application is install...
-	if Utility.Exists(config.GetWebRootDir() + "/console") {
+	if Utility.Exists(config.GetWebRootDir() + "/" + application) {
 		return // no need to install here...
 	}
 
@@ -1103,9 +1110,9 @@ func (globule *Globule) installConsoleApplication(discovery string) {
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, "globulario", "console", true)
+	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, "globulario", application, true)
 	if err != nil {
-		fmt.Println("fail to install application console with error:", err)
+		fmt.Println("fail to install application",application, "with error:", err)
 	}
 
 	// Display the link in the console.
@@ -1120,7 +1127,7 @@ func (globule *Globule) installConsoleApplication(discovery string) {
 		}
 	}
 
-	fmt.Println("Console application was install and ready to go at address:", address_)
+	fmt.Println(application, "application was install and ready to go at address:", address_)
 }
 
 /**
@@ -2017,13 +2024,154 @@ func createVideoStream(path string) error {
 	}
 
 	// here I can remove the input file after it was converted.
-	os.RemoveAll(path)
+	// os.RemoveAll(path)
+	createVideoTimeLine(output, 180, .2) // 1 frame per 5 seconds.
 
 	// Create a video preview
 	return createVideoPreview(output, 20, 128)
 }
 
-// Here I will create video
+func ReadDir(dirname string) ([]os.FileInfo, error) {
+    f, err := os.Open(dirname)
+    if err != nil {
+        return nil, err
+    }
+    list, err := f.Readdir(-1)
+    f.Close()
+    if err != nil {
+        return nil, err
+    }
+    sort.Slice(list, func(i, j int) bool { return list[i].Name() < list[j].Name() })
+    return list, nil
+}
+
+func formatDuration(duration time.Duration) string {
+
+	var str string
+	d_ := duration.Milliseconds()
+
+	// Hours
+	h_ := d_ / (1000 * 60 * 60) // The number of hours
+
+	if h_ < 10 {
+		str = "0" + Utility.ToString(h_)
+	}else{
+		 Utility.ToString(h_)
+	}
+	str += ":"
+	
+	d_ -= h_ * (1000 * 60 * 60)
+	
+	// Minutes
+	m_ := d_ / (1000 * 60)
+	if m_ < 10 {
+		str += "0" + Utility.ToString(m_)
+	}else{
+		str += Utility.ToString(m_)
+	}
+	str += ":"
+
+	d_ -= m_ * (1000 * 60)
+
+	// Second
+	s_ := d_ / 1000
+
+	if s_ < 10 {
+		str += "0" + Utility.ToString(s_)
+	}else{
+		str +=Utility.ToString(s_)
+	}
+
+	// set milisecond to 0
+	str += ".000"
+
+	return str
+}
+
+
+// Here I will create the small viedeo video
+func createVideoTimeLine(path string, width int, fps float32) error {
+	
+	duration := getVideoDuration(path)
+	if duration == 0 {
+		return errors.New("the video lenght is 0 sec")
+	}
+
+	// One frame at each 5 seconds...
+	if fps == 0 {
+		fps= 0.2
+	}
+
+	if width == 0 {
+		width = 180 // px
+	}
+
+	path_ := path[0:strings.LastIndex(path, "/")]
+	name_ := path[strings.LastIndex(path, "/")+1 : strings.LastIndex(path, ".")]
+	output := path_ + "/.hidden/" + name_ + "/__timeline__"
+
+	
+	if Utility.Exists(output) {
+		return nil
+	}
+
+	Utility.CreateDirIfNotExist(output)
+
+	fmt.Println("--------------> create video time line thumbnails for ", output)
+
+	// ffmpeg -i bob_ross_img-0-Animated.mp4 -ss 15 -t 16 -f image2 preview_%05d.jpg
+	cmd := exec.Command("ffmpeg", "-i", path, "-ss", "0", "-t", Utility.ToString(duration), "-vf", "scale=-1:"+Utility.ToString(width)+",fps=" + Utility.ToString(fps), "thumbnail_%05d.jpg")
+	cmd.Dir = output // the output directory...
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	path_ = strings.ReplaceAll(path, globule.data+"/files", "")
+	path_ = path_[0:strings.LastIndex(path_, "/")]
+
+	// Now I will generate the WEBVTT file with the infos...
+	webvtt := "WEBVTT\n\n"
+
+	// So here I will read the file (each file represent is valid for 1/fps second...)
+	delay := int(1/fps)
+
+	thumbnails, err := ReadDir(output)
+	if err != nil {
+		fmt.Println("-------------------------> 2108 ", err)
+		return err
+	}
+
+	time_ := 0
+	index := 1;
+	for _, thumbnail := range thumbnails {
+		
+		webvtt += Utility.ToString(index) + "\n"
+		start_ := time.Duration(time_ * int(time.Second))
+		time_ += delay
+		end_ := time.Duration(time_ * int(time.Second))
+
+		webvtt += formatDuration(start_) + " --> " + formatDuration(end_) + "\n"
+		webvtt += strings.ReplaceAll(output, globule.data+"/files", "") + "/" + thumbnail.Name() + "\n\n"
+		
+		index++
+	}
+
+	// Now  I will write the file...
+	err = os.WriteFile( output +"/thumbnails.vtt", []byte(webvtt), 777)
+
+	fmt.Println("-------------------------> 2131 ", err)
+	return err
+}
+
+
+
+// Here I will create the small viedeo video
 func createVideoPreview(path string, nb int, height int) error {
 
 	duration := getVideoDuration(path)

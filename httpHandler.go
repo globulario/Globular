@@ -504,7 +504,9 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 		if strings.Contains(video_url, "pornhub") {
 			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
-		} else if strings.Contains(video_url, "xvideo") {
+		} else if strings.Contains(video_url, "xnxx") {
+			err = indexXnxxVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
+		}else if strings.Contains(video_url, "xvideo") {
 			err = indexXvideosVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "xhamster") {
 			err = indexXhamsterVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
@@ -745,6 +747,7 @@ func visit(files *[]string) filepath.WalkFunc {
 		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
 			*files = append(*files, path)
 		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
+			createVideoTimeLine(path, 180, .2)
 			createVideoPreview(path, 20, 128)
 		}
 
@@ -1041,5 +1044,16 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(title)
+
+	title_,  _ := Utility.ToMap(title)
+
+	if title.Type == "TVEpisode" {
+		s, e, err := getSeasonAndEpisodeNumber(id)
+		if err == nil {
+			title_["Season"] = s
+			title_["Episode"] = e
+		}
+	}
+	
+	json.NewEncoder(w).Encode(title_)
 }

@@ -196,7 +196,7 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 	currentVideo.Genres = []string{"adult"}
 	currentVideo.Tags = []string{} // keep empty...
 	currentVideo.URL = video_url
-	currentVideo.ID = video_url[strings.LastIndex(video_url, "-") + 1:]
+	currentVideo.ID = video_url[strings.LastIndex(video_url, "-")+1:]
 
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
@@ -228,7 +228,7 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 			if len(tag) > 3 {
 				currentVideo.Tags = append(currentVideo.Tags, tag)
 			}
-		}else if strings.Contains(e.Attr("href"), "channels") {
+		} else if strings.Contains(e.Attr("href"), "channels") {
 			currentVideo.PublisherId = new(titlepb.Publisher)
 			currentVideo.PublisherId.URL = e.Attr("href")
 			currentVideo.PublisherId.ID = e.Text
@@ -241,22 +241,158 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 		e.ForEach("span", func(index int, child *colly.HTMLElement) {
 			// The poster
 			str := strings.TrimSpace(child.Text)
-			
-			if strings.Contains(str, "%"){
+
+			if strings.Contains(str, "%") {
 				percent := strings.TrimSpace(strings.ReplaceAll(str, "%", ""))
 				currentVideo.Rating = float32(Utility.ToNumeric(percent) / 10)
-				fmt.Println("----------------> .header-icons ", currentVideo.Rating )
-			}else{
+			} else {
 				str = strings.ReplaceAll(str, ",", "")
 				currentVideo.Count = int64(Utility.ToInt(str))
-				fmt.Println("----------------> .header-icons ", currentVideo.Count )
 			}
-			
+
 		})
 	})
 
 	movieCollector.OnHTML("footer", func(e *colly.HTMLElement) {
 
+		title_client_, err := getTitleClient()
+		if err != nil {
+			return
+		}
+
+		if currentVideo == nil {
+			return
+		}
+
+		err = title_client_.CreateVideo(token, index_path, currentVideo)
+		if err == nil {
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			if err != nil {
+				fmt.Println("fail to associate file with video information ", err)
+				return
+			}
+		} else {
+			fmt.Println("fail to associate file with video information ", err)
+			return
+		}
+	})
+
+	movieCollector.Visit(video_url)
+	return nil
+}
+
+func indexXnxxVideo(token, video_url, index_path, video_path, file_path string) error {
+
+	currentVideo := new(titlepb.Video)
+	currentVideo.Casting = make([]*titlepb.Person, 0)
+	currentVideo.Genres = []string{"adult"}
+	currentVideo.Tags = []string{} // keep empty...
+	currentVideo.URL = video_url
+
+	currentVideo.ID = video_url[strings.Index(video_url, "-")+1:]
+	currentVideo.ID = currentVideo.ID[0:strings.Index(video_url, "/")]
+
+	currentVideo.Poster = new(titlepb.Poster)
+	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
+	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path)
+
+	currentVideo.Poster.URL = video_url
+	currentVideo.Poster.TitleId = currentVideo.ID
+
+	movieCollector := colly.NewCollector(
+		colly.AllowedDomains("www.xnxx.com", "xnxx.com"),
+	)
+
+	// Video title
+	movieCollector.OnHTML(".clear-infobar", func(e *colly.HTMLElement) {
+
+		currentVideo.Description = strings.TrimSpace(e.Text)
+		e.ForEach("strong", func(index int, child *colly.HTMLElement) {
+			// The description
+			currentVideo.Description = strings.TrimSpace(child.Text)
+		})
+
+		e.ForEach("p", func(index int, child *colly.HTMLElement) {
+			// The description
+			currentVideo.Description += "</br>" + strings.TrimSpace(child.Text)
+		})
+
+		e.ForEach(".metadata", func(index int, child *colly.HTMLElement) {
+			child.ForEach(".gold-plate, .free-plate", func(index int, child_ *colly.HTMLElement) {
+				currentVideo.PublisherId = new(titlepb.Publisher)
+				currentVideo.PublisherId.URL = "https://www.xnxx.com" + child_.Attr("href")
+				currentVideo.PublisherId.ID = child_.Text
+				currentVideo.PublisherId.Name = child_.Text
+			})
+
+			values := strings.Split(child.Text, "-")
+			if currentVideo.PublisherId != nil {
+				txt := strings.TrimSpace(values[0])
+				currentVideo.Duration = txt[len(currentVideo.PublisherId.Name)+1:]
+			} else {
+				currentVideo.Duration = strings.TrimSpace(values[0])
+			}
+
+			// The number of view
+			str := strings.TrimSpace(strings.ReplaceAll(values[2], ",", ""))
+			currentVideo.Count = int64(Utility.ToInt(str))
+
+			// The resolution...
+			tag := strings.TrimSpace(values[1]) // the resolution 360p, 720p
+			currentVideo.Tags = append(currentVideo.Tags, tag)
+
+		})
+	})
+
+	movieCollector.OnHTML(".metadata-row.video-description", func(e *colly.HTMLElement) {
+		if len(currentVideo.Description) > 0 {
+			currentVideo.Description += "</br>"
+		}
+
+		currentVideo.Description += strings.TrimSpace(e.Text)
+	})
+
+	// Casting, Categories
+	movieCollector.OnHTML("#video-content-metadata > div.metadata-row.video-tags > a", func(e *colly.HTMLElement) {
+		if strings.Contains(e.Attr("class"), "is-pornstar") {
+			p := new(titlepb.Person)
+			p.URL = "https://www.xnxx.com" + e.Attr("href")
+			p.ID = strings.TrimSpace(e.Text)
+			p.FullName = strings.TrimSpace(e.Text)
+			if len(p.ID) > 0 {
+				currentVideo.Casting = append(currentVideo.Casting, p)
+			}
+		} else {
+			tag := strings.TrimSpace(e.Text)
+			if len(tag) > 3 {
+				currentVideo.Tags = append(currentVideo.Tags, tag)
+			}
+		}
+	})
+
+	movieCollector.OnHTML(".vote-actions", func(e *colly.HTMLElement) {
+		var like, unlike float32
+
+		e.ForEach(".vote-action-good", func(index int, child *colly.HTMLElement) {
+
+			child.ForEach(".value", func(index int, child_ *colly.HTMLElement) {
+				str := strings.TrimSpace(strings.ReplaceAll(child_.Text, ",", ""))
+				like = float32(Utility.ToNumeric(str))
+			})
+		})
+
+		e.ForEach(".vote-action-bad", func(index int, child *colly.HTMLElement) {
+			// The poster
+			child.ForEach(".value", func(index int, child_ *colly.HTMLElement) {
+				str := strings.TrimSpace(strings.ReplaceAll(child_.Text, ",", ""))
+				unlike = float32(Utility.ToNumeric(str))
+			})
+		})
+
+		currentVideo.Rating = like / (like + unlike) * 10 // create a score on 10
+	})
+
+	movieCollector.OnHTML("#footer", func(e *colly.HTMLElement) {
 		title_client_, err := getTitleClient()
 		if err != nil {
 			return
@@ -292,7 +428,6 @@ func indexXvideosVideo(token, video_url, index_path, video_path, file_path strin
 	currentVideo.Tags = []string{} // keep empty...
 	currentVideo.URL = video_url
 	currentVideo.ID = strings.Split(video_url, "/")[3]
-
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
 	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
@@ -458,4 +593,34 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 	}
 
 	return nil
+}
+
+//////////////////////////// imdb missing sesson and episode number info... /////////////////////////
+func getSeasonAndEpisodeNumber(titleId string) (int, int, error) {
+
+	// For that one I will made use of web-api from https://noembed.com/embed
+	url := `https://www.imdb.com/title/` + titleId
+
+	movieCollector := colly.NewCollector(
+		colly.AllowedDomains("www.imdb.com", "imdb.com"),
+	)
+
+	season := 0
+	episode := 0
+
+	// function call on visition url...
+	movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
+		e.ForEach("span", func(index int, child *colly.HTMLElement) {
+			if strings.Contains(child.Attr("class"), "SeasonEpisodeNumbersItem"){
+				if  child.Text[0:1] == "S" {
+					season = Utility.ToInt( child.Text[1:])
+				}else if  child.Text[0:1] == "E"{
+					episode = Utility.ToInt(child.Text[1:])
+				}
+			}
+		})
+	})
+
+	movieCollector.Visit(url)
+	return season, episode, nil
 }
