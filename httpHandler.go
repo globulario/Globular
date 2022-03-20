@@ -395,7 +395,6 @@ func isPublic(path string) bool {
 	path = strings.ReplaceAll(path, "\\", "/")
 	for i := 0; i < len(public); i++ {
 		if strings.HasPrefix(path, public[i]) {
-			fmt.Println("path ", path, " was found in public folder")
 			return true
 		}
 	}
