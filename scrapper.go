@@ -596,7 +596,7 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 }
 
 //////////////////////////// imdb missing sesson and episode number info... /////////////////////////
-func getSeasonAndEpisodeNumber(titleId string) (int, int, error) {
+func getSeasonAndEpisodeNumber(titleId string) (int, int, string, error) {
 
 	// For that one I will made use of web-api from https://noembed.com/embed
 	url := `https://www.imdb.com/title/` + titleId
@@ -607,11 +607,12 @@ func getSeasonAndEpisodeNumber(titleId string) (int, int, error) {
 
 	season := 0
 	episode := 0
+	serie := ""
 
 	// function call on visition url...
 	movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
 		e.ForEach("span", func(index int, child *colly.HTMLElement) {
-			if strings.Contains(child.Attr("class"), "SeasonEpisodeNumbersItem"){
+			if strings.Contains(child.Attr("class"), "eqCBtv"){
 				if  child.Text[0:1] == "S" {
 					season = Utility.ToInt( child.Text[1:])
 				}else if  child.Text[0:1] == "E"{
@@ -621,6 +622,11 @@ func getSeasonAndEpisodeNumber(titleId string) (int, int, error) {
 		})
 	})
 
+	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-94726ce4-0.cMYixt > div.sc-94726ce4-1.iNShGo > a", func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		serie = strings.Split(href, "/")[2]
+	})
+
 	movieCollector.Visit(url)
-	return season, episode, nil
+	return season, episode, serie, nil
 }

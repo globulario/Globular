@@ -350,6 +350,9 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	(*w).Header().Set("Access-Control-Allow-Methods", allowedMethods)
 	(*w).Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+
+	// Other policies...
+	(*w).Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 }
 
 /**
@@ -390,18 +393,19 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 func isPublic(path string) bool {
 	public := config_.GetPublicDirs()
 	path = strings.ReplaceAll(path, "\\", "/")
-
-	if Utility.Exists(path) {
-		for i := 0; i < len(public); i++ {
-			if strings.HasPrefix(path, public[i]) {
-				//fmt.Println("path ", path, " was found in public folder")
-				return true
-			}
+	for i := 0; i < len(public); i++ {
+		if strings.HasPrefix(path, public[i]) {
+			fmt.Println("path ", path, " was found in public folder")
+			return true
 		}
 	}
+
 	return false
 }
 
+/**
+ * Index video handler...
+ */
 func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
@@ -502,18 +506,19 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 			video_path = strings.ReplaceAll(globule.webRoot+video_path, "\\", "/")
 		}
 
+		// Scrapper...
 		if strings.Contains(video_url, "pornhub") {
 			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
 		} else if strings.Contains(video_url, "xnxx") {
 			err = indexXnxxVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		}else if strings.Contains(video_url, "xvideo") {
+		} else if strings.Contains(video_url, "xvideo") {
 			err = indexXvideosVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "xhamster") {
 			err = indexXhamsterVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "youtube") {
 			err = indexYoutubeVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		}
-		
+
 		if err != nil {
 			http.Error(w, "Fail to upload the file "+video_url+" with error "+err.Error(), http.StatusExpectationFailed)
 		}
@@ -549,6 +554,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the path where to upload the file.
 	path := r.FormValue("path")
 	path = strings.ReplaceAll(path, "\\", "/")
+
+	fmt.Println("try to upload file at path: ", path)
 
 	// If application is defined.
 	token := r.Header.Get("token")
@@ -655,17 +662,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			log.Println("fail to create dir ", path_, err)
-			file.Close()
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
+
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
 			log.Println("fail to copy file  ", path_, "with error", err)
-			file.Close()
 			return
 		}
-		file.Close()
 
 		// Now from the file extension i will retreive it mime type.
 		if strings.LastIndex(path_, ".") != -1 {
@@ -673,86 +678,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			fileType := mime.TypeByExtension(fileExtension)
 			path_ = strings.ReplaceAll(path_, "\\", "/")
 			if len(fileType) > 0 {
-				if strings.HasPrefix(fileType, "text/") {
-					indexFile(path_, fileType)
-				} else if strings.HasPrefix(fileType, "video/") {
+				if strings.HasPrefix(fileType, "video/") {
 					// Here I will call convert video...
-					go func() {
-						convertVideo(path_[0:strings.LastIndex(path_, "/")])
-					}()
+					globule.publish("generate_video_preview_event", []byte(path_))
 				}
 			}
 		}
 	}
 
-}
-
-func visit(files *[]string) filepath.WalkFunc {
-
-	return func(path string, info os.FileInfo, err error) error {
-
-		path = strings.ReplaceAll(path, "\\", "/")
-		if err != nil {
-			return nil
-		}
-
-		if strings.HasPrefix(path, config_.GetDataDir()+"/files/users/") && !strings.Contains(path, ".hidden") {
-
-			// Here I will set the owner write to file inside it directory...
-			//userId :=  [0:strings.Index(path[len(config.GetDataDir() + "/files/users/"):], "/")]
-			path_ := path[len(config_.GetDataDir()+"/files/users/"):]
-			index := strings.Index(path_, "/")
-			userId := ""
-			if index > 0 {
-				userId = path_[0:index]
-			} else {
-				userId = path_
-			}
-
-			if len(userId) > 0 {
-				globule.addResourceOwner("/users/"+path_, userId, rbacpb.SubjectType_ACCOUNT)
-			}
-		} else if strings.HasPrefix(path, config_.GetDataDir()+"/files/applications/") && !strings.Contains(path, ".hidden") {
-			path_ := path[len(config_.GetDataDir()+"/files/applications/"):]
-			index := strings.Index(path_, "/")
-			id := ""
-			if index > 0 {
-				id = path_[0:index]
-			} else {
-				id = path_
-			}
-			// Set the resource owner.
-			if len(id) > 0 {
-				globule.addResourceOwner("/applications/"+path_, id, rbacpb.SubjectType_APPLICATION)
-			}
-		}
-
-		if err != nil {
-			return nil
-		}
-		mimeType := ""
-		if strings.Contains(info.Name(), ".") {
-			fileExtension := info.Name()[strings.LastIndex(info.Name(), "."):]
-			mimeType = mime.TypeByExtension(fileExtension)
-		} else {
-			f_, err := os.Open(path)
-			if err != nil {
-				f_.Close()
-				return nil
-			}
-			mimeType, _ = Utility.GetFileContentType(f_)
-			f_.Close()
-		}
-
-		if strings.HasPrefix(mimeType, "video/") && !strings.HasSuffix(info.Name(), ".mp4") {
-			*files = append(*files, path)
-		} else if strings.HasPrefix(mimeType, "video/") && strings.HasSuffix(info.Name(), ".mp4") {
-			createVideoTimeLine(path, 180, .2)
-			createVideoPreview(path, 20, 128)
-		}
-
-		return nil
-	}
 }
 
 // That function resolve import path.
@@ -1045,15 +978,16 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	title_,  _ := Utility.ToMap(title)
+	title_, _ := Utility.ToMap(title)
 
 	if title.Type == "TVEpisode" {
-		s, e, err := getSeasonAndEpisodeNumber(id)
+		s, e, t, err := getSeasonAndEpisodeNumber(id)
 		if err == nil {
 			title_["Season"] = s
 			title_["Episode"] = e
+			title_["Serie"] = t
 		}
 	}
-	
+
 	json.NewEncoder(w).Encode(title_)
 }

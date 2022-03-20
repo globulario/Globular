@@ -1197,6 +1197,7 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
 		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
 		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
+		 ln -s /usr/local/share/globular/bin/create-vod-hls.sh /usr/local/bin/create-vod-hls.sh
 
 		 chmod ugo+x /usr/local/bin/Globular
 		 /usr/local/bin/Globular install
@@ -1263,6 +1264,7 @@ func dist(g *Globule, path string, revision string) {
 			rm /etc/systemd/system/Globular.service
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
+			rm /usr/local/bin/create-vod-hls.sh
 			rm /usr/local/bin/grpcwebproxy
 			rm /usr/local/lib/libz.so
 			rm /usr/local/lib/libz.so.1
