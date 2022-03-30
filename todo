@@ -5,11 +5,6 @@
 
  1. Moteur de recherche
     * Editeur d'information des vidéo (Steve)
-    * Pouvoir suprimmer les informations d'indexation
-    * Vue mosaique des résultats de recherche
-    * Les série pouvoir créer une indexation pour un directorie contenant les video
-      d'une série. Ou d'autre directorie contenant les année... Faire une mosaique 
-      pour l'année avec toute les épisode.
     * Pouvoir partager une fichier avec un utilisateur.
     * Pouvoir réutiliser l'indexation existant en fonction du checsum d'un fichier.
     * Filtre par genre ou tag dans le coté gauche ex. x blonde(15)
@@ -26,10 +21,7 @@
     * Pas capable d'entrer dans un nouveau répertoire quand ont clique sur le répertoire.    
     
  2.  Bitorrent
-    * Pouvoir télécharger plusieur torrent en meme temps 
-    * Etre capable de voir les torrent apres avour fermer une session
-        -- Utiliser un fichier pour communiquer avec le client.
-           Dans le client garder dans le cache les addresse de tranfert(fichier) actif.
+    * Vitesse lente sur ordinateur dell, comprendre pourquoi...
 
  3. Blog 
     * Draft -- Sert garder la list des different blog en cour de création (en mode edition)

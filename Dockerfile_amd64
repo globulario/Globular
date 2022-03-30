@@ -72,6 +72,8 @@ RUN mkdir /var/globular/webroot
 ADD Globular /usr/local/share/globular
 COPY bin /usr/local/share/globular/bin
 COPY services /usr/local/share/globular/services
+COPY ../../../../etc/globular/config/services /etc/globular/config/services
+
 WORKDIR /usr/local/share/globular
 ENV PATH="/usr/local/share/globular/bin:${PATH}"
 ENTRYPOINT ["/usr/local/share/globular/Globular"]

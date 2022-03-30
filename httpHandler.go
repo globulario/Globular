@@ -980,7 +980,7 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 	title_, _ := Utility.ToMap(title)
 
 	if title.Type == "TVEpisode" {
-		s, e, t, err := getSeasonAndEpisodeNumber(id)
+		s, e, t, err := getSeasonAndEpisodeNumber(id, 10)
 		if err == nil {
 			title_["Season"] = s
 			title_["Episode"] = e

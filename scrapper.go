@@ -596,7 +596,7 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 }
 
 //////////////////////////// imdb missing sesson and episode number info... /////////////////////////
-func getSeasonAndEpisodeNumber(titleId string) (int, int, string, error) {
+func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, error) {
 
 	// For that one I will made use of web-api from https://noembed.com/embed
 	url := `https://www.imdb.com/title/` + titleId
@@ -628,5 +628,18 @@ func getSeasonAndEpisodeNumber(titleId string) (int, int, string, error) {
 	})
 
 	movieCollector.Visit(url)
+
+	if season == 0 || episode == 0 || len(serie) == 0 {
+		time.Sleep(1 * time.Millisecond)
+		if nbCall > 0 {
+			nbCall--
+			return getSeasonAndEpisodeNumber(titleId, nbCall)
+		}else{
+			
+				return  season, episode, serie, errors.New("fail to retreive all episode informations...")
+			
+		}
+	}
+
 	return season, episode, serie, nil
 }
