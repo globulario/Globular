@@ -403,6 +403,26 @@ func isPublic(path string) bool {
 }
 
 /**
+ * Return the cover image...
+ */
+func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
+	// here in case of file uploaded from other website like pornhub...
+	video_id := r.URL.Query().Get("video-id")
+	video_url := r.URL.Query().Get("video-url")
+	video_path := r.URL.Query().Get("video-path")
+
+	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
+	if err != nil {
+		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
+		return
+	}
+
+	
+	w.Write([]byte(dataUrl))
+
+}
+
+/**
  * Index video handler...
  */
 func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
@@ -449,7 +469,6 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		fmt.Println("validate application permission: ", application)
 		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		if hasAccess && err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", video_path)

@@ -228,7 +228,10 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/uploads", FileUploadHandler)
 
 	// Index video... Pornhub, Youtube... etc
-	http.HandleFunc("/index_video", IndexVideoHandler) 
+	http.HandleFunc("/index_video", IndexVideoHandler)
+
+	// Create the video cover if it not already exist and return it as data url
+	http.HandleFunc("/get_video_cover_data_url", GetCoverDataUrl)
 
 	// Imdb movie api...
 	http.HandleFunc("/imdb_titles", getImdbTitlesHanldler)
@@ -1089,7 +1092,7 @@ func (globule *Globule) installApplication(application, discovery string) {
 	// first of all I will create and upload the package on the discovery...
 	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, "globulario", application, true)
 	if err != nil {
-		fmt.Println("fail to install application",application, "with error:", err)
+		fmt.Println("fail to install application", application, "with error:", err)
 	}
 
 	// Display the link in the console.
