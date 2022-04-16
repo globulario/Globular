@@ -407,13 +407,16 @@ func isPublic(path string) bool {
  */
 func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 	// here in case of file uploaded from other website like pornhub...
-	video_id := r.URL.Query().Get("video-id")
-	video_url := r.URL.Query().Get("video-url")
-	video_path := r.URL.Query().Get("video-path")
+	video_id := r.URL.Query().Get("id")
+	video_url := r.URL.Query().Get("url")
+	video_path := r.URL.Query().Get("path")
 
 	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
 	if err != nil {
 		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
+		log.Println("-----------------------> ", video_id)
+		log.Println("-----------------------> ", video_url)
+		log.Println("-----------------------> ", video_path)
 		return
 	}
 
