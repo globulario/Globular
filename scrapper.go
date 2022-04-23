@@ -41,14 +41,29 @@ func getTitleClient() (*title_client.Title_Client, error) {
 
 // get the thumbnail fil with help of youtube dl...
 func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
+	if len(video_id) == 0 {
+		return "", errors.New("no video id was given")
+	}
+	if len(video_url) == 0 {
+		return "", errors.New("no video url was given")
+	}
+	if len(video_path) == 0 {
+		return "", errors.New("no video path was given")
+	}
 
-	if !strings.Contains(video_path, ".mp4") {
-		return "", errors.New("wrong file extension must be .mp4 video")
+	lastIndex := -1
+	if strings.Contains(video_path, ".mp4") {
+		lastIndex = strings.LastIndex(video_path, ".")
 	}
 
 	// The hidden folder path...
 	path_ := video_path[0:strings.LastIndex(video_path, "/")]
-	name_ := video_path[strings.LastIndex(video_path, "/")+1 : strings.LastIndex(video_path, ".")]
+
+	name_ := video_path[strings.LastIndex(video_path, "/")+1 :]
+	if lastIndex != -1 {
+		name_ = video_path[strings.LastIndex(video_path, "/")+1 : lastIndex]
+	}
+
 	thumbnail_path := path_ + "/.hidden/" + name_
 
 	Utility.CreateDirIfNotExist(thumbnail_path)
@@ -62,17 +77,16 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return "", err
 	}
 
-	ext := "jpg"
-	f, err := os.Open(thumbnail_path + "/" + video_id + "." + ext)
-	if err != nil {
-		ext = "webp"
-		f, err = os.Open(thumbnail_path + "/" + video_id + "." + ext)
-		if err != nil {
-			return "", err
+	files, err := ioutil.ReadDir(thumbnail_path)
+	var f *os.File
+	var ext string
+	for _, _info := range files {
+		if strings.HasPrefix(_info.Name(), video_id + "."){
+			f, err = os.Open(thumbnail_path + "/" + _info.Name())
+			ext = _info.Name()[strings.LastIndex(_info.Name(), ".")+1:]
+			defer f.Close()
 		}
 	}
-
-	defer f.Close()
 
 	// Read entire JPG into byte slice.
 	reader := bufio.NewReader(f)
