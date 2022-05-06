@@ -163,7 +163,6 @@ func NewGlobule() *Globule {
 	g.startTime = time.Now()
 	g.exit_ = false
 	g.exit = make(chan bool)
-	g.Mac = Utility.MyMacAddr()
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
@@ -171,6 +170,9 @@ func NewGlobule() *Globule {
 	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
+
+	
+	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
@@ -773,7 +775,12 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-	tokenString, err := security.GenerateToken(globule.SessionTimeout, Utility.MyMacAddr(), "sa", "sa", globule.AdminEmail)
+	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := security.GenerateToken(globule.SessionTimeout, macAddress, "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		fmt.Println("fail to generate token with error: ", err)
 		return err
@@ -794,12 +801,15 @@ func (globule *Globule) refreshLocalToken() error {
 func (globule *Globule) startServices() error {
 
 	Utility.KillProcessByName("grpcwebproxy")
-
+	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
+	if err != nil {
+		return err
+	}
 	// Here I will generate the keys for this server if not already exist.
-	security.GeneratePeerKeys(Utility.MyMacAddr())
+	security.GeneratePeerKeys(macAddress)
 
 	// This is the local token...
-	err := globule.refreshLocalToken()
+	err = globule.refreshLocalToken()
 	if err != nil {
 		return err
 	}

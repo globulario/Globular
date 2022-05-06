@@ -1585,8 +1585,13 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
+	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
+	if err != nil {
+		return err
+	}
+
 	// Get the local peer key
-	key, err := security.GetPeerKey(Utility.MyMacAddr())
+	key, err := security.GetPeerKey(macAddress)
 	if err != nil {
 		log.Println(err)
 		return err
