@@ -319,6 +319,8 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("-------> get ca certificate")
+
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
