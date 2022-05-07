@@ -38,7 +38,14 @@ import (
 func redirectTo(host string) (bool, *resourcepb.Peer) {
 	for i := 0; i < len(globule.peers); i++ {
 		p := globule.peers[i]
-		if strings.HasPrefix(p.Address, host) {
+		address := p.Domain
+		if p.Protocol == "https" {
+			address += ":" + Utility.ToString(p.PortHttps)
+		} else {
+			address += ":" + Utility.ToString(p.PortHttp)
+		}
+
+		if strings.HasPrefix(address, host) {
 			return true, p
 		}
 	}
@@ -95,8 +102,15 @@ func ErrHandle(res http.ResponseWriter, req *http.Request, err error) {
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -118,8 +132,15 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -170,8 +191,15 @@ func dealwithErr(err error) {
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -278,7 +306,13 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	redirect, to := redirectTo(r.Host)
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		address := to.Domain
+		if to.Protocol == "https" {
+			address += ":" + Utility.ToString(to.PortHttps)
+		} else {
+			address += ":" + Utility.ToString(to.PortHttp)
+		}
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -301,8 +335,15 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -360,8 +401,15 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -417,7 +465,6 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
 	w.Write([]byte(dataUrl))
 
 }
@@ -428,8 +475,15 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -551,8 +605,15 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -765,8 +826,15 @@ func resolveImportPath(path string, importPath string) (string, error) {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -941,8 +1009,15 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 
@@ -976,8 +1051,15 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
+	address := to.Domain
+	if to.Protocol == "https" {
+		address += ":" + Utility.ToString(to.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(to.PortHttp)
+	}
+
 	if redirect {
-		handleRequestAndRedirect(to.Address, w, r)
+		handleRequestAndRedirect(address, w, r)
 		return
 	}
 

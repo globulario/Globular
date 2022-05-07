@@ -18,8 +18,8 @@ Now you must name the server with the corrent hostname
 Next you must change the /etc/globular/config/config.json file values.
     
     Protocol:"https"
-    HttpPort: 80
-    HttpsPort: 443
+    PortHttp: 80
+    PortHttps: 443
     Name: "ns1"
     Domain: "mycelius.com"
     AlternateDomains : ["ns1.mycelius.com"]
