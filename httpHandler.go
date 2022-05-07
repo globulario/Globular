@@ -414,9 +414,6 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
 	if err != nil {
 		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
-		log.Println("-----------------------> ", video_id)
-		log.Println("-----------------------> ", video_url)
-		log.Println("-----------------------> ", video_path)
 		return
 	}
 
