@@ -171,7 +171,6 @@ func NewGlobule() *Globule {
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
 
-	
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
 	if g.AllowedOrigins == nil {
@@ -921,7 +920,14 @@ func (globule *Globule) initPeers() error {
 	// Now I will set peers in the host file.
 	for i := 0; i < len(peers); i++ {
 		// Here I will try to set the peer ip...
-		if Utility.IsLocal(peers[i].Address) {
+		address := peers[i].Domain
+		if peers[i].Protocol == "https" {
+			address += ":" + Utility.ToString(peers[i].PortHttps)
+		} else {
+			address += ":" + Utility.ToString(peers[i].PortHttp)
+		}
+
+		if Utility.IsLocal(address) {
 			globule.setHost(peers[i].LocalIpAddress, peers[i].Domain)
 		} else {
 			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
