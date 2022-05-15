@@ -335,7 +335,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(crt))
 }
 
-/**
+/**                                                                                                                              
  * Return the server SAN configuration file.
  */
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {

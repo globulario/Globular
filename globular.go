@@ -905,15 +905,17 @@ func updatePeersEvent(evt *eventpb.Event) {
  * Here I will init the list of peers.
  */
 func (globule *Globule) initPeers() error {
-
+	fmt.Println("------------> init Peers")
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
+		fmt.Println("------------> init Peers ", err)
 		return err
 	}
 
 	// Return the registered peers
 	peers, err := resource_client_.GetPeers(`{}`)
 	if err != nil {
+		fmt.Println("------------> init Peers ", err)
 		return err
 	}
 
@@ -932,6 +934,41 @@ func (globule *Globule) initPeers() error {
 		} else {
 			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
 		}
+
+		// Here I will try to update
+		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail)
+		if err == nil {
+			// update local peer info for each peer...
+			resource_client__ , err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+			if err == nil {
+				
+				// retreive the local peer infos
+				mac, _ := Utility.MyMacAddr(Utility.MyLocalIP())
+				peers_, _ := resource_client__.GetPeers(`{"mac":"` + mac + `"}`)
+				fmt.Println("try to update peer infos for mac ", mac, " at address ", address)
+				if peers_ != nil {
+					if len(peers_) > 0 {
+						// set mutable values...
+						peer_ := peers_[0]
+						peer_.Protocol = globule.Protocol
+						peer_.LocalIpAddress = Utility.MyLocalIP()
+						peer_.ExternalIpAddress = Utility.MyIP()
+						peer_.PortHttp = int32(globule.PortHttp)
+						peer_.PortHttps = int32(globule.PortHttps)
+
+						err := resource_client__.UpdatePeer(token, peer_)
+						if err == nil {
+							fmt.Println("peer infos with mac ", mac, " at address ", address, " is up to date")
+						}
+					}else{
+						fmt.Println("no peer found with mac ", mac, " at address ", address)
+					}
+				}else{
+					fmt.Println("no peer found with mac ", mac, " at address ", address, err)
+				}
+			}
+		}
+
 	}
 
 	globule.peers = peers
