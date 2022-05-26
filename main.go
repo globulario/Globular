@@ -1300,8 +1300,166 @@ func dist(g *Globule, path string, revision string) {
 
 	} else {
 		fmt.Println("Create the distro at path ", path)
-		// Create the distribution.
-		__dist(g, path, path+"/config")
+		root := path + "/Globular"
+		Utility.CreateIfNotExists(root, 0755)
+
+		app := root + "/app"
+		Utility.CreateIfNotExists(app, 0755)
+
+		// Copy globular ditro file.
+		__dist(g, app, app+"/config")
+
+		// I will make use of NSIS: Nullsoft Scriptable Install System to create an installer for window.
+		// so here I will create the setup.nsi file.
+
+		// copy assets
+		Utility.CreateDirIfNotExist(root + "/assets")
+		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+		err := Utility.CopyDir(dir+"/assets/.", root+"/assets")
+		if err != nil {
+			log.Panicln("--> fail to copy assets ", err)
+		}
+
+		// redist
+		Utility.CreateDirIfNotExist(root + "/redist")
+		err = Utility.CopyDir(dir+"/redist/.", root+"/redist")
+		if err != nil {
+			log.Panicln("--> fail to copy redist ", err)
+		}
+
+		// copy the license
+		err = Utility.CopyFile(dir+"/license.txt", root+"/license.txt")
+		if err != nil {
+			log.Panicln("--> fail to copy license ", err)
+		}
+
+		// Now I will create the setup.nsi file.
+		setupNsi := `
+;--------------------------------
+; Includes
+
+  !include "MUI2.nsh"
+  !include "logiclib.nsh"
+  !include "x64.nsh"
+
+;--------------------------------
+; Custom defines
+  !define NAME "Globular"
+  !define APPFILE "Globular.exe"
+  !define VERSION "`+  g.Version +`"
+  !define SLUG "${NAME} v${VERSION}"
+
+;--------------------------------
+; General
+  Name "${NAME}"
+  OutFile "${NAME} Setup.exe"
+  InstallDir "$PROGRAMFILES64\globular"
+  InstallDirRegKey HKCU  "Software\${NAME}" ""
+  RequestExecutionLevel admin
+
+;--------------------------------
+; UI
+  !define MUI_ICON "assets\globular_logo.ico"
+  !define MUI_HEADERIMAGE
+  !define MUI_WELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
+  !define MUI_HEADERIMAGE_BITMAP "assets\head.bmp"
+  !define MUI_ABORTWARNING
+  !define MUI_WELCOMEPAGE_TITLE "${SLUG} Setup"
+
+;--------------------------------
+; Pages
+
+; Installer pages
+  !insertmacro MUI_PAGE_WELCOME
+  !insertmacro MUI_PAGE_LICENSE "license.txt"
+  !insertmacro MUI_PAGE_COMPONENTS
+  !insertmacro MUI_PAGE_DIRECTORY
+  !insertmacro MUI_PAGE_INSTFILES
+  !insertmacro MUI_PAGE_FINISH
+
+; Uninstaller pages
+  !insertmacro MUI_UNPAGE_CONFIRM
+  !insertmacro MUI_UNPAGE_INSTFILES
+
+; Set UI language
+  !insertmacro MUI_LANGUAGE "English"
+
+;--------------------------------
+; Section - Install App
+
+  Section "-hidden app"
+	SectionIn RO
+	SetOutPath "$INSTDIR"
+	File /r "app\*.*" 
+	WriteRegStr HKCU  "Software\${NAME}" "" $INSTDIR
+	WriteUninstaller "$INSTDIR\Uninstall.exe"
+  SectionEnd
+
+;--------------------------------
+; Section - Shortcut
+
+  Section "Desktop Shortcut" DeskShort
+	CreateShortCut "$DESKTOP\${NAME}.lnk" "$INSTDIR\${APPFILE}"
+  SectionEnd
+
+  Function .onInit
+	${IfNot} ${RunningX64}
+	MessageBox MB_OK|MB_ICONINFORMATION "This program runs on x64 machines only, exiting"
+	Abort
+	${EndIf}
+	${DisableX64FSRedirection}
+  FunctionEnd
+
+;--------------------------------
+; Remove empty parent directories
+
+  Function un.RMDirUP
+	!define RMDirUP '!insertmacro RMDirUPCall'
+
+	!macro RMDirUPCall _PATH
+		push '${_PATH}'
+		Call un.RMDirUP
+	!macroend
+
+	; $0 - current folder
+	ClearErrors
+
+	Exch $0
+	;DetailPrint "ASDF - $0\.."
+	RMDir "$0\.."
+
+	IfErrors Skip
+	${RMDirUP} "$0\.."
+	Skip:
+
+	Pop $0
+
+  FunctionEnd
+
+
+;--------------------------------
+; Section - Uninstaller
+
+  Section "Uninstall"
+
+	;Delete Shortcut
+	Delete "$DESKTOP\${NAME}.lnk"
+
+	;Delete Uninstall
+	Delete "$INSTDIR\Uninstall.exe"
+
+	;Delete Folder
+	RMDir /r "$INSTDIR"
+	${RMDirUP} "$INSTDIR"
+
+	DeleteRegKey /ifempty HKCU  "Software\${NAME}"
+
+  SectionEnd
+`
+
+
+		Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
 	}
 
 }
@@ -1370,14 +1528,13 @@ func __dist(g *Globule, path, config_path string) []string {
 		fmt.Println(err)
 	}
 
-	err = os.Chmod(path+"/"+globularExec, 0755)
+	err = os.Chmod(path+"/"+destExec, 0755)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	// Copy the bin file from globular
 	Utility.CreateDirIfNotExist(path + "/bin")
-
 	err = Utility.CopyDir(dir+"/bin/.", path+"/bin")
 	if err != nil {
 		log.Panicln("--> fail to copy bin ", err)
@@ -1397,6 +1554,38 @@ func __dist(g *Globule, path, config_path string) []string {
 			}
 		}
 	}
+
+	// Copy the bin file from globular
+	if runtime.GOOS == "windows" {
+		Utility.CreateDirIfNotExist(path + "/dependencies")
+		err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
+		if err != nil {
+			log.Panicln("--> fail to copy dependencies ", err)
+		}
+
+		execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
+		for i := 0; i < len(execs); i++ {
+			err = os.Chmod(execs[i], 0755)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+
+	// Change the files permission to add execute write.
+	/*files, err = ioutil.ReadDir(path + "/dependencies")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, f := range files {
+		if !f.IsDir() {
+			err = os.Chmod(path+"/dependencies/"+f.Name(), 0755)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}*/
 
 	// install services...
 	services, err := config_.GetServicesConfigurations()

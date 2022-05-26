@@ -793,6 +793,48 @@ func (globule *Globule) refreshLocalToken() error {
 	return nil
 }
 
+// Enable port from window firewall
+func enablePorts(ruleName, portsRange string) error {
+	if runtime.GOOS == "windows" {
+		deleteRule(ruleName)
+
+		// netsh advfirewall firewall add rule name="Globular-Services" dir=in action=allow protocol=TCP localport=10000-10100
+		cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule", `name="`+ruleName+`"`, "dir=in", "action=allow", "protocol=TCP", "localport=" + portsRange)
+		cmdOutput := &bytes.Buffer{}
+		cmd.Stdout = cmdOutput
+
+		return cmd.Run()
+	}
+
+	return nil
+}
+
+func enableProgramFwMgr(name, appname string) error {
+	// netsh advfirewall firewall add rule name="My Application" dir=in action=allow program="C:\MyApp\MyApp.exe" enable=yes
+	appname = strings.ReplaceAll(appname, "/", "\\")
+	deleteRule(name)
+	
+	cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule",`name="`+name+`"`, "dir=in", "action=allow", `program="` + appname + `"`, "enable=yes")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func removeFromFwMgr(name, appname string) error {
+	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule", fmt.Sprintf(`name="%s"`, name), fmt.Sprintf(`program="%s"`, appname))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func deleteRule(name string) error {
+	// netsh advfirewall firewall delete rule name= rule "Globular-Services"
+	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule",`name="`+name+`"`)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 /**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
@@ -837,6 +879,9 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
+	// Enable ports
+	enablePorts("Globular-Services", globule.PortsRange)
+
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
@@ -848,6 +893,7 @@ func (globule *Globule) startServices() error {
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			// Create the service process.
+			enableProgramFwMgr(services[i]["Name"].(string) + "-" + services[i]["Id"].(string), services[i]["Path"].(string))
 			_, err = process.StartServiceProcess(services[i], globule.PortsRange)
 
 			if err != nil {
@@ -905,17 +951,15 @@ func updatePeersEvent(evt *eventpb.Event) {
  * Here I will init the list of peers.
  */
 func (globule *Globule) initPeers() error {
-	fmt.Println("------------> init Peers")
+
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
-		fmt.Println("------------> init Peers ", err)
 		return err
 	}
 
 	// Return the registered peers
 	peers, err := resource_client_.GetPeers(`{}`)
 	if err != nil {
-		fmt.Println("------------> init Peers ", err)
 		return err
 	}
 
@@ -1510,9 +1554,12 @@ func (globule *Globule) Listen() error {
 
 		//globule.startServices()
 	}
+	ex, _ := os.Executable()
+	enableProgramFwMgr("Globular", ex)
 
 	// Must be started before other services.
 	go func() {
+		enablePorts("Globular-http", strconv.Itoa(globule.PortHttp))
 		// local - non secure connection.
 		globule.http_server = &http.Server{
 			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttp),
@@ -1522,7 +1569,7 @@ func (globule *Globule) Listen() error {
 
 	// Start the http server.
 	if globule.Protocol == "https" {
-
+		enablePorts("Globular-https", strconv.Itoa(globule.PortHttps))
 		globule.https_server = &http.Server{
 			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{

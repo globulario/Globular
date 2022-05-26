@@ -36,6 +36,16 @@ import (
 // Find the peer with a given name and redirect the
 // the request to it.
 func redirectTo(host string) (bool, *resourcepb.Peer) {
+	
+	// read the actual configuration.
+	__address__, err := config_.GetAddress()
+	if err == nil {
+		// no redirection if the address is the same...
+		if strings.HasPrefix(__address__, host) {
+			return false, nil
+		}
+	}
+
 	for i := 0; i < len(globule.peers); i++ {
 		p := globule.peers[i]
 		address := p.Domain
@@ -65,7 +75,6 @@ func handleRequestAndRedirect(address string, res http.ResponseWriter, req *http
 		port = Utility.ToInt(strings.Split(address, ":")[1])
 	}
 
-	// read the actual configuration.
 	config__, err := config_.GetRemoteConfig(address_, port, "")
 
 	if err == nil {
@@ -103,7 +112,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 
-
 	if redirect {
 		address := to.Domain
 		if to.Protocol == "https" {
@@ -132,7 +140,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
-	redirect, to := redirectTo(r.Host)
+	/*redirect, to := redirectTo(r.Host)
 
 
 	if redirect {
@@ -144,7 +152,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		}
 		handleRequestAndRedirect(address, w, r)
 		return
-	}
+	}*/
 
 	// if the host is not the same...
 	serviceId := r.URL.Query().Get("id") // the csr in base64
@@ -193,7 +201,6 @@ func dealwithErr(err error) {
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
-
 
 	if redirect {
 		address := to.Domain
@@ -335,7 +342,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(crt))
 }
 
-/**                                                                                                                              
+/**
  * Return the server SAN configuration file.
  */
 func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
@@ -412,7 +419,7 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			address += ":" + Utility.ToString(to.PortHttp)
 		}
-	
+
 		handleRequestAndRedirect(address, w, r)
 		return
 	}
@@ -487,7 +494,7 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			address += ":" + Utility.ToString(to.PortHttp)
 		}
-	
+
 		handleRequestAndRedirect(address, w, r)
 		return
 	}
@@ -502,66 +509,12 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If application is defined.
 	token := r.Header.Get("token")
-	application := r.Header.Get("application")
 
 	// If the header dosent contain the required values i I will try to get it from the
 	// http query instead...
 	if len(token) == 0 {
 		// the token can be given by the url directly...
 		token = r.URL.Query().Get("token")
-	}
-
-	if len(application) == 0 {
-		// the token can be given by the url directly...
-		application = r.URL.Query().Get("application")
-	}
-
-	user := ""
-	hasAccess := false
-
-	// TODO fix it and uncomment it...
-	hasAccessDenied := false
-	infos := []*rbacpb.ResourceInfos{}
-
-	// Here I will validate applications...
-	if len(application) != 0 {
-		// Test if the requester has the permission to do the upload...
-		// Here I will named the methode /file.FileService/FileUploadHandler
-		// I will be threaded like a file service methode.
-		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", video_path)
-		}
-	}
-
-	// get the user id from the token...
-	if len(token) != 0 && !hasAccess {
-		var claims *security.Claims
-		claims, err = security.ValidateToken(token)
-		if err == nil {
-			user = claims.Id
-		}
-	}
-
-	if len(user) != 0 {
-		if !hasAccess {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
-		}
-		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", video_path)
-			if err != nil {
-				log.Println("Fail to validate action with error ", err)
-			}
-		} else {
-			log.Println("Fail to validate action with error ", err)
-		}
-
-	}
-
-	// validate ressource access...
-	if !hasAccess || hasAccessDenied || err != nil {
-		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
-		return
 	}
 
 	// here in case of file uploaded from other website like pornhub...
@@ -618,7 +571,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			address += ":" + Utility.ToString(to.PortHttp)
 		}
-	
+
 		handleRequestAndRedirect(address, w, r)
 		return
 	}
@@ -832,7 +785,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
-
 
 	if redirect {
 		address := to.Domain
@@ -1064,7 +1016,7 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			address += ":" + Utility.ToString(to.PortHttp)
 		}
-	
+
 		handleRequestAndRedirect(address, w, r)
 		return
 	}
