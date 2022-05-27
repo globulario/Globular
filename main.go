@@ -534,6 +534,8 @@ func main() {
 		}
 
 		if unstallCommand.Parsed() {
+
+
 			// Required Flags
 			err := s.Uninstall()
 			if err == nil {
@@ -541,7 +543,18 @@ func main() {
 			} else {
 				log.Println(err)
 			}
-			resetRules()
+
+			// Be sure all process are stop...
+			Utility.KillProcessByName("mongod")
+			Utility.KillProcessByName("prometheus")
+			Utility.KillProcessByName("torrent")
+			Utility.KillProcessByName("grpcwebproxy")
+
+			Utility.UnsetWindowsEnvironmentVariable("OPENSSL_CONF")
+
+			// reset environmement...
+			resetSystemPath()
+			
 		}
 
 		if distCommand.Parsed() {
@@ -1452,12 +1465,16 @@ func dist(g *Globule, path string, revision string) {
 	  nsExec::ExecToStack 'net stop ${Name}'
 	  nsExec::ExecToStack '"${APPFILE}" uninstall'
 	  
-	  ;Delete Uninstall
+	  ;Delete files
 	  Delete "$INSTDIR\Uninstall.exe"
+	  Delete "$INSTDIR\Globular.exe"
+	  Delete "$INSTDIR\Dockerfile"
   
-	  ;Delete Folder
-	  RMDir /r "$INSTDIR"
-	  ${RMDirUP} "$INSTDIR"
+	  ;Delete Folder's *keep config webroot and data folder.
+	  RMDir /r "$INSTDIR\bin"
+	  RMDir /r "$INSTDIR\dependencies"
+	  RMDir /r "$INSTDIR\Redist"
+	  RMDir /r "$INSTDIR\services"
   
 	  DeleteRegKey /ifempty HKCU  "Software\${NAME}"
   

@@ -845,6 +845,7 @@ func deleteRule(name string) error {
 }
 
 func resetRules() error {
+
 	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
 		return err
@@ -867,6 +868,7 @@ func resetRules() error {
 }
 
 func resetSystemPath() error {
+
 	if runtime.GOOS == "windows" {
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
@@ -892,14 +894,14 @@ func resetSystemPath() error {
 		for i := 0; i < len(execs); i++ {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 			exec = exec[:strings.LastIndex(exec, "/")]
-			if !strings.Contains(systemPath, exec) {
+			if strings.Contains(systemPath, exec) {
 				systemPath = strings.Replace(systemPath, ";"+exec, "", 1)
 			}
 		}
 
 		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 	}
-	return nil
+	return resetRules()
 }
 
 // Set all required path.
@@ -969,8 +971,8 @@ func setSystemPath() error {
 		// Openssl conf require...
 		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl\openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
-		}else{
-			fmt.Println("Open SSL configuration file ",  `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF." )
+		} else {
+			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
 		}
 
 		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
