@@ -157,6 +157,8 @@ type Globule struct {
 func NewGlobule() *Globule {
 
 	// Here I will keep the start time...
+	// set path...
+	setSystemPath()
 
 	// Here I will initialyse configuration.
 	g := new(Globule)
@@ -799,9 +801,9 @@ func enablePorts(ruleName, portsRange string) error {
 		deleteRule(ruleName)
 
 		// netsh advfirewall firewall add rule name="Globular-Services" dir=in action=allow protocol=TCP localport=10000-10100
-		cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule", `name="`+ruleName+`"`, "dir=in", "action=allow", "protocol=TCP", "localport=" + portsRange)
-		cmdOutput := &bytes.Buffer{}
-		cmd.Stdout = cmdOutput
+		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		//cmdOutput := &bytes.Buffer{}
+		//cmd.Stdout = cmdOutput
 
 		return cmd.Run()
 	}
@@ -810,29 +812,170 @@ func enablePorts(ruleName, portsRange string) error {
 }
 
 func enableProgramFwMgr(name, appname string) error {
-	// netsh advfirewall firewall add rule name="My Application" dir=in action=allow program="C:\MyApp\MyApp.exe" enable=yes
-	appname = strings.ReplaceAll(appname, "/", "\\")
-	deleteRule(name)
-	
-	cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule",`name="`+name+`"`, "dir=in", "action=allow", `program="` + appname + `"`, "enable=yes")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if runtime.GOOS == "windows" {
+		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
+		appname = strings.ReplaceAll(appname, "/", "\\")
+		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
+		//cmd.Stdout = os.Stdout
+		//cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+	return nil
 }
 
 func removeFromFwMgr(name, appname string) error {
-	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule", fmt.Sprintf(`name="%s"`, name), fmt.Sprintf(`program="%s"`, appname))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall delete rule name="%s" program="%s"`, name, appname))
+		//cmd.Stdout = os.Stdout
+		//cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+	return nil
 }
 
 func deleteRule(name string) error {
-	// netsh advfirewall firewall delete rule name= rule "Globular-Services"
-	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule",`name="`+name+`"`)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if runtime.GOOS == "windows" {
+		// netsh advfirewall firewall delete rule name= rule "Globular-Services"
+		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall delete rule name="%s"`, name))
+		//cmd.Stdout = os.Stdout
+		//cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+	return nil
+}
+
+func resetRules() error {
+	services, err := config.GetOrderedServicesConfigurations()
+	if err != nil {
+		return err
+	}
+
+	// set rules for services contain in bin folder.
+	deleteRule("Prometheus Alert Manager Server")
+	deleteRule("MongoDB Database Server")
+	deleteRule("prometheus")
+	deleteRule("grpcwebproxy")
+	deleteRule("torrent")
+	deleteRule("youtube-dl")
+
+	for i := 0; i < len(services); i++ {
+		// Create the service process.
+		deleteRule(services[i]["Name"].(string) + "-" + services[i]["Id"].(string))
+	}
+
+	return nil
+}
+
+func resetSystemPath() error {
+	if runtime.GOOS == "windows" {
+		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
+
+		if err != nil {
+			return err
+		}
+
+		// convert to \ to /
+		systemPath = strings.ReplaceAll(systemPath, "\\", "/")
+
+		// needed to retreive Globular.exe
+		if strings.Contains(systemPath, config.GetRootDir()) {
+			systemPath = strings.Replace(systemPath, ";"+config.GetRootDir(), "", 1)
+		}
+
+		// needed to retreive various command...
+		if strings.Contains(systemPath, config.GetRootDir()+"/bin") {
+			systemPath = strings.Replace(systemPath, ";"+config.GetRootDir()+"/bin", "", 1)
+		}
+
+		// remove path...
+		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/dependencies", ".exe")
+		for i := 0; i < len(execs); i++ {
+			exec := strings.ReplaceAll(execs[i], "\\", "/")
+			exec = exec[:strings.LastIndex(exec, "/")]
+			if !strings.Contains(systemPath, exec) {
+				systemPath = strings.Replace(systemPath, ";"+exec, "", 1)
+			}
+		}
+
+		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+	}
+	return nil
+}
+
+// Set all required path.
+func setSystemPath() error {
+	// so here I will append
+	if runtime.GOOS == "windows" {
+		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
+
+		if err != nil {
+			return err
+		}
+
+		// convert to \ to /
+		systemPath = strings.ReplaceAll(systemPath, "\\", "/")
+
+		// needed to retreive Globular.exe
+		if !strings.Contains(systemPath, config.GetRootDir()) {
+			systemPath += ";" + config.GetRootDir()
+		}
+
+		// needed to retreive various command...
+		if !strings.Contains(systemPath, config.GetRootDir()+"/bin") {
+			systemPath += ";" + config.GetRootDir() + "/bin"
+		}
+
+		// set rules for services contain in dependencies folder.
+		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/dependencies", ".exe")
+		for i := 0; i < len(execs); i++ {
+			exec := strings.ReplaceAll(execs[i], "\\", "/")
+
+			if strings.HasSuffix(exec, "prometheus.exe") {
+				enableProgramFwMgr("prometheus", exec)
+			}
+
+			if strings.HasSuffix(exec, "mongod.exe") {
+				enableProgramFwMgr("MongoDB Database Server", exec)
+			}
+
+			if strings.HasSuffix(exec, "alertmanager.exe") {
+				enableProgramFwMgr("Prometheus Alert Manager Server", exec)
+			}
+
+			exec = exec[:strings.LastIndex(exec, "/")]
+			if !strings.Contains(systemPath, exec) {
+				systemPath += ";" + exec
+			}
+		}
+
+		// set rules for services contain in bin folder.
+		execs = Utility.GetFilePathsByExtension(config.GetRootDir()+"/bin", ".exe")
+		for i := 0; i < len(execs); i++ {
+			exec := strings.ReplaceAll(execs[i], "\\", "/")
+
+			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
+				enableProgramFwMgr("grpcwebproxy", exec)
+			}
+
+			if strings.HasSuffix(exec, "torrent.exe") {
+				enableProgramFwMgr("torrent", exec)
+			}
+
+			if strings.HasSuffix(exec, "youtube-dl.exe") {
+				enableProgramFwMgr("youtube-dl", exec)
+			}
+		}
+
+		// Openssl conf require...
+		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl\openssl.cnf`) {
+			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
+		}else{
+			fmt.Println("Open SSL configuration file ",  `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF." )
+		}
+
+		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+	}
+	return nil
 }
 
 /**
@@ -893,7 +1036,7 @@ func (globule *Globule) startServices() error {
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			// Create the service process.
-			enableProgramFwMgr(services[i]["Name"].(string) + "-" + services[i]["Id"].(string), services[i]["Path"].(string))
+			enableProgramFwMgr(services[i]["Name"].(string)+"-"+services[i]["Id"].(string), services[i]["Path"].(string))
 			_, err = process.StartServiceProcess(services[i], globule.PortsRange)
 
 			if err != nil {
@@ -983,9 +1126,9 @@ func (globule *Globule) initPeers() error {
 		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail)
 		if err == nil {
 			// update local peer info for each peer...
-			resource_client__ , err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+			resource_client__, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 			if err == nil {
-				
+
 				// retreive the local peer infos
 				mac, _ := Utility.MyMacAddr(Utility.MyLocalIP())
 				peers_, _ := resource_client__.GetPeers(`{"mac":"` + mac + `"}`)
@@ -1004,10 +1147,10 @@ func (globule *Globule) initPeers() error {
 						if err == nil {
 							fmt.Println("peer infos with mac ", mac, " at address ", address, " is up to date")
 						}
-					}else{
+					} else {
 						fmt.Println("no peer found with mac ", mac, " at address ", address)
 					}
-				}else{
+				} else {
 					fmt.Println("no peer found with mac ", mac, " at address ", address, err)
 				}
 			}

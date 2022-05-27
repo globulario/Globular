@@ -525,6 +525,9 @@ func main() {
 			err := s.Install()
 			if err == nil {
 				log.Println("Globular service is now installed!")
+					// Here I will keep the start time...
+					// set path...
+					setSystemPath()
 			} else {
 				log.Println(err)
 			}
@@ -538,6 +541,7 @@ func main() {
 			} else {
 				log.Println(err)
 			}
+			resetRules()
 		}
 
 		if distCommand.Parsed() {
@@ -1347,117 +1351,119 @@ func dist(g *Globule, path string, revision string) {
 ; Custom defines
   !define NAME "Globular"
   !define APPFILE "Globular.exe"
-  !define VERSION "`+  g.Version +`"
+  !define VERSION "` + revision + `"
   !define SLUG "${NAME} v${VERSION}"
 
-;--------------------------------
-; General
-  Name "${NAME}"
-  OutFile "${NAME} Setup.exe"
-  InstallDir "$PROGRAMFILES64\globular"
-  InstallDirRegKey HKCU  "Software\${NAME}" ""
-  RequestExecutionLevel admin
-
-;--------------------------------
-; UI
-  !define MUI_ICON "assets\globular_logo.ico"
-  !define MUI_HEADERIMAGE
-  !define MUI_WELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
-  !define MUI_HEADERIMAGE_BITMAP "assets\head.bmp"
-  !define MUI_ABORTWARNING
-  !define MUI_WELCOMEPAGE_TITLE "${SLUG} Setup"
-
-;--------------------------------
-; Pages
-
-; Installer pages
-  !insertmacro MUI_PAGE_WELCOME
-  !insertmacro MUI_PAGE_LICENSE "license.txt"
-  !insertmacro MUI_PAGE_COMPONENTS
-  !insertmacro MUI_PAGE_DIRECTORY
-  !insertmacro MUI_PAGE_INSTFILES
-  !insertmacro MUI_PAGE_FINISH
-
-; Uninstaller pages
-  !insertmacro MUI_UNPAGE_CONFIRM
-  !insertmacro MUI_UNPAGE_INSTFILES
-
-; Set UI language
-  !insertmacro MUI_LANGUAGE "English"
-
-;--------------------------------
-; Section - Install App
-
-  Section "-hidden app"
-	SectionIn RO
-	SetOutPath "$INSTDIR"
-	File /r "app\*.*" 
-	WriteRegStr HKCU  "Software\${NAME}" "" $INSTDIR
-	WriteUninstaller "$INSTDIR\Uninstall.exe"
+  ;--------------------------------
+  ; General
+	Name "${NAME}"
+	OutFile "${NAME} Setup.exe"
+	InstallDir "$PROGRAMFILES64\${NAME}"
+	InstallDirRegKey HKCU  "Software\${NAME}" ""
+	RequestExecutionLevel admin
+  
+  ;--------------------------------
+  ; UI
+	!define MUI_ICON "assets\globular_logo.ico"
+	!define MUI_HEADERIMAGE
+	!define MUI_WELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
+	!define MUI_HEADERIMAGE_BITMAP "assets\head.bmp"
+	!define MUI_ABORTWARNING
+	!define MUI_WELCOMEPAGE_TITLE "${SLUG} Setup"
+  
+  ;--------------------------------
+  ; Pages
+  
+  ; Installer pages
+	!insertmacro MUI_PAGE_WELCOME
+	!insertmacro MUI_PAGE_LICENSE "license.txt"
+	!insertmacro MUI_PAGE_INSTFILES
+	!insertmacro MUI_PAGE_FINISH
+  
+  ; Uninstaller pages
+	!insertmacro MUI_UNPAGE_CONFIRM
+	!insertmacro MUI_UNPAGE_INSTFILES
+  
+  ; Set UI language
+	!insertmacro MUI_LANGUAGE "English"
+  
+  ;--------------------------------
+	Function .onInstSuccess
+	  SetOutPath "$INSTDIR"
+	  nsExec::ExecToStack '"${APPFILE}" install'
+	  DetailPrint "Start Globular service please wait..."
+	  nsExec::ExecToStack 'net start ${Name}'
+	FunctionEnd
+  
+  ;--------------------------------
+  ; Section - Visual Studio Runtime
+   Section "Visual Studio Runtime"
+   	SetOutPath "$INSTDIR\Redist"
+	File "redist\VC_redist_2019_x64\VC_redist_x64.exe"
+	DetailPrint "Running Visual Studio Redistribuatable VC2019"
+	ExecWait "$INSTDIR\Redist\VC_redist_x64.exe"
+	DetailPrint "Visual Studio Redistribuatable VC2019 is now installed"
   SectionEnd
 
-;--------------------------------
-; Section - Shortcut
-
-  Section "Desktop Shortcut" DeskShort
-	CreateShortCut "$DESKTOP\${NAME}.lnk" "$INSTDIR\${APPFILE}"
-  SectionEnd
-
-  Function .onInit
-	${IfNot} ${RunningX64}
-	MessageBox MB_OK|MB_ICONINFORMATION "This program runs on x64 machines only, exiting"
-	Abort
-	${EndIf}
-	${DisableX64FSRedirection}
-  FunctionEnd
-
-;--------------------------------
-; Remove empty parent directories
-
-  Function un.RMDirUP
-	!define RMDirUP '!insertmacro RMDirUPCall'
-
-	!macro RMDirUPCall _PATH
-		push '${_PATH}'
-		Call un.RMDirUP
-	!macroend
-
-	; $0 - current folder
-	ClearErrors
-
-	Exch $0
-	;DetailPrint "ASDF - $0\.."
-	RMDir "$0\.."
-
-	IfErrors Skip
-	${RMDirUP} "$0\.."
-	Skip:
-
-	Pop $0
-
-  FunctionEnd
-
-
-;--------------------------------
-; Section - Uninstaller
-
-  Section "Uninstall"
-
-	;Delete Shortcut
-	Delete "$DESKTOP\${NAME}.lnk"
-
-	;Delete Uninstall
-	Delete "$INSTDIR\Uninstall.exe"
-
-	;Delete Folder
-	RMDir /r "$INSTDIR"
-	${RMDirUP} "$INSTDIR"
-
-	DeleteRegKey /ifempty HKCU  "Software\${NAME}"
-
-  SectionEnd
+  ;--------------------------------
+  ; Section - Install App
+  
+	Section "-hidden app"
+	  SectionIn RO
+	  SetOutPath "$INSTDIR"
+	  File /r "app\*.*" 
+	  WriteRegStr HKCU  "Software\${NAME}" "" $INSTDIR
+	  WriteUninstaller "$INSTDIR\Uninstall.exe"
+	SectionEnd
+  
+  ;--------------------------------
+  ; Remove empty parent directories
+  
+	Function un.RMDirUP
+	  !define RMDirUP '!insertmacro RMDirUPCall'
+  
+	  !macro RMDirUPCall _PATH
+		  push '${_PATH}'
+		  Call un.RMDirUP
+	  !macroend
+  
+	  ; $0 - current folder
+	  ClearErrors
+  
+	  Exch $0
+	  ;DetailPrint "ASDF - $0\.."
+	  RMDir "$0\.."
+  
+	  IfErrors Skip
+	  ${RMDirUP} "$0\.."
+	  Skip:
+  
+	  Pop $0
+  
+	FunctionEnd
+  
+  
+  ;--------------------------------
+  ; Section - Uninstaller
+  
+	Section "Uninstall"
+	  SetOutPath "$INSTDIR"
+	  
+	  nsExec::ExecToStack 'net stop ${Name}'
+	  nsExec::ExecToStack '"${APPFILE}" uninstall'
+	  
+	  ;Delete Uninstall
+	  Delete "$INSTDIR\Uninstall.exe"
+  
+	  ;Delete Folder
+	  RMDir /r "$INSTDIR"
+	  ${RMDirUP} "$INSTDIR"
+  
+	  DeleteRegKey /ifempty HKCU  "Software\${NAME}"
+  
+	SectionEnd
+  
 `
-
 
 		Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
 	}
