@@ -41,7 +41,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
-
 	// Interceptor for authentication, event, log...
 
 	// Client services.
@@ -1145,7 +1144,7 @@ func (globule *Globule) initPeers() error {
 						err := resource_client__.UpdatePeer(token, peer_)
 						if err == nil {
 							fmt.Println("---------> peer infos with mac ", mac, " at address ", address, " is up to date")
-						}else{
+						} else {
 							fmt.Println("------> fail to update peer with error: ", err)
 						}
 					} else {
@@ -1285,12 +1284,12 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-
+	
 	// The user console
-	globule.installApplication("console", "globular.io")
+	globule.installApplication("console", "globular.io", "sa")
 
 	// The media player application
-	globule.installApplication("media", "globular.io")
+	globule.installApplication("media", "globular.io", "sa")
 
 	// Init peers
 	globule.initPeers()
@@ -1301,11 +1300,11 @@ func (globule *Globule) Serve() error {
 /**
  * If the console application is not installed I will install it.
  */
-func (globule *Globule) installApplication(application, discovery string) {
+func (globule *Globule) installApplication(application, discovery, publisherId string) error{
 
 	// Here I will test if the console application is install...
 	if Utility.Exists(config.GetWebRootDir() + "/" + application) {
-		return // no need to install here...
+		return nil // no need to install here...
 	}
 
 	address, _ := config.GetAddress()
@@ -1314,26 +1313,27 @@ func (globule *Globule) installApplication(application, discovery string) {
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService")
 	if err != nil {
 		fmt.Println(err)
-		return
+		return err
 	}
 
 	// I will use the local token to do so.
 	path := config.GetConfigDir() + "/tokens/" + globule.getDomain() + "_token"
 	if !Utility.Exists(path) {
 		fmt.Println("no token found for domain " + globule.getDomain() + " at path " + path)
-		return
+		return errors.New("no token found for domain " + globule.getDomain() + " at path " + path)
 	}
 
 	token, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Println("fail to read token at path " + path + " with error: " + err.Error())
-		return
+		return errors.New("fail to read token at path " + path + " with error: " + err.Error())
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, "globulario", application, true)
+	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
+		return errors.New("fail to install application" + application + "with error:" + err.Error())
 	}
 
 	// Display the link in the console.
@@ -1349,6 +1349,7 @@ func (globule *Globule) installApplication(application, discovery string) {
 	}
 
 	fmt.Println(application, "application was install and ready to go at address:", address_)
+	return nil
 }
 
 /**

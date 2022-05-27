@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -525,16 +526,15 @@ func main() {
 			err := s.Install()
 			if err == nil {
 				log.Println("Globular service is now installed!")
-					// Here I will keep the start time...
-					// set path...
-					setSystemPath()
+				// Here I will keep the start time...
+				// set path...
+				setSystemPath()
 			} else {
 				log.Println(err)
 			}
 		}
 
 		if unstallCommand.Parsed() {
-
 
 			// Required Flags
 			err := s.Uninstall()
@@ -554,7 +554,7 @@ func main() {
 
 			// reset environmement...
 			resetSystemPath()
-			
+
 		}
 
 		if distCommand.Parsed() {
@@ -1029,6 +1029,115 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 }
 
 /**
+ * Download Applications, this will be use to package globular applications with the distro. That way console and media will 
+ * be accessible offline, on the local network.
+ */
+func downloadApplication(g *Globule, application, discovery, pulbisherId, version string) (string, string, error) {
+
+	// first of all I will get the package descriptor...
+	// Connect to the dicovery services
+	resource_client_, err := resource_client.NewResourceService_Client(discovery, "resource.ResourceService")
+
+	if err != nil {
+		return "", "", errors.New("Fail to connect to " + discovery)
+	}
+
+	// TODO publish it as globulario organisation.
+	descriptor, err := resource_client_.GetPackageDescriptor(application, pulbisherId, version)
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(descriptor.Repositories) == 0 {
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	if len(descriptor.Repositories) == 0 {
+		return "", "", errors.New("no repositories was define on that globule")
+	}
+
+	// Create the application dir if is not exist.
+	err = Utility.CreateDirIfNotExist(g.path + "/applications")
+	if err != nil {
+		return "", "", err
+	}
+
+	// Set the path
+	path := g.path + "/applications/" + application + "_" + pulbisherId + "_" + version
+	if Utility.Exists(path + ".tar.gz") {
+		return path + ".tar.gz", application + "_" + pulbisherId + "_" + version + ".tar.gz", nil // already ready to be downloaded...
+	}
+
+	Utility.CreateDirIfNotExist(path)
+	defer os.RemoveAll(path)
+
+	// I will write the package descritor as file in the directory...
+	jsonStr, err := Utility.ToJson(descriptor)
+	if err != nil {
+		return "", "", err
+	}
+
+	// save the descritor in the directory.
+	err = Utility.WriteStringToFile(path+"/descriptor.json", jsonStr)
+	if err != nil {
+		return "", "", err
+	}
+
+	// I will create a repository
+	for i := 0; i < len(descriptor.Repositories); i++ {
+
+		package_repository, err := repository_client.NewRepositoryService_Client(descriptor.Repositories[i], "repository.PackageRepository")
+		if err != nil {
+			return "", "", err
+		}
+
+		bundle, err := package_repository.DownloadBundle(descriptor, "webapp")
+		if err != nil {
+			return "", "", err
+		}
+
+		// Create the file.
+		err = ioutil.WriteFile(path+"/bundle.tar.gz", bundle.Binairies, 0644)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	// Now I will compress it...
+	var buffer bytes.Buffer
+	_, err = Utility.CompressDir(path, &buffer)
+	if err != nil {
+		return "", "", err
+	}
+
+	// tar + gzip
+	var buf bytes.Buffer
+	Utility.CompressDir(path, &buf)
+
+	// write the .tar.gzip
+	fileToWrite, err := os.OpenFile(path+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))
+	if err != nil {
+		return "", "", err
+	}
+
+	defer fileToWrite.Close()
+
+	if _, err := io.Copy(fileToWrite, &buf); err != nil {
+		return "", "", err
+	}
+
+	// Remove the dir when the archive is created.
+	err = os.RemoveAll(path)
+	if err != nil {
+		return "", "", err
+	}
+
+	return path + ".tar.gz", application + "_" + pulbisherId + "_" + version + ".tar.gz", nil
+}
+
+/**
  * That function is use to install globular from the development environnement.
  * The server must have run at least once before that command is call. Each service must
  * have been run at least one to appear in the installation.
@@ -1044,7 +1153,24 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 func dist(g *Globule, path string, revision string) {
 	// That function is use to install globular at a given repository.
 	fmt.Println("create distribution in ", path)
-	fmt.Println(Utility.IsLocal("globular.cloud"))
+
+	// first of all I will get the applications...
+	// TODO see if those values can be use as parameters...
+
+	// Console 1.0.3
+	console_application_path, console_application, err := downloadApplication(g, "console", "globular.io", "sa", "1.0.3")
+	if(err != nil){
+		fmt.Println(err)
+		return
+	}
+
+	// Media 1.0.0
+	media_application_path, media_application, err := downloadApplication(g, "media", "globular.io", "sa", "1.0.0")
+	if(err != nil){
+		fmt.Println(err)
+		return
+	}
+
 	// The debian package...
 	if runtime.GOOS == "linux" {
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
@@ -1063,6 +1189,9 @@ func dist(g *Globule, path string, revision string) {
 		// globular data
 		data_path := debian_package_path + "/var/globular/data"
 
+		// globular data
+		applications_path := debian_package_path + "/var/globular/applications"
+
 		// globular configurations
 		config_path := debian_package_path + "/etc/globular/config"
 
@@ -1070,6 +1199,11 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(distro_path)
 		Utility.CreateDirIfNotExist(data_path)
 		Utility.CreateDirIfNotExist(config_path)
+		Utility.CreateDirIfNotExist(applications_path)
+
+		// Copy applications for offline installation...
+		Utility.CopyFile(console_application_path, applications_path+"/" + console_application)
+		Utility.CopyFile(media_application_path, media_application_path+"/" + media_application)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
@@ -1345,6 +1479,14 @@ func dist(g *Globule, path string, revision string) {
 			log.Panicln("--> fail to copy redist ", err)
 		}
 
+		// application
+		Utility.CreateDirIfNotExist(app + "/applications")
+		err = Utility.CopyDir(dir+"/applications/.", app+"/applications")
+		if err != nil {
+			log.Panicln("--> fail to copy applications ", err)
+		}
+
+
 		// copy the license
 		err = Utility.CopyFile(dir+"/license.txt", root+"/license.txt")
 		if err != nil {
@@ -1475,13 +1617,13 @@ func dist(g *Globule, path string, revision string) {
 	  RMDir /r "$INSTDIR\dependencies"
 	  RMDir /r "$INSTDIR\Redist"
 	  RMDir /r "$INSTDIR\services"
+	  RMDir /r "$INSTDIR\applications"
   
 	  DeleteRegKey /ifempty HKCU  "Software\${NAME}"
   
 	SectionEnd
   
 `
-
 		Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
 	}
 
