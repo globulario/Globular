@@ -1286,10 +1286,10 @@ func (globule *Globule) Serve() error {
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
 	
 	// The user console
-	globule.installApplication("console", "globular.io", "sa")
+	globule.installApplication("console", "globular.io", "globulario")
 
 	// The media player application
-	globule.installApplication("media", "globular.io", "sa")
+	globule.installApplication("media", "globular.io", "globulario")
 
 	// Init peers
 	globule.initPeers()

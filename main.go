@@ -1158,14 +1158,14 @@ func dist(g *Globule, path string, revision string) {
 	// TODO see if those values can be use as parameters...
 
 	// Console 1.0.3
-	console_application_path, console_application, err := downloadApplication(g, "console", "globular.io", "sa", "1.0.3")
+	console_application_path, console_application, err := downloadApplication(g, "console", "globular.io", "globulario", "1.0.3")
 	if(err != nil){
 		fmt.Println(err)
 		return
 	}
 
 	// Media 1.0.0
-	media_application_path, media_application, err := downloadApplication(g, "media", "globular.io", "sa", "1.0.0")
+	media_application_path, media_application, err := downloadApplication(g, "media", "globular.io", "globulario", "1.0.0")
 	if(err != nil){
 		fmt.Println(err)
 		return
