@@ -41,6 +41,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
+
 	// Interceptor for authentication, event, log...
 
 	// Client services.
@@ -1041,9 +1042,11 @@ func (globule *Globule) startServices() error {
 				fmt.Println("fail to start service ", services[i]["Name"], err)
 
 			} else {
+
 				_, err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
+				// So here I will try to start the proxy process for at leat 30 second before givin up...
 				if err != nil {
-					fmt.Println("fail to start service proxy ", services[i]["Name"], err)
+					fmt.Println("fail to start proxy process for service", services[i]["Name"], "with error:", err)
 				}
 			}
 		}
@@ -1187,7 +1190,7 @@ func (globule *Globule) createApplicationConnection() error {
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				app := applications[i]
-				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", true)
+				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
 				}
@@ -1278,33 +1281,58 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	globule.startServices()
 
+	// Watch config.
 	globule.watchConfig()
 
 	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-	
+
 	// The user console
 	globule.installApplication("console", "globular.io", "sa")
 
 	// The media player application
-	globule.installApplication("media", "globular.io", "sa")
+	err = globule.installApplication("media", "globular.io", "sa")
+	startBrowser := false
+	if err == nil {
+		startBrowser = true
+	}
 
 	// Init peers
 	globule.initPeers()
 
-	return globule.serve()
+	err = globule.serve()
+	if err != nil {
+		return err
+	}
+
+	if startBrowser {
+		// Here I will open the browser and set it to default address
+		address_ := globule.Protocol + "://" + globule.getDomain()
+		if globule.Protocol == "https" {
+			if globule.PortHttps != 443 {
+				address_ += ":" + Utility.ToString(globule.PortHttps)
+			}
+		} else {
+			if globule.PortHttp != 80 {
+				address_ += ":" + Utility.ToString(globule.PortHttp)
+			}
+		}
+		Utility.OpenBrowser(address_ + "/media")
+	}
+
+	return nil
 }
 
 /**
  * If the console application is not installed I will install it.
  */
-func (globule *Globule) installApplication(application, discovery, publisherId string) error{
+func (globule *Globule) installApplication(application, discovery, publisherId string) error {
 
 	// Here I will test if the console application is install...
 	if Utility.Exists(config.GetWebRootDir() + "/" + application) {
-		return nil // no need to install here...
+		return errors.New("application " + application + " is aleady installed") // no need to install here...
 	}
 
 	address, _ := config.GetAddress()
