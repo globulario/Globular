@@ -1290,10 +1290,10 @@ func (globule *Globule) Serve() error {
 	// TODO keep this address in the config somewhere... or be sure the link will always be available.
 
 	// The user console
-	globule.installApplication("console", "globular.io", "sa")
+	globule.installApplication("console", "globular.io", "globulario")
 
 	// The media player application
-	err = globule.installApplication("media", "globular.io", "sa")
+	err = globule.installApplication("media", "globular.io", "globulario")
 	startBrowser := false
 	if err == nil {
 		startBrowser = true
