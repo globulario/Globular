@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
@@ -142,7 +143,7 @@ type Globule struct {
 	https_server *http.Server
 
 	// List of peers
-	peers []*resourcepb.Peer
+	peers *sync.Map // []*resourcepb.Peer
 
 	// Keep track of the strart time...
 	startTime time.Time
@@ -186,6 +187,9 @@ func NewGlobule() *Globule {
 	if g.AllowedHeaders == nil {
 		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token", "video-path", "index-path"}
 	}
+
+	// the map of peers.
+	g.peers = new(sync.Map)
 
 	// Set the default checksum...
 	g.Protocol = "http"
@@ -1086,9 +1090,21 @@ func (globule *Globule) startServices() error {
  */
 func updatePeersEvent(evt *eventpb.Event) {
 
-	// re-init the list of peers.
-	globule.initPeers()
+	fmt.Println("-----------> update peers!")
+	p := new(resourcepb.Peer)
+	err := json.Unmarshal(evt.Data, &p)
+	if err != nil {
+		fmt.Println("fail to update peer: ", p)
+		return
+	}
 
+	globule.peers.Store(p.Mac, p)
+	fmt.Println("-----------> store peer ", p)
+}
+
+func deletePeersEvent(evt *eventpb.Event) {
+	fmt.Println("-----------> delete peer ", string(evt.Data))
+	globule.peers.Delete(string(evt.Data))
 }
 
 /**
@@ -1096,6 +1112,7 @@ func updatePeersEvent(evt *eventpb.Event) {
  */
 func (globule *Globule) initPeers() error {
 
+	fmt.Println("init peers")
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
@@ -1106,7 +1123,7 @@ func (globule *Globule) initPeers() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("---------> initPeers")
+
 	// Now I will set peers in the host file.
 	for i := 0; i < len(peers); i++ {
 		// Here I will try to set the peer ip...
@@ -1122,6 +1139,10 @@ func (globule *Globule) initPeers() error {
 		} else {
 			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
 		}
+
+		// Now I will keep it in the peers list.
+		globule.peers.Store(peers[i].Mac, peers[i])
+
 		fmt.Println("---------> try to update peer")
 		// Here I will try to update
 		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail)
@@ -1143,7 +1164,7 @@ func (globule *Globule) initPeers() error {
 						peer_.ExternalIpAddress = Utility.MyIP()
 						peer_.PortHttp = int32(globule.PortHttp)
 						peer_.PortHttps = int32(globule.PortHttps)
-						fmt.Println("---------> peers: ", peer_)
+						fmt.Println("1147---------> peers: ", peer_)
 						err := resource_client__.UpdatePeer(token, peer_)
 						if err == nil {
 							fmt.Println("---------> peer infos with mac ", mac, " at address ", address, " is up to date")
@@ -1161,10 +1182,9 @@ func (globule *Globule) initPeers() error {
 
 	}
 
-	globule.peers = peers
-
 	// Subscribe to new peers event...
 	globule.subscribe("update_peers_evt", updatePeersEvent)
+	globule.subscribe("delete_peer_evt", deletePeersEvent)
 
 	return nil
 }

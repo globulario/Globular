@@ -46,8 +46,11 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 		}
 	}
 
-	for i := 0; i < len(globule.peers); i++ {
-		p := globule.peers[i]
+	
+	var p *resourcepb.Peer
+
+	globule.peers.Range(func(key, value interface{}) bool {
+		p_ := value.(*resourcepb.Peer)
 		address := p.Domain
 		if p.Protocol == "https" {
 			address += ":" + Utility.ToString(p.PortHttps)
@@ -56,10 +59,13 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 		}
 
 		if strings.HasPrefix(address, host) {
-			return true, p
+			p = p_
+			return false // stop the iteration.
 		}
-	}
-	return false, nil
+		return true
+	})
+
+	return  p != nil, p
 }
 
 // Redirect the query to a peer one the network

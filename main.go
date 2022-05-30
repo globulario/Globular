@@ -729,14 +729,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	log.Println("Connect with application manager")
+	log.Println("Connect with application manager at address ", address)
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
 		log.Println("fail to connect to application manager service ", address)
 		return err
 	}
 
-	log.Println("Connect with application manager")
+	log.Println("Deploy application ", user, name, organization, path)
 	_, err = applications_manager_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
 	if err != nil {
 		log.Println("Fail to deploy applicaiton with error:", err)
