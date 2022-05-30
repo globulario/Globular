@@ -51,11 +51,11 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	globule.peers.Range(func(key, value interface{}) bool {
 		p_ := value.(*resourcepb.Peer)
-		address := p.Domain
-		if p.Protocol == "https" {
-			address += ":" + Utility.ToString(p.PortHttps)
+		address := p_.Domain
+		if p_.Protocol == "https" {
+			address += ":" + Utility.ToString(p_.PortHttps)
 		} else {
-			address += ":" + Utility.ToString(p.PortHttp)
+			address += ":" + Utility.ToString(p_.PortHttp)
 		}
 
 		if strings.HasPrefix(address, host) {
