@@ -1063,7 +1063,10 @@ func (globule *Globule) startServices() error {
 			permissions := s["Permissions"].([]interface{})
 			for j := 0; j < len(permissions); j++ {
 				if permissions[j] != nil {
-					globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+					err := globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+					if err != nil {
+						fmt.Println(" fail to register resource permission ", err)
+					}
 				}
 			}
 		}
@@ -2055,6 +2058,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
+	
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err
