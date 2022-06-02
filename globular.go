@@ -193,7 +193,7 @@ func NewGlobule() *Globule {
 
 	// Set the default checksum...
 	g.Protocol = "http"
-	g.Name, _ = config.GetName()
+	g.Name, _ = config.GetHostName()
 
 	// set default values.
 	g.CertExpirationDelay = 365
@@ -283,7 +283,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	// TODO filter unwanted attributes...
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"], _ = config.GetDomain()
-	config_["Name"], _ = config.GetName()
+	config_["Name"], _ = config.GetHostName()
 	services, _ := config_client.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
