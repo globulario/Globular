@@ -30,6 +30,7 @@ import (
 	"github.com/kardianos/service"
 )
 
+
 func (g *Globule) Start(s service.Service) error {
 
 	// stop mongo demon if it running
