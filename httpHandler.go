@@ -1029,6 +1029,8 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id") // the csr in base64
 
+	fmt.Println("get imdb info for ", id)
+
 	client := http.DefaultClient
 	title, err := imdb.NewTitle(client, id)
 	if err != nil {
@@ -1046,6 +1048,7 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	if title.Type == "TVEpisode" {
 		s, e, t, err := getSeasonAndEpisodeNumber(id, 10)
+		fmt.Println("get tv episode info ", id)
 		if err == nil {
 			title_["Season"] = s
 			title_["Episode"] = e

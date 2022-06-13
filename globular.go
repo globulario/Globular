@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
@@ -42,7 +43,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
-
 	// Interceptor for authentication, event, log...
 
 	// Client services.
@@ -316,77 +316,6 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	}
 
 	return config_
-}
-
-/**
- * That function will wath if the configuration file has change.
- */
-func (globule *Globule) watchConfig() {
-	go func() {
-		checksum := Utility.CreateFileChecksum(globule.config + "/config.json")
-
-		for {
-			checksum_ := Utility.CreateFileChecksum(globule.config + "/config.json")
-
-			if checksum_ != checksum {
-				file, _ := ioutil.ReadFile(globule.config + "/config.json")
-				config := make(map[string]interface{})
-				err := json.Unmarshal(file, &config)
-
-				if err != nil {
-					globule.saveConfig() // write back the configuration...
-				} else {
-
-					// Here I will make some validation...
-					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
-						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
-					} else {
-
-						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
-						hasDomainChange := globule.getDomain() != config["Domain"].(string)
-						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
-						json.Unmarshal(file, &globule)
-
-						// stop the http server
-						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-						if globule.http_server != nil {
-							if err = globule.http_server.Shutdown(ctx); err != nil {
-								fmt.Println("fail to stop the http server with error ", err)
-							}
-
-							if globule.https_server != nil {
-								if err := globule.https_server.Shutdown(ctx); err != nil {
-									fmt.Println("fail to stop the https server with error ", err)
-								}
-							}
-						}
-
-						if hasProtocolChange || hasDomainChange || certificateChange {
-							// stop services...
-							fmt.Println("Stop gRpc Services")
-
-							err := globule.stopServices()
-							if err != nil {
-								log.Panicln(err)
-							}
-
-							// restart it...
-							os.Exit(0)
-
-						}
-
-						// restart
-						globule.serve()
-
-						// clear context
-						cancel()
-						checksum = checksum_
-					}
-				}
-			}
-			time.Sleep(time.Duration(10) * time.Second)
-		}
-	}()
 }
 
 /**
@@ -1348,6 +1277,94 @@ func (globule *Globule) Serve() error {
 	return nil
 }
 
+func (globule *Globule) watchConfig() {
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal("NewWatcher failed: ", err)
+	}
+
+	defer watcher.Close()
+	go func() {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+
+			if event.Op == fsnotify.Write {
+				// renit the service...
+				file, _ := ioutil.ReadFile(globule.config + "/config.json")
+				config := make(map[string]interface{})
+				err := json.Unmarshal(file, &config)
+		
+				if err != nil {
+					globule.saveConfig() // write back the configuration...
+				} else {
+		
+					// Here I will make some validation...
+					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
+						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
+					} else {
+		
+						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
+						hasDomainChange := globule.getDomain() != config["Domain"].(string)
+						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
+						json.Unmarshal(file, &globule)
+		
+						// stop the http server
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						if globule.http_server != nil {
+							if err = globule.http_server.Shutdown(ctx); err != nil {
+								fmt.Println("fail to stop the http server with error ", err)
+							}
+		
+							if globule.https_server != nil {
+								if err := globule.https_server.Shutdown(ctx); err != nil {
+									fmt.Println("fail to stop the https server with error ", err)
+								}
+							}
+						}
+		
+						if hasProtocolChange || hasDomainChange || certificateChange {
+							// stop services...
+							fmt.Println("Stop gRpc Services")
+		
+							err := globule.stopServices()
+							if err != nil {
+								log.Panicln(err)
+							}
+		
+							// restart it...
+							os.Exit(0)
+		
+						}
+		
+						// restart
+						globule.serve()
+		
+						// clear context
+						cancel()
+					}
+				}
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			fmt.Println("error:", err)
+		}
+		
+
+	}()
+
+	// watch for configuration change
+	err = watcher.Add(globule.config + "/config.json")
+	if err != nil {
+		log.Fatal("Add failed:", err)
+	}
+}
+
 /**
  * If the console application is not installed I will install it.
  */
@@ -2058,7 +2075,7 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
-	
+
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err

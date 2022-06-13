@@ -624,7 +624,8 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 	serie := ""
 
 	// function call on visition url...
-	movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
+	// old format...
+	/*movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
 		e.ForEach("span", func(index int, child *colly.HTMLElement) {
 			if strings.Contains(child.Attr("class"), "eqCBtv"){
 				if  child.Text[0:1] == "S" {
@@ -634,11 +635,22 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 				}
 			}
 		})
+	})*/
+
+	movieCollector.OnHTML(".cHCfvp", func(e *colly.HTMLElement) {
+		fmt.Println("---------------->", e.Text)
+		values:= strings.Split(e.Text, ".")
+		season = Utility.ToInt( values[0][1:])
+		episode = Utility.ToInt( values[1][1:])
 	})
 
-	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-94726ce4-0.cMYixt > div.sc-94726ce4-1.iNShGo > a", func(e *colly.HTMLElement) {
+
+
+	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-e74835c7-0.jSNOyF > a", func(e *colly.HTMLElement) {
 		href := e.Attr("href")
+		fmt.Println("----------> 651 ", href)
 		serie = strings.Split(href, "/")[2]
+		fmt.Println("----------> 651 ", serie)
 	})
 
 	movieCollector.Visit(url)
@@ -649,7 +661,7 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 			nbCall--
 			return getSeasonAndEpisodeNumber(titleId, nbCall)
 		}else{
-			
+			fmt.Println("----------> 663 ")
 				return  season, episode, serie, errors.New("fail to retreive all episode informations...")
 			
 		}

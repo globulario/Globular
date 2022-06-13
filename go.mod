@@ -9,6 +9,7 @@ replace github.com/davecourtois/Utility => ../Utility
 require (
 	github.com/StalkR/imdb v1.0.7
 	github.com/davecourtois/Utility v0.0.0-20210515191918-3118f6f72191
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/globulario/services/golang v0.0.0-20210506013013-d8ee75e6a528
 	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-acme/lego/v4 v4.4.0
