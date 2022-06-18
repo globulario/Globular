@@ -59,7 +59,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	// The hidden folder path...
 	path_ := video_path[0:strings.LastIndex(video_path, "/")]
 
-	name_ := video_path[strings.LastIndex(video_path, "/")+1 :]
+	name_ := video_path[strings.LastIndex(video_path, "/")+1:]
 	if lastIndex != -1 {
 		name_ = video_path[strings.LastIndex(video_path, "/")+1 : lastIndex]
 	}
@@ -81,7 +81,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	var f *os.File
 	var ext string
 	for _, _info := range files {
-		if strings.HasPrefix(_info.Name(), video_id + "."){
+		if strings.HasPrefix(_info.Name(), video_id+".") {
 			f, err = os.Open(thumbnail_path + "/" + _info.Name())
 			ext = _info.Name()[strings.LastIndex(_info.Name(), ".")+1:]
 			defer f.Close()
@@ -638,19 +638,14 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 	})*/
 
 	movieCollector.OnHTML(".cHCfvp", func(e *colly.HTMLElement) {
-		fmt.Println("---------------->", e.Text)
-		values:= strings.Split(e.Text, ".")
-		season = Utility.ToInt( values[0][1:])
-		episode = Utility.ToInt( values[1][1:])
+		values := strings.Split(e.Text, ".")
+		season = Utility.ToInt(values[0][1:])
+		episode = Utility.ToInt(values[1][1:])
 	})
-
-
 
 	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-e74835c7-0.jSNOyF > a", func(e *colly.HTMLElement) {
 		href := e.Attr("href")
-		fmt.Println("----------> 651 ", href)
 		serie = strings.Split(href, "/")[2]
-		fmt.Println("----------> 651 ", serie)
 	})
 
 	movieCollector.Visit(url)
@@ -660,10 +655,8 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 		if nbCall > 0 {
 			nbCall--
 			return getSeasonAndEpisodeNumber(titleId, nbCall)
-		}else{
-			fmt.Println("----------> 663 ")
-				return  season, episode, serie, errors.New("fail to retreive all episode informations...")
-			
+		} else {
+			return season, episode, serie, errors.New("fail to retreive all episode informations...")
 		}
 	}
 

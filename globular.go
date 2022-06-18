@@ -2047,13 +2047,13 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 }
 
 // Use rbac client here...
-func (globule *Globule) addResourceOwner(path string, subject string, subjectType rbacpb.SubjectType) error {
+func (globule *Globule) addResourceOwner(path, resource_type, subject string, subjectType rbacpb.SubjectType) error {
 
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
-	return rbac_client_.AddResourceOwner(path, subject, subjectType)
+	return rbac_client_.AddResourceOwner(path, resource_type, subject, subjectType)
 }
 
 func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {

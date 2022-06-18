@@ -676,9 +676,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, user, rbacpb.SubjectType_ACCOUNT)
+			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)
 		} else if len(application) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, application, rbacpb.SubjectType_APPLICATION)
+			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
 		}
 
 		// Create the file depending if the path is users, applications or something else...
