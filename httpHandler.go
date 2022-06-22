@@ -36,7 +36,7 @@ import (
 // Find the peer with a given name and redirect the
 // the request to it.
 func redirectTo(host string) (bool, *resourcepb.Peer) {
-	
+
 	// read the actual configuration.
 	__address__, err := config_.GetAddress()
 	if err == nil {
@@ -46,7 +46,6 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 		}
 	}
 
-	
 	var p *resourcepb.Peer
 
 	globule.peers.Range(func(key, value interface{}) bool {
@@ -65,7 +64,7 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 		return true
 	})
 
-	return  p != nil, p
+	return p != nil, p
 }
 
 // Redirect the query to a peer one the network
@@ -629,28 +628,34 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
-		fmt.Println("validate application permission: ", application)
-		hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
+		if strings.HasPrefix(path, "/applications") {
+			var err error
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
+			if hasAccess && err == nil {
+				hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
+			}
 		}
 	}
 
 	// get the user id from the token...
+	var domain string
 	if len(token) != 0 && !hasAccess {
+		fmt.Println("----------------> token was given...")
 		var claims *security.Claims
-		claims, err = security.ValidateToken(token)
+		claims, err := security.ValidateToken(token)
 		if err == nil {
 			user = claims.Id
+			domain = claims.Domain
 		}
 	}
 
 	if len(user) != 0 {
+		var err error
 		if !hasAccess {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
 		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(user + "@" + domain, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if err != nil {
 				log.Println("Fail to validate action with error ", err)
 			}
@@ -661,7 +666,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate ressource access...
-	if !hasAccess || hasAccessDenied || err != nil {
+	if !hasAccess || hasAccessDenied {
 		http.Error(w, "unable to create the file for writing. Check your access privilege", http.StatusUnauthorized)
 		return
 	}
@@ -671,15 +676,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-
 		defer file.Close()
-
-		// Here I will set the ressource owner.
-		if len(user) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)
-		} else if len(application) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
-		}
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
@@ -701,7 +698,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-
 		defer out.Close()
 
 		if err != nil {
@@ -712,8 +708,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
-			log.Println("fail to copy file  ", path_, "with error", err)
 			return
+		}
+
+		// Here I will set the ressource owner.
+		if len(user) > 0 {
+			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)
+		} else if len(application) > 0 {
+			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
 		}
 
 		// Now from the file extension i will retreive it mime type.
@@ -728,6 +730,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+
+
 	}
 
 }

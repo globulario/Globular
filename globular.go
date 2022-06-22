@@ -40,9 +40,11 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/search/search_client"
 	"github.com/globulario/services/golang/security"
+	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
+
 	// Interceptor for authentication, event, log...
 
 	// Client services.
@@ -252,6 +254,17 @@ func NewGlobule() *Globule {
 }
 
 func (globule *Globule) registerAdminAccount() error {
+
+	persistence_client_, err := GetPersistenceClient(globule.getAddress())
+	if err != nil {
+		return err
+	}
+
+	err = persistence_client_.CreateConnection("sa", "sa_db", globule.getDomain(), 27017, 0, "sa", globule.RootPassword, 500, "", false)
+	if err != nil {
+		return err
+	}
+
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
@@ -260,9 +273,13 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-		fmt.Println("fail to create admin user")
-		return err
+		if !strings.Contains(err.Error(), "sa already exist"){
+			return err
+		}
 	}
+
+	// Admin is created 
+	// globule.createAdminRole()
 
 	// Set admin role to that account.
 	err = resource_client_.AddAccountRole("sa", "admin")
@@ -272,6 +289,39 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	fmt.Println("Admin User create!")
+
+	return nil
+}
+
+/**
+ * The admin group contain all action...
+ */
+func (globule *Globule) createAdminRole() error {
+	resource_client_, err := GetResourceClient(globule.getAddress())
+	if err != nil {
+		return err
+	}
+	
+	domain, _ := config.GetDomain()
+	
+	token, err := os.ReadFile(config.GetConfigDir() + "/tokens/" + domain + "_token")
+	if err != nil {
+		return err
+	}
+
+	servicesManager, err := GetServiceManagerClient(globule.getAddress())
+	actions, err := servicesManager.GetAllActions()
+	if err != nil {
+		return err
+	}
+
+	// Create the admin account.
+	err = resource_client_.CreateRole(string(token), "admin", "admin", actions)
+	if err != nil {
+		fmt.Println("fail to create admin user")
+		return err
+	}
+
 	return nil
 }
 
@@ -1815,7 +1865,24 @@ var (
 	log_client_            *log_client.Log_Client
 	resource_client_       *resource_client.Resource_Client
 	persistence_client_    *persistence_client.Persistence_Client
+	service_manager_client_    *service_manager_client.Services_Manager_Client
 )
+
+//////////////////////// Resource Client ////////////////////////////////////////////
+func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
+	var err error
+	if service_manager_client_ == nil {
+		service_manager_client_, err = service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+		if err != nil {
+			resource_client_ = nil
+			return nil, err
+		}
+
+	}
+
+	return service_manager_client_, nil
+}
+
 
 //////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
