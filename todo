@@ -4,32 +4,15 @@
      Retrouver un nom d'usagé en fontion d'un email.
 
  1. Moteur de recherche
-    * Editeur d'information des vidéo (Steve)
+    * Editeur d'information des vidéo
     * Pouvoir partager une fichier avec un utilisateur.
-    * Pouvoir réutiliser l'indexation existant en fonction du checsum d'un fichier.
-    * Filtre par genre ou tag dans le coté gauche ex. x blonde(15)
-                                                        brunette(25)
-                                                      x milf(50)
-
-  -- Backend
-    * Pouvoir chercher sur plusieur ordinareur une info 
    
  4.  Shared (public)
-    * Upload ne fonctionne pas... (drag and drop d'un fichier)
-    * Faire une interace simple pour ajouter un nouveau shared... (actuellement c'est par la config du file-service)
-    * Faire les test pour linker vers ne NAS avec un shared de linux (samba) ou windows.
-    * Pas capable d'entrer dans un nouveau répertoire quand ont clique sur le répertoire.    
-    
- 2.  Bitorrent
-    * Vitesse lente sur ordinateur dell, comprendre pourquoi...
+    * Faire les test pour linker vers ne NAS avec un shared de linux (samba) ou windows.  
 
  3. Blog 
-    * Draft -- Sert garder la list des different blog en cour de création (en mode edition)
-    * Published -- tous les contact peuvent profiter de vos talents d'auteur
-    * Archived -- Permet de garder les blog sans les afficher dans l'interface
     * Drag and drop des film ou video a partir du gestionaire de fichier. (si une indexation existe les infos sont
       utilisé pour créer le visuel dans le blog...
-    * Intégrer les blog avec le moteur de recherche.
 
  5. Video Conférence (skype)
     * Faire un micro-serivce pour pouvoir faire sonner le cell, tablette pc pour un appel entrant.
