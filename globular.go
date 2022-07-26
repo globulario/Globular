@@ -2135,6 +2135,15 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 	return hasAccess, hasAccessDenied, err
 }
 
+func ValidateSubjectSpace(subject string, subjectType rbacpb.SubjectType, required_space int) (bool, error) {
+	rbac_client_, err := GetRbacClient(globule.getAddress())
+	if err != nil {
+		return false, err
+	}
+	hasSpace, err := rbac_client_.ValidateSubjectSpace(subject, subjectType, required_space)
+	return hasSpace, err
+}
+
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
 
 	rbac_client_, err := GetRbacClient(globule.getAddress())

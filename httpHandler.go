@@ -640,7 +640,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// get the user id from the token...
 	var domain string
 	if len(token) != 0 && !hasAccess {
-		fmt.Println("----------------> token was given...")
 		var claims *security.Claims
 		claims, err := security.ValidateToken(token)
 		if err == nil {
@@ -655,7 +654,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
 		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(user + "@" + domain, rbacpb.SubjectType_ACCOUNT, "write", path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(user+"@"+domain, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if err != nil {
 				log.Println("Fail to validate action with error ", err)
 			}
@@ -680,6 +679,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
+			size, _ := file.Seek(0, 2)
+			if len(user) > 0 {
+				hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, int(size))
+				if !hasSpace || err != nil {
+					http.Error(w, user + " has no space available to copy file " + path_ + " allocated space and try again.", http.StatusUnauthorized)
+					return
+				}
+			}
+			file.Seek(0, 0)
 
 		// Now if the os is windows I will remove the leading /
 		if len(path_) > 3 {
@@ -701,7 +709,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer out.Close()
 
 		if err != nil {
-			log.Println("fail to create dir ", path_, err)
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
@@ -730,7 +737,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-
 
 	}
 
