@@ -246,6 +246,10 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/imdb_titles", getImdbTitlesHanldler)
 	http.HandleFunc("/imdb_title", getImdbTitleHanldler)
 
+	// Get the file size at a given url.
+	http.HandleFunc("/file_size", GetFileSizeAtUrl)
+	
+
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
 	g.initDirectories()

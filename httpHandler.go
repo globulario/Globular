@@ -486,6 +486,48 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+ * Evaluate the file size at given url
+ */
+func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
+	// here in case of file uploaded from other website like pornhub...
+	url := r.URL.Query().Get("url")
+
+	fmt.Println("try to get file size for url ", url)
+	// we are interested in getting the file or object name
+	// so take the last item from the slice
+	subStringsSlice := strings.Split(url, "/")
+	fileName := subStringsSlice[len(subStringsSlice)-1]
+
+	resp, err := http.Head(url)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Is our request ok?
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println(resp.Status)
+		return
+	}
+
+	// the Header "Content-Length" will let us know
+	// the total file size to download
+	size, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+	downloadSize := int64(size)
+
+	fmt.Println("Will be downloading ", fileName, " of ", downloadSize, " bytes.")
+	w.Header().Set("Content-Type", "application/json")
+
+	data, err := json.Marshal(&map[string]int64{"size":downloadSize})
+	if err == nil {
+		w.Write(data)
+	}else{
+		http.Error(w, "Fail to get file size at "+url+" with error "+err.Error(), http.StatusExpectationFailed)
+	}
+}
+
+/**
  * Index video handler...
  */
 func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
@@ -567,6 +609,8 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
+	fmt.Println("---------> upload file handler called!")
+
 	redirect, to := redirectTo(r.Host)
 
 	if redirect {
@@ -584,8 +628,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	// I will
-	err := r.ParseMultipartForm(200000) // grab the multipart form
+	err := r.ParseMultipartForm(1024 * 1024 * 16) // grab the multipart form
 	if err != nil {
+		fmt.Println("transfert error: ", err)
 		return
 	}
 
@@ -729,7 +774,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
 		}
 
-		
 		// Now from the file extension i will retreive it mime type.
 		if strings.LastIndex(path_, ".") != -1 {
 			fileExtension := path_[strings.LastIndex(path_, "."):]
