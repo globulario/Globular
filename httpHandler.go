@@ -679,16 +679,17 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
-			size, _ := file.Seek(0, 2)
-			if len(user) > 0 {
-				hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, int(size))
-				if !hasSpace || err != nil {
-					http.Error(w, user + " has no space available to copy file " + path_ + " allocated space and try again.", http.StatusUnauthorized)
-					return
-				}
+		fmt.Println("--------> disk file: ", path_)
+		size, _ := file.Seek(0, 2)
+		if len(user) > 0 {
+			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
+			if !hasSpace || err != nil {
+				http.Error(w, user+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
+				return
 			}
-			file.Seek(0, 0)
-
+		}
+		file.Seek(0, 0)
+		fmt.Println("692")
 		// Now if the os is windows I will remove the leading /
 		if len(path_) > 3 {
 			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
@@ -701,14 +702,16 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if !isPublic(path_) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
-
+		fmt.Println("705")
 		out, err := os.Create(path_)
 		if err != nil {
 			return
 		}
+
 		defer out.Close()
 
 		if err != nil {
+			fmt.Println("714")
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
@@ -718,6 +721,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fmt.Println("------------------> upload file ", path+"/"+f.Filename)
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)
@@ -725,6 +729,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
 		}
 
+		
 		// Now from the file extension i will retreive it mime type.
 		if strings.LastIndex(path_, ".") != -1 {
 			fileExtension := path_[strings.LastIndex(path_, "."):]
