@@ -1165,12 +1165,6 @@ func dist(g *Globule, path string, revision string) {
 		return
 	}
 
-	// Media 1.0.0
-	media_application_path, media_application, err := downloadApplication(g, "media", "globular.io", "globulario", "1.0.0")
-	if(err != nil){
-		fmt.Println(err)
-		return
-	}
 
 	// The debian package...
 	if runtime.GOOS == "linux" {
@@ -1204,7 +1198,6 @@ func dist(g *Globule, path string, revision string) {
 
 		// Copy applications for offline installation...
 		Utility.CopyFile(console_application_path, applications_path+"/" + console_application)
-		Utility.CopyFile(media_application_path, media_application_path+"/" + media_application)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
@@ -1940,13 +1933,8 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
-	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
-	if err != nil {
-		return err
-	}
-
 	// Get the local peer key
-	key, err := security.GetPeerKey(macAddress)
+	key, err := security.GetPeerKey(globule.Mac)
 	if err != nil {
 		log.Println(err)
 		return err

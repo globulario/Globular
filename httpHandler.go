@@ -915,9 +915,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	hasAccess := true
 	var name string
-
-	//fmt.Println("try to read file: ", rqst_path)
-
 	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
 		dir = globule.data + "/files"
 		if !strings.Contains(rqst_path, "/.hidden/") {
@@ -949,7 +946,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-	//hasAccess = false
 	// Here I will validate applications...
 	if len(application) != 0 && !hasAccess {
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)

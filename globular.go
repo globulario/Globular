@@ -177,6 +177,7 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100" // The default port range.
 
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
+	fmt.Println("-------------------------------------------------------> g.Mac = ", g.Mac)
 
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
@@ -718,6 +719,8 @@ func (globule *Globule) initDirectories() error {
 			return err
 		}
 
+		globule.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
+
 	} else {
 		jsonStr, err := Utility.ToJson(&globule)
 		if err == nil {
@@ -760,12 +763,8 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
-	if err != nil {
-		return err
-	}
 
-	tokenString, err := security.GenerateToken(globule.SessionTimeout, macAddress, "sa", "sa", globule.AdminEmail)
+	tokenString, err := security.GenerateToken(globule.SessionTimeout, globule.Mac, "sa", "sa", globule.AdminEmail)
 	if err != nil {
 		fmt.Println("fail to generate token with error: ", err)
 		return err
@@ -971,15 +970,12 @@ func setSystemPath() error {
 func (globule *Globule) startServices() error {
 
 	Utility.KillProcessByName("grpcwebproxy")
-	macAddress, err := Utility.MyMacAddr(Utility.MyLocalIP())
-	if err != nil {
-		return err
-	}
+
 	// Here I will generate the keys for this server if not already exist.
-	security.GeneratePeerKeys(macAddress)
+	security.GeneratePeerKeys(globule.Mac)
 
 	// This is the local token...
-	err = globule.refreshLocalToken()
+	err := globule.refreshLocalToken()
 	if err != nil {
 		return err
 	}
@@ -1136,8 +1132,7 @@ func (globule *Globule) initPeers() error {
 			resource_client__, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 			if err == nil {
 				// retreive the local peer infos
-				mac, _ := Utility.MyMacAddr(Utility.MyLocalIP())
-				peers_, _ := resource_client__.GetPeers(`{"mac":"` + mac + `"}`)
+				peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
 				if peers_ != nil {
 					if len(peers_) > 0 {
 						// set mutable values...
@@ -1152,10 +1147,10 @@ func (globule *Globule) initPeers() error {
 							fmt.Println("fail to update peer with error: ", err)
 						}
 					} else {
-						fmt.Println("no peer found with mac ", mac, " at address ", address)
+						fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
 					}
 				} else {
-					fmt.Println("no peer found with mac ", mac, " at address ", address, err)
+					fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
 				}
 			}
 		}
@@ -1292,9 +1287,6 @@ func (globule *Globule) Serve() error {
 	// The user console
 	err = globule.installApplication("console", "globular.io", "globulario")
 
-	// The media player application
-	// err = globule.installApplication("media", "globular.io", "globulario")
-
 	startBrowser := false
 	if err == nil {
 		startBrowser = true
@@ -1346,7 +1338,7 @@ func (globule *Globule) watchConfig() {
 				file, _ := ioutil.ReadFile(globule.config + "/config.json")
 				config := make(map[string]interface{})
 				err := json.Unmarshal(file, &config)
-		
+
 				if err != nil {
 					globule.saveConfig() // write back the configuration...
 				} else {
