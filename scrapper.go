@@ -219,7 +219,7 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 	currentVideo.Poster.TitleId = currentVideo.ID
 
 	movieCollector := colly.NewCollector(
-		colly.AllowedDomains("www.xhamster.com", "xhamster.com"),
+		colly.AllowedDomains("www.xhamster.com", "xhamster.com", "fr.xhamster.com"),
 	)
 
 	// Video title

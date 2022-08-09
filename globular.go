@@ -249,7 +249,6 @@ func NewGlobule() *Globule {
 
 	// Get the file size at a given url.
 	http.HandleFunc("/file_size", GetFileSizeAtUrl)
-	
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -278,12 +277,12 @@ func (globule *Globule) registerAdminAccount() error {
 	// Create the admin account.
 	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-		if !strings.Contains(err.Error(), "sa already exist"){
+		if !strings.Contains(err.Error(), "sa already exist") {
 			return err
 		}
 	}
 
-	// Admin is created 
+	// Admin is created
 	// globule.createAdminRole()
 
 	// Set admin role to that account.
@@ -306,9 +305,9 @@ func (globule *Globule) createAdminRole() error {
 	if err != nil {
 		return err
 	}
-	
+
 	domain, _ := config.GetDomain()
-	
+
 	token, err := os.ReadFile(config.GetConfigDir() + "/tokens/" + domain + "_token")
 	if err != nil {
 		return err
@@ -1072,16 +1071,31 @@ func (globule *Globule) startServices() error {
  */
 func updatePeersEvent(evt *eventpb.Event) {
 
-	fmt.Println("-----------> update peers!")
 	p := new(resourcepb.Peer)
-	err := json.Unmarshal(evt.Data, &p)
+	p_ := make(map[string]interface{}, 0)
+	err := json.Unmarshal(evt.Data, &p_)
 	if err != nil {
 		fmt.Println("fail to update peer: ", p)
 		return
 	}
 
+	p.Domain = p_["domain"].(string)
+	p.Hostname = p_["hostname"].(string)
+	p.Mac = p_["mac"].(string)
+	p.PortHttp = int32(Utility.ToInt(p_["portHttp"]))
+	p.PortHttps = int32(Utility.ToInt(p_["portHttps"]))
+	if p_["actions"] != nil {
+		p.Actions = make([]string, len(p_["actions"].([]interface{})))
+
+		for i := 0; i < len(p_["actions"].([]interface{})); i++ {
+			p.Actions[i] = p_["actions"].([]interface{})[i].(string)
+		}
+	}else{
+		p.Actions = make([]string, 0)
+	}
+
 	globule.peers.Store(p.Mac, p)
-	fmt.Println("-----------> store peer ", p)
+	fmt.Println("store peer ", p)
 }
 
 func deletePeersEvent(evt *eventpb.Event) {
@@ -1342,48 +1356,48 @@ func (globule *Globule) watchConfig() {
 				if err != nil {
 					globule.saveConfig() // write back the configuration...
 				} else {
-		
+
 					// Here I will make some validation...
 					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
 						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
 					} else {
-		
+
 						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
 						hasDomainChange := globule.getDomain() != config["Domain"].(string)
 						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
 						json.Unmarshal(file, &globule)
-		
+
 						// stop the http server
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						if globule.http_server != nil {
 							if err = globule.http_server.Shutdown(ctx); err != nil {
 								fmt.Println("fail to stop the http server with error ", err)
 							}
-		
+
 							if globule.https_server != nil {
 								if err := globule.https_server.Shutdown(ctx); err != nil {
 									fmt.Println("fail to stop the https server with error ", err)
 								}
 							}
 						}
-		
+
 						if hasProtocolChange || hasDomainChange || certificateChange {
 							// stop services...
 							fmt.Println("Stop gRpc Services")
-		
+
 							err := globule.stopServices()
 							if err != nil {
 								log.Panicln(err)
 							}
-		
+
 							// restart it...
 							os.Exit(0)
-		
+
 						}
-		
+
 						// restart
 						globule.serve()
-		
+
 						// clear context
 						cancel()
 					}
@@ -1395,7 +1409,6 @@ func (globule *Globule) watchConfig() {
 			}
 			fmt.Println("error:", err)
 		}
-		
 
 	}()
 
@@ -1513,7 +1526,7 @@ func (globule *Globule) registerIpToDns() error {
 				if err != nil {
 					return err
 				}
-				
+
 				defer dns_client_.Close()
 
 				ipv4, err := Utility.GetIpv4(globule.DNS[i].(string))
@@ -1850,14 +1863,14 @@ func (globule *Globule) Listen() error {
 }
 
 var (
-	rbac_client_           *rbac_client.Rbac_Client
-	event_client_          *event_client.Event_Client
-	search_engine_client_  *search_client.Search_Client
-	authentication_client_ *authentication_client.Authentication_Client
-	log_client_            *log_client.Log_Client
-	resource_client_       *resource_client.Resource_Client
-	persistence_client_    *persistence_client.Persistence_Client
-	service_manager_client_    *service_manager_client.Services_Manager_Client
+	rbac_client_            *rbac_client.Rbac_Client
+	event_client_           *event_client.Event_Client
+	search_engine_client_   *search_client.Search_Client
+	authentication_client_  *authentication_client.Authentication_Client
+	log_client_             *log_client.Log_Client
+	resource_client_        *resource_client.Resource_Client
+	persistence_client_     *persistence_client.Persistence_Client
+	service_manager_client_ *service_manager_client.Services_Manager_Client
 )
 
 //////////////////////// Resource Client ////////////////////////////////////////////
@@ -1874,7 +1887,6 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 
 	return service_manager_client_, nil
 }
-
 
 //////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
