@@ -766,7 +766,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println("------------------> upload file ", path+"/"+f.Filename)
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
 			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)

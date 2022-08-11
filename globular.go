@@ -177,7 +177,6 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100" // The default port range.
 
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
-	fmt.Println("-------------------------------------------------------> g.Mac = ", g.Mac)
 
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
@@ -259,42 +258,56 @@ func NewGlobule() *Globule {
 
 func (globule *Globule) registerAdminAccount() error {
 
+	domain, _ := config.GetDomain()
+	path := config.GetDataDir() + "/files/users/sa@" + domain
+	if !Utility.Exists(path){
+		err := Utility.CreateDirIfNotExist(path)
+		if err == nil {
+			globule.addResourceOwner("/users/sa@" + domain, "file", "sa@" + domain, rbacpb.SubjectType_ACCOUNT)
+		}
+	}
+
 	persistence_client_, err := GetPersistenceClient(globule.getAddress())
 	if err != nil {
+		fmt.Println("fail to get persistence client ", err)
 		return err
 	}
 
 	err = persistence_client_.CreateConnection("sa", "sa_db", globule.getDomain(), 27017, 0, "sa", globule.RootPassword, 500, "", false)
 	if err != nil {
+		fmt.Println("fail to create sa connection ", err)
 		return err
 	}
 
+	// get the resource client
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
+		fmt.Println("fail to get resource client ", err)
 		return err
 	}
 
 	// Create the admin account.
 	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 	if err != nil {
-		if !strings.Contains(err.Error(), "sa already exist") {
+		fmt.Println("fail to register admin account sa", err)
+		return err
+	}
+
+	// Admin is created
+	err = globule.createAdminRole()
+
+	// Set admin role to that account.
+	if err == nil {
+		err = resource_client_.AddAccountRole("sa", "admin")
+		if err != nil {
+			fmt.Println("fail to add admin role to sa", err)
 			return err
 		}
 	}
 
-	// Admin is created
-	// globule.createAdminRole()
-
-	// Set admin role to that account.
-	err = resource_client_.AddAccountRole("sa", "admin")
-	if err != nil {
-		fmt.Println("fail to create admin role")
-		return err
-	}
-
-	fmt.Println("Admin User create!")
-
+	// The user console
 	return nil
+
 }
 
 /**
@@ -1090,7 +1103,7 @@ func updatePeersEvent(evt *eventpb.Event) {
 		for i := 0; i < len(p_["actions"].([]interface{})); i++ {
 			p.Actions[i] = p_["actions"].([]interface{})[i].(string)
 		}
-	}else{
+	} else {
 		p.Actions = make([]string, 0)
 	}
 
@@ -1238,6 +1251,9 @@ func (globule *Globule) serve() error {
 	// Create the admin account.
 	globule.registerAdminAccount()
 
+	// Install the console application
+	globule.installApplication("console", "globular.io", "globulario")
+
 	// Create application connection
 	globule.createApplicationConnection()
 
@@ -1295,11 +1311,6 @@ func (globule *Globule) Serve() error {
 
 	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// TODO keep this address in the config somewhere... or be sure the link will always be available.
-
-	// The user console
-	err = globule.installApplication("console", "globular.io", "globulario")
 
 	startBrowser := false
 	if err == nil {
@@ -1423,6 +1434,8 @@ func (globule *Globule) watchConfig() {
  * If the console application is not installed I will install it.
  */
 func (globule *Globule) installApplication(application, discovery, publisherId string) error {
+
+	fmt.Println("try to install application: ", application)
 
 	// Here I will test if the console application is install...
 	if Utility.Exists(config.GetWebRootDir() + "/" + application) {
