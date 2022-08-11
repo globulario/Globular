@@ -114,6 +114,17 @@ func ErrHandle(res http.ResponseWriter, req *http.Request, err error) {
  * Create a checksum from a given path.
  */
 func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 
@@ -130,7 +141,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-	setupResponse(&w, r)
 	w.WriteHeader(http.StatusCreated)
 
 	execPath := Utility.GetExecName(os.Args[0])
@@ -144,6 +154,16 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  * Return the service configuration
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	// Receive http request...
 	/*redirect, to := redirectTo(r.Host)
 
@@ -190,7 +210,6 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(config)
@@ -319,6 +338,17 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
  * Return the ca certificate public key.
  */
 func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	redirect, to := redirectTo(r.Host)
 	if redirect {
 		address := to.Domain
@@ -331,11 +361,8 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("-------> get ca certificate")
-
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-	setupResponse(&w, r)
 	w.WriteHeader(http.StatusCreated)
 
 	crt, err := ioutil.ReadFile(globule.creds + "/ca.crt")
@@ -388,6 +415,8 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// globule.peers.
+
 	var allowedMethods string
 	for i := 0; i < len(globule.AllowedMethods); i++ {
 		allowedMethods += globule.AllowedMethods[i]
@@ -404,6 +433,10 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	fmt.Println("Access-Control-Allow-Origin: ", allowedOrigins)
+	fmt.Println("Access-Control-Allow-Methods: ", allowedMethods)
+	fmt.Println("Access-Control-Allow-Headers: ", allowedHeaders)
+
 	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	(*w).Header().Set("Access-Control-Allow-Methods", allowedMethods)
 	(*w).Header().Set("Access-Control-Allow-Headers", allowedHeaders)
@@ -416,6 +449,17 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
  * Sign ca certificate request and return a certificate.
  */
 func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	redirect, to := redirectTo(r.Host)
 	if redirect {
 		address := to.Domain
@@ -431,7 +475,6 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
-	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
 	// sign the certificate.
@@ -519,10 +562,10 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Will be downloading ", fileName, " of ", downloadSize, " bytes.")
 	w.Header().Set("Content-Type", "application/json")
 
-	data, err := json.Marshal(&map[string]int64{"size":downloadSize})
+	data, err := json.Marshal(&map[string]int64{"size": downloadSize})
 	if err == nil {
 		w.Write(data)
-	}else{
+	} else {
 		http.Error(w, "Fail to get file size at "+url+" with error "+err.Error(), http.StatusExpectationFailed)
 	}
 }
@@ -531,6 +574,16 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
  * Index video handler...
  */
 func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	redirect, to := redirectTo(r.Host)
 
@@ -545,8 +598,6 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 		handleRequestAndRedirect(address, w, r)
 		return
 	}
-
-	setupResponse(&w, r)
 
 	var err error
 
@@ -609,7 +660,16 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
  */
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("---------> upload file handler called!")
+	setupResponse(&w, r)
+
+	// Handle the prefligth oprions...
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	redirect, to := redirectTo(r.Host)
 
@@ -625,12 +685,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setupResponse(&w, r)
-
-	// I will
-	err := r.ParseMultipartForm(1024 * 1024 * 16) // grab the multipart form
+	err := r.ParseMultipartForm(32 << 20) // grab the multipart form
 	if err != nil {
 		fmt.Println("transfert error: ", err)
+		http.Error(w, "failed to parse multipart message "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -683,7 +741,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get the user id from the token...
-	var domain string
+	domain := r.URL.Query().Get("domain")
 	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err := security.ValidateToken(token)
@@ -691,12 +749,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			user = claims.Id
 			domain = claims.Domain
 		}
+	} else {
+		fmt.Println("no token was given!")
 	}
 
 	if len(user) != 0 {
 		var err error
 		if !hasAccess {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user+"@"+domain, rbacpb.SubjectType_ACCOUNT, infos)
 		}
 		if hasAccess && err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(user+"@"+domain, rbacpb.SubjectType_ACCOUNT, "write", path)
@@ -724,17 +784,16 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
-		fmt.Println("--------> disk file: ", path_)
 		size, _ := file.Seek(0, 2)
 		if len(user) > 0 {
-			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
+			hasSpace, err := ValidateSubjectSpace(user+"@"+domain, rbacpb.SubjectType_ACCOUNT, uint64(size))
 			if !hasSpace || err != nil {
-				http.Error(w, user+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
+				http.Error(w, user+"@"+domain+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
 				return
 			}
 		}
+
 		file.Seek(0, 0)
-		fmt.Println("692")
 		// Now if the os is windows I will remove the leading /
 		if len(path_) > 3 {
 			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
@@ -747,7 +806,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if !isPublic(path_) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
-		fmt.Println("705")
+	
 		out, err := os.Create(path_)
 		if err != nil {
 			return
@@ -768,9 +827,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", user, rbacpb.SubjectType_ACCOUNT)
+			globule.addResourceOwner(path+"/"+f.Filename, "file", user+"@"+domain, rbacpb.SubjectType_ACCOUNT)
 		} else if len(application) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", application, rbacpb.SubjectType_APPLICATION)
+			globule.addResourceOwner(path+"/"+f.Filename, "file", application+"@"+domain, rbacpb.SubjectType_APPLICATION)
 		}
 
 		// Now from the file extension i will retreive it mime type.
@@ -785,7 +844,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-
 	}
 
 }

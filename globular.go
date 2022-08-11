@@ -147,6 +147,9 @@ type Globule struct {
 	// List of peers
 	peers *sync.Map // []*resourcepb.Peer
 
+	// Use to save in configuration file, use peers in code...
+	Peers map[string] interface{}
+
 	// Keep track of the strart time...
 	startTime time.Time
 
@@ -389,6 +392,18 @@ func (globule *Globule) getConfig() map[string]interface{} {
  * Save the configuration
  */
 func (globule *Globule) saveConfig() error {
+
+	// Keep peers information here...
+	globule.Peers = make(map[string]interface{})
+	globule.peers.Range(func(key, value interface{})bool{
+		p := value.(*resourcepb.Peer)
+		port := p.PortHttp
+		if p.Protocol == "https" {
+			port = p.PortHttps
+		}
+		globule.Peers[p.Domain] = map[string]interface{}{"domain":p.Domain, "mac":p.Mac, "port": port }
+		return true
+	})
 
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
@@ -1108,12 +1123,14 @@ func updatePeersEvent(evt *eventpb.Event) {
 	}
 
 	globule.peers.Store(p.Mac, p)
+	globule.saveConfig()
 	fmt.Println("store peer ", p)
 }
 
 func deletePeersEvent(evt *eventpb.Event) {
 	fmt.Println("-----------> delete peer ", string(evt.Data))
 	globule.peers.Delete(string(evt.Data))
+	globule.saveConfig()
 }
 
 /**
@@ -1187,6 +1204,8 @@ func (globule *Globule) initPeers() error {
 	// Subscribe to new peers event...
 	globule.subscribe("update_peers_evt", updatePeersEvent)
 	globule.subscribe("delete_peer_evt", deletePeersEvent)
+
+	globule.saveConfig()
 
 	return nil
 }
