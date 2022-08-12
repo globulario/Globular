@@ -1165,6 +1165,8 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 			title_["Season"] = s
 			title_["Episode"] = e
 			title_["Serie"] = t
+		}else{
+			fmt.Println("fail to retreive episode info ", err)
 		}
 	}
 

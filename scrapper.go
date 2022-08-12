@@ -638,13 +638,17 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 		})
 	})*/
 
-	movieCollector.OnHTML(".cHCfvp", func(e *colly.HTMLElement) {
+	movieCollector.OnHTML(".LumGv", func(e *colly.HTMLElement) {
 		values := strings.Split(e.Text, ".")
-		season = Utility.ToInt(values[0][1:])
-		episode = Utility.ToInt(values[1][1:])
+		if strings.Contains(e.Text, "S") {
+			season = Utility.ToInt(values[0][1:])
+		}
+		if strings.Contains(e.Text, "E") {
+			episode = Utility.ToInt(values[1][1:])
+		}
 	})
 
-	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-e74835c7-0.jSNOyF > a", func(e *colly.HTMLElement) {
+	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-b9aff61-0.dqXKxc > a", func(e *colly.HTMLElement) {
 		href := e.Attr("href")
 		serie = strings.Split(href, "/")[2]
 	})
