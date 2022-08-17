@@ -433,10 +433,6 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	fmt.Println("Access-Control-Allow-Origin: ", allowedOrigins)
-	fmt.Println("Access-Control-Allow-Methods: ", allowedMethods)
-	fmt.Println("Access-Control-Allow-Headers: ", allowedHeaders)
-
 	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	(*w).Header().Set("Access-Control-Allow-Methods", allowedMethods)
 	(*w).Header().Set("Access-Control-Allow-Headers", allowedHeaders)
@@ -746,8 +742,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		var claims *security.Claims
 		claims, err := security.ValidateToken(token)
 		if err == nil {
-			user = claims.Id
+			user = claims.Id + "@" + claims.UserDomain
 			domain = claims.Domain
+
+			fmt.Println("values found from token are user:", user, "domain", claims.UserDomain)
+		}else{
+			fmt.Println("fail to validate token with error ", err.Error())
+			http.Error(w, "fail to validate token with error " + err.Error(), http.StatusUnauthorized)
+			return
 		}
 	} else {
 		fmt.Println("no token was given!")
@@ -756,10 +758,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if len(user) != 0 {
 		var err error
 		if !hasAccess {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user+"@"+domain, rbacpb.SubjectType_ACCOUNT, infos)
+			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
 		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(user+"@"+domain, rbacpb.SubjectType_ACCOUNT, "write", path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
 			if err != nil {
 				log.Println("Fail to validate action with error ", err)
 			}
@@ -786,9 +788,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		path_ := path + "/" + f.Filename
 		size, _ := file.Seek(0, 2)
 		if len(user) > 0 {
-			hasSpace, err := ValidateSubjectSpace(user+"@"+domain, rbacpb.SubjectType_ACCOUNT, uint64(size))
+			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
 			if !hasSpace || err != nil {
-				http.Error(w, user+"@"+domain+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
+				http.Error(w, user + " has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
 				return
 			}
 		}
@@ -1011,7 +1013,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
-		userId = claims.Id
+		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 		}

@@ -475,7 +475,8 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
+		localDomain, _ := config.GetDomain()
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 
 		if err != nil {
 			fmt.Println("fail to connect with the dns server")
@@ -503,8 +504,8 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
+		localDomain, _ := config.GetDomain()
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 
 		if err != nil {
 
@@ -543,7 +544,8 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		}
 		defer dns_client_.Close()
 
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
+		localDomain, _ := config.GetDomain()
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 		if err != nil {
 			return err
 		}
@@ -791,7 +793,8 @@ func (globule *Globule) initDirectories() error {
 
 func (globule *Globule) refreshLocalToken() error {
 
-	tokenString, err := security.GenerateToken(globule.SessionTimeout, globule.Mac, "sa", "sa", globule.AdminEmail)
+	localDomain, _ := config.GetDomain()
+	tokenString, err := security.GenerateToken(globule.SessionTimeout, globule.Mac, "sa", "sa", globule.AdminEmail, localDomain)
 	if err != nil {
 		fmt.Println("fail to generate token with error: ", err)
 		return err
@@ -1170,7 +1173,8 @@ func (globule *Globule) initPeers() error {
 		globule.peers.Store(peers[i].Mac, peers[i])
 
 		// Here I will try to update
-		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail)
+		localDomain, _ := config.GetDomain()
+		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail, localDomain)
 		if err == nil {
 			// update local peer info for each peer...
 			resource_client__, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
@@ -1568,7 +1572,8 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail)
+				localDomain, _ := config.GetDomain()
+				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 				if err != nil {
 					return err
 				}
