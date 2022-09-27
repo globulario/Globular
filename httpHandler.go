@@ -22,10 +22,12 @@ import (
 
 	"github.com/StalkR/imdb"
 	"github.com/davecourtois/Utility"
+	"github.com/dhowden/tag"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
+	"github.com/globulario/services/golang/title/titlepb"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
@@ -649,6 +651,204 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 }
+
+func toBase64(b []byte) string {
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func readMetadata(path string) (map[string]interface{}, error) {
+
+	f_, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := tag.ReadFrom(f_)
+	var metadata map[string]interface{}
+
+	if err == nil {
+		metadata = make(map[string]interface{})
+		metadata["Album"] = m.Album()
+		metadata["AlbumArtist"] = m.AlbumArtist()
+		metadata["Artist"] = m.Artist()
+		metadata["Comment"] = m.Comment()
+		metadata["Composer"] = m.Composer()
+		metadata["FileType"] = m.FileType()
+		metadata["Format"] = m.Format()
+		metadata["Genre"] = m.Genre()
+		metadata["Lyrics"] = m.Lyrics()
+		metadata["Picture"] = m.Picture()
+		metadata["Raw"] = m.Raw()
+		metadata["Title"] = m.Title()
+		metadata["Year"] = m.Year()
+
+		metadata["DisckNumber"], _ = m.Disc()
+		_, metadata["DiscTotal"] = m.Disc()
+
+		metadata["TrackNumber"], _ = m.Track()
+		_, metadata["TrackTotal"] = m.Track()
+
+		if m.Picture() != nil {
+
+			var base64Encoding string
+		
+			// Determine the content type of the image file
+			mimeType := m.Picture().MIMEType
+
+			// Prepend the appropriate URI scheme header depending
+			// on the MIME type
+			switch mimeType {
+			case "image/jpg":
+				base64Encoding += "data:image/jpeg;base64,"
+			case "image/jpeg":
+				base64Encoding += "data:image/jpeg;base64,"
+			case "image/png":
+				base64Encoding += "data:image/png;base64,"
+			}
+
+			// Append the base64 encoded output
+			base64Encoding += toBase64(m.Picture().Data)
+			metadata["ImageUrl"] = base64Encoding
+
+		} else {
+			imagePath := path[:strings.LastIndex(path, "/")]
+
+			// Try to find the cover image...
+			if Utility.Exists(imagePath + "/cover.jpg") {
+				imagePath += "/cover.jpg"
+			} else if Utility.Exists(imagePath + "/folder.jpg") {
+				imagePath += "/folder.jpg"
+			} else if Utility.Exists(imagePath + "/AlbumArt.jpg") {
+				imagePath += "/AlbumArt.jpg"
+			}
+
+			if Utility.Exists(imagePath) {
+				var base64Encoding string
+
+				// Prepend the appropriate URI scheme header depending
+				// on the MIME type
+				base64Encoding += "data:image/jpeg;base64,"
+				data, err := os.ReadFile(imagePath)
+
+				// Append the base64 encoded output
+				if err == nil {
+					base64Encoding += toBase64(data)
+					metadata["ImageUrl"] = base64Encoding
+				}
+			}
+		}
+	} else {
+		return nil, err
+	}
+	return metadata, nil
+}
+
+/**
+ * Index audio handler.
+ */
+ func IndexAudioHandler(w http.ResponseWriter, r *http.Request) {
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	redirect, to := redirectTo(r.Host)
+
+	if redirect {
+		address := to.Domain
+		if to.Protocol == "https" {
+			address += ":" + Utility.ToString(to.PortHttps)
+		} else {
+			address += ":" + Utility.ToString(to.PortHttp)
+		}
+
+		handleRequestAndRedirect(address, w, r)
+		return
+	}
+
+
+	// Get the path where to upload the file.
+	audio_path := r.URL.Query().Get("audio-path")
+	audio_path = strings.ReplaceAll(audio_path, "\\", "/")
+
+	// If application is defined.
+	token := r.Header.Get("token")
+
+	// If the header dosent contain the required values i I will try to get it from the
+	// http query instead...
+	if len(token) == 0 {
+		// the token can be given by the url directly...
+		token = r.URL.Query().Get("token")
+	}
+
+	// here in case of file uploaded from other website like pornhub...
+	audio_url := r.URL.Query().Get("audio-url")
+	index_path := r.URL.Query().Get("index-path")
+
+	if len(audio_url) > 0 {
+
+		// Now if the os is windows I will remove the leading /
+		if len(audio_path) > 3 {
+			if runtime.GOOS == "windows" && audio_path[0] == '/' && audio_path[2] == ':' {
+				audio_path = audio_path[1:]
+			}
+		}
+
+		if strings.HasPrefix(audio_path, "/users") || strings.HasPrefix(audio_path, "/applications") {
+			audio_path = strings.ReplaceAll(globule.data+"/files"+audio_path, "\\", "/")
+		} else if !isPublic(audio_path) {
+			audio_path = strings.ReplaceAll(globule.webRoot+audio_path, "\\", "/")
+		}
+
+
+		// So here I will take information from the metada...
+		metadata, err := readMetadata(audio_path)
+		if err != nil {
+			fmt.Println("fail to index ", audio_path, " with error ", err)
+			return;
+		}
+
+		// so here I go the metadata...
+		title_client_, err := getTitleClient()
+		if err != nil {
+			return
+		}
+
+		track := new(titlepb.Audio)
+		track.ID = Utility.GenerateUUID(metadata["Album"].(string) + ":" + metadata["Title"].(string) + ":" + metadata["AlbumArtist"].(string))
+		track.Album = metadata["Album"].(string)
+		track.AlbumArtist = metadata["AlbumArtist"].(string)
+		track.Artist = metadata["Artist"].(string)
+		track.Comment = metadata["Comment"].(string)
+		track.Composer = metadata["Composer"].(string)
+		track.Genres = metadata["Genre"].([]string)
+		track.Lyrics = metadata["Lyrics"].(string)
+		track.Title = metadata["Title"].(string)
+		track.Year = int32(Utility.ToInt(metadata["Year"]))
+		track.DiscNumber = int32(Utility.ToInt(metadata["DiscNumber"]))
+		track.DiscTotal = int32(Utility.ToInt(metadata["DiscTotal"]))
+		track.TrackNumber = int32(Utility.ToInt(metadata["TrackNumber"]))
+		track.TrackTotal = int32(Utility.ToInt(metadata["TrackTotal"]))
+
+		imageUrl := ""
+		if metadata["ImageUrl"] != nil {
+			imageUrl = metadata["ImageUrl"].(string)
+		}
+
+		track.Poster = &titlepb.Poster{ID: track.ID, URL: "", TitleId: track.ID, ContentUrl: imageUrl}
+
+		fmt.Println(metadata)
+
+		err = title_client_.CreateAudio(token, index_path, track)
+	}
+}
+
 
 /**
  * This code is use to upload a file into the tmp directory of the server

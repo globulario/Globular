@@ -242,6 +242,9 @@ func NewGlobule() *Globule {
 	// Index video... Pornhub, Youtube... etc
 	http.HandleFunc("/index_video", IndexVideoHandler)
 
+	// Index audio file from youtube or other source...
+	http.HandleFunc("/index_audio", IndexAudioHandler)
+
 	// Create the video cover if it not already exist and return it as data url
 	http.HandleFunc("/get_video_cover_data_url", GetCoverDataUrl)
 
