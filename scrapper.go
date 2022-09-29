@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bufio"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -41,6 +38,8 @@ func getTitleClient() (*title_client.Title_Client, error) {
 
 // get the thumbnail fil with help of youtube dl...
 func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
+
+
 	if len(video_id) == 0 {
 		return "", errors.New("no video id was given")
 	}
@@ -64,11 +63,9 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		name_ = video_path[strings.LastIndex(video_path, "/")+1 : lastIndex]
 	}
 
-	thumbnail_path := path_ + "/.hidden/" + name_
-
+	thumbnail_path := path_ + "/.hidden/" + name_ + "/__thumbnail__"
 	Utility.CreateDirIfNotExist(thumbnail_path)
 
-	fmt.Println("try to run youtube-dl ", video_url, thumbnail_path)
 	cmd := exec.Command("youtube-dl", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
 
@@ -77,26 +74,18 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return "", err
 	}
 
-	files, err := ioutil.ReadDir(thumbnail_path)
-	var f *os.File
-	var ext string
-	for _, _info := range files {
-		if strings.HasPrefix(_info.Name(), video_id+".") {
-			f, err = os.Open(thumbnail_path + "/" + _info.Name())
-			ext = _info.Name()[strings.LastIndex(_info.Name(), ".")+1:]
-			defer f.Close()
-		}
+	files, err := Utility.ReadDir(thumbnail_path)
+	if err != nil {
+		return "", err
 	}
 
-	// Read entire JPG into byte slice.
-	reader := bufio.NewReader(f)
-	content, _ := ioutil.ReadAll(reader)
-
-	// Encode as base64.
-	encoded := base64.StdEncoding.EncodeToString(content)
+	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnail_path, files[0].Name()), 300, 300)
+	if err != nil {
+		return "", err
+	}
 
 	// cointain the data url...
-	return "data:image/" + ext + ";base64," + encoded, nil
+	return thumbnail, nil
 }
 
 // Upload a video from porn hub and index it in the seach engine on the server side.
@@ -108,6 +97,12 @@ func indexPornhubVideo(token, video_url, index_path, video_path string) error {
 	currentVideo.Tags = []string{} // keep empty...
 	currentVideo.URL = video_url
 	currentVideo.ID = strings.Split(video_url, "=")[1]
+
+	// The poster
+	currentVideo.Poster = new(titlepb.Poster)
+	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
+	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, video_path) //e.Attr("src")
+	currentVideo.Poster.TitleId = currentVideo.ID
 
 	movieCollector := colly.NewCollector(
 		colly.AllowedDomains("pornhub.com", "www.pornhub.com"),
@@ -156,15 +151,6 @@ func indexPornhubVideo(token, video_url, index_path, video_path string) error {
 		percent := e.Text
 		percent = strings.ReplaceAll(percent, "%", "")
 		currentVideo.Rating = float32(Utility.ToNumeric(percent) / 10)
-	})
-
-	movieCollector.OnHTML(".videoElementPoster", func(e *colly.HTMLElement) {
-		// The poster
-		currentVideo.Poster = new(titlepb.Poster)
-		currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-		currentVideo.Poster.ContentUrl = e.Attr("src")
-		currentVideo.Poster.URL = video_url
-		currentVideo.Poster.TitleId = currentVideo.ID
 	})
 
 	movieCollector.OnHTML(".categoriesWrapper a", func(e *colly.HTMLElement) {
@@ -596,7 +582,6 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 
 	err = title_client_.CreateVideo(token, index_path, currentVideo)
 	if err == nil {
-		fmt.Println("------> index video ", index_path, currentVideo.ID, video_path)
 		err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
 		if err != nil {
 			fmt.Println("fail to associate file with video information ", err)
@@ -638,7 +623,9 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 		})
 	})*/
 
+
 	movieCollector.OnHTML(".LumGv", func(e *colly.HTMLElement) {
+
 		values := strings.Split(e.Text, ".")
 		if strings.Contains(e.Text, "S") {
 			season = Utility.ToInt(values[0][1:])
@@ -648,13 +635,14 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 		}
 	})
 
-	movieCollector.OnHTML("#__next > main > div > section.ipc-page-background.ipc-page-background--base.sc-c7f03a63-0.kUbSjY > section > div:nth-child(4) > section > section > div.sc-b9aff61-0.dqXKxc > a", func(e *colly.HTMLElement) {
+	movieCollector.OnHTML(".bQMGZZ", func(e *colly.HTMLElement) {
 		href := e.Attr("href")
 		serie = strings.Split(href, "/")[2]
 	})
 
 	movieCollector.Visit(url)
 
+	fmt.Println("Episode ", episode, "Season", season, "Serie", serie)
 	if season == 0 || episode == 0 || len(serie) == 0 {
 		time.Sleep(1 * time.Millisecond)
 		if nbCall > 0 {

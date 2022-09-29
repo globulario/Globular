@@ -19,6 +19,5 @@ require (
 	github.com/kardianos/service v1.2.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/txn2/txeh v1.3.0
-	golang.org/x/image v0.0.0-20210504121937-7319ad40d33e // indirect
 	google.golang.org/genproto v0.0.0-20220118154757-00ab72f36ad5 // indirect
 )

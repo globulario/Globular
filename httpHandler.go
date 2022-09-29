@@ -568,6 +568,7 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
 /**
  * Index video handler...
  */
@@ -681,7 +682,7 @@ func readMetadata(path string) (map[string]interface{}, error) {
 		metadata["Raw"] = m.Raw()
 		metadata["Title"] = m.Title()
 		metadata["Year"] = m.Year()
-
+		
 		metadata["DisckNumber"], _ = m.Disc()
 		_, metadata["DiscTotal"] = m.Disc()
 
@@ -723,18 +724,7 @@ func readMetadata(path string) (map[string]interface{}, error) {
 			}
 
 			if Utility.Exists(imagePath) {
-				var base64Encoding string
-
-				// Prepend the appropriate URI scheme header depending
-				// on the MIME type
-				base64Encoding += "data:image/jpeg;base64,"
-				data, err := os.ReadFile(imagePath)
-
-				// Append the base64 encoded output
-				if err == nil {
-					base64Encoding += toBase64(data)
-					metadata["ImageUrl"] = base64Encoding
-				}
+				metadata["ImageUrl"], _=  Utility.CreateThumbnail(imagePath, 300, 300)
 			}
 		}
 	} else {
@@ -827,7 +817,11 @@ func readMetadata(path string) (map[string]interface{}, error) {
 		track.Artist = metadata["Artist"].(string)
 		track.Comment = metadata["Comment"].(string)
 		track.Composer = metadata["Composer"].(string)
-		track.Genres = metadata["Genre"].([]string)
+
+		if metadata["Genres"] != nil {
+			track.Genres = metadata["Genres"].([]string)
+		}
+
 		track.Lyrics = metadata["Lyrics"].(string)
 		track.Title = metadata["Title"].(string)
 		track.Year = int32(Utility.ToInt(metadata["Year"]))
