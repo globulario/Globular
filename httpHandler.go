@@ -691,40 +691,30 @@ func readMetadata(path string) (map[string]interface{}, error) {
 
 		if m.Picture() != nil {
 
-			var base64Encoding string
-		
 			// Determine the content type of the image file
 			mimeType := m.Picture().MIMEType
 
 			// Prepend the appropriate URI scheme header depending
+			fileName := Utility.RandomUUID()
+
+			
 			// on the MIME type
 			switch mimeType {
 			case "image/jpg":
-				base64Encoding += "data:image/jpeg;base64,"
+				fileName += ".jpg"
 			case "image/jpeg":
-				base64Encoding += "data:image/jpeg;base64,"
+				fileName += ".jpg"
 			case "image/png":
-				base64Encoding += "data:image/png;base64,"
+				fileName += ".png"
 			}
 
-			// Append the base64 encoded output
-			base64Encoding += toBase64(m.Picture().Data)
-			metadata["ImageUrl"] = base64Encoding
+			imagePath := os.TempDir() + "/" + fileName
+			defer os.Remove(imagePath)
 
-		} else {
-			imagePath := path[:strings.LastIndex(path, "/")]
-
-			// Try to find the cover image...
-			if Utility.Exists(imagePath + "/cover.jpg") {
-				imagePath += "/cover.jpg"
-			} else if Utility.Exists(imagePath + "/folder.jpg") {
-				imagePath += "/folder.jpg"
-			} else if Utility.Exists(imagePath + "/AlbumArt.jpg") {
-				imagePath += "/AlbumArt.jpg"
-			}
+			os.WriteFile(imagePath, m.Picture().Data, 0664)
 
 			if Utility.Exists(imagePath) {
-				metadata["ImageUrl"], _=  Utility.CreateThumbnail(imagePath, 300, 300)
+				metadata["ImageUrl"], _ = Utility.CreateThumbnail(imagePath, 300, 300)
 			}
 		}
 	} else {
