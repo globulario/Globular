@@ -148,7 +148,7 @@ type Globule struct {
 	peers *sync.Map // []*resourcepb.Peer
 
 	// Use to save in configuration file, use peers in code...
-	Peers map[string] interface{}
+	Peers map[string]interface{}
 
 	// Keep track of the strart time...
 	startTime time.Time
@@ -266,10 +266,10 @@ func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
 	path := config.GetDataDir() + "/files/users/sa@" + domain
-	if !Utility.Exists(path){
+	if !Utility.Exists(path) {
 		err := Utility.CreateDirIfNotExist(path)
 		if err == nil {
-			globule.addResourceOwner("/users/sa@" + domain, "file", "sa@" + domain, rbacpb.SubjectType_ACCOUNT)
+			globule.addResourceOwner("/users/sa@"+domain, "file", "sa@"+domain, rbacpb.SubjectType_ACCOUNT)
 		}
 	}
 
@@ -398,13 +398,13 @@ func (globule *Globule) saveConfig() error {
 
 	// Keep peers information here...
 	globule.Peers = make(map[string]interface{})
-	globule.peers.Range(func(key, value interface{})bool{
+	globule.peers.Range(func(key, value interface{}) bool {
 		p := value.(*resourcepb.Peer)
 		port := p.PortHttp
 		if p.Protocol == "https" {
 			port = p.PortHttps
 		}
-		globule.Peers[p.Domain] = map[string]interface{}{"domain":p.Domain, "mac":p.Mac, "port": port }
+		globule.Peers[p.Domain] = map[string]interface{}{"domain": p.Domain, "mac": p.Mac, "port": port}
 		return true
 	})
 
@@ -1808,6 +1808,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 		}
 	}
 }
+
 
 /**
  * That event will be trigger when the directory must be refresh...

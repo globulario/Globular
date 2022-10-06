@@ -173,7 +173,7 @@ func indexPornhubVideo(token, video_url, index_path, video_path string) error {
 
 		err = title_client_.CreateVideo(token, index_path, currentVideo)
 		if err == nil {
-			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, strings.ReplaceAll(video_path, config.GetDataDir() + "/files", ""))
 			if err != nil {
 				fmt.Println("fail to associate file with video information ", err)
 			}
@@ -266,7 +266,7 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 
 		err = title_client_.CreateVideo(token, index_path, currentVideo)
 		if err == nil {
-			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, strings.ReplaceAll(video_path, config.GetDataDir() + "/files", ""))
 			if err != nil {
 				fmt.Println("fail to associate file with video information ", err)
 				return
@@ -404,7 +404,7 @@ func indexXnxxVideo(token, video_url, index_path, video_path, file_path string) 
 
 		err = title_client_.CreateVideo(token, index_path, currentVideo)
 		if err == nil {
-			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, strings.ReplaceAll(video_path, config.GetDataDir() + "/files", ""))
 			if err != nil {
 				fmt.Println("fail to associate file with video information ", err)
 				return
@@ -520,7 +520,7 @@ func indexXvideosVideo(token, video_url, index_path, video_path, file_path strin
 
 		err = title_client_.CreateVideo(token, index_path, currentVideo)
 		if err == nil {
-			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+			err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, strings.ReplaceAll(video_path, config.GetDataDir() + "/files", ""))
 			if err != nil {
 				fmt.Println("fail to associate file with video information ", err)
 				return
@@ -582,7 +582,8 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 
 	err = title_client_.CreateVideo(token, index_path, currentVideo)
 	if err == nil {
-		err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, video_path)
+		
+		err := title_client_.AssociateFileWithTitle(index_path, currentVideo.ID, strings.ReplaceAll(video_path, config.GetDataDir() + "/files", ""))
 		if err != nil {
 			fmt.Println("fail to associate file with video information ", err)
 			return err

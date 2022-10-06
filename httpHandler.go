@@ -780,10 +780,15 @@ func readMetadata(path string) (map[string]interface{}, error) {
 			}
 		}
 
-		if strings.HasPrefix(audio_path, "/users") || strings.HasPrefix(audio_path, "/applications") {
+		if strings.Contains(audio_path, "/users/") || strings.Contains(audio_path, "/applications/") {
 			audio_path = strings.ReplaceAll(globule.data+"/files"+audio_path, "\\", "/")
 		} else if !isPublic(audio_path) {
 			audio_path = strings.ReplaceAll(globule.webRoot+audio_path, "\\", "/")
+		}
+
+		if !Utility.Exists(audio_path){
+			fmt.Println("no file found with path ", audio_path)
+			return
 		}
 
 
@@ -797,6 +802,7 @@ func readMetadata(path string) (map[string]interface{}, error) {
 		// so here I go the metadata...
 		title_client_, err := getTitleClient()
 		if err != nil {
+			fmt.Println("no title client found with error ", err)
 			return
 		}
 
@@ -809,6 +815,7 @@ func readMetadata(path string) (map[string]interface{}, error) {
 		track.Composer = metadata["Composer"].(string)
 
 		if metadata["Genres"] != nil {
+			fmt.Println("---------> file genre: ", metadata["Genres"] )
 			track.Genres = metadata["Genres"].([]string)
 		}
 
@@ -827,9 +834,21 @@ func readMetadata(path string) (map[string]interface{}, error) {
 
 		track.Poster = &titlepb.Poster{ID: track.ID, URL: "", TitleId: track.ID, ContentUrl: imageUrl}
 
-		fmt.Println(metadata)
 
 		err = title_client_.CreateAudio(token, index_path, track)
+		if err != nil {
+			fmt.Println("fail to create audio with error ", err)
+			return
+		}else{
+			fmt.Println(metadata)
+		}
+
+		// Now I will associate the file.
+		err = title_client_.AssociateFileWithTitle(index_path, track.ID, audio_path)
+		if err != nil {
+			fmt.Println("fail to associate audio", track.Title, " with file ", audio_path, " error: ", err)
+			return
+		}
 	}
 }
 
