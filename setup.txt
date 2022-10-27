@@ -179,3 +179,10 @@ from globulario
 nano /etc/environment
     set the variable to point at services directory...
     GLOBULAR_SERVICES_ROOT=/home/ubuntu/globulario/services
+
+//////////////////////////////////////////////////////////////////////////////
+// ffmpeg 
+//////////////////////////////////////////////////////////////////////////////
+there is the link on how to install ffmpeg
+
+https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/

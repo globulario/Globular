@@ -79,7 +79,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return "", err
 	}
 
-	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnail_path, files[0].Name()), 300, 300)
+	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnail_path, files[0].Name()), 300, 180)
 	if err != nil {
 		return "", err
 	}

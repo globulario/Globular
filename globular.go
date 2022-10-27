@@ -293,23 +293,37 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// Create the admin account.
-	err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+	sa, err := resource_client_.GetAccount("sa")
 	if err != nil {
-		fmt.Println("fail to register admin account sa", err)
-		return err
-	}
-
-	// Admin is created
-	err = globule.createAdminRole()
-
-	// Set admin role to that account.
-	if err == nil {
-		err = resource_client_.AddAccountRole("sa", "admin")
+		err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
-			fmt.Println("fail to add admin role to sa", err)
+			fmt.Println("fail to register admin account sa", err)
+			return err
+		}
+
+		// Admin is created
+		err = globule.createAdminRole()
+
+		// Set admin role to that account.
+		/*if err == nil {
+			err = resource_client_.AddAccountRole("sa", "admin")
+			if err != nil {
+				fmt.Println("fail to add admin role to sa", err)
+				return err
+			}
+		}*/
+
+	} else {
+		// Alway update the sa domain...
+		sa.Domain = globule.getDomain()
+		token, _ := security.GetLocalToken(globule.Mac)
+		err := resource_client_.SetAccount(token, sa)
+		if err != nil {
+			fmt.Println("fail to update admin account sa", err)
 			return err
 		}
 	}
+	/**/
 
 	// The user console
 	return nil
@@ -1809,7 +1823,6 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 	}
 }
 
-
 /**
  * That event will be trigger when the directory must be refresh...
  */
@@ -1914,7 +1927,7 @@ var (
 	service_manager_client_ *service_manager_client.Services_Manager_Client
 )
 
-//////////////////////// Resource Client ////////////////////////////////////////////
+// ////////////////////// Resource Client ////////////////////////////////////////////
 func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
 	var err error
 	if service_manager_client_ == nil {
@@ -1929,7 +1942,7 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 	return service_manager_client_, nil
 }
 
-//////////////////////// Resource Client ////////////////////////////////////////////
+// ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
 	var err error
 	if resource_client_ == nil {
@@ -1944,7 +1957,7 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	return resource_client_, nil
 }
 
-//////////////////////// Resource Client ////////////////////////////////////////////
+// ////////////////////// Resource Client ////////////////////////////////////////////
 func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client, error) {
 	var err error
 	if persistence_client_ == nil {
@@ -2212,7 +2225,7 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 	return rbac_client_.DeleteResourcePermissions(path)
 }
 
-///////////////////// search engine /////////////////////////////
+// /////////////////// search engine /////////////////////////////
 func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
 
 	var err error
@@ -2227,7 +2240,7 @@ func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) 
 	return search_engine_client_, nil
 }
 
-///////////////////// event service functions ////////////////////////////////////
+// /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	var err error
 	if event_client_ != nil {
