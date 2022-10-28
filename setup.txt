@@ -74,6 +74,7 @@ sudo apt install python-is-python3
 sudo apt install nano
 sudo apt install openssh-server
 
+
 install required tools and libraries.
 Git
     sudo apt install git-all
