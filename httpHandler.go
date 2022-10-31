@@ -410,6 +410,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	var allowedOrigins string
+	
 	for i := 0; i < len(globule.AllowedOrigins); i++ {
 		allowedOrigins += globule.AllowedOrigins[i]
 		if i < len(globule.AllowedOrigins)-1 {
