@@ -500,11 +500,14 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 func isPublic(path string) bool {
 	public := config_.GetPublicDirs()
 	path = strings.ReplaceAll(path, "\\", "/")
+
 	for i := 0; i < len(public); i++ {
-		if strings.HasPrefix(path, public[i]) {
+		if strings.HasPrefix(strings.ToLower(path), strings.ReplaceAll(strings.ToLower(public[i]), "\\", "/") ) {
 			return true
 		}
 	}
+
+	fmt.Println(path, "is not public!")
 
 	return false
 }
@@ -637,7 +640,7 @@ func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Scrapper...
 		if strings.Contains(video_url, "pornhub") {
-			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"))
+			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "xnxx") {
 			err = indexXnxxVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
 		} else if strings.Contains(video_url, "xvideo") {

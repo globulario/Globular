@@ -40,6 +40,8 @@ func getTitleClient() (*title_client.Title_Client, error) {
 func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 
 
+	fmt.Println("download thumbnail for ", video_path)
+
 	if len(video_id) == 0 {
 		return "", errors.New("no video id was given")
 	}
@@ -65,7 +67,6 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 
 	thumbnail_path := path_ + "/.hidden/" + name_ + "/__thumbnail__"
 	Utility.CreateDirIfNotExist(thumbnail_path)
-
 	cmd := exec.Command("youtube-dl", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
 
@@ -89,7 +90,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 }
 
 // Upload a video from porn hub and index it in the seach engine on the server side.
-func indexPornhubVideo(token, video_url, index_path, video_path string) error {
+func indexPornhubVideo(token, video_url, index_path, video_path, file_path  string) error {
 
 	currentVideo := new(titlepb.Video)
 	currentVideo.Casting = make([]*titlepb.Person, 0)
@@ -101,7 +102,12 @@ func indexPornhubVideo(token, video_url, index_path, video_path string) error {
 	// The poster
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, video_path) //e.Attr("src")
+	var err error
+	currentVideo.Poster.ContentUrl, err = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	if err != nil {
+		return err
+	}
+
 	currentVideo.Poster.TitleId = currentVideo.ID
 
 	movieCollector := colly.NewCollector(
@@ -200,7 +206,11 @@ func indexXhamsterVideo(token, video_url, index_path, video_path, file_path stri
 
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	var err error
+	currentVideo.Poster.ContentUrl, err = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	if err != nil {
+		return err
+	}
 	currentVideo.Poster.URL = video_url
 	currentVideo.Poster.TitleId = currentVideo.ID
 
@@ -294,8 +304,11 @@ func indexXnxxVideo(token, video_url, index_path, video_path, file_path string) 
 
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path)
-
+	var err error
+	currentVideo.Poster.ContentUrl, err = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	if err != nil {
+		return err
+	}
 	currentVideo.Poster.URL = video_url
 	currentVideo.Poster.TitleId = currentVideo.ID
 
@@ -430,7 +443,11 @@ func indexXvideosVideo(token, video_url, index_path, video_path, file_path strin
 	currentVideo.ID = strings.Split(video_url, "/")[3]
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	var err error
+	currentVideo.Poster.ContentUrl, err = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	if err != nil {
+		return err
+	}
 	currentVideo.Poster.URL = video_url
 	currentVideo.Poster.TitleId = currentVideo.ID
 
@@ -548,7 +565,11 @@ func indexYoutubeVideo(token, video_url, index_path, video_path, file_path strin
 
 	currentVideo.Poster = new(titlepb.Poster)
 	currentVideo.Poster.ID = currentVideo.ID + "-thumnail"
-	currentVideo.Poster.ContentUrl, _ = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	var err error
+	currentVideo.Poster.ContentUrl, err = downloadThumbnail(currentVideo.ID, video_url, file_path) //e.Attr("src")
+	if err != nil {
+		return err
+	}
 	currentVideo.Poster.URL = video_url
 	currentVideo.Poster.TitleId = currentVideo.ID
 

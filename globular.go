@@ -371,6 +371,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"], _ = config.GetDomain()
 	config_["Name"], _ = config.GetName()
+
 	services, _ := config_client.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
@@ -1377,7 +1378,7 @@ func (globule *Globule) Serve() error {
 				address_ += ":" + Utility.ToString(globule.PortHttp)
 			}
 		}
-		Utility.OpenBrowser(address_ + "/media")
+		Utility.OpenBrowser(address_ + "/console")
 	}
 
 	return nil
@@ -1844,15 +1845,31 @@ func (globule *Globule) Listen() error {
 
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
-	if len(globule.Certificate) == 0 && globule.Protocol == "https" {
 
+	if Utility.Exists(globule.creds+"/"+globule.Certificate) && globule.Protocol == "https" {
+		err = security.ValidateCertificateExpiration(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
+		if err != nil {
+			// here I will remove the expired certificates...
+			err = Utility.RemoveDirContents(globule.creds)
+			if err != nil {
+				return err
+			}
+			globule.Certificate = ""
+		}
+	}
+
+	if !Utility.Exists(globule.creds+"/"+globule.Certificate) && globule.Protocol == "https" {
+		fmt.Println("generate certificates...")
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
 		// I need to remove the gRPC certificate and recreate it.
-		err = Utility.RemoveDirContents(globule.creds)
-		if err != nil {
-			return err
+		if Utility.Exists(globule.creds) {
+			err = Utility.RemoveDirContents(globule.creds)
+			if err != nil {
+				return err
+			}
 		}
+
 		// recreate the certificates.
 		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
