@@ -239,12 +239,6 @@ func NewGlobule() *Globule {
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
 
-	// Index video... Pornhub, Youtube... etc
-	http.HandleFunc("/index_video", IndexVideoHandler)
-
-	// Index audio file from youtube or other source...
-	http.HandleFunc("/index_audio", IndexAudioHandler)
-
 	// Create the video cover if it not already exist and return it as data url
 	http.HandleFunc("/get_video_cover_data_url", GetCoverDataUrl)
 
@@ -1034,7 +1028,8 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout-1) * time.Minute)
+
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout) * time.Minute - 10 * time.Second)
 	go func() {
 		for {
 			select {

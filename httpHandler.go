@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -22,12 +24,11 @@ import (
 
 	"github.com/StalkR/imdb"
 	"github.com/davecourtois/Utility"
-	"github.com/dhowden/tag"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
-	"github.com/globulario/services/golang/title/titlepb"
+	colly "github.com/gocolly/colly/v2"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
@@ -410,7 +411,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	var allowedOrigins string
-	
+
 	for i := 0; i < len(globule.AllowedOrigins); i++ {
 		allowedOrigins += globule.AllowedOrigins[i]
 		if i < len(globule.AllowedOrigins)-1 {
@@ -442,7 +443,7 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 
 	// Other policies...
 	(*w).Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
-	
+
 }
 
 /**
@@ -502,33 +503,12 @@ func isPublic(path string) bool {
 	path = strings.ReplaceAll(path, "\\", "/")
 
 	for i := 0; i < len(public); i++ {
-		if strings.HasPrefix(strings.ToLower(path), strings.ReplaceAll(strings.ToLower(public[i]), "\\", "/") ) {
+		if strings.HasPrefix(strings.ToLower(path), strings.ReplaceAll(strings.ToLower(public[i]), "\\", "/")) {
 			return true
 		}
 	}
-
-	fmt.Println(path, "is not public!")
-
+	
 	return false
-}
-
-/**
- * Return the cover image...
- */
-func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
-	// here in case of file uploaded from other website like pornhub...
-	video_id := r.URL.Query().Get("id")
-	video_url := r.URL.Query().Get("url")
-	video_path := r.URL.Query().Get("path")
-
-	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
-	if err != nil {
-		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
-		return
-	}
-
-	w.Write([]byte(dataUrl))
-
 }
 
 /**
@@ -573,290 +553,9 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-/**
- * Index video handler...
- */
-func IndexVideoHandler(w http.ResponseWriter, r *http.Request) {
-	// Handle the prefligth oprions...
-	setupResponse(&w, r)
-
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	redirect, to := redirectTo(r.Host)
-
-	if redirect {
-		address := to.Domain
-		if to.Protocol == "https" {
-			address += ":" + Utility.ToString(to.PortHttps)
-		} else {
-			address += ":" + Utility.ToString(to.PortHttp)
-		}
-
-		handleRequestAndRedirect(address, w, r)
-		return
-	}
-
-	var err error
-
-	// Get the path where to upload the file.
-	video_path := r.URL.Query().Get("video-path")
-	video_path = strings.ReplaceAll(video_path, "\\", "/")
-
-	// If application is defined.
-	token := r.Header.Get("token")
-
-	// If the header dosent contain the required values i I will try to get it from the
-	// http query instead...
-	if len(token) == 0 {
-		// the token can be given by the url directly...
-		token = r.URL.Query().Get("token")
-	}
-
-	// here in case of file uploaded from other website like pornhub...
-	video_url := r.URL.Query().Get("video-url")
-	index_path := r.URL.Query().Get("index-path")
-
-	if len(video_url) > 0 {
-
-		// Now if the os is windows I will remove the leading /
-		if len(video_path) > 3 {
-			if runtime.GOOS == "windows" && video_path[0] == '/' && video_path[2] == ':' {
-				video_path = video_path[1:]
-			}
-		}
-
-		if strings.HasPrefix(video_path, "/users") || strings.HasPrefix(video_path, "/applications") {
-			video_path = strings.ReplaceAll(globule.data+"/files"+video_path, "\\", "/")
-		} else if !isPublic(video_path) {
-			video_path = strings.ReplaceAll(globule.webRoot+video_path, "\\", "/")
-		}
-
-		// Scrapper...
-		if strings.Contains(video_url, "pornhub") {
-			err = indexPornhubVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		} else if strings.Contains(video_url, "xnxx") {
-			err = indexXnxxVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		} else if strings.Contains(video_url, "xvideo") {
-			err = indexXvideosVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		} else if strings.Contains(video_url, "xhamster") {
-			err = indexXhamsterVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		} else if strings.Contains(video_url, "youtube") {
-			err = indexYoutubeVideo(token, video_url, index_path, r.URL.Query().Get("video-path"), video_path)
-		}
-
-		if err != nil {
-			http.Error(w, "Fail to upload the file "+video_url+" with error "+err.Error(), http.StatusExpectationFailed)
-		}
-
-	}
-}
-
 func toBase64(b []byte) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
-
-func readMetadata(path string) (map[string]interface{}, error) {
-
-	f_, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := tag.ReadFrom(f_)
-	var metadata map[string]interface{}
-
-	if err == nil {
-		metadata = make(map[string]interface{})
-		metadata["Album"] = m.Album()
-		metadata["AlbumArtist"] = m.AlbumArtist()
-		metadata["Artist"] = m.Artist()
-		metadata["Comment"] = m.Comment()
-		metadata["Composer"] = m.Composer()
-		metadata["FileType"] = m.FileType()
-		metadata["Format"] = m.Format()
-		metadata["Genre"] = m.Genre()
-		metadata["Lyrics"] = m.Lyrics()
-		metadata["Picture"] = m.Picture()
-		metadata["Raw"] = m.Raw()
-		metadata["Title"] = m.Title()
-		metadata["Year"] = m.Year()
-		
-		metadata["DisckNumber"], _ = m.Disc()
-		_, metadata["DiscTotal"] = m.Disc()
-
-		metadata["TrackNumber"], _ = m.Track()
-		_, metadata["TrackTotal"] = m.Track()
-
-		if m.Picture() != nil {
-
-			// Determine the content type of the image file
-			mimeType := m.Picture().MIMEType
-
-			// Prepend the appropriate URI scheme header depending
-			fileName := Utility.RandomUUID()
-
-			
-			// on the MIME type
-			switch mimeType {
-			case "image/jpg":
-				fileName += ".jpg"
-			case "image/jpeg":
-				fileName += ".jpg"
-			case "image/png":
-				fileName += ".png"
-			}
-
-			imagePath := os.TempDir() + "/" + fileName
-			defer os.Remove(imagePath)
-
-			os.WriteFile(imagePath, m.Picture().Data, 0664)
-
-			if Utility.Exists(imagePath) {
-				metadata["ImageUrl"], _ = Utility.CreateThumbnail(imagePath, 300, 300)
-			}
-		}
-	} else {
-		return nil, err
-	}
-	return metadata, nil
-}
-
-/**
- * Index audio handler.
- */
- func IndexAudioHandler(w http.ResponseWriter, r *http.Request) {
-	// Handle the prefligth oprions...
-	setupResponse(&w, r)
-
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	redirect, to := redirectTo(r.Host)
-
-	if redirect {
-		address := to.Domain
-		if to.Protocol == "https" {
-			address += ":" + Utility.ToString(to.PortHttps)
-		} else {
-			address += ":" + Utility.ToString(to.PortHttp)
-		}
-
-		handleRequestAndRedirect(address, w, r)
-		return
-	}
-
-
-	// Get the path where to upload the file.
-	audio_path := r.URL.Query().Get("audio-path")
-	audio_path = strings.ReplaceAll(audio_path, "\\", "/")
-
-	// If application is defined.
-	token := r.Header.Get("token")
-
-	// If the header dosent contain the required values i I will try to get it from the
-	// http query instead...
-	if len(token) == 0 {
-		// the token can be given by the url directly...
-		token = r.URL.Query().Get("token")
-	}
-
-	// here in case of file uploaded from other website like pornhub...
-	audio_url := r.URL.Query().Get("audio-url")
-	index_path := r.URL.Query().Get("index-path")
-
-	if len(audio_url) > 0 {
-
-		// Now if the os is windows I will remove the leading /
-		if len(audio_path) > 3 {
-			if runtime.GOOS == "windows" && audio_path[0] == '/' && audio_path[2] == ':' {
-				audio_path = audio_path[1:]
-			}
-		}
-
-		if strings.Contains(audio_path, "/users/") || strings.Contains(audio_path, "/applications/") {
-			audio_path = strings.ReplaceAll(globule.data+"/files"+audio_path, "\\", "/")
-		} else if !isPublic(audio_path) {
-			audio_path = strings.ReplaceAll(globule.webRoot+audio_path, "\\", "/")
-		}
-
-		if !Utility.Exists(audio_path){
-			fmt.Println("no file found with path ", audio_path)
-			return
-		}
-
-
-		// So here I will take information from the metada...
-		metadata, err := readMetadata(audio_path)
-		if err != nil {
-			fmt.Println("fail to index ", audio_path, " with error ", err)
-			return;
-		}
-
-		// so here I go the metadata...
-		title_client_, err := getTitleClient()
-		if err != nil {
-			fmt.Println("no title client found with error ", err)
-			return
-		}
-
-		track := new(titlepb.Audio)
-		track.ID = Utility.GenerateUUID(metadata["Album"].(string) + ":" + metadata["Title"].(string) + ":" + metadata["AlbumArtist"].(string))
-		track.Album = metadata["Album"].(string)
-		track.AlbumArtist = metadata["AlbumArtist"].(string)
-		track.Artist = metadata["Artist"].(string)
-		track.Comment = metadata["Comment"].(string)
-		track.Composer = metadata["Composer"].(string)
-
-		if metadata["Genres"] != nil {
-			fmt.Println("---------> file genre: ", metadata["Genres"] )
-			track.Genres = metadata["Genres"].([]string)
-		}
-
-		track.Lyrics = metadata["Lyrics"].(string)
-		track.Title = metadata["Title"].(string)
-		track.Year = int32(Utility.ToInt(metadata["Year"]))
-		track.DiscNumber = int32(Utility.ToInt(metadata["DiscNumber"]))
-		track.DiscTotal = int32(Utility.ToInt(metadata["DiscTotal"]))
-		track.TrackNumber = int32(Utility.ToInt(metadata["TrackNumber"]))
-		track.TrackTotal = int32(Utility.ToInt(metadata["TrackTotal"]))
-
-		imageUrl := ""
-		if metadata["ImageUrl"] != nil {
-			imageUrl = metadata["ImageUrl"].(string)
-		}
-
-		track.Poster = &titlepb.Poster{ID: track.ID, URL: "", TitleId: track.ID, ContentUrl: imageUrl}
-
-
-		err = title_client_.CreateAudio(token, index_path, track)
-		if err != nil {
-			fmt.Println("fail to create audio with error ", err)
-			return
-		}else{
-			fmt.Println(metadata)
-		}
-
-		// Now I will associate the file.
-		err = title_client_.AssociateFileWithTitle(index_path, track.ID, audio_path)
-		if err != nil {
-			fmt.Println("fail to associate audio", track.Title, " with file ", audio_path, " error: ", err)
-			return
-		}
-	}
-}
-
 
 /**
  * This code is use to upload a file into the tmp directory of the server
@@ -954,9 +653,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			domain = claims.Domain
 
 			fmt.Println("values found from token are user:", user, "domain", claims.UserDomain)
-		}else{
+		} else {
 			fmt.Println("fail to validate token with error ", err.Error())
-			http.Error(w, "fail to validate token with error " + err.Error(), http.StatusUnauthorized)
+			http.Error(w, "fail to validate token with error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 	} else {
@@ -998,7 +697,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if len(user) > 0 {
 			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
 			if !hasSpace || err != nil {
-				http.Error(w, user + " has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
+				http.Error(w, user+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
 				return
 			}
 		}
@@ -1016,7 +715,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		} else if !isPublic(path_) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
-	
+
 		out, err := os.Create(path_)
 		if err != nil {
 			return
@@ -1331,6 +1030,152 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(titles)
 }
 
+// ////////////////////////// imdb missing sesson and episode number info... /////////////////////////
+// get the thumbnail fil with help of youtube dl...
+func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
+
+	fmt.Println("download thumbnail for ", video_path)
+
+	if len(video_id) == 0 {
+		return "", errors.New("no video id was given")
+	}
+	if len(video_url) == 0 {
+		return "", errors.New("no video url was given")
+	}
+	if len(video_path) == 0 {
+		return "", errors.New("no video path was given")
+	}
+
+	lastIndex := -1
+	if strings.Contains(video_path, ".mp4") {
+		lastIndex = strings.LastIndex(video_path, ".")
+	}
+
+	// The hidden folder path...
+	path_ := video_path[0:strings.LastIndex(video_path, "/")]
+
+	name_ := video_path[strings.LastIndex(video_path, "/")+1:]
+	if lastIndex != -1 {
+		name_ = video_path[strings.LastIndex(video_path, "/")+1 : lastIndex]
+	}
+
+	thumbnail_path := path_ + "/.hidden/" + name_ + "/__thumbnail__"
+
+	if Utility.Exists(thumbnail_path + "/" + "data_url.txt") {
+		
+		thumbnail, err :=os.ReadFile(thumbnail_path + "/" + "data_url.txt")
+		if err != nil {
+			return "", err
+		}
+
+		return string(thumbnail), nil
+	}
+
+	Utility.CreateDirIfNotExist(thumbnail_path)
+	cmd := exec.Command("youtube-dl", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
+	cmd.Dir = thumbnail_path
+
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	files, err := Utility.ReadDir(thumbnail_path)
+	if err != nil {
+		return "", err
+	}
+
+	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnail_path, files[0].Name()), 300, 180)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(thumbnail_path + "/" + "data_url.txt", []byte(thumbnail), 0664)
+	if err != nil {
+		return "", err
+	}
+
+	// cointain the data url...
+	return thumbnail, nil
+}
+
+/**
+ * Return the cover image...
+ */
+func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
+	// here in case of file uploaded from other website like pornhub...
+	video_id := r.URL.Query().Get("id")
+	video_url := r.URL.Query().Get("url")
+	video_path := r.URL.Query().Get("path")
+
+	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
+	if err != nil {
+		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
+		return
+	}
+
+	w.Write([]byte(dataUrl))
+}
+
+func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, error) {
+
+	// For that one I will made use of web-api from https://noembed.com/embed
+	url := `https://www.imdb.com/title/` + titleId
+
+	movieCollector := colly.NewCollector(
+		colly.AllowedDomains("www.imdb.com", "imdb.com"),
+	)
+
+	season := 0
+	episode := 0
+	serie := ""
+
+	// function call on visition url...
+	// old format...
+	/*movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
+		e.ForEach("span", func(index int, child *colly.HTMLElement) {
+			if strings.Contains(child.Attr("class"), "eqCBtv"){
+				if  child.Text[0:1] == "S" {
+					season = Utility.ToInt( child.Text[1:])
+				}else if  child.Text[0:1] == "E"{
+					episode = Utility.ToInt(child.Text[1:])
+				}
+			}
+		})
+	})*/
+
+	movieCollector.OnHTML(".LumGv", func(e *colly.HTMLElement) {
+
+		values := strings.Split(e.Text, ".")
+		if strings.Contains(e.Text, "S") {
+			season = Utility.ToInt(values[0][1:])
+		}
+		if strings.Contains(e.Text, "E") {
+			episode = Utility.ToInt(values[1][1:])
+		}
+	})
+
+	movieCollector.OnHTML(".bQMGZZ", func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		serie = strings.Split(href, "/")[2]
+	})
+
+	movieCollector.Visit(url)
+
+	fmt.Println("Episode ", episode, "Season", season, "Serie", serie)
+	if season == 0 || episode == 0 || len(serie) == 0 {
+		time.Sleep(1 * time.Millisecond)
+		if nbCall > 0 {
+			nbCall--
+			return getSeasonAndEpisodeNumber(titleId, nbCall)
+		} else {
+			return season, episode, serie, errors.New("fail to retreive all episode informations...")
+		}
+	}
+
+	return season, episode, serie, nil
+}
+
 /**
  * Return a json object with the movie information from imdb.
  */
@@ -1375,7 +1220,7 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 			title_["Season"] = s
 			title_["Episode"] = e
 			title_["Serie"] = t
-		}else{
+		} else {
 			fmt.Println("fail to retreive episode info ", err)
 		}
 	}
