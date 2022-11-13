@@ -74,10 +74,8 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
 
-replace gopls-workspace => C:\globulario\Globular
 
-replace github.com/globulario/Globular => C:\globulario\Globular
 
-replace github.com/globulario/services/golang => C:\globulario\services\golang
+replace github.com/globulario/services/golang => ../services/golang
 
-replace github.com/davecourtois/Utility => C:\globulario\Utility
+replace github.com/davecourtois/Utility =>  ../Utility
