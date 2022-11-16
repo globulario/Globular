@@ -30,7 +30,6 @@ import (
 	"github.com/kardianos/service"
 )
 
-
 func (g *Globule) Start(s service.Service) error {
 
 	// stop mongo demon if it running
@@ -1030,7 +1029,7 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 }
 
 /**
- * Download Applications, this will be use to package globular applications with the distro. That way console and media will 
+ * Download Applications, this will be use to package globular applications with the distro. That way console and media will
  * be accessible offline, on the local network.
  */
 func downloadApplication(g *Globule, application, discovery, pulbisherId, version string) (string, string, error) {
@@ -1160,11 +1159,10 @@ func dist(g *Globule, path string, revision string) {
 
 	// Console 1.0.3
 	console_application_path, console_application, err := downloadApplication(g, "console", "globular.io", "globulario", "1.0.3")
-	if(err != nil){
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
 
 	// The debian package...
 	if runtime.GOOS == "linux" {
@@ -1197,7 +1195,7 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(applications_path)
 
 		// Copy applications for offline installation...
-		Utility.CopyFile(console_application_path, applications_path+"/" + console_application)
+		Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
@@ -1296,9 +1294,9 @@ func dist(g *Globule, path string, revision string) {
 		cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
 		rm -rf node_exporter-1.3.1.linux-amd64*
 
-		# -- Install youtube-dl
-		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/youtube-dl
-		chmod a+rx /usr/local/bin/youtube-dl
+		# -- Install yt-dlp
+		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/yt-dlp
+		chmod a+rx /usr/local/bin/yt-dlp
 
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
@@ -1479,7 +1477,6 @@ func dist(g *Globule, path string, revision string) {
 		if err != nil {
 			log.Panicln("--> fail to copy applications ", err)
 		}
-
 
 		// copy the license
 		err = Utility.CopyFile(dir+"/license.txt", root+"/license.txt")

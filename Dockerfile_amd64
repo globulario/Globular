@@ -58,9 +58,9 @@ RUN rm xapian-core-1.4.18.tar.xz
 WORKDIR xapian-core-1.4.18
 RUN ./configure && make all install clean && ldconfig
 
-# -- Install youtube-dl
-RUN curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp  --output /usr/local/bin/youtube-dl
-RUN chmod a+rx /usr/local/bin/youtube-dl
+# -- Install yt-dlp
+RUN curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp  --output /usr/local/bin/yt-dlp
+RUN chmod a+rx /usr/local/bin/yt-dlp
 
 # -- Copy globular files.
 RUN mkdir /usr/local/share/globular

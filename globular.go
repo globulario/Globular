@@ -316,6 +316,56 @@ func (globule *Globule) registerAdminAccount() error {
 			fmt.Println("fail to update admin account sa", err)
 			return err
 		}
+
+		roles, err := resource_client_.GetRoles("{}")
+		if err == nil {
+			for i := 0; i < len(roles); i++ {
+				if roles[i].Domain != globule.getDomain() {
+					roles[i].Domain = globule.getDomain()
+					resource_client_.UpdateRole(token, roles[i])
+				}
+			}
+		}
+
+		accounts, err := resource_client_.GetAccounts("{}")
+		if err == nil {
+			for i := 0; i < len(accounts); i++ {
+				if accounts[i].Domain != globule.getDomain() {
+					accounts[i].Domain = globule.getDomain()
+					resource_client_.SetAccount(token, accounts[i])
+				}
+			}
+		}
+
+		applications, err := resource_client_.GetApplications("{}")
+		if err == nil {
+			for i := 0; i < len(applications); i++ {
+				if applications[i].Domain != globule.getDomain() {
+					applications[i].Domain = globule.getDomain()
+					resource_client_.UpdateApplication(token, applications[i])
+				}
+			}
+		}
+
+		groups, err := resource_client_.GetGroups("{}")
+		if err == nil {
+			for i := 0; i < len(groups); i++ {
+				if groups[i].Domain != globule.getDomain() {
+					groups[i].Domain = globule.getDomain()
+					resource_client_.UpdateGroup(token, groups[i])
+				}
+			}
+		}
+
+		organisations, err := resource_client_.GetOrganizations("{}")
+		if err == nil {
+			for i := 0; i < len(organisations); i++ {
+				if organisations[i].Domain != globule.getDomain() {
+					organisations[i].Domain = globule.getDomain()
+					resource_client_.UpdateOrganization(token, organisations[i])
+				}
+			}
+		}
 	}
 	/**/
 
@@ -882,7 +932,7 @@ func resetRules() error {
 	deleteRule("prometheus")
 	deleteRule("grpcwebproxy")
 	deleteRule("torrent")
-	deleteRule("youtube-dl")
+	deleteRule("yt-dlp")
 
 	for i := 0; i < len(services); i++ {
 		// Create the service process.
@@ -988,8 +1038,8 @@ func setSystemPath() error {
 				enableProgramFwMgr("torrent", exec)
 			}
 
-			if strings.HasSuffix(exec, "youtube-dl.exe") {
-				enableProgramFwMgr("youtube-dl", exec)
+			if strings.HasSuffix(exec, "yt-dlp.exe") {
+				enableProgramFwMgr("yt-dlp", exec)
 			}
 		}
 
@@ -1028,8 +1078,7 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout) * time.Minute - 10 * time.Second)
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout)*time.Minute - 10*time.Second)
 	go func() {
 		for {
 			select {
@@ -1144,7 +1193,6 @@ func updatePeersEvent(evt *eventpb.Event) {
 }
 
 func deletePeersEvent(evt *eventpb.Event) {
-	fmt.Println("-----------> delete peer ", string(evt.Data))
 	globule.peers.Delete(string(evt.Data))
 	globule.saveConfig()
 }

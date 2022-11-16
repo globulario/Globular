@@ -134,11 +134,11 @@ MONGO
     # Install MongoDB:
     sudo apt-get install -y mongodb-org
 
-YOUTUBE-dl 
+yt-dlp 
     sudo apt install python3.8
     sudo apt install python-is-python3
-    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
-    sudo chmod a+rx /usr/local/bin/youtube-dl
+    sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
+    sudo chmod a+rx /usr/local/bin/yt-dlp
     
 ffmpeg
     https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/

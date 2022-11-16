@@ -507,7 +507,7 @@ func isPublic(path string) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1062,8 +1062,8 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	thumbnail_path := path_ + "/.hidden/" + name_ + "/__thumbnail__"
 
 	if Utility.Exists(thumbnail_path + "/" + "data_url.txt") {
-		
-		thumbnail, err :=os.ReadFile(thumbnail_path + "/" + "data_url.txt")
+
+		thumbnail, err := os.ReadFile(thumbnail_path + "/" + "data_url.txt")
 		if err != nil {
 			return "", err
 		}
@@ -1072,7 +1072,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	}
 
 	Utility.CreateDirIfNotExist(thumbnail_path)
-	cmd := exec.Command("youtube-dl", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
+	cmd := exec.Command("yt-dlp", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
 
 	err := cmd.Run()
@@ -1090,7 +1090,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return "", err
 	}
 
-	err = os.WriteFile(thumbnail_path + "/" + "data_url.txt", []byte(thumbnail), 0664)
+	err = os.WriteFile(thumbnail_path+"/"+"data_url.txt", []byte(thumbnail), 0664)
 	if err != nil {
 		return "", err
 	}
