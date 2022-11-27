@@ -800,6 +800,8 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	// temp directory...
 	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
 	Utility.CreateDirIfNotExist(path)
+
+	fmt.Println("download exec to ", path)
 	err = admin_source.DownloadGlobular(src, platform, path)
 	if err != nil {
 		log.Println("fail to download new globular executable file with error: ", err)
@@ -818,6 +820,8 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	}
 
 	defer os.RemoveAll(path)
+
+
 
 	err = update_globular(g, path_, dest, user, pwd, platform)
 	if err != nil {
@@ -1486,21 +1490,21 @@ func dist(g *Globule, path string, revision string) {
 
 		// Now I will create the setup.nsi file.
 		setupNsi := `
-;--------------------------------
+;---------------------------------
 ; Includes
 
   !include "MUI2.nsh"
   !include "logiclib.nsh"
   !include "x64.nsh"
 
-;--------------------------------
+;---------------------------------
 ; Custom defines
   !define NAME "Globular"
   !define APPFILE "Globular.exe"
   !define VERSION "` + revision + `"
   !define SLUG "${NAME} v${VERSION}"
 
-  ;--------------------------------
+  ;---------------------------------
   ; General
 	Name "${NAME}"
 	OutFile "${NAME} Setup.exe"

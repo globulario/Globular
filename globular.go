@@ -1731,10 +1731,15 @@ func getChecksum(address string, port int) (string, error) {
 	var resp *http.Response
 	var err error
 	var url = "http://" + address + ":" + Utility.ToString(port) + "/checksum"
+
 	resp, err = http.Get(url)
 
-	if err != nil {
-		return "", err
+	if err != nil || resp.StatusCode != http.StatusCreated {
+		url = "https://" + address + ":" + Utility.ToString(port) + "/checksum"
+		resp, err = http.Get(url)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	defer resp.Body.Close()
@@ -1767,22 +1772,48 @@ func (globule *Globule) watchForUpdate() {
 					port = Utility.ToInt(strings.Split(discovery, ":")[1])
 				}
 
+				execPath := Utility.GetExecName(os.Args[0])
+
 				// Here I will test if the checksum has change...
 				checksum, err := getChecksum(address, port)
-				execPath := Utility.GetExecName(os.Args[0])
 				if Utility.Exists(config.GetRootDir() + "/Globular") {
 					execPath = config.GetRootDir() + "/Globular"
 				}
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
-
 						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						}
 
 					}
+				} else {
+					fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
 				}
+
+				// Now the service...
+				services, _ := config.GetServicesConfigurations()
+
+				// get the resource client
+				resource_client_, err := GetResourceClient(discovery)
+				if err == nil {
+					for i := 0; i < len(services); i++ {
+						s := services[i]
+						if s["KeepUpToDate"].(bool) {
+							// Here I will get the last version of the package...
+							descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
+							if err == nil {
+								descriptorVersion := Utility.NewVersion(descriptor.Version)
+								serviceVersion :=  Utility.NewVersion( s["Version"].(string))
+								if descriptorVersion.Compare(serviceVersion) == 1 {
+									fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
+								}
+
+							}
+						}
+					}
+				}
+
 			}
 
 			// The time here can be set to higher value.

@@ -142,6 +142,13 @@ yt-dlp
     
 ffmpeg
     https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
+    binary
+    curl https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz --output ffmpeg-git-amd64-static.tar.xz
+    tar -xvf ffmpeg-git-amd64-static.tar.xz
+    cd ffmpeg-git-20220910-amd64-static
+    sudo cp ffmpeg /usr/local/bin
+    sudo cp ffprobe /usr/local/bin
+
     sudo apt install -y ffmpeg
 
 gRPC

@@ -17,24 +17,57 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/StalkR/httpcache"
 	"github.com/StalkR/imdb"
 	"github.com/davecourtois/Utility"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
-	colly "github.com/gocolly/colly/v2"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 )
+
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+
+const cacheTTL = 24 * time.Hour
+
+// client is used by tests to perform cached requests.
+// If cache directory exists it is used as a persistent cache.
+// Otherwise a volatile memory cache is used.
+var client *http.Client
+
+func init() {
+	if _, err := os.Stat("cache"); err == nil {
+		client, err = httpcache.NewPersistentClient("cache", cacheTTL)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		client = httpcache.NewVolatileClient(cacheTTL, 1024)
+	}
+	client.Transport = &customTransport{client.Transport}
+}
+
+// customTransport implements http.RoundTripper interface to add some headers.
+type customTransport struct {
+	http.RoundTripper
+}
+
+func (e *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("Accept-Language", "en") // avoid IP-based language detection
+	r.Header.Set("User-Agent", userAgent)
+	return e.RoundTripper.RoundTrip(r)
+}
 
 // Find the peer with a given name and redirect the
 // the request to it.
@@ -1009,7 +1042,6 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	// if the host is not the same...
 	query := r.URL.Query().Get("query") // the csr in base64
 
-	client := http.DefaultClient
 	titles, err := imdb.SearchTitle(client, query)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -1119,59 +1151,52 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 
 func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, error) {
 
-	// For that one I will made use of web-api from https://noembed.com/embed
-	url := `https://www.imdb.com/title/` + titleId
-
-	movieCollector := colly.NewCollector(
-		colly.AllowedDomains("www.imdb.com", "imdb.com"),
-	)
+	resp, err := client.Get(`https://www.imdb.com/title/` + titleId)
+	if err != nil {
+		return -1, -1, "", err
+	}
+	defer resp.Body.Close()
 
 	season := 0
 	episode := 0
 	serie := ""
 
-	// function call on visition url...
-	// old format...
-	/*movieCollector.OnHTML(".ipc-inline-list__item", func(e *colly.HTMLElement) {
-		e.ForEach("span", func(index int, child *colly.HTMLElement) {
-			if strings.Contains(child.Attr("class"), "eqCBtv"){
-				if  child.Text[0:1] == "S" {
-					season = Utility.ToInt( child.Text[1:])
-				}else if  child.Text[0:1] == "E"{
-					episode = Utility.ToInt(child.Text[1:])
-				}
-			}
-		})
-	})*/
+	// The first regex to locate the information...
+	re_SE := regexp.MustCompile(`>S\d{1,2}<!-- -->\.<!-- -->E\d{1,2}<`)
+	page, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return -1, -1, "", err
+	}
 
-	movieCollector.OnHTML(".LumGv", func(e *colly.HTMLElement) {
+	matchs_SE := re_SE.FindStringSubmatch(string(page))
 
-		values := strings.Split(e.Text, ".")
-		if strings.Contains(e.Text, "S") {
-			season = Utility.ToInt(values[0][1:])
+	if len(matchs_SE) > 0 {
+		re_S := regexp.MustCompile(`S\d{1,2}`)
+		matchs_S := re_S.FindStringSubmatch(matchs_SE[0])
+		if len(matchs_S) > 0 {
+			season = Utility.ToInt(matchs_S[0][1:])
 		}
-		if strings.Contains(e.Text, "E") {
-			episode = Utility.ToInt(values[1][1:])
-		}
-	})
 
-	movieCollector.OnHTML(".bQMGZZ", func(e *colly.HTMLElement) {
-		href := e.Attr("href")
-		serie = strings.Split(href, "/")[2]
-	})
-
-	movieCollector.Visit(url)
-
-	fmt.Println("Episode ", episode, "Season", season, "Serie", serie)
-	if season == 0 || episode == 0 || len(serie) == 0 {
-		time.Sleep(1 * time.Millisecond)
-		if nbCall > 0 {
-			nbCall--
-			return getSeasonAndEpisodeNumber(titleId, nbCall)
-		} else {
-			return season, episode, serie, errors.New("fail to retreive all episode informations...")
+		re_E := regexp.MustCompile(`E\d{1,2}`)
+		matchs_E := re_E.FindStringSubmatch(matchs_SE[0])
+		if len(matchs_E) > 0 {
+			episode = Utility.ToInt(matchs_E[0][1:])
 		}
 	}
+
+	// Now the serie info..
+	re_Serie := regexp.MustCompile(`data-testid="hero-title-block__series-link" href="/title/tt\d{7}/\?ref_=tt_ov_inf"`)
+	matchs_Serie := re_Serie.FindStringSubmatch(string(page))
+
+	if len(matchs_Serie) > 0 {
+		re_S := regexp.MustCompile(`tt\d{7}`)
+		matchs_S := re_S.FindStringSubmatch(matchs_Serie[0])
+		if len(matchs_S) > 0 {
+			serie = matchs_S[0]
+		}
+	}
+
+	fmt.Println("Seson ", season, "Episode", episode, "Serie", serie)
 
 	return season, episode, serie, nil
 }
@@ -1198,7 +1223,6 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("get imdb info for ", id)
 
-	client := http.DefaultClient
 	title, err := imdb.NewTitle(client, id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

@@ -3,9 +3,9 @@ module Globular
 go 1.19
 
 require (
+	github.com/StalkR/httpcache v1.0.0
 	github.com/StalkR/imdb v1.0.10
 	github.com/davecourtois/Utility v0.0.0-20210515191918-3118f6f72191
-	github.com/dhowden/tag v0.0.0-20220618230019-adf36e896086
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/globulario/services/golang v0.0.0-00010101000000-000000000000
 	github.com/go-acme/lego v2.7.2+incompatible
@@ -74,8 +74,8 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
 
-
-
 replace github.com/globulario/services/golang => ../services/golang
 
-replace github.com/davecourtois/Utility =>  ../Utility
+replace github.com/davecourtois/Utility => ../Utility
+
+replace github.com/StalkR/imdb => ../imdb
