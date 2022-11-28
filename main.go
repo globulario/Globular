@@ -28,6 +28,7 @@ import (
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
+	"github.com/polds/imgbase64"
 )
 
 func (g *Globule) Start(s service.Service) error {
@@ -711,6 +712,11 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
 
+
+	if !strings.Contains(user, "@"){
+		user += "@" + strings.Split(address, ":")[0]
+	}
+
 	log.Println("try to deploy application", name, " to address ", address, " with user ", user)
 
 	// Authenticate the user in order to get the token
@@ -727,6 +733,152 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		path = strings.ReplaceAll(dir, "\\", "/") + "/" + path
+
+	}
+
+	// From the path I will get try to find the package.json file and get information from it...
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	absolutePath = strings.ReplaceAll(absolutePath, "\\", "/")
+
+	if Utility.Exists(absolutePath + "/package.json") {
+		absolutePath += "/package.json"
+	} else if Utility.Exists(absolutePath[0:strings.LastIndex(absolutePath, "/")] + "/package.json") {
+		absolutePath = absolutePath[0:strings.LastIndex(absolutePath, "/")] + "/package.json"
+	} else {
+		err = errors.New("no package.config file was found")
+		return err
+	}
+
+	packageConfig := make(map[string]interface{})
+	data, err := ioutil.ReadFile(absolutePath)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(data, &packageConfig)
+	if err != nil {
+		return err
+	}
+
+	description := packageConfig["description"].(string)
+	version := packageConfig["version"].(string)
+
+	alias := name
+	if packageConfig["alias"] != nil {
+		alias = packageConfig["alias"].(string)
+	}
+
+	// Set keywords.
+	keywords := make([]string, 0)
+	if packageConfig["keywords"] != nil {
+		for i := 0; i < len(packageConfig["keywords"].([]interface{})); i++ {
+			keywords = append(keywords, packageConfig["keywords"].([]interface{})[i].(string))
+		}
+	}
+
+	// Now The application is deploy I will set application actions from the
+	// package.json file.
+	actions := make([]string, 0)
+	if packageConfig["actions"] != nil {
+		for i := 0; i < len(packageConfig["actions"].([]interface{})); i++ {
+			actions = append(actions, packageConfig["actions"].([]interface{})[i].(string))
+		}
+	}
+
+	// Create roles.
+	roles := make([]*resourcepb.Role, 0)
+	if packageConfig["roles"] != nil {
+		// Here I will create the roles require by the applications.
+		roles_ := packageConfig["roles"].([]interface{})
+		for i := 0; i < len(roles_); i++ {
+			role_ := roles_[i].(map[string]interface{})
+			role := new(resourcepb.Role)
+			role.Id = role_["id"].(string)
+			role.Name = role_["name"].(string)
+			role.Actions = make([]string, 0)
+			for j := 0; j < len(role_["actions"].([]interface{})); j++ {
+				role.Actions = append(role.Actions, role_["actions"].([]interface{})[j].(string))
+			}
+			roles = append(roles, role)
+		}
+	}
+
+	// Create groups.
+	groups := make([]*resourcepb.Group, 0)
+	if packageConfig["groups"] != nil {
+		groups_ := packageConfig["groups"].([]interface{})
+		for i := 0; i < len(groups_); i++ {
+			group_ := groups_[i].(map[string]interface{})
+			group := new(resourcepb.Group)
+			group.Id = group_["id"].(string)
+			group.Name = group_["name"].(string)
+			group.Description = group_["description"].(string)
+			groups = append(groups, group)
+		}
+	}
+
+	var icon string
+
+	// Now the icon...
+	if packageConfig["icon"] != nil {
+		// The image icon.
+		// iconPath := absolutePath[0:strings.LastIndex(absolutePath, "/")] + "/package.json"
+		iconPath := strings.ReplaceAll(absolutePath, "\\", "/")
+		lastIndex := strings.LastIndex(iconPath, "/")
+		iconPath = iconPath[0:lastIndex] + "/" + packageConfig["icon"].(string)
+
+		if Utility.Exists(iconPath) {
+			// Convert to png before creating the data url.
+			if strings.HasSuffix(strings.ToLower(iconPath), ".svg") {
+				pngPath := os.TempDir() + "/output.png"
+				defer os.Remove(pngPath)
+				err := Utility.SvgToPng(iconPath, pngPath, 128, 128)
+				if err == nil {
+					iconPath = pngPath
+				}
+			}
+			// So here I will create the b64 string
+			icon, _ = imgbase64.FromLocal(iconPath)
+		}
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	discovery_client_, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = discovery_client_.PublishApplication(token, user, organization, "/"+name, name, address, version, description, icon, alias, address, address, actions, keywords, roles, groups)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	repository_client_, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	_, err = repository_client_.UploadApplicationPackage(user, organization, path, token, address, name, version)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
 	log.Println("Connect with application manager at address ", address)
@@ -736,15 +888,13 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	log.Println("Deploy application ", user, name, organization, path)
-	_, err = applications_manager_client_.DeployApplication(user, name, organization, path, token, address, set_as_default)
-	if err != nil {
-		log.Println("Fail to deploy applicaiton with error:", err)
-		return err
+	publisherId := user
+	if len(organization) > 0 {
+		publisherId = organization
 	}
 
-	log.Println("Application", name, "was deployed successfully!")
-	return nil
+	return applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
+
 }
 
 /**
@@ -821,8 +971,6 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 
 	defer os.RemoveAll(path)
 
-
-
 	err = update_globular(g, path_, dest, user, pwd, platform)
 	if err != nil {
 		log.Println(err)
@@ -864,7 +1012,20 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	repository_client_, err := repository_client.NewRepositoryService_Client(domain, "discovery.PackageDiscovery")
+	discovery_client_, err := discovery_client.NewDiscoveryService_Client(domain, "discovery.PackageDiscovery")
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = discovery_client_.PublishService(user, organization, token, domain, path, platform)
+	if err != nil {
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	repository_client_, err := repository_client.NewRepositoryService_Client(domain, "repository.PackageRepository")
 	if err != nil {
 		log.Println(err)
 		return err
@@ -874,19 +1035,6 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 	err = repository_client_.UploadServicePackage(user, organization, token, domain, path, platform)
 	if err != nil {
 		log.Println(err)
-		return err
-	}
-
-	// first of all I need to get all credential informations...
-	// The certificates will be taken from the address
-	discovery_client_, err := discovery_client.NewDiscoveryService_Client(domain, "discovery.PackageDiscovery")
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = discovery_client_.PublishService(user, organization, token, domain, path, platform)
-	if err != nil {
 		return err
 	}
 
