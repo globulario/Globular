@@ -712,8 +712,7 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
 
-
-	if !strings.Contains(user, "@"){
+	if !strings.Contains(user, "@") {
 		user += "@" + strings.Split(address, ":")[0]
 	}
 
@@ -1184,7 +1183,7 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
  * Download Applications, this will be use to package globular applications with the distro. That way console and media will
  * be accessible offline, on the local network.
  */
-func downloadApplication(g *Globule, application, discovery, pulbisherId, version string) (string, string, error) {
+func downloadApplication(g *Globule, application, discovery, pulbisherId string) (string, string, error) {
 
 	// first of all I will get the package descriptor...
 	// Connect to the dicovery services
@@ -1195,7 +1194,7 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId, versio
 	}
 
 	// TODO publish it as globulario organisation.
-	descriptor, err := resource_client_.GetPackageDescriptor(application, pulbisherId, version)
+	descriptor, err := resource_client_.GetPackageDescriptor(application, pulbisherId, "") // last version
 	if err != nil {
 		return "", "", err
 	}
@@ -1217,9 +1216,9 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId, versio
 	}
 
 	// Set the path
-	path := g.path + "/applications/" + application + "_" + pulbisherId + "_" + version
+	path := g.path + "/applications/" + application + "_" + pulbisherId + "_" + descriptor.Version
 	if Utility.Exists(path + ".tar.gz") {
-		return path + ".tar.gz", application + "_" + pulbisherId + "_" + version + ".tar.gz", nil // already ready to be downloaded...
+		return path + ".tar.gz", application + "_" + pulbisherId + "_" + descriptor.Version + ".tar.gz", nil // already ready to be downloaded...
 	}
 
 	Utility.CreateDirIfNotExist(path)
@@ -1286,7 +1285,7 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId, versio
 		return "", "", err
 	}
 
-	return path + ".tar.gz", application + "_" + pulbisherId + "_" + version + ".tar.gz", nil
+	return path + ".tar.gz", application + "_" + pulbisherId + "_" + descriptor.Version + ".tar.gz", nil
 }
 
 /**
@@ -1310,11 +1309,6 @@ func dist(g *Globule, path string, revision string) {
 	// TODO see if those values can be use as parameters...
 
 	// Console 1.0.3
-	console_application_path, console_application, err := downloadApplication(g, "console", "globular.io", "globulario", "1.0.3")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 
 	// The debian package...
 	if runtime.GOOS == "linux" {
@@ -1347,7 +1341,15 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(applications_path)
 
 		// Copy applications for offline installation...
-		Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
+		if len(g.Applications) > 0 {
+			application := g.Applications[0].(map[string]interface{})
+			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PubliserId"].(string))
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
+		}
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"

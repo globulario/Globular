@@ -121,6 +121,9 @@ type Globule struct {
 	DNS              []interface{} // External dns.
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
+	// Applications to installs...
+	Applications []interface{}
+
 	// Directories.
 	path    string // The path of the exec...
 	webRoot string // The root of the http file server.
@@ -174,10 +177,11 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = ""      // I will use the installer as defaut.
-	g.PortHttp = 8080            // The default http port 80 is almost already use by other http server...
-	g.PortHttps = 443            // The default https port number
-	g.PortsRange = "10000-10100" // The default port range.
+	g.IndexApplication = ""                                                                                                                                     // I will use the installer as defaut.
+	g.PortHttp = 8080                                                                                                                                           // The default http port 80 is almost already use by other http server...
+	g.PortHttps = 443                                                                                                                                           // The default https port number
+	g.PortsRange = "10000-10100"                                                                                                                                // The default port range.
+	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PubliserId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
@@ -1336,7 +1340,11 @@ func (globule *Globule) serve() error {
 	globule.registerAdminAccount()
 
 	// Install the console application
-	globule.installApplication("console", "globular.io", "globulario")
+	for i := 0; i < len(globule.Applications); i++ {
+		application := globule.Applications[i].(map[string]interface{})
+		// ex.. "console", "globular.io", "globulario"
+		globule.installApplication(application["Name"].(string), application["Address"].(string), application["Name"].(string))
+	}
 
 	// Create application connection
 	globule.createApplicationConnection()
@@ -1804,11 +1812,13 @@ func (globule *Globule) watchForUpdate() {
 							descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
 							if err == nil {
 								descriptorVersion := Utility.NewVersion(descriptor.Version)
-								serviceVersion :=  Utility.NewVersion( s["Version"].(string))
+								serviceVersion := Utility.NewVersion(s["Version"].(string))
 								if descriptorVersion.Compare(serviceVersion) == 1 {
-									fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
+									// TODO keep service up to date.
+									// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
+								} else if descriptorVersion.Compare(serviceVersion) == 0 {
+									// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated???")
 								}
-
 							}
 						}
 					}
