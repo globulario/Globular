@@ -1303,6 +1303,7 @@ func (globule *Globule) createApplicationConnection() error {
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
+					log.Panicln(err)
 				}
 			}
 		}
