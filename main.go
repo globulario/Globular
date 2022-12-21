@@ -892,7 +892,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		publisherId = organization
 	}
 
-	return applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
+	err = applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
+	if err != nil{
+		log.Println("fail to install application with error ", err)
+		return err
+	}
+
+	log.Println("Application was deploy sucessfully!")
+	return  nil
 
 }
 

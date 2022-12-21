@@ -668,11 +668,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
 		if strings.HasPrefix(path, "/applications") {
-			var err error
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
-			if hasAccess && err == nil {
-				hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "write", path)
-			}
+		
+			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		}
 	}
 
@@ -696,19 +693,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(user) != 0 {
-		var err error
 		if !hasAccess {
-			hasAccess, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
+			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
-		if hasAccess && err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
-			if err != nil {
-				log.Println("Fail to validate action with error ", err)
-			}
-		} else {
-			log.Println("Fail to validate action with error ", err)
-		}
-
 	}
 
 	// validate ressource access...

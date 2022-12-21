@@ -2283,10 +2283,10 @@ func (globule *Globule) addResourceOwner(path, resource_type, subject string, su
 	return rbac_client_.AddResourceOwner(path, resource_type, subject, subjectType)
 }
 
-func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, error) {
+func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, bool, error) {
 	rbac_client_, err := GetRbacClient(globule.getAddress())
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	return rbac_client_.ValidateAction(method, subject, subjectType, infos)
