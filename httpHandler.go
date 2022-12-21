@@ -693,7 +693,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(user) != 0 {
-		if !hasAccess {
+		if !hasAccess || hasAccessDenied {
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
 		}
 	}
@@ -906,7 +906,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(rqst_path, "/.hidden/") {
 			hasAccess = false
 		}
-
 	}
 
 	// Now if the os is windows I will remove the leading /
@@ -920,9 +919,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = path.Join(dir, rqst_path)
 	} else {
 		name = rqst_path
-		hasAccess = true
+		hasAccess = false // force validation (denied access...)
 	}
 
+	// no validate hidden files.
+	if strings.Contains(rqst_path, "/.hidden/") {
+		hasAccess = true
+	}
+	
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {
 		name = globule.creds + rqst_path
@@ -932,18 +936,21 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-	// Here I will validate applications...
-	if len(application) != 0 && !hasAccess {
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
-	}
 
-	if len(token) != 0 && !hasAccess {
+	if len(token) != 0 && !hasAccess{
+		fmt.Println("942 validate ", rqst_path, hasAccess)
+
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
 		}
+	}
+
+	// Here I will validate applications...
+	if len(application) != 0 && !hasAccess  && !hasAccessDenied {
+		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
 	}
 
 	// validate ressource access...
