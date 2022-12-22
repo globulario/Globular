@@ -667,7 +667,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
 		if strings.HasPrefix(path, "/applications") {
-		
+
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		}
 	}
@@ -925,7 +925,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(rqst_path, "/.hidden/") {
 		hasAccess = true
 	}
-	
+
+	if strings.HasSuffix(rqst_path, ".ts") == true {
+		hasAccess = true
+	}
+
 	// this is the ca certificate use to sign client certificate.
 	if rqst_path == "/ca.crt" {
 		name = globule.creds + rqst_path
@@ -935,7 +939,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-	if len(token) != 0 && !hasAccess{
+	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
@@ -945,15 +949,15 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Here I will validate applications...
-	if len(application) != 0 && !hasAccess  && !hasAccessDenied {
+	if len(application) != 0 && !hasAccess && !hasAccessDenied {
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
-	}else if isPublic(rqst_path) && !hasAccessDenied{
-		 hasAccess = true;
+	} else if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
+		hasAccess = true
 	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
-		msg := "unable to read the file "+rqst_path+" Check your access privilege"
+		msg := "unable to read the file " + rqst_path + " Check your access privilege"
 		http.Error(w, msg, http.StatusUnauthorized)
 		return
 	}

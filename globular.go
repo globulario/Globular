@@ -24,7 +24,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
-	"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/config/config_client"
 	"github.com/globulario/services/golang/dns/dns_client"
@@ -262,7 +261,6 @@ func NewGlobule() *Globule {
 
 func (globule *Globule) registerAdminAccount() error {
 
-	
 	domain, _ := config.GetDomain()
 	address, _ := config.GetAddress()
 	fmt.Println("---------------------------> register sa account for domain ", domain, address)
@@ -323,13 +321,13 @@ func (globule *Globule) registerAdminAccount() error {
 		// Alway update the sa domain...
 		sa.Domain = domain
 		token, _ := security.GetLocalToken(globule.Mac)
-		
+
 		fmt.Println("--------------> update domain: ", globule.getDomain(), domain)
 
 		_, err := security.ValidateToken(token)
 		if err != nil {
 			fmt.Println("local token is not valid! ", err)
-			
+
 		}
 
 		err = resource_client_.SetAccount(token, sa)
@@ -374,7 +372,7 @@ func (globule *Globule) registerAdminAccount() error {
 				if groups[i].Domain != domain {
 					groups[i].Domain = domain
 					err := resource_client_.UpdateGroup(token, groups[i])
-					if err != nil{
+					if err != nil {
 						fmt.Println("fail to update group with error: ", err)
 					}
 				}
@@ -878,8 +876,8 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-	domain,_ := config.GetDomain()
-	
+	domain, _ := config.GetDomain()
+
 	// set the local token.
 	return security.SetLocalToken(globule.Mac, domain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
 }
@@ -2029,73 +2027,71 @@ func (globule *Globule) Listen() error {
 }
 
 var (
-	rbac_client_            *rbac_client.Rbac_Client
+
+	// local connections
 	event_client_           *event_client.Event_Client
 	search_engine_client_   *search_client.Search_Client
-	authentication_client_  *authentication_client.Authentication_Client
 	log_client_             *log_client.Log_Client
-	resource_client_        *resource_client.Resource_Client
-	persistence_client_     *persistence_client.Persistence_Client
-	service_manager_client_ *service_manager_client.Services_Manager_Client
+
+	// local and remote connections.
+	clients_ *sync.Map = new(sync.Map)
 )
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
-	local_domain_, _ := config.GetDomain()
-	if domain != local_domain_ {
-		return service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+
+	id := domain + ":services_manager.ServicesManagerService"
+	val, ok := clients_.Load(id)
+	if ok {
+		return val.(*service_manager_client.Services_Manager_Client), nil
 	}
 
-	var err error
-	if service_manager_client_ == nil {
-		service_manager_client_, err = service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
-		if err != nil {
-			resource_client_ = nil
-			return nil, err
-		}
-
+	service_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+	if err != nil {
+		service_manager_client_ = nil
+		return nil, err
 	}
+	clients_.Store(id, service_manager_client_)
 
 	return service_manager_client_, nil
 }
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
-	local_domain_, _ := config.GetDomain()
-	if domain != local_domain_ {
-		return resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+
+	id := domain + ":resource.ResourceService"
+	val, ok := clients_.Load(id)
+	if ok {
+		return val.(*resource_client.Resource_Client), nil
 	}
 
-	var err error
-	if resource_client_ == nil {
-		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
-		if err != nil {
-			resource_client_ = nil
-			return nil, err
-		}
-
+	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	if err != nil {
+		resource_client_ = nil
+		return nil, err
 	}
+
+	clients_.Store(id, resource_client_)
 
 	return resource_client_, nil
 }
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client, error) {
-	local_domain_, _ := config.GetDomain()
-	if domain != local_domain_ {
-		return persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
+	id := domain + ":persistence.PersistenceService"
+	val, ok := clients_.Load(id)
+	if ok {
+		return val.(*persistence_client.Persistence_Client), nil
 	}
 
-	var err error
-	if persistence_client_ == nil {
-		persistence_client_, err = persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
-		if err != nil {
-			persistence_client_ = nil
-			fmt.Println("fail to get persistence client with error ", err)
-			return nil, err
-		}
-
+	persistence_client_, err := persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
+	if err != nil {
+		persistence_client_ = nil
+		fmt.Println("fail to get persistence client with error ", err)
+		return nil, err
 	}
+
+	clients_.Store(id, persistence_client_)
 
 	return persistence_client_, nil
 }
@@ -2286,19 +2282,21 @@ func (globule *Globule) roleExist(id string) bool {
  * Get the rbac client.
  */
 func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
-	local_domain_, _ := config.GetDomain()
-	if local_domain_ != domain {
-		return rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
-	}
-	var err error
-	if rbac_client_ == nil {
-		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
-		if err != nil {
-			rbac_client_ = nil
-			return nil, err
-		}
+	id := domain + ":rbac.RbacService"
+	val, ok := clients_.Load(id)
+	if ok {
+		return val.(*rbac_client.Rbac_Client), nil
 	}
 
+	fmt.Println("------------------> set rbac client ", id)
+	rbac_client_, err := rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
+	if err != nil {
+		rbac_client_ = nil
+		return nil, err
+	}
+
+	clients_.Store(id, rbac_client_)
+	
 	return rbac_client_, nil
 }
 
