@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"net/http/httputil"
@@ -936,10 +935,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-
 	if len(token) != 0 && !hasAccess{
-		fmt.Println("942 validate ", rqst_path, hasAccess)
-
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
@@ -951,12 +947,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Here I will validate applications...
 	if len(application) != 0 && !hasAccess  && !hasAccessDenied {
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
+	}else if isPublic(rqst_path) && !hasAccessDenied{
+		 hasAccess = true;
 	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
-		log.Println(err)
-		http.Error(w, "unable to read the file "+rqst_path+" Check your access privilege", http.StatusUnauthorized)
+		msg := "unable to read the file "+rqst_path+" Check your access privilege"
+		http.Error(w, msg, http.StatusUnauthorized)
 		return
 	}
 

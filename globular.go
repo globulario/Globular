@@ -262,7 +262,13 @@ func NewGlobule() *Globule {
 
 func (globule *Globule) registerAdminAccount() error {
 
+	
 	domain, _ := config.GetDomain()
+	address, _ := config.GetAddress()
+	fmt.Println("---------------------------> register sa account for domain ", domain, address)
+
+	fmt.Println("globule: ", globule)
+
 	path := config.GetDataDir() + "/files/users/sa@" + domain
 	if !Utility.Exists(path) {
 		err := Utility.CreateDirIfNotExist(path)
@@ -271,29 +277,31 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
-	persistence_client_, err := GetPersistenceClient(globule.getAddress())
+	persistence_client_, err := GetPersistenceClient(address)
 	if err != nil {
 		fmt.Println("fail to get persistence client ", err)
 		return err
 	}
 
-	err = persistence_client_.CreateConnection("sa", "sa_db", globule.getDomain(), 27017, 0, "sa", globule.RootPassword, 500, "", false)
+	err = persistence_client_.CreateConnection("sa", "sa_db", domain, 27017, 0, "sa", globule.RootPassword, 500, "", false)
 	if err != nil {
 		fmt.Println("fail to create sa connection ", err)
 		return err
 	}
 
 	// get the resource client
-	resource_client_, err := GetResourceClient(globule.getAddress())
+	resource_client_, err := GetResourceClient(address)
 	if err != nil {
 		fmt.Println("fail to get resource client ", err)
 		return err
 	}
 
+	fmt.Println("---------> resource client: ", resource_client_.GetMac(), resource_client_.GetAddress(), resource_client_.GetDomain())
+
 	// Create the admin account.
 	sa, err := resource_client_.GetAccount("sa")
 	if err != nil {
-		err = resource_client_.RegisterAccount(globule.getDomain(), "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+		err = resource_client_.RegisterAccount(domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
 			fmt.Println("fail to register admin account sa", err)
 			return err
@@ -313,9 +321,18 @@ func (globule *Globule) registerAdminAccount() error {
 
 	} else {
 		// Alway update the sa domain...
-		sa.Domain = globule.getDomain()
+		sa.Domain = domain
 		token, _ := security.GetLocalToken(globule.Mac)
-		err := resource_client_.SetAccount(token, sa)
+		
+		fmt.Println("--------------> update domain: ", globule.getDomain(), domain)
+
+		_, err := security.ValidateToken(token)
+		if err != nil {
+			fmt.Println("local token is not valid! ", err)
+			
+		}
+
+		err = resource_client_.SetAccount(token, sa)
 		if err != nil {
 			fmt.Println("fail to update admin account sa", err)
 			return err
@@ -324,8 +341,8 @@ func (globule *Globule) registerAdminAccount() error {
 		roles, err := resource_client_.GetRoles("{}")
 		if err == nil {
 			for i := 0; i < len(roles); i++ {
-				if roles[i].Domain != globule.getDomain() {
-					roles[i].Domain = globule.getDomain()
+				if roles[i].Domain != domain {
+					roles[i].Domain = domain
 					resource_client_.UpdateRole(token, roles[i])
 				}
 			}
@@ -334,8 +351,8 @@ func (globule *Globule) registerAdminAccount() error {
 		accounts, err := resource_client_.GetAccounts("{}")
 		if err == nil {
 			for i := 0; i < len(accounts); i++ {
-				if accounts[i].Domain != globule.getDomain() {
-					accounts[i].Domain = globule.getDomain()
+				if accounts[i].Domain != domain {
+					accounts[i].Domain = domain
 					resource_client_.SetAccount(token, accounts[i])
 				}
 			}
@@ -344,8 +361,8 @@ func (globule *Globule) registerAdminAccount() error {
 		applications, err := resource_client_.GetApplications("{}")
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
-				if applications[i].Domain != globule.getDomain() {
-					applications[i].Domain = globule.getDomain()
+				if applications[i].Domain != domain {
+					applications[i].Domain = domain
 					resource_client_.UpdateApplication(token, applications[i])
 				}
 			}
@@ -354,9 +371,12 @@ func (globule *Globule) registerAdminAccount() error {
 		groups, err := resource_client_.GetGroups("{}")
 		if err == nil {
 			for i := 0; i < len(groups); i++ {
-				if groups[i].Domain != globule.getDomain() {
-					groups[i].Domain = globule.getDomain()
-					resource_client_.UpdateGroup(token, groups[i])
+				if groups[i].Domain != domain {
+					groups[i].Domain = domain
+					err := resource_client_.UpdateGroup(token, groups[i])
+					if err != nil{
+						fmt.Println("fail to update group with error: ", err)
+					}
 				}
 			}
 		}
@@ -364,8 +384,8 @@ func (globule *Globule) registerAdminAccount() error {
 		organisations, err := resource_client_.GetOrganizations("{}")
 		if err == nil {
 			for i := 0; i < len(organisations); i++ {
-				if organisations[i].Domain != globule.getDomain() {
-					organisations[i].Domain = globule.getDomain()
+				if organisations[i].Domain != domain {
+					organisations[i].Domain = domain
 					resource_client_.UpdateOrganization(token, organisations[i])
 				}
 			}
@@ -858,20 +878,10 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-
-	localDomain, _ := config.GetDomain()
-	tokenString, err := security.GenerateToken(globule.SessionTimeout, globule.Mac, "sa", "sa", globule.AdminEmail, localDomain)
-	if err != nil {
-		fmt.Println("fail to generate token with error: ", err)
-		return err
-	}
-
-	err = ioutil.WriteFile(globule.config+"/tokens/"+globule.getDomain()+"_token", []byte(tokenString), 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	domain,_ := config.GetDomain()
+	
+	// set the local token.
+	return security.SetLocalToken(globule.Mac, domain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
 }
 
 // Enable port from window firewall
@@ -2031,6 +2041,11 @@ var (
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
+	local_domain_, _ := config.GetDomain()
+	if domain != local_domain_ {
+		return service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+	}
+
 	var err error
 	if service_manager_client_ == nil {
 		service_manager_client_, err = service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
@@ -2046,6 +2061,11 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
+	local_domain_, _ := config.GetDomain()
+	if domain != local_domain_ {
+		return resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+	}
+
 	var err error
 	if resource_client_ == nil {
 		resource_client_, err = resource_client.NewResourceService_Client(domain, "resource.ResourceService")
@@ -2061,6 +2081,11 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client, error) {
+	local_domain_, _ := config.GetDomain()
+	if domain != local_domain_ {
+		return persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
+	}
+
 	var err error
 	if persistence_client_ == nil {
 		persistence_client_, err = persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
@@ -2261,6 +2286,10 @@ func (globule *Globule) roleExist(id string) bool {
  * Get the rbac client.
  */
 func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
+	local_domain_, _ := config.GetDomain()
+	if local_domain_ != domain {
+		return rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
+	}
 	var err error
 	if rbac_client_ == nil {
 		rbac_client_, err = rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
