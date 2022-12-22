@@ -872,6 +872,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+	log.Println("Upload application package")
 	_, err = repository_client_.UploadApplicationPackage(user, organization, path, token, address, name, version)
 	if err != nil {
 		log.Println(err)
@@ -887,10 +888,13 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
 	}
+
+	fmt.Println("try to install the new deployed application...")
 
 	err = applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
 	if err != nil{
@@ -898,7 +902,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	log.Println("Application was deploy sucessfully!")
+	log.Println("Application was deployed and installed sucessfully!")
 	return  nil
 
 }

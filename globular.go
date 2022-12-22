@@ -2288,7 +2288,6 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 		return val.(*rbac_client.Rbac_Client), nil
 	}
 
-	fmt.Println("------------------> set rbac client ", id)
 	rbac_client_, err := rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
 	if err != nil {
 		rbac_client_ = nil
