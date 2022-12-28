@@ -926,7 +926,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess = true
 	}
 
-	if strings.HasSuffix(rqst_path, ".ts") == true {
+	// stream, the validation is made on the directory containning the playlist...
+	if strings.HasSuffix(rqst_path, ".ts") == true ||  strings.HasSuffix(rqst_path, "240p.m3u8")  ||  
+		strings.HasSuffix(rqst_path, "360p.m3u8") ||
+		strings.HasSuffix(rqst_path, "480p.m3u8") ||
+		strings.HasSuffix(rqst_path, "720p.m3u8") ||
+		strings.HasSuffix(rqst_path, "1080p.m3u8") ||
+		strings.HasSuffix(rqst_path, "2160p.m3u8") {
 		hasAccess = true
 	}
 
@@ -945,6 +951,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
+		}else{
+			fmt.Println("fail to validate token with error: ", err)
 		}
 	}
 
