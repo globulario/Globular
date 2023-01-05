@@ -1939,7 +1939,7 @@ func (globule *Globule) Listen() error {
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
 
-	if Utility.Exists(globule.creds+"/"+globule.Certificate) && globule.Protocol == "https" {
+	if Utility.Exists(globule.creds+"/"+globule.Certificate) && globule.Protocol == "https" && len(globule.Certificate) > 0 {
 		err = security.ValidateCertificateExpiration(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
 		if err != nil {
 			// here I will remove the expired certificates...
@@ -1951,7 +1951,7 @@ func (globule *Globule) Listen() error {
 		}
 	}
 
-	if !Utility.Exists(globule.creds+"/"+globule.Certificate) && globule.Protocol == "https" {
+	if (!Utility.Exists(globule.creds+"/"+globule.Certificate) ||  len(globule.Certificate) == 0) && globule.Protocol == "https" {
 		fmt.Println("generate certificates...")
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
