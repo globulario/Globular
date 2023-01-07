@@ -921,13 +921,10 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess = false // force validation (denied access...)
 	}
 
-	// no validate hidden files.
-	if strings.Contains(rqst_path, "/.hidden/") {
-		hasAccess = true
-	}
-
 	// stream, the validation is made on the directory containning the playlist...
-	if strings.HasSuffix(rqst_path, ".ts") == true ||  strings.HasSuffix(rqst_path, "240p.m3u8")  ||  
+	if strings.Contains(rqst_path, "/.hidden/") || 
+	    strings.HasSuffix(rqst_path, ".ts")	||  
+		strings.HasSuffix(rqst_path, "240p.m3u8")  ||  
 		strings.HasSuffix(rqst_path, "360p.m3u8") ||
 		strings.HasSuffix(rqst_path, "480p.m3u8") ||
 		strings.HasSuffix(rqst_path, "720p.m3u8") ||
