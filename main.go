@@ -888,7 +888,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
@@ -897,13 +896,13 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	fmt.Println("try to install the new deployed application...")
 
 	err = applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
-	if err != nil{
+	if err != nil {
 		log.Println("fail to install application with error ", err)
 		return err
 	}
 
 	log.Println("Application was deployed and installed sucessfully!")
-	return  nil
+	return nil
 
 }
 
@@ -1086,6 +1085,8 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	log.Println("service was installed")
+
+
 	return nil
 }
 
@@ -1322,7 +1323,61 @@ func dist(g *Globule, path string, revision string) {
 	// Console 1.0.3
 
 	// The debian package...
-	if runtime.GOOS == "linux" {
+	if runtime.GOOS == "darwin" {
+		darwin_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
+
+		// remove existiong files...
+		os.RemoveAll(darwin_package_path)
+
+		// 1. Create the working directory
+		Utility.CreateDirIfNotExist(darwin_package_path)
+
+		// 2. Create application directory.
+		app_path := darwin_package_path + "/Globular.app"
+		app_content := app_path + "/Contents"
+		app_bin := app_content + "/MacOS"
+		app_resource := app_content + "/Resources"
+		config_path := app_bin + "/etc/globular/config"
+
+		// create directories...
+		Utility.CreateDirIfNotExist(app_content)
+		Utility.CreateDirIfNotExist(app_bin)
+		Utility.CreateDirIfNotExist(config_path)
+		Utility.CreateDirIfNotExist(app_resource)
+
+		// Now I will copy the application icon to the resource.
+		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+		err := Utility.CopyFile(dir+"/assets/icon.icns", app_resource+"/icon.icns")
+		if err != nil {
+			fmt.Println("fail to copy icon from ", dir+"/assets/icon.icns"+"whit error", err)
+		}
+
+		// Create the distribution.
+		__dist(g, app_bin, config_path)
+
+		// Now I will create the plist file.
+		plistFile := `
+		<?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+		<plist version="1.0">
+		<dict>
+			<key>CFBundleExecutable</key>
+			<string>globular</string>
+			<key>CFBundleIconFile</key>
+			<string>icon.icns</string>
+			<key>CFBundleIdentifier</key>
+			<string>io.globular</string>
+			<key>NSHighResolutionCapable</key>
+			<true/>
+			<key>LSUIElement</key>
+			<true/>
+		</dict>
+		</plist>
+		`
+		os.WriteFile(app_content + "/Info.plist", []byte(plistFile), 0644)
+
+	} else if runtime.GOOS == "linux" {
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
 		// remove existiong files...
@@ -1606,7 +1661,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 		fmt.Print(cmdOutput.String())
 
-	} else {
+	} else if runtime.GOOS == "window" {
 		fmt.Println("Create the distro at path ", path)
 		root := path + "/Globular"
 		Utility.CreateIfNotExists(root, 0755)

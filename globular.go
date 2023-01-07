@@ -68,7 +68,8 @@ type Globule struct {
 	Name string // The service name
 	Mac  string // The Mac addresse
 
-	// Globualr specifics ports.
+	// Where services can be found.
+	GLOBULAR_SERVICES_ROOT string
 
 	// can be https or http.
 	Protocol   string
@@ -181,6 +182,7 @@ func NewGlobule() *Globule {
 	g.PortHttps = 443                                                                                                                                           // The default https port number
 	g.PortsRange = "10000-10100"                                                                                                                                // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PubliserId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
+	g.GLOBULAR_SERVICES_ROOT = config.GetServicesRoot()
 
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
@@ -263,10 +265,6 @@ func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
 	address, _ := config.GetAddress()
-	fmt.Println("---------------------------> register sa account for domain ", domain, address)
-
-	fmt.Println("globule: ", globule)
-
 	path := config.GetDataDir() + "/files/users/sa@" + domain
 	if !Utility.Exists(path) {
 		err := Utility.CreateDirIfNotExist(path)
@@ -476,7 +474,6 @@ func (globule *Globule) getConfig() map[string]interface{} {
  * Save the configuration
  */
 func (globule *Globule) saveConfig() error {
-
 	// Keep peers information here...
 	globule.Peers = make(map[string]interface{})
 	globule.peers.Range(func(key, value interface{}) bool {
@@ -1063,7 +1060,26 @@ func setSystemPath() error {
 		}
 
 		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+	} else if runtime.GOOS == "darwin" {
+		// Fix the path /usr/local/bin is not set by default...
+		if Utility.Exists("/Library/LaunchDaemons/Globular.plist") {
+			config, err := os.ReadFile("/Library/LaunchDaemons/Globular.plist")
+			if err == nil {
+
+				config_ := string(config)
+				config_ = strings.ReplaceAll(config_, "</dict>",
+					`
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin</string>
+	</dict>
+	</dict>`)
+			os.WriteFile("/Library/LaunchDaemons/Globular.plist", []byte(config_), 0644)
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -2029,9 +2045,9 @@ func (globule *Globule) Listen() error {
 var (
 
 	// local connections
-	event_client_           *event_client.Event_Client
-	search_engine_client_   *search_client.Search_Client
-	log_client_             *log_client.Log_Client
+	event_client_         *event_client.Event_Client
+	search_engine_client_ *search_client.Search_Client
+	log_client_           *log_client.Log_Client
 
 	// local and remote connections.
 	clients_ *sync.Map = new(sync.Map)
@@ -2295,7 +2311,7 @@ func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
 	}
 
 	clients_.Store(id, rbac_client_)
-	
+
 	return rbac_client_, nil
 }
 
