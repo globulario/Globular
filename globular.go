@@ -1435,6 +1435,24 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	globule.startServices()
 
+	// So here I will wait until service are started...
+	/*for i:=60; i >0; i-- {
+		time.Sleep(5 * time.Second)
+		configs, _ := config.GetServicesConfigurations()
+		all_services_running := true;
+		for j:=0; j < len(configs); j++ {
+			c:= configs[j]
+			if c["State"] != "running" {
+				fmt.Println("service ", c["Name"], c["Path"], "is not running")
+				all_services_running = false
+			}
+		}
+
+		if all_services_running {
+			break;
+		}
+	}*/
+
 	// Watch config.
 	globule.watchConfig()
 
@@ -1630,10 +1648,8 @@ func (globule *Globule) setHost(ipv4, domain string) error {
 		return errors.New("no domain to set")
 	}
 
-	fmt.Println("-----> set ", ipv4, domain, " in /etc/hosts")
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
-		fmt.Println("------------> fail to open hosts file with error: ", err)
 		return err
 	}
 
@@ -1641,8 +1657,6 @@ func (globule *Globule) setHost(ipv4, domain string) error {
 	err = hosts.Save()
 	if err != nil {
 		fmt.Println("fail to save hosts ", ipv4, domain, " with error ", err)
-	}else{
-		fmt.Println("-----> entry ", ipv4, domain, "was set in hosts")
 	}
 	
 	return err
@@ -2087,21 +2101,20 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
 
-	/*id := domain + ":resource.ResourceService"
+
+	id := domain + ":resource.ResourceService"
 	val, ok := clients_.Load(id)
 	if ok {
-		fmt.Println("--------> return already created resource client ", domain)
 		return val.(*resource_client.Resource_Client), nil
-	}*/
+	}
 
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {
-		fmt.Println("--------> return newly created resource client ", domain)
 		resource_client_ = nil
 		return nil, err
 	}
 
-	//clients_.Store(id, resource_client_)
+	clients_.Store(id, resource_client_)
 
 	return resource_client_, nil
 }
