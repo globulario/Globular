@@ -1085,8 +1085,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	log.Println("service was installed")
-
-
+	
 	return nil
 }
 
@@ -1652,6 +1651,7 @@ func dist(g *Globule, path string, revision string) {
 
 		// 5. Build the deb package
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
+		
 		cmdOutput := &bytes.Buffer{}
 		cmd.Stdout = cmdOutput
 

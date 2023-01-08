@@ -168,7 +168,6 @@ func NewGlobule() *Globule {
 	// Here I will keep the start time...
 	// set path...
 	setSystemPath()
-
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -291,8 +290,6 @@ func (globule *Globule) registerAdminAccount() error {
 		fmt.Println("fail to get resource client ", err)
 		return err
 	}
-
-	fmt.Println("---------> resource client: ", resource_client_.GetMac(), resource_client_.GetAddress(), resource_client_.GetDomain())
 
 	// Create the admin account.
 	sa, err := resource_client_.GetAccount("sa")
@@ -724,7 +721,9 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 	args = append(args, globule.creds+"/san.conf")
 	args = append(args, "-extensions")
 	args = append(args, "v3_req")
-	err = exec.Command(cmd, args...).Run()
+	cmd_ := exec.Command(cmd, args...)
+	cmd_.Dir = os.TempDir()
+	err = cmd_.Run()
 	if err != nil {
 		return "", err
 	}
@@ -886,6 +885,7 @@ func enablePorts(ruleName, portsRange string) error {
 
 		// netsh advfirewall firewall add rule name="Globular-Services" dir=in action=allow protocol=TCP localport=10000-10100
 		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		cmd.Dir = os.TempDir()
 		//cmdOutput := &bytes.Buffer{}
 		//cmd.Stdout = cmdOutput
 
@@ -900,6 +900,7 @@ func enableProgramFwMgr(name, appname string) error {
 		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
 		appname = strings.ReplaceAll(appname, "/", "\\")
 		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
+		cmd.Dir = os.TempDir()
 		//cmd.Stdout = os.Stdout
 		//cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -910,6 +911,7 @@ func enableProgramFwMgr(name, appname string) error {
 func removeFromFwMgr(name, appname string) error {
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall delete rule name="%s" program="%s"`, name, appname))
+		cmd.Dir = os.TempDir()
 		//cmd.Stdout = os.Stdout
 		//cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -921,6 +923,7 @@ func deleteRule(name string) error {
 	if runtime.GOOS == "windows" {
 		// netsh advfirewall firewall delete rule name= rule "Globular-Services"
 		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall delete rule name="%s"`, name))
+		cmd.Dir = os.TempDir()
 		//cmd.Stdout = os.Stdout
 		//cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -1065,17 +1068,19 @@ func setSystemPath() error {
 		if Utility.Exists("/Library/LaunchDaemons/Globular.plist") {
 			config, err := os.ReadFile("/Library/LaunchDaemons/Globular.plist")
 			if err == nil {
-
 				config_ := string(config)
-				config_ = strings.ReplaceAll(config_, "</dict>",
-					`
+				if !strings.Contains(config_, "<key>PATH</key>") {
+					config_ = strings.ReplaceAll(config_, "</dict>",
+						`
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>PATH</key>
 		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin</string>
 	</dict>
 	</dict>`)
-			os.WriteFile("/Library/LaunchDaemons/Globular.plist", []byte(config_), 0644)
+
+					os.WriteFile("/Library/LaunchDaemons/Globular.plist", []byte(config_), 0644)
+				}
 			}
 		}
 	}
@@ -1230,7 +1235,6 @@ func deletePeersEvent(evt *eventpb.Event) {
  */
 func (globule *Globule) initPeers() error {
 
-	fmt.Println("init peers")
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
@@ -1309,6 +1313,8 @@ func (globule *Globule) initPeers() error {
  * Here I will create application backend connection.
  */
 func (globule *Globule) createApplicationConnection() error {
+
+	fmt.Println("-- create applications connections")
 	resource_client_, err := GetResourceClient(globule.getAddress())
 	if err != nil {
 		return err
@@ -1324,12 +1330,15 @@ func (globule *Globule) createApplicationConnection() error {
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				app := applications[i]
+				fmt.Println("---- create connection for ", app.Alias)
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
 				if err != nil {
 					fmt.Println("fail to create application connection  : ", app.Id, err)
 					log.Panicln(err)
 				}
 			}
+		}else{
+			fmt.Println("fail to retreive applications list with error: ", err)
 		}
 	}
 
@@ -1368,7 +1377,10 @@ func (globule *Globule) serve() error {
 	for i := 0; i < len(globule.Applications); i++ {
 		application := globule.Applications[i].(map[string]interface{})
 		// ex.. "console", "globular.io", "globulario"
-		globule.installApplication(application["Name"].(string), application["Address"].(string), application["Name"].(string))
+		err := globule.installApplication(application["Name"].(string), application["Address"].(string), application["Name"].(string))
+		if err != nil {
+			fmt.Println("fail to install application with error: ", err)
+		}
 	}
 
 	// Create application connection
@@ -1429,32 +1441,16 @@ func (globule *Globule) Serve() error {
 	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	startBrowser := false
-	if err == nil {
-		startBrowser = true
-	}
-
 	// Init peers
-	globule.initPeers()
+	 globule.initPeers()
+	if err != nil {
+		fmt.Println("fail to init peers whit error ", err)
+		return err
+	}
 
 	err = globule.serve()
 	if err != nil {
 		return err
-	}
-
-	if startBrowser {
-		// Here I will open the browser and set it to default address
-		address_ := globule.Protocol + "://" + globule.getDomain()
-		if globule.Protocol == "https" {
-			if globule.PortHttps != 443 {
-				address_ += ":" + Utility.ToString(globule.PortHttps)
-			}
-		} else {
-			if globule.PortHttp != 80 {
-				address_ += ":" + Utility.ToString(globule.PortHttp)
-			}
-		}
-		Utility.OpenBrowser(address_ + "/console")
 	}
 
 	return nil
@@ -1626,13 +1622,30 @@ func (globule *Globule) getAddress() string {
 }
 
 func (globule *Globule) setHost(ipv4, domain string) error {
+	if len(ipv4) == 0 {
+		return errors.New("no ipv4 address to set")
+	}
+
+	if len(domain) == 0 {
+		return errors.New("no domain to set")
+	}
+
+	fmt.Println("-----> set ", ipv4, domain, " in /etc/hosts")
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
+		fmt.Println("------------> fail to open hosts file with error: ", err)
 		return err
 	}
 
 	hosts.AddHost(ipv4, domain)
-	return hosts.Save()
+	err = hosts.Save()
+	if err != nil {
+		fmt.Println("fail to save hosts ", ipv4, domain, " with error ", err)
+	}else{
+		fmt.Println("-----> entry ", ipv4, domain, "was set in hosts")
+	}
+	
+	return err
 }
 
 /**
@@ -1730,7 +1743,6 @@ func (globule *Globule) registerIpToDns() error {
 		if err != nil {
 			return (err)
 		}
-
 	}
 
 	return globule.setHost(Utility.MyLocalIP(), globule.getDomain())
@@ -1967,7 +1979,7 @@ func (globule *Globule) Listen() error {
 		}
 	}
 
-	if (!Utility.Exists(globule.creds+"/"+globule.Certificate) ||  len(globule.Certificate) == 0) && globule.Protocol == "https" {
+	if (!Utility.Exists(globule.creds+"/"+globule.Certificate) || len(globule.Certificate) == 0) && globule.Protocol == "https" {
 		fmt.Println("generate certificates...")
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
@@ -2075,19 +2087,21 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
 
-	id := domain + ":resource.ResourceService"
+	/*id := domain + ":resource.ResourceService"
 	val, ok := clients_.Load(id)
 	if ok {
+		fmt.Println("--------> return already created resource client ", domain)
 		return val.(*resource_client.Resource_Client), nil
-	}
+	}*/
 
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
 	if err != nil {
+		fmt.Println("--------> return newly created resource client ", domain)
 		resource_client_ = nil
 		return nil, err
 	}
 
-	clients_.Store(id, resource_client_)
+	//clients_.Store(id, resource_client_)
 
 	return resource_client_, nil
 }
