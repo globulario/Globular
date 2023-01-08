@@ -1435,24 +1435,6 @@ func (globule *Globule) Serve() error {
 	// Start microservice manager.
 	globule.startServices()
 
-	// So here I will wait until service are started...
-	/*for i:=60; i >0; i-- {
-		time.Sleep(5 * time.Second)
-		configs, _ := config.GetServicesConfigurations()
-		all_services_running := true;
-		for j:=0; j < len(configs); j++ {
-			c:= configs[j]
-			if c["State"] != "running" {
-				fmt.Println("service ", c["Name"], c["Path"], "is not running")
-				all_services_running = false
-			}
-		}
-
-		if all_services_running {
-			break;
-		}
-	}*/
-
 	// Watch config.
 	globule.watchConfig()
 
