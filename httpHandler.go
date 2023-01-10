@@ -115,7 +115,7 @@ func handleRequestAndRedirect(address string, res http.ResponseWriter, req *http
 		port = Utility.ToInt(strings.Split(address, ":")[1])
 	}
 
-	config__, err := config_.GetRemoteConfig(address_, port, "")
+	config__, err := config_.GetRemoteConfig(address_, port)
 
 	if err == nil {
 		// if

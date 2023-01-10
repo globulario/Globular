@@ -185,6 +185,12 @@ func NewGlobule() *Globule {
 	g.ServicesRoot = config.GetServicesRoot()
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
+	// THOSE values must be change by the user...
+	g.Organization = "GLOBULARIO"
+	g.Country = "CA"
+	g.State = "QC"
+	g.City = "MTL"
+
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
 	}
