@@ -29,15 +29,13 @@ You will aslo need language specific code generator to generate globular grpc fi
 
 Go
 For go simply run,
-go get -u google.golang.org/protobuf/cmd/protoc-gen-go
-go install google.golang.org/protobuf/cmd/protoc-gen-go
-go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 Typescript
 
-Download protoc-gen-grpc-web.exe for the platform you need. Put the exec in the bin path rename it from original name to protoc-gen-grpc-web.exe
-
+Download protoc-gen-grpc-web from https://github.com/grpc/grpc-web/releases
+for the platform you need. Put the exec in the bin path rename it from original name to protoc-gen-grpc-web.exe
 
 Generate gRpc stub...
 
@@ -108,6 +106,7 @@ SQL driver
     sudo ldconfig
 
 Xapian
+    sudo apt-get install zlib1g-dev
     sudo wget https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz
     sudo tar -xvf xapian-core-1.4.18.tar.xz
     cd xapian-core-1.4.18
@@ -137,6 +136,7 @@ MONGO
 yt-dlp 
     sudo apt install python3.8
     sudo apt install python-is-python3
+    # get the last binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
     sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
     sudo chmod a+rx /usr/local/bin/yt-dlp
     
@@ -186,7 +186,7 @@ from globulario
 
 nano /etc/environment
     set the variable to point at services directory...
-    GLOBULAR_SERVICES_ROOT=/home/ubuntu/globulario/services
+    ServicesRoot=/home/ubuntu/globulario/services
 
 //////////////////////////////////////////////////////////////////////////////
 // ffmpeg 

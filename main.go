@@ -1085,7 +1085,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	log.Println("service was installed")
-	
+
 	return nil
 }
 
@@ -1374,7 +1374,7 @@ func dist(g *Globule, path string, revision string) {
 		</dict>
 		</plist>
 		`
-		os.WriteFile(app_content + "/Info.plist", []byte(plistFile), 0644)
+		os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0644)
 
 	} else if runtime.GOOS == "linux" {
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
@@ -1410,10 +1410,13 @@ func dist(g *Globule, path string, revision string) {
 			application := g.Applications[0].(map[string]interface{})
 			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PubliserId"].(string))
 			if err != nil {
-				fmt.Println(err)
-				return
+
+				fmt.Println("fail to package application", application["Name"].(string), "with error", err)
+
+			} else {
+				Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
 			}
-			Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
+
 		}
 
 		// Now the libraries...
@@ -1485,33 +1488,45 @@ func dist(g *Globule, path string, revision string) {
 		# Create the directory where the service will be install.
 		mkdir /etc/globular/config/services
 
+		# install libssl1.1 until mongodb will use libssl 3
+		echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
+		sudo apt-get update
+		sudo apt-get install libssl1.1
+
 		# install mongo db..
-		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
-		tar -zxvf mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
-		cp -R -n mongodb-linux-x86_64-ubuntu2004-5.0.5/bin/* /usr/local/bin
-		rm mongodb-linux-x86_64-ubuntu2004-5.0.5.tgz
-		rm -R mongodb-linux-x86_64-ubuntu2004-5.0.5
+		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.3.tgz
+		tar -zxvf mongodb-linux-x86_64-debian11-6.0.3.tgz
+		cp -R -n mongodb-linux-x86_64-debian11-6.0.3/bin/* /usr/local/bin
+		rm mongodb-linux-x86_64-debian11-6.0.3.tgz
+		rm -R mongodb-linux-x86_64-debian11-6.0.3
+
+		# install mongosh (shell)
+		curl -O https://downloads.mongodb.com/compass/mongosh-1.6.1-linux-x64.tgz
+		tar -zxvf mongosh-1.6.1-linux-x64.tgz
+		cp -R -n mongosh-1.6.1-linux-x64/bin/* /usr/local/bin
+		rm mongosh-1.6.1-linux-x64.tgz
+		rm -R mongosh-1.6.1-linux-x64
 
 		# -- Install prometheus
-		wget https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz
-		tar -xf prometheus-2.32.0.linux-amd64.tar.gz
-		cp prometheus-2.32.0.linux-amd64/prometheus /usr/local/bin/
-		cp prometheus-2.32.0.linux-amd64/promtool /usr/local/bin/
-		cp -r prometheus-2.32.0.linux-amd64/consoles /etc/prometheus/
-		cp -r prometheus-2.32.0.linux-amd64/console_libraries /etc/prometheus/
-		rm -rf prometheus-2.32.0.linux-amd64*
+		wget https://github.com/prometheus/prometheus/releases/download/v2.41.0/prometheus-2.41.0.linux-amd64.tar.gz
+		tar -xf prometheus-2.41.0.linux-amd64.tar.gz
+		cp prometheus-2.41.0.linux-amd64/prometheus /usr/local/bin/
+		cp prometheus-2.41.0.linux-amd64/promtool /usr/local/bin/
+		cp -r prometheus-2.41.0.linux-amd64/consoles /etc/prometheus/
+		cp -r prometheus-2.41.0.linux-amd64/console_libraries /etc/prometheus/
+		rm -rf prometheus-2.41.0.linux-amd64*
 
 		# -- Install alert manager
-		wget https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz
-		tar -xf alertmanager-0.23.0.linux-amd64.tar.gz
-		cp alertmanager-0.23.0.linux-amd64/alertmanager /usr/local/bin
-		rm -rf alertmanager-0.23.0.linux-amd64*
+		wget https://github.com/prometheus/alertmanager/releases/download/v0.25.0/alertmanager-0.25.0.linux-amd64.tar.gz
+		tar -xf alertmanager-0.25.0.linux-amd64.tar.gz
+		cp alertmanager-0.25.0.linux-amd64/alertmanager /usr/local/bin
+		rm -rf alertmanager-0.25.0.linux-amd64*
 
 		# -- Install node exporter
-		wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
-		tar -xf node_exporter-1.3.1.linux-amd64.tar.gz
-		cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin
-		rm -rf node_exporter-1.3.1.linux-amd64*
+		wget https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+		tar -xf node_exporter-1.5.0.linux-amd64.tar.gz
+		cp node_exporter-1.5.0.linux-amd64/node_exporter /usr/local/bin
+		rm -rf node_exporter-1.5.0.linux-amd64*
 
 		# -- Install yt-dlp
 		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/yt-dlp
@@ -1651,7 +1666,7 @@ func dist(g *Globule, path string, revision string) {
 
 		// 5. Build the deb package
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
-		
+
 		cmdOutput := &bytes.Buffer{}
 		cmd.Stdout = cmdOutput
 
@@ -2097,8 +2112,8 @@ func __dist(g *Globule, path, config_path string) []string {
 				protoPath := s["Proto"].(string)
 
 				// Copy the proto file.
-				if Utility.Exists(os.Getenv("GLOBULAR_SERVICES_ROOT") + "/" + protoPath) {
-					Utility.Copy(os.Getenv("GLOBULAR_SERVICES_ROOT")+"/"+protoPath, path+"/"+protoPath)
+				if Utility.Exists(os.Getenv("ServicesRoot") + "/" + protoPath) {
+					Utility.Copy(os.Getenv("ServicesRoot")+"/"+protoPath, path+"/"+protoPath)
 				}
 			}
 		}

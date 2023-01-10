@@ -69,7 +69,7 @@ type Globule struct {
 	Mac  string // The Mac addresse
 
 	// Where services can be found.
-	GLOBULAR_SERVICES_ROOT string
+	ServicesRoot string
 
 	// can be https or http.
 	Protocol   string
@@ -168,6 +168,7 @@ func NewGlobule() *Globule {
 	// Here I will keep the start time...
 	// set path...
 	setSystemPath()
+
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -181,8 +182,7 @@ func NewGlobule() *Globule {
 	g.PortHttps = 443                                                                                                                                           // The default https port number
 	g.PortsRange = "10000-10100"                                                                                                                                // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PubliserId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
-	g.GLOBULAR_SERVICES_ROOT = config.GetServicesRoot()
-
+	g.ServicesRoot = config.GetServicesRoot()
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
 	if g.AllowedOrigins == nil {
@@ -255,7 +255,20 @@ func NewGlobule() *Globule {
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 
-	g.initDirectories()
+	fmt.Println("start globule ", g.Name)
+
+	// If no configuration exist I will create it before initialyse directories and start services.
+	configPath := config.GetConfigDir() + "/config.json"
+	if !Utility.Exists(configPath){
+		g.config = config.GetConfigDir()
+		err :=	g.saveConfig()
+		if err != nil {
+			fmt.Println("fail to save local configuration with error", err)
+		}else{
+			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
+
+		}
+	}
 
 	return g
 }
@@ -316,8 +329,6 @@ func (globule *Globule) registerAdminAccount() error {
 		// Alway update the sa domain...
 		sa.Domain = domain
 		token, _ := security.GetLocalToken(globule.Mac)
-
-		fmt.Println("--------------> update domain: ", globule.getDomain(), domain)
 
 		_, err := security.ValidateToken(token)
 		if err != nil {
@@ -487,6 +498,8 @@ func (globule *Globule) saveConfig() error {
 	if err != nil {
 		return err
 	}
+
+	Utility.CreateDirIfNotExist(globule.config)
 
 	configPath := globule.config + "/config.json"
 
@@ -749,6 +762,11 @@ func (globule *Globule) initDirectories() error {
 
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
+	fmt.Println("root exec dir is", config.GetRootDir())
+	fmt.Println("webroot dir is", config.GetWebRootDir())
+	fmt.Println("services root path is", config.GetServicesDir())
+	fmt.Println("services configurations path is", config.GetServicesConfigDir())
+	
 	config_client.GetServicesConfigurations()
 
 	// DNS info.
@@ -1094,6 +1112,8 @@ func setSystemPath() error {
  */
 func (globule *Globule) startServices() error {
 
+
+
 	Utility.KillProcessByName("grpcwebproxy")
 
 	// Here I will generate the keys for this server if not already exist.
@@ -1337,7 +1357,7 @@ func (globule *Globule) createApplicationConnection() error {
 					log.Panicln(err)
 				}
 			}
-		}else{
+		} else {
 			fmt.Println("fail to retreive applications list with error: ", err)
 		}
 	}
@@ -1442,7 +1462,7 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Init peers
-	 globule.initPeers()
+	globule.initPeers()
 	if err != nil {
 		fmt.Println("fail to init peers whit error ", err)
 		return err
@@ -1640,7 +1660,7 @@ func (globule *Globule) setHost(ipv4, domain string) error {
 	if err != nil {
 		fmt.Println("fail to save hosts ", ipv4, domain, " with error ", err)
 	}
-	
+
 	return err
 }
 
@@ -2082,7 +2102,6 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
-
 
 	id := domain + ":resource.ResourceService"
 	val, ok := clients_.Load(id)
