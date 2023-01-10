@@ -732,6 +732,8 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+	fmt.Println("authentication succeed.")
+
 	dir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -854,28 +856,29 @@ func deploy(g *Globule, name string, organization string, path string, address s
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
+	fmt.Println("try to publish the application...")
 	discovery_client_, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
 	if err != nil {
-		log.Println(err)
+		fmt.Println("fail to connecto to discovery service at address", address, "with error", err)
 		return err
 	}
 
 	err = discovery_client_.PublishApplication(token, user, organization, "/"+name, name, address, version, description, icon, alias, address, address, actions, keywords, roles, groups)
 	if err != nil {
-		log.Println(err)
+		fmt.Println("fail to publish the application with error:", err)
 		return err
 	}
 
 	repository_client_, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
 	if err != nil {
-		log.Println(err)
+		fmt.Println("fail to connecto to repository service at address", address, "with error", err)
 		return err
 	}
 
 	log.Println("Upload application package")
 	_, err = repository_client_.UploadApplicationPackage(user, organization, path, token, address, name, version)
 	if err != nil {
-		log.Println(err)
+		fmt.Println("fail to upload the application package with error:", err)
 		return err
 	}
 
@@ -893,7 +896,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		publisherId = organization
 	}
 
-	fmt.Println("try to install the new deployed application...")
+	fmt.Println("try to install the newly deployed application...")
 
 	err = applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
 	if err != nil {
@@ -1661,8 +1664,6 @@ func dist(g *Globule, path string, revision string) {
 		if err != nil {
 			fmt.Println(err)
 		}
-
-		//
 
 		// 5. Build the deb package
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
