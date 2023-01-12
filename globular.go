@@ -183,7 +183,7 @@ func NewGlobule() *Globule {
 	g.PortHttp = 8080                                                                                                                                           // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443                                                                                                                                           // The default https port number
 	g.PortsRange = "10000-10100"                                                                                                                                // The default port range.
-	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PubliserId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
+	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
@@ -984,7 +984,7 @@ func resetRules() error {
 }
 
 func resetSystemPath() error {
-
+	
 	if runtime.GOOS == "windows" {
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
@@ -1015,6 +1015,7 @@ func resetSystemPath() error {
 			}
 		}
 
+		// set system path...
 		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 	}
 	return resetRules()
@@ -1027,6 +1028,7 @@ func setSystemPath() error {
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
 		if err != nil {
+			fmt.Println("fail to get environnement %Path with error", err)
 			return err
 		}
 
@@ -1049,15 +1051,38 @@ func setSystemPath() error {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 
 			if strings.HasSuffix(exec, "prometheus.exe") {
-				enableProgramFwMgr("prometheus", exec)
+				err := enableProgramFwMgr("prometheus", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for prometheus.exe with error", err)
+				}
 			}
 
 			if strings.HasSuffix(exec, "mongod.exe") {
-				enableProgramFwMgr("MongoDB Database Server", exec)
+				err := enableProgramFwMgr("MongoDB Database Server", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for mongod.exe with error", err)
+				}
 			}
 
 			if strings.HasSuffix(exec, "alertmanager.exe") {
-				enableProgramFwMgr("Prometheus Alert Manager Server", exec)
+				err := enableProgramFwMgr("Prometheus Alert Manager Server", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for alertmanager.exe with error", err)
+				}
+			}
+
+			if strings.HasSuffix(exec, "torrent.exe") {
+				err := enableProgramFwMgr("torrent", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for torrent.exe with error", err)
+				}
+			}
+
+			if strings.HasSuffix(exec, "yt-dlp.exe") {
+				enableProgramFwMgr("yt-dlp", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for yt-dlp.exe with error", err)
+				}
 			}
 
 			exec = exec[:strings.LastIndex(exec, "/")]
@@ -1072,26 +1097,23 @@ func setSystemPath() error {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 
 			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
-				enableProgramFwMgr("grpcwebproxy", exec)
-			}
-
-			if strings.HasSuffix(exec, "torrent.exe") {
-				enableProgramFwMgr("torrent", exec)
-			}
-
-			if strings.HasSuffix(exec, "yt-dlp.exe") {
-				enableProgramFwMgr("yt-dlp", exec)
+				err:= enableProgramFwMgr("grpcwebproxy", exec)
+				if err != nil {
+					fmt.Println("fail to set rule for grpcwebproxy.exe with error", err)
+				}
 			}
 		}
 
 		// Openssl conf require...
-		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl\openssl.cnf`) {
+		if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
 		} else {
 			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
 		}
 
-		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		fmt.Println("try to set the windows path: ",  strings.ReplaceAll(systemPath, "/", "\\"))
+		return err
 	} else if runtime.GOOS == "darwin" {
 		// Fix the path /usr/local/bin is not set by default...
 		if Utility.Exists("/Library/LaunchDaemons/Globular.plist") {
@@ -1408,7 +1430,8 @@ func (globule *Globule) serve() error {
 	for i := 0; i < len(globule.Applications); i++ {
 		application := globule.Applications[i].(map[string]interface{})
 		// ex.. "console", "globular.io", "globulario"
-		err := globule.installApplication(application["Name"].(string), application["Address"].(string), application["Name"].(string))
+		fmt.Println()
+		err := globule.installApplication(application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
 		if err != nil {
 			fmt.Println("fail to install application with error: ", err)
 		}
@@ -1587,6 +1610,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 	}
 
 	address, _ := config.GetAddress()
+
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService")
@@ -1595,20 +1619,16 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 		return err
 	}
 
-	// I will use the local token to do so.
-	path := config.GetConfigDir() + "/tokens/" + globule.getDomain() + "_token"
-	if !Utility.Exists(path) {
-		fmt.Println("no token found for domain " + globule.getDomain() + " at path " + path)
-		return errors.New("no token found for domain " + globule.getDomain() + " at path " + path)
-	}
+	mac, _ := Utility.MyMacAddr(Utility.MyLocalIP())
+	token, err := config.GetToken(mac)
 
-	token, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println("fail to read token at path " + path + " with error: " + err.Error())
-		return errors.New("fail to read token at path " + path + " with error: " + err.Error())
+		fmt.Println("fail to read token  with error: " + err.Error())
+		return errors.New("fail to read token with error: " + err.Error())
 	}
 
 	// first of all I will create and upload the package on the discovery...
+	fmt.Println("try to install application", application, "publish by",publisherId , "from discovery at", discovery, "and address at", address)
 	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)

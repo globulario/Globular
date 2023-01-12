@@ -604,6 +604,14 @@ func main() {
 				os.Exit(1)
 			}
 
+			if *deployCommand_organization != "" {
+				if !strings.Contains(*deployCommand_organization, "@") {
+					fmt.Print("You must sepcie the organisation domain ex. organization@domain.com where the domain is the domain where the globule where the organization is define.")
+					deployCommand.PrintDefaults()
+					os.Exit(1)
+				}
+			}
+
 			var set_as_default bool
 			if *deployCommand_index != "" {
 				set_as_default = *deployCommand_index == "true"
@@ -1316,8 +1324,12 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId string)
  * Globular dist -path=/tmp -revision=1
  */
 func dist(g *Globule, path string, revision string) {
+
+	// formalize path
+	path = strings.ReplaceAll(path, "\\", "/")
+
 	// That function is use to install globular at a given repository.
-	fmt.Println("create distribution in ", path)
+	fmt.Println("create distribution for ", runtime.GOOS, runtime.GOARCH, "at", path)
 
 	// first of all I will get the applications...
 	// TODO see if those values can be use as parameters...
@@ -1411,7 +1423,7 @@ func dist(g *Globule, path string, revision string) {
 		// Copy applications for offline installation...
 		if len(g.Applications) > 0 {
 			application := g.Applications[0].(map[string]interface{})
-			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PubliserId"].(string))
+			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
 			if err != nil {
 
 				fmt.Println("fail to package application", application["Name"].(string), "with error", err)
@@ -1675,7 +1687,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 		fmt.Print(cmdOutput.String())
 
-	} else if runtime.GOOS == "window" {
+	} else if runtime.GOOS == "windows" {
 		fmt.Println("Create the distro at path ", path)
 		root := path + "/Globular"
 		Utility.CreateIfNotExists(root, 0755)
@@ -1700,9 +1712,14 @@ func dist(g *Globule, path string, revision string) {
 
 		// redist
 		Utility.CreateDirIfNotExist(root + "/redist")
-		err = Utility.CopyDir(dir+"/redist/.", root+"/redist")
-		if err != nil {
-			log.Panicln("--> fail to copy redist ", err)
+
+		if Utility.Exists(dir + "/redist") {
+			err = Utility.CopyDir(dir+"/redist/.", root+"/redist")
+			if err != nil {
+				log.Panicln("--> fail to copy redist", root+"/redist", err)
+			}
+		} else {
+			fmt.Println("no directory found with path", dir+"/redist")
 		}
 
 		// application
@@ -1899,6 +1916,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	Utility.CreateDirIfNotExist(path)
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	dir = strings.ReplaceAll(dir, "\\", "/")
 
 	// Copy the exec to...
 
@@ -1948,21 +1966,26 @@ func __dist(g *Globule, path, config_path string) []string {
 	// Copy the bin file from globular
 	if runtime.GOOS == "windows" {
 		Utility.CreateDirIfNotExist(path + "/dependencies")
-		err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
-		if err != nil {
-			log.Panicln("--> fail to copy dependencies ", err)
-		}
+		if Utility.Exists(dir + "/dependencies") {
 
-		execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
-		for i := 0; i < len(execs); i++ {
-			err = os.Chmod(execs[i], 0755)
+			err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
 			if err != nil {
-				fmt.Println(err)
+				log.Panicln("--> fail to copy dependencies ", err)
 			}
+
+			execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
+			for i := 0; i < len(execs); i++ {
+				err = os.Chmod(execs[i], 0755)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		} else {
+			fmt.Println("no dir with dependencie was found at path", dir+"/dependencies")
 		}
 	}
 
-	// Change the files permission to add execute write.
+	// Change the files permission to add execute access.
 	/*files, err = ioutil.ReadDir(path + "/dependencies")
 	if err != nil {
 		log.Fatal(err)
