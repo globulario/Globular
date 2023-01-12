@@ -126,6 +126,8 @@ type Globule struct {
 
 	// Directories.
 	path    string // The path of the exec...
+
+	// Get it from 
 	webRoot string // The root of the http file server.
 	data    string // the data directory
 	creds   string // tls certificates
@@ -260,12 +262,15 @@ func NewGlobule() *Globule {
 	http.HandleFunc("/file_size", GetFileSizeAtUrl)
 
 	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+	g.path = strings.ReplaceAll(g.path, "\\", "/")
 
 	fmt.Println("start globule ", g.Name)
 
 	// If no configuration exist I will create it before initialyse directories and start services.
 	configPath := config.GetConfigDir() + "/config.json"
+
 	if !Utility.Exists(configPath){
+		Utility.CreateDirIfNotExist(config.GetConfigDir())
 		g.config = config.GetConfigDir()
 		err :=	g.saveConfig()
 		if err != nil {

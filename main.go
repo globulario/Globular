@@ -875,7 +875,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	log.Println("Upload application package")
+	log.Println("Upload application package at path ", path)
 	_, err = repository_client_.UploadApplicationPackage(user, organization, path, token, address, name, version)
 	if err != nil {
 		fmt.Println("fail to upload the application package with error:", err)
@@ -1547,8 +1547,6 @@ func dist(g *Globule, path string, revision string) {
 			rm /usr/local/lib/libodbccr.so
 			rm /usr/local/lib/libodbcinst.so.2
 			rm /usr/local/lib/libodbcinst.so
-			rm /usr/local/lib/libxapian.so.30
-			rm /usr/local/lib/libxapian.so
 		fi
 		`
 

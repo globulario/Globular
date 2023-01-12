@@ -105,15 +105,6 @@ SQL driver
     sudo make all install clean
     sudo ldconfig
 
-Xapian
-    sudo apt-get install zlib1g-dev
-    sudo wget https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz
-    sudo tar -xvf xapian-core-1.4.18.tar.xz
-    cd xapian-core-1.4.18
-    ./configure
-    sudo make all install clean
-    sudo ldconfig
-
 Protoc
     sudo apt install -y protobuf-compiler
 
