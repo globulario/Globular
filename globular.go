@@ -125,9 +125,9 @@ type Globule struct {
 	Applications []interface{}
 
 	// Directories.
-	path    string // The path of the exec...
+	path string // The path of the exec...
 
-	// Get it from 
+	// Get it from
 	webRoot string // The root of the http file server.
 	data    string // the data directory
 	creds   string // tls certificates
@@ -179,10 +179,10 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = ""                                                                                                                                     // I will use the installer as defaut.
-	g.PortHttp = 8080                                                                                                                                           // The default http port 80 is almost already use by other http server...
-	g.PortHttps = 443                                                                                                                                           // The default https port number
-	g.PortsRange = "10000-10100"                                                                                                                                // The default port range.
+	g.IndexApplication = ""                                                                                                                                      // I will use the installer as defaut.
+	g.PortHttp = 8080                                                                                                                                            // The default http port 80 is almost already use by other http server...
+	g.PortHttps = 443                                                                                                                                            // The default https port number
+	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
@@ -269,13 +269,13 @@ func NewGlobule() *Globule {
 	// If no configuration exist I will create it before initialyse directories and start services.
 	configPath := config.GetConfigDir() + "/config.json"
 
-	if !Utility.Exists(configPath){
+	if !Utility.Exists(configPath) {
 		Utility.CreateDirIfNotExist(config.GetConfigDir())
 		g.config = config.GetConfigDir()
-		err :=	g.saveConfig()
+		err := g.saveConfig()
 		if err != nil {
 			fmt.Println("fail to save local configuration with error", err)
-		}else{
+		} else {
 			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
 
 		}
@@ -777,7 +777,7 @@ func (globule *Globule) initDirectories() error {
 	fmt.Println("webroot dir is", config.GetWebRootDir())
 	fmt.Println("services root path is", config.GetServicesDir())
 	fmt.Println("services configurations path is", config.GetServicesConfigDir())
-	
+
 	config_client.GetServicesConfigurations()
 
 	// DNS info.
@@ -984,7 +984,7 @@ func resetRules() error {
 }
 
 func resetSystemPath() error {
-	
+
 	if runtime.GOOS == "windows" {
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
@@ -1097,7 +1097,7 @@ func setSystemPath() error {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 
 			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
-				err:= enableProgramFwMgr("grpcwebproxy", exec)
+				err := enableProgramFwMgr("grpcwebproxy", exec)
 				if err != nil {
 					fmt.Println("fail to set rule for grpcwebproxy.exe with error", err)
 				}
@@ -1112,7 +1112,7 @@ func setSystemPath() error {
 		}
 
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
-		fmt.Println("try to set the windows path: ",  strings.ReplaceAll(systemPath, "/", "\\"))
+		fmt.Println("try to set the windows path: ", strings.ReplaceAll(systemPath, "/", "\\"))
 		return err
 	} else if runtime.GOOS == "darwin" {
 		// Fix the path /usr/local/bin is not set by default...
@@ -1144,8 +1144,6 @@ func setSystemPath() error {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
-
-
 
 	Utility.KillProcessByName("grpcwebproxy")
 
@@ -1628,7 +1626,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	fmt.Println("try to install application", application, "publish by",publisherId , "from discovery at", discovery, "and address at", address)
+	fmt.Println("try to install application", application, "publish by", publisherId, "from discovery at", discovery, "and address at", address)
 	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
@@ -2118,7 +2116,14 @@ func GetServiceManagerClient(domain string) (*service_manager_client.Services_Ma
 	id := domain + ":services_manager.ServicesManagerService"
 	val, ok := clients_.Load(id)
 	if ok {
-		return val.(*service_manager_client.Services_Manager_Client), nil
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(val.(*service_manager_client.Services_Manager_Client).GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port == val.(*service_manager_client.Services_Manager_Client).GetPort() {
+				return val.(*service_manager_client.Services_Manager_Client), nil
+			}
+		}
 	}
 
 	service_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
@@ -2137,7 +2142,14 @@ func GetResourceClient(domain string) (*resource_client.Resource_Client, error) 
 	id := domain + ":resource.ResourceService"
 	val, ok := clients_.Load(id)
 	if ok {
-		return val.(*resource_client.Resource_Client), nil
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(val.(*resource_client.Resource_Client).GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port == val.(*resource_client.Resource_Client).GetPort() {
+				return val.(*resource_client.Resource_Client), nil
+			}
+		}
 	}
 
 	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
@@ -2156,7 +2168,14 @@ func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client
 	id := domain + ":persistence.PersistenceService"
 	val, ok := clients_.Load(id)
 	if ok {
-		return val.(*persistence_client.Persistence_Client), nil
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(val.(*persistence_client.Persistence_Client).GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port == val.(*persistence_client.Persistence_Client).GetPort() {
+				return val.(*persistence_client.Persistence_Client), nil
+			}
+		}
 	}
 
 	persistence_client_, err := persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
@@ -2430,11 +2449,23 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 
 // /////////////////// search engine /////////////////////////////
 func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
+	// validate the port has not change...
+	if search_engine_client_ != nil {
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(search_engine_client_.GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port != search_engine_client_.GetPort() {
+				search_engine_client_ = nil // force the client to reconnect...
+			}
+		}
+	}
 
 	var err error
 	if search_engine_client_ != nil {
 		return search_engine_client_, nil
 	}
+
 	search_engine_client_, err = search_client.NewSearchService_Client(globule.getAddress(), "search.SearchService")
 	if err != nil {
 		return nil, err
@@ -2445,6 +2476,18 @@ func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) 
 
 // /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
+	// validate the port has not change...
+	if event_client_ != nil {
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(event_client_.GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port != event_client_.GetPort() {
+				event_client_ = nil // force the client to reconnect...
+			}
+		}
+	}
+
 	var err error
 	if event_client_ != nil {
 		return event_client_, nil
@@ -2482,6 +2525,18 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
  * Get the fmt client.
  */
 func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
+	// validate the port has not change...
+	if log_client_ != nil {
+		// here I will validate the port is the same.
+		config, err := config.GetServiceConfigurationById(log_client_.GetId())
+		if err == nil && config != nil {
+			port := Utility.ToInt(config["Port"])
+			if port != log_client_.GetPort() {
+				log_client_ = nil // force the client to reconnect...
+			}
+		}
+	}
+
 	var err error
 	if log_client_ == nil {
 		log_client_, err = log_client.NewLogService_Client(globule.getAddress(), "log.LogService")
