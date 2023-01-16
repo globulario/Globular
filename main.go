@@ -1232,13 +1232,13 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId string)
 	}
 
 	// Create the application dir if is not exist.
-	err = Utility.CreateDirIfNotExist(g.path + "/applications")
+	err = Utility.CreateDirIfNotExist(g.Path + "/applications")
 	if err != nil {
 		return "", "", err
 	}
 
 	// Set the path
-	path := g.path + "/applications/" + application + "_" + pulbisherId + "_" + descriptor.Version
+	path := g.Path + "/applications/" + application + "_" + pulbisherId + "_" + descriptor.Version
 	if Utility.Exists(path + ".tar.gz") {
 		return path + ".tar.gz", application + "_" + pulbisherId + "_" + descriptor.Version + ".tar.gz", nil // already ready to be downloaded...
 	}
@@ -1334,7 +1334,27 @@ func dist(g *Globule, path string, revision string) {
 	// first of all I will get the applications...
 	// TODO see if those values can be use as parameters...
 
+	// Now I will copy the application icon to the resource.
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
 	// Console 1.0.3
+	// application
+	if !Utility.Exists(dir + "/applications") {
+		// Copy applications for offline installation...
+		for i := 0; i < len(g.Applications); i++ {
+			application := g.Applications[i].(map[string]interface{})
+			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
+			if err != nil {
+
+				fmt.Println("fail to package application", application["Name"].(string), "with error", err)
+
+			} else {
+				Utility.CopyFile(console_application_path, dir+"/applications"+"/"+console_application)
+			}
+		}
+	}
+
+	defer os.RemoveAll(dir + "/applications")
 
 	// The debian package...
 	if runtime.GOOS == "darwin" {
@@ -1352,15 +1372,16 @@ func dist(g *Globule, path string, revision string) {
 		app_bin := app_content + "/MacOS"
 		app_resource := app_content + "/Resources"
 		config_path := app_bin + "/etc/globular/config"
+		applications_path := app_bin + "/var/globular/applications"
+
+		// Copy applications for offline installation...
+		Utility.CopyDir(dir + "/applications/.", applications_path)
 
 		// create directories...
 		Utility.CreateDirIfNotExist(app_content)
 		Utility.CreateDirIfNotExist(app_bin)
 		Utility.CreateDirIfNotExist(config_path)
 		Utility.CreateDirIfNotExist(app_resource)
-
-		// Now I will copy the application icon to the resource.
-		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
 		err := Utility.CopyFile(dir+"/assets/icon.icns", app_resource+"/icon.icns")
 		if err != nil {
@@ -1421,18 +1442,7 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(applications_path)
 
 		// Copy applications for offline installation...
-		if len(g.Applications) > 0 {
-			application := g.Applications[0].(map[string]interface{})
-			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
-			if err != nil {
-
-				fmt.Println("fail to package application", application["Name"].(string), "with error", err)
-
-			} else {
-				Utility.CopyFile(console_application_path, applications_path+"/"+console_application)
-			}
-
-		}
+		Utility.CopyDir(dir + "/applications/.", applications_path)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
@@ -1722,9 +1732,9 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println("no directory found with path", dir+"/redist")
 		}
 
-		// application
 		Utility.CreateDirIfNotExist(app + "/applications")
 		err = Utility.CopyDir(dir+"/applications/.", app+"/applications")
+
 		if err != nil {
 			log.Panicln("--> fail to copy applications ", err)
 		}

@@ -126,7 +126,7 @@ type Globule struct {
 	Applications []interface{}
 
 	// Directories.
-	path string // The path of the exec...
+	Path string // The path of the exec...
 
 	// Get it from
 	webRoot string // The root of the http file server.
@@ -262,8 +262,8 @@ func NewGlobule() *Globule {
 	// Get the file size at a given url.
 	http.HandleFunc("/file_size", GetFileSizeAtUrl)
 
-	g.path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
-	g.path = strings.ReplaceAll(g.path, "\\", "/")
+	g.Path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+	g.Path = strings.ReplaceAll(g.Path, "\\", "/")
 
 	fmt.Println("start globule ", g.Name)
 
