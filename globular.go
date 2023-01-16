@@ -29,6 +29,7 @@ import (
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
+	"github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/persistence/persistence_client"
@@ -309,7 +310,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// get the resource client
-	resource_client_, err := GetResourceClient(address)
+	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		fmt.Println("fail to get resource client ", err)
 		return err
@@ -417,7 +418,7 @@ func (globule *Globule) registerAdminAccount() error {
  * The admin group contain all action...
  */
 func (globule *Globule) createAdminRole() error {
-	resource_client_, err := GetResourceClient(globule.getAddress())
+	resource_client_, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1286,7 +1287,7 @@ func deletePeersEvent(evt *eventpb.Event) {
  */
 func (globule *Globule) initPeers() error {
 
-	resource_client_, err := GetResourceClient(globule.getAddress())
+	resource_client_, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1321,7 +1322,7 @@ func (globule *Globule) initPeers() error {
 		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail, localDomain)
 		if err == nil {
 			// update local peer info for each peer...
-			resource_client__, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+			resource_client__, err := getResourceClient(address)
 			if err == nil {
 				// retreive the local peer infos
 				peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
@@ -1366,7 +1367,7 @@ func (globule *Globule) initPeers() error {
 func (globule *Globule) createApplicationConnection() error {
 
 	fmt.Println("-- create applications connections")
-	resource_client_, err := GetResourceClient(globule.getAddress())
+	resource_client_, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return err
 	}
@@ -1885,7 +1886,7 @@ func (globule *Globule) watchForUpdate() {
 				services, _ := config.GetServicesConfigurations()
 
 				// get the resource client
-				resource_client_, err := GetResourceClient(discovery)
+				resource_client_, err := getResourceClient(discovery)
 				if err == nil {
 					for i := 0; i < len(services); i++ {
 						s := services[i]
@@ -2099,102 +2100,43 @@ func (globule *Globule) Listen() error {
 	return err
 }
 
-var (
-
-	// local connections
-	event_client_         *event_client.Event_Client
-	search_engine_client_ *search_client.Search_Client
-	log_client_           *log_client.Log_Client
-
-	// local and remote connections.
-	clients_ *sync.Map = new(sync.Map)
-)
-
 // ////////////////////// Resource Client ////////////////////////////////////////////
 func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
 
-	id := domain + ":services_manager.ServicesManagerService"
-	val, ok := clients_.Load(id)
-	if ok {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(val.(*service_manager_client.Services_Manager_Client).GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port == val.(*service_manager_client.Services_Manager_Client).GetPort() {
-				return val.(*service_manager_client.Services_Manager_Client), nil
-			}
-		}
-	}
-
-	service_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+	Utility.RegisterFunction("NewServicesManagerService_Client", service_manager_client.NewServicesManagerService_Client)
+	client, err := globular_client.GetClient(domain, "services_manager.ServicesManagerService", "NewServicesManagerService_Client")
 	if err != nil {
-		service_manager_client_ = nil
 		return nil, err
 	}
-	clients_.Store(id, service_manager_client_)
+	return client.(*service_manager_client.Services_Manager_Client), nil
 
-	return service_manager_client_, nil
 }
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
-func GetResourceClient(domain string) (*resource_client.Resource_Client, error) {
-
-	id := domain + ":resource.ResourceService"
-	val, ok := clients_.Load(id)
-	if ok {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(val.(*resource_client.Resource_Client).GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port == val.(*resource_client.Resource_Client).GetPort() {
-				return val.(*resource_client.Resource_Client), nil
-			}
-		}
-	}
-
-	resource_client_, err := resource_client.NewResourceService_Client(domain, "resource.ResourceService")
+func getResourceClient(address string) (*resource_client.Resource_Client, error) {
+	Utility.RegisterFunction("NewResourceService_Client", resource_client.NewResourceService_Client)
+	client, err := globular_client.GetClient(address, "resource.ResourceService", "NewResourceService_Client")
 	if err != nil {
-		resource_client_ = nil
 		return nil, err
 	}
-
-	clients_.Store(id, resource_client_)
-
-	return resource_client_, nil
+	return client.(*resource_client.Resource_Client), nil
 }
 
-// ////////////////////// Resource Client ////////////////////////////////////////////
-func GetPersistenceClient(domain string) (*persistence_client.Persistence_Client, error) {
-	id := domain + ":persistence.PersistenceService"
-	val, ok := clients_.Load(id)
-	if ok {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(val.(*persistence_client.Persistence_Client).GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port == val.(*persistence_client.Persistence_Client).GetPort() {
-				return val.(*persistence_client.Persistence_Client), nil
-			}
-		}
-	}
-
-	persistence_client_, err := persistence_client.NewPersistenceService_Client(domain, "persistence.PersistenceService")
+// ////////////////////// Persistence Client ////////////////////////////////////////////
+func GetPersistenceClient(address string) (*persistence_client.Persistence_Client, error) {
+	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
+	client, err := globular_client.GetClient(address, "persistence.PersistenceService", "NewPersistenceService_Client")
 	if err != nil {
-		persistence_client_ = nil
-		fmt.Println("fail to get persistence client with error ", err)
 		return nil, err
 	}
-
-	clients_.Store(id, persistence_client_)
-
-	return persistence_client_, nil
+	return client.(*persistence_client.Persistence_Client), nil
 }
 
 /**
  * Return an application with a given id
  */
 func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2214,7 +2156,7 @@ func (globule *Globule) accountExist(id string) bool {
  * Return a group with a given id
  */
 func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2246,7 +2188,7 @@ func (globule *Globule) groupExist(id string) bool {
  * Return an application with a given id
  */
 func (globule *Globule) getApplication(applicationId string) (*resourcepb.Application, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2278,7 +2220,7 @@ func (globule *Globule) applicationExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2310,7 +2252,7 @@ func (globule *Globule) peerExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2342,7 +2284,7 @@ func (globule *Globule) organisationExist(id string) bool {
  * Return a role with a given id
  */
 func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
-	resourceClient, err := GetResourceClient(globule.getAddress())
+	resourceClient, err := getResourceClient(globule.getAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -2371,26 +2313,16 @@ func (globule *Globule) roleExist(id string) bool {
 }
 
 //////////////////////// RBAC function //////////////////////////////////////////////
-
 /**
  * Get the rbac client.
  */
-func GetRbacClient(domain string) (*rbac_client.Rbac_Client, error) {
-	id := domain + ":rbac.RbacService"
-	val, ok := clients_.Load(id)
-	if ok {
-		return val.(*rbac_client.Rbac_Client), nil
-	}
-
-	rbac_client_, err := rbac_client.NewRbacService_Client(domain, "rbac.RbacService")
+func GetRbacClient(address string) (*rbac_client.Rbac_Client, error) {
+	Utility.RegisterFunction("NewRbacService_Client", rbac_client.NewRbacService_Client)
+	client, err := globular_client.GetClient(address, "rbac.RbacService", "NewRbacService_Client")
 	if err != nil {
-		rbac_client_ = nil
 		return nil, err
 	}
-
-	clients_.Store(id, rbac_client_)
-
-	return rbac_client_, nil
+	return client.(*rbac_client.Rbac_Client), nil
 }
 
 // Use rbac client here...
@@ -2449,55 +2381,22 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 
 // /////////////////// search engine /////////////////////////////
 func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
-	// validate the port has not change...
-	if search_engine_client_ != nil {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(search_engine_client_.GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port != search_engine_client_.GetPort() {
-				search_engine_client_ = nil // force the client to reconnect...
-			}
-		}
-	}
-
-	var err error
-	if search_engine_client_ != nil {
-		return search_engine_client_, nil
-	}
-
-	search_engine_client_, err = search_client.NewSearchService_Client(globule.getAddress(), "search.SearchService")
+	Utility.RegisterFunction("NewSearchService_Client", search_client.NewSearchService_Client)
+	client, err := globular_client.GetClient(globule.getAddress(), "search.SearchService", "NewRbacService_Client")
 	if err != nil {
 		return nil, err
 	}
-
-	return search_engine_client_, nil
+	return client.(*search_client.Search_Client), nil
 }
 
 // /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
-	// validate the port has not change...
-	if event_client_ != nil {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(event_client_.GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port != event_client_.GetPort() {
-				event_client_ = nil // force the client to reconnect...
-			}
-		}
-	}
-
-	var err error
-	if event_client_ != nil {
-		return event_client_, nil
-	}
-	event_client_, err = event_client.NewEventService_Client(globule.getAddress(), "event.EventService")
+	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
+	client, err := globular_client.GetClient(globule.getAddress(), "event.EventService", "NewEventService_Client")
 	if err != nil {
 		return nil, err
 	}
-
-	return event_client_, nil
+	return client.(*event_client.Event_Client), nil
 }
 
 func (globule *Globule) publish(event string, data []byte) error {
@@ -2511,12 +2410,20 @@ func (globule *Globule) publish(event string, data []byte) error {
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
 	eventClient, err := globule.getEventClient()
 	if err != nil {
+		fmt.Println("fail to get event client with error: ", err)
 		return err
 	}
 
 	err = eventClient.Subscribe(evt, globule.Name, listener)
+	if err != nil {
+		
+		fmt.Println("fail to subscribe to event with error: ", err )
+		return err
+	}
+
+	fmt.Println("subscribe to event", evt, "succed on ", eventClient.GetName() + "" + eventClient.GetDomain(), eventClient.GetPort())
 	// register a listener...
-	return err
+	return nil
 }
 
 ///////////////////////  fmt Services functions ////////////////////////////////////////////////
@@ -2524,34 +2431,24 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 /**
  * Get the fmt client.
  */
+/**
+ * Get the log client.
+ */
 func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
-	// validate the port has not change...
-	if log_client_ != nil {
-		// here I will validate the port is the same.
-		config, err := config.GetServiceConfigurationById(log_client_.GetId())
-		if err == nil && config != nil {
-			port := Utility.ToInt(config["Port"])
-			if port != log_client_.GetPort() {
-				log_client_ = nil // force the client to reconnect...
-			}
-		}
+	Utility.RegisterFunction("NewLogService_Client", log_client.NewLogService_Client)
+	client, err := globular_client.GetClient(globule.getAddress(), "log.LogService", "NewLogService_Client")
+	if err != nil {
+		return nil, err
 	}
 
-	var err error
-	if log_client_ == nil {
-		log_client_, err = log_client.NewLogService_Client(globule.getAddress(), "log.LogService")
-		if err != nil {
-			return nil, err
-		}
-
-	}
-	return log_client_, nil
+	return client.(*log_client.Log_Client), nil
 }
 
-func (globule *Globule) log(fileLine, functionName, message string, level logpb.LogLevel) {
+func (globule *Globule) log(fileLine, functionName, message string, level logpb.LogLevel) error {
 	log_client_, err := globule.GetLogClient()
 	if err != nil {
-		return
+		return err
 	}
-	log_client_.Log(globule.Name, globule.getAddress(), functionName, level, message, fileLine, functionName)
+
+	return log_client_.Log(globule.Name, globule.getAddress(), functionName, level, message, fileLine, functionName)
 }
