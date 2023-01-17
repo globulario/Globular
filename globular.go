@@ -1414,6 +1414,7 @@ func (globule *Globule) stopServices() error {
 		process.KillServiceProcess(services[i])
 	}
 
+	// Close grpc proxy
 	Utility.KillProcessByName("grpcwebproxy")
 
 	// Now I will set configuration values
