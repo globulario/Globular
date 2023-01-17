@@ -453,8 +453,8 @@ func (globule *Globule) getConfig() map[string]interface{} {
 
 	// TODO filter unwanted attributes...
 	config_, _ := Utility.ToMap(globule)
-	config_["Domain"], _ = config.GetDomain()
-	config_["Name"], _ = config.GetName()
+	config_["Domain"] = globule.Domain
+	config_["Name"] = globule.Name
 
 	services, _ := config_client.GetServicesConfigurations()
 
@@ -1416,6 +1416,15 @@ func (globule *Globule) stopServices() error {
 
 	Utility.KillProcessByName("grpcwebproxy")
 
+	// Now I will set configuration values
+	services_configs, _ := config.GetServicesConfigurations()
+	for i:=0; i < len(services_configs); i++ {
+		services_configs[i]["State"] = "stopped";
+		services_configs[i]["Process"] = -1;
+		services_configs[i]["ProxyProcess"] = -1;
+		config.SaveServiceConfiguration(services_configs[i])
+	}
+
 	return nil
 }
 
@@ -1764,6 +1773,8 @@ func (globule *Globule) registerIpToDns() error {
 	for i := 0; i < len(globule.DnsUpdateIpInfos); i++ {
 
 		// the api call "https://api.godaddy.com/v1/domains/globular.io/records/A/@"
+		// example,
+		// {"SetA":"https://api.godaddy.com/v1/domains/globular.io/records/A/@", "Key":"", "Secret":""}
 		setA := globule.DnsUpdateIpInfos[i].(map[string]interface{})["SetA"].(string)
 		key := globule.DnsUpdateIpInfos[i].(map[string]interface{})["Key"].(string)
 		secret := globule.DnsUpdateIpInfos[i].(map[string]interface{})["Secret"].(string)
