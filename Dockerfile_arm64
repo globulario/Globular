@@ -51,13 +51,6 @@ RUN rm zlib-1.2.11.tar.gz
 WORKDIR zlib-1.2.11
 RUN ./configure && make all install clean && ldconfig
 
-# -- Install xapian the search engine.
-RUN curl  https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz --output xapian-core-1.4.18.tar.xz
-RUN tar -xvf xapian-core-1.4.18.tar.xz
-RUN rm xapian-core-1.4.18.tar.xz
-WORKDIR xapian-core-1.4.18
-RUN ./configure && make all install clean && ldconfig
-
 # -- Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp  --output /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp

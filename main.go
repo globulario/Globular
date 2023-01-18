@@ -1452,10 +1452,6 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CopyFile("/usr/local/lib/libz.a", libpath+"/libz.a")
 		Utility.CopyFile("/usr/local/lib/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
 
-		// Xapian libraries
-		Utility.CopyFile("/usr/local/lib/libxapian.la", libpath+"/libxapian.la")
-		Utility.CopyFile("/usr/local/lib/libxapian.so.30.11.0", libpath+"/libxapian.so.30.11.0")
-
 		// ODBC libraries...
 		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
 		Utility.CopyFile("/usr/local/lib/libodbc.so.2.0.0", libpath+"/libodbc.so.2.0.0")
@@ -1514,9 +1510,8 @@ func dist(g *Globule, path string, revision string) {
 		mkdir /etc/globular/config/services
 
 		# install libssl1.1 until mongodb will use libssl 3
-		echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
-		sudo apt-get update
-		sudo apt-get install libssl1.1
+		wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
+		dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.3.tgz
@@ -1597,7 +1592,6 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
 		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
 		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
-		 ln -s /usr/local/share/globular/bin/create-vod-hls.sh /usr/local/bin/create-vod-hls.sh
 
 		 chmod ugo+x /usr/local/bin/Globular
 		 /usr/local/bin/Globular install
@@ -1618,9 +1612,7 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so
 		 ln -s /usr/local/lib/libodbcinst.so.2.0.0 /usr/local/lib/libodbcinst.so.2
 		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
-		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so.30
-		 ln -s /usr/local/lib/libxapian.so.30.11.0 /usr/local/lib/libxapian.so
-		
+
 		 ldconfig
 		 
 		 cd; cd -
@@ -1664,7 +1656,6 @@ func dist(g *Globule, path string, revision string) {
 			rm /etc/systemd/system/Globular.service
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
-			rm /usr/local/bin/create-vod-hls.sh
 			rm /usr/local/bin/grpcwebproxy
 			rm /usr/local/lib/libz.so
 			rm /usr/local/lib/libz.so.1
@@ -1674,8 +1665,6 @@ func dist(g *Globule, path string, revision string) {
 			rm /usr/local/lib/libodbccr.so
 			rm /usr/local/lib/libodbcinst.so.2
 			rm /usr/local/lib/libodbcinst.so
-			rm /usr/local/lib/libxapian.so.30
-			rm /usr/local/lib/libxapian.so
 		fi
 		
 		echo "Hope to see you again soon!"

@@ -1,187 +1,58 @@
+To install globular on linux
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Windows
-////////////////////////////////////////////////////////////////////////////////////////////////
-How to setup globular developement environnement on windows.
+from command prompt,
+if globular was previously install stop the service,
 
-first of all install Go 1.17
+    sudo service Globular stop
 
-https://golang.org/dl/
+remove the previous installation,
 
-Test if go is correctly install with 
-go version
-> go version go1.17 windows/amd64
+    sudo apt-get remove globular
 
-Now create a dir name globulario
+if you want to also remove previous configurations,
 
-mkdir globulario
-cd globulario
+    sudo apt-get remove --purge globular
 
-Clone git pojet,
-git clone https://github.com/globulario/services.git
-git clone https://github.com/globulario/Globular.git
-git clone https://github.com/davecourtois/Utility.git
+Now download globular debian package and install it.
 
-Now I will compile the services. The first step is to generate gRpc files.
-To do so you must have gRpc installed on your computer. (I will not explain how to install it here).
+    sudo apt-get install globular_x.xxx.deb
 
-You will aslo need language specific code generator to generate globular grpc files,
+Globular is now running as a service on your linux computer.
 
-Go
-For go simply run,
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+if you want to run it in the console. First stop the service,
 
-Typescript
+    sudo service Globular stop
 
-Download protoc-gen-grpc-web from https://github.com/grpc/grpc-web/releases
-for the platform you need. Put the exec in the bin path rename it from original name to protoc-gen-grpc-web.exe
+go to the exec location
 
-Generate gRpc stub...
+    cd /usr/local/share/globular
 
-if you are in a linux shell simply run command 
-sh generateCode.sh
+run globular 
 
-otherwise copy all the generateCode.sh and paste it in a command prompt, it will run all command one after another.
+    sudo ./Globular
 
-C# and C++ generator must be compile from source code, I will not define how to do it but I successfully compile it with msys2 on windows.
+dont forgot to start globular as service when you are finish your test...
 
-Now to compile golang services 
-cd golang
-go mod tidy
-sh build.sh
+    sudo service Globular start
 
+et voila
 
-Now globular from globulario dir,
-cd Globular
-go mod tidy
-go build
+Setup remote share with cifs
 
-Et voila you got a working globular executable and services!
+first of all install cifs 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Raspberry Pie
-////////////////////////////////////////////////////////////////////////////////////////////////
-Here is a detail version on how to do the same thing on a raspberry pi4
-There is the setup of the development environnement for a raspery pi.
+    sudo apt install cifs-utils
 
-// Required...
-sudo apt update
-sudo apt install python3.8
-sudo apt install python-is-python3
-sudo apt install nano
-sudo apt install openssh-server
+create mount point on your server
+ 
+    cd /mnt
+    sudo mkdir wd_red_01
+
+edit fstab entry
+    sudo nano /etc/fstab 
+
+add line (set the user and password with your actual information)
+
+    //192.168.0.193/wd_red_01  /mnt/wd_red_01  cifs user=administrator,password=pass  0 0
 
 
-install required tools and libraries.
-Git
-    sudo apt install git-all
-
-Go
-    sudo apt install net-tools
-    sudo apt-get update
-    sudo apt-get -y upgrade
-
-    mkdir temp
-    cd temp/
-    wget https://golang.org/dl/go1.16.7.linux-arm64.tar.gz
-    sudo tar -xvf go1.16.7.linux-arm64.tar.gz
-    sudo mv go /usr/local/
-    
-    sudo nano ~/.bashrc
-    
-    modify the path,
-    
-    export GOROOT=/usr/local/go
-    export GOPATH=$HOME/go
-    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-
-SQL driver
-    sudo apt-get install build-essential
-    sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
-    sudo tar -xvf unixODBC-2.3.9.tar.gz
-    cd unixODBC-2.3.9/
-    sudo ./configure
-    sudo make all install clean
-    sudo ldconfig
-
-Protoc
-    sudo apt install -y protobuf-compiler
-
-MONGO
-    sudo apt update
-    sudo apt upgrade
-
-    # Install the MongoDB 4.4 GPG key:
-    wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-
-    # Add the source location for the MongoDB packages:
-    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-
-    # Download the package details for the MongoDB packages:
-    sudo apt-get update
-
-    # Install MongoDB:
-    sudo apt-get install -y mongodb-org
-
-yt-dlp 
-    sudo apt install python3.8
-    sudo apt install python-is-python3
-    # get the last binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
-    sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
-    sudo chmod a+rx /usr/local/bin/yt-dlp
-    
-ffmpeg
-    https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
-    binary
-    curl https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz --output ffmpeg-git-amd64-static.tar.xz
-    tar -xvf ffmpeg-git-amd64-static.tar.xz
-    cd ffmpeg-git-20220910-amd64-static
-    sudo cp ffmpeg /usr/local/bin
-    sudo cp ffprobe /usr/local/bin
-
-    sudo apt install -y ffmpeg
-
-gRPC
-  go get -u google.golang.org/protobuf/cmd/protoc-gen-go
-  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-  go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
-  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
-grpcproxy
-  git clone github.com/improbable-eng/grpc-web.git
-  cd go/grpcwebproxy
-  go build
-  cp grpcwebproxy ~/globulario/services/bin/
-  sudo chmod +x  ~/globulario/services/bin/grpcwebproxy
-
-Now globular...
-
-    mkdir globulario
-    cd globulario
-    
-    git clone https://github.com/globulario/Globular.git
-    git clone https://github.com/globulario/services.git
-    git clone https://github.com/davecourtois/Utility.git
-
-from globulario
-    cd services
-    sh generateCode.sh
-    cd golang
-    go mod tidy
-    sh build.sh
-
-from globulario
-    go mod tidy
-    go build
-
-nano /etc/environment
-    set the variable to point at services directory...
-    ServicesRoot=/home/ubuntu/globulario/services
-
-//////////////////////////////////////////////////////////////////////////////
-// ffmpeg 
-//////////////////////////////////////////////////////////////////////////////
-there is the link on how to install ffmpeg
-
-https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
