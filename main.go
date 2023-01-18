@@ -536,12 +536,13 @@ func main() {
 		}
 
 		if unstallCommand.Parsed() {
-
+			fmt.Println("try to remove Globular service...")
 			// Required Flags
 			err := s.Uninstall()
 			if err == nil {
 				log.Println("Globular service is now removed!")
 			} else {
+				fmt.Println("fail to remove service with error: ", err)
 				log.Println(err)
 			}
 
@@ -551,11 +552,9 @@ func main() {
 			Utility.KillProcessByName("torrent")
 			Utility.KillProcessByName("grpcwebproxy")
 
-			Utility.UnsetWindowsEnvironmentVariable("OPENSSL_CONF")
-
 			// reset environmement...
 			resetSystemPath()
-
+			os.Exit(0) // exit the program.
 		}
 
 		if distCommand.Parsed() {
@@ -1448,9 +1447,20 @@ func dist(g *Globule, path string, revision string) {
 		libpath := debian_package_path + "/usr/local/lib"
 		Utility.CreateDirIfNotExist(libpath)
 
+		// lib ssl 1.1.1f require by mongodb...
+		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1"){
+			fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
+			fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
+			fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
+		}
+		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
+
 		// zlib
-		Utility.CopyFile("/usr/local/lib/libz.a", libpath+"/libz.a")
-		Utility.CopyFile("/usr/local/lib/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a"){
+			fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
+		}
+		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
+		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
 
 		// ODBC libraries...
 		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
@@ -1508,10 +1518,6 @@ func dist(g *Globule, path string, revision string) {
 
 		# Create the directory where the service will be install.
 		mkdir /etc/globular/config/services
-
-		# install libssl1.1 until mongodb will use libssl 3
-		wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
-		dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
 
 		# install mongo db..
 		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.3.tgz
@@ -1612,7 +1618,8 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so
 		 ln -s /usr/local/lib/libodbcinst.so.2.0.0 /usr/local/lib/libodbcinst.so.2
 		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
-
+		 ln -s /usr/lib/libssl.so.1.1 /usr/local/lib/libssl.so.1.1
+		
 		 ldconfig
 		 
 		 cd; cd -
@@ -1652,6 +1659,7 @@ func dist(g *Globule, path string, revision string) {
 		postrm := `
 		# Thing to do after removing
 		if [ -f "/usr/local/bin/Globular" ]; then
+			echo "remove /usr/local/bin/Globular and links"
 			find /usr/local/bin/Globular -xtype l -delete
 			rm /etc/systemd/system/Globular.service
 			rm /usr/local/bin/Globular

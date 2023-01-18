@@ -265,23 +265,6 @@ func NewGlobule() *Globule {
 	g.Path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 	g.Path = strings.ReplaceAll(g.Path, "\\", "/")
 
-	fmt.Println("start globule ", g.Name)
-
-	// If no configuration exist I will create it before initialyse directories and start services.
-	configPath := config.GetConfigDir() + "/config.json"
-
-	if !Utility.Exists(configPath) {
-		Utility.CreateDirIfNotExist(config.GetConfigDir())
-		g.config = config.GetConfigDir()
-		err := g.saveConfig()
-		if err != nil {
-			fmt.Println("fail to save local configuration with error", err)
-		} else {
-			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
-
-		}
-	}
-
 	return g
 }
 
@@ -772,13 +755,23 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+	// If no configuration exist I will create it before initialyse directories and start services.
+	configPath := config.GetConfigDir() + "/config.json"
+
+	if !Utility.Exists(configPath) {
+		Utility.CreateDirIfNotExist(config.GetConfigDir())
+		globule.config = config.GetConfigDir()
+		err := globule.saveConfig()
+		if err != nil {
+			fmt.Println("fail to save local configuration with error", err)
+		} else {
+			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
+
+		}
+	}
+
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
-	fmt.Println("root exec dir is", config.GetRootDir())
-	fmt.Println("webroot dir is", config.GetWebRootDir())
-	fmt.Println("services root path is", config.GetServicesDir())
-	fmt.Println("services configurations path is", config.GetServicesConfigDir())
-
 	config_client.GetServicesConfigurations()
 
 	// DNS info.
@@ -987,6 +980,9 @@ func resetRules() error {
 func resetSystemPath() error {
 
 	if runtime.GOOS == "windows" {
+
+		Utility.UnsetWindowsEnvironmentVariable("OPENSSL_CONF")
+
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
 		if err != nil {
@@ -1017,9 +1013,11 @@ func resetSystemPath() error {
 		}
 
 		// set system path...
-		return Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		return resetRules()
 	}
-	return resetRules()
+	
+	return nil
 }
 
 // Set all required path.
@@ -1419,10 +1417,10 @@ func (globule *Globule) stopServices() error {
 
 	// Now I will set configuration values
 	services_configs, _ := config.GetServicesConfigurations()
-	for i:=0; i < len(services_configs); i++ {
-		services_configs[i]["State"] = "stopped";
-		services_configs[i]["Process"] = -1;
-		services_configs[i]["ProxyProcess"] = -1;
+	for i := 0; i < len(services_configs); i++ {
+		services_configs[i]["State"] = "stopped"
+		services_configs[i]["Process"] = -1
+		services_configs[i]["ProxyProcess"] = -1
 		config.SaveServiceConfiguration(services_configs[i])
 	}
 
@@ -2428,12 +2426,12 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 
 	err = eventClient.Subscribe(evt, globule.Name, listener)
 	if err != nil {
-		
-		fmt.Println("fail to subscribe to event with error: ", err )
+
+		fmt.Println("fail to subscribe to event with error: ", err)
 		return err
 	}
 
-	fmt.Println("subscribe to event", evt, "succed on ", eventClient.GetName() + "" + eventClient.GetDomain(), eventClient.GetPort())
+	fmt.Println("subscribe to event", evt, "succed on ", eventClient.GetName()+""+eventClient.GetDomain(), eventClient.GetPort())
 	// register a listener...
 	return nil
 }
