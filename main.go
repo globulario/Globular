@@ -541,9 +541,6 @@ func main() {
 			err := s.Uninstall()
 			if err == nil {
 				log.Println("Globular service is now removed!")
-			} else {
-				fmt.Println("fail to remove service with error: ", err)
-				log.Println(err)
 			}
 
 			// Be sure all process are stop...
@@ -1503,7 +1500,7 @@ func dist(g *Globule, path string, revision string) {
 		packageConfig += "Homepage: https://globular.io\n"
 
 		// - The list of dependencies...
-		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~)\n"
+		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~)\n"
 
 		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
@@ -2071,7 +2068,7 @@ func __dist(g *Globule, path, config_path string) []string {
 									}
 
 									config["Path"] = config_.GetRootDir() + "/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] = config_.GetRootDir() + "/" + serviceDir + "/" + name + ".proto"
+									config["Proto"] = config_.GetRootDir() + "/" + serviceDir + "/" + execName + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
