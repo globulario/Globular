@@ -22,6 +22,8 @@ package-lock.json
 dist/
 config/
 data/
+bin/
+dependencies/
 webroot/
 node_modules/
 *.key

@@ -29,11 +29,11 @@ import (
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/host"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/net"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
@@ -322,15 +322,17 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 
 	// cpu infos.
 	stats["cpu"] = make(map[string]interface{}, 0)
-	stats["cpu"].(map[string]interface{})["index_number"] = strconv.FormatInt(int64(cpuStat[0].CPU), 10)
-	stats["cpu"].(map[string]interface{})["vendor_id"] = cpuStat[0].VendorID
-	stats["cpu"].(map[string]interface{})["family"] = cpuStat[0].Family
-	stats["cpu"].(map[string]interface{})["number_of_cores"] = strconv.FormatInt(int64(cpuStat[0].Cores), 10)
-	stats["cpu"].(map[string]interface{})["model_name"] = cpuStat[0].ModelName
-	stats["cpu"].(map[string]interface{})["speed"] = strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64)
-	stats["cpu"].(map[string]interface{})["utilizations"] = make([]map[string]interface{}, 0)
-	for idx, cpupercent := range percentage {
-		stats["cpu"].(map[string]interface{})["utilizations"] = append(stats["cpu"].(map[string]interface{})["utilizations"].([]map[string]interface{}), map[string]interface{}{"idx": strconv.Itoa(idx), "utilization": strconv.FormatFloat(cpupercent, 'f', 2, 64)})
+	if len(cpuStat) > 0 {
+		stats["cpu"].(map[string]interface{})["index_number"] = strconv.FormatInt(int64(cpuStat[0].CPU), 10)
+		stats["cpu"].(map[string]interface{})["vendor_id"] = cpuStat[0].VendorID
+		stats["cpu"].(map[string]interface{})["family"] = cpuStat[0].Family
+		stats["cpu"].(map[string]interface{})["number_of_cores"] = strconv.FormatInt(int64(cpuStat[0].Cores), 10)
+		stats["cpu"].(map[string]interface{})["model_name"] = cpuStat[0].ModelName
+		stats["cpu"].(map[string]interface{})["speed"] = strconv.FormatFloat(cpuStat[0].Mhz, 'f', 2, 64)
+		stats["cpu"].(map[string]interface{})["utilizations"] = make([]map[string]interface{}, 0)
+		for idx, cpupercent := range percentage {
+			stats["cpu"].(map[string]interface{})["utilizations"] = append(stats["cpu"].(map[string]interface{})["utilizations"].([]map[string]interface{}), map[string]interface{}{"idx": strconv.Itoa(idx), "utilization": strconv.FormatFloat(cpupercent, 'f', 2, 64)})
+		}
 	}
 
 	stats["hostname"] = hostStat.Hostname
@@ -922,9 +924,9 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// stream, the validation is made on the directory containning the playlist...
-	if strings.Contains(rqst_path, "/.hidden/") || 
-	    strings.HasSuffix(rqst_path, ".ts")	||  
-		strings.HasSuffix(rqst_path, "240p.m3u8")  ||  
+	if strings.Contains(rqst_path, "/.hidden/") ||
+		strings.HasSuffix(rqst_path, ".ts") ||
+		strings.HasSuffix(rqst_path, "240p.m3u8") ||
 		strings.HasSuffix(rqst_path, "360p.m3u8") ||
 		strings.HasSuffix(rqst_path, "480p.m3u8") ||
 		strings.HasSuffix(rqst_path, "720p.m3u8") ||
@@ -948,7 +950,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
-		}else{
+		} else {
 			fmt.Println("fail to validate token with error: ", err)
 		}
 	}
