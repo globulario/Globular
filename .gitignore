@@ -21,9 +21,6 @@ package-lock.json
 *.vs*
 dist/
 config/
-dependencies/
-redist/
-bin/*
 data/
 webroot/
 node_modules/
