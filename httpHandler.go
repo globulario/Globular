@@ -669,7 +669,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Here I will named the methode /file.FileService/FileUploadHandler
 		// I will be threaded like a file service methode.
 		if strings.HasPrefix(path, "/applications") {
-
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 		}
 	}
@@ -745,7 +744,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer out.Close()
 
 		if err != nil {
-			fmt.Println("714")
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
@@ -771,6 +769,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(fileType, "video/") {
 					// Here I will call convert video...
 					globule.publish("generate_video_preview_event", []byte(path_))
+				} else if  fileType == "application/pdf" || strings.HasPrefix(fileType, "text"){
+					// Here I will call convert video...
+					globule.publish("index_file_event", []byte(path_))
 				}
 			}
 		}

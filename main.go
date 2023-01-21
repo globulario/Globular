@@ -29,6 +29,7 @@ import (
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/kardianos/service"
 	"github.com/polds/imgbase64"
+	"github.com/pkg/profile"
 )
 
 func (g *Globule) Start(s service.Service) error {
@@ -66,7 +67,7 @@ func (g *Globule) Stop(s service.Service) error {
 }
 
 func main() {
-
+	defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
 	g := NewGlobule()
 	svcFlag := flag.String("service", "", "Control the system service.")
