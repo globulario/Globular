@@ -1184,28 +1184,34 @@ func (globule *Globule) startServices() error {
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
-		services[i]["State"] = "starting"
-		config_client.SaveServiceConfiguration(services[i])
 
 		if err != nil {
 			fmt.Println("fail to save service configuration with error ", err)
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
+			service := services[i]
+			service["State"] = "starting"
+			name := service["Name"].(string)
+			id := service["Id"].(string)
+			path := service["Path"].(string)
+			pid := Utility.ToInt(services[i]["Process"])
+
 			// Create the service process.
-			enableProgramFwMgr(services[i]["Name"].(string)+"-"+services[i]["Id"].(string), services[i]["Path"].(string))
-			_, err = process.StartServiceProcess(services[i], globule.PortsRange)
+			enableProgramFwMgr(name+"-"+id, path)
+			_, err = process.StartServiceProcess(service, globule.PortsRange)
 
 			if err != nil {
-				fmt.Println("fail to start service ", services[i]["Name"], err)
-
+				fmt.Println("fail to start service ", name, err)
 			} else {
-
-				_, err = process.StartServiceProxyProcess(services[i], globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, Utility.ToInt(services[i]["Process"]))
-				// So here I will try to start the proxy process for at leat 30 second before givin up...
-				if err != nil {
-					fmt.Println("fail to start proxy process for service", services[i]["Name"], "with error:", err)
-				}
+				go func() {
+					_, err = process.StartServiceProxyProcess(service, globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, pid)
+					// So here I will try to start the proxy process for at leat 30 second before givin up...
+					if err != nil {
+						fmt.Println("fail to start proxy process for service", name, "with error:", err)
+					}
+				}()
 			}
+
 		}
 	}
 
@@ -1414,13 +1420,6 @@ func (globule *Globule) stopServices() error {
 
 	// Close grpc proxy
 	Utility.KillProcessByName("grpcwebproxy")
-
-	for i := 0; i < len(services_configs); i++ {
-		services_configs[i]["State"] = "stopped"
-		services_configs[i]["Process"] = -1
-		services_configs[i]["ProxyProcess"] = -1
-		config.SaveServiceConfiguration(services_configs[i])
-	}
 
 	return nil
 }
