@@ -438,7 +438,6 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"] = globule.Domain
 	config_["Name"] = globule.Name
-
 	services, _ := config_client.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
@@ -1016,7 +1015,7 @@ func resetSystemPath() error {
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 		return resetRules()
 	}
-	
+
 	return nil
 }
 
@@ -1400,7 +1399,8 @@ func (globule *Globule) createApplicationConnection() error {
  */
 func (globule *Globule) stopServices() error {
 
-	services, err := config_client.GetServicesConfigurations()
+	// Now I will set configuration values
+	services_configs, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -1408,15 +1408,13 @@ func (globule *Globule) stopServices() error {
 	// exit channel.
 	globule.exit <- true
 
-	for i := 0; i < len(services); i++ {
-		process.KillServiceProcess(services[i])
+	for i := 0; i < len(services_configs); i++ {
+		process.KillServiceProcess(services_configs[i])
 	}
 
 	// Close grpc proxy
 	Utility.KillProcessByName("grpcwebproxy")
 
-	// Now I will set configuration values
-	services_configs, _ := config.GetServicesConfigurations()
 	for i := 0; i < len(services_configs); i++ {
 		services_configs[i]["State"] = "stopped"
 		services_configs[i]["Process"] = -1
@@ -1861,66 +1859,68 @@ func getChecksum(address string, port int) (string, error) {
  */
 func (globule *Globule) watchForUpdate() {
 	go func() {
-		for !globule.exit_ {
 
-			// stop watching if exit was call...
-			if len(globule.Discoveries) > 0 {
-				// Here I will retreive the checksum information from it parent.
-				discovery := globule.Discoveries[0]
-				address := strings.Split(discovery, ":")[0]
-				port := 80
-				if strings.Contains(discovery, ":") {
-					port = Utility.ToInt(strings.Split(discovery, ":")[1])
-				}
+		// Now the service...
+		services, err := config.GetServicesConfigurations()
+		if err == nil {
+			for !globule.exit_ {
 
-				execPath := Utility.GetExecName(os.Args[0])
-
-				// Here I will test if the checksum has change...
-				checksum, err := getChecksum(address, port)
-				if Utility.Exists(config.GetRootDir() + "/Globular") {
-					execPath = config.GetRootDir() + "/Globular"
-				}
-				if err == nil {
-					if checksum != Utility.CreateFileChecksum(execPath) {
-						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
-						if err != nil {
-							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
-						}
-
+				// stop watching if exit was call...
+				if len(globule.Discoveries) > 0 {
+					// Here I will retreive the checksum information from it parent.
+					discovery := globule.Discoveries[0]
+					address := strings.Split(discovery, ":")[0]
+					port := 80
+					if strings.Contains(discovery, ":") {
+						port = Utility.ToInt(strings.Split(discovery, ":")[1])
 					}
-				} else {
-					fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
-				}
 
-				// Now the service...
-				services, _ := config.GetServicesConfigurations()
+					execPath := Utility.GetExecName(os.Args[0])
 
-				// get the resource client
-				resource_client_, err := getResourceClient(discovery)
-				if err == nil {
-					for i := 0; i < len(services); i++ {
-						s := services[i]
-						if s["KeepUpToDate"].(bool) {
-							// Here I will get the last version of the package...
-							descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
-							if err == nil {
-								descriptorVersion := Utility.NewVersion(descriptor.Version)
-								serviceVersion := Utility.NewVersion(s["Version"].(string))
-								if descriptorVersion.Compare(serviceVersion) == 1 {
-									// TODO keep service up to date.
-									// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
-								} else if descriptorVersion.Compare(serviceVersion) == 0 {
-									// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated???")
+					// Here I will test if the checksum has change...
+					checksum, err := getChecksum(address, port)
+					if Utility.Exists(config.GetRootDir() + "/Globular") {
+						execPath = config.GetRootDir() + "/Globular"
+					}
+					if err == nil {
+						if checksum != Utility.CreateFileChecksum(execPath) {
+							err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+							if err != nil {
+								fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
+							}
+
+						}
+					} else {
+						fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
+					}
+
+					// get the resource client
+					resource_client_, err := getResourceClient(discovery)
+					if err == nil {
+						for i := 0; i < len(services); i++ {
+							s := services[i]
+							if s["KeepUpToDate"].(bool) {
+								// Here I will get the last version of the package...
+								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
+								if err == nil {
+									descriptorVersion := Utility.NewVersion(descriptor.Version)
+									serviceVersion := Utility.NewVersion(s["Version"].(string))
+									if descriptorVersion.Compare(serviceVersion) == 1 {
+										// TODO keep service up to date.
+										// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
+									} else if descriptorVersion.Compare(serviceVersion) == 0 {
+										// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated???")
+									}
 								}
 							}
 						}
 					}
+
 				}
 
+				// The time here can be set to higher value.
+				time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 			}
-
-			// The time here can be set to higher value.
-			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
 	}()
 }
