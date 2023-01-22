@@ -906,12 +906,20 @@ func enablePorts(ruleName, portsRange string) error {
 		deleteRule(ruleName)
 
 		// netsh advfirewall firewall add rule name="Globular-Services" dir=in action=allow protocol=TCP localport=10000-10100
-		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange))
-		cmd.Dir = os.TempDir()
-		//cmdOutput := &bytes.Buffer{}
-		//cmd.Stdout = cmdOutput
+		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		inboundRule.Dir = os.TempDir()
+		err := inboundRule.Run()
+		if err != nil {
+			return nil
+		}
 
-		return cmd.Run()
+		outboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		outboundRule.Dir = os.TempDir()
+		err = outboundRule.Run()
+		if err != nil {
+			return nil
+		}
+
 	}
 
 	return nil
@@ -921,11 +929,20 @@ func enableProgramFwMgr(name, appname string) error {
 	if runtime.GOOS == "windows" {
 		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
 		appname = strings.ReplaceAll(appname, "/", "\\")
-		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
-		cmd.Dir = os.TempDir()
-		//cmd.Stdout = os.Stdout
-		//cmd.Stderr = os.Stderr
-		return cmd.Run()
+		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
+		inboundRule.Dir = os.TempDir()
+		err := inboundRule.Run()
+		if err !=nil {
+			return err
+		}
+
+		outboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow program="%s" enable=yes`, name, appname))
+		outboundRule.Dir = os.TempDir()
+		err = outboundRule.Run()
+		if err !=nil {
+			return err
+		}
+
 	}
 	return nil
 }
@@ -1013,7 +1030,7 @@ func resetSystemPath() error {
 
 		// set system path...
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
-		return resetRules()
+		
 	}
 
 	return nil
@@ -1023,6 +1040,9 @@ func resetSystemPath() error {
 func setSystemPath() error {
 	// so here I will append
 	if runtime.GOOS == "windows" {
+		// remove previous rules...
+		resetRules()
+
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
 		if err != nil {
@@ -1061,6 +1081,7 @@ func setSystemPath() error {
 					fmt.Println("fail to set rule for mongod.exe with error", err)
 				}
 			}
+
 
 			if strings.HasSuffix(exec, "alertmanager.exe") {
 				err := enableProgramFwMgr("Prometheus Alert Manager Server", exec)
@@ -1181,10 +1202,18 @@ func (globule *Globule) startServices() error {
 	// Enable ports
 	enablePorts("Globular-Services", globule.PortsRange)
 
+	start_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[0])
+	end_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[1])
+
+
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
 	
+		if start_port >= end_port {
+			return errors.New("no more available ports...")
+		}
+
 		if err != nil {
 			fmt.Println("fail to save service configuration with error ", err)
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
@@ -1198,18 +1227,21 @@ func (globule *Globule) startServices() error {
 
 			// Create the service process.
 			enableProgramFwMgr(name+"-"+id, path)
-			_, err = process.StartServiceProcess(service, globule.PortsRange)
+			port := start_port + (i * 2)
+			proxyPort := start_port + (i * 2) + 1
+
+			_, err = process.StartServiceProcess(service, port, proxyPort)
 
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			} else {
-				go func() {
-					_, err = process.StartServiceProxyProcess(service, globule.CertificateAuthorityBundle, globule.Certificate, globule.PortsRange, pid)
+				go func(service map[string]interface{}, pid int, name string) {
+					_, err = process.StartServiceProxyProcess(service, globule.CertificateAuthorityBundle, globule.Certificate, proxyPort, pid)
 					// So here I will try to start the proxy process for at leat 30 second before givin up...
 					if err != nil {
 						fmt.Println("fail to start proxy process for service", name, "with error:", err)
 					}
-				}()
+				}(service, pid, name)
 			}
 
 		}
@@ -1388,8 +1420,7 @@ func (globule *Globule) createApplicationConnection() error {
 				fmt.Println("---- create connection for ", app.Alias)
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
 				if err != nil {
-					fmt.Println("fail to create application connection  : ", app.Id, err)
-					log.Panicln(err)
+					fmt.Println("--------> fail to create application connection  : ", app.Id, err)
 				}
 			}
 		} else {
@@ -1413,7 +1444,6 @@ func (globule *Globule) stopServices() error {
 
 	// exit channel.
 	globule.exit <- true
-
 	for i := 0; i < len(services_configs); i++ {
 		process.KillServiceProcess(services_configs[i])
 	}
@@ -2070,16 +2100,24 @@ func (globule *Globule) Listen() error {
 		//globule.startServices()
 	}
 	ex, _ := os.Executable()
+
+	// set globular firewall run... 
 	enableProgramFwMgr("Globular", ex)
 
 	// Must be started before other services.
 	go func() {
 		enablePorts("Globular-http", strconv.Itoa(globule.PortHttp))
+
 		// local - non secure connection.
 		globule.http_server = &http.Server{
 			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttp),
 		}
+
 		err = globule.http_server.ListenAndServe()
+		if err != nil {
+			fmt.Println("fail to listen with err ", err)
+		}
+
 	}()
 
 	// Start the http server.
@@ -2095,6 +2133,9 @@ func (globule *Globule) Listen() error {
 		// get the value from the configuration files.
 		go func() {
 			err = globule.https_server.ListenAndServeTLS(globule.creds+"/"+globule.Certificate, globule.creds+"/server.pem")
+			if err != nil {
+				fmt.Println("fail to listen with err ", err)
+			}
 		}()
 	}
 
