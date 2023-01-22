@@ -1184,7 +1184,7 @@ func (globule *Globule) startServices() error {
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
-
+	
 		if err != nil {
 			fmt.Println("fail to save service configuration with error ", err)
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
