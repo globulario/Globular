@@ -1223,14 +1223,14 @@ func (globule *Globule) startServices() error {
 			name := service["Name"].(string)
 			id := service["Id"].(string)
 			path := service["Path"].(string)
-			pid := Utility.ToInt(services[i]["Process"])
+			service["ProxyProcess"] = -1
 
 			// Create the service process.
 			enableProgramFwMgr(name+"-"+id, path)
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
-			_, err = process.StartServiceProcess(service, port, proxyPort)
+			pid, err := process.StartServiceProcess(service, port, proxyPort)
 
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
@@ -1327,10 +1327,21 @@ func (globule *Globule) initPeers() error {
 		return err
 	}
 
+	//time.Sleep(5 * time.Second)
+
 	// Return the registered peers
 	peers, err := resource_client_.GetPeers(`{}`)
+	nbTry := 30
+
 	if err != nil {
-		return err
+		for i:=0; i < nbTry; i++ {
+			if err == nil {
+				break;
+			}
+			time.Sleep(1 * time.Second)
+			peers, err = resource_client_.GetPeers(`{}`)
+		}
+		// return err
 	}
 
 	// Now I will set peers in the host file.
