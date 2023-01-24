@@ -168,7 +168,6 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
-
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -178,7 +177,7 @@ func NewGlobule() *Globule {
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.IndexApplication = ""                                                                                                                                      // I will use the installer as defaut.
-	g.PortHttp = 8080                                                                                                                                            // The default http port 80 is almost already use by other http server...
+	g.PortHttp = 80                                                                                                                                              // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443                                                                                                                                            // The default https port number
 	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
@@ -274,10 +273,22 @@ func NewGlobule() *Globule {
 			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
 
 		}
-		setSystemPath()
 	}
 
 	return g
+}
+
+func (globule *Globule) cleanup() {
+
+	// set services configuration values
+
+	// Close all services.
+	globule.stopServices()
+
+	// reset firewall rules.
+	resetRules()
+
+	fmt.Println("bye bye!")
 }
 
 func (globule *Globule) registerAdminAccount() error {
@@ -975,12 +986,18 @@ func resetRules() error {
 	}
 
 	// set rules for services contain in bin folder.
-	deleteRule("Prometheus Alert Manager Server")
-	deleteRule("MongoDB Database Server")
-	deleteRule("prometheus")
+	deleteRule("alertmanager")
+	deleteRule("mongod")
+	deleteRule("prometheu")
 	deleteRule("grpcwebproxy")
 	deleteRule("torrent")
 	deleteRule("yt-dlp")
+
+	// other rules.
+	deleteRule("Globular")
+	deleteRule("Globular-http")
+	deleteRule("Globular-https")
+	deleteRule("Globular-Services")
 
 	for i := 0; i < len(services); i++ {
 		// Create the service process.
@@ -1040,6 +1057,16 @@ func setSystemPath() error {
 		// remove previous rules...
 		resetRules()
 
+		ex, _ := os.Executable()
+		// set globular firewall run...
+
+		enableProgramFwMgr("Globular", ex)
+
+		// Enable ports
+		enablePorts("Globular-Services", globule.PortsRange)
+		enablePorts("Globular-http", strconv.Itoa(globule.PortHttp))
+		enablePorts("Globular-https", strconv.Itoa(globule.PortHttps))
+
 		systemPath, err := Utility.GetWindowsEnvironmentVariable("Path")
 
 		if err != nil {
@@ -1073,14 +1100,14 @@ func setSystemPath() error {
 			}
 
 			if strings.HasSuffix(exec, "mongod.exe") {
-				err := enableProgramFwMgr("MongoDB Database Server", exec)
+				err := enableProgramFwMgr("mongo", exec)
 				if err != nil {
 					fmt.Println("fail to set rule for mongod.exe with error", err)
 				}
 			}
 
 			if strings.HasSuffix(exec, "alertmanager.exe") {
-				err := enableProgramFwMgr("Prometheus Alert Manager Server", exec)
+				err := enableProgramFwMgr("alertmanager", exec)
 				if err != nil {
 					fmt.Println("fail to set rule for alertmanager.exe with error", err)
 				}
@@ -1119,15 +1146,26 @@ func setSystemPath() error {
 			}
 		}
 
+		// now the services rules
+		services, err := config.GetServicesConfigurations()
+		for i := 0; i < len(services); i++ {
+			service := services[i]
+			id := service["Id"].(string)
+			path := service["Path"].(string)
+			name := service["Name"].(string)
+
+			// Create the service process.
+			enableProgramFwMgr(name+"-"+id, path)
+		}
+
 		// Openssl conf require...
-		if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
+		/*if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
 		} else {
 			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
-		}
+		}*/
 
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
-		fmt.Println("try to set the windows path: ", strings.ReplaceAll(systemPath, "/", "\\"))
 		return err
 	} else if runtime.GOOS == "darwin" {
 		// Fix the path /usr/local/bin is not set by default...
@@ -1195,9 +1233,6 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
-	// Enable ports
-	enablePorts("Globular-Services", globule.PortsRange)
-
 	start_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[0])
 	end_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[1])
 
@@ -1216,12 +1251,8 @@ func (globule *Globule) startServices() error {
 			service := services[i]
 			service["State"] = "starting"
 			name := service["Name"].(string)
-			id := service["Id"].(string)
-			path := service["Path"].(string)
 			service["ProxyProcess"] = -1
 
-			// Create the service process.
-			enableProgramFwMgr(name+"-"+id, path)
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
@@ -1448,13 +1479,20 @@ func (globule *Globule) stopServices() error {
 		return err
 	}
 
-	// exit channel.
-	globule.exit <- true
-	for i := 0; i < len(services_configs); i++ {
-		process.KillServiceProcess(services_configs[i])
+	// stop processing config
+	config.Exit()
+
+	if err == nil {
+		for i := 0; i < len(services_configs); i++ {
+			services_configs[i]["State"] = "stopped"
+			services_configs[i]["Process"] = -1
+			services_configs[i]["ProxyProcess"] = -1
+			json_str, _ := Utility.ToJson(services_configs[i])
+			os.WriteFile(services_configs[i]["ConfigPath"].(string), []byte(json_str), 0644)
+		}
 	}
 
-	// Close grpc proxy
+	// kill all grpc proxy
 	Utility.KillProcessByName("grpcwebproxy")
 
 	return nil
@@ -2105,14 +2143,9 @@ func (globule *Globule) Listen() error {
 
 		//globule.startServices()
 	}
-	ex, _ := os.Executable()
-
-	// set globular firewall run...
-	enableProgramFwMgr("Globular", ex)
 
 	// Must be started before other services.
 	go func() {
-		enablePorts("Globular-http", strconv.Itoa(globule.PortHttp))
 
 		// local - non secure connection.
 		globule.http_server = &http.Server{
@@ -2128,7 +2161,7 @@ func (globule *Globule) Listen() error {
 
 	// Start the http server.
 	if globule.Protocol == "https" {
-		enablePorts("Globular-https", strconv.Itoa(globule.PortHttps))
+
 		globule.https_server = &http.Server{
 			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{

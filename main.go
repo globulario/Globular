@@ -58,10 +58,6 @@ func (g *Globule) run() error {
 func (g *Globule) Stop(s service.Service) error {
 	// Any work in Stop should be quick, usually a few seconds at most.
 	g.exit_ = true
-
-	// Close all services.
-	g.stopServices()
-
 	close(g.exit)
 	return nil
 }
@@ -532,6 +528,7 @@ func main() {
 				// Here I will keep the start time...
 				// set path...
 				setSystemPath()
+
 				os.Exit(0) // exit the program.
 			} else {
 				log.Println(err)
@@ -558,6 +555,8 @@ func main() {
 
 			// reset environmement...
 			resetSystemPath()
+			resetRules()
+			
 			os.Exit(0) // exit the program.
 		}
 
@@ -666,6 +665,8 @@ func main() {
 		}
 
 	} else {
+
+		defer g.cleanup()
 
 		if err != nil {
 			log.Fatal(err)
