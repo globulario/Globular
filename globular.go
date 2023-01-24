@@ -168,9 +168,6 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
-	// Here I will keep the start time...
-	// set path...
-	setSystemPath()
 
 	// Here I will initialyse configuration.
 	g := new(Globule)
@@ -264,6 +261,21 @@ func NewGlobule() *Globule {
 
 	g.Path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 	g.Path = strings.ReplaceAll(g.Path, "\\", "/")
+
+	// If no configuration exist I will create it before initialyse directories and start services.
+	configPath := config.GetConfigDir() + "/config.json"
+	if !Utility.Exists(configPath) {
+		Utility.CreateDirIfNotExist(config.GetConfigDir())
+		globule.config = config.GetConfigDir()
+		err := globule.saveConfig()
+		if err != nil {
+			fmt.Println("fail to save local configuration with error", err)
+		} else {
+			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
+
+		}
+		setSystemPath()
+	}
 
 	return g
 }
@@ -754,21 +766,6 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
-	// If no configuration exist I will create it before initialyse directories and start services.
-	configPath := config.GetConfigDir() + "/config.json"
-
-	if !Utility.Exists(configPath) {
-		Utility.CreateDirIfNotExist(config.GetConfigDir())
-		globule.config = config.GetConfigDir()
-		err := globule.saveConfig()
-		if err != nil {
-			fmt.Println("fail to save local configuration with error", err)
-		} else {
-			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
-
-		}
-	}
-
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	config_client.GetServicesConfigurations()
@@ -932,14 +929,14 @@ func enableProgramFwMgr(name, appname string) error {
 		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
 		inboundRule.Dir = os.TempDir()
 		err := inboundRule.Run()
-		if err !=nil {
+		if err != nil {
 			return err
 		}
 
 		outboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow program="%s" enable=yes`, name, appname))
 		outboundRule.Dir = os.TempDir()
 		err = outboundRule.Run()
-		if err !=nil {
+		if err != nil {
 			return err
 		}
 
@@ -1030,7 +1027,7 @@ func resetSystemPath() error {
 
 		// set system path...
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
-		
+
 	}
 
 	return nil
@@ -1081,7 +1078,6 @@ func setSystemPath() error {
 					fmt.Println("fail to set rule for mongod.exe with error", err)
 				}
 			}
-
 
 			if strings.HasSuffix(exec, "alertmanager.exe") {
 				err := enableProgramFwMgr("Prometheus Alert Manager Server", exec)
@@ -1205,11 +1201,10 @@ func (globule *Globule) startServices() error {
 	start_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[0])
 	end_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[1])
 
-
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 	for i := 0; i < len(services); i++ {
-	
+
 		if start_port >= end_port {
 			return errors.New("no more available ports...")
 		}
@@ -1334,9 +1329,9 @@ func (globule *Globule) initPeers() error {
 	nbTry := 30
 
 	if err != nil {
-		for i:=0; i < nbTry; i++ {
+		for i := 0; i < nbTry; i++ {
 			if err == nil {
-				break;
+				break
 			}
 			time.Sleep(1 * time.Second)
 			peers, err = resource_client_.GetPeers(`{}`)
@@ -2112,7 +2107,7 @@ func (globule *Globule) Listen() error {
 	}
 	ex, _ := os.Executable()
 
-	// set globular firewall run... 
+	// set globular firewall run...
 	enableProgramFwMgr("Globular", ex)
 
 	// Must be started before other services.

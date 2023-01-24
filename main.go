@@ -69,6 +69,7 @@ func (g *Globule) Stop(s service.Service) error {
 func main() {
 	//defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
+
 	g := NewGlobule()
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()
@@ -531,8 +532,10 @@ func main() {
 				// Here I will keep the start time...
 				// set path...
 				setSystemPath()
+				os.Exit(0) // exit the program.
 			} else {
 				log.Println(err)
+				os.Exit(0) // exit the program.
 			}
 		}
 
@@ -542,6 +545,9 @@ func main() {
 			err := s.Uninstall()
 			if err == nil {
 				log.Println("Globular service is now removed!")
+			}else{
+				log.Println("fail to remove service with error", err)
+				os.Exit(0) // exit the program.
 			}
 
 			// Be sure all process are stop...
@@ -2011,6 +2017,22 @@ func __dist(g *Globule, path, config_path string) []string {
 		log.Println("fail to retreive services with error ", err)
 	}
 
+	var programFilePath string
+	// fmt.Println("fail to find service configurations at at path ", serviceConfigDir, "with error ", err)
+	if runtime.GOOS == "windows" {
+		if runtime.GOARCH == "386" {
+			programFilePath, _ = Utility.GetEnvironmentVariable("PROGRAMFILES(X86)")
+			programFilePath += "/Globular"
+		} else {
+			programFilePath, _ = Utility.GetEnvironmentVariable("PROGRAMFILES")
+			programFilePath += "/Globular"
+		}
+	} else {
+		programFilePath = "/usr/local/share/globular"
+	}
+
+	programFilePath =strings.ReplaceAll(programFilePath, "\\", "/")
+
 	for i := 0; i < len(services); i++ {
 
 		// set the service configuration...
@@ -2024,7 +2046,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		if hasPath {
 			execPath := s["Path"].(string)
 			if len(execPath) > 0 {
-				configPath := execPath[:strings.LastIndex(execPath, "/")] + "/config.json"
+				configPath := filepath.Dir(execPath) + "/config.json"
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
 					bytes, err := ioutil.ReadFile(configPath)
@@ -2046,12 +2068,8 @@ func __dist(g *Globule, path, config_path string) []string {
 									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
 								}
 
-								lastIndex := strings.LastIndex(execPath, "/")
-								if lastIndex == -1 {
-									lastIndex = strings.LastIndex(execPath, "/")
-								}
 
-								execName := execPath[lastIndex+1:]
+								execName := filepath.Base(execPath)
 								destPath := path + "/" + serviceDir + "/" + id + "/" + execName
 
 								if Utility.Exists(execPath) {
@@ -2068,11 +2086,13 @@ func __dist(g *Globule, path, config_path string) []string {
 										fmt.Println(err)
 									}
 
-									config["Path"] = config_.GetRootDir() + "/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] = config_.GetRootDir() + "/" + serviceDir + "/" + execName + ".proto"
+									config["Path"] = programFilePath  + "/" + serviceDir + "/" + id + "/" + execName
+									config["Proto"] = programFilePath  + "/" + serviceDir + "/" +  config["Name"].(string) + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
+									config["Process"] = -1
+									config["ProxyProcess"] = -1
 									config["CertFile"] = ""
 									config["KeyFile"] = ""
 									config["TLS"] = false
@@ -2083,7 +2103,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 											// I will also copy the mime type directory
 											config["Public"] = make([]string, 0)
-											Utility.CopyDir(execPath[0:lastIndex]+"/mimetypes", path+"/"+serviceDir+"/"+id)
+											Utility.CopyDir(filepath.Dir(execPath)+"/mimetypes", path+"/"+serviceDir+"/"+id)
 
 										} else if name == "conversation.ConversationService" {
 											config["Root"] = config_.GetDataDir()
