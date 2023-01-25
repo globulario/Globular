@@ -1487,8 +1487,7 @@ func (globule *Globule) stopServices() error {
 			services_configs[i]["State"] = "stopped"
 			services_configs[i]["Process"] = -1
 			services_configs[i]["ProxyProcess"] = -1
-			json_str, _ := Utility.ToJson(services_configs[i])
-			os.WriteFile(services_configs[i]["ConfigPath"].(string), []byte(json_str), 0644)
+			config.SaveServiceConfiguration(services_configs[i])
 		}
 	}
 
