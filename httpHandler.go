@@ -45,6 +45,7 @@ const cacheTTL = 24 * time.Hour
 // Otherwise a volatile memory cache is used.
 var client *http.Client
 
+
 func init() {
 	if _, err := os.Stat("cache"); err == nil {
 		client, err = httpcache.NewPersistentClient("cache", cacheTTL)
