@@ -201,7 +201,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Receive http request...
-	/*redirect, to := redirectTo(r.Host)
+	redirect, to := redirectTo(r.Host)
 
 
 	if redirect {
@@ -213,7 +213,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		}
 		handleRequestAndRedirect(address, w, r)
 		return
-	}*/
+	}
 
 	// if the host is not the same...
 	serviceId := r.URL.Query().Get("id") // the csr in base64

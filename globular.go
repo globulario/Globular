@@ -154,7 +154,7 @@ type Globule struct {
 	peers *sync.Map // []*resourcepb.Peer
 
 	// Use to save in configuration file, use peers in code...
-	Peers map[string]interface{}
+	Peers []interface{}
 
 	// Keep track of the strart time...
 	startTime time.Time
@@ -495,21 +495,26 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	return config_
 }
 
-/**
- * Save the configuration
- */
-func (globule *Globule) saveConfig() error {
+func (globule *Globule) savePeers() error {
 	// Keep peers information here...
-	globule.Peers = make(map[string]interface{})
+	globule.Peers = make([]interface{}, 0)
 	globule.peers.Range(func(key, value interface{}) bool {
 		p := value.(*resourcepb.Peer)
 		port := p.PortHttp
 		if p.Protocol == "https" {
 			port = p.PortHttps
 		}
-		globule.Peers[p.Domain] = map[string]interface{}{"domain": p.Domain, "mac": p.Mac, "port": port}
+		globule.Peers = append(globule.Peers, map[string]interface{}{"Domain": p.Domain, "Mac": p.Mac, "Port": port})
 		return true
 	})
+
+	return globule.saveConfig()
+}
+
+/**
+ * Save the configuration
+ */
+func (globule *Globule) saveConfig() error {
 
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
@@ -849,6 +854,7 @@ func (globule *Globule) initDirectories() error {
 
 	// Initialyse globular from it configuration file.
 	file, err := ioutil.ReadFile(globule.config + "/config.json")
+
 	// Init the service with the default port address
 	if err == nil {
 
@@ -1334,13 +1340,14 @@ func updatePeersEvent(evt *eventpb.Event) {
 	}
 
 	globule.peers.Store(p.Mac, p)
-	globule.saveConfig()
+	globule.savePeers()
+
 	fmt.Println("store peer ", p)
 }
 
 func deletePeersEvent(evt *eventpb.Event) {
 	globule.peers.Delete(string(evt.Data))
-	globule.saveConfig()
+	globule.savePeers()
 }
 
 /**
@@ -1426,7 +1433,7 @@ func (globule *Globule) initPeers() error {
 	globule.subscribe("update_peers_evt", updatePeersEvent)
 	globule.subscribe("delete_peer_evt", deletePeersEvent)
 
-	globule.saveConfig()
+	globule.savePeers()
 
 	return nil
 }
