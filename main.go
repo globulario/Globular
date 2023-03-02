@@ -542,7 +542,7 @@ func main() {
 			err := s.Uninstall()
 			if err == nil {
 				log.Println("Globular service is now removed!")
-			}else{
+			} else {
 				log.Println("fail to remove service with error", err)
 				os.Exit(0) // exit the program.
 			}
@@ -556,7 +556,7 @@ func main() {
 			// reset environmement...
 			resetSystemPath()
 			resetRules()
-			
+
 			os.Exit(0) // exit the program.
 		}
 
@@ -1379,7 +1379,7 @@ func dist(g *Globule, path string, revision string) {
 		applications_path := app_bin + "/var/globular/applications"
 
 		// Copy applications for offline installation...
-		Utility.CopyDir(dir + "/applications/.", applications_path)
+		Utility.CopyDir(dir+"/applications/.", applications_path)
 
 		// create directories...
 		Utility.CreateDirIfNotExist(app_content)
@@ -1446,14 +1446,14 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(applications_path)
 
 		// Copy applications for offline installation...
-		Utility.CopyDir(dir + "/applications/.", applications_path)
+		Utility.CopyDir(dir+"/applications/.", applications_path)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
 		Utility.CreateDirIfNotExist(libpath)
 
 		// lib ssl 1.1.1f require by mongodb...
-		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1"){
+		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1") {
 			fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
 			fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
 			fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
@@ -1461,7 +1461,7 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
 
 		// zlib
-		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a"){
+		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
 			fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
 		}
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
@@ -1530,6 +1530,9 @@ func dist(g *Globule, path string, revision string) {
 		cp -R -n mongodb-linux-x86_64-debian11-6.0.3/bin/* /usr/local/bin
 		rm mongodb-linux-x86_64-debian11-6.0.3.tgz
 		rm -R mongodb-linux-x86_64-debian11-6.0.3
+
+		#wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+		#sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
 
 		# install mongosh (shell)
 		curl -O https://downloads.mongodb.com/compass/mongosh-1.6.1-linux-x64.tgz
@@ -2032,7 +2035,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		programFilePath = "/usr/local/share/globular"
 	}
 
-	programFilePath =strings.ReplaceAll(programFilePath, "\\", "/")
+	programFilePath = strings.ReplaceAll(programFilePath, "\\", "/")
 
 	for i := 0; i < len(services); i++ {
 
@@ -2069,7 +2072,6 @@ func __dist(g *Globule, path, config_path string) []string {
 									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
 								}
 
-
 								execName := filepath.Base(execPath)
 								destPath := path + "/" + serviceDir + "/" + id + "/" + execName
 
@@ -2087,8 +2089,8 @@ func __dist(g *Globule, path, config_path string) []string {
 										fmt.Println(err)
 									}
 
-									config["Path"] = programFilePath  + "/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] = programFilePath  + "/" + serviceDir + "/" +  config["Name"].(string) + ".proto"
+									config["Path"] = programFilePath + "/" + serviceDir + "/" + id + "/" + execName
+									config["Proto"] = programFilePath + "/" + serviceDir + "/" + config["Name"].(string) + ".proto"
 
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""

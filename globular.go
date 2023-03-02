@@ -489,6 +489,12 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["CertFile"] = services[i]["CertFile"]
 		s["KeyFile"] = services[i]["KeyFile"]
 		s["ConfigPath"] = services[i]["ConfigPath"]
+
+		// specific configuration values...
+		if services[i]["Root"] != nil {
+			s["Root"] = services[i]["Root"] 
+		}
+
 		config_["Services"].(map[string]interface{})[s["Id"].(string)] = s
 	}
 
@@ -655,6 +661,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		if err != nil {
 			return err
 		}
+
 		defer dns_client_.Close()
 
 		localDomain, _ := config.GetDomain()
@@ -2153,9 +2160,11 @@ func (globule *Globule) Listen() error {
 	// Must be started before other services.
 	go func() {
 
+		address :=  "0.0.0.0" // Utility.MyLocalIP()
+
 		// local - non secure connection.
 		globule.http_server = &http.Server{
-			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttp),
+			Addr: address + ":" + strconv.Itoa(globule.PortHttp),
 		}
 
 		err = globule.http_server.ListenAndServe()
@@ -2167,9 +2176,10 @@ func (globule *Globule) Listen() error {
 
 	// Start the http server.
 	if globule.Protocol == "https" {
+		address := "0.0.0.0" // Utility.MyLocalIP()
 
 		globule.https_server = &http.Server{
-			Addr: "0.0.0.0:" + strconv.Itoa(globule.PortHttps),
+			Addr: address + ":" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
 				ServerName: globule.getDomain(),
 			},
