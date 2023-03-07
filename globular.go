@@ -492,7 +492,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 
 		// specific configuration values...
 		if services[i]["Root"] != nil {
-			s["Root"] = services[i]["Root"] 
+			s["Root"] = services[i]["Root"]
 		}
 
 		config_["Services"].(map[string]interface{})[s["Id"].(string)] = s
@@ -1407,31 +1407,34 @@ func (globule *Globule) initPeers() error {
 		localDomain, _ := config.GetDomain()
 		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail, localDomain)
 		if err == nil {
-			// update local peer info for each peer...
-			resource_client__, err := getResourceClient(address)
-			if err == nil {
-				// retreive the local peer infos
-				peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
-				if peers_ != nil {
-					if len(peers_) > 0 {
-						// set mutable values...
-						peer_ := peers_[0]
-						peer_.Protocol = globule.Protocol
-						peer_.LocalIpAddress = Utility.MyLocalIP()
-						peer_.ExternalIpAddress = Utility.MyIP()
-						peer_.PortHttp = int32(globule.PortHttp)
-						peer_.PortHttps = int32(globule.PortHttps)
-						err := resource_client__.UpdatePeer(token, peer_)
-						if err != nil {
-							fmt.Println("fail to update peer with error: ", err)
+			// no wait here...
+			go func() {
+				// update local peer info for each peer...
+				resource_client__, err := getResourceClient(address)
+				if err == nil {
+					// retreive the local peer infos
+					peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
+					if peers_ != nil {
+						if len(peers_) > 0 {
+							// set mutable values...
+							peer_ := peers_[0]
+							peer_.Protocol = globule.Protocol
+							peer_.LocalIpAddress = Utility.MyLocalIP()
+							peer_.ExternalIpAddress = Utility.MyIP()
+							peer_.PortHttp = int32(globule.PortHttp)
+							peer_.PortHttps = int32(globule.PortHttps)
+							err := resource_client__.UpdatePeer(token, peer_)
+							if err != nil {
+								fmt.Println("fail to update peer with error: ", err)
+							}
+						} else {
+							fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
 						}
 					} else {
-						fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
+						fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
 					}
-				} else {
-					fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
 				}
-			}
+			}()
 		}
 
 	}
@@ -1514,6 +1517,7 @@ func (globule *Globule) stopServices() error {
 // Start http/https server...
 func (globule *Globule) serve() error {
 
+	fmt.Println("-----------------> 1517")
 	// Create the admin account.
 	globule.registerAdminAccount()
 
@@ -1587,12 +1591,15 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Init peers
+
 	globule.initPeers()
+
 	if err != nil {
 		fmt.Println("fail to init peers whit error ", err)
 		return err
 	}
 
+	fmt.Println("-----------------> 1597")
 	err = globule.serve()
 	if err != nil {
 		return err
@@ -2160,7 +2167,7 @@ func (globule *Globule) Listen() error {
 	// Must be started before other services.
 	go func() {
 
-		address :=  "0.0.0.0" // Utility.MyLocalIP()
+		address := "0.0.0.0" // Utility.MyLocalIP()
 
 		// local - non secure connection.
 		globule.http_server = &http.Server{
