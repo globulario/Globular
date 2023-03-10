@@ -280,7 +280,21 @@ func NewGlobule() *Globule {
 
 func (globule *Globule) cleanup() {
 
+	p := make(map[string]interface{})
+	
+	p["domain"], _ = config.GetDomain()
+	p["hostname"] = globule.Name
+	p["mac"] = globule.Mac
+	p["portHttp"] = globule.PortHttp
+	p["portHttps"] = globule.PortHttps
+
+	jsonStr, _:= json.Marshal(&p)
+
 	// set services configuration values
+	globule.publish("stop_peer_evt", jsonStr)
+
+	// give time to stop peer evt to be publish
+	time.Sleep(500 * time.Millisecond)
 
 	// Close all services.
 	globule.stopServices()
@@ -424,7 +438,8 @@ func (globule *Globule) registerAdminAccount() error {
  * The admin group contain all action...
  */
 func (globule *Globule) createAdminRole() error {
-	resource_client_, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		return err
 	}
@@ -436,7 +451,7 @@ func (globule *Globule) createAdminRole() error {
 		return err
 	}
 
-	servicesManager, err := GetServiceManagerClient(globule.getAddress())
+	servicesManager, err := GetServiceManagerClient(address)
 	actions, err := servicesManager.GetAllActions()
 	if err != nil {
 		return err
@@ -1357,17 +1372,70 @@ func deletePeersEvent(evt *eventpb.Event) {
 	globule.savePeers()
 }
 
+func (globule *Globule) initPeer(p *resourcepb.Peer) {
+
+	// Here I will try to set the peer ip...
+	address := p.Domain
+	if p.Protocol == "https" {
+		address += ":" + Utility.ToString(p.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(p.PortHttp)
+	}
+
+	if Utility.IsLocal(address) {
+		globule.setHost(p.LocalIpAddress, p.Domain)
+	} else {
+		globule.setHost(p.ExternalIpAddress, p.Domain)
+	}
+
+	// Now I will keep it in the peers list.
+	globule.peers.Store(p.Mac, p)
+
+	// Here I will try to update
+	localDomain, _ := config.GetDomain()
+	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+	if err == nil {
+		// no wait here...
+
+		// update local peer info for each peer...
+		resource_client__, err := getResourceClient(address)
+		if err == nil {
+			// retreive the local peer infos
+			peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
+			if peers_ != nil {
+				if len(peers_) > 0 {
+					// set mutable values...
+					peer_ := peers_[0]
+					peer_.Protocol = globule.Protocol
+					peer_.LocalIpAddress = Utility.MyLocalIP()
+					peer_.ExternalIpAddress = Utility.MyIP()
+					peer_.PortHttp = int32(globule.PortHttp)
+					peer_.PortHttps = int32(globule.PortHttps)
+					err := resource_client__.UpdatePeer(token, peer_)
+					if err != nil {
+						fmt.Println("fail to update peer with error: ", err)
+					}
+				} else {
+					fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
+				}
+			} else {
+				fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
+			}
+		}
+
+	}
+}
+
 /**
  * Here I will init the list of peers.
  */
 func (globule *Globule) initPeers() error {
 
-	resource_client_, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		return err
 	}
-
-	//time.Sleep(5 * time.Second)
 
 	// Return the registered peers
 	peers, err := resource_client_.GetPeers(`{}`)
@@ -1381,62 +1449,19 @@ func (globule *Globule) initPeers() error {
 			time.Sleep(1 * time.Second)
 			peers, err = resource_client_.GetPeers(`{}`)
 		}
-		// return err
 	}
 
 	// Now I will set peers in the host file.
 	for i := 0; i < len(peers); i++ {
-		// Here I will try to set the peer ip...
-		address := peers[i].Domain
-		if peers[i].Protocol == "https" {
-			address += ":" + Utility.ToString(peers[i].PortHttps)
-		} else {
-			address += ":" + Utility.ToString(peers[i].PortHttp)
-		}
+		p:=peers[i]
 
-		if Utility.IsLocal(address) {
-			globule.setHost(peers[i].LocalIpAddress, peers[i].Domain)
-		} else {
-			globule.setHost(peers[i].ExternalIpAddress, peers[i].Domain)
-		}
+		// Set existing value...
+		globule.peers.Store(p.Mac, p)
 
-		// Now I will keep it in the peers list.
-		globule.peers.Store(peers[i].Mac, peers[i])
-
-		// Here I will try to update
-		localDomain, _ := config.GetDomain()
-		token, err := security.GenerateToken(globule.SessionTimeout, peers[i].GetMac(), "sa", "", globule.AdminEmail, localDomain)
-		if err == nil {
-			// no wait here...
-			go func() {
-				// update local peer info for each peer...
-				resource_client__, err := getResourceClient(address)
-				if err == nil {
-					// retreive the local peer infos
-					peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
-					if peers_ != nil {
-						if len(peers_) > 0 {
-							// set mutable values...
-							peer_ := peers_[0]
-							peer_.Protocol = globule.Protocol
-							peer_.LocalIpAddress = Utility.MyLocalIP()
-							peer_.ExternalIpAddress = Utility.MyIP()
-							peer_.PortHttp = int32(globule.PortHttp)
-							peer_.PortHttps = int32(globule.PortHttps)
-							err := resource_client__.UpdatePeer(token, peer_)
-							if err != nil {
-								fmt.Println("fail to update peer with error: ", err)
-							}
-						} else {
-							fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
-						}
-					} else {
-						fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
-					}
-				}
-			}()
-		}
-
+		// Try to update with updated infos...
+		go func(p *resourcepb.Peer){
+			globule.initPeer(p)
+		}(p)
 	}
 
 	// Subscribe to new peers event...
@@ -1456,12 +1481,14 @@ func (globule *Globule) initPeers() error {
 func (globule *Globule) createApplicationConnection() error {
 
 	fmt.Println("-- create applications connections")
-	resource_client_, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+
+	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		return err
 	}
 
-	persistence_client_, err := GetPersistenceClient(globule.getAddress())
+	persistence_client_, err := GetPersistenceClient(address)
 	if err != nil {
 		return err
 	}
@@ -1471,7 +1498,6 @@ func (globule *Globule) createApplicationConnection() error {
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				app := applications[i]
-				fmt.Println("---- create connection for ", app.Alias)
 				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
 				if err != nil {
 					fmt.Println("--------> fail to create application connection  : ", app.Id, err)
@@ -1517,7 +1543,6 @@ func (globule *Globule) stopServices() error {
 // Start http/https server...
 func (globule *Globule) serve() error {
 
-	fmt.Println("-----------------> 1517")
 	// Create the admin account.
 	globule.registerAdminAccount()
 
@@ -1591,7 +1616,6 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Init peers
-
 	globule.initPeers()
 
 	if err != nil {
@@ -1599,7 +1623,19 @@ func (globule *Globule) Serve() error {
 		return err
 	}
 
-	fmt.Println("-----------------> 1597")
+	p := make(map[string]interface{})
+	
+	p["domain"], _ = config.GetDomain()
+	p["hostname"] = globule.Name
+	p["mac"] = globule.Mac
+	p["portHttp"] = globule.PortHttp
+	p["portHttps"] = globule.PortHttps
+
+	jsonStr, _:= json.Marshal(&p)
+
+	// set services configuration values
+	globule.publish("start_peer_evt", jsonStr)
+
 	err = globule.serve()
 	if err != nil {
 		return err
@@ -1760,14 +1796,6 @@ func (globule *Globule) getDomain() string {
 
 	// if no hostname or domain are found it will be use as localhost.
 	return domain
-}
-
-/**
- * Return the globule address
- */
-func (globule *Globule) getAddress() string {
-	address, _ := config.GetAddress() // return the address with the http port.
-	return address
 }
 
 func (globule *Globule) setHost(ipv4, domain string) error {
@@ -2178,7 +2206,6 @@ func (globule *Globule) Listen() error {
 		if err != nil {
 			fmt.Println("fail to listen with err ", err)
 		}
-
 	}()
 
 	// Start the http server.
@@ -2213,10 +2240,10 @@ func (globule *Globule) Listen() error {
 }
 
 // ////////////////////// Resource Client ////////////////////////////////////////////
-func GetServiceManagerClient(domain string) (*service_manager_client.Services_Manager_Client, error) {
+func GetServiceManagerClient(address string) (*service_manager_client.Services_Manager_Client, error) {
 
 	Utility.RegisterFunction("NewServicesManagerService_Client", service_manager_client.NewServicesManagerService_Client)
-	client, err := globular_client.GetClient(domain, "services_manager.ServicesManagerService", "NewServicesManagerService_Client")
+	client, err := globular_client.GetClient(address, "services_manager.ServicesManagerService", "NewServicesManagerService_Client")
 	if err != nil {
 		return nil, err
 	}
@@ -2248,7 +2275,8 @@ func GetPersistenceClient(address string) (*persistence_client.Persistence_Clien
  * Return an application with a given id
  */
 func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2268,7 +2296,8 @@ func (globule *Globule) accountExist(id string) bool {
  * Return a group with a given id
  */
 func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2300,7 +2329,8 @@ func (globule *Globule) groupExist(id string) bool {
  * Return an application with a given id
  */
 func (globule *Globule) getApplication(applicationId string) (*resourcepb.Application, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2332,7 +2362,8 @@ func (globule *Globule) applicationExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2364,7 +2395,8 @@ func (globule *Globule) peerExist(id string) bool {
  * Return a peer with a given id
  */
 func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2396,7 +2428,8 @@ func (globule *Globule) organisationExist(id string) bool {
  * Return a role with a given id
  */
 func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
-	resourceClient, err := getResourceClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -2440,7 +2473,8 @@ func GetRbacClient(address string) (*rbac_client.Rbac_Client, error) {
 // Use rbac client here...
 func (globule *Globule) addResourceOwner(path, resource_type, subject string, subjectType rbacpb.SubjectType) error {
 
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return err
 	}
@@ -2448,7 +2482,8 @@ func (globule *Globule) addResourceOwner(path, resource_type, subject string, su
 }
 
 func (globule *Globule) validateAction(method string, subject string, subjectType rbacpb.SubjectType, infos []*rbacpb.ResourceInfos) (bool, bool, error) {
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return false, false, err
 	}
@@ -2457,7 +2492,8 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return false, false, err
 	}
@@ -2466,7 +2502,8 @@ func (globule *Globule) validateAccess(subject string, subjectType rbacpb.Subjec
 }
 
 func ValidateSubjectSpace(subject string, subjectType rbacpb.SubjectType, required_space uint64) (bool, error) {
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return false, err
 	}
@@ -2475,8 +2512,8 @@ func ValidateSubjectSpace(subject string, subjectType rbacpb.SubjectType, requir
 }
 
 func (globule *Globule) setActionResourcesPermissions(permissions map[string]interface{}) error {
-
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return err
 	}
@@ -2484,7 +2521,8 @@ func (globule *Globule) setActionResourcesPermissions(permissions map[string]int
 }
 
 func (globule *Globule) deleteResourcePermissions(path string) error {
-	rbac_client_, err := GetRbacClient(globule.getAddress())
+	address, _ := config.GetAddress()
+	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
 		return err
 	}
@@ -2494,7 +2532,8 @@ func (globule *Globule) deleteResourcePermissions(path string) error {
 // /////////////////// search engine /////////////////////////////
 func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
 	Utility.RegisterFunction("NewSearchService_Client", search_client.NewSearchService_Client)
-	client, err := globular_client.GetClient(globule.getAddress(), "search.SearchService", "NewRbacService_Client")
+	address, _ := config.GetAddress()
+	client, err := globular_client.GetClient(address, "search.SearchService", "NewRbacService_Client")
 	if err != nil {
 		return nil, err
 	}
@@ -2504,8 +2543,10 @@ func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) 
 // /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
-	client, err := globular_client.GetClient(globule.getAddress(), "event.EventService", "NewEventService_Client")
+	address, _ := config.GetAddress()
+	client, err := globular_client.GetClient(address, "event.EventService", "NewEventService_Client")
 	if err != nil {
+		
 		return nil, err
 	}
 	return client.(*event_client.Event_Client), nil
@@ -2516,7 +2557,11 @@ func (globule *Globule) publish(event string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return eventClient.Publish(event, data)
+	err = eventClient.Publish(event, data)
+	if err != nil {
+		fmt.Println("fail to publish event", event, globule.Domain, "with error", err)
+	}
+	return err 
 }
 
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
@@ -2548,7 +2593,8 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
  */
 func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
 	Utility.RegisterFunction("NewLogService_Client", log_client.NewLogService_Client)
-	client, err := globular_client.GetClient(globule.getAddress(), "log.LogService", "NewLogService_Client")
+	address, _ := config.GetAddress()
+	client, err := globular_client.GetClient(address, "log.LogService", "NewLogService_Client")
 	if err != nil {
 		return nil, err
 	}
@@ -2562,5 +2608,6 @@ func (globule *Globule) log(fileLine, functionName, message string, level logpb.
 		return err
 	}
 
-	return log_client_.Log(globule.Name, globule.getAddress(), functionName, level, message, fileLine, functionName)
+	address, _ := config.GetAddress()
+	return log_client_.Log(globule.Name, address, functionName, level, message, fileLine, functionName)
 }

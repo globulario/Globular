@@ -2229,9 +2229,10 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
+	address_, _ := config_.GetAddress()
 	// I will also register the peer to the local server, the local server must running and it domain register,
 	// he can be set in /etc/hosts if it's not a public domain.
-	local_resource_client_, err := resource_client.NewResourceService_Client(g.getAddress(), "resource.ResourceService")
+	local_resource_client_, err := resource_client.NewResourceService_Client(address_, "resource.ResourceService")
 	if err != nil {
 		return err
 	}

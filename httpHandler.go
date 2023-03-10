@@ -675,7 +675,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
 				path_ = path_[1:]
 			}
-		}
+		} 
 
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
