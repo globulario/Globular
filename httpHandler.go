@@ -29,6 +29,7 @@ import (
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
+	colly "github.com/gocolly/colly/v2"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
@@ -151,7 +152,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 
 	// Handle the prefligth oprions...
 	setupResponse(&w, r)
-
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
@@ -675,7 +675,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
 				path_ = path_[1:]
 			}
-		} 
+		}
 
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
@@ -1181,5 +1181,79 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Now I will try to complete the casting informations...
+	if title_["Actors"] != nil {
+		for i := 0; i < len(title_["Actors"].([]interface{})); i++ {
+			p := title_["Actors"].([]interface{})[i].(map[string]interface{})
+			p_, err := setPersonInformation(p)
+			if err == nil {
+				title_["Actors"].([]interface{})[i] = p_
+			}
+		}
+	}
+
+	if title_["Writers"] != nil {
+		for i := 0; i < len(title_["Writers"].([]interface{})); i++ {
+			p := title_["Writers"].([]interface{})[i].(map[string]interface{})
+			p_, err := setPersonInformation(p)
+			if err == nil {
+				title_["Writers"].([]interface{})[i] = p_
+			}
+		}
+	}
+
+	if title_["Directors"] != nil {
+		for i := 0; i < len(title_["Directors"].([]interface{})); i++ {
+			p := title_["Directors"].([]interface{})[i].(map[string]interface{})
+			p_, err := setPersonInformation(p)
+			if err == nil {
+				title_["Directors"].([]interface{})[i] = p_
+			}
+		}
+	}
+
 	json.NewEncoder(w).Encode(title_)
+}
+
+func setPersonInformation(person map[string]interface{}) (map[string]interface{}, error) {
+	movieCollector := colly.NewCollector(
+		colly.AllowedDomains("www.imdb.com", "imdb.com"),
+	)
+
+	// So here I will define collector's...
+	biographySelector := `a[name="mini_bio"]`
+	movieCollector.OnHTML(biographySelector, func(e *colly.HTMLElement) {
+		
+		html, err := e.DOM.Next().Next().Html()
+		if err == nil {
+			person["Biography"] = html
+		}
+	})
+
+	// The profile image.
+	profilePictureSelector := `#main > div.article.listo > div.subpage_title_block.name-subpage-header-block > a > img`
+	movieCollector.OnHTML(profilePictureSelector, func(e *colly.HTMLElement) {
+		person["Picture"] = strings.TrimSpace(e.Attr("src"))
+	})
+
+	// The birtdate
+	birthdateSelector := `#overviewTable > tbody > tr:nth-child(1) > td:nth-child(2) > time`
+	movieCollector.OnHTML(birthdateSelector, func(e *colly.HTMLElement) {
+		person["BirthDate"] = e.Attr("datetime")
+	})
+
+	// The birtplace.
+	birthplaceSelector := `#overviewTable > tbody > tr:nth-child(1) > td:nth-child(2) > a`
+	movieCollector.OnHTML(birthplaceSelector, func(e *colly.HTMLElement) {
+		person["BirthPlace"] = e.Text
+	})
+
+	url := person["URL"].(string) + "/bio?ref_=nm_ov_bio_sm"
+
+	err := movieCollector.Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return person, nil
 }
