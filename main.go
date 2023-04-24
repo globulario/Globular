@@ -1508,7 +1508,7 @@ func dist(g *Globule, path string, revision string) {
 		packageConfig += "Homepage: https://globular.io\n"
 
 		// - The list of dependencies...
-		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~)\n"
+		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~)\n"
 
 		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
@@ -1532,7 +1532,7 @@ func dist(g *Globule, path string, revision string) {
 		rm -R mongodb-linux-x86_64-debian11-6.0.3
 
 		#wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
-		#sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+		#dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
 
 		# install mongosh (shell)
 		curl -O https://downloads.mongodb.com/compass/mongosh-1.6.1-linux-x64.tgz
