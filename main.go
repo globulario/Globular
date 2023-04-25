@@ -1361,7 +1361,33 @@ func dist(g *Globule, path string, revision string) {
 	defer os.RemoveAll(dir + "/applications")
 
 	// The debian package...
+	// There is a link on how to launch service in macOS
+	// https://medium.com/swlh/how-to-use-launchd-to-run-services-in-macos-b972ed1e352
+	//
+	// But the way to use globular is pretty simple,
+	// from the package, go to
+	//
+	// cd /Globular/Contents/MacOS
+	//
+	// from the terminal and with admin right you can run globular.
+	// sudo ./Globular
+	//
+	// To install globular permentaly
+	// sudo ./Globular install
+	//
+	// To uninstall Globular,
+	// sudo ./Globular uninstall
+	//
+	// To stop/start the globular deamon,
+	//
+	// -Start the service
+	// sudo launchctl load /Library/LaunchDaemons/Globular.plist
+	//
+	// -stop the service
+	// sudo launchctl unload /Library/LaunchDaemons/Globular.plist
+	//
 	if runtime.GOOS == "darwin" {
+
 		darwin_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
 		// remove existiong files...
@@ -1997,6 +2023,84 @@ func __dist(g *Globule, path, config_path string) []string {
 			}
 		} else {
 			fmt.Println("no dir with dependencie was found at path", dir+"/dependencies")
+		}
+	} else if runtime.GOOS == "darwin" {
+		dest := path + "/bin"
+
+		// mongodb stuff...
+		if Utility.Exists("/usr/local/bin/mongod") {
+			Utility.CopyFile("/usr/local/bin/mongod", dest)
+		}
+
+		if Utility.Exists("/usr/local/bin/mongosh") {
+			Utility.CopyFile("/usr/local/bin/mongosh", dest)
+		}
+
+		if Utility.Exists("/usr/local/bin/mongos") {
+			Utility.CopyFile("/usr/local/bin/mongos", dest)
+		}
+
+		// ffmpeg
+		if Utility.Exists("/usr/local/bin/ffmpeg") {
+			Utility.CopyFile("/usr/local/bin/ffmpeg", dest)
+		}
+
+		if Utility.Exists("/usr/local/bin/ffprobe") {
+			Utility.CopyFile("/usr/local/bin/ffprobe", dest)
+		}
+
+		// yt-dlp
+		if Utility.Exists("/usr/local/bin/yt-dlp") {
+			Utility.CopyFile("/usr/local/bin/yt-dlp", dest)
+		}
+
+		// unix-odbc
+		if Utility.Exists("/usr/local/bin/odbc_config") {
+			Utility.CopyFile("/usr/local/bin/odbc_config", dest)
+		}
+
+		if Utility.Exists("/usr/local/bin/odbcinst") {
+			Utility.CopyFile("/usr/local/bin/odbcinst", dest)
+		}
+
+		// Now the libraries...
+		dest = path + "/lib"
+		Utility.CreateDirIfNotExist(dest)
+
+		if Utility.Exists("/usr/local/lib/libodbc.2.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbc.2.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbc.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbc.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbc.la") {
+			Utility.CopyFile("/usr/local/lib/libodbc.la", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbccr.2.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbccr.2.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbccr.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbccr.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbccr.la") {
+			Utility.CopyFile("/usr/local/lib/libodbccr.la", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbcinst.2.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbcinst.2.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbcinst.dylib") {
+			Utility.CopyFile("/usr/local/lib/libodbcinst.dylib", dest)
+		}
+
+		if Utility.Exists("/usr/local/lib/libodbcinst.la") {
+			Utility.CopyFile("/usr/local/lib/libodbcinst.la", dest)
 		}
 	}
 

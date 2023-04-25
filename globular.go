@@ -1166,7 +1166,6 @@ func setSystemPath() error {
 		execs = Utility.GetFilePathsByExtension(config.GetRootDir()+"/bin", ".exe")
 		for i := 0; i < len(execs); i++ {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
-
 			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
 				err := enableProgramFwMgr("grpcwebproxy", exec)
 				if err != nil {
