@@ -1188,11 +1188,11 @@ func setSystemPath() error {
 		}
 
 		// Openssl conf require...
-		/*if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
+		if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
 		} else {
 			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
-		}*/
+		}
 
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 		return err
