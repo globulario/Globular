@@ -169,6 +169,7 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
+	fmt.Println("Create new Globular instance")
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -183,7 +184,8 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
-	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
+	localIp := Utility.MyLocalIP()
+	g.Mac, _ = Utility.MyMacAddr(localIp)
 
 	// THOSE values must be change by the user...
 	g.Organization = "GLOBULARIO"
@@ -805,6 +807,8 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+	fmt.Println("init directories")
+
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	config_client.GetServicesConfigurations()
@@ -1226,6 +1230,8 @@ func setSystemPath() error {
  */
 func (globule *Globule) startServices() error {
 
+	fmt.Println("start services")
+
 	Utility.KillProcessByName("grpcwebproxy")
 
 	// Here I will generate the keys for this server if not already exist.
@@ -1620,6 +1626,7 @@ func (globule *Globule) Serve() error {
 			}
 		}
 	}
+
 
 	// Initialyse directories.
 	globule.initDirectories()

@@ -65,7 +65,6 @@ func (g *Globule) Stop(s service.Service) error {
 func main() {
 	//defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
-
 	g := NewGlobule()
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()
@@ -665,7 +664,6 @@ func main() {
 		}
 
 	} else {
-
 		defer g.cleanup()
 
 		if err != nil {
@@ -1483,13 +1481,19 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
 			fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
 			fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
+			return
 		}
+		
+		// Copy lib crypto...
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
+		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
 
 		// zlib
 		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
 			fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
+			return
 		}
+
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
 
@@ -1551,21 +1555,18 @@ func dist(g *Globule, path string, revision string) {
 		mkdir /etc/globular/config/services
 
 		# install mongo db..
-		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.3.tgz
-		tar -zxvf mongodb-linux-x86_64-debian11-6.0.3.tgz
-		cp -R -n mongodb-linux-x86_64-debian11-6.0.3/bin/* /usr/local/bin
-		rm mongodb-linux-x86_64-debian11-6.0.3.tgz
-		rm -R mongodb-linux-x86_64-debian11-6.0.3
-
-		#wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
-		#dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.5.tgz
+		tar -zxvf mongodb-linux-x86_64-debian11-6.0.5.tgz
+		cp -R -n mongodb-linux-x86_64-debian11-6.0.5/bin/* /usr/local/bin
+		rm mongodb-linux-x86_64-debian11-6.0.5.tgz
+		rm -R mongodb-linux-x86_64-debian11-6.0.5
 
 		# install mongosh (shell)
-		curl -O https://downloads.mongodb.com/compass/mongosh-1.6.1-linux-x64.tgz
-		tar -zxvf mongosh-1.6.1-linux-x64.tgz
-		cp -R -n mongosh-1.6.1-linux-x64/bin/* /usr/local/bin
-		rm mongosh-1.6.1-linux-x64.tgz
-		rm -R mongosh-1.6.1-linux-x64
+		curl -O https://downloads.mongodb.com/compass/mongosh-1.8.1-linux-x64.tgz
+		tar -zxvf mongosh-1.8.1-linux-x64.tgz
+		cp -R -n mongosh-1.8.1-linux-x64/bin/* /usr/local/bin
+		rm mongosh-1.8.1-linux-x64.tgz
+		rm -R mongosh-1.8.1-linux-x64
 
 		# -- Install prometheus
 		wget https://github.com/prometheus/prometheus/releases/download/v2.41.0/prometheus-2.41.0.linux-amd64.tar.gz
@@ -1628,21 +1629,19 @@ func dist(g *Globule, path string, revision string) {
 		# Create a link into bin to it original location.
 		# the systemd file is /etc/systemd/system/Globular.service
 		# the environement variable file is /etc/sysconfig/Globular
-		 echo "install globular as service..."
-		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
-		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
-		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
-
-		 chmod ugo+x /usr/local/bin/Globular
-		 /usr/local/bin/Globular install
-		 # here I will modify the /etc/systemd/system/Globular.service file and set 
-		 # Restart=always
-		 # RestartSec=3
-		 echo "set service configuration /etc/systemd/system/Globular.service"
-		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
-		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
-
 	
+		 echo "create link to Globular exec"
+		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
+		 chmod +x /usr/local/bin/Globular
+
+		 echo "create link to grpcwebproxy exec"
+		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
+		 chmod +x /usr/local/bin/grpcwebproxy
+
+		 echo "create link to torrent exec"
+		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
+		 chmod +x /usr/local/bin/torrent
+
 		 #create symlink
 		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so
 		 ln -s /usr/local/lib/libz.so.1.2.11 /usr/local/lib/libz.so.1
@@ -1652,14 +1651,28 @@ func dist(g *Globule, path string, revision string) {
 		 ln -s /usr/local/lib/libodbccr.so.2 /usr/local/lib/libodbccr.so
 		 ln -s /usr/local/lib/libodbcinst.so.2.0.0 /usr/local/lib/libodbcinst.so.2
 		 ln -s /usr/local/lib/libodbcinst.so.2 /usr/local/lib/libodbcinst.so
-		 ln -s /usr/lib/libssl.so.1.1 /usr/local/lib/libssl.so.1.1
-		
+		 ln -s /usr/local/lib/libssl.so.1.1 /usr/local/lib/libssl.so.1.1
+		 ln -s /usr/local/lib/libcrypto.so.1.1 /usr/local/libcrypto.so.1.1
 		 ldconfig
+
+		 echo "install globular as service..."
+		 /usr/local/bin/Globular install
 		 
+		 # here I will modify the /etc/systemd/system/Globular.service file and set 
+		 # Restart=always
+		 # RestartSec=3
+		 echo "set service configuration /etc/systemd/system/Globular.service"
+		 sed -i 's/^\(Restart=\).*/\1always/' /etc/systemd/system/Globular.service
+		 sed -i 's/^\(RestartSec=\).*/\120/' /etc/systemd/system/Globular.service
+
 		 cd; cd -
 
 		 systemctl daemon-reload
 		 systemctl enable Globular
+
+		 echo "start Globular service"
+		 echo "run 'service Globular stop' to stop Globular service"
+
 		 service Globular start
 		 
 		`
