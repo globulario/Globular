@@ -1264,7 +1264,7 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId string)
 
 	// I will create a repository
 	for i := 0; i < len(descriptor.Repositories); i++ {
-
+		
 		package_repository, err := repository_client.NewRepositoryService_Client(descriptor.Repositories[i], "repository.PackageRepository")
 		if err != nil {
 			return "", "", err
@@ -1291,7 +1291,11 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId string)
 
 	// tar + gzip
 	var buf bytes.Buffer
-	Utility.CompressDir(path, &buf)
+	_, err = Utility.CompressDir(path, &buf)
+	if err != nil {
+		fmt.Println("fail to compress dir with error ", err)
+		return "", "", err
+	}
 
 	// write the .tar.gzip
 	fileToWrite, err := os.OpenFile(path+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))

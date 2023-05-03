@@ -281,14 +281,14 @@ func NewGlobule() *Globule {
 func (globule *Globule) cleanup() {
 
 	p := make(map[string]interface{})
-	
+
 	p["domain"], _ = config.GetDomain()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
 	p["portHttp"] = globule.PortHttp
 	p["portHttps"] = globule.PortHttps
 
-	jsonStr, _:= json.Marshal(&p)
+	jsonStr, _ := json.Marshal(&p)
 
 	// set services configuration values
 	globule.publish("stop_peer_evt", jsonStr)
@@ -1187,11 +1187,11 @@ func setSystemPath() error {
 		}
 
 		// Openssl conf require...
-		/*if Utility.Exists(`C:/Program Files/Globular/dependencies/openssl/openssl.cnf`) {
-			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`)
+		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl.cnf`) {
+			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl.cnf`)
 		} else {
-			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
-		}*/
+			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
+		}
 
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 		return err
@@ -1453,13 +1453,13 @@ func (globule *Globule) initPeers() error {
 
 	// Now I will set peers in the host file.
 	for i := 0; i < len(peers); i++ {
-		p:=peers[i]
+		p := peers[i]
 
 		// Set existing value...
 		globule.peers.Store(p.Mac, p)
 
 		// Try to update with updated infos...
-		go func(p *resourcepb.Peer){
+		go func(p *resourcepb.Peer) {
 			globule.initPeer(p)
 		}(p)
 	}
@@ -1624,14 +1624,14 @@ func (globule *Globule) Serve() error {
 	}
 
 	p := make(map[string]interface{})
-	
+
 	p["domain"], _ = config.GetDomain()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
 	p["portHttp"] = globule.PortHttp
 	p["portHttps"] = globule.PortHttps
 
-	jsonStr, _:= json.Marshal(&p)
+	jsonStr, _ := json.Marshal(&p)
 
 	// set services configuration values
 	globule.publish("start_peer_evt", jsonStr)
@@ -2546,7 +2546,7 @@ func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	address, _ := config.GetAddress()
 	client, err := globular_client.GetClient(address, "event.EventService", "NewEventService_Client")
 	if err != nil {
-		
+
 		return nil, err
 	}
 	return client.(*event_client.Event_Client), nil
@@ -2561,7 +2561,7 @@ func (globule *Globule) publish(event string, data []byte) error {
 	if err != nil {
 		fmt.Println("fail to publish event", event, globule.Domain, "with error", err)
 	}
-	return err 
+	return err
 }
 
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
