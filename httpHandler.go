@@ -1223,11 +1223,9 @@ func setPersonInformation(person map[string]interface{}) (map[string]interface{}
 	// So here I will define collector's...
 	biographySelector := `a[name="mini_bio"]`
 	movieCollector.OnHTML(biographySelector, func(e *colly.HTMLElement) {
-		
-		html, err := e.DOM.Next().Next().Html()
-		if err == nil {
-			person["Biography"] = html
-		}
+
+		// keep the text only...
+		person["Biography"] = e.DOM.Next().Next().Text()
 	})
 
 	// The profile image.

@@ -24,6 +24,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
+	//"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/config/config_client"
 	"github.com/globulario/services/golang/dns/dns_client"
@@ -168,6 +169,7 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
+	fmt.Println("Create new Globular instance")
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -182,7 +184,8 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
-	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
+	localIp := Utility.MyLocalIP()
+	g.Mac, _ = Utility.MyMacAddr(localIp)
 
 	// THOSE values must be change by the user...
 	g.Organization = "GLOBULARIO"
@@ -804,6 +807,8 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
  */
 func (globule *Globule) initDirectories() error {
 
+	fmt.Println("init directories")
+
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	config_client.GetServicesConfigurations()
@@ -1165,7 +1170,6 @@ func setSystemPath() error {
 		execs = Utility.GetFilePathsByExtension(config.GetRootDir()+"/bin", ".exe")
 		for i := 0; i < len(execs); i++ {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
-
 			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
 				err := enableProgramFwMgr("grpcwebproxy", exec)
 				if err != nil {
@@ -1225,6 +1229,8 @@ func setSystemPath() error {
  * installed on that computer.
  */
 func (globule *Globule) startServices() error {
+
+	fmt.Println("start services")
 
 	Utility.KillProcessByName("grpcwebproxy")
 
@@ -1324,6 +1330,31 @@ func (globule *Globule) startServices() error {
 
 		// refresh dir event
 		globule.subscribe("refresh_dir_evt", refreshDirEvent(globule))
+
+		// So here I will authenticate the root if the password is "adminadmin" that will
+		// reset the password in the backend if it was manualy set in the config file.
+		/*config_, err := config.GetLocalConfig(true)
+		if err == nil {
+			if config_["RootPassword"].(string) == "adminadmin" {
+
+				address, _ := config.GetAddress()
+
+				// Authenticate the user in order to get the token
+				authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+				if err != nil {
+					log.Println("fail to access resource service at "+address+" with error ", err)
+					return
+				}
+
+				log.Println("authenticate user ", "sa", " at adress ", address)
+				_, err = authentication_client.Authenticate("sa", "adminadmin")
+
+				if err != nil {
+					log.Println("fail to authenticate user ", err)
+					return
+				}
+			}
+		}*/
 
 	}()
 
@@ -1595,6 +1626,7 @@ func (globule *Globule) Serve() error {
 			}
 		}
 	}
+
 
 	// Initialyse directories.
 	globule.initDirectories()
