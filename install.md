@@ -39,7 +39,7 @@ For go simply run,
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
-
+md file not wo
 ### Typescript
 
 Download protoc-gen-grpc-web from https://github.com/grpc/grpc-web/releases
@@ -94,7 +94,7 @@ Install the required tools and libraries:
 sudo apt install git-all
 ```
 
-### Go **the lastest version
+### Go > the lastest version
 
 ```bash
 sudo apt install net-tools
