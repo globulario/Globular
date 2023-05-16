@@ -28,6 +28,8 @@ Click [here](https://globular.io) to learn more about Globular!
 
 General presentation of [Globular](https://medium.com/@dave.courtois60/here-comes-globular-5dee34eb52f8) used as personal cloud.
 
+[How to install and configure your server](https://medium.com/@dave.courtois60/in-this-article-i-will-guide-you-through-the-installation-and-configuration-of-your-personal-cloud-f8bdce33d33a)
+
 You can also install Globular using Docker images. Find the Docker image [here](https://hub.docker.com/r/globular/globular).
 
 **Version 1.0 (beta) is now available.**
