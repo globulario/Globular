@@ -26,7 +26,7 @@ By using Globular, you can manage your microservices and make them available to 
 
 Click [here](https://globular.io) to learn more about Globular!
 
-General presentation of the [console application](https://medium.com/@dave.courtois60/here-comes-globular-5dee34eb52f8), see what can Globular do.
+General presentation of [Globular](https://medium.com/@dave.courtois60/here-comes-globular-5dee34eb52f8) used as personal cloud.
 
 You can also install Globular using Docker images. Find the Docker image [here](https://hub.docker.com/r/globular/globular).
 
