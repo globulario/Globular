@@ -67,7 +67,7 @@ Here is a detailed guide on how to set up the development environment for a Rasp
 
 *First, make sure your system is up to date by running the following commands:
 
-#bash code
+```bash
 sudo apt update
 sudo apt install python3.8
 sudo apt install python-is-python3
@@ -76,14 +76,14 @@ sudo apt install openssh-server
 
 Install the required tools and libraries:
 
--Git
+##Git
 
-#bash code
+```bash
 sudo apt install git-all
 
--Go **the lastest version
+##Go **the lastest version
 
-#bash code
+```bash
 sudo apt install net-tools
 sudo apt-get update
 sudo apt-get -y upgrade
@@ -95,14 +95,14 @@ sudo mv go /usr/local/
 sudo nano ~/.bashrc
 Modify the path in the .bashrc file:
 
-#bash code
+```bash
 export GOROOT=/usr/local/go
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 Save the changes and exit the editor.
 
--SQL unix driver
-#bash code
+##SQL unix driver
+```bash
 sudo apt-get install build-essential
 sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
 sudo tar -xvf unixODBC-2.3.9.tar.gz
@@ -112,31 +112,31 @@ sudo make all install clean
 sudo ldconfig
 Protoc:
 
--Protobuffer
-#bash code
+##Protobuffer
+```bash
 sudo apt install -y protobuf-compiler
 
--MongoDB *last version
-#bash code
+##MongoDB *last version
+```bash
 sudo apt update
 sudo apt upgrade
 
 Install the MongoDB 4.4 GPG key:
-#bash code
+```bash
 wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
 
 Add the source location for the MongoDB packages:
-#bash code
+```bash
 echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
 
 Download the package details for the MongoDB packages:
-#bash code
+```bash
 sudo apt-get update
 sudo apt-get install -y mongodb-org
 
--Stream Downloader
+##Stream Downloader
 
-#bash code
+```bash
 sudo apt install python3.8
 sudo apt install python-is-python3
 # Get the latest binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
@@ -146,15 +146,15 @@ FFmpeg:
 Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 
--gRPC code generators
-#bash code
+##gRPC code generators
+```bash
 go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
--grpcwebproxy
-#bash code
+##grpcwebproxy
+```bash
 git clone github.com/improbable-eng/grpc-web.git
 cd go/grpcwebproxy
 go build
@@ -162,8 +162,8 @@ cp grpcwebproxy ~/globulario/services/bin/
 sudo chmod +x ~/globulario/services/bin/grpcwebproxy
 Now, let's
 
--Globular project itself
-#bash code
+##Globular project itself
+```bash
 mkdir globulario
 cd globulario
 git clone https://github.com/globulario/Globular.git
@@ -179,10 +179,10 @@ go mod tidy
 go build
 sudo nano /etc/environment
 
--Setup environnement variable
+##Setup environnement variable
 In the /etc/environment file, set the ServicesRoot variable to point to the services directory:
 
-#bash code
+```bash
 ServicesRoot=/home/ubuntu/globulario/services
 
 Save the changes and exit the editor.
