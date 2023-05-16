@@ -1,9 +1,10 @@
 
 
-#Windows environement setup
+# Windows environement setup
 
 How to setup globular developement environnement on windows.
 
+### Install GO
 first of all install Go, >the lastest version
 
 https://golang.org/dl/
@@ -13,7 +14,7 @@ Test if go is correctly install with
 go version
 > go version go1.20 windows/amd64
 ```
-
+### Setup Globular code
 Now create a dir name globulario
 ```bash
 mkdir globulario
@@ -39,7 +40,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
-Typescript
+### Typescript
 
 Download protoc-gen-grpc-web from https://github.com/grpc/grpc-web/releases
 for the platform you need. Put the exec in the bin path rename it from original name to protoc-gen-grpc-web.exe
@@ -53,7 +54,7 @@ sh generateCode.sh
 
 > Otherwise copy all the generateCode.sh and paste it in a command prompt, it will run all command one after another.
 
-C# and C++ generator must be compile from source code, I will not define how to do it but I successfully compile it with msys2 on windows.
+> C# and C++ generator must be compile from source code, I will not define how to do it but I successfully compile it with msys2 on windows.
 
 Now to compile golang services 
 ```bash
@@ -71,7 +72,7 @@ go build
 
 Et voila you got a working globular executable and services!
 
-#Linux ARM version (raspberry pie)
+# Linux ARM version (raspberry pie)
 
 Here is a detailed guide on how to set up the development environment for a Raspberry Pi 4.
 
@@ -93,7 +94,7 @@ Install the required tools and libraries:
 sudo apt install git-all
 ```
 
-###Go **the lastest version
+### Go **the lastest version
 
 ```bash
 sudo apt install net-tools
@@ -115,7 +116,7 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ```
 Save the changes and exit the editor.
 
-###SQL unix driver
+### SQL unix driver
 ```bash
 sudo apt-get install build-essential
 sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
@@ -132,7 +133,7 @@ sudo ldconfig
 sudo apt install -y protobuf-compiler
 ```
 
-###MongoDB *last version
+### MongoDB *last version
 ```bash
 sudo apt update
 sudo apt upgrade
@@ -154,7 +155,7 @@ sudo apt-get update
 sudo apt-get install -y mongodb-org
 ```
 
-###Stream Downloader
+### Stream Downloader
 
 ```bash
 sudo apt install python3.8
@@ -175,7 +176,7 @@ go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
-###grpcwebproxy
+### grpcwebproxy
 ```bash
 git clone github.com/improbable-eng/grpc-web.git
 cd go/grpcwebproxy
@@ -184,7 +185,7 @@ cp grpcwebproxy ~/globulario/services/bin/
 sudo chmod +x ~/globulario/services/bin/grpcwebproxy
 ```
 
-###Globular project itself
+### Globular project itself
 ```bash
 mkdir globulario
 cd globulario
@@ -201,7 +202,7 @@ go mod tidy
 go build
 ```
 
-###Setup environnement variable
+### Setup environnement variable
 In the /etc/environment file, set the ServicesRoot variable to point to the services directory:
 
 ```bash
