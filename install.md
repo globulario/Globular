@@ -83,7 +83,7 @@ Install the required tools and libraries:
 sudo apt install git-all
 ```
 
-##Go **the lastest version
+###Go **the lastest version
 
 ```bash
 sudo apt install net-tools
@@ -105,7 +105,7 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ```
 Save the changes and exit the editor.
 
-##SQL unix driver
+###SQL unix driver
 ```bash
 sudo apt-get install build-essential
 sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
@@ -116,13 +116,13 @@ sudo make all install clean
 sudo ldconfig
 ```
 
-##Protoffuer compiler (protoc)
+###Protoffuer compiler (protoc)
 
 ```bash
 sudo apt install -y protobuf-compiler
 ```
 
-##MongoDB *last version
+###MongoDB *last version
 ```bash
 sudo apt update
 sudo apt upgrade
@@ -144,7 +144,7 @@ sudo apt-get update
 sudo apt-get install -y mongodb-org
 ```
 
-##Stream Downloader
+###Stream Downloader
 
 ```bash
 sudo apt install python3.8
@@ -157,7 +157,7 @@ FFmpeg:
 Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 
-##gRPC code generators
+###gRPC code generators
 ```bash
 go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -165,7 +165,7 @@ go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
-##grpcwebproxy
+###grpcwebproxy
 ```bash
 git clone github.com/improbable-eng/grpc-web.git
 cd go/grpcwebproxy
@@ -174,7 +174,7 @@ cp grpcwebproxy ~/globulario/services/bin/
 sudo chmod +x ~/globulario/services/bin/grpcwebproxy
 ```
 
-##Globular project itself
+###Globular project itself
 ```bash
 mkdir globulario
 cd globulario
@@ -191,8 +191,7 @@ go mod tidy
 go build
 ```
 
-
-##Setup environnement variable
+###Setup environnement variable
 In the /etc/environment file, set the ServicesRoot variable to point to the services directory:
 
 ```bash
