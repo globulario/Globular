@@ -1,26 +1,31 @@
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Windows
-////////////////////////////////////////////////////////////////////////////////////////////////
+
+#Windows environement setup
+
 How to setup globular developement environnement on windows.
 
-first of all install Go 1.17
+first of all install Go, >the lastest version
 
 https://golang.org/dl/
 
 Test if go is correctly install with 
+```bash
 go version
 > go version go1.20 windows/amd64
+```
 
 Now create a dir name globulario
-
+```bash
 mkdir globulario
 cd globulario
+```
 
 Clone git pojet,
+```bash
 git clone https://github.com/globulario/services.git
 git clone https://github.com/globulario/Globular.git
 git clone https://github.com/davecourtois/Utility.git
+```
 
 Now I will compile the services. The first step is to generate gRpc files.
 To do so you must have gRpc installed on your computer. (I will not explain how to install it here).
@@ -29,8 +34,10 @@ You will aslo need language specific code generator to generate globular grpc fi
 
 Go
 For go simply run,
+```bash
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
 
 Typescript
 
@@ -40,32 +47,35 @@ for the platform you need. Put the exec in the bin path rename it from original 
 Generate gRpc stub...
 
 if you are in a linux shell simply run command 
+```bash
 sh generateCode.sh
+```
 
-otherwise copy all the generateCode.sh and paste it in a command prompt, it will run all command one after another.
+> Otherwise copy all the generateCode.sh and paste it in a command prompt, it will run all command one after another.
 
 C# and C++ generator must be compile from source code, I will not define how to do it but I successfully compile it with msys2 on windows.
 
 Now to compile golang services 
+```bash
 cd golang
 go mod tidy
 sh build.sh
-
+```
 
 Now globular from globulario dir,
+```bash
 cd Globular
 go mod tidy
 go build
+```
 
 Et voila you got a working globular executable and services!
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Linux ARM version
-////////////////////////////////////////////////////////////////////////////////////////////////
+#Linux ARM version (raspberry pie)
 
 Here is a detailed guide on how to set up the development environment for a Raspberry Pi 4.
 
-*First, make sure your system is up to date by running the following commands:
+First, make sure your system is up to date by running the following commands:
 
 ```bash
 sudo apt update
