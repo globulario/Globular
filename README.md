@@ -1,39 +1,41 @@
-# [go to Globular website](https://globular.io)
+# [Go to Globular website](https://globular.io)
 
 ## Why Globular?
-If gRPC is of great help with service implementation, it does nothing about service management. In fact, service management is out of gRPC  scope, but it’s the main purpose of globular. Managing service manually can be easy if you have only couple of service, and the number of application is limited. Over time number of applications and services has tendency to increase, and when that happened, you can became a victim of your success.
 
-What propertie must be define on a service to make it manageable? To be manageable a service must be,
+While gRPC is helpful for service implementation, it doesn't address service management. This is where Globular comes in. Service management is the main purpose of Globular, as managing services manually becomes challenging as the number of applications and services increases.
 
-* Identifiable: The service Id identified a running service on a given server with a given domain. The Id must be unique on the server, and must not change over time, or application that using it will stop working correctly.
+To make a service manageable, it must have the following properties:
 
-* Nameable: Multiple instances of the same service must be able to run at the same time, in redundancy, instance must share the same service name.
+* Identifiable: Each service is identified by a unique service ID on a specific server and domain. The ID should remain constant over time to ensure proper functionality of applications using the service.
 
-* Versionable: Service interface can change overtime, application must be able to get access to specific service version. With version service functionality are not freeze in time.
+* Nameable: Multiple instances of the same service should be able to run simultaneously and share the same service name.
 
-* Maintainable: When many service instances are running it can be difficult and error prone to update them one by one.
+* Versionable: Service interfaces may change over time, and applications should be able to access specific versions of the service. Service functionality should not be frozen in time.
 
-* Available: If a service crash for any reason, it must be restart. Over time loosing service instances can result in unstable applications.
+* Maintainable: Updating multiple service instances individually can be difficult and error-prone. Proper maintenance mechanisms should be in place.
 
-* Reachable: Here tree properties are requires, the domain and the port/proxy pair. Those properties are used to get the instance network address.
+* Available: If a service crashes, it should be automatically restarted. Losing service instances over time can lead to unstable applications.
 
-* Trustable: Https is here, and TLS is perfectly integrated in gRPC. Globular help you with the creation and the management of certificate. Easy and secure that's what Globular is all about. Not only you can secure the underlying data socket but also you can easly manage who can access ressource and execute method.
+* Reachable: Service instances require domain and port/proxy information to determine their network address.
 
-* Scalable: Almost every application start small, but with success cames demand, and scalibility must be part of the equation before everything else. Globular let you run your own cloud by creating a Globular Cluster, that's where the project get it's name. The architecture of Globular was created with scalability in mind before anything else.
+* Trustable: HTTPS and TLS are integrated into gRPC, providing secure communication. Globular assists with certificate creation and management, allowing easy access control for resources and method execution.
 
-By using Globular you will be able to manage your microservices and make them avaible to your web-applications.
+* Scalable: Scalability should be considered from the beginning. Globular enables you to create a Globular Cluster, allowing you to run your own cloud. The architecture of Globular prioritizes scalability.
 
-Click [here](https://globular.io) and learn more about globular!
+By using Globular, you can manage your microservices and make them available to your web applications.
 
-You can also install globular via docker's image's, [here](https://hub.docker.com/r/globular/globular)
+Click [here](https://globular.io) to learn more about Globular!
 
-** The vesion 1.0 is available. The website is not 100% finish but installation and quickstart are ready to help you to make your first step. A complete tutorial it's on the way to be complete. All documentation must be written before the end of feburary.
+You can also install Globular using Docker images. Find the Docker image [here](https://hub.docker.com/r/globular/globular).
 
-## First Step with Globular
+**Version 1.0 is now available. While the website is not 100% complete, the installation and quickstart guides are ready to help you take your first steps. A complete tutorial will be available soon, and all documentation will be finalized by the end of February.**
 
-### Install the console application.
+## Getting Started with Globular
 
-### configure your network
+### Install the Console Application
 
-### free up the port 53
-to be able to use a local DNS, follow [intructions](https://www.linuxuprising.com/2020/07/ubuntu-how-to-free-up-port-53-used-by.html) to free up the port 53 in linux
+### Configure Your Network
+
+### Free Up Port 53
+
+To use a local DNS, you need to free up port 53 on Linux. Follow the [instructions](https://www.linuxuprising.com/2020/07/ubuntu-how-to-free-up-port-53-used-by.html) to accomplish this.
