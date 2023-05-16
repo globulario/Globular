@@ -168,7 +168,7 @@ FFmpeg:
 Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 
-###gRPC code generators
+### gRPC code generators
 ```bash
 go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
