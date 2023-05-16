@@ -28,14 +28,4 @@ Click [here](https://globular.io) to learn more about Globular!
 
 You can also install Globular using Docker images. Find the Docker image [here](https://hub.docker.com/r/globular/globular).
 
-**Version 1.0 is now available. While the website is not 100% complete, the installation and quickstart guides are ready to help you take your first steps. A complete tutorial will be available soon, and all documentation will be finalized by the end of February.**
-
-## Getting Started with Globular
-
-### Install the Console Application
-
-### Configure Your Network
-
-### Free Up Port 53
-
-To use a local DNS, you need to free up port 53 on Linux. Follow the [instructions](https://www.linuxuprising.com/2020/07/ubuntu-how-to-free-up-port-53-used-by.html) to accomplish this.
+**Version 1.0 (beta) is now available.**
