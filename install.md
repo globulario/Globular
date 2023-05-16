@@ -73,6 +73,7 @@ sudo apt install python3.8
 sudo apt install python-is-python3
 sudo apt install nano
 sudo apt install openssh-server
+```
 
 Install the required tools and libraries:
 
@@ -80,6 +81,7 @@ Install the required tools and libraries:
 
 ```bash
 sudo apt install git-all
+```
 
 ##Go **the lastest version
 
@@ -93,12 +95,14 @@ wget https://golang.org/dl/go1.16.7.linux-arm64.tar.gz
 sudo tar -xvf go1.16.7.linux-arm64.tar.gz
 sudo mv go /usr/local/
 sudo nano ~/.bashrc
-Modify the path in the .bashrc file:
+```
 
+Modify the path in the .bashrc file:
 ```bash
 export GOROOT=/usr/local/go
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+```
 Save the changes and exit the editor.
 
 ##SQL unix driver
@@ -110,29 +114,35 @@ cd unixODBC-2.3.9/
 sudo ./configure
 sudo make all install clean
 sudo ldconfig
-Protoc:
+```
 
-##Protobuffer
+##Protoffuer compiler (protoc)
+
 ```bash
 sudo apt install -y protobuf-compiler
+```
 
 ##MongoDB *last version
 ```bash
 sudo apt update
 sudo apt upgrade
+```
 
 Install the MongoDB 4.4 GPG key:
 ```bash
 wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+```
 
 Add the source location for the MongoDB packages:
 ```bash
 echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+```
 
 Download the package details for the MongoDB packages:
 ```bash
 sudo apt-get update
 sudo apt-get install -y mongodb-org
+```
 
 ##Stream Downloader
 
@@ -142,6 +152,7 @@ sudo apt install python-is-python3
 # Get the latest binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
 sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
+```
 FFmpeg:
 Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
@@ -152,6 +163,7 @@ go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
 
 ##grpcwebproxy
 ```bash
@@ -160,7 +172,7 @@ cd go/grpcwebproxy
 go build
 cp grpcwebproxy ~/globulario/services/bin/
 sudo chmod +x ~/globulario/services/bin/grpcwebproxy
-Now, let's
+```
 
 ##Globular project itself
 ```bash
@@ -177,13 +189,17 @@ sh build.sh
 cd ..
 go mod tidy
 go build
-sudo nano /etc/environment
+```
+
 
 ##Setup environnement variable
 In the /etc/environment file, set the ServicesRoot variable to point to the services directory:
 
 ```bash
-ServicesRoot=/home/ubuntu/globulario/services
+sudo nano /etc/environment
+```
+
+set variable, ServicesRoot=/home/ubuntu/globulario/services
 
 Save the changes and exit the editor.
 That's it! You have now set up the development environment for a Raspberry Pi 4 and installed the necessary tools and libraries for Globular.
