@@ -10,7 +10,7 @@ https://golang.org/dl/
 
 Test if go is correctly install with 
 go version
-> go version go1.17 windows/amd64
+> go version go1.20 windows/amd64
 
 Now create a dir name globulario
 
@@ -60,138 +60,130 @@ go build
 Et voila you got a working globular executable and services!
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// Raspberry Pie
+// Linux ARM version
 ////////////////////////////////////////////////////////////////////////////////////////////////
-Here is a detail version on how to do the same thing on a raspberry pi4
-There is the setup of the development environnement for a raspery pi.
 
-// Required...
+Here is a detailed guide on how to set up the development environment for a Raspberry Pi 4.
+
+*First, make sure your system is up to date by running the following commands:
+
+#bash code
 sudo apt update
 sudo apt install python3.8
 sudo apt install python-is-python3
 sudo apt install nano
 sudo apt install openssh-server
 
+Install the required tools and libraries:
 
-install required tools and libraries.
-Git
-    sudo apt install git-all
+-Git
 
-Go
-    sudo apt install net-tools
-    sudo apt-get update
-    sudo apt-get -y upgrade
+#bash code
+sudo apt install git-all
 
-    mkdir temp
-    cd temp/
-    wget https://golang.org/dl/go1.16.7.linux-arm64.tar.gz
-    sudo tar -xvf go1.16.7.linux-arm64.tar.gz
-    sudo mv go /usr/local/
-    
-    sudo nano ~/.bashrc
-    
-    modify the path,
-    
-    export GOROOT=/usr/local/go
-    export GOPATH=$HOME/go
-    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+-Go **the lastest version
 
-SQL driver
-    sudo apt-get install build-essential
-    sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
-    sudo tar -xvf unixODBC-2.3.9.tar.gz
-    cd unixODBC-2.3.9/
-    sudo ./configure
-    sudo make all install clean
-    sudo ldconfig
+#bash code
+sudo apt install net-tools
+sudo apt-get update
+sudo apt-get -y upgrade
+mkdir temp
+cd temp/
+wget https://golang.org/dl/go1.16.7.linux-arm64.tar.gz
+sudo tar -xvf go1.16.7.linux-arm64.tar.gz
+sudo mv go /usr/local/
+sudo nano ~/.bashrc
+Modify the path in the .bashrc file:
 
-Xapian
-    sudo apt-get install zlib1g-dev
-    sudo wget https://oligarchy.co.uk/xapian/1.4.18/xapian-core-1.4.18.tar.xz
-    sudo tar -xvf xapian-core-1.4.18.tar.xz
-    cd xapian-core-1.4.18
-    ./configure
-    sudo make all install clean
-    sudo ldconfig
+#bash code
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+Save the changes and exit the editor.
 
-Protoc
-    sudo apt install -y protobuf-compiler
+-SQL unix driver
+#bash code
+sudo apt-get install build-essential
+sudo wget http://www.unixodbc.org/unixODBC-2.3.9.tar.gz
+sudo tar -xvf unixODBC-2.3.9.tar.gz
+cd unixODBC-2.3.9/
+sudo ./configure
+sudo make all install clean
+sudo ldconfig
+Protoc:
 
-MONGO
-    sudo apt update
-    sudo apt upgrade
+-Protobuffer
+#bash code
+sudo apt install -y protobuf-compiler
 
-    # Install the MongoDB 4.4 GPG key:
-    wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+-MongoDB *last version
+#bash code
+sudo apt update
+sudo apt upgrade
 
-    # Add the source location for the MongoDB packages:
-    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+Install the MongoDB 4.4 GPG key:
+#bash code
+wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
 
-    # Download the package details for the MongoDB packages:
-    sudo apt-get update
+Add the source location for the MongoDB packages:
+#bash code
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
 
-    # Install MongoDB:
-    sudo apt-get install -y mongodb-org
+Download the package details for the MongoDB packages:
+#bash code
+sudo apt-get update
+sudo apt-get install -y mongodb-org
 
-yt-dlp 
-    sudo apt install python3.8
-    sudo apt install python-is-python3
-    # get the last binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
-    sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
-    sudo chmod a+rx /usr/local/bin/yt-dlp
-    
-ffmpeg
-    https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
-    binary
-    curl https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz --output ffmpeg-git-amd64-static.tar.xz
-    tar -xvf ffmpeg-git-amd64-static.tar.xz
-    cd ffmpeg-git-20220910-amd64-static
-    sudo cp ffmpeg /usr/local/bin
-    sudo cp ffprobe /usr/local/bin
+-Stream Downloader
 
-    sudo apt install -y ffmpeg
-
-gRPC
-  go get -u google.golang.org/protobuf/cmd/protoc-gen-go
-  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-  go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
-  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
-grpcproxy
-  git clone github.com/improbable-eng/grpc-web.git
-  cd go/grpcwebproxy
-  go build
-  cp grpcwebproxy ~/globulario/services/bin/
-  sudo chmod +x  ~/globulario/services/bin/grpcwebproxy
-
-Now globular...
-
-    mkdir globulario
-    cd globulario
-    
-    git clone https://github.com/globulario/Globular.git
-    git clone https://github.com/globulario/services.git
-    git clone https://github.com/davecourtois/Utility.git
-
-from globulario
-    cd services
-    sh generateCode.sh
-    cd golang
-    go mod tidy
-    sh build.sh
-
-from globulario
-    go mod tidy
-    go build
-
-nano /etc/environment
-    set the variable to point at services directory...
-    ServicesRoot=/home/ubuntu/globulario/services
-
-//////////////////////////////////////////////////////////////////////////////
-// ffmpeg 
-//////////////////////////////////////////////////////////////////////////////
-there is the link on how to install ffmpeg
-
+#bash code
+sudo apt install python3.8
+sudo apt install python-is-python3
+# Get the latest binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
+sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+FFmpeg:
+Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
 
+-gRPC code generators
+#bash code
+go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+-grpcwebproxy
+#bash code
+git clone github.com/improbable-eng/grpc-web.git
+cd go/grpcwebproxy
+go build
+cp grpcwebproxy ~/globulario/services/bin/
+sudo chmod +x ~/globulario/services/bin/grpcwebproxy
+Now, let's
+
+-Globular project itself
+#bash code
+mkdir globulario
+cd globulario
+git clone https://github.com/globulario/Globular.git
+git clone https://github.com/globulario/services.git
+git clone https://github.com/davecourtois/Utility.git
+cd services
+sh generateCode.sh
+cd golang
+go mod tidy
+sh build.sh
+cd ..
+go mod tidy
+go build
+sudo nano /etc/environment
+
+-Setup environnement variable
+In the /etc/environment file, set the ServicesRoot variable to point to the services directory:
+
+#bash code
+ServicesRoot=/home/ubuntu/globulario/services
+
+Save the changes and exit the editor.
+That's it! You have now set up the development environment for a Raspberry Pi 4 and installed the necessary tools and libraries for Globular.
