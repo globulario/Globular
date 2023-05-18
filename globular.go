@@ -1627,7 +1627,6 @@ func (globule *Globule) Serve() error {
 		}
 	}
 
-
 	// Initialyse directories.
 	globule.initDirectories()
 
@@ -2142,12 +2141,14 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 				}
 
 				// I will also display the message in the system logger.
-				if info["level"].(string) == "ERROR_MESSAGE" {
-					g.logger.Error(msg)
-				} else if info["level"].(string) == "WARNING_MESSAGE" {
-					g.logger.Warning(msg)
-				} else if info["level"].(string) == "INFO_MESSAGE" {
-					g.logger.Info(msg)
+				if g.logger != nil {
+					if info["level"].(string) == "ERROR_MESSAGE" {
+						g.logger.Error(msg)
+					} else if info["level"].(string) == "WARNING_MESSAGE" {
+						g.logger.Warning(msg)
+					} else if info["level"].(string) == "INFO_MESSAGE" {
+						g.logger.Info(msg)
+					}
 				}
 			}
 		}

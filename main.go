@@ -66,6 +66,7 @@ func main() {
 	//defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
 	g := NewGlobule()
+
 	svcFlag := flag.String("service", "", "Control the system service.")
 	flag.Parse()
 
@@ -82,15 +83,15 @@ func main() {
 	}
 
 	s, err := service.New(g, svcConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Create the service logger...
 	errs := make(chan error, 5)
-	g.logger, err = s.Logger(errs)
-	if err != nil {
-		log.Fatal(err)
+
+	if err == nil {
+		g.logger, err = s.Logger(errs)
+		if err != nil {
+			fmt.Println("fail to create service logger with error: ", err)
+		}
 	}
 
 	if len(os.Args) > 1 {
@@ -535,7 +536,7 @@ func main() {
 			}
 		}
 
-		if unstallCommand.Parsed() {
+		if unstallCommand.Parsed() && s != nil {
 			fmt.Println("try to remove Globular service...")
 			// Required Flags
 			err := s.Uninstall()
@@ -666,10 +667,6 @@ func main() {
 	} else {
 		defer g.cleanup()
 
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		go func() {
 			for {
 				err := <-errs
@@ -682,14 +679,18 @@ func main() {
 		if len(*svcFlag) != 0 {
 			err := service.Control(s, *svcFlag)
 			if err != nil {
-				log.Printf("Valid actions: %q\n", service.ControlAction)
-				log.Fatal(err)
+				fmt.Println("Valid actions: ", service.ControlAction)
 			}
 			return
 		}
-		err = s.Run()
-		if err != nil {
-			g.logger.Error(err)
+
+		if s != nil {
+			err = s.Run()
+			if err != nil && g.logger != nil{
+				g.logger.Error(err)
+			}else if err != nil {
+				fmt.Println("fail to run Globular with error: ", err)
+			}
 		}
 	}
 
@@ -1262,7 +1263,7 @@ func downloadApplication(g *Globule, application, discovery, pulbisherId string)
 
 	// I will create a repository
 	for i := 0; i < len(descriptor.Repositories); i++ {
-		
+
 		package_repository, err := repository_client.NewRepositoryService_Client(descriptor.Repositories[i], "repository.PackageRepository")
 		if err != nil {
 			return "", "", err
@@ -1487,7 +1488,7 @@ func dist(g *Globule, path string, revision string) {
 			fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
 			return
 		}
-		
+
 		// Copy lib crypto...
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
 		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
