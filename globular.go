@@ -78,6 +78,7 @@ type Globule struct {
 	PortHttp   int    // The port of the http file server.
 	PortHttps  int    // The secure port
 	PortsRange string // The range of grpc ports.
+	BackendPort int   // This is backend resource port (mongodb port)
 
 	// Cors policy
 	AllowedOrigins []string
@@ -305,6 +306,8 @@ func (globule *Globule) cleanup() {
 	// reset firewall rules.
 	resetRules()
 
+	globule.saveConfig()
+	
 	fmt.Println("bye bye!")
 }
 
@@ -326,7 +329,14 @@ func (globule *Globule) registerAdminAccount() error {
 		return err
 	}
 
-	err = persistence_client_.CreateConnection("sa", "sa_db", domain, 27017, 0, "sa", globule.RootPassword, 500, "", false)
+	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
+	if err != nil {
+		return err
+	}
+
+	globule.BackendPort = Utility.ToInt(resourceConfig["Backend_port"])
+
+	err = persistence_client_.CreateConnection("sa", "sa_db", domain, float64(globule.BackendPort), 0, "sa", globule.RootPassword, 500, "", false)
 	if err != nil {
 		fmt.Println("fail to create sa connection ", err)
 		return err
@@ -1512,12 +1522,14 @@ func (globule *Globule) initPeers() error {
 func (globule *Globule) createApplicationConnection() error {
 
 	fmt.Println("-- create applications connections")
-	address, _ := config.GetAddress()
 
+	address, _ := config.GetAddress()
 	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("-------------------------> ", globule.BackendPort)
 
 	persistence_client_, err := GetPersistenceClient(address)
 	if err != nil {
@@ -1526,14 +1538,17 @@ func (globule *Globule) createApplicationConnection() error {
 
 	if err == nil {
 		applications, err := resource_client_.GetApplications("{}")
+
 		if err == nil {
-			for i := 0; i < len(applications); i++ {
-				app := applications[i]
-				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), 27017, 0, app.Id, app.Password, 500, "", false)
-				if err != nil {
-					fmt.Println("--------> fail to create application connection  : ", app.Id, err)
+
+				for i := 0; i < len(applications); i++ {
+					app := applications[i]
+					err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), float64(globule.BackendPort), 0, app.Id, app.Password, 500, "", false)
+					if err != nil {
+						fmt.Println("--------> fail to create application connection  : ", app.Id, err)
+					}
 				}
-			}
+			
 		} else {
 			fmt.Println("fail to retreive applications list with error: ", err)
 		}
