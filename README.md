@@ -30,6 +30,8 @@ General presentation of [Globular](https://medium.com/@dave.courtois60/here-come
 
 [How to install and configure your server](https://medium.com/@dave.courtois60/in-this-article-i-will-guide-you-through-the-installation-and-configuration-of-your-personal-cloud-f8bdce33d33a)
 
+[Installing Globular using Docker](https://medium.com/@dave.courtois60/installing-globular-using-docker-fabd4f96b095)
+
 You can also install Globular using Docker images. Find the Docker image [here](https://hub.docker.com/r/globular/globular).
 
 **Version 1.0 (beta) is now available.**
