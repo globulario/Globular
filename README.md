@@ -1,5 +1,9 @@
 # [Go to Globular website](https://globular.io)
 
+Globular is a versatile software solution that combines the functionalities of Skype, Dropbox, Medium, Plex, and more. It is designed for developers to create web applications following microarchitecture principles. With Globular, you can leverage various database options such as MongoDB, SQL Server (including SQLite, SQL Server, MariaDB, MySQL), LevelDB, Badger, Prometheus, and more.
+
+Globular simplifies the development of web applications by providing essential features like role-based access control (RBAC) and user management. It offers robust functionality that can potentially replace cloud services like Firebase, making it a comprehensive solution for building and managing web applications.
+
 ## Why Globular?
 
 While gRPC is helpful for service implementation, it doesn't address service management. This is where Globular comes in. Service management is the main purpose of Globular, as managing services manually becomes challenging as the number of applications and services increases.
