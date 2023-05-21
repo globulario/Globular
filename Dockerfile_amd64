@@ -6,11 +6,17 @@ RUN apt-get update && apt-get install -y gnupg2 \
     wget \
   && rm -rf /var/lib/apt/lists/*
 
-#-- needed by sql
+#-- required for server interaction
 RUN apt-get update && apt-get install -y \
   build-essential \
   && apt-get install -y \
-  libltdl-dev 
+  libltdl-dev \
+  && apt-get install -y \
+  rsync \
+  && apt-get install -y \
+  nano \
+  && apt-get install -y \
+  net-tools
 
 #-- install ffmpeg
 ARG DEBIAN_FRONTEND=noninteractive

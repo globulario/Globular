@@ -1529,7 +1529,6 @@ func (globule *Globule) createApplicationConnection() error {
 		return err
 	}
 
-	fmt.Println("-------------------------> ", globule.BackendPort)
 
 	persistence_client_, err := GetPersistenceClient(address)
 	if err != nil {
