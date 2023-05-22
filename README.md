@@ -1,3 +1,5 @@
+![Globular Logo](https://globular.io/images/globular_logo.svg)
+
 # [Go to Globular website](https://globular.io)
 
 Globular is a versatile software solution that combines the functionalities of Skype, Dropbox, Medium, Plex, and more. It is designed for developers to create web applications following microarchitecture principles. With Globular, you can leverage various database options such as MongoDB, SQL Server (including SQLite, SQL Server, MariaDB, MySQL), LevelDB, Badger, Prometheus, and more.
