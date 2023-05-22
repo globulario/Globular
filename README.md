@@ -1,4 +1,5 @@
 ![Globular Logo](https://globular.io/images/globular_logo.svg)
+<img src="https://globular.io/images/globular_logo.svg" alt="Globular Logo" width="200">
 
 # [Go to Globular website](https://globular.io)
 
