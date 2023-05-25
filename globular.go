@@ -74,11 +74,11 @@ type Globule struct {
 	ServicesRoot string
 
 	// can be https or http.
-	Protocol   string
-	PortHttp   int    // The port of the http file server.
-	PortHttps  int    // The secure port
-	PortsRange string // The range of grpc ports.
-	BackendPort int   // This is backend resource port (mongodb port)
+	Protocol    string
+	PortHttp    int    // The port of the http file server.
+	PortHttps   int    // The secure port
+	PortsRange  string // The range of grpc ports.
+	BackendPort int    // This is backend resource port (mongodb port)
 
 	// Cors policy
 	AllowedOrigins []string
@@ -307,7 +307,7 @@ func (globule *Globule) cleanup() {
 	resetRules()
 
 	globule.saveConfig()
-	
+
 	fmt.Println("bye bye!")
 }
 
@@ -1529,7 +1529,6 @@ func (globule *Globule) createApplicationConnection() error {
 		return err
 	}
 
-
 	persistence_client_, err := GetPersistenceClient(address)
 	if err != nil {
 		return err
@@ -1540,14 +1539,14 @@ func (globule *Globule) createApplicationConnection() error {
 
 		if err == nil {
 
-				for i := 0; i < len(applications); i++ {
-					app := applications[i]
-					err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), float64(globule.BackendPort), 0, app.Id, app.Password, 500, "", false)
-					if err != nil {
-						fmt.Println("--------> fail to create application connection  : ", app.Id, err)
-					}
+			for i := 0; i < len(applications); i++ {
+				app := applications[i]
+				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), float64(globule.BackendPort), 0, app.Id, app.Password, 500, "", false)
+				if err != nil {
+					fmt.Println("--------> fail to create application connection  : ", app.Id, err)
 				}
-			
+			}
+
 		} else {
 			fmt.Println("fail to retreive applications list with error: ", err)
 		}
@@ -2027,66 +2026,39 @@ func (globule *Globule) watchForUpdate() {
 	go func() {
 
 		// Now the service...
-		services, err := config.GetServicesConfigurations()
-		if err == nil {
-			for !globule.exit_ {
-
-				// stop watching if exit was call...
-				if len(globule.Discoveries) > 0 {
-					// Here I will retreive the checksum information from it parent.
-					discovery := globule.Discoveries[0]
-					address := strings.Split(discovery, ":")[0]
-					port := 80
-					if strings.Contains(discovery, ":") {
-						port = Utility.ToInt(strings.Split(discovery, ":")[1])
-					}
-
-					execPath := Utility.GetExecName(os.Args[0])
-
-					// Here I will test if the checksum has change...
-					checksum, err := getChecksum(address, port)
-					if Utility.Exists(config.GetRootDir() + "/Globular") {
-						execPath = config.GetRootDir() + "/Globular"
-					}
-					if err == nil {
-						if checksum != Utility.CreateFileChecksum(execPath) {
-							err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
-							if err != nil {
-								fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
-							}
-
-						}
-					} else {
-						fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
-					}
-
-					// get the resource client
-					resource_client_, err := getResourceClient(discovery)
-					if err == nil {
-						for i := 0; i < len(services); i++ {
-							s := services[i]
-							if s["KeepUpToDate"].(bool) {
-								// Here I will get the last version of the package...
-								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
-								if err == nil {
-									descriptorVersion := Utility.NewVersion(descriptor.Version)
-									serviceVersion := Utility.NewVersion(s["Version"].(string))
-									if descriptorVersion.Compare(serviceVersion) == 1 {
-										// TODO keep service up to date.
-										// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
-									} else if descriptorVersion.Compare(serviceVersion) == 0 {
-										// fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated???")
-									}
-								}
-							}
-						}
-					}
-
+		for !globule.exit_ {
+			// stop watching if exit was call...
+			if len(globule.Discoveries) > 0 {
+				// Here I will retreive the checksum information from it parent.
+				discovery := globule.Discoveries[0]
+				address := strings.Split(discovery, ":")[0]
+				port := 80
+				if strings.Contains(discovery, ":") {
+					port = Utility.ToInt(strings.Split(discovery, ":")[1])
 				}
 
-				// The time here can be set to higher value.
-				time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
+				execPath := Utility.GetExecName(os.Args[0])
+
+				// Here I will test if the checksum has change...
+				checksum, err := getChecksum(address, port)
+				if Utility.Exists(config.GetRootDir() + "/Globular") {
+					execPath = config.GetRootDir() + "/Globular"
+				}
+				if err == nil {
+					if checksum != Utility.CreateFileChecksum(execPath) {
+						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						if err != nil {
+							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
+						}
+
+					}
+				} else {
+					fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
+				}
 			}
+
+			// The time here can be set to higher value.
+			time.Sleep(time.Duration(globule.WatchUpdateDelay) * time.Second)
 		}
 	}()
 }
