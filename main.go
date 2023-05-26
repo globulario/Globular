@@ -962,7 +962,7 @@ func update_globular(g *Globule, path, domain, user, pwd string, platform string
  * ./Globular update_from -a=globular.cloud -p=adminadmin -source=globular.cloud -u=sa
  */
 func update_globular_from(g *Globule, src, dest, user, pwd string, platform string) error {
-	log.Println("pull globular update from ", src, " to ", dest)
+	fmt.Println("pull globular update from ", src, " to ", dest)
 
 	admin_source, err := admin_client.NewAdminService_Client(src, "admin.AdminService")
 	if err != nil {
@@ -1092,7 +1092,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = services_manager_client_.InstallService(token, domain, user, discovery, publisherId, serviceId)
+	err = services_manager_client_.InstallService(token, domain, discovery, publisherId, serviceId)
 	if err != nil {
 		log.Println("fail to install service", serviceId, "with error ", err.Error())
 		return err
@@ -1127,7 +1127,7 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = services_manager_client_.UninstallService(token, domain, user, publisherId, serviceId, version)
+	err = services_manager_client_.UninstallService(token, domain, publisherId, serviceId, version)
 	if err != nil {
 		log.Println(err)
 		return err
