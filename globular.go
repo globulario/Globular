@@ -551,7 +551,7 @@ func (globule *Globule) savePeers() error {
 func (globule *Globule) saveConfig() error {
 
 	// set the path
-	globule.Path = os.Args[0]
+	globule.Path, _ = os.Executable()
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
 		return err
@@ -2060,33 +2060,31 @@ func (globule *Globule) watchForUpdate() {
 				}
 
 				services, err := config.GetServicesConfigurations()
-				
 				if err == nil {
-
 					// get the resource client
-					resource_client_, err := getResourceClient(discovery)
-					
-					if err == nil {
-						for i := 0; i < len(services); i++ {
-							s := services[i]
-
-							if s["KeepUpToDate"].(bool) {
-								// Here I will get the last version of the package...
-								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
-
-								if err == nil {
-									descriptorVersion := Utility.NewVersion(descriptor.Version)
-									serviceVersion := Utility.NewVersion(s["Version"].(string))
-									if descriptorVersion.Compare(serviceVersion) == 1 {
-										// TODO keep service up to date.
-										fmt.Println("-----------> service ", s["Name"].(string), s["Id"].(string), "need to be updated!")
-										address, _ := config.GetAddress()
-										servicesManager, err := GetServiceManagerClient(address)
-										if err == nil {
-											if servicesManager.StopServiceInstance(s["Id"].(string)) == nil {
-												token, _ := security.GetLocalToken(globule.Mac)
-												if servicesManager.UninstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), s["Version"].(string)) == nil{
-													servicesManager.InstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), descriptor.Version)
+					for i := 0; i < len(services); i++ {
+						s := services[i]
+						values := strings.Split(s["PublisherId"].(string), "@")
+						if len(values) == 2 {
+							resource_client_, err := getResourceClient(values[1])
+							if err == nil {
+								if s["KeepUpToDate"].(bool) {
+									// Here I will get the last version of the package...
+									descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
+									if err == nil {
+										descriptorVersion := Utility.NewVersion(descriptor.Version)
+										serviceVersion := Utility.NewVersion(s["Version"].(string))
+										if descriptorVersion.Compare(serviceVersion) == 1 {
+											// TODO keep service up to date.
+											fmt.Println("service ", s["Name"].(string), s["Id"].(string), "will be updated")
+											address, _ := config.GetAddress()
+											servicesManager, err := GetServiceManagerClient(address)
+											if err == nil {
+												if servicesManager.StopServiceInstance(s["Id"].(string)) == nil {
+													token, _ := security.GetLocalToken(globule.Mac)
+													if servicesManager.UninstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), s["Version"].(string)) == nil {
+														servicesManager.InstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), descriptor.Version)
+													}
 												}
 											}
 										}
@@ -2094,9 +2092,10 @@ func (globule *Globule) watchForUpdate() {
 								}
 							}
 						}
-					}else {
-						fmt.Println("fail to connect to resource client with error: ", err)
 					}
+
+				} else {
+					fmt.Println("fail to get service configurations with err ", err)
 				}
 			}
 
