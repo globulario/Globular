@@ -2071,7 +2071,7 @@ func (globule *Globule) watchForUpdate() {
 						resource_client_, err := getResourceClient(values[1])
 						if err == nil {
 							// test if the service need's to be updated, test if the part is part of installed instance and not developement environement.
-							if s["KeepUpToDate"].(bool) && strings.Contains(s["path"].(string), "/globular/services/") {
+							if s["KeepUpToDate"].(bool) && strings.Contains(s["Path"].(string), "/globular/services/") {
 								// Here I will get the last version of the package...
 								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
 								if err == nil {
