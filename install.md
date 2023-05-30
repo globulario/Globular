@@ -139,14 +139,20 @@ sudo apt update
 sudo apt upgrade
 ```
 
-Install the MongoDB 4.4 GPG key:
+Install the MongoDB 6.0 GPG key:
 ```bash
-wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
 ```
 
 Add the source location for the MongoDB packages:
 ```bash
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+```
+Install libssl1.1.1
+```bash
+wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb
+sudo chmod +x libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
+sudo apt-get install ./libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
 ```
 
 Download the package details for the MongoDB packages:
