@@ -88,7 +88,7 @@ sudo apt install openssh-server
 
 Install the required tools and libraries:
 
-##Git
+## Git
 
 ```bash
 sudo apt install git-all
@@ -127,38 +127,19 @@ sudo make all install clean
 sudo ldconfig
 ```
 
-###Protoffuer compiler (protoc)
+### Protoffuer compiler (protoc)
 
 ```bash
 sudo apt install -y protobuf-compiler
 ```
 
 ### MongoDB *last version
-```bash
-sudo apt update
-sudo apt upgrade
-```
+The rasberry pi version 6.0.5 of mongoDB is not surrported by mongoDB directly but I found
+this project who keep binairy availaible,
 
-Install the MongoDB 6.0 GPG key:
 ```bash
-wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-```
-
-Add the source location for the MongoDB packages:
-```bash
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-```
-Install libssl1.1.1
-```bash
-wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb
-sudo chmod +x libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
-sudo apt-get install ./libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
-```
-
-Download the package details for the MongoDB packages:
-```bash
-sudo apt-get update
-sudo apt-get install -y mongodb-org
+wget https://github.com/themattman/mongodb-raspberrypi-binaries/releases/download/r6.0.5-rpi-unofficial/mongodb.ce.pi.r6.0.5.tar.gz 
+sudo tar -xvf mongodb.ce.pi.r6.0.5.tar.gz -d /usr/local/bin
 ```
 
 ### Stream Downloader
