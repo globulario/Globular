@@ -134,6 +134,15 @@ sudo apt install -y protobuf-compiler
 ```
 
 ### MongoDB *last version
+
+First of all install libssl
+
+```bash
+wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb
+sudo chmod +x libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
+sudo apt-get install ./libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
+```
+
 The rasberry pi version 6.0.5 of mongoDB is not surrported by mongoDB directly but I found
 this project who keep binairy availaible,
 
