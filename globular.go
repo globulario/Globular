@@ -2107,7 +2107,7 @@ func (globule *Globule) watchForUpdate() {
 	}()
 }
 
-// Try to display application message in a nice way
+// Try to display application message in a nice way. 
 func logListener(g *Globule) func(evt *eventpb.Event) {
 	return func(evt *eventpb.Event) {
 		info := make(map[string]interface{})
