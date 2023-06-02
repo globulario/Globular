@@ -134,6 +134,15 @@ sudo apt install -y protobuf-compiler
 ```
 
 ### MongoDB *last version
+
+First of all install libssl
+
+```bash
+wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb
+sudo chmod +x libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
+sudo apt-get install ./libssl1.1_1.1.1f-1ubuntu2_arm64.deb 
+```
+
 The rasberry pi version 6.0.5 of mongoDB is not surrported by mongoDB directly but I found
 this project who keep binairy availaible,
 
@@ -148,12 +157,17 @@ sudo tar -xvf mongodb.ce.pi.r6.0.5.tar.gz -d /usr/local/bin
 sudo apt install python3.8
 sudo apt install python-is-python3
 # Get the latest binary for your platform from https://github.com/yt-dlp/yt-dlp/releases
-sudo curl -L https://yt-dl.org/downloads/latest/yt-dlp -o /usr/local/bin/yt-dlp
+sudo wget -qO /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
+yt-dlp --version
 ```
 FFmpeg:
 Please refer to the link below for instructions on how to install FFmpeg:
 https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/
+
+```bash
+sudo apt-get install ffmpeg
+```
 
 ### gRPC code generators
 ```bash
