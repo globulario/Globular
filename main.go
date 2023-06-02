@@ -686,9 +686,9 @@ func main() {
 
 		if s != nil {
 			err = s.Run()
-			if err != nil && g.logger != nil{
+			if err != nil && g.logger != nil {
 				g.logger.Error(err)
-			}else if err != nil {
+			} else if err != nil {
 				fmt.Println("fail to run Globular with error: ", err)
 			}
 		}
@@ -1481,26 +1481,29 @@ func dist(g *Globule, path string, revision string) {
 		libpath := debian_package_path + "/usr/local/lib"
 		Utility.CreateDirIfNotExist(libpath)
 
-		// lib ssl 1.1.1f require by mongodb...
-		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1") {
-			fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
-			fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
-			fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
-			return
+		if runtime.GOARCH == "amd64" {
+
+			// lib ssl 1.1.1f require by mongodb...
+			if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1") {
+				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
+				fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
+				fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
+				return
+			}
+
+			// Copy lib crypto...
+			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
+			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
+
+			// zlib
+			if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
+				fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
+				return
+			}
+
+			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
+			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
 		}
-
-		// Copy lib crypto...
-		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
-		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
-
-		// zlib
-		if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
-			fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
-			return
-		}
-
-		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
-		Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
 
 		// ODBC libraries...
 		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
@@ -1553,7 +1556,11 @@ func dist(g *Globule, path string, revision string) {
 		// Here I will set the script to run before the installation...
 		// https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb#toc-17
 		// TODO create tow version one for arm7 and one for amd64
-		preinst := `
+
+		var preinst string
+
+		if runtime.GOARCH == "amd64" {
+			preinst = `
 		echo "Welcome to Globular!-)"
 
 		# Create the directory where the service will be install.
@@ -1612,6 +1619,10 @@ func dist(g *Globule, path string, revision string) {
 			rm /usr/local/lib/libodbcinst.so
 		fi
 		`
+		} else if runtime.GOARCH == "arm64" {
+			fmt.Println("------------> arm 64")
+			return
+		}
 
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
 		if err != nil {
