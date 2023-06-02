@@ -1503,6 +1503,26 @@ func dist(g *Globule, path string, revision string) {
 
 			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
 			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+		} else if  runtime.GOARCH == "arm64" {
+			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libssl.so.1.1") {
+				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
+				fmt.Println("   wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb")
+				fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_arm64.deb ")
+				return
+			}
+
+			// Copy lib crypto...
+			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
+			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
+
+			// zlib
+			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libz.a") {
+				fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
+				return
+			}
+
+			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.a", libpath+"/libz.a")
+			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.so.1.2.13", libpath+"/libz.so.1.2.13")
 		}
 
 		// ODBC libraries...
@@ -1620,8 +1640,67 @@ func dist(g *Globule, path string, revision string) {
 		fi
 		`
 		} else if runtime.GOARCH == "arm64" {
-			fmt.Println("------------> arm 64")
-			return
+			preinst = `
+		echo "Welcome to Globular!-)"
+
+		# Create the directory where the service will be install.
+		mkdir /etc/globular/config/services
+
+		# install mongo db..
+		wget https://github.com/themattman/mongodb-raspberrypi-binaries/releases/download/r6.0.5-rpi-unofficial/mongodb.ce.pi.r6.0.5.tar.gz 
+		mkdir mongodb
+		tar -zxvf mongodb.ce.pi.r6.0.5.tar.gz -C mongodb
+		cp -R -n mongodb/* /usr/local/bin
+		rm mongodb.ce.pi.r6.0.5.tar.gz
+		rm -R mongodb
+
+		# install mongosh (shell)
+		curl -O https://downloads.mongodb.com/compass/mongosh-1.9.1-linux-arm64.tgz
+		tar -zxvf mongosh-1.9.1-linux-arm64.tgz
+		cp -R -n mongosh-1.9.1-linux-arm64/bin/* /usr/local/bin
+		rm mongosh-1.9.1-linux-arm64.tgz
+		rm -R mongosh-1.9.1-linux-arm64
+
+		# -- Install prometheus
+		wget https://github.com/prometheus/prometheus/releases/download/v2.44.0/prometheus-2.44.0.linux-arm64.tar.gz
+		tar -xf prometheus-2.44.0.linux-arm64.tar.gz
+		cp prometheus-2.44.0.linux-arm64/prometheus /usr/local/bin/
+		cp prometheus-2.44.0.linux-arm64/promtool /usr/local/bin/
+		cp -r prometheus-2.44.0.linux-arm64/consoles /etc/prometheus/
+		cp -r prometheus-2.44.0.linux-arm64/console_libraries /etc/prometheus/
+		rm -rf prometheus-2.44.0.linux-arm64*
+
+		# -- Install alert manager
+		wget https://github.com/prometheus/alertmanager/releases/download/v0.25.0/alertmanager-0.25.0.linux-arm64.tar.gz
+		tar -xf alertmanager-0.25.0.linux-arm64.tar.gz
+		cp alertmanager-0.25.0.linux-arm64/alertmanager /usr/local/bin
+		rm -rf alertmanager-0.25.0.linux-arm64*
+
+		# -- Install node exporter
+		https://github.com/prometheus/node_exporter/releases/download/v1.6.0/node_exporter-1.6.0.linux-arm64.tar.gz
+		tar -xf node_exporter-1.6.0.linux-arm64.tar.gz
+		cp node_exporter-1.6.0.linux-arm64/node_exporter /usr/local/bin
+		rm -rf node_exporter-1.6.0.linux-arm64*
+
+		# -- Install yt-dlp
+		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/yt-dlp
+		chmod a+rx /usr/local/bin/yt-dlp
+
+		if [ -f "/usr/local/bin/Globular" ]; then
+			rm /usr/local/bin/Globular
+			rm /usr/local/bin/torrent
+			rm /usr/local/bin/grpcwebproxy
+			rm /usr/local/lib/libz.so
+			rm /usr/local/lib/libz.so.1
+			rm /usr/local/lib/libodbc.so.2
+			rm /usr/local/lib/libodbc.so
+			rm /usr/local/lib/libodbccr.so.2
+			rm /usr/local/lib/libodbccr.so
+			rm /usr/local/lib/libodbcinst.so.2
+			rm /usr/local/lib/libodbcinst.so
+		fi
+		`
+
 		}
 
 		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
