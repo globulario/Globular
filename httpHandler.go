@@ -781,6 +781,9 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	return importPath_, nil
 }
 
+// here I will keep the current application name.
+var lastDir string
+
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -826,6 +829,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 	if rqst_path == "/" {
+		fmt.Println("-------------------> ", rqst_path, " ", globule.IndexApplication)
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
 			rqst_path += globule.IndexApplication
@@ -838,7 +842,9 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			strings.HasSuffix(rqst_path, ".css") ||
 			strings.HasSuffix(rqst_path, ".htm") ||
 			strings.HasSuffix(rqst_path, ".html") {
-			rqst_path = "/" + globule.IndexApplication + rqst_path
+			if Utility.Exists(dir + "/" + rqst_path) {
+				rqst_path = "/" + globule.IndexApplication + rqst_path
+			}
 		}
 	}
 
@@ -913,20 +919,34 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if the file dosent exist... I will try to get it from the index application...
 	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
-		name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
+		if Utility.Exists(path.Join(dir, globule.IndexApplication+"/"+rqst_path)) {
+			name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
+		}else if len(lastDir) > 0 && Utility.Exists(path.Join(dir, lastDir+"/"+rqst_path)) {
+			name = path.Join(dir, lastDir+"/"+rqst_path)
+		}
 	}
 
 	var code string
 	// If the file is a javascript file...
 	hasChange := false
 
-	//check if file exists
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
 			return
 		}
+	}
+
+	info, err := os.Stat(name)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Check if the path points to a directory
+	if info.IsDir() {
+		lastDir = info.Name()
 	}
 
 	defer f.Close()

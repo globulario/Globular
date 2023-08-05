@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/StalkR/httpcache v1.0.0
-	github.com/StalkR/imdb v1.0.10
+	github.com/StalkR/imdb v1.0.15
 	github.com/davecourtois/Utility v0.0.0-20210515191918-3118f6f72191
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/globulario/services/golang v0.0.0-00010101000000-000000000000
