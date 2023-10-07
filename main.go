@@ -818,6 +818,8 @@ func deploy(g *Globule, name string, organization string, path string, address s
 			role := new(resourcepb.Role)
 			role.Id = role_["id"].(string)
 			role.Name = role_["name"].(string)
+			role.Domain = role_["domain"].(string)
+			role.Description = role_["description"].(string)
 			role.Actions = make([]string, 0)
 			for j := 0; j < len(role_["actions"].([]interface{})); j++ {
 				role.Actions = append(role.Actions, role_["actions"].([]interface{})[j].(string))
@@ -836,6 +838,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 			group.Id = group_["id"].(string)
 			group.Name = group_["name"].(string)
 			group.Description = group_["description"].(string)
+			group.Domain = group_["domain"].(string)
 			groups = append(groups, group)
 		}
 	}

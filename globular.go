@@ -24,7 +24,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
-	//"github.com/globulario/services/golang/authentication/authentication_client"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/config/config_client"
 	"github.com/globulario/services/golang/dns/dns_client"
@@ -33,13 +32,11 @@ import (
 	"github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
-	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/search/search_client"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
 	"github.com/gookit/color"
@@ -313,6 +310,7 @@ func (globule *Globule) cleanup() {
 
 func (globule *Globule) registerAdminAccount() error {
 
+	fmt.Println("------------------------------> register admin account")
 	domain, _ := config.GetDomain()
 	address, _ := config.GetAddress()
 	path := config.GetDataDir() + "/files/users/sa@" + domain
@@ -323,11 +321,6 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
-	persistence_client_, err := GetPersistenceClient(address)
-	if err != nil {
-		fmt.Println("fail to get persistence client ", err)
-		return err
-	}
 
 	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
 	if err != nil {
@@ -336,11 +329,6 @@ func (globule *Globule) registerAdminAccount() error {
 
 	globule.BackendPort = Utility.ToInt(resourceConfig["Backend_port"])
 
-	err = persistence_client_.CreateConnection("sa", "sa_db", domain, float64(globule.BackendPort), 0, "sa", globule.RootPassword, 500, "", false)
-	if err != nil {
-		fmt.Println("fail to create sa connection ", err)
-		return err
-	}
 
 	// get the resource client
 	resource_client_, err := getResourceClient(address)
@@ -351,6 +339,7 @@ func (globule *Globule) registerAdminAccount() error {
 
 	// Create the admin account.
 	sa, err := resource_client_.GetAccount("sa")
+
 	if err != nil {
 		err = resource_client_.RegisterAccount(domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
@@ -360,6 +349,10 @@ func (globule *Globule) registerAdminAccount() error {
 
 		// Admin is created
 		err = globule.createAdminRole()
+		if err != nil {
+			fmt.Println("fail to create admin role", err)
+			return err
+		}
 
 		// Set admin role to that account.
 		/*if err == nil {
@@ -387,7 +380,7 @@ func (globule *Globule) registerAdminAccount() error {
 			return err
 		}
 
-		roles, err := resource_client_.GetRoles("{}")
+		roles, err := resource_client_.GetRoles("")
 		if err == nil {
 			for i := 0; i < len(roles); i++ {
 				if roles[i].Domain != domain {
@@ -397,7 +390,7 @@ func (globule *Globule) registerAdminAccount() error {
 			}
 		}
 
-		accounts, err := resource_client_.GetAccounts("{}")
+		accounts, err := resource_client_.GetAccounts("")
 		if err == nil {
 			for i := 0; i < len(accounts); i++ {
 				if accounts[i].Domain != domain {
@@ -407,7 +400,7 @@ func (globule *Globule) registerAdminAccount() error {
 			}
 		}
 
-		applications, err := resource_client_.GetApplications("{}")
+		applications, err := resource_client_.GetApplications("")
 		if err == nil {
 			for i := 0; i < len(applications); i++ {
 				if applications[i].Domain != domain {
@@ -417,7 +410,7 @@ func (globule *Globule) registerAdminAccount() error {
 			}
 		}
 
-		groups, err := resource_client_.GetGroups("{}")
+		groups, err := resource_client_.GetGroups("")
 		if err == nil {
 			for i := 0; i < len(groups); i++ {
 				if groups[i].Domain != domain {
@@ -430,7 +423,7 @@ func (globule *Globule) registerAdminAccount() error {
 			}
 		}
 
-		organisations, err := resource_client_.GetOrganizations("{}")
+		organisations, err := resource_client_.GetOrganizations("")
 		if err == nil {
 			for i := 0; i < len(organisations); i++ {
 				if organisations[i].Domain != domain {
@@ -440,7 +433,8 @@ func (globule *Globule) registerAdminAccount() error {
 			}
 		}
 	}
-	/**/
+
+	/* TODO create user connection*/
 
 	// The user console
 	return nil
@@ -1000,17 +994,6 @@ func enableProgramFwMgr(name, appname string) error {
 	return nil
 }
 
-func removeFromFwMgr(name, appname string) error {
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall delete rule name="%s" program="%s"`, name, appname))
-		cmd.Dir = os.TempDir()
-		//cmd.Stdout = os.Stdout
-		//cmd.Stderr = os.Stderr
-		return cmd.Run()
-	}
-	return nil
-}
-
 func deleteRule(name string) error {
 	if runtime.GOOS == "windows" {
 		// netsh advfirewall firewall delete rule name= rule "Globular-Services"
@@ -1481,16 +1464,16 @@ func (globule *Globule) initPeers() error {
 	}
 
 	// Return the registered peers
-	peers, err := resource_client_.GetPeers(`{}`)
-	nbTry := 30
+	peers, err := resource_client_.GetPeers("")
+	nbTry := 3
 
 	if err != nil {
 		for i := 0; i < nbTry; i++ {
 			if err == nil {
 				break
 			}
-			time.Sleep(1 * time.Second)
-			peers, err = resource_client_.GetPeers(`{}`)
+			time.Sleep(500 * time.Millisecond)
+			peers, err = resource_client_.GetPeers("")
 		}
 	}
 
@@ -1518,44 +1501,6 @@ func (globule *Globule) initPeers() error {
 
 // func (globule *Globule) getHttpClient
 
-/**
- * Here I will create application backend connection.
- */
-func (globule *Globule) createApplicationConnection() error {
-
-	fmt.Println("-- create applications connections")
-
-	address, _ := config.GetAddress()
-	resource_client_, err := getResourceClient(address)
-	if err != nil {
-		return err
-	}
-
-	persistence_client_, err := GetPersistenceClient(address)
-	if err != nil {
-		return err
-	}
-
-	if err == nil {
-		applications, err := resource_client_.GetApplications("{}")
-
-		if err == nil {
-
-			for i := 0; i < len(applications); i++ {
-				app := applications[i]
-				err := persistence_client_.CreateConnection(app.Id, app.Id+"_db", globule.getDomain(), float64(globule.BackendPort), 0, app.Id, app.Password, 500, "", false)
-				if err != nil {
-					fmt.Println("--------> fail to create application connection  : ", app.Id, err)
-				}
-			}
-
-		} else {
-			fmt.Println("fail to retreive applications list with error: ", err)
-		}
-	}
-
-	return err
-}
 
 /**
  * Stop all services.
@@ -1589,6 +1534,8 @@ func (globule *Globule) stopServices() error {
 // Start http/https server...
 func (globule *Globule) serve() error {
 
+	fmt.Println("----------------------------------> serve")
+
 	// Create the admin account.
 	globule.registerAdminAccount()
 
@@ -1602,9 +1549,6 @@ func (globule *Globule) serve() error {
 			fmt.Println("fail to install application with error: ", err)
 		}
 	}
-
-	// Create application connection
-	globule.createApplicationConnection()
 
 	url := globule.Protocol + "://" + globule.getDomain()
 
@@ -1662,7 +1606,7 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Init peers
-	globule.initPeers()
+	go globule.initPeers()
 
 	if err != nil {
 		fmt.Println("fail to init peers whit error ", err)
@@ -2324,201 +2268,8 @@ func getResourceClient(address string) (*resource_client.Resource_Client, error)
 	return client.(*resource_client.Resource_Client), nil
 }
 
-// ////////////////////// Persistence Client ////////////////////////////////////////////
-func GetPersistenceClient(address string) (*persistence_client.Persistence_Client, error) {
-	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
-	client, err := globular_client.GetClient(address, "persistence.PersistenceService", "NewPersistenceService_Client")
-	if err != nil {
-		return nil, err
-	}
-	return client.(*persistence_client.Persistence_Client), nil
-}
 
-/**
- * Return an application with a given id
- */
-func (globule *Globule) getAccount(accountId string) (*resourcepb.Account, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
 
-	return resourceClient.GetAccount(accountId)
-}
-
-func (globule *Globule) accountExist(id string) bool {
-	a, err := globule.getAccount(id)
-	if err != nil || a == nil {
-		return false
-	}
-	return true
-}
-
-/**
- * Return a group with a given id
- */
-func (globule *Globule) getGroup(groupId string) (*resourcepb.Group, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
-
-	groups, err := resourceClient.GetGroups(`{"$or":[{"_id":"` + groupId + `"},{"name":"` + groupId + `"} ]}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(groups) == 0 {
-		return nil, errors.New("no group found wiht name or _id " + groupId)
-	}
-
-	return groups[0], nil
-}
-
-/**
- * Test if a group exist.
- */
-func (globule *Globule) groupExist(id string) bool {
-	g, err := globule.getGroup(id)
-	if err != nil || g == nil {
-		return false
-	}
-	return true
-}
-
-/**
- * Return an application with a given id
- */
-func (globule *Globule) getApplication(applicationId string) (*resourcepb.Application, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
-
-	applications, err := resourceClient.GetApplications(`{"$or":[{"_id":"` + applicationId + `"},{"name":"` + applicationId + `"} ]}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(applications) == 0 {
-		return nil, errors.New("no application found wiht name or _id " + applicationId)
-	}
-
-	return applications[0], nil
-}
-
-/**
- * Test if a application exist.
- */
-func (globule *Globule) applicationExist(id string) bool {
-	g, err := globule.getApplication(id)
-	if err != nil || g == nil {
-		return false
-	}
-	return true
-}
-
-/**
- * Return a peer with a given id
- */
-func (globule *Globule) getPeer(peerId string) (*resourcepb.Peer, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
-
-	peers, err := resourceClient.GetPeers(`{"$or":[{"domain":"` + peerId + `"},{"mac":"` + peerId + `"} ]}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(peers) == 0 {
-		return nil, errors.New("no peer found wiht name or _id " + peerId)
-	}
-
-	return peers[0], nil
-}
-
-/**
- * Test if a peer exist.
- */
-func (globule *Globule) peerExist(id string) bool {
-	g, err := globule.getPeer(id)
-	if err != nil || g == nil {
-		return false
-	}
-	return true
-}
-
-/**
- * Return a peer with a given id
- */
-func (globule *Globule) getOrganization(organisationId string) (*resourcepb.Organization, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
-
-	organisations, err := resourceClient.GetOrganizations(`{"$or":[{"_id":"` + organisationId + `"},{"name":"` + organisationId + `"} ]}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(organisations) == 0 {
-		return nil, errors.New("no organization found wiht name or _id " + organisationId)
-	}
-
-	return organisations[0], nil
-}
-
-/**
- * Test if a organisation exist.
- */
-func (globule *Globule) organisationExist(id string) bool {
-	o, err := globule.getOrganization(id)
-	if err != nil || o == nil {
-		return false
-	}
-	return true
-}
-
-/**
- * Return a role with a given id
- */
-func (globule *Globule) getRole(roleId string) (*resourcepb.Role, error) {
-	address, _ := config.GetAddress()
-	resourceClient, err := getResourceClient(address)
-	if err != nil {
-		return nil, err
-	}
-
-	roles, err := resourceClient.GetRoles(`{"$or":[{"_id":"` + roleId + `"},{"name":"` + roleId + `"} ]}`)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(roles) == 0 {
-		return nil, errors.New("no role found wiht name or _id " + roleId)
-	}
-
-	return roles[0], nil
-}
-
-/**
- * Test if a role exist.
- */
-func (globule *Globule) roleExist(id string) bool {
-	r, err := globule.getRole(id)
-	if err != nil || r == nil {
-		return false
-	}
-	return true
-}
 
 //////////////////////// RBAC function //////////////////////////////////////////////
 /**
@@ -2583,25 +2334,6 @@ func (globule *Globule) setActionResourcesPermissions(permissions map[string]int
 	return rbac_client_.SetActionResourcesPermissions(permissions)
 }
 
-func (globule *Globule) deleteResourcePermissions(path string) error {
-	address, _ := config.GetAddress()
-	rbac_client_, err := GetRbacClient(address)
-	if err != nil {
-		return err
-	}
-	return rbac_client_.DeleteResourcePermissions(path)
-}
-
-// /////////////////// search engine /////////////////////////////
-func (globule *Globule) getSearchClient() (*search_client.Search_Client, error) {
-	Utility.RegisterFunction("NewSearchService_Client", search_client.NewSearchService_Client)
-	address, _ := config.GetAddress()
-	client, err := globular_client.GetClient(address, "search.SearchService", "NewRbacService_Client")
-	if err != nil {
-		return nil, err
-	}
-	return client.(*search_client.Search_Client), nil
-}
 
 // /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
