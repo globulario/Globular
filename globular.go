@@ -1534,8 +1534,6 @@ func (globule *Globule) stopServices() error {
 // Start http/https server...
 func (globule *Globule) serve() error {
 
-	fmt.Println("----------------------------------> serve")
-
 	// Create the admin account.
 	globule.registerAdminAccount()
 
