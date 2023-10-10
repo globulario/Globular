@@ -182,8 +182,7 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
 	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
-	localIp := Utility.MyLocalIP()
-	g.Mac, _ = Utility.MyMacAddr(localIp)
+	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
 	// THOSE values must be change by the user...
 	g.Organization = "GLOBULARIO"

@@ -34,9 +34,6 @@ import (
 
 func (g *Globule) Start(s service.Service) error {
 
-	// stop mongo demon if it running
-	Utility.KillProcessByName("mongod")
-
 	// Start should not block. Do the actual work async.
 	go g.run()
 	return nil
@@ -736,7 +733,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	log.Println("authenticate user ", user, " at adress ", address)
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
@@ -937,6 +933,7 @@ func update_globular(g *Globule, path, domain, user, pwd string, platform string
 		return err
 	}
 
+
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
@@ -1030,6 +1027,7 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 		return err
 	}
 
+
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
@@ -1080,6 +1078,8 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 		log.Panicln(err)
 		return err
 	}
+
+
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate with error ", err.Error())
@@ -1486,18 +1486,6 @@ func dist(g *Globule, path string, revision string) {
 
 		if runtime.GOARCH == "amd64" {
 
-			// lib ssl 1.1.1f require by mongodb...
-			if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libssl.so.1.1") {
-				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
-				fmt.Println("   wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
-				fmt.Println("	sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb")
-				return
-			}
-
-			// Copy lib crypto...
-			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
-			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
-
 			// zlib
 			if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
 				fmt.Println("libz.a not found please install it on your computer: sudo apt-get install zlib1g-dev")
@@ -1589,20 +1577,6 @@ func dist(g *Globule, path string, revision string) {
 		# Create the directory where the service will be install.
 		mkdir /etc/globular/config/services
 
-		# install mongo db..
-		curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian11-6.0.5.tgz
-		tar -zxvf mongodb-linux-x86_64-debian11-6.0.5.tgz
-		cp -R -n mongodb-linux-x86_64-debian11-6.0.5/bin/* /usr/local/bin
-		rm mongodb-linux-x86_64-debian11-6.0.5.tgz
-		rm -R mongodb-linux-x86_64-debian11-6.0.5
-
-		# install mongosh (shell)
-		curl -O https://downloads.mongodb.com/compass/mongosh-1.8.1-linux-x64.tgz
-		tar -zxvf mongosh-1.8.1-linux-x64.tgz
-		cp -R -n mongosh-1.8.1-linux-x64/bin/* /usr/local/bin
-		rm mongosh-1.8.1-linux-x64.tgz
-		rm -R mongosh-1.8.1-linux-x64
-
 		# -- Install prometheus
 		wget https://github.com/prometheus/prometheus/releases/download/v2.41.0/prometheus-2.41.0.linux-amd64.tar.gz
 		tar -xf prometheus-2.41.0.linux-amd64.tar.gz
@@ -1648,21 +1622,6 @@ func dist(g *Globule, path string, revision string) {
 
 		# Create the directory where the service will be install.
 		mkdir /etc/globular/config/services
-
-		# install mongo db..
-		wget https://github.com/themattman/mongodb-raspberrypi-binaries/releases/download/r6.0.5-rpi-unofficial/mongodb.ce.pi.r6.0.5.tar.gz 
-		mkdir mongodb
-		tar -zxvf mongodb.ce.pi.r6.0.5.tar.gz -C mongodb
-		cp -R -n mongodb/* /usr/local/bin
-		rm mongodb.ce.pi.r6.0.5.tar.gz
-		rm -R mongodb
-
-		# install mongosh (shell)
-		curl -O https://downloads.mongodb.com/compass/mongosh-1.9.1-linux-arm64.tgz
-		tar -zxvf mongosh-1.9.1-linux-arm64.tgz
-		cp -R -n mongosh-1.9.1-linux-arm64/bin/* /usr/local/bin
-		rm mongosh-1.9.1-linux-arm64.tgz
-		rm -R mongosh-1.9.1-linux-arm64
 
 		# -- Install prometheus
 		wget https://github.com/prometheus/prometheus/releases/download/v2.44.0/prometheus-2.44.0.linux-arm64.tar.gz
@@ -2137,19 +2096,6 @@ func __dist(g *Globule, path, config_path string) []string {
 		}
 	} else if runtime.GOOS == "darwin" {
 		dest := path + "/bin"
-
-		// mongodb stuff...
-		if Utility.Exists("/usr/local/bin/mongod") {
-			Utility.CopyFile("/usr/local/bin/mongod", dest)
-		}
-
-		if Utility.Exists("/usr/local/bin/mongosh") {
-			Utility.CopyFile("/usr/local/bin/mongosh", dest)
-		}
-
-		if Utility.Exists("/usr/local/bin/mongos") {
-			Utility.CopyFile("/usr/local/bin/mongos", dest)
-		}
 
 		// ffmpeg
 		if Utility.Exists("/usr/local/bin/ffmpeg") {
