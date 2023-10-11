@@ -32,6 +32,7 @@ import (
 	"github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
+	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
@@ -1564,6 +1565,12 @@ func (globule *Globule) serve() error {
 	fmt.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
 	fmt.Printf("startup took %s", elapsed)
 
+	// create applications connections
+	err  := globule.createApplicationConnections()
+	if err != nil {
+		return err
+	}
+
 	return nil
 
 }
@@ -2014,7 +2021,10 @@ func (globule *Globule) watchForUpdate() {
 							// test if the service need's to be updated, test if the part is part of installed instance and not developement environement.
 							if s["KeepUpToDate"].(bool) && strings.Contains(s["Path"].(string), "/globular/services/") {
 								// Here I will get the last version of the package...
+								fmt.Println("-----------> try to get package descriptor for ", s["Id"].(string), s["Name"], s["PublisherId"].(string))
+
 								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
+								
 								if err == nil {
 									descriptorVersion := Utility.NewVersion(descriptor.Version)
 									serviceVersion := Utility.NewVersion(s["Version"].(string))
@@ -2373,6 +2383,76 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 	fmt.Println("subscribe to event", evt, "succed on ", eventClient.GetName()+""+eventClient.GetDomain(), eventClient.GetPort())
 	// register a listener...
 	return nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Persistence service functions
+//////////////////////////////////////////////////////////////////////////////////////////////////
+func getPersistenceClient(address string) (*persistence_client.Persistence_Client, error) {
+	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
+	client, err := globular_client.GetClient(address, "persistence.PersistenceService", "NewPersistenceService_Client")
+	if err != nil {
+		return nil, err
+	}
+	return client.(*persistence_client.Persistence_Client), nil
+}
+
+// Create the application connections in the backend.
+func (globule *Globule) createApplicationConnections() error {
+
+	address, _ := config.GetAddress()
+	resourceClient, err := getResourceClient(address)
+	if err != nil {
+		return err
+	}
+
+	applications, err := resourceClient.GetApplications("{}")
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(applications); i++ {
+		err = globule.createApplicationConnection(applications[i])
+		if err != nil {
+			fmt.Println("fail to create application connection with error ", err)
+		}
+	}
+
+	return nil
+}
+
+// Create the application connections in the backend.
+func (globule *Globule) createApplicationConnection(app *resourcepb.Application) error {
+
+	resourceServiceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
+	if err != nil {
+		return err
+	}
+
+	var storeType float64
+	if resourceServiceConfig["Backend_type"].(string) == "SQL" {
+		storeType = 1.0
+	} else if resourceServiceConfig["Backend_type"].(string) == "MONGODB" {
+		storeType = 0.0
+	} else if resourceServiceConfig["Backend_type"].(string) == "SCYLLADB" {
+		storeType = 2.0
+	}
+
+	address, _ := config.GetAddress()
+	persistenceClient, err := getPersistenceClient(address)
+
+	if err != nil {
+		return err
+	}
+
+	// Here I will create the connection to the backend.
+	 err = persistenceClient.CreateConnection( app.Name, app.Name+"_db", address, resourceServiceConfig["Backend_port"].(float64), storeType,  resourceServiceConfig["Backend_user"].(string), resourceServiceConfig["Backend_password"].(string), 500, "", false)
+
+	if err != nil {
+		fmt.Println("-------------------------> fail to create connection for %s with error ", app.Name, err)
+	}
+
+	return err
 }
 
 ///////////////////////  fmt Services functions ////////////////////////////////////////////////
