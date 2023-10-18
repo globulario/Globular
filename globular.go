@@ -40,6 +40,7 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
 	"github.com/txn2/txeh"
@@ -310,7 +311,6 @@ func (globule *Globule) cleanup() {
 
 func (globule *Globule) registerAdminAccount() error {
 
-	fmt.Println("------------------------------> register admin account")
 	domain, _ := config.GetDomain()
 	address, _ := config.GetAddress()
 	path := config.GetDataDir() + "/files/users/sa@" + domain
@@ -321,14 +321,12 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
-
 	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
 	if err != nil {
 		return err
 	}
 
 	globule.BackendPort = Utility.ToInt(resourceConfig["Backend_port"])
-
 
 	// get the resource client
 	resource_client_, err := getResourceClient(address)
@@ -1375,6 +1373,19 @@ func updatePeersEvent(evt *eventpb.Event) {
 	p.Domain = p_["domain"].(string)
 	p.Hostname = p_["hostname"].(string)
 	p.Mac = p_["mac"].(string)
+	p.Protocol = p_["protocol"].(string)
+	p.LocalIpAddress = p_["localIpAddress"].(string)
+	p.ExternalIpAddress = p_["externalIpAddress"].(string)
+
+	state := Utility.ToInt(p_["state"])
+	if state == 0 {
+		p.State = resourcepb.PeerApprovalState_PEER_PENDING
+	} else if state == 1 {
+		p.State = resourcepb.PeerApprovalState_PEER_ACCETEP
+	} else if state == 2 {
+		p.State = resourcepb.PeerApprovalState_PEER_REJECTED
+	}
+
 	p.PortHttp = int32(Utility.ToInt(p_["portHttp"]))
 	p.PortHttps = int32(Utility.ToInt(p_["portHttps"]))
 	if p_["actions"] != nil {
@@ -1501,7 +1512,6 @@ func (globule *Globule) initPeers() error {
 
 // func (globule *Globule) getHttpClient
 
-
 /**
  * Stop all services.
  */
@@ -1566,7 +1576,7 @@ func (globule *Globule) serve() error {
 	fmt.Printf("startup took %s", elapsed)
 
 	// create applications connections
-	err  := globule.createApplicationConnections()
+	err := globule.createApplicationConnections()
 	if err != nil {
 		return err
 	}
@@ -2024,7 +2034,7 @@ func (globule *Globule) watchForUpdate() {
 								fmt.Println("-----------> try to get package descriptor for ", s["Id"].(string), s["Name"], s["PublisherId"].(string))
 
 								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
-								
+
 								if err == nil {
 									descriptorVersion := Utility.NewVersion(descriptor.Version)
 									serviceVersion := Utility.NewVersion(s["Version"].(string))
@@ -2058,45 +2068,32 @@ func (globule *Globule) watchForUpdate() {
 	}()
 }
 
-// Try to display application message in a nice way. 
+// Try to display application message in a nice way.
 func logListener(g *Globule) func(evt *eventpb.Event) {
 	return func(evt *eventpb.Event) {
-		info := make(map[string]interface{})
-		err := json.Unmarshal(evt.Data, &info)
+		info := new(logpb.LogInfo)
+
+		err := jsonpb.UnmarshalString(string(evt.Data), info)
+
 		if err == nil {
 			// So here Will display message
-			var header string
-			if info["application"] != nil {
-				header = info["application"].(string)
-			}
 
-			occurences := info["occurences"].([]interface{})
-			occurence := occurences[len(occurences)-1].(map[string]interface{})
+			header := info.Application
 
 			// Set the occurence date.
-			messageTime := time.Unix(int64(Utility.ToInt(occurence["date"])), 0)
-			method := "NA"
-			if info["method"] != nil {
-				method = info["method"].(string)
-			}
-
-			if info["functionName"] != nil {
-				method += ":" + info["functionName"].(string)
-			}
-
-			header += " " + messageTime.Format("2006-01-02 15:04:05") + " " + method
-
-			if info["level"].(string) == "ERROR_MESSAGE" {
+			if info.Level == logpb.LogLevel_ERROR_MESSAGE || info.Level == logpb.LogLevel_FATAL_MESSAGE {
 				color.Error.Println(header)
-			} else if info["level"].(string) == "DEBUG_MESSAGE" || info["level"].(string) == "INFO_MESSAGE" {
+			} else if info.Level == logpb.LogLevel_DEBUG_MESSAGE || info.Level == logpb.LogLevel_TRACE_MESSAGE || info.Level == logpb.LogLevel_INFO_MESSAGE {
 				color.Info.Println(header)
-			} else {
+			} else if info.Level == logpb.LogLevel_WARN_MESSAGE {
 				color.Warn.Println(header)
+			} else {
+				color.Comment.Println(header)
 			}
 
-			if info["message"] != nil {
+			if len(info.Message) > 0 {
 				// Now I will process the message itself...
-				msg := info["message"].(string)
+				msg := info.Message
 				// if the message is grpc error I will parse it content and display it content...
 				if strings.HasPrefix(msg, "rpc") {
 					errorDescription := make(map[string]interface{})
@@ -2115,19 +2112,19 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 						}
 					}
 				} else {
-					if info["line"] != nil {
-						fmt.Println(info["line"])
+					if len(info.Line) > 0 {
+						fmt.Println(info.Line)
 					}
 					color.Comment.Println(msg)
 				}
 
 				// I will also display the message in the system logger.
-				if g.logger != nil {
-					if info["level"].(string) == "ERROR_MESSAGE" {
+				if g.logger != nil && len(msg) > 0 {
+					if info.Level == logpb.LogLevel_ERROR_MESSAGE || info.Level == logpb.LogLevel_FATAL_MESSAGE {
 						g.logger.Error(msg)
-					} else if info["level"].(string) == "WARNING_MESSAGE" {
+					} else if  info.Level == logpb.LogLevel_WARN_MESSAGE {
 						g.logger.Warning(msg)
-					} else if info["level"].(string) == "INFO_MESSAGE" {
+					} else {
 						g.logger.Info(msg)
 					}
 				}
@@ -2275,9 +2272,6 @@ func getResourceClient(address string) (*resource_client.Resource_Client, error)
 	return client.(*resource_client.Resource_Client), nil
 }
 
-
-
-
 //////////////////////// RBAC function //////////////////////////////////////////////
 /**
  * Get the rbac client.
@@ -2341,7 +2335,6 @@ func (globule *Globule) setActionResourcesPermissions(permissions map[string]int
 	return rbac_client_.SetActionResourcesPermissions(permissions)
 }
 
-
 // /////////////////// event service functions ////////////////////////////////////
 func (globule *Globule) getEventClient() (*event_client.Event_Client, error) {
 	Utility.RegisterFunction("NewEventService_Client", event_client.NewEventService_Client)
@@ -2380,14 +2373,13 @@ func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event))
 		return err
 	}
 
-	fmt.Println("subscribe to event", evt, "succed on ", eventClient.GetName()+""+eventClient.GetDomain(), eventClient.GetPort())
 	// register a listener...
 	return nil
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////////////////////////
 // Persistence service functions
-//////////////////////////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////////////////////////
 func getPersistenceClient(address string) (*persistence_client.Persistence_Client, error) {
 	Utility.RegisterFunction("NewPersistenceService_Client", persistence_client.NewPersistenceService_Client)
 	client, err := globular_client.GetClient(address, "persistence.PersistenceService", "NewPersistenceService_Client")
@@ -2446,10 +2438,10 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	}
 
 	// Here I will create the connection to the backend.
-	 err = persistenceClient.CreateConnection( app.Name, app.Name+"_db", address, resourceServiceConfig["Backend_port"].(float64), storeType,  resourceServiceConfig["Backend_user"].(string), resourceServiceConfig["Backend_password"].(string), 500, "", false)
+	err = persistenceClient.CreateConnection(app.Name, app.Name+"_db", address, resourceServiceConfig["Backend_port"].(float64), storeType, resourceServiceConfig["Backend_user"].(string), resourceServiceConfig["Backend_password"].(string), 500, "", false)
 
 	if err != nil {
-		fmt.Println("-------------------------> fail to create connection for %s with error ", app.Name, err)
+		fmt.Println("fail to create connection for %s with error ", app.Name, err)
 	}
 
 	return err
