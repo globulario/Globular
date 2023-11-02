@@ -364,13 +364,13 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 
 		// Set admin role to that account.
-		/*if err == nil {
+		if err == nil {
 			err = resource_client_.AddAccountRole("sa", "admin")
 			if err != nil {
 				fmt.Println("fail to add admin role to sa", err)
 				return err
 			}
-		}*/
+		}
 
 	} else {
 		// Alway update the sa domain...
