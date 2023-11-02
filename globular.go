@@ -78,6 +78,7 @@ type Globule struct {
 	PortHttps   int    // The secure port
 	PortsRange  string // The range of grpc ports.
 	BackendPort int    // This is backend resource port (mongodb port)
+	BackendStore int;
 
 	// Cors policy
 	AllowedOrigins []string
@@ -327,6 +328,16 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	globule.BackendPort = Utility.ToInt(resourceConfig["Backend_port"])
+	globule.BackendStore = 1; // default to SQLITE3
+
+	// Set the backend store.
+	if resourceConfig["Backend_type"].(string) == "MONGO" {
+		globule.BackendStore = 0;
+	} else if resourceConfig["Backend_type"].(string) == "SQL" {
+		globule.BackendStore = 1;
+	} else if resourceConfig["Backend_type"].(string) == "SCYLLA" {
+		globule.BackendStore = 2;
+	}
 
 	// get the resource client
 	resource_client_, err := getResourceClient(address)
@@ -449,14 +460,18 @@ func (globule *Globule) createAdminRole() error {
 		return err
 	}
 
-	domain, _ := config.GetDomain()
+	mac := strings.ReplaceAll(globule.Mac, ":", "_")
 
-	token, err := os.ReadFile(config.GetConfigDir() + "/tokens/" + domain + "_token")
+	token, err := os.ReadFile(config.GetConfigDir() + "/tokens/" + mac + "_token")
 	if err != nil {
 		return err
 	}
 
 	servicesManager, err := GetServiceManagerClient(address)
+	if err != nil {
+		return err
+	}
+	
 	actions, err := servicesManager.GetAllActions()
 	if err != nil {
 		return err
@@ -2031,8 +2046,6 @@ func (globule *Globule) watchForUpdate() {
 							// test if the service need's to be updated, test if the part is part of installed instance and not developement environement.
 							if s["KeepUpToDate"].(bool) && strings.Contains(s["Path"].(string), "/globular/services/") {
 								// Here I will get the last version of the package...
-								fmt.Println("-----------> try to get package descriptor for ", s["Id"].(string), s["Name"], s["PublisherId"].(string))
-
 								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
 
 								if err == nil {
@@ -2424,9 +2437,9 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	var storeType float64
 	if resourceServiceConfig["Backend_type"].(string) == "SQL" {
 		storeType = 1.0
-	} else if resourceServiceConfig["Backend_type"].(string) == "MONGODB" {
+	} else if resourceServiceConfig["Backend_type"].(string) == "MONGO" {
 		storeType = 0.0
-	} else if resourceServiceConfig["Backend_type"].(string) == "SCYLLADB" {
+	} else if resourceServiceConfig["Backend_type"].(string) == "SCYLLA" {
 		storeType = 2.0
 	}
 
