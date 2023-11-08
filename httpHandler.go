@@ -437,6 +437,7 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 
 	// Other policies...
 	(*w).Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
+	(*w).Header().Set("Access-Control-Allow-Private-Network", "true")
 
 }
 
