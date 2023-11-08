@@ -933,7 +933,6 @@ func update_globular(g *Globule, path, domain, user, pwd string, platform string
 		return err
 	}
 
-
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
@@ -1027,7 +1026,6 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 		return err
 	}
 
-
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
 		log.Println(err)
@@ -1078,7 +1076,6 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 		log.Panicln(err)
 		return err
 	}
-
 
 	token, err := authentication_client.Authenticate(user, pwd)
 	if err != nil {
@@ -1494,7 +1491,7 @@ func dist(g *Globule, path string, revision string) {
 
 			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
 			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
-		} else if  runtime.GOARCH == "arm64" {
+		} else if runtime.GOARCH == "arm64" {
 			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libssl.so.1.1") {
 				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
 				fmt.Println("   wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb")
@@ -2161,21 +2158,6 @@ func __dist(g *Globule, path, config_path string) []string {
 		}
 	}
 
-	// Change the files permission to add execute access.
-	/*files, err = ioutil.ReadDir(path + "/dependencies")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, f := range files {
-		if !f.IsDir() {
-			err = os.Chmod(path+"/dependencies/"+f.Name(), 0755)
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
-	}*/
-
 	// install services...
 	services, err := config_.GetServicesConfigurations()
 	if err != nil {
@@ -2253,6 +2235,22 @@ func __dist(g *Globule, path, config_path string) []string {
 									config["Path"] = programFilePath + "/" + serviceDir + "/" + id + "/" + execName
 									config["Proto"] = programFilePath + "/" + serviceDir + "/" + config["Name"].(string) + ".proto"
 
+									if config["CacheType"] != nil {
+										config["CacheType"] = "BADGER"
+									}
+							
+									if config["CacheAddress"] != nil {
+										config["CacheAddress"] = "localhost"
+									}
+							
+									if config["Backend_address"] != nil {
+										config["Backend_address"] = "localhost"
+									}
+									
+									if config["Backend_type"] != nil {
+										config["Backend_type"] = "SQL"
+									}
+									
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
 									config["Process"] = -1
@@ -2328,6 +2326,8 @@ func __dist(g *Globule, path, config_path string) []string {
 				}
 			}
 		}
+
+
 	}
 
 	// save docker.
