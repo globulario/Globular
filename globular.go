@@ -962,21 +962,30 @@ func (globule *Globule) refreshLocalToken() error {
 
 // Enable port from window firewall
 func enablePorts(ruleName, portsRange string) error {
+
 	if runtime.GOOS == "windows" {
 		deleteRule(ruleName)
 
+	
+		inboundRule_ := fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange)
+		fmt.Println(inboundRule_)
+
 		// netsh advfirewall firewall add rule name="Globular-Services" dir=in action=allow protocol=TCP localport=10000-10100
-		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		inboundRule := exec.Command("cmd", "/C", inboundRule_)
 		inboundRule.Dir = os.TempDir()
 		err := inboundRule.Run()
 		if err != nil {
+			fmt.Println("fail to add inbound rule: ", ruleName, "with error: ", err)
 			return nil
 		}
 
-		outboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow protocol=TCP localport=%s`, ruleName, portsRange))
+		outboundRule_ :=  fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow protocol=TCP localport=%s`, ruleName, portsRange)
+		fmt.Println(outboundRule_)
+		outboundRule := exec.Command("cmd", "/C", outboundRule_)
 		outboundRule.Dir = os.TempDir()
 		err = outboundRule.Run()
 		if err != nil {
+			fmt.Println("fail to add outbound rule: ", ruleName, "with error: ", err)
 			return nil
 		}
 
@@ -986,7 +995,9 @@ func enablePorts(ruleName, portsRange string) error {
 }
 
 func enableProgramFwMgr(name, appname string) error {
+	
 	if runtime.GOOS == "windows" {
+		fmt.Println("enable program: ", name, appname)
 		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
 		appname = strings.ReplaceAll(appname, "/", "\\")
 		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
@@ -1006,6 +1017,8 @@ func enableProgramFwMgr(name, appname string) error {
 	}
 	return nil
 }
+
+
 
 func deleteRule(name string) error {
 	if runtime.GOOS == "windows" {
@@ -1100,7 +1113,6 @@ func setSystemPath() error {
 
 		ex, _ := os.Executable()
 		// set globular firewall run...
-
 		enableProgramFwMgr("Globular", ex)
 
 		// Enable ports
@@ -1204,8 +1216,8 @@ func setSystemPath() error {
 		} else {
 			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
 		}
-
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		
 		return err
 	} else if runtime.GOOS == "darwin" {
 		// Fix the path /usr/local/bin is not set by default...
