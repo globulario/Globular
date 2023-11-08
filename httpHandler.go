@@ -25,6 +25,7 @@ import (
 	"github.com/StalkR/httpcache"
 	"github.com/StalkR/imdb"
 	"github.com/davecourtois/Utility"
+	"github.com/globulario/services/golang/config"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
@@ -172,21 +173,53 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
-
 		handleRequestAndRedirect(to, w, r)
 		return
 	}
 
+	// I will redirect the request if host is defined in the query...
+	if len(r.URL.Query().Get("host")) > 0 {
+
+		redirect, to := redirectTo(r.URL.Query().Get("host"))
+
+		if redirect && to != nil {
+			//fmt.Println("--------------> redirect to ", r.URL.Query().Get("host"))
+			// I will get the remote configuration and return it...
+
+			var remoteConfig map[string]interface{}
+			var err error
+			if to.Protocol == "https" {
+				remoteConfig, err = config.GetRemoteConfig(to.Domain, int(to.PortHttp))
+			} else {
+				config.GetRemoteConfig(to.Domain, int(to.PortHttp))
+				remoteConfig, err = config.GetRemoteConfig(to.Domain, int(to.PortHttp))
+			}
+
+			if err != nil {
+				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			//add prefix and clean
+			w.Header().Set("Content-Type", "application/json")
+			setupResponse(&w, r)
+
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(remoteConfig)
+			return
+		}
+	}
+
+	setupResponse(&w, r)
+
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// Handle the prefligth oprions...
 		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		//w.Header().Set("Access-Control-Allow-Private-Network", "true")
 		w.Header().Set("Access-Control-Max-Age", "3600")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	// Handle the prefligth oprions...
-	setupResponse(&w, r)
 
 	// if the host is not the same...
 	serviceId := r.URL.Query().Get("id") // the csr in base64
@@ -437,8 +470,6 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 
 	// Other policies...
 	(*w).Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
-	(*w).Header().Set("Access-Control-Allow-Private-Network", "true")
-
 }
 
 /**
@@ -922,7 +953,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
 		if Utility.Exists(path.Join(dir, globule.IndexApplication+"/"+rqst_path)) {
 			name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
-		}else if len(lastDir) > 0 && Utility.Exists(path.Join(dir, lastDir+"/"+rqst_path)) {
+		} else if len(lastDir) > 0 && Utility.Exists(path.Join(dir, lastDir+"/"+rqst_path)) {
 			name = path.Join(dir, lastDir+"/"+rqst_path)
 		}
 	}
