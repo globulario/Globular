@@ -143,16 +143,14 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	// Handle the prefligth oprions...
-	setupResponse(&w, r)
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
@@ -177,15 +175,21 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	// I will redirect the request if host is defined in the query...
 	if len(r.URL.Query().Get("host")) > 0 {
 
 		redirect, to := redirectTo(r.URL.Query().Get("host"))
 
 		if redirect && to != nil {
-			//fmt.Println("--------------> redirect to ", r.URL.Query().Get("host"))
 			// I will get the remote configuration and return it...
-
 			var remoteConfig map[string]interface{}
 			var err error
 			if to.Protocol == "https" {
@@ -202,24 +206,15 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 			//add prefix and clean
 			w.Header().Set("Content-Type", "application/json")
-			setupResponse(&w, r)
-
 			w.WriteHeader(http.StatusCreated)
+
 			json.NewEncoder(w).Encode(remoteConfig)
+
 			return
 		}
 	}
 
 	setupResponse(&w, r)
-
-	if r.Method == http.MethodOptions {
-		// Handle the prefligth oprions...
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		//w.Header().Set("Access-Control-Allow-Private-Network", "true")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
 
 	// if the host is not the same...
 	serviceId := r.URL.Query().Get("id") // the csr in base64
@@ -383,16 +378,13 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	// Handle the prefligth oprions...
 	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
@@ -434,8 +426,8 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  * Setup allow Cors policies.
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
-	var allowedOrigins string
 
+	var allowedOrigins string	
 	for i := 0; i < len(globule.AllowedOrigins); i++ {
 		allowedOrigins += globule.AllowedOrigins[i]
 		if globule.AllowedOrigins[i] == "*" {
@@ -447,7 +439,6 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// globule.peers.
 	var allowedMethods string
 	for i := 0; i < len(globule.AllowedMethods); i++ {
 		allowedMethods += globule.AllowedMethods[i]
@@ -464,12 +455,17 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigins)
-	(*w).Header().Set("Access-Control-Allow-Methods", allowedMethods)
-	(*w).Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+	header := (*w).Header()
 
-	// Other policies...
-	(*w).Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
+	// set the cors header...
+	header.Set("Access-Control-Allow-Origin", allowedOrigins)
+	header.Set("Access-Control-Allow-Methods", allowedMethods)
+	header.Set("Access-Control-Allow-Headers", allowedHeaders)
+
+	if req.Method == http.MethodOptions {
+		header.Set("Access-Control-Max-Age", "3600")
+		header.Set("Access-Control-Allow-Private-Network", "true")
+	}
 }
 
 /**
@@ -483,21 +479,19 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	// Handle the prefligth oprions...
 	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 
 	w.WriteHeader(http.StatusCreated)
+
 	// sign the certificate.
 	csr_str := r.URL.Query().Get("csr") // the csr in base64
 	csr, err := base64.StdEncoding.DecodeString(csr_str)
@@ -591,15 +585,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	setupResponse(&w, r)
 
 	err := r.ParseMultipartForm(32 << 20) // grab the multipart form
 	if err != nil {

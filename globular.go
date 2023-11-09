@@ -73,12 +73,12 @@ type Globule struct {
 	ServicesRoot string
 
 	// can be https or http.
-	Protocol    string
-	PortHttp    int    // The port of the http file server.
-	PortHttps   int    // The secure port
-	PortsRange  string // The range of grpc ports.
-	BackendPort int    // This is backend resource port (mongodb port)
-	BackendStore int;
+	Protocol     string
+	PortHttp     int    // The port of the http file server.
+	PortHttps    int    // The secure port
+	PortsRange   string // The range of grpc ports.
+	BackendPort  int    // This is backend resource port (mongodb port)
+	BackendStore int
 
 	// Cors policy
 	AllowedOrigins []string
@@ -328,15 +328,15 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	globule.BackendPort = Utility.ToInt(resourceConfig["Backend_port"])
-	globule.BackendStore = 1; // default to SQLITE3
+	globule.BackendStore = 1 // default to SQLITE3
 
 	// Set the backend store.
 	if resourceConfig["Backend_type"].(string) == "MONGO" {
-		globule.BackendStore = 0;
+		globule.BackendStore = 0
 	} else if resourceConfig["Backend_type"].(string) == "SQL" {
-		globule.BackendStore = 1;
+		globule.BackendStore = 1
 	} else if resourceConfig["Backend_type"].(string) == "SCYLLA" {
-		globule.BackendStore = 2;
+		globule.BackendStore = 2
 	}
 
 	// get the resource client
@@ -471,7 +471,7 @@ func (globule *Globule) createAdminRole() error {
 	if err != nil {
 		return err
 	}
-	
+
 	actions, err := servicesManager.GetAllActions()
 	if err != nil {
 		return err
@@ -966,7 +966,6 @@ func enablePorts(ruleName, portsRange string) error {
 	if runtime.GOOS == "windows" {
 		deleteRule(ruleName)
 
-	
 		inboundRule_ := fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow protocol=TCP localport=%s`, ruleName, portsRange)
 		fmt.Println(inboundRule_)
 
@@ -979,7 +978,7 @@ func enablePorts(ruleName, portsRange string) error {
 			return nil
 		}
 
-		outboundRule_ :=  fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow protocol=TCP localport=%s`, ruleName, portsRange)
+		outboundRule_ := fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=out action=allow protocol=TCP localport=%s`, ruleName, portsRange)
 		fmt.Println(outboundRule_)
 		outboundRule := exec.Command("cmd", "/C", outboundRule_)
 		outboundRule.Dir = os.TempDir()
@@ -995,7 +994,7 @@ func enablePorts(ruleName, portsRange string) error {
 }
 
 func enableProgramFwMgr(name, appname string) error {
-	
+
 	if runtime.GOOS == "windows" {
 		fmt.Println("enable program: ", name, appname)
 		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
@@ -1017,8 +1016,6 @@ func enableProgramFwMgr(name, appname string) error {
 	}
 	return nil
 }
-
-
 
 func deleteRule(name string) error {
 	if runtime.GOOS == "windows" {
@@ -1217,7 +1214,7 @@ func setSystemPath() error {
 			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
 		}
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
-		
+
 		return err
 	} else if runtime.GOOS == "darwin" {
 		// Fix the path /usr/local/bin is not set by default...
@@ -1428,7 +1425,9 @@ func updatePeersEvent(evt *eventpb.Event) {
 	globule.peers.Store(p.Mac, p)
 	globule.savePeers()
 
-	fmt.Println("store peer ", p)
+	// Here I will try to set the peer ip...
+	globule.setHost(p.ExternalIpAddress, p.Domain)
+
 }
 
 func deletePeersEvent(evt *eventpb.Event) {
@@ -1446,6 +1445,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 		address += ":" + Utility.ToString(p.PortHttp)
 	}
 
+	// set the peer ip in the /etc/hosts file.
 	if Utility.IsLocal(address) {
 		globule.setHost(p.LocalIpAddress, p.Domain)
 	} else {
@@ -1475,6 +1475,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 					peer_.ExternalIpAddress = Utility.MyIP()
 					peer_.PortHttp = int32(globule.PortHttp)
 					peer_.PortHttps = int32(globule.PortHttps)
+					
 					err := resource_client__.UpdatePeer(token, peer_)
 					if err != nil {
 						fmt.Println("fail to update peer with error: ", err)
@@ -1502,16 +1503,15 @@ func (globule *Globule) initPeers() error {
 	}
 
 	// Return the registered peers
-	peers, err := resource_client_.GetPeers("")
-	nbTry := 3
-
-	if err != nil {
-		for i := 0; i < nbTry; i++ {
-			if err == nil {
-				break
-			}
-			time.Sleep(500 * time.Millisecond)
-			peers, err = resource_client_.GetPeers("")
+	var peers []*resourcepb.Peer
+	nbTry := 10
+	for i := 0; i < nbTry; i++ {
+		peers, err = resource_client_.GetPeers("")
+		if err != nil {
+			fmt.Println("fail to get peers with error ", err)
+			time.Sleep(1 * time.Second)
+		}else {
+			break
 		}
 	}
 
@@ -1524,6 +1524,7 @@ func (globule *Globule) initPeers() error {
 
 		// Try to update with updated infos...
 		go func(p *resourcepb.Peer) {
+			
 			globule.initPeer(p)
 		}(p)
 	}
@@ -2147,7 +2148,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 				if g.logger != nil && len(msg) > 0 {
 					if info.Level == logpb.LogLevel_ERROR_MESSAGE || info.Level == logpb.LogLevel_FATAL_MESSAGE {
 						g.logger.Error(msg)
-					} else if  info.Level == logpb.LogLevel_WARN_MESSAGE {
+					} else if info.Level == logpb.LogLevel_WARN_MESSAGE {
 						g.logger.Warning(msg)
 					} else {
 						g.logger.Info(msg)
