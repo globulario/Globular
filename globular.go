@@ -1426,7 +1426,13 @@ func updatePeersEvent(evt *eventpb.Event) {
 	globule.savePeers()
 
 	// Here I will try to set the peer ip...
-	globule.setHost(p.ExternalIpAddress, p.Domain)
+	
+	// set the peer ip in the /etc/hosts file.
+	if Utility.MyIP() == p.ExternalIpAddress {
+		globule.setHost(p.LocalIpAddress, p.Domain)
+	} else {
+		globule.setHost(p.ExternalIpAddress, p.Domain)
+	}
 
 }
 
@@ -1446,7 +1452,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	}
 
 	// set the peer ip in the /etc/hosts file.
-	if Utility.IsLocal(address) {
+	if Utility.MyIP() == p.ExternalIpAddress {
 		globule.setHost(p.LocalIpAddress, p.Domain)
 	} else {
 		globule.setHost(p.ExternalIpAddress, p.Domain)
