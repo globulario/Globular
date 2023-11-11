@@ -310,6 +310,13 @@ func (globule *Globule) cleanup() {
 	fmt.Println("bye bye!")
 }
 
+// Test if the domain has changed.
+func domainHasChanged(domain string) bool {
+	// try to get the domain from the configuration file.
+	domain_, _ := config.GetDomain()
+	return domain != domain_
+}
+
 func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
@@ -347,10 +354,11 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// Create the admin account.
-	sa, err := resource_client_.GetAccount("sa")
-
-	if err != nil {
-		err = resource_client_.RegisterAccount(domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
+	results, _ := resource_client_.GetAccounts(`{"$and":[{"_id":"sa", "domain":"` + domain + `"}]}`)
+	if len(results) == 0 {
+		fmt.Println("fail to get admin account sa", err)
+		fmt.Println("create admin account sa for domain ", domain)
+		err := resource_client_.RegisterAccount(domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
 			fmt.Println("fail to register admin account sa", err)
 			return err
@@ -373,71 +381,71 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 
 	} else {
-		// Alway update the sa domain...
-		sa.Domain = domain
-		token, _ := security.GetLocalToken(globule.Mac)
-
-		_, err := security.ValidateToken(token)
-		if err != nil {
-			fmt.Println("local token is not valid! ", err)
-
+		if len(results) == 0 {
+			return errors.New("fail to get admin account sa")
 		}
 
-		err = resource_client_.SetAccount(token, sa)
-		if err != nil {
-			fmt.Println("fail to update admin account sa", err)
-			return err
-		}
+		if domainHasChanged(domain) {
+			// Alway update the sa domain...
 
-		roles, err := resource_client_.GetRoles("")
-		if err == nil {
-			for i := 0; i < len(roles); i++ {
-				if roles[i].Domain != domain {
-					roles[i].Domain = domain
-					resource_client_.UpdateRole(token, roles[i])
-				}
+			token, _ := security.GetLocalToken(globule.Mac)
+
+			_, err := security.ValidateToken(token)
+			if err != nil {
+				fmt.Println("local token is not valid! ", err)
+
 			}
-		}
 
-		accounts, err := resource_client_.GetAccounts("")
-		if err == nil {
-			for i := 0; i < len(accounts); i++ {
-				if accounts[i].Domain != domain {
-					accounts[i].Domain = domain
-					resource_client_.SetAccount(token, accounts[i])
-				}
-			}
-		}
-
-		applications, err := resource_client_.GetApplications("")
-		if err == nil {
-			for i := 0; i < len(applications); i++ {
-				if applications[i].Domain != domain {
-					applications[i].Domain = domain
-					resource_client_.UpdateApplication(token, applications[i])
-				}
-			}
-		}
-
-		groups, err := resource_client_.GetGroups("")
-		if err == nil {
-			for i := 0; i < len(groups); i++ {
-				if groups[i].Domain != domain {
-					groups[i].Domain = domain
-					err := resource_client_.UpdateGroup(token, groups[i])
-					if err != nil {
-						fmt.Println("fail to update group with error: ", err)
+			roles, err := resource_client_.GetRoles("")
+			if err == nil {
+				for i := 0; i < len(roles); i++ {
+					if roles[i].Domain != domain {
+						roles[i].Domain = domain
+						resource_client_.UpdateRole(token, roles[i])
 					}
 				}
 			}
-		}
 
-		organisations, err := resource_client_.GetOrganizations("")
-		if err == nil {
-			for i := 0; i < len(organisations); i++ {
-				if organisations[i].Domain != domain {
-					organisations[i].Domain = domain
-					resource_client_.UpdateOrganization(token, organisations[i])
+			accounts, err := resource_client_.GetAccounts("")
+			if err == nil {
+				for i := 0; i < len(accounts); i++ {
+					if accounts[i].Domain != domain {
+						accounts[i].Domain = domain
+						resource_client_.SetAccount(token, accounts[i])
+					}
+				}
+			}
+
+			applications, err := resource_client_.GetApplications("")
+			if err == nil {
+				for i := 0; i < len(applications); i++ {
+					if applications[i].Domain != domain {
+						applications[i].Domain = domain
+						resource_client_.UpdateApplication(token, applications[i])
+					}
+				}
+			}
+
+			groups, err := resource_client_.GetGroups("")
+			if err == nil {
+				for i := 0; i < len(groups); i++ {
+					if groups[i].Domain != domain {
+						groups[i].Domain = domain
+						err := resource_client_.UpdateGroup(token, groups[i])
+						if err != nil {
+							fmt.Println("fail to update group with error: ", err)
+						}
+					}
+				}
+			}
+
+			organisations, err := resource_client_.GetOrganizations("")
+			if err == nil {
+				for i := 0; i < len(organisations); i++ {
+					if organisations[i].Domain != domain {
+						organisations[i].Domain = domain
+						resource_client_.UpdateOrganization(token, organisations[i])
+					}
 				}
 			}
 		}
@@ -480,7 +488,7 @@ func (globule *Globule) createAdminRole() error {
 	// Create the admin account.
 	err = resource_client_.CreateRole(string(token), "admin", "admin", actions)
 	if err != nil {
-		fmt.Println("fail to create admin user")
+		fmt.Println("fail to create admin role", err)
 		return err
 	}
 
@@ -1426,7 +1434,7 @@ func updatePeersEvent(evt *eventpb.Event) {
 	globule.savePeers()
 
 	// Here I will try to set the peer ip...
-	
+
 	// set the peer ip in the /etc/hosts file.
 	if Utility.MyIP() == p.ExternalIpAddress {
 		globule.setHost(p.LocalIpAddress, p.Domain)
@@ -1481,7 +1489,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 					peer_.ExternalIpAddress = Utility.MyIP()
 					peer_.PortHttp = int32(globule.PortHttp)
 					peer_.PortHttps = int32(globule.PortHttps)
-					
+
 					err := resource_client__.UpdatePeer(token, peer_)
 					if err != nil {
 						fmt.Println("fail to update peer with error: ", err)
@@ -1516,7 +1524,7 @@ func (globule *Globule) initPeers() error {
 		if err != nil {
 			fmt.Println("fail to get peers with error ", err)
 			time.Sleep(1 * time.Second)
-		}else {
+		} else {
 			break
 		}
 	}
@@ -1530,7 +1538,7 @@ func (globule *Globule) initPeers() error {
 
 		// Try to update with updated infos...
 		go func(p *resourcepb.Peer) {
-			
+
 			globule.initPeer(p)
 		}(p)
 	}
@@ -1607,7 +1615,7 @@ func (globule *Globule) serve() error {
 	elapsed := time.Since(globule.startTime)
 
 	fmt.Println("globular version " + globule.Version + " build " + Utility.ToString(globule.Build) + " listen at address " + url)
-	fmt.Printf("startup took %s", elapsed)
+	fmt.Printf("startup took %s\n", elapsed)
 
 	// create applications connections
 	err := globule.createApplicationConnections()
