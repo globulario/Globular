@@ -324,8 +324,6 @@ func domainHasChanged(domain string) bool {
 func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
-	address, _ := config.GetAddress()
-
 	path := config.GetDataDir() + "/files/users/sa@" + domain
 	if !Utility.Exists(path) {
 		err := Utility.CreateDirIfNotExist(path)
@@ -352,6 +350,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// get the resource client
+	address, _ := config.GetAddress()
 	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		fmt.Println("fail to get resource client ", err)
@@ -1348,7 +1347,6 @@ func (globule *Globule) startServices() error {
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
-			fmt.Println("try to start service ", service["Name"], " at port ", start_port)
 			pid, err := process.StartServiceProcess(service, port, proxyPort)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
@@ -2554,9 +2552,6 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 
 ///////////////////////  fmt Services functions ////////////////////////////////////////////////
 
-/**
- * Get the fmt client.
- */
 /**
  * Get the log client.
  */
