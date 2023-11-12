@@ -192,12 +192,8 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			// I will get the remote configuration and return it...
 			var remoteConfig map[string]interface{}
 			var err error
-			if to.Protocol == "https" {
-				remoteConfig, err = config.GetRemoteConfig(to.Domain, int(to.PortHttp))
-			} else {
-				config.GetRemoteConfig(to.Domain, int(to.PortHttp))
-				remoteConfig, err = config.GetRemoteConfig(to.Domain, int(to.PortHttp))
-			}
+
+			remoteConfig, err = config.GetConfig(to.Mac, true)
 
 			if err != nil {
 				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
@@ -853,7 +849,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
 	if rqst_path == "/" {
-		fmt.Println("-------------------> ", rqst_path, " ", globule.IndexApplication)
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
 			rqst_path += globule.IndexApplication

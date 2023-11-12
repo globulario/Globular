@@ -246,7 +246,10 @@ func main() {
 		if generate_token_command.Parsed() {
 			address := *generate_token_command_address
 			if *generate_token_command_address == "" {
-				address = g.getDomain()
+				address = g.getAddress()
+				if strings.Contains(address, ":") {
+					address = strings.Split(address, ":")[0]
+				}
 			}
 
 			if *generate_token_command_user == "" {
@@ -2159,7 +2162,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	}
 
 	// install services...
-	services, err := config_.GetServicesConfigurations()
+	services, err := config_.GetServicesConfigurations(g.Mac)
 	if err != nil {
 		log.Println("fail to retreive services with error ", err)
 	}
@@ -2385,7 +2388,12 @@ func connect_peer(g *Globule, address, token string) error {
 
 	// Register the peer on the remote resourse client...
 	hostname, _ := os.Hostname()
-	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
+	domain := g.getAddress()
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
+
+	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: domain, LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
@@ -2398,8 +2406,7 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
-	// get the local token.
-	local_token, err := security.GetLocalToken(g.getDomain())
+	local_token, err := security.GetLocalToken(domain)
 	if err != nil {
 		return nil
 	}

@@ -25,7 +25,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/config"
-	"github.com/globulario/services/golang/config/config_client"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
@@ -179,11 +178,11 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = ""                                                                                                                                      // I will use the installer as defaut.
-	g.PortHttp = 80                                                                                                                                              // The default http port 80 is almost already use by other http server...
-	g.PortHttps = 443                                                                                                                                            // The default https port number
-	g.PortsRange = "10000-10100"                                                                                                                                 // The default port range.
-	g.Applications = []interface{}{map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}} // The list of applications to install.
+	g.IndexApplication = ""                                                                                                                                            // I will use the installer as defaut.
+	g.PortHttp = 80                                                                                                                                                    // The default http port 80 is almost already use by other http server...
+	g.PortHttps = 443                                                                                                                                                  // The default https port number
+	g.PortsRange = "10000-10100"                                                                                                                                       // The default port range.
+	g.Applications = []interface{}{ /*map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}*/ } // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
 	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
@@ -286,6 +285,7 @@ func (globule *Globule) cleanup() {
 	p := make(map[string]interface{})
 
 	p["domain"], _ = config.GetDomain()
+	p["address"] = globule.getAddress()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
 	p["portHttp"] = globule.PortHttp
@@ -313,7 +313,11 @@ func (globule *Globule) cleanup() {
 // Test if the domain has changed.
 func domainHasChanged(domain string) bool {
 	// try to get the domain from the configuration file.
-	domain_, _ := config.GetDomain()
+	domain_, _ := config.GetAddress()
+	if strings.Contains(domain_, ":") {
+		domain_ = strings.Split(domain_, ":")[0]
+	}
+
 	return domain != domain_
 }
 
@@ -321,6 +325,7 @@ func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
 	address, _ := config.GetAddress()
+
 	path := config.GetDataDir() + "/files/users/sa@" + domain
 	if !Utility.Exists(path) {
 		err := Utility.CreateDirIfNotExist(path)
@@ -329,7 +334,7 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
-	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
+	resourceConfig, err := config.GetServiceConfigurationById(globule.Mac, "resource.ResourceService")
 	if err != nil {
 		return err
 	}
@@ -504,7 +509,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"] = globule.Domain
 	config_["Name"] = globule.Name
-	services, _ := config_client.GetServicesConfigurations()
+	services, _ := config.GetServicesConfigurations(globule.Mac)
 
 	// Get the array of service and set it back in the configurations.
 	config_["Services"] = make(map[string]interface{})
@@ -639,7 +644,11 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		localDomain, _ := config.GetDomain()
+		localDomain, _ := config.GetAddress()
+		if strings.Contains(localDomain, ":") {
+			localDomain = strings.Split(localDomain, ":")[0]
+		}
+
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 
 		if err != nil {
@@ -668,7 +677,12 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		localDomain, _ := config.GetDomain()
+
+		localDomain, _ := config.GetAddress()
+		if strings.Contains(localDomain, ":") {
+			localDomain = strings.Split(localDomain, ":")[0]
+		}
+
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 
 		if err != nil {
@@ -709,7 +723,11 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		defer dns_client_.Close()
 
-		localDomain, _ := config.GetDomain()
+		localDomain, _ := config.GetAddress()
+		if strings.Contains(localDomain, ":") {
+			localDomain = strings.Split(localDomain, ":")[0]
+		}
+
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 		if err != nil {
 			return err
@@ -763,8 +781,14 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	globule.CertStableURL = resource.CertStableURL
 
 	// Set the certificates paths...
-	globule.Certificate = globule.getDomain() + ".crt"
-	globule.CertificateAuthorityBundle = globule.getDomain() + ".issuer.crt"
+	domain := globule.getAddress()
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
+
+	// Set the certificates paths...
+	globule.Certificate = domain + ".crt"
+	globule.CertificateAuthorityBundle = domain + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
 	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
@@ -838,7 +862,8 @@ func (globule *Globule) initDirectories() error {
 
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
-	config_client.GetServicesConfigurations()
+	//config.GetServicesConfigurations()
+	config.GetServicesConfigurations(globule.Mac)
 
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
@@ -933,7 +958,11 @@ func (globule *Globule) initDirectories() error {
 	// I will put the domain into the
 	if globule.AlternateDomains == nil {
 		globule.AlternateDomains = make([]interface{}, 0)
-		globule.AlternateDomains = append(globule.AlternateDomains, globule.getDomain())
+		domain := globule.getAddress()
+		if strings.Contains(domain, ":") {
+			domain = strings.Split(domain, ":")[0]
+		}
+		globule.AlternateDomains = append(globule.AlternateDomains, domain)
 	}
 
 	// save config...
@@ -962,10 +991,13 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-	domain, _ := config.GetDomain()
+	localDomain, _ := config.GetAddress()
+	if strings.Contains(localDomain, ":") {
+		localDomain = strings.Split(localDomain, ":")[0]
+	}
 
 	// set the local token.
-	return security.SetLocalToken(globule.Mac, domain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
+	return security.SetLocalToken(globule.Mac, localDomain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
 }
 
 // Enable port from window firewall
@@ -1039,7 +1071,7 @@ func deleteRule(name string) error {
 
 func resetRules() error {
 
-	services, err := config.GetOrderedServicesConfigurations()
+	services, err := config.GetOrderedServicesConfigurations(globule.Mac)
 	if err != nil {
 		return err
 	}
@@ -1204,7 +1236,7 @@ func setSystemPath() error {
 		}
 
 		// now the services rules
-		services, err := config.GetServicesConfigurations()
+		services, err := config.GetServicesConfigurations(globule.Mac)
 		for i := 0; i < len(services); i++ {
 			service := services[i]
 			id := service["Id"].(string)
@@ -1269,7 +1301,7 @@ func (globule *Globule) startServices() error {
 	}
 
 	// Retreive all configurations
-	services, err := config.GetOrderedServicesConfigurations()
+	services, err := config.GetOrderedServicesConfigurations(globule.Mac)
 	if err != nil {
 		return err
 	}
@@ -1308,6 +1340,7 @@ func (globule *Globule) startServices() error {
 		} else if (len(globule.Certificate) > 0 && globule.Protocol == "https") || (globule.Protocol == "http") {
 
 			service := services[i]
+
 			service["State"] = "starting"
 			name := service["Name"].(string)
 			service["ProxyProcess"] = -1
@@ -1315,8 +1348,8 @@ func (globule *Globule) startServices() error {
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
+			fmt.Println("try to start service ", service["Name"], " at port ", start_port)
 			pid, err := process.StartServiceProcess(service, port, proxyPort)
-
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			} else {
@@ -1358,7 +1391,7 @@ func (globule *Globule) startServices() error {
 
 		// So here I will authenticate the root if the password is "adminadmin" that will
 		// reset the password in the backend if it was manualy set in the config file.
-		/*config_, err := config.GetLocalConfig(true)
+		/*config_, err := config.GetConfig(true)
 		if err == nil {
 			if config_["RootPassword"].(string) == "adminadmin" {
 
@@ -1470,7 +1503,11 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	globule.peers.Store(p.Mac, p)
 
 	// Here I will try to update
-	localDomain, _ := config.GetDomain()
+	localDomain, _ := config.GetAddress()
+	if strings.Contains(localDomain, ":") {
+		localDomain = strings.Split(localDomain, ":")[0]
+	}
+
 	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 	if err == nil {
 		// no wait here...
@@ -1511,6 +1548,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 func (globule *Globule) initPeers() error {
 
 	address, _ := config.GetAddress()
+
 	resource_client_, err := getResourceClient(address)
 	if err != nil {
 		return err
@@ -1560,20 +1598,17 @@ func (globule *Globule) initPeers() error {
 func (globule *Globule) stopServices() error {
 
 	// Now I will set configuration values
-	services_configs, err := config.GetServicesConfigurations()
+	services_configs, err := config.GetServicesConfigurations(globule.Mac)
 	if err != nil {
 		return err
 	}
-
-	// stop processing config
-	config.Exit()
 
 	if err == nil {
 		for i := 0; i < len(services_configs); i++ {
 			services_configs[i]["State"] = "stopped"
 			services_configs[i]["Process"] = -1
 			services_configs[i]["ProxyProcess"] = -1
-			config.SaveServiceConfiguration(services_configs[i])
+			config.SaveServiceConfiguration(globule.Mac, services_configs[i])
 		}
 	}
 
@@ -1600,7 +1635,7 @@ func (globule *Globule) serve() error {
 		}
 	}
 
-	url := globule.Protocol + "://" + globule.getDomain()
+	url := globule.Protocol + "://" + globule.getAddress()
 
 	if globule.Protocol == "https" {
 		if globule.PortHttps != 443 {
@@ -1671,6 +1706,7 @@ func (globule *Globule) Serve() error {
 
 	p := make(map[string]interface{})
 
+	p["address"] = globule.getAddress()
 	p["domain"], _ = config.GetDomain()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
@@ -1719,9 +1755,19 @@ func (globule *Globule) watchConfig() {
 					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
 						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
 					} else {
+						domain_ := config["Address"].(string)
+						if strings.Contains(domain_, ":") {
+							domain_ = strings.Split(domain_, ":")[0]
+						}
+
+						domain := globule.getAddress()
+						if strings.Contains(domain, ":") {
+							domain = strings.Split(domain, ":")[0]
+						}
 
 						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
-						hasDomainChange := globule.getDomain() != config["Domain"].(string)
+						hasDomainChange := domain != domain_
+
 						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
 						json.Unmarshal(file, &globule)
 
@@ -1809,14 +1855,20 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 
 	// first of all I will create and upload the package on the discovery...
 	fmt.Println("try to install application", application, "publish by", publisherId, "from discovery at", discovery, "and address at", address)
-	err = applications_manager_client_.InstallApplication(string(token), globule.getDomain(), "sa", discovery, publisherId, application, true)
+
+	domain := globule.getAddress()
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
+
+	err = applications_manager_client_.InstallApplication(string(token), domain, "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
 		return errors.New("fail to install application" + application + "with error:" + err.Error())
 	}
 
 	// Display the link in the console.
-	address_ := globule.Protocol + "://" + globule.getDomain()
+	address_ := globule.Protocol + "://" + globule.getAddress()
 	if globule.Protocol == "https" {
 		if globule.PortHttps != 443 {
 			address_ += ":" + Utility.ToString(globule.PortHttps)
@@ -1832,16 +1884,12 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 }
 
 /**
- * Return the domain of the Globule. The name can be empty. If the name is empty
- * it will mean that the domain is entirely control by the globule so it must be
- * able to do it own validation, other wise the domain validation will be done by
- * the globule asscosiate with that domain.
+ * Return the globule address.
  */
-func (globule *Globule) getDomain() string {
-	domain, _ := config.GetDomain()
+func (globule *Globule) getAddress() string {
+	address, _ := config.GetAddress()
 
-	// if no hostname or domain are found it will be use as localhost.
-	return domain
+	return address
 }
 
 func (globule *Globule) setHost(ipv4, domain string) error {
@@ -1872,6 +1920,11 @@ func (globule *Globule) setHost(ipv4, domain string) error {
  */
 func (globule *Globule) registerIpToDns() error {
 
+	domain := globule.getAddress()
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
+
 	// Globular DNS is use to create sub-domain.
 	// ex: globular1.globular.io here globular.io is the domain and globular1 is
 	// the sub-domain. Domain must be manage by dns provider directly, by using
@@ -1898,7 +1951,11 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				localDomain, _ := config.GetDomain()
+				localDomain, _ := config.GetAddress()
+				if strings.Contains(localDomain, ":") {
+					localDomain = strings.Split(localDomain, ":")[0]
+				}
+
 				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
 				if err != nil {
 					return err
@@ -1906,9 +1963,9 @@ func (globule *Globule) registerIpToDns() error {
 
 				// if the dns address is a local address i will register the local ip...
 				if Utility.IsLocal(globule.DNS[i].(string)) {
-					_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyLocalIP(), 60)
+					_, err = dns_client_.SetA(token, domain, Utility.MyLocalIP(), 60)
 				} else {
-					_, err = dns_client_.SetA(token, globule.getDomain(), Utility.MyIP(), 60)
+					_, err = dns_client_.SetA(token, domain, Utility.MyIP(), 60)
 				}
 
 				for j := 0; j < len(globule.AlternateDomains); j++ {
@@ -1966,7 +2023,7 @@ func (globule *Globule) registerIpToDns() error {
 		}
 	}
 
-	return globule.setHost(Utility.MyLocalIP(), globule.getDomain())
+	return globule.setHost(Utility.MyLocalIP(), domain)
 }
 
 // Test if a domain is asscociated with a given ip.
@@ -2049,7 +2106,11 @@ func (globule *Globule) watchForUpdate() {
 
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
-						err := update_globular_from(globule, discovery, globule.getDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						domain := globule.getAddress()
+						if strings.Contains(domain, ":") {
+							domain = strings.Split(domain, ":")[0]
+						}
+						err := update_globular_from(globule, discovery, domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						}
@@ -2061,7 +2122,7 @@ func (globule *Globule) watchForUpdate() {
 
 			}
 
-			services, err := config.GetServicesConfigurations()
+			services, err := config.GetServicesConfigurations(globule.Mac)
 			if err == nil {
 				// get the resource client
 				for i := 0; i < len(services); i++ {
@@ -2191,6 +2252,10 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 func (globule *Globule) Listen() error {
 
 	var err error
+	domain := globule.getAddress()
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
 
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
@@ -2220,7 +2285,7 @@ func (globule *Globule) Listen() error {
 		}
 
 		// recreate the certificates.
-		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, domain, globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
 			return err
 		}
@@ -2266,7 +2331,7 @@ func (globule *Globule) Listen() error {
 		globule.https_server = &http.Server{
 			Addr: address + ":" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
-				ServerName: globule.getDomain(),
+				ServerName: domain,
 			},
 		}
 
@@ -2285,7 +2350,7 @@ func (globule *Globule) Listen() error {
 	//////////////////////////////////////////////////////////
 
 	// Keep globular up to date subscription.
-	globule.watchForUpdate()
+	//globule.watchForUpdate()
 
 	return err
 }
@@ -2456,7 +2521,7 @@ func (globule *Globule) createApplicationConnections() error {
 // Create the application connections in the backend.
 func (globule *Globule) createApplicationConnection(app *resourcepb.Application) error {
 
-	resourceServiceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
+	resourceServiceConfig, err := config.GetServiceConfigurationById(globule.Mac, "resource.ResourceService")
 	if err != nil {
 		return err
 	}
