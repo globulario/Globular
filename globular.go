@@ -65,7 +65,7 @@ var (
  */
 type Globule struct {
 	// The share part of the service.
-	Name string // The service name
+	Name string // the hostname.
 	Mac  string // The Mac addresse
 
 	// Where services can be found.
@@ -273,7 +273,6 @@ func NewGlobule() *Globule {
 			fmt.Println("fail to save local configuration with error", err)
 		} else {
 			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
-
 		}
 	}
 
@@ -313,12 +312,12 @@ func (globule *Globule) cleanup() {
 // Test if the domain has changed.
 func domainHasChanged(domain string) bool {
 	// try to get the domain from the configuration file.
-	domain_, _ := config.GetAddress()
-	if strings.Contains(domain_, ":") {
-		domain_ = strings.Split(domain_, ":")[0]
+	local, _ := config.GetAddress()
+	if strings.Contains(local, ":") {
+		local = strings.Split(local, ":")[0]
 	}
 
-	return domain != domain_
+	return domain != local
 }
 
 func (globule *Globule) registerAdminAccount() error {
@@ -573,17 +572,20 @@ func (globule *Globule) saveConfig() error {
 	globule.Path, _ = os.Executable()
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
+		fmt.Println("fail to save configuration with error: ", err)
 		return err
 	}
 
 	Utility.CreateDirIfNotExist(globule.config)
-
 	configPath := globule.config + "/config.json"
 
 	err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
 	if err != nil {
+		fmt.Println("fail to save configuration with error: ", err)
 		return err
 	}
+
+	fmt.Println("globular configuration was save at ", configPath)
 
 	return nil
 }
@@ -643,12 +645,8 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		localDomain, _ := config.GetAddress()
-		if strings.Contains(localDomain, ":") {
-			localDomain = strings.Split(localDomain, ":")[0]
-		}
-
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+		
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
 
 		if err != nil {
 			fmt.Println("fail to connect with the dns server")
@@ -677,12 +675,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 			return err
 		}
 
-		localDomain, _ := config.GetAddress()
-		if strings.Contains(localDomain, ":") {
-			localDomain = strings.Split(localDomain, ":")[0]
-		}
-
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
 
 		if err != nil {
 
@@ -722,12 +715,8 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		defer dns_client_.Close()
 
-		localDomain, _ := config.GetAddress()
-		if strings.Contains(localDomain, ":") {
-			localDomain = strings.Split(localDomain, ":")[0]
-		}
 
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
 		if err != nil {
 			return err
 		}
@@ -779,15 +768,10 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	globule.CertURL = resource.CertURL
 	globule.CertStableURL = resource.CertStableURL
 
+	
 	// Set the certificates paths...
-	domain := globule.getAddress()
-	if strings.Contains(domain, ":") {
-		domain = strings.Split(domain, ":")[0]
-	}
-
-	// Set the certificates paths...
-	globule.Certificate = domain + ".crt"
-	globule.CertificateAuthorityBundle = domain + ".issuer.crt"
+	globule.Certificate = globule.getLocalDomain() + ".crt"
+	globule.CertificateAuthorityBundle =  globule.getLocalDomain() + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
 	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
@@ -955,13 +939,9 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	// I will put the domain into the
-	if globule.AlternateDomains == nil {
+	if globule.AlternateDomains == nil && len(globule.Domain) > 0 {
 		globule.AlternateDomains = make([]interface{}, 0)
-		domain := globule.getAddress()
-		if strings.Contains(domain, ":") {
-			domain = strings.Split(domain, ":")[0]
-		}
-		globule.AlternateDomains = append(globule.AlternateDomains, domain)
+		globule.AlternateDomains = append(globule.AlternateDomains, globule.getLocalDomain())
 	}
 
 	// save config...
@@ -990,13 +970,9 @@ func (globule *Globule) initDirectories() error {
 }
 
 func (globule *Globule) refreshLocalToken() error {
-	localDomain, _ := config.GetAddress()
-	if strings.Contains(localDomain, ":") {
-		localDomain = strings.Split(localDomain, ":")[0]
-	}
 
 	// set the local token.
-	return security.SetLocalToken(globule.Mac, localDomain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
+	return security.SetLocalToken(globule.Mac, globule.getLocalDomain(), "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
 }
 
 // Enable port from window firewall
@@ -1501,12 +1477,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	globule.peers.Store(p.Mac, p)
 
 	// Here I will try to update
-	localDomain, _ := config.GetAddress()
-	if strings.Contains(localDomain, ":") {
-		localDomain = strings.Split(localDomain, ":")[0]
-	}
-
-	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
 	if err == nil {
 		// no wait here...
 
@@ -1758,10 +1729,7 @@ func (globule *Globule) watchConfig() {
 							domain_ = strings.Split(domain_, ":")[0]
 						}
 
-						domain := globule.getAddress()
-						if strings.Contains(domain, ":") {
-							domain = strings.Split(domain, ":")[0]
-						}
+						domain := globule.getLocalDomain()
 
 						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
 						hasDomainChange := domain != domain_
@@ -1854,12 +1822,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 	// first of all I will create and upload the package on the discovery...
 	fmt.Println("try to install application", application, "publish by", publisherId, "from discovery at", discovery, "and address at", address)
 
-	domain := globule.getAddress()
-	if strings.Contains(domain, ":") {
-		domain = strings.Split(domain, ":")[0]
-	}
-
-	err = applications_manager_client_.InstallApplication(string(token), domain, "sa", discovery, publisherId, application, true)
+	err = applications_manager_client_.InstallApplication(string(token),  globule.getLocalDomain(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
 		return errors.New("fail to install application" + application + "with error:" + err.Error())
@@ -1890,6 +1853,15 @@ func (globule *Globule) getAddress() string {
 	return address
 }
 
+/**
+ * The local server address.
+ */
+func (globule *Globule) getLocalDomain() string {
+	address, _ := config.GetAddress()
+	domain := strings.Split(address, ":")[0]
+	return domain
+}
+
 func (globule *Globule) setHost(ipv4, domain string) error {
 	if len(ipv4) == 0 {
 		return errors.New("no ipv4 address to set")
@@ -1918,10 +1890,7 @@ func (globule *Globule) setHost(ipv4, domain string) error {
  */
 func (globule *Globule) registerIpToDns() error {
 
-	domain := globule.getAddress()
-	if strings.Contains(domain, ":") {
-		domain = strings.Split(domain, ":")[0]
-	}
+	
 
 	// Globular DNS is use to create sub-domain.
 	// ex: globular1.globular.io here globular.io is the domain and globular1 is
@@ -1949,21 +1918,16 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				localDomain, _ := config.GetAddress()
-				if strings.Contains(localDomain, ":") {
-					localDomain = strings.Split(localDomain, ":")[0]
-				}
-
-				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, localDomain)
+				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
 				if err != nil {
 					return err
 				}
 
 				// if the dns address is a local address i will register the local ip...
 				if Utility.IsLocal(globule.DNS[i].(string)) {
-					_, err = dns_client_.SetA(token, domain, Utility.MyLocalIP(), 60)
+					_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyLocalIP(), 60)
 				} else {
-					_, err = dns_client_.SetA(token, domain, Utility.MyIP(), 60)
+					_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyIP(), 60)
 				}
 
 				for j := 0; j < len(globule.AlternateDomains); j++ {
@@ -2021,7 +1985,7 @@ func (globule *Globule) registerIpToDns() error {
 		}
 	}
 
-	return globule.setHost(Utility.MyLocalIP(), domain)
+	return globule.setHost(Utility.MyLocalIP(), globule.getLocalDomain())
 }
 
 // Test if a domain is asscociated with a given ip.
@@ -2104,11 +2068,8 @@ func (globule *Globule) watchForUpdate() {
 
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
-						domain := globule.getAddress()
-						if strings.Contains(domain, ":") {
-							domain = strings.Split(domain, ":")[0]
-						}
-						err := update_globular_from(globule, discovery, domain, "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						
+						err := update_globular_from(globule, discovery, globule.getLocalDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						}
@@ -2250,10 +2211,6 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 func (globule *Globule) Listen() error {
 
 	var err error
-	domain := globule.getAddress()
-	if strings.Contains(domain, ":") {
-		domain = strings.Split(domain, ":")[0]
-	}
 
 	// if no certificates are specified I will try to get one from let's encrypts.
 	// Start https server.
@@ -2283,7 +2240,7 @@ func (globule *Globule) Listen() error {
 		}
 
 		// recreate the certificates.
-		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, domain, globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getLocalDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
 			return err
 		}
@@ -2329,7 +2286,7 @@ func (globule *Globule) Listen() error {
 		globule.https_server = &http.Server{
 			Addr: address + ":" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
-				ServerName: domain,
+				ServerName:  globule.getLocalDomain(),
 			},
 		}
 

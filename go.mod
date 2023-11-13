@@ -11,6 +11,7 @@ require (
 	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-acme/lego/v4 v4.9.0
 	github.com/gocolly/colly/v2 v2.1.0
+	github.com/golang/protobuf v1.5.2
 	github.com/gookit/color v1.5.2
 	github.com/kardianos/service v1.2.2
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
@@ -35,7 +36,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kalafut/imohash v1.0.2 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
@@ -44,6 +44,7 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
+	github.com/nightlyone/lockfile v1.0.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
