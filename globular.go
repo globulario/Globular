@@ -520,6 +520,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["Description"] = services[i]["Description"]
 		s["Discoveries"] = services[i]["Discoveries"]
 		s["Domain"] = services[i]["Domain"]
+		s["Address"] = services[i]["Address"]
 		s["Id"] = services[i]["Id"]
 		s["Keywords"] = services[i]["Keywords"]
 		s["Name"] = services[i]["Name"]
@@ -535,6 +536,15 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["CertFile"] = services[i]["CertFile"]
 		s["KeyFile"] = services[i]["KeyFile"]
 		s["ConfigPath"] = services[i]["ConfigPath"]
+
+		if services[i]["Name"] == "file.FileService" {
+			s["MaximumVideoConversionDelay"] = services[i]["MaximumVideoConversionDelay"]
+			s["HasEnableGPU"] = services[i]["HasEnableGPU"]
+			s["AutomaticStreamConversion"] = services[i]["AutomaticStreamConversion"]
+			s["AutomaticVideoConversion"] = services[i]["AutomaticVideoConversion"]
+			s["StartVideoConversionHour"] = services[i]["StartVideoConversionHour"]
+		}
+
 
 		// specific configuration values...
 		if services[i]["Root"] != nil {
@@ -645,8 +655,7 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 
 		if err != nil {
 			fmt.Println("fail to connect with the dns server")
@@ -675,7 +684,7 @@ func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 			return err
 		}
 
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 
 		if err != nil {
 
@@ -715,8 +724,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 
 		defer dns_client_.Close()
 
-
-		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
+		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 		if err != nil {
 			return err
 		}
@@ -939,9 +947,14 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	// I will put the domain into the
-	if globule.AlternateDomains == nil && len(globule.Domain) > 0 {
+	if globule.AlternateDomains == nil && len(globule.Domain) > 0 && globule.Domain != "yourdomain.com" {
 		globule.AlternateDomains = make([]interface{}, 0)
 		globule.AlternateDomains = append(globule.AlternateDomains, globule.getLocalDomain())
+	}
+
+	// Set the default domain.
+	if len(globule.Domain) == 0 {
+		globule.Domain = "yourdomain.com"
 	}
 
 	// save config...
@@ -972,7 +985,7 @@ func (globule *Globule) initDirectories() error {
 func (globule *Globule) refreshLocalToken() error {
 
 	// set the local token.
-	return security.SetLocalToken(globule.Mac, globule.getLocalDomain(), "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
+	return security.SetLocalToken(globule.Mac, globule.Domain, "sa", "sa", globule.AdminEmail, globule.SessionTimeout)
 }
 
 // Enable port from window firewall
@@ -1281,6 +1294,7 @@ func (globule *Globule) startServices() error {
 		return err
 	}
 
+	// start refresh local token...
 	ticker := time.NewTicker(time.Duration(globule.SessionTimeout)*time.Minute - 10*time.Second)
 	go func() {
 		for {
@@ -1304,6 +1318,8 @@ func (globule *Globule) startServices() error {
 
 	// I will try to get the services manager configuration from the
 	// services configurations list.
+
+
 	for i := 0; i < len(services); i++ {
 
 		if start_port >= end_port {
@@ -1339,24 +1355,27 @@ func (globule *Globule) startServices() error {
 		}
 	}
 
-	// So here I will register services permissions.
-	for i := 0; i < len(services); i++ {
-		s := services[i]
-		if s["Permissions"] != nil {
-			permissions := s["Permissions"].([]interface{})
-			for j := 0; j < len(permissions); j++ {
-				if permissions[j] != nil {
-					err := globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
-					if err != nil {
-						fmt.Println(" fail to register resource permission ", err)
+	// Here I will listen for logger event...
+	go func() {
+
+		// wait 15 second before register resource permissions and subscribe to log events.
+		time.Sleep(15 * time.Second)
+
+		for i := 0; i < len(services); i++ {
+			s := services[i]
+			if s["Permissions"] != nil {
+				permissions := s["Permissions"].([]interface{})
+				for j := 0; j < len(permissions); j++ {
+					if permissions[j] != nil {
+						err := globule.setActionResourcesPermissions(permissions[j].(map[string]interface{}))
+						if err != nil {
+							fmt.Println(" fail to register resource permission ", err)
+						}
 					}
 				}
 			}
 		}
-	}
 
-	// Here I will listen for logger event...
-	go func() {
 		// subscribe to log events
 		globule.subscribe("new_log_evt", logListener(globule))
 
@@ -1477,7 +1496,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	globule.peers.Store(p.Mac, p)
 
 	// Here I will try to update
-	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
+	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 	if err == nil {
 		// no wait here...
 
@@ -1597,7 +1616,6 @@ func (globule *Globule) serve() error {
 	for i := 0; i < len(globule.Applications); i++ {
 		application := globule.Applications[i].(map[string]interface{})
 		// ex.. "console", "globular.io", "globulario"
-		fmt.Println()
 		err := globule.installApplication(application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
 		if err != nil {
 			fmt.Println("fail to install application with error: ", err)
@@ -1822,7 +1840,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 	// first of all I will create and upload the package on the discovery...
 	fmt.Println("try to install application", application, "publish by", publisherId, "from discovery at", discovery, "and address at", address)
 
-	err = applications_manager_client_.InstallApplication(string(token),  globule.getLocalDomain(), "sa", discovery, publisherId, application, true)
+	err = applications_manager_client_.InstallApplication(string(token),  globule.getAddress(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
 		return errors.New("fail to install application" + application + "with error:" + err.Error())
@@ -1890,8 +1908,6 @@ func (globule *Globule) setHost(ipv4, domain string) error {
  */
 func (globule *Globule) registerIpToDns() error {
 
-	
-
 	// Globular DNS is use to create sub-domain.
 	// ex: globular1.globular.io here globular.io is the domain and globular1 is
 	// the sub-domain. Domain must be manage by dns provider directly, by using
@@ -1918,7 +1934,7 @@ func (globule *Globule) registerIpToDns() error {
 
 				// Here the token must be generated for the dns server...
 				// That peer must be register on the dns to be able to generate a valid token.
-				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.getLocalDomain())
+				token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 				if err != nil {
 					return err
 				}
@@ -1988,21 +2004,6 @@ func (globule *Globule) registerIpToDns() error {
 	return globule.setHost(Utility.MyLocalIP(), globule.getLocalDomain())
 }
 
-// Test if a domain is asscociated with a given ip.
-func testDomainIp(domain string, ip string, try int) bool {
-	if try == 0 {
-		return false
-	}
-
-	if Utility.DomainHasIp(domain, Utility.MyIP()) {
-		return true
-	} else {
-		time.Sleep(5 * time.Second)
-		try--
-		return testDomainIp(domain, ip, try)
-	}
-
-}
 
 /**
  * retreive checksum from the server.
@@ -2422,14 +2423,13 @@ func (globule *Globule) publish(event string, data []byte) error {
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
 	eventClient, err := globule.getEventClient()
 	if err != nil {
-		fmt.Println("fail to get event client with error: ", err)
 		return err
 	}
 
 	err = eventClient.Subscribe(evt, globule.Name, listener)
 	if err != nil {
 
-		fmt.Println("fail to subscribe to event with error: ", err)
+		fmt.Println("2426 fail to subscribe to event with error: ", err)
 		return err
 	}
 

@@ -723,10 +723,6 @@ func installCertificates(g *Globule, domain string, port int, path string) error
  */
 func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
 
-	if !strings.Contains(user, "@") {
-		user += "@" + strings.Split(address, ":")[0]
-	}
-
 	log.Println("try to deploy application", name, " to address ", address, " with user ", user)
 
 	// Authenticate the user in order to get the token
@@ -900,18 +896,28 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	log.Println("Connect with application manager at address ", address)
 	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
-		log.Println("fail to connect to application manager service ", address)
+		fmt.Println("fail to connecto to application manager service at address", address, "with error", err)
 		return err
 	}
 
+	// set the publisher id.
 	publisherId := user
 	if len(organization) > 0 {
 		publisherId = organization
 	}
 
-	fmt.Println("try to install the newly deployed application...")
+	// if no domain was given i will user the local domain.
+	if !strings.Contains(publisherId, "@") {
+		domain, err := config_.GetDomain()
+		if err != nil {
+			fmt.Println("fail to get domain with error", err)
+			return err	
+		}
+		publisherId += "@" + domain
+	}
 
-	err = applications_manager_client_.InstallApplication(token, address, user, address, publisherId, name, false)
+	fmt.Println("try to install the newly deployed application...")
+	err = applications_manager_client_.InstallApplication(token, authentication_client.GetDomain(), user, address, publisherId, name, false)
 	if err != nil {
 		log.Println("fail to install application with error ", err)
 		return err
@@ -927,10 +933,10 @@ func deploy(g *Globule, name string, organization string, path string, address s
  * ex.
  * sudo ./Globular update -path=/home/dave/go/src/github.com/globulario/Globular/Globular -a=globular.cloud -u=sa -p=adminadmin
  */
-func update_globular(g *Globule, path, domain, user, pwd string, platform string) error {
+func update_globular(g *Globule, path, address, user, pwd string, platform string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -944,13 +950,13 @@ func update_globular(g *Globule, path, domain, user, pwd string, platform string
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	_, err = admin_client_.Update(path, platform, token, domain)
+	_, err = admin_client_.Update(path, platform, token, address)
 	if err != nil {
 		return err
 	}
@@ -1020,10 +1026,10 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
  * care to include all dependencies, dll... to be sure your services will run
  * as expected.
  */
-func publish(g *Globule, user, pwd, domain, organization, path, platform string) error {
+func publish(g *Globule, user, pwd, address, organization, path, platform string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -1037,27 +1043,28 @@ func publish(g *Globule, user, pwd, domain, organization, path, platform string)
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	discovery_client_, err := discovery_client.NewDiscoveryService_Client(domain, "discovery.PackageDiscovery")
+	discovery_client_, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = discovery_client_.PublishService(user, organization, token, domain, path, platform)
+
+	err = discovery_client_.PublishService(user, organization, token, discovery_client_.GetDomain(), path, platform)
 	if err != nil {
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	repository_client_, err := repository_client.NewRepositoryService_Client(domain, "repository.PackageRepository")
+	repository_client_, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = repository_client_.UploadServicePackage(user, organization, token, domain, path, platform)
+	err = repository_client_.UploadServicePackage(user, organization, token, address, path, platform)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -1106,10 +1113,10 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	return nil
 }
 
-func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user, pwd string) error {
+func uninstall_service(g *Globule, serviceId, publisherId, version, address, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
 		log.Panicln(err)
 		return err
@@ -1123,14 +1130,14 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, domain, user
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(address, "services_manager.ServicesManagerService")
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = services_manager_client_.UninstallService(token, domain, publisherId, serviceId, version)
+	err = services_manager_client_.UninstallService(token, address, publisherId, serviceId, version)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -2390,7 +2397,7 @@ func connect_peer(g *Globule, address, token string) error {
 	hostname, _ := os.Hostname()
 
 
-	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.getLocalDomain(), LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
