@@ -2169,7 +2169,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	}
 
 	// install services...
-	services, err := config_.GetServicesConfigurations(g.Mac)
+	services, err := config_.GetServicesConfigurations()
 	if err != nil {
 		log.Println("fail to retreive services with error ", err)
 	}

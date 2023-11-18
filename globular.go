@@ -331,7 +331,7 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
-	resourceConfig, err := config.GetServiceConfigurationById(globule.Mac, "resource.ResourceService")
+	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
 	if err != nil {
 		return err
 	}
@@ -507,7 +507,7 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"] = globule.Domain
 	config_["Name"] = globule.Name
-	services, _ := config.GetServicesConfigurations(globule.Mac)
+	services, _ := config.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
 	config_["Services"] = make(map[string]interface{})
@@ -854,7 +854,7 @@ func (globule *Globule) initDirectories() error {
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	//config.GetServicesConfigurations()
-	config.GetServicesConfigurations(globule.Mac)
+	config.GetServicesConfigurations()
 
 	// DNS info.
 	globule.DNS = make([]interface{}, 0)
@@ -1059,7 +1059,7 @@ func deleteRule(name string) error {
 
 func resetRules() error {
 
-	services, err := config.GetOrderedServicesConfigurations(globule.Mac)
+	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -1224,7 +1224,7 @@ func setSystemPath() error {
 		}
 
 		// now the services rules
-		services, err := config.GetServicesConfigurations(globule.Mac)
+		services, err := config.GetServicesConfigurations()
 		for i := 0; i < len(services); i++ {
 			service := services[i]
 			id := service["Id"].(string)
@@ -1289,7 +1289,7 @@ func (globule *Globule) startServices() error {
 	}
 
 	// Retreive all configurations
-	services, err := config.GetOrderedServicesConfigurations(globule.Mac)
+	services, err := config.GetOrderedServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -1586,7 +1586,7 @@ func (globule *Globule) initPeers() error {
 func (globule *Globule) stopServices() error {
 
 	// Now I will set configuration values
-	services_configs, err := config.GetServicesConfigurations(globule.Mac)
+	services_configs, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
@@ -1596,7 +1596,7 @@ func (globule *Globule) stopServices() error {
 			services_configs[i]["State"] = "stopped"
 			services_configs[i]["Process"] = -1
 			services_configs[i]["ProxyProcess"] = -1
-			config.SaveServiceConfiguration(globule.Mac, services_configs[i])
+			config.SaveServiceConfiguration(services_configs[i])
 		}
 	}
 
@@ -2082,7 +2082,7 @@ func (globule *Globule) watchForUpdate() {
 
 			}
 
-			services, err := config.GetServicesConfigurations(globule.Mac)
+			services, err := config.GetServicesConfigurations()
 			if err == nil {
 				// get the resource client
 				for i := 0; i < len(services); i++ {
@@ -2476,7 +2476,7 @@ func (globule *Globule) createApplicationConnections() error {
 // Create the application connections in the backend.
 func (globule *Globule) createApplicationConnection(app *resourcepb.Application) error {
 
-	resourceServiceConfig, err := config.GetServiceConfigurationById(globule.Mac, "resource.ResourceService")
+	resourceServiceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
 	if err != nil {
 		return err
 	}

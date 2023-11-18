@@ -189,11 +189,16 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		redirect, to := redirectTo(r.URL.Query().Get("host"))
 
 		if redirect && to != nil {
+			
 			// I will get the remote configuration and return it...
 			var remoteConfig map[string]interface{}
 			var err error
+			address := to.LocalIpAddress
+			if to.ExternalIpAddress != Utility.MyIP() {
+				address = to.ExternalIpAddress
+			}
 
-			remoteConfig, err = config.GetConfig(to.Mac, true)
+			remoteConfig, err = config.GetRemoteConfig(address, 0)
 
 			if err != nil {
 				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
