@@ -2397,7 +2397,7 @@ func connect_peer(g *Globule, address, token string) error {
 	hostname, _ := os.Hostname()
 
 
-	peer, key_, err := remote_resource_client_.RegisterPeer(token, string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
 	if err != nil {
 		return err
 	}
@@ -2410,12 +2410,7 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
-	local_token, err := security.GetLocalToken(g.getLocalDomain())
-	if err != nil {
-		return nil
-	}
-
-	_, _, err = local_resource_client_.RegisterPeer(local_token, key_, peer)
+	_, _, err = local_resource_client_.RegisterPeer(key_, peer)
 
 	return err
 }

@@ -545,7 +545,6 @@ func (globule *Globule) getConfig() map[string]interface{} {
 			s["StartVideoConversionHour"] = services[i]["StartVideoConversionHour"]
 		}
 
-
 		// specific configuration values...
 		if services[i]["Root"] != nil {
 			s["Root"] = services[i]["Root"]
@@ -776,10 +775,9 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	globule.CertURL = resource.CertURL
 	globule.CertStableURL = resource.CertStableURL
 
-	
 	// Set the certificates paths...
 	globule.Certificate = globule.getLocalDomain() + ".crt"
-	globule.CertificateAuthorityBundle =  globule.getLocalDomain() + ".issuer.crt"
+	globule.CertificateAuthorityBundle = globule.getLocalDomain() + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
 	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
@@ -1319,7 +1317,6 @@ func (globule *Globule) startServices() error {
 	// I will try to get the services manager configuration from the
 	// services configurations list.
 
-
 	for i := 0; i < len(services); i++ {
 
 		if start_port >= end_port {
@@ -1420,6 +1417,8 @@ func (globule *Globule) startServices() error {
  */
 func updatePeersEvent(evt *eventpb.Event) {
 
+	fmt.Println("update peers event received...", string(evt.Data))
+
 	p := new(resourcepb.Peer)
 	p_ := make(map[string]interface{}, 0)
 	err := json.Unmarshal(evt.Data, &p_)
@@ -1432,8 +1431,18 @@ func updatePeersEvent(evt *eventpb.Event) {
 	p.Hostname = p_["hostname"].(string)
 	p.Mac = p_["mac"].(string)
 	p.Protocol = p_["protocol"].(string)
-	p.LocalIpAddress = p_["localIpAddress"].(string)
-	p.ExternalIpAddress = p_["externalIpAddress"].(string)
+
+	if p_["local_ip_address"] != nil {
+		p.LocalIpAddress = p_["local_ip_address"].(string)
+	} else if p_["localIpAddress"] != nil {
+		p.LocalIpAddress = p_["localIpAddress"].(string)
+	}
+
+	if p_["external_ip_address"] != nil {
+		p.ExternalIpAddress = p_["external_ip_address"].(string)
+	} else if p_["externalIpAddress"] != nil {
+		p.ExternalIpAddress = p_["externalIpAddress"].(string)
+	}
 
 	state := Utility.ToInt(p_["state"])
 	if state == 0 {
@@ -1462,10 +1471,11 @@ func updatePeersEvent(evt *eventpb.Event) {
 	// Here I will try to set the peer ip...
 
 	// set the peer ip in the /etc/hosts file.
+
 	if Utility.MyIP() == p.ExternalIpAddress {
-		globule.setHost(p.LocalIpAddress, p.Domain)
+		globule.setHost(p.LocalIpAddress, p.Hostname+"."+p.Domain)
 	} else {
-		globule.setHost(p.ExternalIpAddress, p.Domain)
+		globule.setHost(p.ExternalIpAddress, p.Hostname+"."+p.Domain)
 	}
 
 }
@@ -1478,7 +1488,7 @@ func deletePeersEvent(evt *eventpb.Event) {
 func (globule *Globule) initPeer(p *resourcepb.Peer) {
 
 	// Here I will try to set the peer ip...
-	address := p.Domain
+	address := p.Hostname + "." + p.Domain
 	if p.Protocol == "https" {
 		address += ":" + Utility.ToString(p.PortHttps)
 	} else {
@@ -1487,9 +1497,9 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 
 	// set the peer ip in the /etc/hosts file.
 	if Utility.MyIP() == p.ExternalIpAddress {
-		globule.setHost(p.LocalIpAddress, p.Domain)
+		globule.setHost(p.LocalIpAddress, p.Hostname+"."+p.Domain)
 	} else {
-		globule.setHost(p.ExternalIpAddress, p.Domain)
+		globule.setHost(p.ExternalIpAddress, p.Hostname+"."+p.Domain)
 	}
 
 	// Now I will keep it in the peers list.
@@ -1840,7 +1850,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 	// first of all I will create and upload the package on the discovery...
 	fmt.Println("try to install application", application, "publish by", publisherId, "from discovery at", discovery, "and address at", address)
 
-	err = applications_manager_client_.InstallApplication(string(token),  globule.getAddress(), "sa", discovery, publisherId, application, true)
+	err = applications_manager_client_.InstallApplication(string(token), globule.getAddress(), "sa", discovery, publisherId, application, true)
 	if err != nil {
 		fmt.Println("fail to install application", application, "with error:", err)
 		return errors.New("fail to install application" + application + "with error:" + err.Error())
@@ -1880,12 +1890,12 @@ func (globule *Globule) getLocalDomain() string {
 	return domain
 }
 
-func (globule *Globule) setHost(ipv4, domain string) error {
+func (globule *Globule) setHost(ipv4, address string) error {
 	if len(ipv4) == 0 {
 		return errors.New("no ipv4 address to set")
 	}
 
-	if len(domain) == 0 {
+	if len(address) == 0 {
 		return errors.New("no domain to set")
 	}
 
@@ -1894,10 +1904,20 @@ func (globule *Globule) setHost(ipv4, domain string) error {
 		return err
 	}
 
-	hosts.AddHost(ipv4, domain)
+	// Here I will test if the previous address is a local address...
+	exist, address_, _ := hosts.HostAddressLookup(address)
+	if exist {
+		if Utility.IsLocal(address_) && !Utility.IsLocal(ipv4) {
+			// If the previous address was a local address I will not replace it by a non local address...
+			// The hosts file must be edited manually.
+			return errors.New("previous address was a local address, cannot be replace by a non local address")
+		}
+	}
+
+	hosts.AddHost(ipv4, address)
 	err = hosts.Save()
 	if err != nil {
-		fmt.Println("fail to save hosts ", ipv4, domain, " with error ", err)
+		fmt.Println("fail to save hosts ", ipv4, address, " with error ", err)
 	}
 
 	return err
@@ -2004,7 +2024,6 @@ func (globule *Globule) registerIpToDns() error {
 	return globule.setHost(Utility.MyLocalIP(), globule.getLocalDomain())
 }
 
-
 /**
  * retreive checksum from the server.
  */
@@ -2069,7 +2088,7 @@ func (globule *Globule) watchForUpdate() {
 
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
-						
+
 						err := update_globular_from(globule, discovery, globule.getLocalDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
@@ -2287,7 +2306,7 @@ func (globule *Globule) Listen() error {
 		globule.https_server = &http.Server{
 			Addr: address + ":" + strconv.Itoa(globule.PortHttps),
 			TLSConfig: &tls.Config{
-				ServerName:  globule.getLocalDomain(),
+				ServerName: globule.getLocalDomain(),
 			},
 		}
 

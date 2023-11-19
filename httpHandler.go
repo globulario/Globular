@@ -183,8 +183,11 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// i will redirect to the given host if the host is not the same...
+	address, _ := config_.GetAddress()
+
 	// I will redirect the request if host is defined in the query...
-	if len(r.URL.Query().Get("host")) > 0 {
+	if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
 
 		redirect, to := redirectTo(r.URL.Query().Get("host"))
 
@@ -209,6 +212,20 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 
+			json.NewEncoder(w).Encode(remoteConfig)
+
+			return
+		}else {
+
+			// I will get the remote configuration and return it...
+			remoteConfig, err := config.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
+			if err != nil {
+				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(remoteConfig)
 
 			return
