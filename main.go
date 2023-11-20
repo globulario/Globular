@@ -767,6 +767,8 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+	fmt.Println("try to read package.json file at ", absolutePath)
+	
 	packageConfig := make(map[string]interface{})
 	data, err := ioutil.ReadFile(absolutePath)
 	if err != nil {
@@ -777,6 +779,8 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	if err != nil {
 		return err
 	}
+
+
 
 	description := packageConfig["description"].(string)
 	version := packageConfig["version"].(string)

@@ -168,6 +168,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
+	fmt.Println("get config handler called!")
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -823,9 +824,35 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	return importPath_, nil
 }
 
-// here I will keep the current application name.
-var lastDir string
+/**
+ * findHashedFile search for a hashed file in the same directory as the original file.
+ * ex if styles.css not exist i will try to find styles.123456.css in the same directory.
+ */
+func findHashedFile(originalPath string) (string, error) {
 
+	fmt.Println("findHashedFile called with path ", originalPath)
+
+	// Get the directory of the original file
+	dir := filepath.Dir(originalPath)
+
+	// Get the base name of the original file without extension
+	baseName := strings.TrimSuffix(filepath.Base(originalPath), filepath.Ext(originalPath))
+
+	// Read the files in the directory
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+
+	// Search for a matching hashed file
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), baseName) && strings.HasSuffix(file.Name(), filepath.Ext(originalPath)) {
+			return filepath.Join(dir, file.Name()), nil
+		}
+	}
+
+	return "", fmt.Errorf("hashed file not found for %s", originalPath)
+}
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -898,6 +925,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+
 	// Now if the os is windows I will remove the leading /
 	if len(rqst_path) > 3 {
 		if runtime.GOOS == "windows" && rqst_path[0] == '/' && rqst_path[2] == ':' {
@@ -958,14 +986,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if the file dosent exist... I will try to get it from the index application...
-	if !Utility.Exists(name) && len(globule.IndexApplication) > 0 {
-		if Utility.Exists(path.Join(dir, globule.IndexApplication+"/"+rqst_path)) {
-			name = path.Join(dir, globule.IndexApplication+"/"+rqst_path)
-		} else if len(lastDir) > 0 && Utility.Exists(path.Join(dir, lastDir+"/"+rqst_path)) {
-			name = path.Join(dir, lastDir+"/"+rqst_path)
-		}
-	}
 
 	var code string
 	// If the file is a javascript file...
@@ -974,24 +994,22 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
-			return
+			name, err = findHashedFile(name)
+			if err == nil {
+				f, err = os.Open(name)
+				if err != nil {
+					http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
+					return
+				}
+			} else {
+				http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
+				return
+			}
 		}
 	}
 
-	info, err := os.Stat(name)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Check if the path points to a directory
-	if info.IsDir() {
-		lastDir = info.Name()
-	}
-
-	defer f.Close()
-
+	f.Close()
+	
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 		if err == nil {
@@ -1017,13 +1035,12 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
 		w.Header().Add("Content-Type", "text/html")
 	}
-
+	
 	// if the file has change...
 	if !hasChange {
 		//log.Println("server file ", name)
 		http.ServeFile(w, r, name)
 	} else {
-		//log.Println("server content ", name)
 		http.ServeContent(w, r, name, time.Now(), strings.NewReader(code))
 	}
 }
