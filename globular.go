@@ -1434,7 +1434,7 @@ func (globule *Globule) startServices() error {
 	}
 
 	// Start process monitoring with prometheus.
-	process.StartProcessMonitoring(globule.PortHttp, globule.exit)
+	process.StartProcessMonitoring(globule.Protocol, globule.PortHttp, globule.exit)
 
 	return nil
 }
