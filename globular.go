@@ -184,7 +184,9 @@ func NewGlobule() *Globule {
 	g.PortsRange = "10000-10100"                                                                                                                                       // The default port range.
 	g.Applications = []interface{}{ /*map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}*/ } // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
-	g.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
+
+	// Set the default mac.
+	g.Mac, _ =  config.GetMacAddress() // Utility.MyMacAddr(Utility.MyLocalIP())
 
 	// THOSE values must be change by the user...
 	g.Organization = "GLOBULARIO"
@@ -331,6 +333,7 @@ func (globule *Globule) registerAdminAccount() error {
 		}
 	}
 
+	// this will return the first resource service with name resource.ResourceService
 	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
 	if err != nil {
 		return err
@@ -361,6 +364,7 @@ func (globule *Globule) registerAdminAccount() error {
 	if len(results) == 0 {
 		fmt.Println("fail to get admin account sa", err)
 		fmt.Println("create admin account sa for domain ", domain)
+
 		err := resource_client_.RegisterAccount(domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
 			fmt.Println("fail to register admin account sa", err)
@@ -565,7 +569,7 @@ func (globule *Globule) savePeers() error {
 		if p.Protocol == "https" {
 			port = p.PortHttps
 		}
-		globule.Peers = append(globule.Peers, map[string]interface{}{"Domain": p.Domain, "Mac": p.Mac, "Port": port})
+		globule.Peers = append(globule.Peers, map[string]interface{}{"Hostname":p.Hostname, "Domain": p.Domain, "Mac": p.Mac, "Port": port})
 		return true
 	})
 
@@ -958,8 +962,6 @@ func (globule *Globule) initDirectories() error {
 			fmt.Println("fail to init configuation with error ", err)
 			return err
 		}
-
-		globule.Mac, _ = Utility.MyMacAddr(Utility.MyLocalIP())
 
 	} else {
 		jsonStr, err := Utility.ToJson(&globule)
@@ -1547,7 +1549,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 					// set mutable values...
 					peer_ := peers_[0]
 					peer_.Protocol = globule.Protocol
-					peer_.LocalIpAddress = Utility.MyLocalIP()
+					peer_.LocalIpAddress = config.GetLocalIP()
 					peer_.ExternalIpAddress = Utility.MyIP()
 					peer_.PortHttp = int32(globule.PortHttp)
 					peer_.PortHttps = int32(globule.PortHttps)
@@ -1866,8 +1868,7 @@ func (globule *Globule) installApplication(application, discovery, publisherId s
 		return err
 	}
 
-	mac, _ := Utility.MyMacAddr(Utility.MyLocalIP())
-	token, err := config.GetToken(mac)
+	token, err := config.GetToken(globule.Mac)
 
 	if err != nil {
 		fmt.Println("fail to read token  with error: " + err.Error())
@@ -2008,7 +2009,7 @@ func (globule *Globule) registerIpToDns() error {
 					}
 				}
 
-				_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyLocalIP(), 60)
+				_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
 				if err != nil {
 					fmt.Println("fail to set A record for domain ", globule.getLocalDomain(), " with error ", err)
 					continue
@@ -2020,7 +2021,7 @@ func (globule *Globule) registerIpToDns() error {
 						fmt.Println("fail to set A record for alternate domain ", globule.AlternateDomains[j], " with error ", err)
 						continue
 					}
-					_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), Utility.MyLocalIP(), 60)
+					_, err = dns_client_.SetA(token, globule.AlternateDomains[j].(string), config.GetLocalIP(), 60)
 					if err != nil {
 						fmt.Println("fail to set A record for alternate domain ", globule.AlternateDomains[j], " with error ", err)
 						continue
@@ -2069,7 +2070,7 @@ func (globule *Globule) registerIpToDns() error {
 		}
 	}
 
-	return globule.setHost(Utility.MyLocalIP(), globule.getLocalDomain())
+	return globule.setHost(config.GetLocalIP(), globule.getLocalDomain())
 }
 
 /**

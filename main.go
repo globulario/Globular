@@ -2401,7 +2401,7 @@ func connect_peer(g *Globule, address, token string) error {
 	hostname, _ := os.Hostname()
 
 
-	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: Utility.MyIP(), ExternalIpAddress: Utility.MyLocalIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: config_.GetLocalIP() , ExternalIpAddress: Utility.MyIP()})
 	if err != nil {
 		return err
 	}
