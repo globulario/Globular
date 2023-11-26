@@ -123,6 +123,10 @@ type Globule struct {
 	DNS              []interface{} // External dns.
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
+	// Reverse proxy will conain a list of addrees where to forward request and a route to forward request to.
+	// ex : ["http://localhost:9100/metrics | /metric_01", "http://localhost:8080/metrics | /metric_02"]
+	ReverseProxies []interface{}
+
 	// Applications to installs...
 	Applications []interface{}
 

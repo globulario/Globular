@@ -76,6 +76,7 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	// read the actual configuration.
 	__address__, err := config_.GetAddress()
+
 	if err == nil {
 		// no redirection if the address is the same...
 		if strings.HasPrefix(__address__, host) {
@@ -87,7 +88,7 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	globule.peers.Range(func(key, value interface{}) bool {
 		p_ := value.(*resourcepb.Peer)
-		address := p_.Domain
+		address := p_.Hostname + "." + p_.Domain
 		if p_.Protocol == "https" {
 			address += ":" + Utility.ToString(p_.PortHttps)
 		} else {
@@ -168,7 +169,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("get config handler called!")
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -176,7 +176,6 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle the prefligth oprions...
 	setupResponse(&w, r)
 
 	if r.Method == http.MethodOptions {
@@ -189,7 +188,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 	// I will redirect the request if host is defined in the query...
 	if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
-
+		
 		redirect, to := redirectTo(r.URL.Query().Get("host"))
 
 		if redirect && to != nil {
@@ -830,8 +829,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
  */
 func findHashedFile(originalPath string) (string, error) {
 
-	fmt.Println("findHashedFile called with path ", originalPath)
-
 	// Get the directory of the original file
 	dir := filepath.Dir(originalPath)
 
@@ -853,6 +850,40 @@ func findHashedFile(originalPath string) (string, error) {
 
 	return "", fmt.Errorf("hashed file not found for %s", originalPath)
 }
+
+
+func printRequestInfo(req *http.Request) {
+	fmt.Println("Request Method:", req.Method)
+	fmt.Println("Request URL:", req.URL.String())
+	fmt.Println("Request Proto:", req.Proto)
+	fmt.Println("Request Host:", req.Host)
+	fmt.Println("Request Headers:")
+	for key, values := range req.Header {
+		fmt.Printf("  %s: %v\n", key, values)
+	}
+
+	fmt.Println("Request Form Values:")
+	err := req.ParseForm()
+	if err != nil {
+		fmt.Println("Error parsing form:", err)
+	} else {
+		printValues(req.Form)
+	}
+
+	fmt.Println("Request Post Form Values:")
+	err = req.ParseForm()
+	if err != nil {
+		fmt.Println("Error parsing post form:", err)
+	} else {
+		printValues(req.PostForm)
+	}
+}
+
+func printValues(values url.Values) {
+	for key, vals := range values {
+		fmt.Printf("  %s: %v\n", key, vals)
+	}
+}
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -861,6 +892,47 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if redirect {
 		handleRequestAndRedirect(to, w, r)
 		return
+	}
+
+	//add prefix and clean
+	rqst_path := path.Clean(r.URL.Path)
+
+	fmt.Println("try to serve file at path: ", rqst_path)
+
+	if rqst_path == "/null" {
+		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
+	}
+
+	// I will test if the requested path is in the reverse proxy list.
+	// if it is the case I will redirect the request to the reverse proxy.
+	for _, proxy := range globule.ReverseProxies {
+		proxyPath_ := strings.TrimSpace(strings.Split(proxy.(string), "|")[1])
+		proxyURL_ := strings.TrimSpace(strings.Split(proxy.(string), "|")[0])
+
+		if strings.HasPrefix(rqst_path, proxyPath_) {
+			// Create a reverse proxy
+			proxyURL, _ := url.Parse(proxyURL_)
+
+			// Connect to the proxy host
+			hostUrl, _ := url.Parse(proxyURL.Scheme + "://" + proxyURL.Host )
+
+			reverseProxy := httputil.NewSingleHostReverseProxy(hostUrl)
+
+			// Update the request URL and headers
+			r.URL, _ = url.Parse(proxyURL_)
+
+			// Update headers to reflect the forwarded host
+			r.Host = proxyURL.Host
+	
+			r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+
+			// Print request details
+			printRequestInfo(r)
+		
+			// Serve the request via the reverse proxy
+			reverseProxy.ServeHTTP(w, r)
+			return
+		}
 	}
 
 	setupResponse(&w, r)
@@ -874,12 +946,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		dir += "/" + r.Host
 	}
 
-	//add prefix and clean
-	rqst_path := path.Clean(r.URL.Path)
 
-	if rqst_path == "/null" {
-		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
-	}
 
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
