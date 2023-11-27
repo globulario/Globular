@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -29,7 +29,6 @@ import (
 	"github.com/globulario/services/golang/event/event_client"
 	"github.com/globulario/services/golang/event/eventpb"
 	"github.com/globulario/services/golang/globular_client"
-	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/persistence/persistence_client"
 	"github.com/globulario/services/golang/process"
@@ -186,11 +185,10 @@ func NewGlobule() *Globule {
 	g.PortHttp = 80                                                                                                                                                    // The default http port 80 is almost already use by other http server...
 	g.PortHttps = 443                                                                                                                                                  // The default https port number
 	g.PortsRange = "10000-10100"                                                                                                                                       // The default port range.
-	g.Applications = []interface{}{ /*map[string]interface{}{"Name": "console", "Address": "globular.io", "PublisherId": "globulario@globule-dell.globular.cloud"}*/ } // The list of applications to install.
 	g.ServicesRoot = config.GetServicesRoot()
 
 	// Set the default mac.
-	g.Mac, _ =  config.GetMacAddress() // Utility.MyMacAddr(Utility.MyLocalIP())
+	g.Mac, _ = config.GetMacAddress()
 
 	// THOSE values must be change by the user...
 	g.Organization = "GLOBULARIO"
@@ -573,7 +571,7 @@ func (globule *Globule) savePeers() error {
 		if p.Protocol == "https" {
 			port = p.PortHttps
 		}
-		globule.Peers = append(globule.Peers, map[string]interface{}{"Hostname":p.Hostname, "Domain": p.Domain, "Mac": p.Mac, "Port": port})
+		globule.Peers = append(globule.Peers, map[string]interface{}{"Hostname": p.Hostname, "Domain": p.Domain, "Mac": p.Mac, "Port": port})
 		return true
 	})
 
@@ -587,6 +585,7 @@ func (globule *Globule) saveConfig() error {
 
 	// set the path
 	globule.Path, _ = os.Executable()
+
 	jsonStr, err := Utility.ToJson(globule)
 	if err != nil {
 		fmt.Println("fail to save configuration with error: ", err)
@@ -596,7 +595,7 @@ func (globule *Globule) saveConfig() error {
 	Utility.CreateDirIfNotExist(globule.config)
 	configPath := globule.config + "/config.json"
 
-	err = ioutil.WriteFile(configPath, []byte(jsonStr), 0644)
+	err = os.WriteFile(configPath, []byte(jsonStr), 0644)
 	if err != nil {
 		fmt.Println("fail to save configuration with error: ", err)
 		return err
@@ -630,7 +629,7 @@ func (globule *Globule) GetRegistration() *registration.Resource {
  * and manage it...
  */
 func (globule *Globule) GetPrivateKey() crypto.PrivateKey {
-	keyPem, err := ioutil.ReadFile(globule.creds + "/client.pem")
+	keyPem, err := os.ReadFile(globule.creds + "/client.pem")
 	if err != nil {
 		return nil
 	}
@@ -778,7 +777,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		return err
 	}
 
-	csrPem, err := ioutil.ReadFile(globule.creds + "/server.csr")
+	csrPem, err := os.ReadFile(globule.creds + "/server.csr")
 	if err != nil {
 		fmt.Println("fail to read certificate request with error: ", err)
 		return err
@@ -806,8 +805,8 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	globule.CertificateAuthorityBundle = globule.getLocalDomain() + ".issuer.crt"
 
 	// Save the certificate in the cerst folder.
-	ioutil.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
-	ioutil.WriteFile(globule.creds+"/"+globule.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
+	os.WriteFile(globule.creds+"/"+globule.Certificate, resource.Certificate, 0400)
+	os.WriteFile(globule.creds+"/"+globule.CertificateAuthorityBundle, resource.IssuerCertificate, 0400)
 
 	// save the config with the values.
 	return globule.saveConfig()
@@ -817,7 +816,7 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 
 	// first of all I will save the incomming file into a temporary file...
 	client_csr_path := os.TempDir() + "/" + Utility.RandomUUID()
-	err := ioutil.WriteFile(client_csr_path, []byte(client_csr), 0644)
+	err := os.WriteFile(client_csr_path, []byte(client_csr), 0644)
 	if err != nil {
 		return "", err
 
@@ -855,7 +854,7 @@ func (globule *Globule) signCertificate(client_csr string) (string, error) {
 	}
 
 	// I will read back the crt file.
-	client_crt, err := ioutil.ReadFile(client_crt_path)
+	client_crt, err := os.ReadFile(client_crt_path)
 
 	// remove the tow temporary files.
 	defer os.Remove(client_crt_path)
@@ -956,7 +955,7 @@ func (globule *Globule) initDirectories() error {
 	Utility.CreateDirIfNotExist(globule.applications)
 
 	// Initialyse globular from it configuration file.
-	file, err := ioutil.ReadFile(globule.config + "/config.json")
+	file, err := os.ReadFile(globule.config + "/config.json")
 
 	// Init the service with the default port address
 	if err == nil {
@@ -988,13 +987,17 @@ func (globule *Globule) initDirectories() error {
 		globule.Domain = "yourdomain.com"
 	}
 
+	if len(globule.Mac) == 0 {
+		globule.Mac, _ = config.GetMacAddress()
+	}
+
 	// save config...
 	globule.saveConfig()
 
 	if !Utility.Exists(globule.webRoot + "/index.html") {
 
 		// in that case I will create a new index.html file.
-		ioutil.WriteFile(globule.webRoot+"/index.html", []byte(
+		os.WriteFile(globule.webRoot+"/index.html", []byte(
 			`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 		<html lang="en">
 		
@@ -1154,6 +1157,9 @@ func resetSystemPath() error {
 
 		// set system path...
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
+		if err != nil {
+			return err
+		}
 
 	}
 
@@ -1256,6 +1262,10 @@ func setSystemPath() error {
 
 		// now the services rules
 		services, err := config.GetServicesConfigurations()
+		if err != nil {
+			return err
+		}
+
 		for i := 0; i < len(services); i++ {
 			service := services[i]
 			id := service["Id"].(string)
@@ -1300,6 +1310,22 @@ func setSystemPath() error {
 	return nil
 }
 
+func refreshTokenPeriodically(ctx context.Context, globule *Globule) {
+	ticker := time.NewTicker(time.Duration(globule.SessionTimeout)*time.Minute - 10*time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// The context is done, exit the goroutine
+			return
+		case <-ticker.C:
+			// Refresh the token.
+			globule.refreshLocalToken()
+		}
+	}
+}
+
 /**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
@@ -1326,16 +1352,13 @@ func (globule *Globule) startServices() error {
 	}
 
 	// start refresh local token...
-	ticker := time.NewTicker(time.Duration(globule.SessionTimeout)*time.Minute - 10*time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				// refresh the token.
-				globule.refreshLocalToken()
-			}
-		}
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use context.WithTimeout if you want the goroutine to stop after a certain duration.
+	// ctx, cancel := context.WithTimeout(context.Background(), someDuration)
+	// defer cancel()
+	go refreshTokenPeriodically(ctx, globule)
 
 	start_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[0])
 	end_port := Utility.ToInt(strings.Split(globule.PortsRange, "-")[1])
@@ -1346,7 +1369,7 @@ func (globule *Globule) startServices() error {
 	for i := 0; i < len(services); i++ {
 
 		if start_port >= end_port {
-			return errors.New("no more available ports...")
+			return errors.New("no more available ports")
 		}
 
 		if err != nil {
@@ -1655,18 +1678,7 @@ func (globule *Globule) serve() error {
 	// Create the admin account.
 	globule.registerAdminAccount()
 
-	// Install the console application
-	for i := 0; i < len(globule.Applications); i++ {
-		application := globule.Applications[i].(map[string]interface{})
-		// ex.. "console", "globular.io", "globulario"
-		err := globule.installApplication(application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
-		if err != nil {
-			fmt.Println("fail to install application with error: ", err)
-		}
-	}
-
 	url := globule.Protocol + "://" + globule.getAddress()
-
 	if globule.Protocol == "https" {
 		if globule.PortHttps != 443 {
 			url += ":" + Utility.ToString(globule.PortHttps)
@@ -1773,7 +1785,7 @@ func (globule *Globule) watchConfig() {
 
 			if event.Op == fsnotify.Write {
 				// renit the service...
-				file, _ := ioutil.ReadFile(globule.config + "/config.json")
+				file, _ := os.ReadFile(globule.config + "/config.json")
 				config := make(map[string]interface{})
 				err := json.Unmarshal(file, &config)
 
@@ -2103,7 +2115,7 @@ func getChecksum(address string, port int) (string, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusCreated {
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -2274,6 +2286,7 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		path := string(evt.Data)
 		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/") {
 			path = config.GetDataDir() + "/files" + path
+			
 		}
 	}
 }
@@ -2378,7 +2391,7 @@ func (globule *Globule) Listen() error {
 	//////////////////////////////////////////////////////////
 
 	// Keep globular up to date subscription.
-	//globule.watchForUpdate()
+	globule.watchForUpdate()
 
 	return err
 }
@@ -2573,34 +2586,7 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	err = persistenceClient.CreateConnection(app.Name, app.Name+"_db", address, resourceServiceConfig["Backend_port"].(float64), storeType, resourceServiceConfig["Backend_user"].(string), resourceServiceConfig["Backend_password"].(string), 500, "", false)
 
 	if err != nil {
-		fmt.Println("fail to create connection for %s with error ", app.Name, err)
+		fmt.Printf("fail to create connection for %s with error %s", app.Name, err.Error())
 	}
-
 	return err
-}
-
-///////////////////////  fmt Services functions ////////////////////////////////////////////////
-
-/**
- * Get the log client.
- */
-func (globule *Globule) GetLogClient() (*log_client.Log_Client, error) {
-	Utility.RegisterFunction("NewLogService_Client", log_client.NewLogService_Client)
-	address, _ := config.GetAddress()
-	client, err := globular_client.GetClient(address, "log.LogService", "NewLogService_Client")
-	if err != nil {
-		return nil, err
-	}
-
-	return client.(*log_client.Log_Client), nil
-}
-
-func (globule *Globule) log(fileLine, functionName, message string, level logpb.LogLevel) error {
-	log_client_, err := globule.GetLogClient()
-	if err != nil {
-		return err
-	}
-
-	address, _ := config.GetAddress()
-	return log_client_.Log(globule.Name, address, functionName, level, message, fileLine, functionName)
 }

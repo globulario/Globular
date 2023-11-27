@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httputil"
@@ -25,7 +24,6 @@ import (
 	"github.com/StalkR/httpcache"
 	"github.com/StalkR/imdb"
 	"github.com/davecourtois/Utility"
-	"github.com/globulario/services/golang/config"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
@@ -152,7 +150,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	//add prefix and clean
 	w.Header().Set("Content-Type", "application/text")
 	w.WriteHeader(http.StatusCreated)
@@ -188,11 +185,11 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 	// I will redirect the request if host is defined in the query...
 	if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
-		
+
 		redirect, to := redirectTo(r.URL.Query().Get("host"))
 
 		if redirect && to != nil {
-			
+
 			// I will get the remote configuration and return it...
 			var remoteConfig map[string]interface{}
 			var err error
@@ -201,7 +198,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 				address = to.ExternalIpAddress
 			}
 
-			remoteConfig, err = config.GetRemoteConfig(address, 0)
+			remoteConfig, err = config_.GetRemoteConfig(address, 0)
 
 			if err != nil {
 				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
@@ -215,10 +212,10 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(remoteConfig)
 
 			return
-		}else {
+		} else {
 
 			// I will get the remote configuration and return it...
-			remoteConfig, err := config.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
+			remoteConfig, err := config_.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
 			if err != nil {
 				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
 				return
@@ -408,7 +405,7 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/text")
 	w.WriteHeader(http.StatusCreated)
 
-	crt, err := ioutil.ReadFile(globule.creds + "/ca.crt")
+	crt, err := os.ReadFile(globule.creds + "/ca.crt")
 	if err != nil {
 		http.Error(w, "Client ca cert not found", http.StatusBadRequest)
 		return
@@ -431,7 +428,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/text")
 	setupResponse(&w, r)
 
-	crt, err := ioutil.ReadFile(globule.creds + "/san.conf")
+	crt, err := os.ReadFile(globule.creds + "/san.conf")
 	if err != nil {
 		http.Error(w, "Client Subject Alernate Name configuration found!", http.StatusBadRequest)
 		return
@@ -445,7 +442,7 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 
-	var allowedOrigins string	
+	var allowedOrigins string
 	for i := 0; i < len(globule.AllowedOrigins); i++ {
 		allowedOrigins += globule.AllowedOrigins[i]
 		if globule.AllowedOrigins[i] == "*" {
@@ -585,10 +582,6 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func toBase64(b []byte) string {
-	return base64.StdEncoding.EncodeToString(b)
-}
-
 /**
  * This code is use to upload a file into the tmp directory of the server
  * via http request.
@@ -609,7 +602,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-
 
 	err := r.ParseMultipartForm(32 << 20) // grab the multipart form
 	if err != nil {
@@ -659,6 +651,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		// I will be threaded like a file service methode.
 		if strings.HasPrefix(path, "/applications") {
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
+			if err != nil {
+				http.Error(w, "fail to validate access with error "+err.Error(), http.StatusUnauthorized)
+				return
+			}
 		}
 	}
 
@@ -684,6 +680,10 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if len(user) != 0 {
 		if !hasAccess || hasAccessDenied {
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", user, rbacpb.SubjectType_ACCOUNT, infos)
+			if err != nil {
+				http.Error(w, "fail to validate access with error "+err.Error(), http.StatusUnauthorized)
+				return
+			}
 		}
 	}
 
@@ -836,7 +836,7 @@ func findHashedFile(originalPath string) (string, error) {
 	baseName := strings.TrimSuffix(filepath.Base(originalPath), filepath.Ext(originalPath))
 
 	// Read the files in the directory
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return "", err
 	}
@@ -851,39 +851,6 @@ func findHashedFile(originalPath string) (string, error) {
 	return "", fmt.Errorf("hashed file not found for %s", originalPath)
 }
 
-
-func printRequestInfo(req *http.Request) {
-	fmt.Println("Request Method:", req.Method)
-	fmt.Println("Request URL:", req.URL.String())
-	fmt.Println("Request Proto:", req.Proto)
-	fmt.Println("Request Host:", req.Host)
-	fmt.Println("Request Headers:")
-	for key, values := range req.Header {
-		fmt.Printf("  %s: %v\n", key, values)
-	}
-
-	fmt.Println("Request Form Values:")
-	err := req.ParseForm()
-	if err != nil {
-		fmt.Println("Error parsing form:", err)
-	} else {
-		printValues(req.Form)
-	}
-
-	fmt.Println("Request Post Form Values:")
-	err = req.ParseForm()
-	if err != nil {
-		fmt.Println("Error parsing post form:", err)
-	} else {
-		printValues(req.PostForm)
-	}
-}
-
-func printValues(values url.Values) {
-	for key, vals := range values {
-		fmt.Printf("  %s: %v\n", key, vals)
-	}
-}
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -896,8 +863,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
 	rqst_path := path.Clean(r.URL.Path)
-
-	fmt.Println("try to serve file at path: ", rqst_path)
 
 	if rqst_path == "/null" {
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
@@ -914,7 +879,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			proxyURL, _ := url.Parse(proxyURL_)
 
 			// Connect to the proxy host
-			hostUrl, _ := url.Parse(proxyURL.Scheme + "://" + proxyURL.Host )
+			hostUrl, _ := url.Parse(proxyURL.Scheme + "://" + proxyURL.Host)
 
 			reverseProxy := httputil.NewSingleHostReverseProxy(hostUrl)
 
@@ -923,12 +888,12 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 			// Update headers to reflect the forwarded host
 			r.Host = proxyURL.Host
-	
+
 			r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 
 			// Print request details
-			printRequestInfo(r)
-		
+			//printRequestInfo(r)
+
 			// Serve the request via the reverse proxy
 			reverseProxy.ServeHTTP(w, r)
 			return
@@ -945,8 +910,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if Utility.Exists(dir + "/" + r.Host) {
 		dir += "/" + r.Host
 	}
-
-
 
 	// Now I will test if a token is given in the header and manage it file access.
 	application := r.Header.Get("application")
@@ -991,7 +954,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 			hasAccess = false
 		}
 	}
-
 
 	// Now if the os is windows I will remove the leading /
 	if len(rqst_path) > 3 {
@@ -1053,7 +1015,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	var code string
 	// If the file is a javascript file...
 	hasChange := false
@@ -1076,7 +1037,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f.Close()
-	
+
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 		if err == nil {
@@ -1102,7 +1063,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasSuffix(name, ".html") || strings.HasSuffix(name, ".htm") {
 		w.Header().Add("Content-Type", "text/html")
 	}
-	
+
 	// if the file has change...
 	if !hasChange {
 		//log.Println("server file ", name)
@@ -1247,7 +1208,7 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 
 	// The first regex to locate the information...
 	re_SE := regexp.MustCompile(`>S\d{1,2}<!-- -->\.<!-- -->E\d{1,2}<`)
-	page, err := ioutil.ReadAll(resp.Body)
+	page, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return -1, -1, "", err
 	}

@@ -6,8 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -768,9 +766,9 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	}
 
 	fmt.Println("try to read package.json file at ", absolutePath)
-	
+
 	packageConfig := make(map[string]interface{})
-	data, err := ioutil.ReadFile(absolutePath)
+	data, err := os.ReadFile(absolutePath)
 	if err != nil {
 		return err
 	}
@@ -779,8 +777,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	if err != nil {
 		return err
 	}
-
-
 
 	description := packageConfig["description"].(string)
 	version := packageConfig["version"].(string)
@@ -915,7 +911,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		domain, err := config_.GetDomain()
 		if err != nil {
 			fmt.Println("fail to get domain with error", err)
-			return err	
+			return err
 		}
 		publisherId += "@" + domain
 	}
@@ -942,7 +938,7 @@ func update_globular(g *Globule, path, address, user, pwd string, platform strin
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1035,7 +1031,7 @@ func publish(g *Globule, user, pwd, address, organization, path, platform string
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1052,7 +1048,6 @@ func publish(g *Globule, user, pwd, address, organization, path, platform string
 		log.Println(err)
 		return err
 	}
-
 
 	err = discovery_client_.PublishService(user, organization, token, discovery_client_.GetDomain(), path, platform)
 	if err != nil {
@@ -1087,7 +1082,7 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1122,7 +1117,7 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, address, use
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1158,7 +1153,7 @@ func install_application(g *Globule, applicationId, discovery, publisherId, doma
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1190,7 +1185,7 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 	// Authenticate the user in order to get the token
 	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -1216,119 +1211,6 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
 	}
 
 	return nil
-}
-
-/**
- * Download Applications, this will be use to package globular applications with the distro. That way console and media will
- * be accessible offline, on the local network.
- */
-func downloadApplication(g *Globule, application, discovery, pulbisherId string) (string, string, error) {
-
-	// first of all I will get the package descriptor...
-	// Connect to the dicovery services
-	resource_client_, err := resource_client.NewResourceService_Client(discovery, "resource.ResourceService")
-
-	if err != nil {
-		return "", "", errors.New("Fail to connect to " + discovery)
-	}
-
-	// TODO publish it as globulario organisation.
-	descriptor, err := resource_client_.GetPackageDescriptor(application, pulbisherId, "") // last version
-	if err != nil {
-		return "", "", err
-	}
-
-	if len(descriptor.Repositories) == 0 {
-		if err != nil {
-			return "", "", err
-		}
-	}
-
-	if len(descriptor.Repositories) == 0 {
-		return "", "", errors.New("no repositories was define on that globule")
-	}
-
-	// Create the application dir if is not exist.
-	err = Utility.CreateDirIfNotExist(g.Path + "/applications")
-	if err != nil {
-		return "", "", err
-	}
-
-	// Set the path
-	path := g.Path + "/applications/" + application + "_" + pulbisherId + "_" + descriptor.Version
-	if Utility.Exists(path + ".tar.gz") {
-		return path + ".tar.gz", application + "_" + pulbisherId + "_" + descriptor.Version + ".tar.gz", nil // already ready to be downloaded...
-	}
-
-	Utility.CreateDirIfNotExist(path)
-	defer os.RemoveAll(path)
-
-	// I will write the package descritor as file in the directory...
-	jsonStr, err := Utility.ToJson(descriptor)
-	if err != nil {
-		return "", "", err
-	}
-
-	// save the descritor in the directory.
-	err = Utility.WriteStringToFile(path+"/descriptor.json", jsonStr)
-	if err != nil {
-		return "", "", err
-	}
-
-	// I will create a repository
-	for i := 0; i < len(descriptor.Repositories); i++ {
-
-		package_repository, err := repository_client.NewRepositoryService_Client(descriptor.Repositories[i], "repository.PackageRepository")
-		if err != nil {
-			return "", "", err
-		}
-
-		bundle, err := package_repository.DownloadBundle(descriptor, "webapp")
-		if err != nil {
-			return "", "", err
-		}
-
-		// Create the file.
-		err = ioutil.WriteFile(path+"/bundle.tar.gz", bundle.Binairies, 0644)
-		if err != nil {
-			return "", "", err
-		}
-	}
-
-	// Now I will compress it...
-	var buffer bytes.Buffer
-	_, err = Utility.CompressDir(path, &buffer)
-	if err != nil {
-		return "", "", err
-	}
-
-	// tar + gzip
-	var buf bytes.Buffer
-	_, err = Utility.CompressDir(path, &buf)
-	if err != nil {
-		fmt.Println("fail to compress dir with error ", err)
-		return "", "", err
-	}
-
-	// write the .tar.gzip
-	fileToWrite, err := os.OpenFile(path+".tar.gz", os.O_CREATE|os.O_RDWR, os.FileMode(0755))
-	if err != nil {
-		return "", "", err
-	}
-
-	defer fileToWrite.Close()
-
-	if _, err := io.Copy(fileToWrite, &buf); err != nil {
-		return "", "", err
-	}
-
-	// Remove the dir when the archive is created.
-	err = os.RemoveAll(path)
-	if err != nil {
-		return "", "", err
-	}
-
-	return path + ".tar.gz", application + "_" + pulbisherId + "_" + descriptor.Version + ".tar.gz", nil
 }
 
 /**
@@ -1358,22 +1240,6 @@ func dist(g *Globule, path string, revision string) {
 	// Now I will copy the application icon to the resource.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-	// Console 1.0.3
-	// application
-	if !Utility.Exists(dir + "/applications") {
-		// Copy applications for offline installation...
-		for i := 0; i < len(g.Applications); i++ {
-			application := g.Applications[i].(map[string]interface{})
-			console_application_path, console_application, err := downloadApplication(g, application["Name"].(string), application["Address"].(string), application["PublisherId"].(string))
-			if err != nil {
-
-				fmt.Println("fail to package application", application["Name"].(string), "with error", err)
-
-			} else {
-				Utility.CopyFile(console_application_path, dir+"/applications"+"/"+console_application)
-			}
-		}
-	}
 
 	defer os.RemoveAll(dir + "/applications")
 
@@ -1570,7 +1436,7 @@ func dist(g *Globule, path string, revision string) {
 		// - The list of dependencies...
 		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~)\n"
 
-		err := ioutil.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
+		err := os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1676,7 +1542,7 @@ func dist(g *Globule, path string, revision string) {
 
 		}
 
-		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1688,7 +1554,7 @@ func dist(g *Globule, path string, revision string) {
 			conffiles += configurations[i] + "\n"
 		}
 
-		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0755)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1744,7 +1610,7 @@ func dist(g *Globule, path string, revision string) {
 		 service Globular start
 		 
 		`
-		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1766,7 +1632,7 @@ func dist(g *Globule, path string, revision string) {
 			/usr/local/bin/Globular uninstall
 		fi
 		`
-		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0755)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1792,7 +1658,7 @@ func dist(g *Globule, path string, revision string) {
 		
 		echo "Hope to see you again soon!"
 		`
-		err = ioutil.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1829,7 +1695,7 @@ func dist(g *Globule, path string, revision string) {
 
 		err := Utility.CopyDir(dir+"/assets/.", root+"/assets")
 		if err != nil {
-			log.Panicln("--> fail to copy assets ", err)
+			fmt.Println("--> fail to copy assets ", err)
 		}
 
 		// redist
@@ -1838,23 +1704,17 @@ func dist(g *Globule, path string, revision string) {
 		if Utility.Exists(dir + "/redist") {
 			err = Utility.CopyDir(dir+"/redist/.", root+"/redist")
 			if err != nil {
-				log.Panicln("--> fail to copy redist", root+"/redist", err)
+				fmt.Println("--> fail to copy redist", root+"/redist", err)
 			}
 		} else {
 			fmt.Println("no directory found with path", dir+"/redist")
 		}
 
-		Utility.CreateDirIfNotExist(app + "/applications")
-		err = Utility.CopyDir(dir+"/applications/.", app+"/applications")
-
-		if err != nil {
-			log.Panicln("--> fail to copy applications ", err)
-		}
-
 		// copy the license
 		err = Utility.CopyFile(dir+"/license.txt", root+"/license.txt")
 		if err != nil {
-			log.Panicln("--> fail to copy license ", err)
+			fmt.Println("--> fail to copy license ", err)
+			err = nil
 		}
 
 		// Now I will create the setup.nsi file.
@@ -1988,7 +1848,7 @@ func dist(g *Globule, path string, revision string) {
 	SectionEnd
   
 `
-		Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
+		err = Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
 	}
 
 }
@@ -2020,14 +1880,14 @@ func __dist(g *Globule, path, config_path string) []string {
 	// I will set the docker file depending of the arch.
 	var dockerfile string
 	if runtime.GOARCH == "amd64" {
-		data, err := ioutil.ReadFile("Dockerfile_amd64")
+		data, err := os.ReadFile("Dockerfile_amd64")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		dockerfile = string(data)
 	} else if runtime.GOARCH == "arm64" {
-		data, err := ioutil.ReadFile("Dockerfile_arm64")
+		data, err := os.ReadFile("Dockerfile_arm64")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -2067,11 +1927,11 @@ func __dist(g *Globule, path, config_path string) []string {
 	Utility.CreateDirIfNotExist(path + "/bin")
 	err = Utility.CopyDir(dir+"/bin/.", path+"/bin")
 	if err != nil {
-		log.Panicln("--> fail to copy bin ", err)
+		fmt.Println("--> fail to copy bin ", err)
 	}
 
 	// Change the files permission to add execute write.
-	files, err := ioutil.ReadDir(path + "/bin")
+	files, err := os.ReadDir(path + "/bin")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -2092,7 +1952,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 			err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
 			if err != nil {
-				log.Panicln("--> fail to copy dependencies ", err)
+				fmt.Println("--> fail to copy dependencies ", err)
 			}
 
 			execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
@@ -2210,7 +2070,7 @@ func __dist(g *Globule, path, config_path string) []string {
 				configPath := filepath.Dir(execPath) + "/config.json"
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
-					bytes, err := ioutil.ReadFile(configPath)
+					bytes, err := os.ReadFile(configPath)
 					config := make(map[string]interface{}, 0)
 					json.Unmarshal(bytes, &config)
 
@@ -2237,7 +2097,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 									err := Utility.Copy(execPath, destPath)
 									if err != nil {
-										log.Panicln(execPath, destPath, err)
+										fmt.Println(execPath, destPath, err)
 									}
 
 									// Set execute permission
@@ -2252,19 +2112,19 @@ func __dist(g *Globule, path, config_path string) []string {
 									if config["CacheType"] != nil {
 										config["CacheType"] = "BADGER"
 									}
-							
+
 									if config["CacheAddress"] != nil {
 										config["CacheAddress"] = "localhost"
 									}
-							
+
 									if config["Backend_address"] != nil {
 										config["Backend_address"] = "localhost"
 									}
-									
+
 									if config["Backend_type"] != nil {
 										config["Backend_type"] = "SQL"
 									}
-									
+
 									// set the security values to nothing...
 									config["CertAuthorityTrust"] = ""
 									config["Process"] = -1
@@ -2299,7 +2159,7 @@ func __dist(g *Globule, path, config_path string) []string {
 										// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
 										// will survive package upgrades...
 										Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
-										ioutil.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+										os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
 
 									}
 
@@ -2341,11 +2201,10 @@ func __dist(g *Globule, path, config_path string) []string {
 			}
 		}
 
-
 	}
 
 	// save docker.
-	err = ioutil.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
+	err = os.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
 	if err != nil {
 		log.Println(err)
 	}
@@ -2400,8 +2259,7 @@ func connect_peer(g *Globule, address, token string) error {
 	// Register the peer on the remote resourse client...
 	hostname, _ := os.Hostname()
 
-
-	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: config_.GetLocalIP() , ExternalIpAddress: Utility.MyIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: config_.GetLocalIP(), ExternalIpAddress: Utility.MyIP()})
 	if err != nil {
 		return err
 	}
