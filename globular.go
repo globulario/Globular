@@ -1,6 +1,7 @@
 package main
 
 import (
+	controlplane "Globular/control-plane"
 	"bytes"
 	"context"
 	"crypto"
@@ -15,11 +16,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -1639,6 +1642,7 @@ func (globule *Globule) initPeers() error {
 	globule.subscribe("update_peers_evt", updatePeersEvent)
 	globule.subscribe("delete_peer_evt", deletePeersEvent)
 
+	// Now I will set the local peer info...
 	globule.savePeers()
 
 	return nil
@@ -1705,6 +1709,46 @@ func (globule *Globule) serve() error {
 }
 
 /**
+ * Start the control plane to manage the cluster configuration.
+ */
+func (globule *Globule) initControlPlane() {
+	// Create a cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Set up a signal handler to cancel the context on interrupt signals
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
+		fmt.Println("Received interrupt signal. Shutting down...")
+		cancel()
+	}()
+
+	// Use a WaitGroup to wait for graceful shutdown
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Start the control plane in a goroutine
+	go func() {
+		defer wg.Done()
+		if err := controlplane.StartControlPlane(ctx, globule.exit); err != nil {
+			fmt.Printf("Error starting control plane: %v\n", err)
+		}
+	}()
+
+	// Wait for either the control plane to finish or the context to be canceled
+	select {
+	case <-ctx.Done():
+		// Context canceled, wait for the control plane to finish
+		wg.Wait()
+		fmt.Println("Graceful shutdown complete.")
+	}
+
+	fmt.Println("Exiting...")
+}
+
+
+/**
  * Start serving the content.
  */
 func (globule *Globule) Serve() error {
@@ -1740,6 +1784,9 @@ func (globule *Globule) Serve() error {
 
 	// Init peers
 	go globule.initPeers()
+
+	// Now I will initialize the control plane.
+	go globule.initControlPlane()
 
 	if err != nil {
 		fmt.Println("fail to init peers whit error ", err)
