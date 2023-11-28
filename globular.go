@@ -1731,10 +1731,12 @@ func (globule *Globule) initControlPlane() {
 	// Start the control plane in a goroutine
 	go func() {
 		defer wg.Done()
-		if err := controlplane.StartControlPlane(ctx, globule.exit); err != nil {
+		// TODO: Make the control plane port configurable, it must set also in envoy.yaml
+		if err := controlplane.StartControlPlane(ctx, 8081, globule.exit); err != nil {
 			fmt.Printf("Error starting control plane: %v\n", err)
 		}
 	}()
+
 
 	// Wait for either the control plane to finish or the context to be canceled
 	select {
@@ -1787,6 +1789,9 @@ func (globule *Globule) Serve() error {
 
 	// Now I will initialize the control plane.
 	go globule.initControlPlane()
+
+	// test to add a new snapshot
+	//controlplane.AddSnapshot("test_node", )
 
 	if err != nil {
 		fmt.Println("fail to init peers whit error ", err)

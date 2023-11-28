@@ -2,8 +2,12 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 	"sync"
+
+	//"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	//"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
 )
@@ -19,7 +23,22 @@ var (
  * snapshot. It blocks until the server terminates or until the context is canceled.
  */
 func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
-	// Use a WaitGroup to wait for the goroutine to finish
+
+	// I will test a simple snapshot with a single cluster, route, and listener
+	snapshot := GenerateSnapshot()
+	if err := snapshot.Consistent(); err != nil {
+		l.Errorf("snapshot inconsistency: %+v\n%+v", snapshot, err)
+		return err
+	}
+
+	l.Debugf("will serve snapshot %+v", snapshot)
+
+	// Add the snapshot to the cache
+	if err := cache_.SetSnapshot(context.Background(), "test-id", snapshot); err != nil {
+		l.Errorf("snapshot error %q for %+v", err, snapshot)
+		return err
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -28,7 +47,9 @@ func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
 		defer wg.Done()
 		cb := &test.Callbacks{Debug: l.Debug}
 		srv := server.NewServer(ctx, cache_, cb)
+		fmt.Println("Starting the xDS server...")
 		RunServer(srv, port)
+		fmt.Println("xDS server terminated")
 	}()
 
 	// Wait for either the server to finish or the context to be canceled
@@ -43,31 +64,50 @@ func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
 	return nil
 }
 
-// AddSnapshot adds a snapshot to the cache.
-//  ex. there is how to create a snapshot:
-//
-//	snap, _ := cache.NewSnapshot("1",
-//	map[resource.Type][]types.Resource{
-//		resource.ClusterType: {
-//			makeCluster(ClusterName),
-//			makeCluster(ClusterName2), // Add another cluster
-//		},
-//		resource.RouteType: {
-//			makeRoute(RouteName, ClusterName),
-//			makeRoute(RouteName2, ClusterName2), // Add another route
-//		},
-//		resource.ListenerType: {
-//			makeHTTPListener(ListenerName, RouteName, "/path/to/cert1.pem", "/path/to/key1.pem", "/path/to/ca1.pem"),
-//			makeHTTPListener(ListenerName2, RouteName2, "/path/to/cert2.pem", "/path/to/key2.pem", "/path/to/ca2.pem"), // Add another listener
-//		},
-//	},)
-// 
 
-func AddSnapshot(nodeID string, snapshot cache.Snapshot) {
+// Snapshot represents the configuration snapshot.
+type Snapshot struct {
+	ClusterName    string
+	RouteName      string
+	ListenerName   string
+	ListenerPort   uint32
+	UpstreamHost   string
+	UpstreamPort   uint32
+	Grpc           bool
+	CertFilePath   string
+	KeyFilePath    string
+	CAFilePath     string
+}
+
+// AddSnapshot adds a snapshot to the cache.
+/*func AddSnapshot(nodeID string, values []Snapshot) error{
 	mu.Lock()
 	defer mu.Unlock()
-	cache_.SetSnapshot(context.Background(), nodeID, snapshot)
-}
+
+	// Create a map to store resources by type
+	resources := make(map[resource.Type][]types.Resource)
+
+	// Iterate over the provided values and create clusters, routes, and listeners
+	for _, value := range values {
+		cluster := MakeCluster(value.ClusterName, value.CertFilePath, value.KeyFilePath, value.CAFilePath, value.UpstreamHost, value.UpstreamPort)
+		route := MakeRoute(value.RouteName, value.ClusterName, value.UpstreamHost)
+		listener := MakeHTTPListener(value.ListenerName, value.ClusterName, value.RouteName, value.CertFilePath, value.KeyFilePath, value.CAFilePath, value.ListenerPort, value.Grpc)
+
+		// Add the resources to the map
+		resources[resource.ClusterType] = append(resources[resource.ClusterType], cluster)
+		resources[resource.RouteType] = append(resources[resource.RouteType], route)
+		resources[resource.ListenerType] = append(resources[resource.ListenerType], listener)
+	}
+
+	// Create a new snapshot and set it in the cache
+	snapshot, err := cache.NewSnapshot(nodeID, resources)
+	if err != nil {
+		return err
+	}
+
+	// Set the snapshot in the cache
+	return cache_.SetSnapshot(context.Background(), nodeID, snapshot)
+}*/
 
 // RemoveSnapshot removes a snapshot from the cache.
 func RemoveSnapshot(nodeID string) {

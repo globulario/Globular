@@ -32,5 +32,6 @@ func (logger Logger) Warnf(format string, args ...interface{}) {
 
 // Log to stdout always.
 func (logger Logger) Errorf(format string, args ...interface{}) {
+	
 	log.Printf(format+"\n", args...)
 }

@@ -12,7 +12,10 @@ import (
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -32,7 +35,6 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath, upstreamHos
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       makeEndpoint(clusterName, upstreamHost, upstreamPort),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-		TransportSocket:      makeUpstreamTls(certFilePath, keyFilePath, caFilePath),
 	}
 
 	// I case of TLS, we need to set the transport socket
@@ -193,7 +195,7 @@ func MakeRoute(routeName string, clusterName, upstreamHost string) *route.RouteC
  * makeHTTPListener creates a new HTTP(s) listener.
  * The listener config references the RDS configuration defined below.
  */
-func MakeHTTPListener(listenerName, clusterName, route, certFilePath, keyFilePath, caFilePath string, listenerPort uint32, grpc bool) *listener.Listener {
+func MakeHTTPListener(listenerName, clusterName, routeName, certFilePath, keyFilePath, caFilePath string, listenerPort uint32, grpc bool) *listener.Listener {
 
 	routerConfig, _ := anypb.New(&router.Router{})
 
@@ -203,8 +205,8 @@ func MakeHTTPListener(listenerName, clusterName, route, certFilePath, keyFilePat
 		StatPrefix: "http",
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
-				ConfigSource:    makeConfigSource(clusterName),
-				RouteConfigName: route,
+				ConfigSource:    makeConfigSource(), // TODO: ---> xds_cluster
+				RouteConfigName: routeName,
 			},
 		},
 	}
@@ -213,22 +215,18 @@ func MakeHTTPListener(listenerName, clusterName, route, certFilePath, keyFilePat
 	if grpc {
 		// Add GrpcWeb filter
 		grpcWebFilter, _ := anypb.New(&grpc_web.GrpcWeb{}) // GrpcWeb filter
-		manager.HttpFilters = []*hcm.HttpFilter{
-			{
-				Name: "envoy.filters.http.grpc_web",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: grpcWebFilter,
-				},
+		manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
+			Name: wellknown.GRPCWeb,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: grpcWebFilter,
 			},
-			// Other filters
-		}
+		})
 	}
 
-	// Add http router filter
-	manager.HttpFilters = []*hcm.HttpFilter{{
-		Name:       "envoy.filters.http.router",
+	manager.HttpFilters = append(manager.HttpFilters,&hcm.HttpFilter{
+		Name:       wellknown.Router,
 		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
-	}}
+	})
 
 	pbst, err := anypb.New(manager)
 	if err != nil {
@@ -266,7 +264,9 @@ func MakeHTTPListener(listenerName, clusterName, route, certFilePath, keyFilePat
 	return l
 }
 
-func makeConfigSource(clusterName string) *core.ConfigSource {
+// !!!! here the clusterName can be the one in envoy.yaml...
+// ---> xds_cluster
+func makeConfigSource() *core.ConfigSource {
 	source := &core.ConfigSource{}
 	source.ResourceApiVersion = resource.DefaultAPIVersion
 	source.ConfigSourceSpecifier = &core.ConfigSource_ApiConfigSource{
@@ -276,10 +276,35 @@ func makeConfigSource(clusterName string) *core.ConfigSource {
 			SetNodeOnFirstMessageOnly: true,
 			GrpcServices: []*core.GrpcService{{
 				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: clusterName},
+					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: "xds_cluster"},
 				},
 			}},
 		},
 	}
 	return source
+}
+
+// Test the function...
+const (
+	ClusterName  = "example_proxy_cluster"
+	RouteName    = "storage"
+	ListenerName = "listener_0"
+	ListenerPort = 10000
+	UpstreamHost = "globule-ryzen.globular.cloud"
+	UpstreamPort = 10240
+	CertFilePath = ""//"/etc/globular/config/tls/globule-ryzen.globular.cloud.crt"
+	KeyFilePath  = ""//"/etc/globular/config/tls/server.pem"
+	issuerPath   = ""//"/etc/globular/config/tls/globule-ryzen.globular.cloud.issuer.crt"
+	CaFilePath   = ""//"/etc/globular/config/tls/ca.crt"
+)
+
+func GenerateSnapshot() cache.Snapshot {
+	snap, _ := cache.NewSnapshot("1",
+		map[resource.Type][]types.Resource{
+			resource.ClusterType:  {MakeCluster(ClusterName, CertFilePath, KeyFilePath, issuerPath, UpstreamHost, UpstreamPort)},
+			resource.RouteType:    {MakeRoute(RouteName, ClusterName, UpstreamHost)},
+			resource.ListenerType: {MakeHTTPListener(ListenerName, ClusterName , RouteName,  CertFilePath, KeyFilePath, issuerPath, ListenerPort, true)},
+		},
+	)
+	return snap
 }
