@@ -8,14 +8,15 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	cors "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	grpc_web "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_web/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v31 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -27,14 +28,17 @@ import (
  * The cluster is configured with a DNS resolver to allow Envoy to resolve the
  * cluster IP address from the DNS name.
  */
-func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath, upstreamHost string, upstreamPort uint32) *cluster.Cluster {
+func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endPoints []EndPoint) *cluster.Cluster {
+
+	// Create the cluster
 	c := &cluster.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment:       makeEndpoint(clusterName, upstreamHost, upstreamPort),
+		LoadAssignment:       makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
+		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
 	}
 
 	// I case of TLS, we need to set the transport socket
@@ -87,6 +91,7 @@ func makeUpstreamTls(certFilePath, keyFilePath, caFilePath string) *core.Transpo
 						},
 					},
 					AlpnProtocols: []string{"h2", "http/1.1"},
+					TlsParams:     &tls.TlsParameters{TlsMinimumProtocolVersion: tls.TlsParameters_TLSv1_3, TlsMaximumProtocolVersion: tls.TlsParameters_TLSv1_3},
 				},
 			}),
 		},
@@ -129,42 +134,51 @@ func makeDownstreamTls(certFilePath, keyFilePath, caFilePath string) *core.Trans
 						},
 					},
 					AlpnProtocols: []string{"h2", "http/1.1"},
+					TlsParams:     &tls.TlsParameters{TlsMinimumProtocolVersion: tls.TlsParameters_TLSv1_3, TlsMaximumProtocolVersion: tls.TlsParameters_TLSv1_3},
 				},
 			}),
 		},
 	}
 }
 
-func makeEndpoint(clusterName, upstreamHost string, upstreamPort uint32) *endpoint.ClusterLoadAssignment {
-	return &endpoint.ClusterLoadAssignment{
+func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint.ClusterLoadAssignment {
+
+	load_assignment := &endpoint.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints: []*endpoint.LocalityLbEndpoints{{
-			LbEndpoints: []*endpoint.LbEndpoint{{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.SocketAddress_TCP,
-									Address:  upstreamHost,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: upstreamPort,
-									},
+			LbEndpoints: []*endpoint.LbEndpoint{
+			},
+		}},
+	}
+
+	for _, endPoint := range endPoints {
+		load_assignment.Endpoints[0].LbEndpoints = append(load_assignment.Endpoints[0].LbEndpoints, &endpoint.LbEndpoint{
+			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+				Endpoint: &endpoint.Endpoint{
+					Address: &core.Address{
+						Address: &core.Address_SocketAddress{
+							SocketAddress: &core.SocketAddress{
+								Protocol: core.SocketAddress_TCP,
+								Address:  endPoint.Host,
+								PortSpecifier: &core.SocketAddress_PortValue{
+									PortValue: endPoint.Port,
 								},
 							},
 						},
 					},
 				},
-			}},
-		}},
+			},
+		})
 	}
+
+	return load_assignment
 }
 
 /**
  * makeRoute creates a new route for Envoy to forward HTTP requests to the
  * upstream cluster.
  */
-func MakeRoute(routeName string, clusterName, upstreamHost string) *route.RouteConfiguration {
+func MakeRoute(routeName string, clusterName, host string) *route.RouteConfiguration {
 	return &route.RouteConfiguration{
 		Name: routeName,
 		VirtualHosts: []*route.VirtualHost{{
@@ -182,11 +196,25 @@ func MakeRoute(routeName string, clusterName, upstreamHost string) *route.RouteC
 							Cluster: clusterName,
 						},
 						HostRewriteSpecifier: &route.RouteAction_HostRewriteLiteral{
-							HostRewriteLiteral: upstreamHost,
+							HostRewriteLiteral: host,
 						},
 					},
 				},
 			}},
+			// Add CORS policy to allow all origins.
+			Cors: &route.CorsPolicy{
+				AllowOriginStringMatch: []*v31.StringMatcher{
+					{
+						MatchPattern: &v31.StringMatcher_Prefix{
+							Prefix: "*",
+						},
+					},
+				},
+				AllowMethods: "GET, PUT, DELETE, POST, OPTIONS",
+				AllowHeaders: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout",
+				MaxAge:       "1728000",
+				ExposeHeaders: "custom-header-1,grpc-status,grpc-message",
+			},
 		}},
 	}
 }
@@ -195,9 +223,7 @@ func MakeRoute(routeName string, clusterName, upstreamHost string) *route.RouteC
  * makeHTTPListener creates a new HTTP(s) listener.
  * The listener config references the RDS configuration defined below.
  */
-func MakeHTTPListener(listenerName, clusterName, routeName, certFilePath, keyFilePath, caFilePath string, listenerPort uint32, grpc bool) *listener.Listener {
-
-	routerConfig, _ := anypb.New(&router.Router{})
+func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName,  clusterName, routeName, certFilePath, keyFilePath, caFilePath string) *listener.Listener {
 
 	// HTTP filter configuration
 	manager := &hcm.HttpConnectionManager{
@@ -209,25 +235,31 @@ func MakeHTTPListener(listenerName, clusterName, routeName, certFilePath, keyFil
 				RouteConfigName: routeName,
 			},
 		},
+		// Had necessary filters...
+		HttpFilters: []*hcm.HttpFilter{
+			{
+				Name: "envoy.filters.http.grpc_web",
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&grpc_web.GrpcWeb{}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.cors",
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&cors.Cors{}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.router",
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&router.Router{}),
+				},
+			},
+		},
+
 	}
 
 	// Add GrpcWeb filter if needed
-	if grpc {
-		// Add GrpcWeb filter
-		grpcWebFilter, _ := anypb.New(&grpc_web.GrpcWeb{}) // GrpcWeb filter
-		manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
-			Name: wellknown.GRPCWeb,
-			ConfigType: &hcm.HttpFilter_TypedConfig{
-				TypedConfig: grpcWebFilter,
-			},
-		})
-	}
-
-	manager.HttpFilters = append(manager.HttpFilters,&hcm.HttpFilter{
-		Name:       wellknown.Router,
-		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
-	})
-
 	pbst, err := anypb.New(manager)
 	if err != nil {
 		panic(err)
@@ -239,7 +271,7 @@ func MakeHTTPListener(listenerName, clusterName, routeName, certFilePath, keyFil
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: core.SocketAddress_TCP,
-					Address:  "0.0.0.0",
+					Address:  listenerHost,
 					PortSpecifier: &core.SocketAddress_PortValue{
 						PortValue: listenerPort,
 					},
@@ -289,21 +321,29 @@ const (
 	ClusterName  = "example_proxy_cluster"
 	RouteName    = "storage"
 	ListenerName = "listener_0"
-	ListenerPort = 10000
-	UpstreamHost = "globule-ryzen.globular.cloud"
-	UpstreamPort = 10240
-	CertFilePath = ""//"/etc/globular/config/tls/globule-ryzen.globular.cloud.crt"
-	KeyFilePath  = ""//"/etc/globular/config/tls/server.pem"
-	issuerPath   = ""//"/etc/globular/config/tls/globule-ryzen.globular.cloud.issuer.crt"
-	CaFilePath   = ""//"/etc/globular/config/tls/ca.crt"
+	ListenerPort = 10225
+	hostName = "globule-ryzen.globular.cloud"
+	UpstreamPort = 10224
+	CertFilePath = "/etc/globular/config/tls/globule-ryzen.globular.cloud.crt"
+	KeyFilePath  = "/etc/globular/config/tls/server.pem"
+	issuerPath   = "/etc/globular/config/tls/globule-ryzen.globular.cloud.issuer.crt"
+	CaFilePath   = "/etc/globular/config/tls/ca.crt"
+	ServerCert   = "/etc/globular/config/tls/server.crt"
 )
 
 func GenerateSnapshot() cache.Snapshot {
+	endpoints := []EndPoint{
+		{
+			Host: hostName,
+			Port: UpstreamPort,
+		},
+	}
+
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {MakeCluster(ClusterName, CertFilePath, KeyFilePath, issuerPath, UpstreamHost, UpstreamPort)},
-			resource.RouteType:    {MakeRoute(RouteName, ClusterName, UpstreamHost)},
-			resource.ListenerType: {MakeHTTPListener(ListenerName, ClusterName , RouteName,  CertFilePath, KeyFilePath, issuerPath, ListenerPort, true)},
+			resource.ClusterType:  {MakeCluster(ClusterName, ServerCert, KeyFilePath, CaFilePath, endpoints)},
+			resource.RouteType:    {MakeRoute(RouteName, ClusterName, hostName)},
+			resource.ListenerType: {MakeHTTPListener(hostName, ListenerPort, ListenerName, ClusterName, RouteName, CertFilePath, KeyFilePath, issuerPath)},
 		},
 	)
 	return snap
