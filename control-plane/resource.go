@@ -211,7 +211,7 @@ func MakeRoute(routeName string, clusterName, host string) *route.RouteConfigura
 					},
 				},
 				AllowMethods: "GET, PUT, DELETE, POST, OPTIONS",
-				AllowHeaders: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout",
+				AllowHeaders: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout, domain, address, token, application, path",
 				MaxAge:       "1728000",
 				ExposeHeaders: "custom-header-1,grpc-status,grpc-message",
 			},
@@ -343,7 +343,7 @@ func GenerateSnapshot() cache.Snapshot {
 		map[resource.Type][]types.Resource{
 			resource.ClusterType:  {MakeCluster(ClusterName, ServerCert, KeyFilePath, CaFilePath, endpoints)},
 			resource.RouteType:    {MakeRoute(RouteName, ClusterName, hostName)},
-			resource.ListenerType: {MakeHTTPListener(hostName, ListenerPort, ListenerName, ClusterName, RouteName, CertFilePath, KeyFilePath, issuerPath)},
+			resource.ListenerType: {MakeHTTPListener("0.0.0.0", ListenerPort, ListenerName, ClusterName, RouteName, CertFilePath, KeyFilePath, issuerPath)},
 		},
 	)
 	return snap

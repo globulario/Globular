@@ -184,10 +184,10 @@ func NewGlobule() *Globule {
 	g.Version = "1.0.0" // Automate version...
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
-	g.IndexApplication = ""                                                                                                                                            // I will use the installer as defaut.
-	g.PortHttp = 80                                                                                                                                                    // The default http port 80 is almost already use by other http server...
-	g.PortHttps = 443                                                                                                                                                  // The default https port number
-	g.PortsRange = "10000-10100"                                                                                                                                       // The default port range.
+	g.IndexApplication = ""      // I will use the installer as defaut.
+	g.PortHttp = 80              // The default http port 80 is almost already use by other http server...
+	g.PortHttps = 443            // The default https port number
+	g.PortsRange = "10000-10100" // The default port range.
 	g.ServicesRoot = config.GetServicesRoot()
 
 	// Set the default mac.
@@ -1388,19 +1388,10 @@ func (globule *Globule) startServices() error {
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
-			pid, err := process.StartServiceProcess(service, port, proxyPort)
+			_, err := process.StartServiceProcess(service, port, proxyPort)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
-			} else {
-				go func(service map[string]interface{}, pid int, name string) {
-					_, err = process.StartServiceProxyProcess(service, globule.CertificateAuthorityBundle, globule.Certificate, proxyPort, pid)
-					// So here I will try to start the proxy process for at leat 30 second before givin up...
-					if err != nil {
-						fmt.Println("fail to start proxy process for service", name, "with error:", err)
-					}
-				}(service, pid, name)
 			}
-
 		}
 	}
 
@@ -1737,7 +1728,6 @@ func (globule *Globule) initControlPlane() {
 		}
 	}()
 
-
 	// Wait for either the control plane to finish or the context to be canceled
 	select {
 	case <-ctx.Done():
@@ -1748,7 +1738,6 @@ func (globule *Globule) initControlPlane() {
 
 	fmt.Println("Exiting...")
 }
-
 
 /**
  * Start serving the content.
@@ -1790,11 +1779,49 @@ func (globule *Globule) Serve() error {
 	// Now I will initialize the control plane.
 	go globule.initControlPlane()
 
-	// test to add a new snapshot
-	//controlplane.AddSnapshot("test_node", )
+	// Now I will add services to envoy configuration.
+	services, err := config.GetServicesConfigurations()
+	if err != nil {
+		return err
+	}
+
+	spnapShots := make([]controlplane.Snapshot, 0)
+
+
+	// Add services to envoy configuration.
+	// TODO: Add peers services on the endpoint.
+	for i := 0; i < len(services); i++ {
+		service := services[i]
+
+		host := strings.Split(service["Address"].(string), ":")[0]
+		snapshot := controlplane.Snapshot{
+			ClusterName:  strings.ReplaceAll(service["Name"].(string), ".", "_") + "_cluster",
+			RouteName:    strings.ReplaceAll(service["Name"].(string), ".", "_") + "_route",
+			ListenerName: strings.ReplaceAll(service["Name"].(string), ".", "_")  + "_listener",
+			ListenerPort: uint32((Utility.ToInt(service["Proxy"]))),
+			ListenerHost: "0.0.0.0"/**host*/, // local address.
+			
+			EndPoints:    []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"]))}},
+			
+			// grpc certificate...
+			ServerCertPath: service["CertFile"].(string),
+			KeyFilePath:  service["KeyFile"].(string),
+			CAFilePath: service["CertAuthorityTrust"].(string),
+
+			// Let's encrypt certificate...
+			CertFilePath: config.GetLocalCertificate(),
+			IssuerFilePath: config.GetLocalCertificateAuthorityBundle(),
+			
+		}
+		
+		spnapShots = append(spnapShots, snapshot)
+
+	}
+	
+	err = controlplane.AddSnapshot("test-id", "1", spnapShots)
 
 	if err != nil {
-		fmt.Println("fail to init peers whit error ", err)
+		fmt.Println("fail to init envoy configuration with error ", err)
 		return err
 	}
 
@@ -2338,7 +2365,7 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 		path := string(evt.Data)
 		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/") {
 			path = config.GetDataDir() + "/files" + path
-			
+
 		}
 	}
 }
