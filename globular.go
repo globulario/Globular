@@ -1104,7 +1104,7 @@ func resetRules() error {
 	// set rules for services contain in bin folder.
 	deleteRule("alertmanager")
 	deleteRule("mongod")
-	deleteRule("prometheu")
+	deleteRule("prometheus")
 	deleteRule("grpcwebproxy")
 	deleteRule("torrent")
 	deleteRule("yt-dlp")
@@ -1722,8 +1722,11 @@ func (globule *Globule) initControlPlane() {
 	// Start the control plane in a goroutine
 	go func() {
 		defer wg.Done()
+
+		// so here I will read the envoy configuration file and set it to the control plane.
+
 		// TODO: Make the control plane port configurable, it must set also in envoy.yaml
-		if err := controlplane.StartControlPlane(ctx, 8081, globule.exit); err != nil {
+		if err := controlplane.StartControlPlane(ctx, 9900, globule.exit); err != nil {
 			fmt.Printf("Error starting control plane: %v\n", err)
 		}
 	}()
@@ -1795,13 +1798,14 @@ func (globule *Globule) Serve() error {
 
 		host := strings.Split(service["Address"].(string), ":")[0]
 		snapshot := controlplane.Snapshot{
+
 			ClusterName:  strings.ReplaceAll(service["Name"].(string), ".", "_") + "_cluster",
 			RouteName:    strings.ReplaceAll(service["Name"].(string), ".", "_") + "_route",
 			ListenerName: strings.ReplaceAll(service["Name"].(string), ".", "_")  + "_listener",
 			ListenerPort: uint32((Utility.ToInt(service["Proxy"]))),
-			ListenerHost: "0.0.0.0"/**host*/, // local address.
+			ListenerHost: "0.0.0.0", // local address.
 			
-			EndPoints:    []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"]))}},
+			EndPoints:    []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"])), Priority: 100}},
 			
 			// grpc certificate...
 			ServerCertPath: service["CertFile"].(string),
@@ -1818,10 +1822,17 @@ func (globule *Globule) Serve() error {
 
 	}
 	
-	err = controlplane.AddSnapshot("test-id", "1", spnapShots)
+	err = controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 
 	if err != nil {
 		fmt.Println("fail to init envoy configuration with error ", err)
+		return err
+	}
+
+	// Now I will start the envoy proxy.
+	err = process.StartEnvoyProxy()
+	if err != nil {
+		fmt.Println("fail to start envoy proxy with error ", err)
 		return err
 	}
 

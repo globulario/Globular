@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -24,30 +23,6 @@ var (
  * snapshot. It blocks until the server terminates or until the context is canceled.
  */
 func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
-
-	// I will test a simple snapshot with a single cluster, route, and listener
-	/*snapshot := GenerateSnapshot()
-	if err := snapshot.Consistent(); err != nil {
-		l.Errorf("snapshot inconsistency: %+v\n%+v", snapshot, err)
-		return err
-	}
-
-	l.Debugf("will serve snapshot %+v", snapshot)
-
-	jsonSnapshot, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		l.Errorf("snapshot error %q for %+v", err, snapshot)
-		return err	
-	}
-	fmt.Println("------> json snapshot: ", string(jsonSnapshot))
-
-
-	// Add the snapshot to the cache
-	if err := cache_.SetSnapshot(context.Background(), "test-id", snapshot); err != nil {
-		l.Errorf("snapshot error %q for %+v", err, snapshot)
-		return err
-	}*/
-
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -78,6 +53,7 @@ func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
 type EndPoint struct {
 	Host string
 	Port uint32
+	Priority uint32
 }
 
 // Snapshot represents the configuration snapshot.
@@ -141,13 +117,6 @@ func AddSnapshot(id, version string, values []Snapshot) error{
 
 
 	l.Debugf("will serve snapshot %+v", snapshot)
-	jsonSnapshot, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		l.Errorf("snapshot error %q for %+v", err, snapshot)
-		return err	
-	}
-	fmt.Println("------> json snapshot: ", string(jsonSnapshot))
-
 
 	// Set the snapshot in the cache
 	return cache_.SetSnapshot(context.Background(), id, snapshot)

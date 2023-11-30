@@ -1,6 +1,6 @@
 node:
-  cluster: test-cluster
-  id: test-id
+  cluster: globular-cluster
+  id: globular-xds
 
 dynamic_resources:
   ads_config:
