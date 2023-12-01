@@ -24,6 +24,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"gopkg.in/yaml.v3"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
@@ -1590,20 +1591,16 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	}
 }
 
-/**
- * Here I will init the list of peers.
- */
-func (globule *Globule) initPeers() error {
-
+func (globule *Globule) getPeers() ([]*resourcepb.Peer, error) {
+	peers := make([]*resourcepb.Peer, 0)
 	address, _ := config.GetAddress()
 
 	resource_client_, err := getResourceClient(address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Return the registered peers
-	var peers []*resourcepb.Peer
 	nbTry := 10
 	for i := 0; i < nbTry; i++ {
 		peers, err = resource_client_.GetPeers("")
@@ -1615,6 +1612,21 @@ func (globule *Globule) initPeers() error {
 		}
 	}
 
+	return peers, nil
+}
+
+/**
+ * Here I will init the list of peers.
+ */
+func (globule *Globule) initPeers() error {
+
+
+	// Return the registered peers
+	peers, err := globule.getPeers()
+	if err != nil {
+		return err
+	}
+
 	// Now I will set peers in the host file.
 	for i := 0; i < len(peers); i++ {
 		p := peers[i]
@@ -1624,7 +1636,6 @@ func (globule *Globule) initPeers() error {
 
 		// Try to update with updated infos...
 		go func(p *resourcepb.Peer) {
-
 			globule.initPeer(p)
 		}(p)
 	}
@@ -1723,10 +1734,25 @@ func (globule *Globule) initControlPlane() {
 	go func() {
 		defer wg.Done()
 
-		// so here I will read the envoy configuration file and set it to the control plane.
+		// so here I will read the envoy yaml configuration file and set it to the control plane.
+		data, err := os.ReadFile(config.GetConfigDir() + "/envoy.yaml")
+		if err != nil {
+			fmt.Println("fail to read envoy configuration file with error ", err)
+			return
+		}
+
+		config := make(map[string]interface{})
+		err = yaml.Unmarshal(data, &config)
+		if err != nil {
+			fmt.Println("fail to unmarshal envoy configuration file with error ", err)
+			return
+		}
+
+		// Get the port from the envoy configuration file.
+		port := config["static_resources"].(map[string]interface{})["clusters"].([]interface{})[0].(map[string]interface{})["load_assignment"].(map[string]interface{})["endpoints"].([]interface{})[0].(map[string]interface{})["lb_endpoints"].([]interface{})[0].(map[string]interface{})["endpoint"].(map[string]interface{})["address"].(map[string]interface{})["socket_address"].(map[string]interface{})["port_value"].(int)
 
 		// TODO: Make the control plane port configurable, it must set also in envoy.yaml
-		if err := controlplane.StartControlPlane(ctx, 9900, globule.exit); err != nil {
+		if err := controlplane.StartControlPlane(ctx, uint(port), globule.exit); err != nil {
 			fmt.Printf("Error starting control plane: %v\n", err)
 		}
 	}()
@@ -1817,8 +1843,25 @@ func (globule *Globule) Serve() error {
 			IssuerFilePath: config.GetLocalCertificateAuthorityBundle(),
 			
 		}
+
+		// Now I will add endpoints from peers who have the same service.
+		// TODO: In order to be able to redirect request to other peers 
+		// certificates must be generated with all peers domain name in the SAN field.
+		// Or a wildcard certificate must be generated for the domain.
+		/*for _, p := range globule.Peers {
+			peer := p.(map[string]interface{})
+			
+			remoteService, err := config.GetRemoteServiceConfig(peer["Hostname"].(string) + "." + peer["Domain"].(string), Utility.ToInt(peer["Port"]), service["Name"].(string))
+			host := strings.Split(remoteService["Address"].(string), ":")[0]
+			if err == nil {
+				endpoint := controlplane.EndPoint{Host: host, Port: uint32(Utility.ToInt(remoteService["Port"])), Priority: 80}
+				snapshot.EndPoints = append(snapshot.EndPoints, endpoint)
+			}
+		}*/
 		
 		spnapShots = append(spnapShots, snapshot)
+
+		
 
 	}
 	

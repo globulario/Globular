@@ -15,6 +15,7 @@ import (
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	v31 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -33,7 +34,7 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endP
 	c := &cluster.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
-		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
+		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_STRICT_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
@@ -141,50 +142,50 @@ func makeDownstreamTls(certFilePath, keyFilePath, caFilePath string) *core.Trans
 }
 
 func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint.ClusterLoadAssignment {
-
-	load_assignment := &endpoint.ClusterLoadAssignment{
-		ClusterName: clusterName,
-		Endpoints: []*endpoint.LocalityLbEndpoints{{
-			LbEndpoints: []*endpoint.LbEndpoint{},
-		}},
-	}
-
+	var lbEndpoints []*endpoint.LbEndpoint
+	
 	for _, endPoint := range endPoints {
-		load_assignment.Endpoints[0].LbEndpoints = append(load_assignment.Endpoints[0].LbEndpoints,
-			&endpoint.LbEndpoint{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.SocketAddress_TCP,
-									Address:  endPoint.Host,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: endPoint.Port,
-									},
-								},
-							},
-						},
-					},
-				},
-				Metadata: &core.Metadata{
-					FilterMetadata: map[string]*structpb.Struct{
-						"envoy.lb": {
-							Fields: map[string]*structpb.Value{
-								"priority": {
-									Kind: &structpb.Value_NumberValue{
-										NumberValue: float64(endPoint.Priority),
-									},
+
+		lbEndpoint := &endpoint.LbEndpoint{
+			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+				Endpoint: &endpoint.Endpoint{
+					Address: &core.Address{
+						Address: &core.Address_SocketAddress{
+							SocketAddress: &core.SocketAddress{
+								Protocol: core.SocketAddress_TCP,
+								Address:  endPoint.Host,
+								PortSpecifier: &core.SocketAddress_PortValue{
+									PortValue: endPoint.Port,
 								},
 							},
 						},
 					},
 				},
 			},
-		)
+			Metadata: &core.Metadata{
+				FilterMetadata: map[string]*structpb.Struct{
+					"envoy.lb": {
+						Fields: map[string]*structpb.Value{
+							"priority": {
+								Kind: &structpb.Value_NumberValue{
+									NumberValue: float64(endPoint.Priority),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		lbEndpoints = append(lbEndpoints, lbEndpoint)
 	}
 
-	return load_assignment
+	return &endpoint.ClusterLoadAssignment{
+		ClusterName: clusterName,
+		Endpoints: []*endpoint.LocalityLbEndpoints{{
+			LbEndpoints: lbEndpoints,
+		}},
+	}
 }
 
 /**
@@ -198,6 +199,7 @@ func MakeRoute(routeName string, clusterName, host string) *route.RouteConfigura
 			Name:    "local_service",
 			Domains: []string{"*"},
 			Routes: []*route.Route{{
+
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
 						Prefix: "/",
@@ -211,6 +213,7 @@ func MakeRoute(routeName string, clusterName, host string) *route.RouteConfigura
 						HostRewriteSpecifier: &route.RouteAction_HostRewriteLiteral{
 							HostRewriteLiteral: host,
 						},
+						Timeout: ptypes.DurationProto(time.Duration(0)), // Infinite timeout
 					},
 				},
 			}},
