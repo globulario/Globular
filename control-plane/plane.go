@@ -131,7 +131,7 @@ func RemoveSnapshot(nodeID string) {
 }
 
 // GetSnapshot returns the current snapshot for a given node ID.
-func GetSnapshot(nodeID string) (cache.Snapshot, error){
+func GetSnapshot(nodeID string) (cache.ResourceSnapshot, error){
 	mu.Lock()
 	defer mu.Unlock()
 	return cache_.GetSnapshot(nodeID)

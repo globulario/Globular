@@ -1816,7 +1816,6 @@ func (globule *Globule) Serve() error {
 
 	spnapShots := make([]controlplane.Snapshot, 0)
 
-
 	// Add services to envoy configuration.
 	// TODO: Add peers services on the endpoint.
 	for i := 0; i < len(services); i++ {
@@ -1892,6 +1891,15 @@ func (globule *Globule) Serve() error {
 
 	// set services configuration values
 	globule.publish("start_peer_evt", jsonStr)
+
+
+	// I will now start etcd server.
+	err = process.StartEtcdServer()
+	if err != nil {
+		fmt.Println("fail to start envoy proxy with error ", err)
+		return err
+	}
+
 
 	err = globule.serve()
 	if err != nil {
@@ -2082,7 +2090,7 @@ func (globule *Globule) setHost(ipv4, address string) error {
 	}
 
 	// Here I will test if the previous address is a local address...
-	exist, address_, _ := hosts.HostAddressLookup(address)
+	exist, address_, _ := hosts.HostAddressLookup(address, txeh.IPFamilyV4)
 	if exist {
 		if Utility.IsLocal(address_) && !Utility.IsLocal(ipv4) {
 			// If the previous address was a local address I will not replace it by a non local address...
