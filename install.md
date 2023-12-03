@@ -177,15 +177,6 @@ go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
-### grpcwebproxy
-```bash
-git clone github.com/improbable-eng/grpc-web.git
-cd go/grpcwebproxy
-go build
-cp grpcwebproxy ~/globulario/services/bin/
-sudo chmod +x ~/globulario/services/bin/grpcwebproxy
-```
-
 ### Globular project itself
 ```bash
 mkdir globulario

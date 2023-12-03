@@ -549,7 +549,8 @@ func main() {
 			Utility.KillProcessByName("mongod")
 			Utility.KillProcessByName("prometheus")
 			Utility.KillProcessByName("torrent")
-			Utility.KillProcessByName("grpcwebproxy")
+			Utility.KillProcessByName("envoy")
+			Utility.KillProcessByName("etcd")
 
 			// reset environmement...
 			resetSystemPath()
@@ -1495,7 +1496,6 @@ func dist(g *Globule, path string, revision string) {
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
-			rm /usr/local/bin/grpcwebproxy
 			rm /usr/local/lib/libz.so
 			rm /usr/local/lib/libz.so.1
 			rm /usr/local/lib/libodbc.so.2
@@ -1541,7 +1541,6 @@ func dist(g *Globule, path string, revision string) {
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
-			rm /usr/local/bin/grpcwebproxy
 			rm /usr/local/lib/libz.so
 			rm /usr/local/lib/libz.so.1
 			rm /usr/local/lib/libodbc.so.2
@@ -1580,10 +1579,6 @@ func dist(g *Globule, path string, revision string) {
 		 echo "create link to Globular exec"
 		 ln -s /usr/local/share/globular/Globular /usr/local/bin/Globular
 		 chmod +x /usr/local/bin/Globular
-
-		 echo "create link to grpcwebproxy exec"
-		 ln -s /usr/local/share/globular/bin/grpcwebproxy /usr/local/bin/grpcwebproxy
-		 chmod +x /usr/local/bin/grpcwebproxy
 
 		 echo "create link to torrent exec"
 		 ln -s /usr/local/share/globular/bin/torrent /usr/local/bin/torrent
@@ -1658,7 +1653,6 @@ func dist(g *Globule, path string, revision string) {
 			rm /etc/systemd/system/Globular.service
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
-			rm /usr/local/bin/grpcwebproxy
 			rm /usr/local/lib/libz.so
 			rm /usr/local/lib/libz.so.1
 			rm /usr/local/lib/libodbc.so.2

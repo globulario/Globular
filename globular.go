@@ -11,7 +11,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"net/http"
@@ -25,6 +24,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
@@ -380,18 +381,13 @@ func (globule *Globule) registerAdminAccount() error {
 		// Admin is created
 		err = globule.createAdminRole()
 		if err != nil {
-			fmt.Println("fail to create admin role", err)
-			return err
-		}
-
-		// Set admin role to that account.
-		if err == nil {
-			err = resource_client_.AddAccountRole("sa", "admin")
-			if err != nil {
-				fmt.Println("fail to add admin role to sa", err)
+			if !strings.Contains(err.Error(), "already exist") {
 				return err
 			}
 		}
+
+		// Set admin role to that account.
+		resource_client_.AddAccountRole("sa", "admin")
 
 	} else {
 		if len(results) == 0 {
@@ -1106,7 +1102,6 @@ func resetRules() error {
 	deleteRule("alertmanager")
 	deleteRule("mongod")
 	deleteRule("prometheus")
-	deleteRule("grpcwebproxy")
 	deleteRule("torrent")
 	deleteRule("yt-dlp")
 
@@ -1252,18 +1247,6 @@ func setSystemPath() error {
 			}
 		}
 
-		// set rules for services contain in bin folder.
-		execs = Utility.GetFilePathsByExtension(config.GetRootDir()+"/bin", ".exe")
-		for i := 0; i < len(execs); i++ {
-			exec := strings.ReplaceAll(execs[i], "\\", "/")
-			if strings.HasSuffix(exec, "grpcwebproxy.exe") {
-				err := enableProgramFwMgr("grpcwebproxy", exec)
-				if err != nil {
-					fmt.Println("fail to set rule for grpcwebproxy.exe with error", err)
-				}
-			}
-		}
-
 		// now the services rules
 		services, err := config.GetServicesConfigurations()
 		if err != nil {
@@ -1338,11 +1321,10 @@ func (globule *Globule) startServices() error {
 
 	fmt.Println("start services")
 
-	Utility.KillProcessByName("grpcwebproxy")
-
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(globule.Mac)
 
+	fmt.Println("------> 1327")
 	// This is the local token...
 	err := globule.refreshLocalToken()
 	if err != nil {
@@ -1389,6 +1371,7 @@ func (globule *Globule) startServices() error {
 			port := start_port + (i * 2)
 			proxyPort := start_port + (i * 2) + 1
 
+			fmt.Println("start service ", name, " on port ", port, " and proxy port ", proxyPort)
 			_, err := process.StartServiceProcess(service, port, proxyPort)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
@@ -1664,15 +1647,15 @@ func (globule *Globule) stopServices() error {
 
 	if err == nil {
 		for i := 0; i < len(services_configs); i++ {
-			services_configs[i]["State"] = "stopped"
+			services_configs[i]["State"] = "killed"
 			services_configs[i]["Process"] = -1
 			services_configs[i]["ProxyProcess"] = -1
-			config.SaveServiceConfiguration(services_configs[i])
+			data, err := Utility.ToJson(services_configs[i])
+			if err == nil {
+				os.WriteFile(services_configs[i]["ConfigPath"].(string), []byte(data), 0644)
+			}
 		}
 	}
-
-	// kill all grpc proxy
-	Utility.KillProcessByName("grpcwebproxy")
 
 	return nil
 }
@@ -1713,6 +1696,7 @@ func (globule *Globule) serve() error {
  * Start the control plane to manage the cluster configuration.
  */
 func (globule *Globule) initControlPlane() {
+
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -1734,10 +1718,69 @@ func (globule *Globule) initControlPlane() {
 		defer wg.Done()
 
 		// so here I will read the envoy yaml configuration file and set it to the control plane.
-		data, err := os.ReadFile(config.GetConfigDir() + "/envoy.yml")
+		configPath := config.GetConfigDir() + "/envoy.yml"
+
+		data, err := os.ReadFile(configPath)
 		if err != nil {
-			fmt.Println("fail to read envoy configuration file with error ", err)
-			return
+			if !Utility.Exists(configPath) {
+				// Here I will create the config file for envoy.
+
+				config_ := `
+node:
+    cluster: globular-cluster
+    id: globular-xds
+
+dynamic_resources:
+    ads_config:
+      api_type: GRPC
+      transport_api_version: V3
+      grpc_services:
+      - envoy_grpc:
+          cluster_name: xds_cluster
+    cds_config:
+        resource_api_version: V3
+        ads: {}
+    lds_config:
+        resource_api_version: V3
+        ads: {}
+
+static_resources:
+    clusters:
+      - type: STRICT_DNS
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            explicit_http_config:
+               http2_protocol_options: {}
+        name: xds_cluster
+        load_assignment:
+            cluster_name: xds_cluster
+            endpoints:
+            - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                       address: 0.0.0.0
+                       port_value: 9900
+
+admin:
+    access_log_path: /dev/null
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 9901
+`
+
+				// Read the content of the YAML file
+				err := os.WriteFile(configPath, []byte(config_), 0644)
+				if err != nil {
+					fmt.Println("fail to create envoy configuration file with error ", err)
+					os.Exit(1)
+				}
+
+				data = []byte(config_)
+			}
+
 		}
 
 		config := make(map[string]interface{})
@@ -1767,62 +1810,11 @@ func (globule *Globule) initControlPlane() {
 	fmt.Println("Exiting...")
 }
 
-/**
- * Start serving the content.
- */
-func (globule *Globule) Serve() error {
+func StartEnvoyProxy() {
 
-	// So here if another instance of the server exist I will kill it.
-	pids, err := Utility.GetProcessIdsByName("Globular")
-	if err == nil {
-		for i := 0; i < len(pids); i++ {
-			if pids[i] != os.Getpid() {
-				Utility.TerminateProcess(pids[i], 0)
-			}
-		}
-	}
-
-	// Initialyse directories.
-	globule.initDirectories()
-
-	// I will now start etcd server.
-	go func() {
-		err = process.StartEtcdServer()
-		if err != nil {
-			fmt.Println("fail to start etcd kv store ", err)
-			os.Exit(1) // exit with error...
-		}
-	}()
-
-	// start listen to http(s)
-	// service must be able to get their configuration via http...
-	err = globule.Listen()
-	if err != nil {
-		fmt.Println("fail to start http server ", err)
-		os.Exit(1) // exit with error...
-		return err
-	}
-
-	// Start microservice manager.
-	globule.startServices()
-
-	// Watch config.
-	globule.watchConfig()
-
-	// Set the fmt information in case of crash...
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// Init peers
-	go globule.initPeers()
-
-	// Now I will initialize the control plane.
-	go globule.initControlPlane()
-
+	// Start envoy proxy.
 	// Now I will add services to envoy configuration.
-	services, err := config.GetServicesConfigurations()
-	if err != nil {
-		return err
-	}
+	services, _ := config.GetServicesConfigurations()
 
 	spnapShots := make([]controlplane.Snapshot, 0)
 
@@ -1831,7 +1823,6 @@ func (globule *Globule) Serve() error {
 
 	// TODO: Add peers services on the endpoint.
 	// I will add it if the proxy is not already set.
-
 	for i := 0; i < len(services); i++ {
 		service := services[i]
 
@@ -1875,26 +1866,82 @@ func (globule *Globule) Serve() error {
 
 			proxies[proxy] = true
 			spnapShots = append(spnapShots, snapshot)
-		}else{
+		} else {
 			fmt.Println("proxy ", proxy, " already set for service ", service["Name"].(string))
 		}
 	}
 
-	err = controlplane.AddSnapshot("globular-xds", "1", spnapShots)
+	err := controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 
 	if err != nil {
 		fmt.Println("fail to init envoy configuration with error ", err)
-		return err
+		//return err
 	}
 
 	go func() {
 		// Now I will start the envoy proxy.
-		err = process.StartEnvoyProxy()
+		err := process.StartEnvoyProxy()
 		if err != nil {
 			fmt.Println("fail to start envoy proxy with error ", err)
+			time.Sleep(5 * time.Second)
+			StartEnvoyProxy()
+		}
+	}()
+}
+
+/**
+ * Start serving the content.
+ */
+func (globule *Globule) Serve() error {
+
+	// So here if another instance of the server exist I will kill it.
+	pids, err := Utility.GetProcessIdsByName("Globular")
+	if err == nil {
+		for i := 0; i < len(pids); i++ {
+			if pids[i] != os.Getpid() {
+				Utility.TerminateProcess(pids[i], 0)
+			}
+		}
+	}
+
+	// Initialyse directories.
+	globule.initDirectories()
+/*
+	// I will now start etcd server.
+	go func() {
+		err = process.StartEtcdServer()
+		if err != nil {
+			fmt.Println("fail to start etcd kv store ", err)
 			os.Exit(1) // exit with error...
 		}
 	}()
+*/
+	// start listen to http(s)
+	// service must be able to get their configuration via http...
+	err = globule.Listen()
+	if err != nil {
+		fmt.Println("fail to start http server ", err)
+		os.Exit(1) // exit with error...
+		return err
+	}
+
+	// Start microservice manager.
+	globule.startServices()
+
+	// Watch config.
+	globule.watchConfig()
+
+	// Set the fmt information in case of crash...
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Init peers
+	go globule.initPeers()
+
+	// Now I will initialize the control plane.
+	go globule.initControlPlane()
+
+	// Start envoy proxy.
+	StartEnvoyProxy()
 
 	p := make(map[string]interface{})
 
