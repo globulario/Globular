@@ -320,25 +320,13 @@ func (globule *Globule) cleanup() {
 
 // Test if the domain has changed.
 func domainHasChanged(domain string) bool {
-	// try to get the domain from the configuration file.
-	local, _ := config.GetAddress()
-	if strings.Contains(local, ":") {
-		local = strings.Split(local, ":")[0]
-	}
-
-	return domain != local
+	// if the domain has chaged that mean the sa@domain does not exist.
+	return !Utility.Exists(config.GetDataDir() + "/files/users/sa@" + domain)
 }
 
 func (globule *Globule) registerAdminAccount() error {
 
 	domain, _ := config.GetDomain()
-	path := config.GetDataDir() + "/files/users/sa@" + domain
-	if !Utility.Exists(path) {
-		err := Utility.CreateDirIfNotExist(path)
-		if err == nil {
-			globule.addResourceOwner("/users/sa@"+domain, "file", "sa@"+domain, rbacpb.SubjectType_ACCOUNT)
-		}
-	}
 
 	// this will return the first resource service with name resource.ResourceService
 	resourceConfig, err := config.GetServiceConfigurationById("resource.ResourceService")
@@ -367,7 +355,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	// Create the admin account.
-	results, _ := resource_client_.GetAccounts(`{"$and":[{"_id":"sa", "domain":"` + domain + `"}]}`)
+	results, _ := resource_client_.GetAccounts(`{"_id":"sa"}`)
 	if len(results) == 0 {
 		fmt.Println("fail to get admin account sa", err)
 		fmt.Println("create admin account sa for domain ", domain)
@@ -389,14 +377,19 @@ func (globule *Globule) registerAdminAccount() error {
 		// Set admin role to that account.
 		resource_client_.AddAccountRole("sa", "admin")
 
-	} else {
-		if len(results) == 0 {
-			return errors.New("fail to get admin account sa")
+		path := config.GetDataDir() + "/files/users/sa@" + domain
+		if !Utility.Exists(path) {
+			err := Utility.CreateDirIfNotExist(path)
+			if err == nil {
+				globule.addResourceOwner("/users/sa@"+domain, "file", "sa@"+domain, rbacpb.SubjectType_ACCOUNT)
+			}
 		}
-
+	
+	} else {
+		fmt.Println("admin account sa already exist")
 		if domainHasChanged(domain) {
-			// Alway update the sa domain...
 
+			// Alway update the sa domain...
 			token, _ := security.GetLocalToken(globule.Mac)
 
 			_, err := security.ValidateToken(token)
@@ -419,6 +412,10 @@ func (globule *Globule) registerAdminAccount() error {
 			if err == nil {
 				for i := 0; i < len(accounts); i++ {
 					if accounts[i].Domain != domain {
+						// I will update the account dir name
+						os.Rename(config.GetDataDir()+"/files/users/"+accounts[i].Id+"@"+accounts[i].Domain, config.GetDataDir()+"/files/users/"+accounts[i].Id+"@"+domain)
+
+						// I will update the account domain
 						accounts[i].Domain = domain
 						resource_client_.SetAccount(token, accounts[i])
 					}
@@ -457,6 +454,8 @@ func (globule *Globule) registerAdminAccount() error {
 					}
 				}
 			}
+
+		
 		}
 	}
 
@@ -1324,7 +1323,6 @@ func (globule *Globule) startServices() error {
 	// Here I will generate the keys for this server if not already exist.
 	security.GeneratePeerKeys(globule.Mac)
 
-	fmt.Println("------> 1327")
 	// This is the local token...
 	err := globule.refreshLocalToken()
 	if err != nil {
