@@ -311,7 +311,7 @@ func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, cl
 	return l
 }
 
-// !!!! here the clusterName can be the one in envoy.yaml...
+// !!!! here the clusterName can be the one in envoy.yml...
 // ---> xds_cluster
 func makeConfigSource() *core.ConfigSource {
 	source := &core.ConfigSource{}

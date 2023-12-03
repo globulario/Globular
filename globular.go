@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"net/http"
@@ -24,7 +25,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"gopkg.in/yaml.v3"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
@@ -981,14 +981,14 @@ func (globule *Globule) initDirectories() error {
 	}
 
 	// I will put the domain into the
-	if globule.AlternateDomains == nil && len(globule.Domain) > 0 && globule.Domain != "yourdomain.com" {
+	if globule.AlternateDomains == nil && len(globule.Domain) > 0 && globule.Domain != "localhost" {
 		globule.AlternateDomains = make([]interface{}, 0)
 		globule.AlternateDomains = append(globule.AlternateDomains, globule.getLocalDomain())
 	}
 
 	// Set the default domain.
 	if len(globule.Domain) == 0 {
-		globule.Domain = "yourdomain.com"
+		globule.Domain = "localhost"
 	}
 
 	if len(globule.Mac) == 0 {
@@ -1620,7 +1620,6 @@ func (globule *Globule) getPeers() ([]*resourcepb.Peer, error) {
  */
 func (globule *Globule) initPeers() error {
 
-
 	// Return the registered peers
 	peers, err := globule.getPeers()
 	if err != nil {
@@ -1735,7 +1734,7 @@ func (globule *Globule) initControlPlane() {
 		defer wg.Done()
 
 		// so here I will read the envoy yaml configuration file and set it to the control plane.
-		data, err := os.ReadFile(config.GetConfigDir() + "/envoy.yaml")
+		data, err := os.ReadFile(config.GetConfigDir() + "/envoy.yml")
 		if err != nil {
 			fmt.Println("fail to read envoy configuration file with error ", err)
 			return
@@ -1751,7 +1750,7 @@ func (globule *Globule) initControlPlane() {
 		// Get the port from the envoy configuration file.
 		port := config["static_resources"].(map[string]interface{})["clusters"].([]interface{})[0].(map[string]interface{})["load_assignment"].(map[string]interface{})["endpoints"].([]interface{})[0].(map[string]interface{})["lb_endpoints"].([]interface{})[0].(map[string]interface{})["endpoint"].(map[string]interface{})["address"].(map[string]interface{})["socket_address"].(map[string]interface{})["port_value"].(int)
 
-		// TODO: Make the control plane port configurable, it must set also in envoy.yaml
+		// TODO: Make the control plane port configurable, it must set also in envoy.yml
 		if err := controlplane.StartControlPlane(ctx, uint(port), globule.exit); err != nil {
 			fmt.Printf("Error starting control plane: %v\n", err)
 		}
@@ -1786,10 +1785,21 @@ func (globule *Globule) Serve() error {
 	// Initialyse directories.
 	globule.initDirectories()
 
+	// I will now start etcd server.
+	go func() {
+		err = process.StartEtcdServer()
+		if err != nil {
+			fmt.Println("fail to start etcd kv store ", err)
+			os.Exit(1) // exit with error...
+		}
+	}()
+
 	// start listen to http(s)
 	// service must be able to get their configuration via http...
 	err = globule.Listen()
 	if err != nil {
+		fmt.Println("fail to start http server ", err)
+		os.Exit(1) // exit with error...
 		return err
 	}
 
@@ -1817,53 +1827,59 @@ func (globule *Globule) Serve() error {
 	spnapShots := make([]controlplane.Snapshot, 0)
 
 	// Add services to envoy configuration.
+	proxies := make(map[uint32]bool, 0)
+
 	// TODO: Add peers services on the endpoint.
+	// I will add it if the proxy is not already set.
+
 	for i := 0; i < len(services); i++ {
 		service := services[i]
 
 		host := strings.Split(service["Address"].(string), ":")[0]
-		snapshot := controlplane.Snapshot{
+		proxy := uint32((Utility.ToInt(service["Proxy"])))
+		if _, ok := proxies[proxy]; !ok {
+			snapshot := controlplane.Snapshot{
 
-			ClusterName:  strings.ReplaceAll(service["Name"].(string), ".", "_") + "_cluster",
-			RouteName:    strings.ReplaceAll(service["Name"].(string), ".", "_") + "_route",
-			ListenerName: strings.ReplaceAll(service["Name"].(string), ".", "_")  + "_listener",
-			ListenerPort: uint32((Utility.ToInt(service["Proxy"]))),
-			ListenerHost: "0.0.0.0", // local address.
-			
-			EndPoints:    []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"])), Priority: 100}},
-			
-			// grpc certificate...
-			ServerCertPath: service["CertFile"].(string),
-			KeyFilePath:  service["KeyFile"].(string),
-			CAFilePath: service["CertAuthorityTrust"].(string),
+				ClusterName:  strings.ReplaceAll(service["Name"].(string), ".", "_") + "_cluster",
+				RouteName:    strings.ReplaceAll(service["Name"].(string), ".", "_") + "_route",
+				ListenerName: strings.ReplaceAll(service["Name"].(string), ".", "_") + "_listener",
+				ListenerPort: proxy,
+				ListenerHost: "0.0.0.0", // local address.
 
-			// Let's encrypt certificate...
-			CertFilePath: config.GetLocalCertificate(),
-			IssuerFilePath: config.GetLocalCertificateAuthorityBundle(),
-			
-		}
+				EndPoints: []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"])), Priority: 100}},
 
-		// Now I will add endpoints from peers who have the same service.
-		// TODO: In order to be able to redirect request to other peers 
-		// certificates must be generated with all peers domain name in the SAN field.
-		// Or a wildcard certificate must be generated for the domain.
-		/*for _, p := range globule.Peers {
-			peer := p.(map[string]interface{})
-			
-			remoteService, err := config.GetRemoteServiceConfig(peer["Hostname"].(string) + "." + peer["Domain"].(string), Utility.ToInt(peer["Port"]), service["Name"].(string))
-			host := strings.Split(remoteService["Address"].(string), ":")[0]
-			if err == nil {
-				endpoint := controlplane.EndPoint{Host: host, Port: uint32(Utility.ToInt(remoteService["Port"])), Priority: 80}
-				snapshot.EndPoints = append(snapshot.EndPoints, endpoint)
+				// grpc certificate...
+				ServerCertPath: service["CertFile"].(string),
+				KeyFilePath:    service["KeyFile"].(string),
+				CAFilePath:     service["CertAuthorityTrust"].(string),
+
+				// Let's encrypt certificate...
+				CertFilePath:   config.GetLocalCertificate(),
+				IssuerFilePath: config.GetLocalCertificateAuthorityBundle(),
 			}
-		}*/
-		
-		spnapShots = append(spnapShots, snapshot)
 
-		
+			// Now I will add endpoints from peers who have the same service.
+			// TODO: In order to be able to redirect request to other peers
+			// certificates must be generated with all peers domain name in the SAN field.
+			// Or a wildcard certificate must be generated for the domain.
+			/*for _, p := range globule.Peers {
+				peer := p.(map[string]interface{})
 
+				remoteService, err := config.GetRemoteServiceConfig(peer["Hostname"].(string) + "." + peer["Domain"].(string), Utility.ToInt(peer["Port"]), service["Name"].(string))
+				host := strings.Split(remoteService["Address"].(string), ":")[0]
+				if err == nil {
+					endpoint := controlplane.EndPoint{Host: host, Port: uint32(Utility.ToInt(remoteService["Port"])), Priority: 80}
+					snapshot.EndPoints = append(snapshot.EndPoints, endpoint)
+				}
+			}*/
+
+			proxies[proxy] = true
+			spnapShots = append(spnapShots, snapshot)
+		}else{
+			fmt.Println("proxy ", proxy, " already set for service ", service["Name"].(string))
+		}
 	}
-	
+
 	err = controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 
 	if err != nil {
@@ -1871,12 +1887,14 @@ func (globule *Globule) Serve() error {
 		return err
 	}
 
-	// Now I will start the envoy proxy.
-	err = process.StartEnvoyProxy()
-	if err != nil {
-		fmt.Println("fail to start envoy proxy with error ", err)
-		return err
-	}
+	go func() {
+		// Now I will start the envoy proxy.
+		err = process.StartEnvoyProxy()
+		if err != nil {
+			fmt.Println("fail to start envoy proxy with error ", err)
+			os.Exit(1) // exit with error...
+		}
+	}()
 
 	p := make(map[string]interface{})
 
@@ -1891,15 +1909,6 @@ func (globule *Globule) Serve() error {
 
 	// set services configuration values
 	globule.publish("start_peer_evt", jsonStr)
-
-
-	// I will now start etcd server.
-	err = process.StartEtcdServer()
-	if err != nil {
-		fmt.Println("fail to start envoy proxy with error ", err)
-		return err
-	}
-
 
 	err = globule.serve()
 	if err != nil {

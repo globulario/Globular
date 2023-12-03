@@ -1479,6 +1479,19 @@ func dist(g *Globule, path string, revision string) {
 		curl -L  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --output /usr/local/bin/yt-dlp
 		chmod a+rx /usr/local/bin/yt-dlp
 
+		# -- Install envoy proxy
+		wget https://github.com/envoyproxy/envoy/releases/download/v1.28.0/envoy-1.28.0-linux-x86_64
+		mv envoy-1.28.0-linux-x86_64 /usr/local/bin/envoy
+		chmod a+rx /usr/local/bin/envoy
+
+		# -- Install etcd
+		wget https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
+		tar -xf etcd-v3.5.10-linux-amd64.tar.gz
+		cp etcd-v3.5.10-linux-amd64/etcd /usr/local/bin
+		cp etcd-v3.5.10-linux-amd64/etcdctl /usr/local/bin
+		rm -rf etcd-v3.5.10-linux-amd64*
+		
+
 		if [ -f "/usr/local/bin/Globular" ]; then
 			rm /usr/local/bin/Globular
 			rm /usr/local/bin/torrent
