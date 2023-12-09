@@ -115,7 +115,6 @@ func AddSnapshot(id, version string, values []Snapshot) error{
 		return err
 	}
 
-
 	l.Debugf("will serve snapshot %+v", snapshot)
 
 	// Set the snapshot in the cache
