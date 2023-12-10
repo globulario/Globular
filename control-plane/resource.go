@@ -42,7 +42,7 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endP
 	}
 
 	// I case of TLS, we need to set the transport socket
-	if len(certFilePath) > 0 {
+	if len(keyFilePath) > 0 {
 		c.TransportSocket = makeUpstreamTls(certFilePath, keyFilePath, caFilePath)
 	}
 
@@ -304,7 +304,7 @@ func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, cl
 	}
 
 	// I case of TLS, we need to set the transport socket
-	if len(certFilePath) > 0 {
+	if len(keyFilePath) > 0 {
 		l.FilterChains[0].TransportSocket = makeDownstreamTls(certFilePath, keyFilePath, caFilePath)
 	}
 

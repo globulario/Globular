@@ -213,12 +213,15 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 			return
 		} else {
-
-			// I will get the remote configuration and return it...
+			// I will get the remote configuration and return it.
 			remoteConfig, err := config_.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
 			if err != nil {
-				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
-				return
+				// Try again with port 80...
+				remoteConfig, err = config_.GetRemoteConfig(r.URL.Query().Get("host"), 80)
+				if err != nil {
+					http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
+					return
+				}
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -275,10 +278,32 @@ func dealwithErr(err error) {
 }
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
+
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
-
 	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
+
+	// i will redirect to the given host if the host is not the same...
+	address, _ := config_.GetAddress()
+
+	// Here I will try to see of it contain a host value in the query.
+	if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
+		
+		// I will get parameters from the query and create a peer.
+		address := r.URL.Query().Get("host")
+		portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
+		portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
+		protocol := r.URL.Query().Get("protocol")
+
+		to := new(resourcepb.Peer)
+		to.Protocol = protocol
+		to.PortHttps = int32(portHttps)
+		to.PortHttp = int32(portHttp)
+		to.Domain = address
+
 		handleRequestAndRedirect(to, w, r)
 		return
 	}
