@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y gnupg2 \
     wget \
   && rm -rf /var/lib/apt/lists/*
 
-#-- required for server interaction
+#-- required for server interaction and debugging
 RUN apt-get update && apt-get install -y \
   build-essential \
   && apt-get install -y \
@@ -23,8 +23,24 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Moscow
 RUN apt-get update && apt-get install -y ffmpeg && apt-get install wget
 
+#-- install scylladb (v5.4.2)
+RUN  gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys d0a112e067426ab2
+RUN  wget -O /etc/apt/sources.list.d/scylla.list http://downloads.scylladb.com/deb/debian/scylla-5.4.list
+
+#-- install scylladb
+RUN  apt-get update
+RUN  apt-get install -y scylla 
+
+# Expose necessary ports
+EXPOSE 9042 9160
+
+#-- install java
+RUN  apt-get update
+RUN  apt-get install -y openjdk-8-jre-headless
+RUN  update-java-alternatives --jre-headless -s java-1.8.0-openjdk-amd64
+
 #-- install globular
-RUN wget https://globule-dell.globular.cloud/mnt/data/distro/linux/globular_1.0.0-1.0.1_amd64.deb
+RUN wget 'https://www.dropbox.com/scl/fi/hbghicbdp3cmuyfzlx9tc/globular_1.0.0-1.0.1_amd64.deb?rlkey=rfxcyjrk9z4fxuxwozsaj7pea&dl=0' --output-document=globular_1.0.0-1.0.1_amd64.deb
 RUN apt-get update && apt-get install -y ./globular_1.0.0-1.0.1_amd64.deb \
   && rm globular_1.0.0-1.0.1_amd64.deb
 
@@ -35,6 +51,5 @@ RUN service Globular stop
 WORKDIR /usr/local/share/globular
 ENV PATH="/usr/local/share/globular/bin:${PATH}"
 
-
-# -- start globular exec.
+# -- start globular exec as a process instead of a service
 ENTRYPOINT ["/usr/local/share/globular/Globular"]

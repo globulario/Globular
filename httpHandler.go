@@ -105,16 +105,17 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 // Redirect the query to a peer one the network
 func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req *http.Request) {
+
 	address := to.Domain
 	scheme := "http"
 	if to.Protocol == "https" {
 		address += ":" + Utility.ToString(to.PortHttps)
-		scheme = "https"
 	} else {
 		address += ":" + Utility.ToString(to.PortHttp)
 	}
 
 	ur, _ := url.Parse(scheme + "://" + address)
+
 	proxy := httputil.NewSingleHostReverseProxy(ur)
 
 	// Update the headers to allow for SSL redirection
@@ -122,6 +123,7 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 	req.URL.Scheme = ur.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	proxy.ErrorHandler = ErrHandle
+
 	proxy.ServeHTTP(res, req)
 }
 
@@ -290,22 +292,29 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	address, _ := config_.GetAddress()
 
 	// Here I will try to see of it contain a host value in the query.
-	if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
-		
-		// I will get parameters from the query and create a peer.
-		address := r.URL.Query().Get("host")
-		portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
-		portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
-		protocol := r.URL.Query().Get("protocol")
+	if address != "localhost" {
+		if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
 
-		to := new(resourcepb.Peer)
-		to.Protocol = protocol
-		to.PortHttps = int32(portHttps)
-		to.PortHttp = int32(portHttp)
-		to.Domain = address
+			// I will get parameters from the query and create a peer.
+			address := r.URL.Query().Get("host")
 
-		handleRequestAndRedirect(to, w, r)
-		return
+			if strings.Contains(address, ":") {
+				address = strings.Split(address, ":")[0]
+			}
+
+			portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
+			portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
+			protocol := strings.Split(r.URL.Query().Get("scheme"), "/")[0]
+
+			to := new(resourcepb.Peer)
+			to.Protocol = protocol
+			to.PortHttps = int32(portHttps)
+			to.PortHttp = int32(portHttp)
+			to.Domain = address
+
+			handleRequestAndRedirect(to, w, r)
+			return
+		}
 	}
 
 	runtimeOS := runtime.GOOS

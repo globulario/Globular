@@ -1241,9 +1241,6 @@ func dist(g *Globule, path string, revision string) {
 	// Now I will copy the application icon to the resource.
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-
-	defer os.RemoveAll(dir + "/applications")
-
 	// The debian package...
 	// There is a link on how to launch service in macOS
 	// https://medium.com/swlh/how-to-use-launchd-to-run-services-in-macos-b972ed1e352
@@ -1354,9 +1351,6 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(data_path)
 		Utility.CreateDirIfNotExist(config_path)
 		Utility.CreateDirIfNotExist(applications_path)
-
-		// Copy applications for offline installation...
-		Utility.CopyDir(dir+"/applications/.", applications_path)
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
@@ -1930,27 +1924,6 @@ func __dist(g *Globule, path, config_path string) []string {
 		fmt.Println(err)
 	}
 
-	// Copy the bin file from globular
-	Utility.CreateDirIfNotExist(path + "/bin")
-	err = Utility.CopyDir(dir+"/bin/.", path+"/bin")
-	if err != nil {
-		fmt.Println("--> fail to copy bin ", err)
-	}
-
-	// Change the files permission to add execute write.
-	files, err := os.ReadDir(path + "/bin")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, f := range files {
-		if !f.IsDir() {
-			err = os.Chmod(path+"/bin/"+f.Name(), 0755)
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
-	}
 
 	// Copy the bin file from globular
 	if runtime.GOOS == "windows" {
