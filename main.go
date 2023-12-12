@@ -1429,7 +1429,7 @@ func dist(g *Globule, path string, revision string) {
 		packageConfig += "Homepage: https://globular.io\n"
 
 		// - The list of dependencies...
-		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~)\n"
+		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~), nmap, arp-scan\n"
 
 		err := os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
@@ -1445,6 +1445,7 @@ func dist(g *Globule, path string, revision string) {
 		if runtime.GOARCH == "amd64" {
 			preinst = `
 		echo "Welcome to Globular!-)"
+
 
 		# Create the directory where the service will be install.
 		mkdir /etc/globular/config/services

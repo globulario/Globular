@@ -18,7 +18,7 @@ require (
 	github.com/gookit/color v1.5.2
 	github.com/kardianos/service v1.2.2
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
-	github.com/shirou/gopsutil/v3 v3.22.12
+	github.com/shirou/gopsutil/v3 v3.23.11
 	github.com/txn2/txeh v1.5.5
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
@@ -64,6 +64,7 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/schollz/progressbar/v3 v3.14.1 // indirect
+	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/srwiley/oksvg v0.0.0-20210320200257-875f767ac39a // indirect
 	github.com/srwiley/rasterx v0.0.0-20200120212402-85cb7272f5e9 // indirect
 	github.com/struCoder/pidusage v0.2.1 // indirect

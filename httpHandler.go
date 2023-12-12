@@ -114,6 +114,8 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 		address += ":" + Utility.ToString(to.PortHttp)
 	}
 
+	// Here I will remove the .localhost part of the address (if it exist)
+	address = strings.ReplaceAll(address, ".localhost", "")
 	ur, _ := url.Parse(scheme + "://" + address)
 
 	proxy := httputil.NewSingleHostReverseProxy(ur)
@@ -289,32 +291,30 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// i will redirect to the given host if the host is not the same...
-	address, _ := config_.GetAddress()
+	hostname, _ := config_.GetName()
 
 	// Here I will try to see of it contain a host value in the query.
-	if address != "localhost" {
-		if !strings.HasPrefix(address, r.URL.Query().Get("host")) && len(r.URL.Query().Get("host")) > 0 {
+	if !strings.HasPrefix(r.URL.Query().Get("host"), hostname) && len(r.URL.Query().Get("host")) > 0 {
 
-			// I will get parameters from the query and create a peer.
-			address := r.URL.Query().Get("host")
+		// I will get parameters from the query and create a peer.
+		address := r.URL.Query().Get("host")
 
-			if strings.Contains(address, ":") {
-				address = strings.Split(address, ":")[0]
-			}
-
-			portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
-			portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
-			protocol := strings.Split(r.URL.Query().Get("scheme"), "/")[0]
-
-			to := new(resourcepb.Peer)
-			to.Protocol = protocol
-			to.PortHttps = int32(portHttps)
-			to.PortHttp = int32(portHttp)
-			to.Domain = address
-
-			handleRequestAndRedirect(to, w, r)
-			return
+		if strings.Contains(address, ":") {
+			address = strings.Split(address, ":")[0]
 		}
+
+		portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
+		portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
+		protocol := strings.Split(r.URL.Query().Get("scheme"), "/")[0]
+
+		to := new(resourcepb.Peer)
+		to.Protocol = protocol
+		to.PortHttps = int32(portHttps)
+		to.PortHttp = int32(portHttp)
+		to.Domain = address
+
+		handleRequestAndRedirect(to, w, r)
+		return
 	}
 
 	runtimeOS := runtime.GOOS

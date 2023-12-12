@@ -1975,6 +1975,12 @@ func (globule *Globule) Serve() error {
 	// Set the fmt information in case of crash...
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	// First of all i will set the local host found...
+	hosts := Utility.GetHostnameIPMap()
+	for k, v := range hosts {
+		globule.setHost(k, v)
+	}
+
 	// Init peers
 	go globule.initPeers()
 
