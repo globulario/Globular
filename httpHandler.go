@@ -166,6 +166,65 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+ * Save the configuration.
+ */
+func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
+	
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
+
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// I will try to get the token from the header.
+	token := r.Header.Get("token")
+
+	// I will validate the token.
+	if len(token) == 0 {
+		// the token can be given by the url directly...
+		token = r.URL.Query().Get("token")
+	}
+
+	// If not token was given i will return an error (403).
+	if len(token) == 0 {
+		http.Error(w, "no token was given!", http.StatusUnauthorized)
+		return
+	}
+
+	// I will validate the token.
+	_, err := security.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "fail to validate token with error "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Now I will get the configuration from the request.
+	decoder := json.NewDecoder(r.Body)
+	var config map[string]interface{}
+	err = decoder.Decode(&config)
+	if err != nil {
+		http.Error(w, "fail to decode configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// I will set the globular configuration.
+	err = globule.setConfig(config)
+	if err != nil {
+		http.Error(w, "fail to set configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+}
+
+/**
  * Return the service configuration
  */
 func getConfigHanldler(w http.ResponseWriter, r *http.Request) {

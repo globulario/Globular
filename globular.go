@@ -87,9 +87,11 @@ type Globule struct {
 	AllowedMethods []string
 	AllowedHeaders []string
 
-	Domain           string        // The principale domain
-	AlternateDomains []interface{} // Alternate domain for multiple domains
-	IndexApplication string        // If defined It will be use as the entry point where not application path was given in the url.
+	Domain            string        // The principale domain
+	AlternateDomains  []interface{} // Alternate domain for multiple domains
+	IndexApplication  string        // If defined It will be use as the entry point where not application path was given in the url.
+	LocalIpAddress    string        // The local ip address of the server.
+	ExternalIpAddress string        // The public ip address of the server.
 
 	// Certificate generation variables.
 	CertExpirationDelay int
@@ -130,9 +132,6 @@ type Globule struct {
 	// Reverse proxy will conain a list of addrees where to forward request and a route to forward request to.
 	// ex : ["http://localhost:9100/metrics | /metric_01", "http://localhost:8080/metrics | /metric_02"]
 	ReverseProxies []interface{}
-
-	// Applications to installs...
-	Applications []interface{}
 
 	// Directories.
 	Path string // The path of the exec...
@@ -191,6 +190,8 @@ func NewGlobule() *Globule {
 	g.PortHttps = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
 	g.ServicesRoot = config.GetServicesRoot()
+	g.LocalIpAddress = config.GetLocalIP() // The local ip address of the server.
+	g.ExternalIpAddress = Utility.MyIP()   // The public ip address of the server.
 
 	// Set the default mac.
 	g.Mac, _ = config.GetMacAddress()
@@ -240,6 +241,9 @@ func NewGlobule() *Globule {
 
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
+
+	// The save configuration handler.
+	http.HandleFunc("/save_config", saveConfigHanldler)
 
 	// The checksum handler.
 	http.HandleFunc("/checksum", getChecksumHanldler)
@@ -588,6 +592,236 @@ func (globule *Globule) savePeers() error {
 	})
 
 	return globule.saveConfig()
+}
+
+/**
+ * Set the Globule configuration with the given configuration, and the globule configuration.
+ */
+func (globule *Globule) setConfig(config map[string]interface{}) error {
+
+	needRestart := false
+
+	// Set the configuration.
+	if config["AllowedOrigins"] != nil {
+		globule.AllowedOrigins = make([]string, len(config["AllowedOrigins"].([]interface{})))
+		for i := 0; i < len(config["AllowedOrigins"].([]interface{})); i++ {
+			globule.AllowedOrigins[i] = config["AllowedOrigins"].([]interface{})[i].(string)
+		}
+	}
+
+	// Set the allowed methods.
+	if config["AllowedMethods"] != nil {
+		globule.AllowedMethods = make([]string, len(config["AllowedMethods"].([]interface{})))
+		for i := 0; i < len(config["AllowedMethods"].([]interface{})); i++ {
+			globule.AllowedMethods[i] = config["AllowedMethods"].([]interface{})[i].(string)
+		}
+	}
+
+	// Set the allowed headers.
+	if config["AllowedHeaders"] != nil {
+		globule.AllowedHeaders = make([]string, len(config["AllowedHeaders"].([]interface{})))
+		for i := 0; i < len(config["AllowedHeaders"].([]interface{})); i++ {
+			globule.AllowedHeaders[i] = config["AllowedHeaders"].([]interface{})[i].(string)
+		}
+	}
+
+	// Set the domain.
+	if config["Domain"] != nil {
+		if len(config["Domain"].(string)) > 0 {
+			// if the domain has changed I will need to restart the server.
+			if globule.Domain != config["Domain"].(string) {
+				needRestart = true
+			}
+			globule.Domain = config["Domain"].(string)
+		}
+	}
+
+	// Set the protocol.
+	if config["Protocol"] != nil {
+		if len(config["Protocol"].(string)) > 0 {
+			// if the protocol has changed I will need to restart the server.
+			if globule.Protocol != config["Protocol"].(string) {
+				needRestart = true
+				globule.Protocol = config["Protocol"].(string)
+			}
+		}
+	}
+
+	// Set the port.
+	if config["PortHttp"] != nil {
+		if len(config["PortHttp"].(string)) > 0 {
+			globule.PortHttp = config["PortHttp"].(int)
+		}
+	}
+
+	// Set the port.
+	if config["PortHttps"] != nil {
+		if len(config["PortHttps"].(string)) > 0 {
+			globule.PortHttps = config["PortHttps"].(int)
+		}
+	}
+
+	// Set the ports range.
+	if config["PortsRange"] != nil {
+		if len(config["PortsRange"].(string)) > 0 {
+			globule.PortsRange = config["PortsRange"].(string)
+		}
+	}
+
+	// Set the backend port.
+	if config["BackendPort"] != nil {
+		if len(config["BackendPort"].(string)) > 0 {
+			globule.BackendPort = config["BackendPort"].(int)
+		}
+	}
+
+	// Set the backend store.
+	if config["BackendStore"] != nil {
+		if len(config["BackendStore"].(string)) > 0 {
+			globule.BackendStore = config["BackendStore"].(int)
+		}
+	}
+
+	// Set the certificate expiration delay.
+	if config["CertExpirationDelay"] != nil {
+		if len(config["CertExpirationDelay"].(string)) > 0 {
+			globule.CertExpirationDelay = config["CertExpirationDelay"].(int)
+		}
+	}
+
+	// Set the certificate password.
+	if config["CertPassword"] != nil {
+		if len(config["CertPassword"].(string)) > 0 {
+			globule.CertPassword = config["CertPassword"].(string)
+		}
+	}
+
+	// Set the country.
+	if config["Country"] != nil {
+		if len(config["Country"].(string)) > 0 {
+			globule.Country = config["Country"].(string)
+		}
+	}
+
+	// Set the state.
+	if config["State"] != nil {
+		if len(config["State"].(string)) > 0 {
+			globule.State = config["State"].(string)
+		}
+	}
+
+	// Set the city.
+	if config["City"] != nil {
+		if len(config["City"].(string)) > 0 {
+			globule.City = config["City"].(string)
+		}
+	}
+
+	// Set the organization.
+	if config["Organization"] != nil {
+		if len(config["Organization"].(string)) > 0 {
+			globule.Organization = config["Organization"].(string)
+		}
+	}
+
+	// Set the admin email.
+	if config["AdminEmail"] != nil {
+		if len(config["AdminEmail"].(string)) > 0 {
+			globule.AdminEmail = config["AdminEmail"].(string)
+		}
+	}
+
+	// Set the root password.
+	if config["RootPassword"] != nil {
+		if len(config["RootPassword"].(string)) > 0 {
+			globule.RootPassword = config["RootPassword"].(string)
+		}
+	}
+
+	// Set the session timeout.
+	if config["SessionTimeout"] != nil {
+		if len(config["SessionTimeout"].(string)) > 0 {
+			globule.SessionTimeout = config["SessionTimeout"].(int)
+		}
+	}
+
+	// Set the watch update delay.
+	if config["WatchUpdateDelay"] != nil {
+		if len(config["WatchUpdateDelay"].(string)) > 0 {
+			globule.WatchUpdateDelay = config["WatchUpdateDelay"].(int64)
+		}
+	}
+
+	// Set the dns.
+	if config["DNS"] != nil {
+		if len(config["DNS"].(string)) > 0 {
+			if globule.DNS != config["DNS"].(string) {
+
+				// set the dns
+				globule.DNS = config["DNS"].(string)
+
+				// register the ip to dns.
+				err := globule.registerIpToDns()
+				if err != nil {
+					fmt.Println("fail to register ip to dns with error: ", err)
+				}
+
+			}
+		}
+	}
+
+	// Set the ns.
+	if config["NS"] != nil {
+		if len(config["NS"].(string)) > 0 {
+			globule.NS = config["NS"].([]interface{})
+		}
+	}
+
+	// Set the dns update ip infos.
+	if config["DnsUpdateIpInfos"] != nil {
+		if len(config["DnsUpdateIpInfos"].(string)) > 0 {
+			globule.DnsUpdateIpInfos = config["DnsUpdateIpInfos"].([]interface{})
+		}
+	}
+
+	// Set the reverse proxies.
+	if config["ReverseProxies"] != nil {
+		if len(config["ReverseProxies"].(string)) > 0 {
+			globule.ReverseProxies = config["ReverseProxies"].([]interface{})
+		}
+	}
+
+	// Set the discoveries.
+	if config["Discoveries"] != nil {
+		globule.Discoveries = make([]string, len(config["Discoveries"].([]interface{})))
+		for i := 0; i < len(config["Discoveries"].([]interface{})); i++ {
+			globule.Discoveries[i] = config["Discoveries"].([]interface{})[i].(string)
+		}
+	}
+
+	// Set the peers.
+	if config["Peers"] != nil {
+		globule.Peers = make([]interface{}, len(config["Peers"].([]interface{})))
+		for i := 0; i < len(config["Peers"].([]interface{})); i++ {
+			globule.Peers[i] = config["Peers"].([]interface{})[i].(string)
+		}
+	}
+
+	// Set the index application.
+	if config["IndexApplication"] != nil {
+		if len(config["IndexApplication"].(string)) > 0 {
+			globule.IndexApplication = config["IndexApplication"].(string)
+		}
+	}
+
+	if needRestart {
+
+		// I will stop the services...
+		globule.restart()
+
+	}
+
+	return nil
 }
 
 /**
@@ -1328,6 +1562,40 @@ func refreshTokenPeriodically(ctx context.Context, globule *Globule) {
 	}
 }
 
+func (globule *Globule) restart() error {
+
+	// stop watching for update.
+	globule.exit_ = true
+
+	// stop listening
+	globule.exit <- true
+
+	globule.cleanup()
+
+	// First of all i will set the local host found...
+	hosts := Utility.GetHostnameIPMap()
+	for k, v := range hosts {
+		globule.setHost(k, v)
+	}
+
+	// service must be able to get their configuration via http...
+	err := globule.Listen()
+	if err != nil {
+		fmt.Println("fail to start http server ", err)
+		os.Exit(1) // exit with error...
+		return err
+	}
+
+	// Start microservice manager.
+	err = globule.startServices()
+	if err != nil {
+		return err
+	}
+	
+	// serve
+	return globule.serve()
+}
+
 /**
  * Here I will start the services manager who will start all microservices
  * installed on that computer.
@@ -1478,9 +1746,6 @@ func (globule *Globule) startServices() error {
 
 	globule.registerIpToDns()
 
-	// Start process monitoring with prometheus.
-	process.StartProcessMonitoring(globule.Protocol, globule.PortHttp, globule.exit)
-
 	return nil
 }
 
@@ -1560,18 +1825,25 @@ func deletePeersEvent(evt *eventpb.Event) {
 func (globule *Globule) initPeer(p *resourcepb.Peer) {
 
 	// Here I will try to set the peer ip...
-	address := p.Hostname + "." + p.Domain
-	if p.Protocol == "https" {
-		address += ":" + Utility.ToString(p.PortHttps)
-	} else {
-		address += ":" + Utility.ToString(p.PortHttp)
+	address := p.Hostname
+	if p.Domain != "localhost" {
+		address += "." + p.Domain
+	} else if globule.Domain != "localhost" && p.Protocol == "https" {
+		// in that case I will use the globule domain, the peer must be in the same domain anyway...
+		address += "." + globule.Domain
 	}
 
 	// set the peer ip in the /etc/hosts file.
 	if Utility.MyIP() == p.ExternalIpAddress {
-		globule.setHost(p.LocalIpAddress, p.Hostname+"."+p.Domain)
+		globule.setHost(p.LocalIpAddress, address)
 	} else {
-		globule.setHost(p.ExternalIpAddress, p.Hostname+"."+p.Domain)
+		globule.setHost(p.ExternalIpAddress, address)
+	}
+
+	if p.Protocol == "https" {
+		address += ":" + Utility.ToString(p.PortHttps)
+	} else {
+		address += ":" + Utility.ToString(p.PortHttp)
 	}
 
 	// Now I will keep it in the peers list.
@@ -1583,8 +1855,10 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 		// no wait here...
 
 		// update local peer info for each peer...
+
 		resource_client__, err := getResourceClient(address)
 		if err == nil {
+
 			// retreive the local peer infos
 			peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
 			if peers_ != nil {
@@ -1596,7 +1870,7 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 					peer_.ExternalIpAddress = Utility.MyIP()
 					peer_.PortHttp = int32(globule.PortHttp)
 					peer_.PortHttps = int32(globule.PortHttps)
-
+					peer_.Domain = globule.Domain
 					err := resource_client__.UpdatePeer(token, peer_)
 					if err != nil {
 						fmt.Println("fail to update peer with error: ", err)
@@ -1685,13 +1959,20 @@ func (globule *Globule) stopServices() error {
 
 	if err == nil {
 		for i := 0; i < len(services_configs); i++ {
+			pid := Utility.ToInt(services_configs[i]["Process"])
 			services_configs[i]["State"] = "killed"
-			services_configs[i]["Process"] = -1
 			services_configs[i]["ProxyProcess"] = -1
-			data, err := Utility.ToJson(services_configs[i])
+
+			// save config...
+			err := config.SaveServiceConfiguration(services_configs[i])
+
 			if err == nil {
-				os.WriteFile(services_configs[i]["ConfigPath"].(string), []byte(data), 0644)
+				if pid > 0 {
+					syscall.Kill(pid, syscall.SIGTERM)
+					time.Sleep(1 * time.Second)
+				}
 			}
+
 		}
 	}
 
@@ -1891,15 +2172,34 @@ func SetSnapshot() error {
 			}
 
 			// Certificates are generated by
-			for _, p := range globule.Peers {
+			/*for _, p := range globule.Peers {
+
 				peer := p.(map[string]interface{})
-				remoteService, err := config.GetRemoteServiceConfig(peer["Hostname"].(string)+"."+peer["Domain"].(string), Utility.ToInt(peer["Port"]), service["Name"].(string))
-				if err == nil {
-					host := strings.Split(remoteService["Address"].(string), ":")[0]
-					endpoint := controlplane.EndPoint{Host: host, Port: uint32(Utility.ToInt(remoteService["Port"])), Priority: 80}
-					snapshot.EndPoints = append(snapshot.EndPoints, endpoint)
+
+				address := peer["Hostname"].(string)
+				if peer["Domain"].(string) != "localhost" {
+					address += "." + peer["Domain"].(string)
+				} else if globule.Domain != "localhost" {
+					address += "." + globule.Domain
 				}
-			}
+
+				port := Utility.ToInt(peer["Port"])
+
+				remoteService, err := config.GetRemoteServiceConfig(address, port, service["Name"].(string))
+				if err == nil {
+					endpoint := controlplane.EndPoint{Host: address, Port: uint32(Utility.ToInt(remoteService["Port"])), Priority: 80}
+					// I will add the endpoint only if the domain is the same.
+					if strings.HasSuffix(domain, remoteService["Domain"].(string)) {
+						snapshot.EndPoints = append(snapshot.EndPoints, endpoint)
+					}
+				} else {
+					if strings.Contains(err.Error(), "context deadline exceeded") {
+						// I will remove the peer from the list...
+						fmt.Println("remove peer ", peer["Mac"].(string), " from the list because it is not reachable")
+						globule.peers.Delete(peer["Mac"].(string))
+					}
+				}
+			}*/
 
 			proxies[proxy] = true
 			spnapShots = append(spnapShots, snapshot)
@@ -1913,15 +2213,15 @@ func SetSnapshot() error {
 
 func startEnvoyProxy() {
 
-	err := SetSnapshot()
-	if err != nil {
-		fmt.Println("fail to generate envoy dynamic configuration with error", err)
-		//return err
-	}
-
 	go func() {
+		err := SetSnapshot()
+		if err != nil {
+			fmt.Println("fail to generate envoy dynamic configuration with error", err)
+			//return err
+		}
+
 		// Now I will start the envoy proxy.
-		err := process.StartEnvoyProxy()
+		err = process.StartEnvoyProxy()
 		if err != nil {
 			fmt.Println("fail to start envoy proxy with error ", err)
 			time.Sleep(5 * time.Second) // wait 5 second before retrying...
@@ -1938,6 +2238,7 @@ func (globule *Globule) Serve() error {
 	// So here if another instance of the server exist I will kill it.
 	pids, err := Utility.GetProcessIdsByName("Globular")
 	if err == nil {
+
 		for i := 0; i < len(pids); i++ {
 			if pids[i] != os.Getpid() {
 				Utility.TerminateProcess(pids[i], 0)
@@ -1957,6 +2258,7 @@ func (globule *Globule) Serve() error {
 			}
 		}()
 	*/
+
 	// start listen to http(s)
 	// service must be able to get their configuration via http...
 	err = globule.Listen()
@@ -1968,6 +2270,9 @@ func (globule *Globule) Serve() error {
 
 	// Start microservice manager.
 	globule.startServices()
+
+	// Start process monitoring with prometheus.
+	process.StartProcessMonitoring(globule.Protocol, globule.PortHttp, globule.exit)
 
 	// Watch config.
 	globule.watchConfig()
@@ -2032,56 +2337,8 @@ func (globule *Globule) watchConfig() {
 				file, _ := os.ReadFile(globule.config + "/config.json")
 				config := make(map[string]interface{})
 				err := json.Unmarshal(file, &config)
-
-				if err != nil {
-					globule.saveConfig() // write back the configuration...
-				} else {
-
-					// Here I will make some validation...
-					if config["Protocol"].(string) == "https" && config["Domain"].(string) == "localhost" {
-						fmt.Println("The domain localhost cannot be use with https, domain must contain dot's")
-					} else {
-
-						hasProtocolChange := globule.Protocol != config["Protocol"].(string)
-						hasDomainChange := domainHasChanged(globule.Domain)
-
-						// Here I will test if the certificate has changed...
-						certificateChange := globule.CertificateAuthorityBundle != config["CertificateAuthorityBundle"].(string)
-						json.Unmarshal(file, &globule)
-
-						// stop the http server
-						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-						if globule.http_server != nil {
-							if err = globule.http_server.Shutdown(ctx); err != nil {
-								fmt.Println("fail to stop the http server with error ", err)
-							}
-
-							if globule.https_server != nil {
-								if err := globule.https_server.Shutdown(ctx); err != nil {
-									fmt.Println("fail to stop the https server with error ", err)
-								}
-							}
-						}
-
-						if hasProtocolChange || hasDomainChange || certificateChange {
-							// stop services...
-							fmt.Println("Stop gRpc Services")
-
-							err := globule.stopServices()
-							if err != nil {
-								log.Panicln(err)
-							}
-
-							// restart it...
-							os.Exit(0)
-						}
-
-						// restart
-						globule.serve()
-
-						// clear context
-						cancel()
-					}
+				if err == nil {
+					globule.setConfig(config)
 				}
 			}
 		case err, ok := <-watcher.Errors:
@@ -2234,6 +2491,10 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("set AAAA record for alternate domain ", globule.getLocalDomain(), " with success")
 		}
 
+		if globule.DNS == globule.getLocalDomain() {
+			_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyIP(), 60)
+		}
+
 		for j := 0; j < len(globule.AlternateDomains); j++ {
 
 			// Here I will set the A record for the alternate domain.
@@ -2252,6 +2513,17 @@ func (globule *Globule) registerIpToDns() error {
 				continue
 			} else {
 				fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
+			}
+
+			if globule.DNS == globule.getLocalDomain() {
+
+				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
+				if err != nil {
+					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
+					continue
+				} else {
+					fmt.Println("set A record for alternate domain ", alternateDomain, Utility.MyIP(), " with success")
+				}
 			}
 
 			_, err = dns_client_.SetAAAA(token, alternateDomain, ipv6, 60)
@@ -2680,11 +2952,7 @@ func (globule *Globule) Listen() error {
 			return err
 		}
 
-		// start / restart services
-		fmt.Println("Succed to receive certificates you need to restart the server...")
-		os.Exit(0)
-
-		//globule.startServices()
+		globule.restart()
 	}
 
 	// Must be started before other services.
