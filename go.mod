@@ -19,6 +19,7 @@ require (
 	github.com/kardianos/service v1.2.2
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
 	github.com/shirou/gopsutil/v3 v3.23.11
+	github.com/slayer/autorestart v0.0.0-20170706172547-5ebd91f955ae
 	github.com/txn2/txeh v1.5.5
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0

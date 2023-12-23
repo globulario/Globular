@@ -45,6 +45,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
+	"github.com/slayer/autorestart"
 	"github.com/txn2/txeh"
 
 	// Interceptor for authentication, event, log...
@@ -915,8 +916,6 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 			return err
 		}
 
-		fmt.Println("-------> set text", key, "with value: ", value)
-
 		// set the key value pair in the dns server.
 		err = dns_client_.SetText(token, key, []string{value}, 30)
 
@@ -1570,30 +1569,14 @@ func (globule *Globule) restart() error {
 	// stop listening
 	globule.exit <- true
 
+	// stop the services and wait for them to be stopped.
 	globule.cleanup()
 
-	// First of all i will set the local host found...
-	hosts := Utility.GetHostnameIPMap()
-	for k, v := range hosts {
-		globule.setHost(k, v)
-	}
 
-	// service must be able to get their configuration via http...
-	err := globule.Listen()
-	if err != nil {
-		fmt.Println("fail to start http server ", err)
-		os.Exit(1) // exit with error...
-		return err
-	}
+	// force the restart the process.
+	autorestart.RestartByExec()
 
-	// Start microservice manager.
-	err = globule.startServices()
-	if err != nil {
-		return err
-	}
-	
-	// serve
-	return globule.serve()
+	return nil
 }
 
 /**
@@ -1965,11 +1948,15 @@ func (globule *Globule) stopServices() error {
 
 			// save config...
 			err := config.SaveServiceConfiguration(services_configs[i])
-
 			if err == nil {
 				if pid > 0 {
-					syscall.Kill(pid, syscall.SIGTERM)
-					time.Sleep(1 * time.Second)
+					process, err := os.FindProcess(pid)
+					if err == nil {
+						err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
+						if err != nil {
+							fmt.Println("Error sending signal:", err)
+						}
+					}
 				}
 			}
 
@@ -2476,6 +2463,18 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("fail to generate token for dns server with error ", err)
 		}
 
+		if globule.DNS == globule.getLocalDomain() {
+			// Here I will set the A record for the globular domain.
+			dns_client_.RemoveA(token, globule.getLocalDomain())
+
+			_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyIP(), 60)
+			if err != nil {
+				fmt.Println("fail to set A record for alternate domain ", globule.getLocalDomain(), " with error ", err)
+			} else {
+				fmt.Println("set A record for alternate domain ", globule.getLocalDomain(), Utility.MyIP(), " with success")
+			}
+		}
+
 		// I will publish the private ip address only
 		_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
 		if err != nil {
@@ -2489,10 +2488,6 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("fail to set A record for alternate domain ", globule.getLocalDomain(), " with error ", err)
 		} else {
 			fmt.Println("set AAAA record for alternate domain ", globule.getLocalDomain(), " with success")
-		}
-
-		if globule.DNS == globule.getLocalDomain() {
-			_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyIP(), 60)
 		}
 
 		for j := 0; j < len(globule.AlternateDomains); j++ {
@@ -2751,6 +2746,9 @@ func (globule *Globule) watchForUpdate() {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 						}
 
+						// Here I will restart the server.
+						globule.restart()
+
 					}
 				} else {
 					fmt.Println("fail to get checksum from : ", discovery, " error: ", err)
@@ -2887,6 +2885,9 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
  * Listen for new connection.
  */
 func (globule *Globule) Listen() error {
+
+	autorestart.StartWatcher()
+
 
 	var err error
 
