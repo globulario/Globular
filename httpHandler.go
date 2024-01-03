@@ -170,6 +170,8 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	
+	fmt.Println("----> save config handler")
+
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -342,6 +344,8 @@ func dealwithErr(err error) {
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 
+	fmt.Println("----> get hardware data handler")
+
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -350,7 +354,7 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// i will redirect to the given host if the host is not the same...
-	hostname, _ := config_.GetName()
+	/*hostname, _ := config_.GetName()
 
 	// Here I will try to see of it contain a host value in the query.
 	if !strings.HasPrefix(r.URL.Query().Get("host"), hostname) && len(r.URL.Query().Get("host")) > 0 {
@@ -374,7 +378,7 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 
 		handleRequestAndRedirect(to, w, r)
 		return
-	}
+	}*/
 
 	runtimeOS := runtime.GOOS
 
@@ -471,7 +475,13 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(stats)
+	err = json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+
 
 }
 

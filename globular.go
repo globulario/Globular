@@ -637,6 +637,11 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 		}
 	}
 
+	// Set the AlternateDomains.
+	if config["AlternateDomains"] != nil {
+		globule.AlternateDomains = config["AlternateDomains"].([]interface{})
+	}
+
 	// Set the protocol.
 	if config["Protocol"] != nil {
 		if len(config["Protocol"].(string)) > 0 {
@@ -650,16 +655,12 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 
 	// Set the port.
 	if config["PortHttp"] != nil {
-		if len(config["PortHttp"].(string)) > 0 {
-			globule.PortHttp = config["PortHttp"].(int)
-		}
+		globule.PortHttp = Utility.ToInt(config["PortHttp"])
 	}
 
 	// Set the port.
 	if config["PortHttps"] != nil {
-		if len(config["PortHttps"].(string)) > 0 {
-			globule.PortHttps = config["PortHttps"].(int)
-		}
+		globule.PortHttps = Utility.ToInt(config["PortHttps"])
 	}
 
 	// Set the ports range.
@@ -671,23 +672,21 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 
 	// Set the backend port.
 	if config["BackendPort"] != nil {
-		if len(config["BackendPort"].(string)) > 0 {
-			globule.BackendPort = config["BackendPort"].(int)
-		}
+		globule.BackendPort = Utility.ToInt(config["BackendPort"])
 	}
 
 	// Set the backend store.
 	if config["BackendStore"] != nil {
-		if len(config["BackendStore"].(string)) > 0 {
-			globule.BackendStore = config["BackendStore"].(int)
-		}
+
+		globule.BackendStore = Utility.ToInt(config["BackendStore"])
+
 	}
 
 	// Set the certificate expiration delay.
 	if config["CertExpirationDelay"] != nil {
-		if len(config["CertExpirationDelay"].(string)) > 0 {
-			globule.CertExpirationDelay = config["CertExpirationDelay"].(int)
-		}
+
+		globule.CertExpirationDelay = Utility.ToInt(config["CertExpirationDelay"])
+
 	}
 
 	// Set the certificate password.
@@ -741,16 +740,12 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 
 	// Set the session timeout.
 	if config["SessionTimeout"] != nil {
-		if len(config["SessionTimeout"].(string)) > 0 {
-			globule.SessionTimeout = config["SessionTimeout"].(int)
-		}
+		globule.SessionTimeout = Utility.ToInt(config["SessionTimeout"])
 	}
 
 	// Set the watch update delay.
 	if config["WatchUpdateDelay"] != nil {
-		if len(config["WatchUpdateDelay"].(string)) > 0 {
-			globule.WatchUpdateDelay = config["WatchUpdateDelay"].(int64)
-		}
+		globule.WatchUpdateDelay = int64(Utility.ToInt(config["WatchUpdateDelay"]))
 	}
 
 	// Set the dns.
@@ -773,9 +768,9 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 
 	// Set the ns.
 	if config["NS"] != nil {
-		if len(config["NS"].(string)) > 0 {
-			globule.NS = config["NS"].([]interface{})
-		}
+
+		globule.NS = config["NS"].([]interface{})
+
 	}
 
 	// Set the dns update ip infos.
@@ -804,7 +799,7 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 	if config["Peers"] != nil {
 		globule.Peers = make([]interface{}, len(config["Peers"].([]interface{})))
 		for i := 0; i < len(config["Peers"].([]interface{})); i++ {
-			globule.Peers[i] = config["Peers"].([]interface{})[i].(string)
+			globule.Peers[i] = config["Peers"].([]interface{})[i].(map[string]interface{})
 		}
 	}
 
@@ -816,7 +811,6 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 	}
 
 	if needRestart {
-
 		// I will stop the services...
 		globule.restart()
 
@@ -1004,7 +998,6 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		}
 
 	} else {
-		fmt.Println("-----------> use http challenge")
 		provider := http01.NewProviderServer("", strconv.Itoa(globule.PortHttp))
 		err = client.Challenge.SetHTTP01Provider(provider)
 		if err != nil {
@@ -1572,7 +1565,6 @@ func (globule *Globule) restart() error {
 	// stop the services and wait for them to be stopped.
 	globule.cleanup()
 
-
 	// force the restart the process.
 	autorestart.RestartByExec()
 
@@ -1791,11 +1783,8 @@ func updatePeersEvent(evt *eventpb.Event) {
 	// Here I will try to set the peer ip...
 
 	// set the peer ip in the /etc/hosts file.
-
 	if Utility.MyIP() == p.ExternalIpAddress {
 		globule.setHost(p.LocalIpAddress, p.Hostname+"."+p.Domain)
-	} else {
-		globule.setHost(p.ExternalIpAddress, p.Hostname+"."+p.Domain)
 	}
 
 }
@@ -1819,8 +1808,6 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 	// set the peer ip in the /etc/hosts file.
 	if Utility.MyIP() == p.ExternalIpAddress {
 		globule.setHost(p.LocalIpAddress, address)
-	} else {
-		globule.setHost(p.ExternalIpAddress, address)
 	}
 
 	if p.Protocol == "https" {
@@ -2268,9 +2255,28 @@ func (globule *Globule) Serve() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// First of all i will set the local host found...
-	hosts := Utility.GetHostnameIPMap()
+	hosts := Utility.GetHostnameIPMap(globule.LocalIpAddress)
 	for k, v := range hosts {
 		globule.setHost(k, v)
+	}
+
+	// Try with ip address...
+	ips, err := Utility.ScanIPs()
+	if err == nil {
+		for i := 0; i < len(ips); i++ {
+			config_, err := config.GetRemoteConfig(ips[i], 80)
+			if err == nil {
+					hostname := config_["Name"].(string)
+					if config_["Domain"] != nil {
+						if config_["Domain"].(string) != "localhost" {
+						hostname += "." + config_["Domain"].(string)
+						}
+					}
+
+					globule.setHost(ips[i], hostname)
+				
+			}
+		}
 	}
 
 	// Init peers
@@ -2415,14 +2421,13 @@ func (globule *Globule) registerIpToDns() error {
 		resolv_conf += "nameserver 8.8.8.8\n"
 		resolv_conf += "nameserver 1.1.1.1\n"
 
-		dns_address := globule.DNS
-		dns_client_, err := dns_client.NewDnsService_Client(dns_address, "dns.DnsService")
+		dns_client_, err := dns_client.NewDnsService_Client( globule.DNS, "dns.DnsService")
 		if err != nil {
 			return err
 		}
 
-		// Test if the dns server is running...
-		if dns_address == globule.Name+"."+globule.Domain {
+		// if the dns server is running...
+		if  globule.DNS == globule.Name+"."+globule.Domain {
 			dns_server_is_running := false
 			nbTry := 20
 			for !dns_server_is_running {
@@ -2449,13 +2454,6 @@ func (globule *Globule) registerIpToDns() error {
 
 		defer dns_client_.Close()
 
-		// try to set the ipv6 address...
-		ipv6, err := Utility.MyIPv6()
-		if err != nil {
-			fmt.Println("fail to get ipv6 address for dns server ", dns_address, " with error ", err)
-			return err
-		}
-
 		// Here the token must be generated for the dns server...
 		// That peer must be register on the dns to be able to generate a valid token.
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
@@ -2463,7 +2461,28 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("fail to generate token for dns server with error ", err)
 		}
 
+		// I will publish the private ip address only
+		_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
+		if err != nil {
+			fmt.Println("fail to set A record for domain ", globule.getLocalDomain(), " with error ", err)
+		} else {
+			fmt.Println("set A record for domain ", globule.getLocalDomain(), " with success")
+		}
+
+		// try to set the ipv6 address...
+		ipv6, err := Utility.MyIPv6()
+		if err == nil {
+			_, err = dns_client_.SetAAAA(token, globule.getLocalDomain(), ipv6, 60)
+			if err != nil {
+				fmt.Println("fail to set AAAA  domain ", globule.getLocalDomain(), " with error ", err)
+			} else {
+				fmt.Println("set AAAA record for domain ", globule.getLocalDomain(), " with success")
+			}
+		}
+
+		// I will set alternate domain only if the globule is the master.
 		if globule.DNS == globule.getLocalDomain() {
+
 			// Here I will set the A record for the globular domain.
 			dns_client_.RemoveA(token, globule.getLocalDomain())
 
@@ -2473,44 +2492,26 @@ func (globule *Globule) registerIpToDns() error {
 			} else {
 				fmt.Println("set A record for alternate domain ", globule.getLocalDomain(), Utility.MyIP(), " with success")
 			}
-		}
 
-		// I will publish the private ip address only
-		_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
-		if err != nil {
-			fmt.Println("fail to set A record for alternate domain ", globule.getLocalDomain(), " with error ", err)
-		} else {
-			fmt.Println("set A record for alternate domain ", globule.getLocalDomain(), " with success")
-		}
+			for j := 0; j < len(globule.AlternateDomains); j++ {
 
-		_, err = dns_client_.SetAAAA(token, globule.getLocalDomain(), ipv6, 60)
-		if err != nil {
-			fmt.Println("fail to set A record for alternate domain ", globule.getLocalDomain(), " with error ", err)
-		} else {
-			fmt.Println("set AAAA record for alternate domain ", globule.getLocalDomain(), " with success")
-		}
+				// Here I will set the A record for the alternate domain.
+				alternateDomain := strings.TrimPrefix(globule.AlternateDomains[j].(string), "*.")
+				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
+				if err != nil {
+					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
+					continue
+				} else {
+					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
+				}
 
-		for j := 0; j < len(globule.AlternateDomains); j++ {
-
-			// Here I will set the A record for the alternate domain.
-			alternateDomain := strings.TrimPrefix(globule.AlternateDomains[j].(string), "*.")
-			_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
-			if err != nil {
-				fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-				continue
-			} else {
-				fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
-			}
-
-			_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
-			if err != nil {
-				fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-				continue
-			} else {
-				fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
-			}
-
-			if globule.DNS == globule.getLocalDomain() {
+				_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
+				if err != nil {
+					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
+					continue
+				} else {
+					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
+				}
 
 				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
 				if err != nil {
@@ -2519,14 +2520,14 @@ func (globule *Globule) registerIpToDns() error {
 				} else {
 					fmt.Println("set A record for alternate domain ", alternateDomain, Utility.MyIP(), " with success")
 				}
-			}
 
-			_, err = dns_client_.SetAAAA(token, alternateDomain, ipv6, 60)
-			if err != nil {
-				fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-				continue
-			} else {
-				fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
+				_, err = dns_client_.SetAAAA(token, alternateDomain, ipv6, 60)
+				if err != nil {
+					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
+					continue
+				} else {
+					fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
+				}
 			}
 		}
 
@@ -2887,7 +2888,6 @@ func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
 func (globule *Globule) Listen() error {
 
 	autorestart.StartWatcher()
-
 
 	var err error
 
