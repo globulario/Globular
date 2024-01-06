@@ -1,0 +1,46 @@
+
+install scyllaDB 5.4
+
+Install a repo file and add the ScyllaDB APT repository to your system.
+
+ScyllaDB 5.4
+sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys d0a112e067426ab2
+
+sudo wget -O /etc/apt/sources.list.d/scylla.list http://downloads.scylladb.com/deb/debian/scylla-5.4.list
+
+Install packages
+sudo apt-get update
+sudo apt-get install -y scylla 
+
+Set Java to 1.8 release
+sudo apt-get update
+sudo apt-get install -y openjdk-8-jre-headless
+sudo update-java-alternatives --jre-headless -s java-1.8.0-openjdk-amd64
+
+Configure and run ScyllaDB on Ubuntu 22.04
+Configure ScyllaDB
+Configure the /etc/scylla/scylla.yaml file with the following parameters:
+
+Item	Content
+cluster_name	Name of the cluster, all the nodes in the cluster must have the same name
+seeds	Seed nodes are used during startup to bootstrap the gossip process and join the cluster
+listen_address
+broadcast_address
+The IP address that ScyllaDB uses to connect to other ScyllaDB nodes in the cluster
+rpc_address	IP address of interface for client connections (Thrift, CQL)
+developer_mode: true
+
+
+
+ScyllaDB setup
+Run the scylla_setup script to tune the system settings
+sudo scylla_setup
+
+nodetool status
+
+
+Set Memory usage...
+sudo sed -i 's|/usr/bin/scylla $SCYLLA_ARGS|/usr/bin/scylla -m 8G $SCYLLA_ARGS|g' /lib/systemd/system/scylla-server.service
+sudo systemctl daemon-reload
+sudo systemctl restart scylla-server
+
