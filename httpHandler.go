@@ -170,8 +170,6 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  */
 func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	
-	fmt.Println("----> save config handler")
-
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -225,6 +223,119 @@ func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+
+func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) {
+	// Here I will get the public key from the configuration.
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
+
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	path := config_.GetConfigDir() + "/keys/" + strings.ReplaceAll(globule.Mac, ":", "_") + "_public"
+	if !Utility.Exists(path) {
+		http.Error(w, "no public key found!", http.StatusBadRequest)
+		return
+	}
+
+	// read the public key file and return it as text string.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/text")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(data)
+
+	if err != nil {
+		http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+}
+func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
+	
+    // ... [existing code] ...
+    address, err := config_.GetAddress()
+    if err != nil {
+        http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    domain := strings.Split(address, ":")[0]
+    certFilename := config_.GetLocalCertificate()
+    path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificate()
+    
+    if !Utility.Exists(path) {
+        http.Error(w, "no issuer certificate found at path " + path, http.StatusBadRequest)
+        return
+    }
+
+    data, err := os.ReadFile(path)
+    if err != nil {
+        http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Set the headers to suggest a download file name and indicate the file type.
+    w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
+    w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+
+    w.WriteHeader(http.StatusOK)
+    _, err = w.Write(data)
+    if err != nil {
+        http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+}
+
+func getIssuerCertificateHandler(w http.ResponseWriter, r *http.Request) {
+	
+    // ... [existing code] ...
+    address, err := config_.GetAddress()
+    if err != nil {
+        http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    domain := strings.Split(address, ":")[0]
+    certFilename := config_.GetLocalCertificateAuthorityBundle()
+    path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificateAuthorityBundle()
+    
+    if !Utility.Exists(path) {
+        http.Error(w, "no issuer certificate found at path " + path, http.StatusBadRequest)
+        return
+    }
+
+    data, err := os.ReadFile(path)
+    if err != nil {
+        http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Set the headers to suggest a download file name and indicate the file type.
+    w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
+    w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+
+    w.WriteHeader(http.StatusOK)
+    _, err = w.Write(data)
+    if err != nil {
+        http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+        return
+    }
+}
+
 
 /**
  * Return the service configuration
