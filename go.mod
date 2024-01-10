@@ -75,6 +75,7 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/twmb/murmur3 v1.1.5 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
+	github.com/yoheimuta/go-protoparser/v4 v4.9.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect

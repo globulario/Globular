@@ -240,6 +240,12 @@ func NewGlobule() *Globule {
 	// Start listen for http request.
 	http.HandleFunc("/", ServeFileHandler)
 
+	// return the service descrition (.proto file content as json)
+	http.HandleFunc("/get_service_descriptor", getServiceDescriptorHanldler)
+
+	// return the service permissions
+	http.HandleFunc("/get_service_permissions", getServicePermissionsHanldler)
+
 	// The configuration handler.
 	http.HandleFunc("/config", getConfigHanldler)
 

@@ -34,6 +34,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+	 protoparser "github.com/yoheimuta/go-protoparser/v4"
 )
 
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
@@ -336,6 +337,127 @@ func getIssuerCertificateHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+/**
+ * Return services permissions configuration to be able to manage resources access from rpc request.
+ */
+func getServicePermissionsHanldler(w http.ResponseWriter, r *http.Request) {
+		// Receive http request...
+		redirect, to := redirectTo(r.Host)
+		if redirect {
+			handleRequestAndRedirect(to, w, r)
+			return
+		}
+	
+		// Handle the prefligth oprions...
+		setupResponse(&w, r)
+	
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	
+		//add prefix and clean
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		
+		// so here I will retreive the service configuration from the service id given in the query
+		serviceId := r.URL.Query().Get("id") // the csr in base64
+
+		//add prefix and clean
+		serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
+		if err != nil {
+			http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// from the configuration i will read the configuration file...
+		data, err := os.ReadFile(serviceConfig["ConfigPath"].(string))
+
+		// reload the configuration with the permissions...
+		err = json.Unmarshal(data, &serviceConfig)
+
+		
+		if(serviceConfig["Permissions"] == nil || err != nil){
+			http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		gotJSON, err := json.MarshalIndent(serviceConfig["Permissions"], "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
+		}
+	
+		w.Write(gotJSON)
+}
+
+/**
+ * This function is use to return a json object containing the description of the service.
+ */
+func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
+
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
+
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	
+	// so here I will retreive the service configuration from the service id given in the query
+	serviceId := r.URL.Query().Get("id") // the csr in base64
+
+	//add prefix and clean
+	serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
+	if err != nil {
+		http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// from the service configuration I will read it proto file...
+	protoFile := serviceConfig["Proto"].(string)
+
+	// I will read the proto file and return it as a json object.
+	reader, err := os.Open(protoFile)
+
+	if err != nil {
+		http.Error(w, "fail to open proto file with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	defer reader.Close()
+
+	// parse the proto file.
+
+	got, err := protoparser.Parse(
+		reader,
+		protoparser.WithDebug(false),
+		protoparser.WithPermissive(false),
+		protoparser.WithFilename(filepath.Base(protoFile)),
+	)
+
+	var v interface{}
+	v = got
+
+	gotJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
+	}
+
+	w.Write(gotJSON)
+
+}
 
 /**
  * Return the service configuration
@@ -402,8 +524,15 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(remoteConfig)
+		
+			jsonStr, err := json.MarshalIndent(remoteConfig, "", "  ")
+			if err != nil {
+				http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
 
+			}
+
+			w.Write(jsonStr)
+			
 			return
 		}
 	}
@@ -443,7 +572,13 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(config)
+	jsonStr, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Write(jsonStr)
 }
 
 func dealwithErr(err error) {
@@ -586,14 +721,15 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(stats)
+
+	jsonStr, err := json.MarshalIndent(stats, "", "  ")
 	if err != nil {
 		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 
-
+	w.Write(jsonStr)
 }
 
 /**
@@ -1318,7 +1454,14 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(titles)
+	
+	jsonStr, err := json.MarshalIndent(titles, "", "  ")
+	if err != nil {
+		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Write(jsonStr)
 }
 
 // ////////////////////////// imdb missing sesson and episode number info... /////////////////////////
@@ -1532,7 +1675,13 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(title_)
+	jsonStr, err := json.MarshalIndent(title_, "", "  ")
+	if err != nil {
+		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Write(jsonStr)
 }
 
 func setPersonInformation(person map[string]interface{}) (map[string]interface{}, error) {
