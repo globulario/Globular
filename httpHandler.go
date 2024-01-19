@@ -34,7 +34,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
-	 protoparser "github.com/yoheimuta/go-protoparser/v4"
+	protoparser "github.com/yoheimuta/go-protoparser/v4"
 )
 
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
@@ -170,7 +170,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
  * Save the configuration.
  */
 func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
-	
+
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
@@ -225,7 +225,6 @@ func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
 func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) {
 	// Here I will get the public key from the configuration.
 	redirect, to := redirectTo(r.Host)
@@ -266,128 +265,131 @@ func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) {
 
 }
 func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
-	
-    // ... [existing code] ...
-    address, err := config_.GetAddress()
-    if err != nil {
-        http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
 
-    domain := strings.Split(address, ":")[0]
-    certFilename := config_.GetLocalCertificate()
-    path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificate()
-    
-    if !Utility.Exists(path) {
-        http.Error(w, "no issuer certificate found at path " + path, http.StatusBadRequest)
-        return
-    }
+	// ... [existing code] ...
+	address, err := config_.GetAddress()
+	if err != nil {
+		http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    data, err := os.ReadFile(path)
-    if err != nil {
-        http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
+	domain := strings.Split(address, ":")[0]
+	certFilename := config_.GetLocalCertificate()
+	path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificate()
 
-    // Set the headers to suggest a download file name and indicate the file type.
-    w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
-    w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+	if !Utility.Exists(path) {
+		http.Error(w, "no issuer certificate found at path "+path, http.StatusBadRequest)
+		return
+	}
 
-    w.WriteHeader(http.StatusOK)
-    _, err = w.Write(data)
-    if err != nil {
-        http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
+	data, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Set the headers to suggest a download file name and indicate the file type.
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
+	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(data)
+	if err != nil {
+		http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func getIssuerCertificateHandler(w http.ResponseWriter, r *http.Request) {
-	
-    // ... [existing code] ...
-    address, err := config_.GetAddress()
-    if err != nil {
-        http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
 
-    domain := strings.Split(address, ":")[0]
-    certFilename := config_.GetLocalCertificateAuthorityBundle()
-    path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificateAuthorityBundle()
-    
-    if !Utility.Exists(path) {
-        http.Error(w, "no issuer certificate found at path " + path, http.StatusBadRequest)
-        return
-    }
+	// ... [existing code] ...
+	address, err := config_.GetAddress()
+	if err != nil {
+		http.Error(w, "fail to get address with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    data, err := os.ReadFile(path)
-    if err != nil {
-        http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
+	domain := strings.Split(address, ":")[0]
+	certFilename := config_.GetLocalCertificateAuthorityBundle()
+	path := config_.GetConfigDir() + "/tls/" + domain + "/" + config_.GetLocalCertificateAuthorityBundle()
 
-    // Set the headers to suggest a download file name and indicate the file type.
-    w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
-    w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+	if !Utility.Exists(path) {
+		http.Error(w, "no issuer certificate found at path "+path, http.StatusBadRequest)
+		return
+	}
 
-    w.WriteHeader(http.StatusOK)
-    _, err = w.Write(data)
-    if err != nil {
-        http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
-        return
-    }
+	data, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Set the headers to suggest a download file name and indicate the file type.
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+certFilename+"\"")
+	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(data)
+	if err != nil {
+		http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 /**
  * Return services permissions configuration to be able to manage resources access from rpc request.
  */
 func getServicePermissionsHanldler(w http.ResponseWriter, r *http.Request) {
-		// Receive http request...
-		redirect, to := redirectTo(r.Host)
-		if redirect {
-			handleRequestAndRedirect(to, w, r)
-			return
-		}
-	
-		// Handle the prefligth oprions...
-		setupResponse(&w, r)
-	
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-	
-		//add prefix and clean
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		
-		// so here I will retreive the service configuration from the service id given in the query
-		serviceId := r.URL.Query().Get("id") // the csr in base64
+	// Receive http request...
+	redirect, to := redirectTo(r.Host)
+	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
 
-		//add prefix and clean
-		serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
-		if err != nil {
-			http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
 
-		// from the configuration i will read the configuration file...
-		data, err := os.ReadFile(serviceConfig["ConfigPath"].(string))
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
-		// reload the configuration with the permissions...
-		err = json.Unmarshal(data, &serviceConfig)
+	//add prefix and clean
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
-		
-		if(serviceConfig["Permissions"] == nil || err != nil){
-			http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	// so here I will retreive the service configuration from the service id given in the query
+	serviceId := r.URL.Query().Get("id") // the csr in base64
 
-		gotJSON, err := json.MarshalIndent(serviceConfig["Permissions"], "", "  ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
-		}
-	
-		w.Write(gotJSON)
+	//add prefix and clean
+	serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
+	if err != nil {
+		http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// from the configuration i will read the configuration file...
+	data, err := os.ReadFile(serviceConfig["ConfigPath"].(string))
+
+	// reload the configuration with the permissions...
+	err = json.Unmarshal(data, &serviceConfig)
+	if err != nil {
+		http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// set empty array if not defined...
+	if serviceConfig["Permissions"] == nil {
+		serviceConfig["Permissions"] = []interface{}{}
+	}
+
+	gotJSON, err := json.MarshalIndent(serviceConfig["Permissions"], "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
+	}
+
+	w.Write(gotJSON)
 }
 
 /**
@@ -414,7 +416,6 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	
 	// so here I will retreive the service configuration from the service id given in the query
 	serviceId := r.URL.Query().Get("id") // the csr in base64
 
@@ -524,7 +525,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-		
+
 			jsonStr, err := json.MarshalIndent(remoteConfig, "", "  ")
 			if err != nil {
 				http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
@@ -532,7 +533,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			w.Write(jsonStr)
-			
+
 			return
 		}
 	}
@@ -590,41 +591,12 @@ func dealwithErr(err error) {
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("----> get hardware data handler")
-
 	// Receive http request...
 	redirect, to := redirectTo(r.Host)
 	if redirect {
 		handleRequestAndRedirect(to, w, r)
 		return
 	}
-
-	// i will redirect to the given host if the host is not the same...
-	/*hostname, _ := config_.GetName()
-
-	// Here I will try to see of it contain a host value in the query.
-	if !strings.HasPrefix(r.URL.Query().Get("host"), hostname) && len(r.URL.Query().Get("host")) > 0 {
-
-		// I will get parameters from the query and create a peer.
-		address := r.URL.Query().Get("host")
-
-		if strings.Contains(address, ":") {
-			address = strings.Split(address, ":")[0]
-		}
-
-		portHttp := Utility.ToInt(r.URL.Query().Get("http_port"))
-		portHttps := Utility.ToInt(r.URL.Query().Get("https_port"))
-		protocol := strings.Split(r.URL.Query().Get("scheme"), "/")[0]
-
-		to := new(resourcepb.Peer)
-		to.Protocol = protocol
-		to.PortHttps = int32(portHttps)
-		to.PortHttp = int32(portHttp)
-		to.Domain = address
-
-		handleRequestAndRedirect(to, w, r)
-		return
-	}*/
 
 	runtimeOS := runtime.GOOS
 
@@ -727,7 +699,6 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
 		return
 	}
-
 
 	w.Write(jsonStr)
 }
@@ -890,10 +861,109 @@ func isPublic(path string) bool {
 	return false
 }
 
+// ImageList is the structure for our response
+type ImageList struct {
+	Images []string `json:"images"`
+}
+
+/**
+ * Return a list of images from a given path. The path is given in the query. 
+ * The path is relative to the web root directory.
+ */
+func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
+
+	redirect, to := redirectTo(r.Host)
+
+	if redirect {
+		handleRequestAndRedirect(to, w, r)
+		return
+	}
+
+	// Handle the prefligth oprions...
+	setupResponse(&w, r)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	dir := globule.webRoot
+
+	// If a directory with the same name as the host in the request exist
+	// it will be taken as root. Permission will be manage by the resource
+	// manager and not simply the name of the directory. If you want to protect
+	// a given you need to set permission on it.
+	if Utility.Exists(dir + "/" + r.Host) {
+		dir += "/" + r.Host
+	}
+
+	// so I will get the path from the query...
+	path := r.URL.Query().Get("path")
+
+	// If the path is not defined I will return an error.
+	if len(path) == 0 {
+		http.Error(w, "Failed to get images no path was given", http.StatusInternalServerError)
+		return
+	}
+
+	// Be sure that the path start with a /.
+	if !strings.HasPrefix(path, "/") {	
+		path = "/" + path
+	}
+
+	if !Utility.Exists(dir + path) {
+
+		http.Error(w, "Failed to get images path not found "+dir+path, http.StatusInternalServerError)
+		return
+
+	}
+
+
+	// Get a list of images
+	imageFiles, err := getListOfImages(dir + path)
+	if err != nil {
+		http.Error(w, "Failed to get images", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a response structure
+	response := ImageList{Images: imageFiles}
+
+	// I will replace all images path by the relative path.
+	for i := 0; i < len(response.Images); i++ {
+		response.Images[i] = strings.ReplaceAll(response.Images[i], dir, "")
+	}
+
+	// Marshal the response structure to JSON
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseJSON)
+}
+
+func getListOfImages(dirPath string) ([]string, error) {
+	var fileList []string
+	err := filepath.Walk(dirPath, func(path string, f os.FileInfo, err error) error {
+		if !f.IsDir() {
+			fileList = append(fileList, path)
+		}
+		return nil
+	})
+
+	return fileList, err
+}
+
 /**
  * Evaluate the file size at given url
  */
 func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
+
 	// here in case of file uploaded from other website like pornhub...
 	url := r.URL.Query().Get("url")
 
@@ -1454,7 +1524,7 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	w.WriteHeader(http.StatusCreated)
-	
+
 	jsonStr, err := json.MarshalIndent(titles, "", "  ")
 	if err != nil {
 		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)

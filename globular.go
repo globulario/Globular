@@ -212,7 +212,7 @@ func NewGlobule() *Globule {
 	}
 
 	if g.AllowedHeaders == nil {
-		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token", "video-path", "index-path"}
+		g.AllowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token", "video-path", "index-path", "routing"}
 	}
 
 	// the map of peers.
@@ -278,6 +278,9 @@ func NewGlobule() *Globule {
 
 	// The file upload handler.
 	http.HandleFunc("/uploads", FileUploadHandler)
+
+	// Return the list of images in the given directory.
+	http.HandleFunc("/get_images", GetImagesHandler)
 
 	// Create the video cover if it not already exist and return it as data url
 	http.HandleFunc("/get_video_cover_data_url", GetCoverDataUrl)
@@ -1812,7 +1815,7 @@ func deletePeersEvent(evt *eventpb.Event) {
 	globule.savePeers()
 }
 
-func (globule *Globule) initPeer(p *resourcepb.Peer) {
+func (globule *Globule) initPeer(p *resourcepb.Peer) error {
 
 	// Here I will try to set the peer ip...
 	address := p.Hostname
@@ -1858,39 +1861,41 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) {
 
 	// Here I will try to update
 	token, err := security.GenerateToken(globule.SessionTimeout, p.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
-	if err == nil {
-		// no wait here...
-
-		// update local peer info for each peer...
-
-		resource_client__, err := getResourceClient(address)
-		if err == nil {
-
-			// retreive the local peer infos
-			peers_, _ := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
-			if peers_ != nil {
-				if len(peers_) > 0 {
-					// set mutable values...
-					peer_ := peers_[0]
-					peer_.Protocol = globule.Protocol
-					peer_.LocalIpAddress = config.GetLocalIP()
-					peer_.ExternalIpAddress = Utility.MyIP()
-					peer_.PortHttp = int32(globule.PortHttp)
-					peer_.PortHttps = int32(globule.PortHttps)
-					peer_.Domain = globule.Domain
-					err := resource_client__.UpdatePeer(token, peer_)
-					if err != nil {
-						fmt.Println("fail to update peer with error: ", err)
-					}
-				} else {
-					fmt.Println("no peer found with mac ", globule.Mac, " at address ", address)
-				}
-			} else {
-				fmt.Println("no peer found with mac ", globule.Mac, " at address ", address, err)
-			}
-		}
-
+	if err != nil {
+		return err
 	}
+	// no wait here...
+
+	// update local peer info for each peer...
+	resource_client__, err := getResourceClient(address)
+	if err != nil {
+		return err
+	}
+
+	// retreive the local peer infos
+	peers_, err := resource_client__.GetPeers(`{"mac":"` + globule.Mac + `"}`)
+	if err != nil {
+		return err
+	}
+
+	if len(peers_) > 0 {
+		// set mutable values...
+		peer_ := peers_[0]
+		peer_.Protocol = globule.Protocol
+		peer_.LocalIpAddress = config.GetLocalIP()
+		peer_.ExternalIpAddress = Utility.MyIP()
+		peer_.PortHttp = int32(globule.PortHttp)
+		peer_.PortHttps = int32(globule.PortHttps)
+		peer_.Domain = globule.Domain
+		err := resource_client__.UpdatePeer(token, peer_)
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("fail to retreive local peer info " + globule.Mac)
+	}
+
+	return nil
 }
 
 func (globule *Globule) getPeers() ([]*resourcepb.Peer, error) {
@@ -1937,7 +1942,11 @@ func (globule *Globule) initPeers() error {
 
 		// Try to update with updated infos...
 		go func(p *resourcepb.Peer) {
-			globule.initPeer(p)
+			err := globule.initPeer(p)
+			if err != nil {
+				globule.peers.Delete(p.Mac) // remove the peer from the list.
+				globule.savePeers() // save the peers list.
+			}
 		}(p)
 	}
 
@@ -3244,3 +3253,4 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	}
 	return err
 }
+
