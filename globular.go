@@ -981,7 +981,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	config_.Certificate.KeyType = certcrypto.RSA2048
 	client, err := lego.NewClient(config_)
 	if err != nil {
-		fmt.Println("fail to create new client with error: ", err)
+		fmt.Println("fail to create new lego client with error: ", err)
 		return err
 	}
 
@@ -1028,7 +1028,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	}
 
 	if err != nil {
-		fmt.Println("fail to create new client with error: ", err)
+		fmt.Println("1031 fail to create new client with error: ", err)
 		return err
 	}
 
@@ -1945,7 +1945,7 @@ func (globule *Globule) initPeers() error {
 			err := globule.initPeer(p)
 			if err != nil {
 				globule.peers.Delete(p.Mac) // remove the peer from the list.
-				globule.savePeers() // save the peers list.
+				globule.savePeers()         // save the peers list.
 			}
 		}(p)
 	}
@@ -2963,7 +2963,23 @@ func (globule *Globule) Listen() error {
 	}
 
 	if (!Utility.Exists(globule.creds+"/"+globule.Certificate) || len(globule.Certificate) == 0) && globule.Protocol == "https" {
+
 		fmt.Println("generate certificates...")
+		// Here is the command to be execute in order to ge the certificates.
+		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
+		// I need to remove the gRPC certificate and recreate it.
+		if Utility.Exists(globule.creds) {
+			err = Utility.RemoveDirContents(globule.creds)
+			if err != nil {
+				return err
+			}
+		}
+
+		// must be generated first.
+		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getLocalDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
+		if err != nil {
+			return err
+		}
 
 		// I will start the dns service if it is not already started.
 		dns_config, err := config.GetServiceConfigurationById("dns.DnsService")
@@ -2985,22 +3001,6 @@ func (globule *Globule) Listen() error {
 
 		// Register that peer with the dns.
 		err = globule.registerIpToDns()
-		if err != nil {
-			return err
-		}
-
-		// Here is the command to be execute in order to ge the certificates.
-		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
-		// I need to remove the gRPC certificate and recreate it.
-		if Utility.Exists(globule.creds) {
-			err = Utility.RemoveDirContents(globule.creds)
-			if err != nil {
-				return err
-			}
-		}
-
-		// generate certificates for the server.
-		err = security.GenerateServicesCertificates(globule.CertPassword, globule.CertExpirationDelay, globule.getLocalDomain(), globule.creds, globule.Country, globule.State, globule.City, globule.Organization, globule.AlternateDomains)
 		if err != nil {
 			return err
 		}
@@ -3253,4 +3253,3 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	}
 	return err
 }
-
