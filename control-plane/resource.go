@@ -3,6 +3,8 @@ package controlplane
 import (
 	"time"
 
+	
+	// http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -13,7 +15,7 @@ import (
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	v31 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -22,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
+
 
 /**
  * makeCluster creates a new cluster from a name, LB policy, and a list of hosts.
@@ -38,7 +41,10 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endP
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+		
+		Http2ProtocolOptions: &core.Http2ProtocolOptions{
+
+        },
 	}
 
 	// I case of TLS, we need to set the transport socket
@@ -143,7 +149,7 @@ func makeDownstreamTls(certFilePath, keyFilePath, caFilePath string) *core.Trans
 
 func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint.ClusterLoadAssignment {
 	var lbEndpoints []*endpoint.LbEndpoint
-	
+
 	for _, endPoint := range endPoints {
 
 		lbEndpoint := &endpoint.LbEndpoint{
@@ -193,6 +199,7 @@ func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint.ClusterLoa
  * upstream cluster.
  */
 func MakeRoute(routeName string, clusterName, host string) *route.RouteConfiguration {
+
 	return &route.RouteConfiguration{
 		Name: routeName,
 		VirtualHosts: []*route.VirtualHost{{
@@ -217,19 +224,20 @@ func MakeRoute(routeName string, clusterName, host string) *route.RouteConfigura
 					},
 				},
 			}},
-			// Add CORS policy to allow all origins.
-			Cors: &route.CorsPolicy{
-				AllowOriginStringMatch: []*v31.StringMatcher{
-					{
-						MatchPattern: &v31.StringMatcher_Prefix{
-							Prefix: "*",
+			TypedPerFilterConfig: map[string]*any.Any{
+				"envoy.filters.http.cors": toAny(&cors.CorsPolicy{
+					AllowOriginStringMatch: []*matcher.StringMatcher{
+						{
+							MatchPattern: &matcher.StringMatcher_Prefix{
+								Prefix: "*",
+							},
 						},
 					},
-				},
-				AllowMethods:  "GET, PUT, DELETE, POST, OPTIONS",
-				AllowHeaders:  "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout, domain, address, token, application, path, routing",
-				MaxAge:        "1728000",
-				ExposeHeaders: "custom-header-1,grpc-status,grpc-message",
+					AllowMethods:  "GET, PUT, DELETE, POST, OPTIONS",
+					AllowHeaders:  "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout, domain, address, token, application, path, routing",
+					MaxAge:        "1728000",
+					ExposeHeaders: "custom-header-1,grpc-status,grpc-message",
+				}),
 			},
 		}},
 	}
@@ -330,4 +338,3 @@ func makeConfigSource() *core.ConfigSource {
 	}
 	return source
 }
-
