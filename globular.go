@@ -391,6 +391,7 @@ func (globule *Globule) registerAdminAccount() error {
 			return err
 		}
 
+	
 		// Admin is created
 		err = globule.createAdminRole()
 		if err != nil {
@@ -1526,10 +1527,12 @@ func setSystemPath() error {
 		}
 
 		// Openssl conf require...
+		path := strings.ReplaceAll(config.GetRootDir(), "/", "\\") + `\dependencies\openssl.cnf`
+		
 		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl.cnf`) {
-			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", `C:\Program Files\Globular\dependencies\openssl.cnf`)
+			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", path)
 		} else {
-			fmt.Println("Open SSL configuration file ", `C:\Program Files\Globular\dependencies\openssl.cnf`, "not found. Require to create environnement variable OPENSSL_CONF.")
+			fmt.Println("Open SSL configuration file ", path, "not found. Require to create environnement variable OPENSSL_CONF.")
 		}
 		err = Utility.SetWindowsEnvironmentVariable("Path", strings.ReplaceAll(systemPath, "/", "\\"))
 
@@ -1680,9 +1683,6 @@ func (globule *Globule) startServices() error {
 
 		// subscribe to log events
 		globule.subscribe("new_log_evt", logListener(globule))
-
-		// refresh dir event
-		globule.subscribe("refresh_dir_evt", refreshDirEvent(globule))
 
 		// So here I will authenticate the root if the password is "adminadmin" that will
 		// reset the password in the backend if it was manualy set in the config file.
@@ -2139,12 +2139,10 @@ admin:
 	}()
 
 	// Wait for either the control plane to finish or the context to be canceled
-	select {
-	case <-ctx.Done():
-		// Context canceled, wait for the control plane to finish
-		wg.Wait()
-		fmt.Println("Graceful shutdown complete.")
-	}
+	<-ctx.Done()
+	// Context canceled, wait for the control plane to finish
+	wg.Wait()
+	fmt.Println("Graceful shutdown complete.")
 
 	fmt.Println("Exiting...")
 }
@@ -2922,19 +2920,6 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 					}
 				}
 			}
-		}
-	}
-}
-
-/**
- * That event will be trigger when the directory must be refresh...
- */
-func refreshDirEvent(g *Globule) func(evt *eventpb.Event) {
-	return func(evt *eventpb.Event) {
-		path := string(evt.Data)
-		if strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/applications/") {
-			path = config.GetDataDir() + "/files" + path
-
 		}
 	}
 }

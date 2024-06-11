@@ -2,9 +2,6 @@ package controlplane
 
 import (
 	"time"
-
-	
-	// http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -25,7 +22,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-
 /**
  * makeCluster creates a new cluster from a name, LB policy, and a list of hosts.
  * The cluster is configured with a DNS resolver to allow Envoy to resolve the
@@ -41,13 +37,10 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endP
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-		
-		Http2ProtocolOptions: &core.Http2ProtocolOptions{
-
-        },
+		Http2ProtocolOptions: &core.Http2ProtocolOptions{},
 	}
 
-	// I case of TLS, we need to set the transport socket
+	// In case of TLS, we need to set the transport socket
 	if len(keyFilePath) > 0 {
 		c.TransportSocket = makeUpstreamTls(certFilePath, keyFilePath, caFilePath)
 	}
