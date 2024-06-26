@@ -44,7 +44,7 @@ And finaly you must free up the port 53
 
 2- Create a symbolic link for /run/systemd/resolve/resolv.conf with /etc/resolv.conf as the destination:
 
-    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+   
 
 
 reboot the server

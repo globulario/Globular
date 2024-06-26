@@ -1650,9 +1650,9 @@ func (globule *Globule) startServices() error {
 			service["ProxyProcess"] = -1
 
 			port := start_port + (i * 2)
-			proxyPort := start_port + (i * 2) + 1
+			proxyPort := port + 1
 
-			fmt.Println("start service ", name, " on port ", port, " and proxy port ", proxyPort)
+			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", proxyPort)
 			_, err := process.StartServiceProcess(service, port, proxyPort)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
