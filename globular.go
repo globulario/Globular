@@ -45,7 +45,8 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
-	"github.com/slayer/autorestart"
+	//"github.com/slayer/autorestart"
+
 	"github.com/txn2/txeh"
 
 	// Interceptor for authentication, event, log...
@@ -1590,8 +1591,37 @@ func (globule *Globule) restart() error {
 	globule.cleanup()
 
 	// force the restart the process.
-	autorestart.RestartByExec()
+	//autorestart.RestartByExec()
+	// Get the current executable path
+	execPath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error finding executable path: %v\n", err)
+		os.Exit(1)
+	}
 
+	// Get the current process arguments
+	args := append([]string{execPath}, "restarted")
+	args = append(args, os.Args[1:]...)
+
+	// Get the current environment variables
+	env := os.Environ()
+
+	// Create a new command to execute the current process
+	cmd := exec.Command(execPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Env = env
+
+	// Start the new process
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error starting new process: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Exit the current process
+	fmt.Println("Exiting the current process...")
+	os.Exit(0)
 	return nil
 }
 
@@ -1653,7 +1683,7 @@ func (globule *Globule) startServices() error {
 			proxyPort := port + 1
 
 			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", proxyPort)
-			_, err := process.StartServiceProcess(service, port, proxyPort)
+			_, err := process.StartServiceProcess(service, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			}
@@ -2929,7 +2959,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
  */
 func (globule *Globule) Listen() error {
 
-	autorestart.StartWatcher()
+	//autorestart.StartWatcher()
 
 	var err error
 
@@ -2978,7 +3008,7 @@ func (globule *Globule) Listen() error {
 			proxyPort := Utility.ToInt(dns_config["Proxy"])
 
 			fmt.Println("start service ", name, " on port ", port, " and proxy port ", proxyPort)
-			_, err := process.StartServiceProcess(dns_config, port, proxyPort)
+			_, err := process.StartServiceProcess(dns_config, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			}
