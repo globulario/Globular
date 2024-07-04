@@ -20,9 +20,9 @@ Next you must change the /etc/globular/config/config.json file values.
     Protocol:"https"
     PortHttp: 80
     PortHttps: 443
-    Name: "ns1"
-    Domain: "mycelius.com"
-    AlternateDomains : ["ns1.mycelius.com"]
+    Name: "globule-ryzen"
+    Domain: "globular.cloud"
+    NS : ["ns1.globular.io", "ns2.globular.io"]
 
 And finaly you must free up the port 53
 
@@ -44,7 +44,7 @@ And finaly you must free up the port 53
 
 2- Create a symbolic link for /run/systemd/resolve/resolv.conf with /etc/resolv.conf as the destination:
 
-   
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
 
 reboot the server

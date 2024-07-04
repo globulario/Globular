@@ -1650,13 +1650,16 @@ func (globule *Globule) startServices() error {
 			service["ProxyProcess"] = -1
 
 			port := start_port + (i * 2)
-			proxyPort := port + 1
-
-			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", proxyPort)
-			_, err := process.StartServiceProcess(service, port, proxyPort)
+	
+			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", port + 1)
+			pid, err := process.StartServiceProcess(service, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			}
+
+			service["Process"] = pid
+			service["ProxyProcess"] = -1
+			process.StartServiceProxyProcess(service, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate())
 		}
 	}
 
@@ -2234,6 +2237,8 @@ func SetSnapshot() error {
 	return controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 }
 
+
+// Start envoy as a proxy.
 func startEnvoyProxy() {
 
 	go func() {
@@ -2334,10 +2339,11 @@ func (globule *Globule) Serve() error {
 	go globule.initPeers()
 
 	// Now I will initialize the control plane.
-	go globule.initControlPlane()
+	//go globule.initControlPlane()
 
 	// Start envoy proxy.
-	startEnvoyProxy()
+	// startEnvoyProxy()
+	//StartImprobableProxy()
 
 	p := make(map[string]interface{})
 
@@ -2975,10 +2981,9 @@ func (globule *Globule) Listen() error {
 			dns_config["ProxyProcess"] = -1
 
 			port := Utility.ToInt(dns_config["Port"])
-			proxyPort := Utility.ToInt(dns_config["Proxy"])
 
-			fmt.Println("start service ", name, " on port ", port, " and proxy port ", proxyPort)
-			_, err := process.StartServiceProcess(dns_config, port, proxyPort)
+			fmt.Println("start service ", name, " on port ", port, " and proxy port ", port)
+			_, err := process.StartServiceProcess(dns_config, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			}
