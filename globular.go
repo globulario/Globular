@@ -391,7 +391,6 @@ func (globule *Globule) registerAdminAccount() error {
 			return err
 		}
 
-	
 		// Admin is created
 		err = globule.createAdminRole()
 		if err != nil {
@@ -1528,7 +1527,7 @@ func setSystemPath() error {
 
 		// Openssl conf require...
 		path := strings.ReplaceAll(config.GetRootDir(), "/", "\\") + `\dependencies\openssl.cnf`
-		
+
 		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", path)
 		} else {
@@ -1650,8 +1649,8 @@ func (globule *Globule) startServices() error {
 			service["ProxyProcess"] = -1
 
 			port := start_port + (i * 2)
-	
-			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", port + 1)
+
+			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", port+1)
 			pid, err := process.StartServiceProcess(service, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
@@ -2237,7 +2236,6 @@ func SetSnapshot() error {
 	return controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 }
 
-
 // Start envoy as a proxy.
 func startEnvoyProxy() {
 
@@ -2523,12 +2521,12 @@ func (globule *Globule) registerIpToDns() error {
 		}
 
 		// I will publish the private ip address only
-		_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
+		/*_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", globule.getLocalDomain(), " with error ", err)
 		} else {
 			fmt.Println("set A record for domain ", globule.getLocalDomain(), " with success")
-		}
+		}*/
 
 		// try to set the ipv6 address...
 		ipv6, err := Utility.MyIPv6()
@@ -2566,13 +2564,13 @@ func (globule *Globule) registerIpToDns() error {
 					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
 				}
 
-				_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
+				/*_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
 					continue
 				} else {
 					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
-				}
+				}*/
 
 				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
 				if err != nil {
