@@ -45,6 +45,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
+
 	//"github.com/slayer/autorestart"
 
 	"github.com/txn2/txeh"
@@ -388,11 +389,9 @@ func (globule *Globule) registerAdminAccount() error {
 
 		err := resource_client_.RegisterAccount(globule.Domain, "sa", "sa", globule.AdminEmail, globule.RootPassword, globule.RootPassword)
 		if err != nil {
-			fmt.Println("fail to register admin account sa", err)
 			return err
 		}
 
-	
 		// Admin is created
 		err = globule.createAdminRole()
 		if err != nil {
@@ -498,7 +497,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	/* TODO create user connection*/
-
+	fmt.Println("--------------------> NO error create admin account ", globule.Domain)
 	// The user console
 	return nil
 
@@ -1529,7 +1528,7 @@ func setSystemPath() error {
 
 		// Openssl conf require...
 		path := strings.ReplaceAll(config.GetRootDir(), "/", "\\") + `\dependencies\openssl.cnf`
-		
+
 		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl.cnf`) {
 			Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", path)
 		} else {
@@ -1680,8 +1679,8 @@ func (globule *Globule) startServices() error {
 			service["ProxyProcess"] = -1
 
 			port := start_port + (i * 2)
-	
-			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", port + 1)
+
+			fmt.Println("try to start service ", name, " on port ", port, " and proxy port ", port+1)
 			pid, err := process.StartServiceProcess(service, port)
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
@@ -2010,13 +2009,27 @@ func (globule *Globule) stopServices() error {
 		for i := 0; i < len(services_configs); i++ {
 			pid := Utility.ToInt(services_configs[i]["Process"])
 			services_configs[i]["State"] = "killed"
+			proxyPid := Utility.ToInt(services_configs[i]["ProxyProcess"])
 			services_configs[i]["ProxyProcess"] = -1
 
 			// save config...
 			err := config.SaveServiceConfiguration(services_configs[i])
 			if err == nil {
 				if pid > 0 {
+					// Kill the process.
 					process, err := os.FindProcess(pid)
+					if err == nil {
+						err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
+						if err != nil {
+							fmt.Println("Error sending signal:", err)
+						}
+					}
+
+				}
+
+				// Kill the proxy process.
+				if proxyPid > 0 {
+					process, err := os.FindProcess(proxyPid)
 					if err == nil {
 						err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
 						if err != nil {
@@ -2266,7 +2279,6 @@ func SetSnapshot() error {
 
 	return controlplane.AddSnapshot("globular-xds", "1", spnapShots)
 }
-
 
 // Start envoy as a proxy.
 func startEnvoyProxy() {
