@@ -2565,12 +2565,12 @@ func (globule *Globule) registerIpToDns() error {
 		}
 
 		// I will publish the private ip address only
-		_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
+		/*_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", globule.getLocalDomain(), " with error ", err)
 		} else {
 			fmt.Println("set A record for domain ", globule.getLocalDomain(), " with success")
-		}
+		}*/
 
 		// try to set the ipv6 address...
 		ipv6, err := Utility.MyIPv6()
@@ -2608,13 +2608,13 @@ func (globule *Globule) registerIpToDns() error {
 					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
 				}
 
-				_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
+				/*_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
 					continue
 				} else {
 					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
-				}
+				}*/
 
 				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
 				if err != nil {
