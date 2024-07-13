@@ -1278,7 +1278,7 @@ func dist(g *Globule, path string, revision string) {
 		Utility.CreateDirIfNotExist(darwin_package_path)
 
 		// 2. Create application directory.
-		app_path := darwin_package_path + "/Globular.app"
+		app_path := darwin_package_path + "/globular.cloud"
 		app_content := app_path + "/Contents"
 		app_bin := app_content + "/MacOS"
 		app_resource := app_content + "/Resources"
@@ -1924,7 +1924,6 @@ func __dist(g *Globule, path, config_path string) []string {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 
 	// Copy the bin file from globular
 	if runtime.GOOS == "windows" {

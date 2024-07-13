@@ -227,7 +227,7 @@ func NewGlobule() *Globule {
 	// set default values.
 	g.CertExpirationDelay = 365
 	g.CertPassword = "1111"
-	g.AdminEmail = "root@globular.app"
+	g.AdminEmail = "sa@globular.cloud"
 	g.RootPassword = "adminadmin"
 
 	// keep up to date by default.
@@ -2999,7 +2999,7 @@ func (globule *Globule) Listen() error {
 
 		fmt.Println("generate certificates...")
 		// Here is the command to be execute in order to ge the certificates.
-		// ./lego --email="admin@globular.app" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
+		// ./lego --email="admin@globular.cloud" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
 		// I need to remove the gRPC certificate and recreate it.
 		if Utility.Exists(globule.creds) {
 			err = Utility.RemoveDirContents(globule.creds)

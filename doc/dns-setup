@@ -55,11 +55,11 @@ You now have a running dns service
 
 to test on your local network simply run de command: 
 
-dig @192.168.0.166 globular.app
+dig @192.168.0.166 globular.cloud
 
 or on the internet
 
-dig @8.8.8.8 globular.app
+dig @8.8.8.8 globular.cloud
 
 don't forget to open the port 53 in you firewall and also add a rule to redirect to for exemple 192.168.0.166 and port 53 in port fowarding rules.
 
