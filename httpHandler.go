@@ -867,7 +867,7 @@ type ImageList struct {
 }
 
 /**
- * Return a list of images from a given path. The path is given in the query. 
+ * Return a list of images from a given path. The path is given in the query.
  * The path is relative to the web root directory.
  */
 func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
@@ -907,7 +907,7 @@ func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Be sure that the path start with a /.
-	if !strings.HasPrefix(path, "/") {	
+	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
@@ -917,7 +917,6 @@ func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
 
 	// Get a list of images
 	imageFiles, err := getListOfImages(dir + path)
@@ -1438,6 +1437,12 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var code string
 	// If the file is a javascript file...
 	hasChange := false
+
+	if !Utility.Exists(name) {
+		name = "/" + rqst_path // try network path...
+	}
+
+	//fmt.Println("serve file ", name)
 
 	f, err := os.Open(name)
 	if err != nil {

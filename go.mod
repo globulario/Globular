@@ -2,6 +2,8 @@ module Globular
 
 go 1.22.5
 
+replace github.com/davecourtois/Utility => ../Utility
+
 require (
 	github.com/StalkR/httpcache v1.0.0
 	github.com/StalkR/imdb v1.0.15
@@ -92,5 +94,3 @@ require (
 )
 
 replace github.com/globulario/services/golang => ../services/golang
-
-replace github.com/davecourtois/Utility => ../Utility
