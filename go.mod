@@ -19,7 +19,6 @@ require (
 	github.com/kardianos/service v1.2.2
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
 	github.com/shirou/gopsutil/v3 v3.23.11
-	github.com/slayer/autorestart v0.0.0-20170706172547-5ebd91f955ae
 	github.com/txn2/txeh v1.5.5
 	github.com/yoheimuta/go-protoparser/v4 v4.9.0
 	google.golang.org/grpc v1.65.0
@@ -78,13 +77,13 @@ require (
 	github.com/twmb/murmur3 v1.1.5 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/term v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect

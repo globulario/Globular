@@ -66,6 +66,7 @@ var (
 	globule *Globule
 )
 
+
 /**
  * The web server.
  */
@@ -2509,7 +2510,8 @@ func (globule *Globule) setHost(ipv4, address string) error {
 }
 
 /**
- * Set the ip for a given domain or sub-domain
+ * Set the ip for a given domain or sub-domain.
+ * The domain must be manage by the dns provider directly.
  */
 func (globule *Globule) registerIpToDns() error {
 
@@ -2564,13 +2566,6 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("fail to generate token for dns server with error ", err)
 		}
 
-		// I will publish the private ip address only
-		/*_, err = dns_client_.SetA(token, globule.getLocalDomain(), config.GetLocalIP(), 60)
-		if err != nil {
-			fmt.Println("fail to set A record for domain ", globule.getLocalDomain(), " with error ", err)
-		} else {
-			fmt.Println("set A record for domain ", globule.getLocalDomain(), " with success")
-		}*/
 
 		// try to set the ipv6 address...
 		ipv6, err := Utility.MyIPv6()
@@ -2632,6 +2627,31 @@ func (globule *Globule) registerIpToDns() error {
 					fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
 				}
 			}
+		}
+
+		// Now the mx record.
+
+		// I will publish the private ip address only
+		_, err = dns_client_.SetA(token, "mail." + globule.Domain, Utility.MyIP(), 60)
+		if err != nil {
+			fmt.Println("fail to set A record for domain ",  "mail." + globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set A record for domain ",  "mail." + globule.Domain, " with success")
+		}
+
+		_, err = dns_client_.SetAAAA(token, "mail." + globule.Domain, ipv6, 60)
+		if err != nil {
+			fmt.Println("fail to set AAAA record for domain ",  "mail." + globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set AAAA record for domain ",  "mail." + globule.Domain, " with success")
+		}
+
+		// Now the mx record.
+		err = dns_client_.SetMx(token, globule.Domain, 10, "mail."+globule.Domain, 60)
+		if err != nil {
+			fmt.Println("fail to set MX record for domain ", globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set MX record for domain ", globule.Domain, " with success")
 		}
 
 		// if the NS server are local I will set the local ip address.
