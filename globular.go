@@ -66,7 +66,6 @@ var (
 	globule *Globule
 )
 
-
 /**
  * The web server.
  */
@@ -205,6 +204,12 @@ func NewGlobule() *Globule {
 	g.Country = "CA"
 	g.State = "QC"
 	g.City = "MTL"
+
+	// DNS info.
+	g.DNS = globule.getLocalDomain() // The dns server.
+
+	// The name server.
+	g.NS = make([]interface{}, 0)
 
 	if g.AllowedOrigins == nil {
 		g.AllowedOrigins = []string{"*"}
@@ -498,7 +503,7 @@ func (globule *Globule) registerAdminAccount() error {
 	}
 
 	/* TODO create user connection*/
-	fmt.Println("--------------------> NO error create admin account ", globule.Domain)
+
 	// The user console
 	return nil
 
@@ -771,6 +776,12 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 		globule.WatchUpdateDelay = int64(Utility.ToInt(config["WatchUpdateDelay"]))
 	}
 
+	// Set the ns.
+	if config["NS"] != nil && len(config["NS"].([]interface{})) > 0 {
+
+		globule.NS = config["NS"].([]interface{})
+	}
+
 	// Set the dns.
 	if config["DNS"] != nil {
 		if len(config["DNS"].(string)) > 0 {
@@ -787,13 +798,6 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 
 			}
 		}
-	}
-
-	// Set the ns.
-	if config["NS"] != nil {
-
-		globule.NS = config["NS"].([]interface{})
-
 	}
 
 	// Set the dns update ip infos.
@@ -1141,12 +1145,6 @@ func (globule *Globule) initDirectories() error {
 	// initilayse configurations...
 	// it must be call here in order to initialyse a sync map...
 	config.GetServicesConfigurations()
-
-	// DNS info.
-	globule.DNS = globule.getLocalDomain() // The dns server.
-
-	// The name server.
-	globule.NS = make([]interface{}, 0)
 
 	// The dns update ip info.
 	// for example:
@@ -2528,6 +2526,7 @@ func (globule *Globule) registerIpToDns() error {
 
 		dns_client_, err := dns_client.NewDnsService_Client(globule.DNS, "dns.DnsService")
 		if err != nil {
+			fmt.Println("fail to create dns client with error ", err)
 			return err
 		}
 
@@ -2565,7 +2564,6 @@ func (globule *Globule) registerIpToDns() error {
 		if err != nil {
 			fmt.Println("fail to generate token for dns server with error ", err)
 		}
-
 
 		// try to set the ipv6 address...
 		ipv6, err := Utility.MyIPv6()
@@ -2632,18 +2630,18 @@ func (globule *Globule) registerIpToDns() error {
 		// Now the mx record.
 
 		// I will publish the private ip address only
-		_, err = dns_client_.SetA(token, "mail." + globule.Domain, Utility.MyIP(), 60)
+		_, err = dns_client_.SetA(token, "mail."+globule.Domain, Utility.MyIP(), 60)
 		if err != nil {
-			fmt.Println("fail to set A record for domain ",  "mail." + globule.Domain, " with error ", err)
+			fmt.Println("fail to set A record for domain ", "mail."+globule.Domain, " with error ", err)
 		} else {
-			fmt.Println("set A record for domain ",  "mail." + globule.Domain, " with success")
+			fmt.Println("set A record for domain ", "mail."+globule.Domain, " with success")
 		}
 
-		_, err = dns_client_.SetAAAA(token, "mail." + globule.Domain, ipv6, 60)
+		_, err = dns_client_.SetAAAA(token, "mail."+globule.Domain, ipv6, 60)
 		if err != nil {
-			fmt.Println("fail to set AAAA record for domain ",  "mail." + globule.Domain, " with error ", err)
+			fmt.Println("fail to set AAAA record for domain ", "mail."+globule.Domain, " with error ", err)
 		} else {
-			fmt.Println("set AAAA record for domain ",  "mail." + globule.Domain, " with success")
+			fmt.Println("set AAAA record for domain ", "mail."+globule.Domain, " with success")
 		}
 
 		// Now the mx record.
@@ -3049,11 +3047,14 @@ func (globule *Globule) Listen() error {
 			if err != nil {
 				fmt.Println("fail to start service ", name, err)
 			}
+		} else {
+			fmt.Println("fail to get dns service configuration with error ", err)
 		}
 
 		// Register that peer with the dns.
 		err = globule.registerIpToDns()
 		if err != nil {
+			fmt.Println("fail to register ip to dns with error ", err)
 			return err
 		}
 

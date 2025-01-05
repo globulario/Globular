@@ -1337,6 +1337,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) == 0 {
 		// the token can be given by the url directly...
 		token = r.URL.Query().Get("token")
+
+		fmt.Println("try to get token from url ", token)
 	}
 
 	if len(application) == 0 {
@@ -1388,6 +1390,9 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess = false // force validation (denied access...)
 	}
 
+
+	fmt.Println("serve file ", name)
+
 	// stream, the validation is made on the directory containning the playlist...
 	if strings.Contains(rqst_path, "/.hidden/") ||
 		strings.HasSuffix(rqst_path, ".ts") ||
@@ -1409,23 +1414,27 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
+	fmt.Println("try to serve file ", name, " with access ", hasAccess, " and access denied ", hasAccessDenied, " and token ", token)
 	if len(token) != 0 && !hasAccess {
+		fmt.Println("try to validate token")
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
+
+			fmt.Println("values found from token are user:", userId, "domain", claims.UserDomain, " hasAccess ", hasAccess, " hasAccessDenied ", hasAccessDenied)
 		} else {
 			fmt.Println("fail to validate token with error: ", err)
 		}
 	}
 
 	// Here I will validate applications...
-	if len(application) != 0 && !hasAccess && !hasAccessDenied {
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
-	} else if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
+	 if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
 		hasAccess = true
-	}
+	} else if !hasAccess && !hasAccessDenied && len(application) != 0 {
+		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
+	} 
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {

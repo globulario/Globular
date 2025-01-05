@@ -17,12 +17,13 @@ Now you must name the server with the correct hostname
         
 Next you must change the /etc/globular/config/config.json file values.
     
-    Protocol:"https"
+    Protocol:"https" # only https is supported for dns
     PortHttp: 80
     PortHttps: 443
     Name: "globule-ryzen"
     Domain: "globular.cloud"
     NS : ["ns1.globular.io", "ns2.globular.io"]
+    DNS: "globule-ryzen.globular.io" # or the name of your dns server... 
 
 And finaly you must free up the port 53
 
