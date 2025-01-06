@@ -1242,27 +1242,28 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	return importPath_, nil
 }
 
-/**
- * findHashedFile search for a hashed file in the same directory as the original file.
- * ex if styles.css not exist i will try to find styles.123456.css in the same directory.
- */
-func findHashedFile(originalPath string) (string, error) {
 
+// findHashedFile looks for a file with a hashed name based on the original file path.
+func findHashedFile(originalPath string) (string, error) {
 	// Get the directory of the original file
 	dir := filepath.Dir(originalPath)
 
-	// Get the base name of the original file without extension
+	// Get the base name and extension of the original file
 	baseName := strings.TrimSuffix(filepath.Base(originalPath), filepath.Ext(originalPath))
+	ext := filepath.Ext(originalPath)
 
 	// Read the files in the directory
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read directory: %w", err)
 	}
+
+	// Regular expression to match hashed file names
+	hashRegex := regexp.MustCompile(fmt.Sprintf(`^%s\.[a-f0-9]{8,}\%s$`, regexp.QuoteMeta(baseName), regexp.QuoteMeta(ext)))
 
 	// Search for a matching hashed file
 	for _, file := range files {
-		if strings.HasPrefix(file.Name(), baseName) && strings.HasSuffix(file.Name(), filepath.Ext(originalPath)) {
+		if hashRegex.MatchString(file.Name()) {
 			return filepath.Join(dir, file.Name()), nil
 		}
 	}
@@ -1390,9 +1391,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		hasAccess = false // force validation (denied access...)
 	}
 
-
-	fmt.Println("serve file ", name)
-
 	// stream, the validation is made on the directory containning the playlist...
 	if strings.Contains(rqst_path, "/.hidden/") ||
 		strings.HasSuffix(rqst_path, ".ts") ||
@@ -1414,9 +1412,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var userId string
 
-	fmt.Println("try to serve file ", name, " with access ", hasAccess, " and access denied ", hasAccessDenied, " and token ", token)
 	if len(token) != 0 && !hasAccess {
-		fmt.Println("try to validate token")
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
@@ -1451,8 +1447,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = "/" + rqst_path // try network path...
 	}
 
-	//fmt.Println("serve file ", name)
-
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -1470,10 +1464,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	f.Close()
+	defer f.Close()
 
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
+		
 		if err == nil {
 			//hasChange = true
 			scanner := bufio.NewScanner(f)

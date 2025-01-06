@@ -777,8 +777,7 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 	}
 
 	// Set the ns.
-	if config["NS"] != nil && len(config["NS"].([]interface{})) > 0 {
-
+	if config["NS"] != nil {
 		globule.NS = config["NS"].([]interface{})
 	}
 

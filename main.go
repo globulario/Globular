@@ -779,6 +779,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
+	
 	description := packageConfig["description"].(string)
 	version := packageConfig["version"].(string)
 
