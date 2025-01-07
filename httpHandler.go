@@ -1284,6 +1284,8 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	rqst_path := path.Clean(r.URL.Path)
 
+	fmt.Println("try to serve file at path: ", r.Host, rqst_path)
+
 	if rqst_path == "/null" {
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
 	}

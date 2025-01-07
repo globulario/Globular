@@ -2626,8 +2626,6 @@ func (globule *Globule) registerIpToDns() error {
 			}
 		}
 
-		// Now the mx record.
-
 		// I will publish the private ip address only
 		_, err = dns_client_.SetA(token, "mail."+globule.Domain, Utility.MyIP(), 60)
 		if err != nil {
@@ -2636,19 +2634,73 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("set A record for domain ", "mail."+globule.Domain, " with success")
 		}
 
-		_, err = dns_client_.SetAAAA(token, "mail."+globule.Domain, ipv6, 60)
-		if err != nil {
-			fmt.Println("fail to set AAAA record for domain ", "mail."+globule.Domain, " with error ", err)
-		} else {
-			fmt.Println("set AAAA record for domain ", "mail."+globule.Domain, " with success")
-		}
-
 		// Now the mx record.
 		err = dns_client_.SetMx(token, globule.Domain, 10, "mail."+globule.Domain, 60)
 		if err != nil {
 			fmt.Println("fail to set MX record for domain ", globule.Domain, " with error ", err)
 		} else {
 			fmt.Println("set MX record for domain ", globule.Domain, " with success")
+		}
+
+
+		// SPF record
+		dns_client_.RemoveText(token, globule.Domain+".")
+
+		spf := fmt.Sprintf(`v=spf1 mx ip4:%s include:_spf.google.com ~all`, Utility.MyIP())
+		err = dns_client_.SetText(token, globule.Domain+".", []string{spf}, 60)
+		if err != nil {
+			fmt.Println("fail to set TXT record for domain ", globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set TXT record for domain ", globule.Domain, " with success")
+		}
+
+		// DMARC record
+		dmarc_policy := fmt.Sprintf(`v=DMARC1;p=quarantine;rua=mailto:%s;ruf=mailto:%s;adkim=r;aspf=r;pct=100`, globule.AdminEmail, globule.AdminEmail)
+		dns_client_.RemoveText(token, "_dmarc."+globule.Domain+".")
+		err = dns_client_.SetText(token, "_dmarc."+globule.Domain+".", []string{dmarc_policy}, 60)
+		if err != nil {
+			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
+		}
+
+		// now the  MTA-STS policy
+
+		if !Utility.Exists(config.GetConfigDir() + "/tls/" + globule.Domain + "/mta-sts.txt") {
+
+			mta_sts_policy := fmt.Sprintf(`version: STSv1
+mode: enforce
+mx: %s
+ttl: 86400
+		`, globule.Domain)
+
+			err = os.WriteFile(config.GetConfigDir()+"/tls/"+globule.Domain+"/mta-sts.txt", []byte(mta_sts_policy), 0644)
+			if err != nil {
+				fmt.Println("fail to write mta-sts policy with error ", err)
+			}
+		}
+
+		// endpoints to retrieve the policy
+		_, err = dns_client_.SetA(token, "mta-sts."+globule.Domain, Utility.MyIP(), 60)
+		if err != nil {
+			fmt.Println("fail to set A record for domain ", "mta-sts."+globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set A record for domain ", "mta-sts."+globule.Domain, " with success")
+		}
+
+		dns_client_.RemoveText(token, "_mta-sts."+globule.Domain+".")
+		err = dns_client_.SetText(token, "_mta-sts."+globule.Domain+".", []string{"v=STSv1; id=cd1e8e2f-311c-3c55-bb5a-cc1eedee398e;"}, 60)
+		if err != nil {
+			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
+		}
+
+		_, err = dns_client_.SetAAAA(token, "mail."+globule.Domain, ipv6, 60)
+		if err != nil {
+			fmt.Println("fail to set AAAA record for domain ", "mail."+globule.Domain, " with error ", err)
+		} else {
+			fmt.Println("set AAAA record for domain ", "mail."+globule.Domain, " with success")
 		}
 
 		// if the NS server are local I will set the local ip address.
