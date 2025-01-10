@@ -762,30 +762,31 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
  * Setup allow Cors policies.
  */
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
-
-	var allowedOrigins string
-	for i := 0; i < len(globule.AllowedOrigins); i++ {
-		allowedOrigins += globule.AllowedOrigins[i]
-		if globule.AllowedOrigins[i] == "*" {
-			allowedOrigins = "*"
-			break
-		}
-		if i < len(globule.AllowedOrigins)-1 {
-			allowedOrigins += ","
+	// Dynamically check if the origin is allowed
+	origin := req.Header.Get("Origin")
+	allowedOrigin := globule.Protocol + "://" + globule.Domain // Default to the globule domain
+	if len(origin) > 0 {
+		for _, allowed := range globule.AllowedOrigins {
+			if allowed == "*" || allowed == origin {
+				allowedOrigin = origin
+				break
+			}
 		}
 	}
 
-	var allowedMethods string
-	for i := 0; i < len(globule.AllowedMethods); i++ {
-		allowedMethods += globule.AllowedMethods[i]
+	// Construct allowed methods
+	allowedMethods := ""
+	for i, method := range globule.AllowedMethods {
+		allowedMethods += method
 		if i < len(globule.AllowedMethods)-1 {
 			allowedMethods += ","
 		}
 	}
 
-	var allowedHeaders string
-	for i := 0; i < len(globule.AllowedHeaders); i++ {
-		allowedHeaders += globule.AllowedHeaders[i]
+	// Construct allowed headers
+	allowedHeaders := ""
+	for i, header := range globule.AllowedHeaders {
+		allowedHeaders += header
 		if i < len(globule.AllowedHeaders)-1 {
 			allowedHeaders += ","
 		}
@@ -793,15 +794,23 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 
 	header := (*w).Header()
 
-	// set the cors header...
-	header.Set("Access-Control-Allow-Origin", allowedOrigins)
+	// Set the CORS headers
+	if allowedOrigin != "" {
+		header.Set("Access-Control-Allow-Origin", allowedOrigin)
+		header.Set("Access-Control-Allow-Credentials", "true") // Required for credentials
+	}
 	header.Set("Access-Control-Allow-Methods", allowedMethods)
 	header.Set("Access-Control-Allow-Headers", allowedHeaders)
 
+	// Handle preflight requests
 	if req.Method == http.MethodOptions {
 		header.Set("Access-Control-Max-Age", "3600")
 		header.Set("Access-Control-Allow-Private-Network", "true")
+		(*w).WriteHeader(http.StatusNoContent)
+		return
 	}
+
+	header.Set("Access-Control-Allow-Private-Network", "true")
 }
 
 /**
@@ -1242,7 +1251,6 @@ func resolveImportPath(path string, importPath string) (string, error) {
 	return importPath_, nil
 }
 
-
 // findHashedFile looks for a file with a hashed name based on the original file path.
 func findHashedFile(originalPath string) (string, error) {
 	// Get the directory of the original file
@@ -1428,11 +1436,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Here I will validate applications...
-	 if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
+	if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
 		hasAccess = true
 	} else if !hasAccess && !hasAccessDenied && len(application) != 0 {
 		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
-	} 
+	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
@@ -1470,7 +1478,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
-		
+
 		if err == nil {
 			//hasChange = true
 			scanner := bufio.NewScanner(f)
@@ -1667,19 +1675,19 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 		}
 	}
 
-	// Now the serie info..
-	re_Serie := regexp.MustCompile(`data-testid="hero-title-block__series-link" href="/title/tt\d{7}/\?ref_=tt_ov_inf"`)
-	matchs_Serie := re_Serie.FindStringSubmatch(string(page))
+	// Regex to find the series ID in the href attribute
+	re := regexp.MustCompile(`data-testid="hero-title-block__series-link".*?href="/title/(tt\d{7,8})/`)
 
-	if len(matchs_Serie) > 0 {
-		re_S := regexp.MustCompile(`tt\d{7}`)
-		matchs_S := re_S.FindStringSubmatch(matchs_Serie[0])
-		if len(matchs_S) > 0 {
-			serie = matchs_S[0]
-		}
+	// Extract the series ID
+	matches := re.FindStringSubmatch(string(page))
+
+	if len(matches) > 1 {
+		serie = matches[1]
+	} else {
+		fmt.Println("Series ID not found.")
 	}
 
-	fmt.Println("Seson ", season, "Episode", episode, "Serie", serie)
+	fmt.Println("Season ", season, "Episode", episode, "Serie", serie)
 
 	return season, episode, serie, nil
 }
