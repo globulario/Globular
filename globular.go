@@ -179,7 +179,6 @@ type Globule struct {
  */
 func NewGlobule() *Globule {
 
-	fmt.Println("Create new Globular instance")
 	// Here I will initialyse configuration.
 	g := new(Globule)
 	g.startTime = time.Now()
@@ -311,8 +310,6 @@ func NewGlobule() *Globule {
 		err := globule.saveConfig()
 		if err != nil {
 			fmt.Println("fail to save local configuration with error", err)
-		} else {
-			fmt.Println("local configuration was saved ", Utility.Exists(configPath))
 		}
 	}
 
@@ -427,7 +424,6 @@ func (globule *Globule) registerAdminAccount() error {
 			_, err := security.ValidateToken(token)
 			if err != nil {
 				fmt.Println("local token is not valid! ", err)
-
 			}
 
 			roles, err := resource_client_.GetRoles("")
@@ -1033,7 +1029,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 	}
 
 	if err != nil {
-		fmt.Println("1031 fail to create new client with error: ", err)
+		fmt.Println("fail to create new client with error: ", err)
 		return err
 	}
 

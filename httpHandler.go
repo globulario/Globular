@@ -164,6 +164,7 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 		execPath = "/usr/local/share/globular/Globular"
 	}
 	fmt.Fprint(w, Utility.CreateFileChecksum(execPath))
+
 }
 
 /**
@@ -975,12 +976,8 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	// here in case of file uploaded from other website like pornhub...
 	url := r.URL.Query().Get("url")
 
-	fmt.Println("try to get file size for url ", url)
 	// we are interested in getting the file or object name
 	// so take the last item from the slice
-	subStringsSlice := strings.Split(url, "/")
-	fileName := subStringsSlice[len(subStringsSlice)-1]
-
 	resp, err := http.Head(url)
 	if err != nil {
 		fmt.Println(err)
@@ -999,7 +996,6 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	size, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
 	downloadSize := int64(size)
 
-	fmt.Println("Will be downloading ", fileName, " of ", downloadSize, " bytes.")
 	w.Header().Set("Content-Type", "application/json")
 
 	data, err := json.Marshal(&map[string]int64{"size": downloadSize})
@@ -1047,8 +1043,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
 	path = strings.ReplaceAll(path, "\\", "/")
 
-	fmt.Println("try to upload file at path: ", path)
-
 	// If application is defined.
 	token := r.Header.Get("token")
 	application := r.Header.Get("application")
@@ -1094,15 +1088,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			user = claims.Id + "@" + claims.UserDomain
 			domain = claims.Domain
-
-			fmt.Println("values found from token are user:", user, "domain", claims.UserDomain)
 		} else {
 			fmt.Println("fail to validate token with error ", err.Error())
 			http.Error(w, "fail to validate token with error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
-	} else {
-		fmt.Println("no token was given!")
 	}
 
 	if len(user) != 0 {
@@ -1292,7 +1282,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	//add prefix and clean
 	rqst_path := path.Clean(r.URL.Path)
 
-	fmt.Println("try to serve file at path: ", r.Host, rqst_path)
 
 	if rqst_path == "/null" {
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
@@ -1348,8 +1337,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) == 0 {
 		// the token can be given by the url directly...
 		token = r.URL.Query().Get("token")
-
-		fmt.Println("try to get token from url ", token)
 	}
 
 	if len(application) == 0 {
@@ -1557,7 +1544,6 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 // get the thumbnail fil with help of youtube dl...
 func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 
-	fmt.Println("download thumbnail for ", video_path)
 
 	if len(video_id) == 0 {
 		return "", errors.New("no video id was given")
@@ -1683,11 +1669,7 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 
 	if len(matches) > 1 {
 		serie = matches[1]
-	} else {
-		fmt.Println("Series ID not found.")
 	}
-
-	fmt.Println("Season ", season, "Episode", episode, "Serie", serie)
 
 	return season, episode, serie, nil
 }
@@ -1705,7 +1687,6 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id") // the csr in base64
 
-	fmt.Println("get imdb info for ", id)
 
 	title, err := imdb.NewTitle(client, id)
 	if err != nil {
@@ -1723,7 +1704,6 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	if title.Type == "TVEpisode" {
 		s, e, t, err := getSeasonAndEpisodeNumber(id, 10)
-		fmt.Println("get tv episode info ", id)
 		if err == nil {
 			title_["Season"] = s
 			title_["Episode"] = e
