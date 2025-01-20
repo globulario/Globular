@@ -1113,7 +1113,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
+		
 		if err != nil {
+			http.Error(w, "fail to open file with error " +  err.Error(), http.StatusUnauthorized)
 			return
 		}
 		defer file.Close()
@@ -1139,24 +1141,22 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
 			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
-		} else if !isPublic(path_) {
+		} else if !isPublic(path_) && !strings.HasPrefix(path_, globule.webRoot) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
 		out, err := os.Create(path_)
 		if err != nil {
+			http.Error(w, "Unable to create the file for writing. Check your write access privilege error " + err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		defer out.Close()
 
-		if err != nil {
-			http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusUnauthorized)
-			return
-		}
 
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
+			http.Error(w, "Unable to copy the file to the server. Check your write access privilege", http.StatusUnauthorized)
 			return
 		}
 
