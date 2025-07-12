@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"mime"
 	"net/http"
 	"net/http/httputil"
@@ -35,6 +38,10 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 	protoparser "github.com/yoheimuta/go-protoparser/v4"
+
+	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
@@ -63,6 +70,226 @@ type customTransport struct {
 	http.RoundTripper
 }
 
+// googleOauthConfig is the OAuth2 configuration for Google.
+var googleOauthConfig *oauth2.Config
+
+func getGoogleOauthConfig() *oauth2.Config {
+	if googleOauthConfig == nil {
+		googleOauthConfig = &oauth2.Config{
+			ClientID:     globule.OAuth2_ClientId,
+			ClientSecret: globule.OAuth2_ClientSecret,
+			RedirectURL:  "postmessage",
+			Scopes:       []string{"openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+			Endpoint:     google.Endpoint,
+		}
+	}
+	return googleOauthConfig
+}
+
+func exchangeAuthCodeForToken(code string) (*oauth2.Token, error) {
+	conf := getGoogleOauthConfig()
+	token, err := conf.Exchange(context.Background(), code)
+	if err != nil {
+		fmt.Println("Token Exchange Error:", err) // Print the exact error
+		return nil, err
+	}
+
+	return token, nil
+}
+
+// handleTokenRefresh handles the token refresh request.
+func handleTokenRefresh(w http.ResponseWriter, r *http.Request) {
+	// Enable CORS if needed
+	setupResponse(&w, r)
+
+	// Parse the request body
+	refresh_token := r.URL.Query().Get("refresh_token")
+
+	// Get OAuth2 Config
+	conf := getGoogleOauthConfig()
+
+	// Create a new token object with the refresh token
+	token := &oauth2.Token{RefreshToken: refresh_token}
+
+	// Create a token source
+	tokenSource := conf.TokenSource(context.Background(), token)
+
+	// Get a new token
+	newToken, err := tokenSource.Token()
+	if err != nil {
+		http.Error(w, "Failed to refresh token: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Send the new tokens to the frontend
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"access_token":  newToken.AccessToken,
+		"refresh_token": newToken.RefreshToken, // Only returned if Google issues a new one
+		"expires_in":    newToken.Expiry.Unix(),
+	})
+
+}
+
+// Handles the OAuth2 callback from Google
+func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
+
+	// Handle the preflight options...
+	setupResponse(&w, r)
+
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "Authorization code not found", http.StatusBadRequest)
+		return
+	}
+
+	token, err := exchangeAuthCodeForToken(code)
+	if err != nil {
+		http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
+		return
+	}
+
+	// 🔹 Validate the ID Token
+	idToken := token.Extra("id_token").(string)
+	payload, err := verifyGoogleIDToken(idToken, getGoogleOauthConfig())
+	if err != nil {
+		http.Error(w, "Invalid ID token", http.StatusUnauthorized)
+		return
+	}
+
+	// Send the token's and user's info as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"access_token":  token.AccessToken,
+		"refresh_token": token.RefreshToken,
+		"id_token":      idToken,
+		"expires_in":    token.Expiry,
+		"user":          payload, // User profile info
+	})
+}
+
+type JWK struct {
+	Kid string `json:"kid"`
+	Alg string `json:"alg"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+}
+
+type GoogleKeys struct {
+	Keys []JWK `json:"keys"`
+}
+
+// TokenClaims represents the expected claims in the Google ID token.
+type TokenClaims struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Exp           int64  `json:"exp"`
+	Sub           string `json:"sub"` // User's Google ID
+	Aud           string `json:"aud"` // Audience (your client ID)
+	Iss           string `json:"iss"` // Issuer
+}
+
+// Google's public keys URL
+const googleJWTKeySetURL = "https://www.googleapis.com/oauth2/v3/certs"
+
+// verifyGoogleIDToken verifies the Google ID token and returns the claims.
+func verifyGoogleIDToken(idToken string, config *oauth2.Config) (map[string]interface{}, error) {
+	// Fetch Google's public keys
+	resp, err := http.Get(googleJWTKeySetURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Google's public keys: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read and decode JSON response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Google's keys response: %w", err)
+	}
+
+	var keySet GoogleKeys
+	if err := json.Unmarshal(body, &keySet); err != nil {
+		return nil, fmt.Errorf("failed to decode Google's keys: %w", err)
+	}
+
+	// Parse and verify the JWT token
+	token, err := jwt.Parse(idToken, func(token *jwt.Token) (interface{}, error) {
+		// Ensure the signing method is RSA
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// Find the key used to sign the token (match 'kid' field)
+		for _, key := range keySet.Keys {
+			if key.Kid == token.Header["kid"] {
+				// Convert key data into an RSA public key
+				return convertToPublicKey(key)
+			}
+		}
+
+		return nil, errors.New("key not found")
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ID token: %w", err)
+	}
+
+	// Extract token claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	// Convert claims into TokenClaims struct
+	var tokenClaims TokenClaims
+	claimsJSON, _ := json.Marshal(claims) // Convert map to JSON
+	json.Unmarshal(claimsJSON, &tokenClaims)
+
+	// Validate token claims
+	if tokenClaims.Aud != config.ClientID {
+		return nil, errors.New("invalid audience")
+	}
+	if tokenClaims.Exp < time.Now().Unix() {
+		return nil, errors.New("token expired")
+	}
+	if tokenClaims.Iss != "accounts.google.com" && tokenClaims.Iss != "https://accounts.google.com" {
+		return nil, errors.New("invalid issuer")
+	}
+
+	// Return verified claims
+	return claims, nil
+}
+
+// convertToPublicKey converts Google's modulus and exponent to an RSA public key.
+func convertToPublicKey(key JWK) (*rsa.PublicKey, error) {
+	nBytes, err := decodeBase64URL(key.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus: %w", err)
+	}
+	eBytes, err := decodeBase64URL(key.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent: %w", err)
+	}
+
+	// Convert exponent to int
+	e := 0
+	for _, b := range eBytes {
+		e = e<<8 + int(b)
+	}
+
+	// Construct the RSA public key
+	pubKey := &rsa.PublicKey{
+		N: new(big.Int).SetBytes(nBytes),
+		E: e,
+	}
+	return pubKey, nil
+}
+
+// decodeBase64URL decodes base64 URL-encoded strings.
+func decodeBase64URL(s string) ([]byte, error) {
+	return jwt.DecodeSegment(s)
+}
+
 func (e *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.Header.Set("Accept-Language", "en") // avoid IP-based language detection
 	r.Header.Set("User-Agent", userAgent)
@@ -75,7 +302,6 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	// read the actual configuration.
 	__address__, err := config_.GetAddress()
-
 	if err == nil {
 		// no redirection if the address is the same...
 		if strings.HasPrefix(__address__, host) {
@@ -553,6 +779,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["ConfigPath"] = config_.GetConfigDir()
 	config["WebRoot"] = config_.GetWebRootDir()
 	config["Public"] = config_.GetPublicDirs()
+	config["OAuth2_ClientSecret"] = "********" // hide the secret...
 
 	// ask for a service configuration...
 	if len(serviceId) > 0 {
@@ -592,8 +819,20 @@ func dealwithErr(err error) {
 
 func getHardwareData(w http.ResponseWriter, r *http.Request) {
 
+	// Here I will test fi the request conain a host in the query.
+	// If so I will redirect the request to the host.
+	// If not I will return the hardware data of the current machine.
+	// Handle the preflight options...
+	hostname := r.URL.Query().Get("host")
+	if len(hostname) == 0 {
+		hostname = r.Host
+	}
+
+
 	// Receive http request...
-	redirect, to := redirectTo(r.Host)
+	redirect, to := redirectTo(hostname)
+
+	
 	if redirect {
 		handleRequestAndRedirect(to, w, r)
 		return
@@ -1062,6 +1301,8 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	user := ""
 	hasAccess := false
 
+	fmt.Println("------------> token: ", token, " application: ", application, " path: ", path)
+
 	// TODO fix it and uncomment it...
 	hasAccessDenied := false
 	infos := []*rbacpb.ResourceInfos{}
@@ -1070,7 +1311,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if len(application) != 0 {
 		// Test if the requester has the permission to do the upload...
 		// Here I will named the methode /file.FileService/FileUploadHandler
-		// I will be threaded like a file service methode.
+		// I will be threaded like a file service method
 		if strings.HasPrefix(path, "/applications") {
 			hasAccess, hasAccessDenied, err = globule.validateAction("/file.FileService/FileUploadHandler", application, rbacpb.SubjectType_APPLICATION, infos)
 			if err != nil {
@@ -1082,7 +1323,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get the user id from the token...
 	domain := r.URL.Query().Get("domain")
-	if len(token) != 0 && !hasAccess {
+	if len(token) != 0 {
 		var claims *security.Claims
 		claims, err := security.ValidateToken(token)
 		if err == nil {
@@ -1102,6 +1343,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "fail to validate access with error "+err.Error(), http.StatusUnauthorized)
 				return
 			}
+
+			if hasAccess && !hasAccessDenied {
+				hasAccess, hasAccessDenied, err = globule.validateAccess(user, rbacpb.SubjectType_ACCOUNT, "write", path)
+				if err != nil {
+					http.Error(w, "fail to validate access with error "+err.Error(), http.StatusUnauthorized)
+					return
+				}
+			}
 		}
 	}
 
@@ -1113,9 +1362,9 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, f := range files { // loop through the files one by one
 		file, err := f.Open()
-		
+
 		if err != nil {
-			http.Error(w, "fail to open file with error " +  err.Error(), http.StatusUnauthorized)
+			http.Error(w, "fail to open file with error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 		defer file.Close()
@@ -1147,12 +1396,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		out, err := os.Create(path_)
 		if err != nil {
-			http.Error(w, "Unable to create the file for writing. Check your write access privilege error " + err.Error(), http.StatusUnauthorized)
+			http.Error(w, "Unable to create the file for writing. Check your write access privilege error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		defer out.Close()
-
 
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
@@ -1269,6 +1517,49 @@ func findHashedFile(originalPath string) (string, error) {
 	return "", fmt.Errorf("hashed file not found for %s", originalPath)
 }
 
+func streamHandler(path string, w http.ResponseWriter, r *http.Request) {
+	// Set the appropriate response headers for streaming
+	w.Header().Set("Content-Type", "video/webm")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	// Prepare FFmpeg command to decode and stream the MKV file
+	cmd := exec.Command("ffmpeg", "-i", path, "-c:v", "libvpx", "-c:a", "libvorbis", "-f", "webm", "pipe:1")
+
+	// Get the output of FFmpeg (streaming to stdout)
+	ffmpegOut, err := cmd.StdoutPipe()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error with FFmpeg: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Start the FFmpeg process
+	if err := cmd.Start(); err != nil {
+		http.Error(w, fmt.Sprintf("Error starting FFmpeg: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a channel to detect if the connection is closed
+	done := make(chan struct{})
+	go func() {
+		// Wait for the client to close the connection
+		<-r.Context().Done()
+		// Kill the FFmpeg process if the connection is closed
+		cmd.Process.Kill()
+		close(done)
+	}()
+
+	// Stream the FFmpeg output to the HTTP response
+	_, err = io.Copy(w, ffmpegOut)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error streaming video: %v", err), http.StatusInternalServerError)
+	}
+
+	// Wait for the FFmpeg process to finish or the connection to be closed
+	<-done
+	cmd.Wait()
+}
+
 // Custom file server implementation.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -1281,7 +1572,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	//add prefix and clean
 	rqst_path := path.Clean(r.URL.Path)
-
 
 	if rqst_path == "/null" {
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
@@ -1342,6 +1632,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if len(application) == 0 {
 		// the token can be given by the url directly...
 		application = r.URL.Query().Get("application")
+	}
+
+	// If the header dosent contain the required values i I will try to get it from the
+	if token == "null" || token == "undefined" {
+		token = ""
 	}
 
 	// If the path is '/' it mean's no application name was given and we are
@@ -1405,18 +1700,19 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = globule.creds + rqst_path
 	}
 
+	if strings.Contains(rqst_path, "pdf") {
+
+		fmt.Println("validate access ", rqst_path)
+	}
 	hasAccessDenied := false
 	var err error
 	var userId string
-
 	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
 		userId = claims.Id + "@" + claims.UserDomain
 		if err == nil {
 			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
-
-			fmt.Println("values found from token are user:", userId, "domain", claims.UserDomain, " hasAccess ", hasAccess, " hasAccessDenied ", hasAccessDenied)
 		} else {
 			fmt.Println("fail to validate token with error: ", err)
 		}
@@ -1444,6 +1740,14 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		name = "/" + rqst_path // try network path...
 	}
 
+	// Try to find the file in the hidden directory...
+	if r.Method == http.MethodGet {
+		if strings.HasSuffix(name, ".mkv") {
+			streamHandler(name, w, r) // stream the video
+			return
+		}
+	}
+
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -1462,7 +1766,6 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer f.Close()
-
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 
@@ -1499,6 +1802,82 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetIMDBPoster(imdbID string) (string, error) {
+	mainURL := "https://www.imdb.com/title/" + imdbID + "/"
+	var posterViewerURL string
+	var posterURL string
+
+	c := colly.NewCollector()
+
+	// Step 1: Find media viewer URL
+	c.OnHTML("a.ipc-lockup-overlay", func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		if strings.Contains(href, "/mediaviewer/") && posterViewerURL == "" {
+			posterViewerURL = "https://www.imdb.com" + href
+		}
+	})
+
+	if err := c.Visit(mainURL); err != nil {
+		return "", err
+	}
+	if posterViewerURL == "" {
+		return "", fmt.Errorf("could not find media viewer URL")
+	}
+
+	// Step 2: Extract rmID from URL
+	reRM := regexp.MustCompile(`/mediaviewer/(rm\d+)/`)
+	match := reRM.FindStringSubmatch(posterViewerURL)
+	if len(match) < 2 {
+		return "", fmt.Errorf("could not extract rmID")
+	}
+	rmID := match[1] + "-curr"
+
+	// Step 3: Visit media viewer and find correct image
+	imgCollector := colly.NewCollector()
+
+	imgCollector.OnHTML("img", func(e *colly.HTMLElement) {
+		if e.Attr("data-image-id") == rmID {
+			srcset := e.Attr("srcset")
+			if srcset != "" {
+				// Parse srcset and get highest resolution
+				maxResURL := ""
+				maxWidth := 0
+				for _, part := range strings.Split(srcset, ",") {
+					part = strings.TrimSpace(part)
+					if items := strings.Split(part, " "); len(items) == 2 {
+						url := items[0]
+						widthStr := items[1]
+						if strings.HasSuffix(widthStr, "w") {
+							width, err := strconv.Atoi(strings.TrimSuffix(widthStr, "w"))
+							if err == nil && width > maxWidth {
+								maxWidth = width
+								maxResURL = url
+							}
+						}
+					}
+				}
+				if maxResURL != "" {
+					posterURL = maxResURL
+					return
+				}
+			}
+			// fallback to src
+			if posterURL == "" {
+				posterURL = e.Attr("src")
+			}
+		}
+	})
+
+	if err := imgCollector.Visit(posterViewerURL); err != nil {
+		return "", fmt.Errorf("failed to visit viewer page: %v", err)
+	}
+	if posterURL == "" {
+		return "", fmt.Errorf("poster image not found")
+	}
+	return posterURL, nil
+}
+
+
 /**
  * Return a list of IMDB titles from a keyword...
  */
@@ -1526,6 +1905,19 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// now i will iterate over the titles and set the poster image...
+	for i := range titles {
+		title := titles[i]
+		poster, err := GetIMDBPoster(titles[i].ID)
+		if err == nil {
+			// Now I will download the poster image...
+			titles[i].Poster.ContentURL = poster
+			titles[i].Poster.URL = poster
+			titles[i].Poster.ID = title.ID
+		}
+
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	setupResponse(&w, r)
 
@@ -1538,12 +1930,14 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(jsonStr)
+
+	fmt.Println("Found ", len(titles), " titles.")
+
 }
 
 // ////////////////////////// imdb missing sesson and episode number info... /////////////////////////
 // get the thumbnail fil with help of youtube dl...
 func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
-
 
 	if len(video_id) == 0 {
 		return "", errors.New("no video id was given")
@@ -1687,7 +2081,6 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id") // the csr in base64
 
-
 	title, err := imdb.NewTitle(client, id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -1744,11 +2137,24 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// now i will get the poster image...
+	poster, err := GetIMDBPoster(title.ID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Now I will download the poster image...
+	title_["Poster"] = map[string]interface{}{"URL": poster, "ContentURL": poster, "TitleId": title.ID, "id": title.ID}
+
 	jsonStr, err := json.MarshalIndent(title_, "", "  ")
 	if err != nil {
 		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println("Found ", len(title_), " titles.")
 
 	w.Write(jsonStr)
 }

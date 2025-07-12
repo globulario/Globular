@@ -58,6 +58,8 @@ func (g *Globule) Stop(s service.Service) error {
 }
 
 func main() {
+
+	fmt.Println("Globular server is starting...")
 	//defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
 	g := NewGlobule()
@@ -779,7 +781,6 @@ func deploy(g *Globule, name string, organization string, path string, address s
 		return err
 	}
 
-	
 	description := packageConfig["description"].(string)
 	version := packageConfig["version"].(string)
 
@@ -1357,6 +1358,9 @@ func dist(g *Globule, path string, revision string) {
 		libpath := debian_package_path + "/usr/local/lib"
 		Utility.CreateDirIfNotExist(libpath)
 
+		binpath := debian_package_path + "/usr/local/bin"
+		Utility.CreateDirIfNotExist(binpath)
+
 		if runtime.GOARCH == "amd64" {
 
 			// zlib
@@ -1398,6 +1402,8 @@ func dist(g *Globule, path string, revision string) {
 
 		Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
 		Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
+
+		Utility.CopyFile("/usr/local/bin/grpcwebproxy", binpath+"/grpcwebproxy")
 
 		// Now I will create get the configuration files from service and create a copy to /etc/globular/config/services
 		// so modification will survice upgrades.
@@ -1558,7 +1564,7 @@ func dist(g *Globule, path string, revision string) {
 		// the list of list of configurations
 		// DEBIAN/conffiles
 		conffiles := ""
-		for i := 0; i < len(configurations); i++ {
+		for i := range configurations {
 			conffiles += configurations[i] + "\n"
 		}
 
@@ -1667,6 +1673,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 
 		// 5. Build the deb package
+		fmt.Println("Build the debian package at ", debian_package_path)
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
 
 		cmdOutput := &bytes.Buffer{}
@@ -2035,7 +2042,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 	programFilePath = strings.ReplaceAll(programFilePath, "\\", "/")
 
-	for i := 0; i < len(services); i++ {
+	for i := range services {
 
 		// set the service configuration...
 		s := services[i]

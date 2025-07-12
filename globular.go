@@ -132,6 +132,11 @@ type Globule struct {
 	NS               []interface{} // Name server.
 	DnsUpdateIpInfos []interface{} // The internet provader SetA info to keep ip up to date.
 
+	// OAuth2 configuration.
+	OAuth2_ClientId     string
+	OAuth2_ClientSecret string
+	OAuth2_RedirectUri  string
+
 	// Reverse proxy will conain a list of addrees where to forward request and a route to forward request to.
 	// ex : ["http://localhost:9100/metrics | /metric_01", "http://localhost:8080/metrics | /metric_02"]
 	ReverseProxies []interface{}
@@ -298,6 +303,10 @@ func NewGlobule() *Globule {
 
 	// Get the file size at a given url.
 	http.HandleFunc("/file_size", GetFileSizeAtUrl)
+
+	// The OAuth2 handler, google login.
+	http.HandleFunc("/oauth2callback", handleGoogleCallback)
+	http.HandleFunc("/refresh_google_token", handleTokenRefresh)
 
 	g.Path, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 	g.Path = strings.ReplaceAll(g.Path, "\\", "/")
@@ -551,6 +560,8 @@ func (globule *Globule) getConfig() map[string]interface{} {
 	config_, _ := Utility.ToMap(globule)
 	config_["Domain"] = globule.Domain
 	config_["Name"] = globule.Name
+	config_["OAuth2_ClientId"] = globule.OAuth2_ClientId
+
 	services, _ := config.GetServicesConfigurations()
 
 	// Get the array of service and set it back in the configurations.
@@ -861,6 +872,31 @@ func (globule *Globule) saveConfig() error {
 	err = os.WriteFile(configPath, []byte(jsonStr), 0644)
 	if err != nil {
 		fmt.Println("fail to save configuration with error: ", err)
+		return err
+	}
+
+	// Here I will set the hosts file with the domain and alternate domain.
+	hosts, err := txeh.NewHostsDefault()
+	if err != nil {
+		fmt.Println("fail to get hosts file with error: ", err)
+	}
+
+	// Set The hosts file with the domain and alternate domain.
+	localIp, _ := Utility.MyLocalIP(globule.Mac)
+	hosts.AddHost(localIp, globule.Domain)
+	hosts.AddHost(localIp, globule.Name+"."+globule.Domain)
+
+	// Set the alternate domain.
+	for i := 0; i < len(globule.AlternateDomains); i++ {
+		alternateDomain := strings.TrimPrefix(globule.AlternateDomains[i].(string), "*.") // remove the * if exist
+		hosts.AddHost(localIp, alternateDomain)
+		hosts.AddHost(localIp, globule.Name+"."+alternateDomain)
+	}
+
+	// Save the hosts file.
+	err = hosts.Save()
+	if err != nil {
+		fmt.Println("fail to save hosts file with error: ", err)
 		return err
 	}
 
@@ -1766,7 +1802,16 @@ func (globule *Globule) startServices() error {
 		}
 	}
 
-	globule.registerIpToDns()
+	// Try to register to DNS...
+	nbTry = 20
+	for nbTry > 0 {
+		err := globule.registerIpToDns()
+		if err == nil {
+			break
+		}
+		nbTry--
+		time.Sleep(1 * time.Second)
+	}
 
 	return nil
 }
@@ -2558,6 +2603,7 @@ func (globule *Globule) registerIpToDns() error {
 		token, err := security.GenerateToken(globule.SessionTimeout, dns_client_.GetMac(), "sa", "", globule.AdminEmail, globule.Domain)
 		if err != nil {
 			fmt.Println("fail to generate token for dns server with error ", err)
+			return err
 		}
 
 		// try to set the ipv6 address...
@@ -2566,9 +2612,11 @@ func (globule *Globule) registerIpToDns() error {
 			_, err = dns_client_.SetAAAA(token, globule.getLocalDomain(), ipv6, 60)
 			if err != nil {
 				fmt.Println("fail to set AAAA  domain ", globule.getLocalDomain(), " with error ", err)
+				return err
 			} else {
 				fmt.Println("set AAAA record for domain ", globule.getLocalDomain(), " with success")
 			}
+			
 		}
 
 		// I will set alternate domain only if the globule is the master.
@@ -2580,6 +2628,7 @@ func (globule *Globule) registerIpToDns() error {
 			_, err = dns_client_.SetA(token, globule.getLocalDomain(), Utility.MyIP(), 60)
 			if err != nil {
 				fmt.Println("fail to set A record for alternate domain ", globule.getLocalDomain(), " with error ", err)
+				return err
 			} else {
 				fmt.Println("set A record for alternate domain ", globule.getLocalDomain(), Utility.MyIP(), " with success")
 			}
@@ -2591,7 +2640,7 @@ func (globule *Globule) registerIpToDns() error {
 				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-					continue
+					return err
 				} else {
 					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
 				}
@@ -2607,18 +2656,20 @@ func (globule *Globule) registerIpToDns() error {
 				_, err = dns_client_.SetA(token, alternateDomain, Utility.MyIP(), 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-					continue
+					return err
 				} else {
 					fmt.Println("set A record for alternate domain ", alternateDomain, Utility.MyIP(), " with success")
 				}
+				
 
 				_, err = dns_client_.SetAAAA(token, alternateDomain, ipv6, 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
-					continue
+					return err
 				} else {
 					fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
 				}
+				
 			}
 		}
 
@@ -2626,6 +2677,7 @@ func (globule *Globule) registerIpToDns() error {
 		_, err = dns_client_.SetA(token, "mail."+globule.Domain, Utility.MyIP(), 60)
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", "mail."+globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set A record for domain ", "mail."+globule.Domain, " with success")
 		}
@@ -2638,7 +2690,6 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("set MX record for domain ", globule.Domain, " with success")
 		}
 
-
 		// SPF record
 		dns_client_.RemoveText(token, globule.Domain+".")
 
@@ -2646,6 +2697,7 @@ func (globule *Globule) registerIpToDns() error {
 		err = dns_client_.SetText(token, globule.Domain+".", []string{spf}, 60)
 		if err != nil {
 			fmt.Println("fail to set TXT record for domain ", globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set TXT record for domain ", globule.Domain, " with success")
 		}
@@ -2656,13 +2708,14 @@ func (globule *Globule) registerIpToDns() error {
 		err = dns_client_.SetText(token, "_dmarc."+globule.Domain+".", []string{dmarc_policy}, 60)
 		if err != nil {
 			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
 		}
 
 		// now the  MTA-STS policy
 
-		if !Utility.Exists(config.GetConfigDir() + "/tls/" + globule.Domain + "/mta-sts.txt") {
+		if !Utility.Exists(config.GetConfigDir() + "/tls/" + globule.Name + "." + globule.Domain + "/mta-sts.txt") {
 
 			mta_sts_policy := fmt.Sprintf(`version: STSv1
 mode: enforce
@@ -2670,9 +2723,10 @@ mx: %s
 ttl: 86400
 		`, globule.Domain)
 
-			err = os.WriteFile(config.GetConfigDir()+"/tls/"+globule.Domain+"/mta-sts.txt", []byte(mta_sts_policy), 0644)
+			err = os.WriteFile(config.GetConfigDir()+"/tls/"+ globule.Name + "." +  globule.Domain+"/mta-sts.txt", []byte(mta_sts_policy), 0644)
 			if err != nil {
 				fmt.Println("fail to write mta-sts policy with error ", err)
+				return err
 			}
 		}
 
@@ -2680,6 +2734,7 @@ ttl: 86400
 		_, err = dns_client_.SetA(token, "mta-sts."+globule.Domain, Utility.MyIP(), 60)
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", "mta-sts."+globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set A record for domain ", "mta-sts."+globule.Domain, " with success")
 		}
@@ -2688,6 +2743,7 @@ ttl: 86400
 		err = dns_client_.SetText(token, "_mta-sts."+globule.Domain+".", []string{"v=STSv1; id=cd1e8e2f-311c-3c55-bb5a-cc1eedee398e;"}, 60)
 		if err != nil {
 			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
 		}
@@ -2695,6 +2751,7 @@ ttl: 86400
 		_, err = dns_client_.SetAAAA(token, "mail."+globule.Domain, ipv6, 60)
 		if err != nil {
 			fmt.Println("fail to set AAAA record for domain ", "mail."+globule.Domain, " with error ", err)
+			return err
 		} else {
 			fmt.Println("set AAAA record for domain ", "mail."+globule.Domain, " with success")
 		}
@@ -2709,7 +2766,7 @@ ttl: 86400
 			_, err = dns_client_.SetA(token, globule.NS[j].(string), Utility.MyIP(), 60)
 			if err != nil {
 				fmt.Println("fail to set A record for NS server ", ns, " with error ", err)
-				continue
+				return err
 			} else {
 				fmt.Println("set A record for NS server ", ns, " with success")
 			}
@@ -2717,6 +2774,7 @@ ttl: 86400
 			_, err = dns_client_.SetAAAA(token, globule.NS[j].(string), ipv6, 60)
 			if err != nil {
 				fmt.Println("fail to set AAAA record for domain ", ns, " with error ", err)
+				return err
 			} else {
 				fmt.Println("set AAAA record for domain ", ns, " with success")
 			}
@@ -2745,7 +2803,7 @@ ttl: 86400
 				err = dns_client_.SetNs(token, alternateDomain, ns, 60)
 				if err != nil {
 					fmt.Println("fail to set NS record for alternate domain ", alternateDomain, " with error ", err)
-					continue
+					return err
 				} else {
 					fmt.Println("set NS record for alternate domain ", alternateDomain, ns, " with success")
 				}
@@ -2782,7 +2840,7 @@ ttl: 86400
 				err := dns_client_.SetSoa(token, alternateDomain, ns, email, serial, refresh, retry, expire, ttl, ttl)
 				if err != nil {
 					fmt.Println("fail to set NS record for alternate domain ", alternateDomain, " with error ", err)
-					continue
+					return err
 				} else {
 					fmt.Println("set SOA record for alternate domain ", alternateDomain, ns, " with success")
 				}
@@ -2796,7 +2854,7 @@ ttl: 86400
 			err = dns_client_.SetCaa(token, alternateDomain+".", 0, "issue", "letsencrypt.org", 60)
 			if err != nil {
 				fmt.Println("fail to set CAA record for alternate domain ", globule.AlternateDomains[j], " with error ", err)
-				continue
+				return err
 			} else {
 				fmt.Println("set CAA record for alternate domain ", globule.AlternateDomains[j], " with success")
 			}
@@ -3042,6 +3100,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
  */
 func (globule *Globule) Listen() error {
 
+	fmt.Println("globular server is starting...")
 	//autorestart.StartWatcher()
 
 	var err error
@@ -3062,7 +3121,6 @@ func (globule *Globule) Listen() error {
 
 	if (!Utility.Exists(globule.creds+"/"+globule.Certificate) || len(globule.Certificate) == 0) && globule.Protocol == "https" {
 
-		fmt.Println("generate certificates...")
 		// Here is the command to be execute in order to ge the certificates.
 		// ./lego --email="admin@globular.cloud" --accept-tos --key-type=rsa4096 --path=../config/http_tls --http --csr=../config/tls/server.csr run
 		// I need to remove the gRPC certificate and recreate it.
@@ -3217,6 +3275,7 @@ func (globule *Globule) validateAction(method string, subject string, subjectTyp
 }
 
 func (globule *Globule) validateAccess(subject string, subjectType rbacpb.SubjectType, name string, path string) (bool, bool, error) {
+
 	address, _ := config.GetAddress()
 	rbac_client_, err := GetRbacClient(address)
 	if err != nil {
