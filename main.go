@@ -1,7 +1,9 @@
 package main
 
 import (
+	"Globular/internal/observability"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -60,6 +62,12 @@ func (g *Globule) Stop(s service.Service) error {
 func main() {
 
 	fmt.Println("Globular server is starting...")
+
+	ctx := context.Background()
+	shutdown := observability.Init(ctx)
+
+	defer func() { _ = shutdown(context.Background()) }()
+
 	//defer profile.Start(profile.ProfilePath(".")).Stop()
 	// be sure no lock is set.
 	g := NewGlobule()
