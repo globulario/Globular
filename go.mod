@@ -4,7 +4,7 @@ go 1.23.0
 
 toolchain go1.24.5
 
-replace github.com/davecourtois/Utility => ../Utility
+//replace github.com/davecourtois/Utility => ../Utility
 
 require (
 	github.com/StalkR/httpcache v1.0.0
