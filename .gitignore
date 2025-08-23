@@ -31,3 +31,16 @@ node_modules/
 *.pem
 *.crs
 *.crt
+*.key
+*.pem
+*.pfx
+*.crt
+*.der
+*.p12
+*secret*
+*password*
+mail.private
+mail.txt
+.env
+.env.*
+secrets/**
