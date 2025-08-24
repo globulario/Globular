@@ -6,16 +6,16 @@ import (
 	"sync"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	cache_v3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	server_v3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
+	test_v3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
 )
 
 var (
 	l      Logger
 	mu     sync.Mutex
-	cache_ = cache.NewSnapshotCache(false, cache.IDHash{}, l)
+	cache_ = cache_v3.NewSnapshotCache(false, cache_v3.IDHash{}, l)
 )
 
 /**
@@ -30,8 +30,8 @@ func StartControlPlane(ctx context.Context, port uint, exit chan bool) error {
 	// Run the xDS server in a goroutine
 	go func() {
 		defer wg.Done()
-		cb := &test.Callbacks{Debug: l.Debug}
-		srv := server.NewServer(ctx, cache_, cb)
+		cb := &test_v3.Callbacks{Debug: l.Debug}
+		srv := server_v3.NewServer(ctx, cache_, cb)
 		fmt.Println("Starting the xDS server...")
 		RunServer(srv, port)
 		fmt.Println("xDS server terminated")
@@ -92,7 +92,7 @@ func AddSnapshot(id, version string, values []Snapshot) error{
 	defer mu.Unlock()
 
 	// Create a map to store resources by type
-	resources := make(map[resource.Type][]types.Resource)
+	resources := make(map[string][]types.Resource)
 
 	// Iterate over the provided values and create clusters, routes, and listeners
 	for _, value := range values {
@@ -104,13 +104,13 @@ func AddSnapshot(id, version string, values []Snapshot) error{
 		listener := MakeHTTPListener(value.ListenerHost, value.ListenerPort, value.ListenerName, value.ClusterName, value.RouteName, value.CertFilePath, value.KeyFilePath, value.IssuerFilePath)
 
 		// Add the resources to the map
-		resources[resource.ClusterType] = append(resources[resource.ClusterType], cluster)
-		resources[resource.RouteType] = append(resources[resource.RouteType], route)
-		resources[resource.ListenerType] = append(resources[resource.ListenerType], listener)
+		resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], cluster)
+		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], route)
+		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
 	}
 
 	// Create a new snapshot and set it in the cache
-	snapshot, err := cache.NewSnapshot(version, resources)
+	snapshot, err := cache_v3.NewSnapshot(version, resources)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func RemoveSnapshot(nodeID string) {
 }
 
 // GetSnapshot returns the current snapshot for a given node ID.
-func GetSnapshot(nodeID string) (cache.ResourceSnapshot, error){
+func GetSnapshot(nodeID string) (cache_v3.ResourceSnapshot, error){
 	mu.Lock()
 	defer mu.Unlock()
 	return cache_.GetSnapshot(nodeID)
