@@ -17,9 +17,9 @@ import (
 	routeservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	cache_v3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	server_v3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
+	test_v3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
 )
 
 const (
@@ -30,11 +30,11 @@ const (
 )
 
 type Server struct {
-	xdsserver server.Server
+	xdsserver server_v3.Server
 }
 
-func NewServer(ctx context.Context, cache cache.Cache, cb *test.Callbacks) Server {
-	srv := server.NewServer(ctx, cache, cb)
+func NewServer(ctx context.Context, cache cache_v3.Cache, cb *test_v3.Callbacks) Server {
+	srv := server_v3.NewServer(ctx, cache, cb)
 	return Server{srv}
 }
 
@@ -82,7 +82,7 @@ func (s *Server) Run(port uint) {
 	}
 }
 
-func registerServer(grpcServer *grpc.Server, server server.Server) {
+func registerServer(grpcServer *grpc.Server, server server_v3.Server) {
 	// register services
 	discoverygrpc_v3.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
 	endpointservice_v3.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
@@ -96,7 +96,7 @@ func registerServer(grpcServer *grpc.Server, server server.Server) {
 
 
 // RunServer starts an xDS server at the given port.
-func RunServer(srv server.Server, port uint) {
+func RunServer(srv server_v3.Server, port uint) {
 	// gRPC golang library sets a very small upper bound for the number gRPC/h2
 	// streams over a single TCP connection. If a proxy multiplexes requests over
 	// a single connection to the management server, then it might lead to

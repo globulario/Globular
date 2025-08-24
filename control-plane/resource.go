@@ -13,7 +13,7 @@ import (
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
