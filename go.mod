@@ -4,7 +4,6 @@ go 1.23.0
 
 toolchain go1.24.5
 
-//replace github.com/davecourtois/Utility => ../Utility
 
 require (
 	github.com/StalkR/httpcache v1.0.0
@@ -108,6 +107,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
-)
 
-replace github.com/globulario/services/golang => ../services/golang
+)
