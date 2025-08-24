@@ -10,13 +10,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
-	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
-	listenerservice "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
-	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
-	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
-	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	clusterservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
+	discoverygrpc_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	endpointservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
+	listenerservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
+	routeservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
+	runtimeservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
+	secretservice_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
@@ -40,13 +40,13 @@ func NewServer(ctx context.Context, cache cache.Cache, cb *test.Callbacks) Serve
 
 func (s *Server) registerServer(grpcServer *grpc.Server) {
 	// register services
-	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.xdsserver)
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, s.xdsserver)
-	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, s.xdsserver)
-	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, s.xdsserver)
-	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, s.xdsserver)
-	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, s.xdsserver)
-	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, s.xdsserver)
+	discoverygrpc_v3.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.xdsserver)
+	endpointservice_v3.RegisterEndpointDiscoveryServiceServer(grpcServer, s.xdsserver)
+	clusterservice_v3.RegisterClusterDiscoveryServiceServer(grpcServer, s.xdsserver)
+	routeservice_v3.RegisterRouteDiscoveryServiceServer(grpcServer, s.xdsserver)
+	listenerservice_v3.RegisterListenerDiscoveryServiceServer(grpcServer, s.xdsserver)
+	secretservice_v3.RegisterSecretDiscoveryServiceServer(grpcServer, s.xdsserver)
+	runtimeservice_v3.RegisterRuntimeDiscoveryServiceServer(grpcServer, s.xdsserver)
 }
 
 func (s *Server) Run(port uint) {
@@ -84,13 +84,13 @@ func (s *Server) Run(port uint) {
 
 func registerServer(grpcServer *grpc.Server, server server.Server) {
 	// register services
-	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
-	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
-	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
-	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
-	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
-	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
+	discoverygrpc_v3.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
+	endpointservice_v3.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
+	clusterservice_v3.RegisterClusterDiscoveryServiceServer(grpcServer, server)
+	routeservice_v3.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	listenerservice_v3.RegisterListenerDiscoveryServiceServer(grpcServer, server)
+	secretservice_v3.RegisterSecretDiscoveryServiceServer(grpcServer, server)
+	runtimeservice_v3.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
 }
 
 
