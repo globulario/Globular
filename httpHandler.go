@@ -39,7 +39,7 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 	protoparser "github.com/yoheimuta/go-protoparser/v4"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/globulario/services/golang/config"
