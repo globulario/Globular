@@ -26,11 +26,11 @@ import (
 
 	"github.com/StalkR/httpcache"
 	"github.com/StalkR/imdb"
-	"github.com/davecourtois/Utility"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
+	Utility "github.com/globulario/utility"
 	colly "github.com/gocolly/colly/v2"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -828,11 +828,9 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-
 	// Receive http request...
 	redirect, to := redirectTo(hostname)
 
-	
 	if redirect {
 		handleRequestAndRedirect(to, w, r)
 		return
@@ -1876,7 +1874,6 @@ func GetIMDBPoster(imdbID string) (string, error) {
 	}
 	return posterURL, nil
 }
-
 
 /**
  * Return a list of IMDB titles from a keyword...

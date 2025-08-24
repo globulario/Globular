@@ -42,6 +42,7 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
+	Utility "github.com/globulario/utility"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/gookit/color"
 	"github.com/kardianos/service"
@@ -53,7 +54,7 @@ import (
 	// Interceptor for authentication, event, log...
 
 	// Client services.
-	"github.com/davecourtois/Utility"
+
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/challenge/http01"
 	"github.com/go-acme/lego/lego"

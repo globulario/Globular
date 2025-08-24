@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecourtois/Utility"
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
@@ -27,6 +26,7 @@ import (
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
+	Utility "github.com/globulario/utility"
 	"github.com/kardianos/service"
 	"github.com/polds/imgbase64"
 	//"github.com/pkg/profile"
