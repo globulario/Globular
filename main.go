@@ -1,3 +1,51 @@
+
+
+/*
+Package main provides the entry point for the Globular server, a gRPC-based microservices manager and application deployment suite.
+
+Main Features:
+- Service management: Install, uninstall, start, stop, and update Globular as a system service/daemon.
+- Application deployment: Deploy, install, and uninstall web applications on the server.
+- Service publishing: Publish microservices with required configuration and proto files.
+- Certificate management: Install certificates on a server for secure communication.
+- Peer connectivity: Connect Globular peers for distributed token generation and resource sharing.
+- Distribution packaging: Build OS-specific packages (Debian, macOS, Windows) for Globular and its services/applications.
+- Token generation: Generate authentication tokens for users.
+- Observability: Integrates with observability tools for monitoring and tracing.
+
+Command-Line Interface:
+The main function parses a rich set of command-line flags to control service lifecycle, deployment, publishing, updating, and more.
+
+Key Functions:
+- Start, Stop, run: Service lifecycle handlers for integration with OS service managers.
+- installCertificates: Installs certificates from a remote admin service.
+- deploy: Deploys a web application, reads package.json, uploads package, and installs via application manager.
+- update_globular, update_globular_from: Pushes or pulls Globular executable updates between servers.
+- publish: Publishes a microservice to the network, uploads its package.
+- install_service, uninstall_service: Installs or uninstalls a microservice on the server.
+- install_application, uninstall_application: Installs or uninstalls a web application.
+- dist: Builds OS-specific distribution packages for Globular.
+- __dist: Internal helper to copy binaries, services, and configuration files for packaging.
+- generate_token: Authenticates a user and prints a token.
+- connect_peer: Registers the local peer with a remote Globular instance.
+
+Usage:
+Run the executable with appropriate flags to control the server, deploy applications, publish services, manage certificates, and build distributions.
+
+Example:
+	./Globular install
+	./Globular deploy -name=myapp -path=./dist -a=globular.io -u=admin -p=secret
+	./Globular publish -path=./service_dir -a=globular.io -u=admin -p=secret
+
+Dependencies:
+- github.com/kardianos/service: Cross-platform service management.
+- github.com/globulario/services/golang/*: Globular microservices clients.
+- github.com/polds/imgbase64: Image encoding for application icons.
+- Utility: Custom utility functions for file and process management.
+
+Note:
+This file contains extensive logic for service and application lifecycle management, packaging, and deployment. See individual function comments for details on parameters and behavior.
+*/
 package main
 
 import (
@@ -991,7 +1039,11 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 	// From the source I will download the new executable and save it in the
 	// temp directory...
 	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
-	Utility.CreateDirIfNotExist(path)
+	err = Utility.CreateDirIfNotExist(path)
+	if err != nil {
+		log.Println("fail to create temp directory with error: ", err)
+		return err
+	}
 
 	fmt.Println("download exec to ", path)
 	err = admin_source.DownloadGlobular(src, platform, path)
@@ -1285,7 +1337,11 @@ func dist(g *Globule, path string, revision string) {
 		os.RemoveAll(darwin_package_path)
 
 		// 1. Create the working directory
-		Utility.CreateDirIfNotExist(darwin_package_path)
+		err := Utility.CreateDirIfNotExist(darwin_package_path)
+		if err != nil {
+			fmt.Println("fail to create darwin package directory with error: ", err)
+			return
+		}
 
 		// 2. Create application directory.
 		app_path := darwin_package_path + "/globular.cloud"
@@ -1296,15 +1352,39 @@ func dist(g *Globule, path string, revision string) {
 		applications_path := app_bin + "/var/globular/applications"
 
 		// Copy applications for offline installation...
-		Utility.CopyDir(dir+"/applications/.", applications_path)
+		err = Utility.CopyDir(dir+"/applications/.", applications_path)
+		if err != nil {
+			fmt.Println("fail to copy applications for offline installation with error: ", err)
+			return
+		}
 
 		// create directories...
-		Utility.CreateDirIfNotExist(app_content)
-		Utility.CreateDirIfNotExist(app_bin)
-		Utility.CreateDirIfNotExist(config_path)
-		Utility.CreateDirIfNotExist(app_resource)
+		err = Utility.CreateDirIfNotExist(app_content)
+		if err != nil {
+			fmt.Println("fail to create application content directory with error: ", err)
+			return
+		}
 
-		err := Utility.CopyFile(dir+"/assets/icon.icns", app_resource+"/icon.icns")
+		err = Utility.CreateDirIfNotExist(app_bin)
+		if err != nil {
+			fmt.Println("fail to create application binary directory with error: ", err)
+			return
+		}
+
+		err = Utility.CreateDirIfNotExist(config_path)
+		if err != nil {
+			fmt.Println("fail to create application config directory with error: ", err)
+			return
+		}
+
+		err = Utility.CreateDirIfNotExist(app_resource)
+		if err != nil {
+			fmt.Println("fail to create application resource directory with error: ", err)
+			return
+		}
+
+		err = Utility.CopyFile(dir+"/assets/icon.icns", app_resource+"/icon.icns")
+
 		if err != nil {
 			fmt.Println("fail to copy icon from ", dir+"/assets/icon.icns"+"whit error", err)
 		}
@@ -1331,7 +1411,11 @@ func dist(g *Globule, path string, revision string) {
 		</dict>
 		</plist>
 		`
-		os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0644)
+		err = os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0644)
+		if err != nil {
+			fmt.Println("fail to create Info.plist with error", err)
+			return
+		}
 
 	} else if runtime.GOOS == "linux" {
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
@@ -1340,7 +1424,11 @@ func dist(g *Globule, path string, revision string) {
 		os.RemoveAll(debian_package_path)
 
 		// 1. Create the working directory
-		Utility.CreateDirIfNotExist(debian_package_path)
+		err := Utility.CreateDirIfNotExist(debian_package_path)
+		if err != nil {
+			fmt.Println("fail to create debian package directory with error: ", err)
+			return
+		}
 
 		// 2. Create the internal structure
 
@@ -1357,17 +1445,44 @@ func dist(g *Globule, path string, revision string) {
 		config_path := debian_package_path + "/etc/globular/config"
 
 		// Create the bin directories.
-		Utility.CreateDirIfNotExist(distro_path)
-		Utility.CreateDirIfNotExist(data_path)
-		Utility.CreateDirIfNotExist(config_path)
-		Utility.CreateDirIfNotExist(applications_path)
+		err = Utility.CreateDirIfNotExist(distro_path)
+		if err != nil {
+			fmt.Println("fail to create distribution directory with error: ", err)
+			return
+		}
+
+		err = Utility.CreateDirIfNotExist(data_path)
+		if err != nil {
+			fmt.Println("fail to create data directory with error: ", err)
+			return
+		}
+
+		err = Utility.CreateDirIfNotExist(config_path)
+		if err != nil {
+			fmt.Println("fail to create config directory with error: ", err)
+			return
+		}
+
+		err = Utility.CreateDirIfNotExist(applications_path)
+		if err != nil {
+			fmt.Println("fail to create applications directory with error: ", err)
+			return
+		}
 
 		// Now the libraries...
 		libpath := debian_package_path + "/usr/local/lib"
-		Utility.CreateDirIfNotExist(libpath)
+		err = Utility.CreateDirIfNotExist(libpath)
+		if err != nil {
+			fmt.Println("fail to create lib directory with error: ", err)
+			return
+		}
 
 		binpath := debian_package_path + "/usr/local/bin"
-		Utility.CreateDirIfNotExist(binpath)
+		err = Utility.CreateDirIfNotExist(binpath)
+		if err != nil {
+			fmt.Println("fail to create bin directory with error: ", err)
+			return
+		}
 
 		if runtime.GOARCH == "amd64" {
 
@@ -1420,7 +1535,11 @@ func dist(g *Globule, path string, revision string) {
 		configurations := __dist(g, distro_path, config_path)
 
 		// 3. Create the control file
-		Utility.CreateDirIfNotExist(debian_package_path + "/DEBIAN")
+		err = Utility.CreateDirIfNotExist(debian_package_path + "/DEBIAN")
+		if err != nil {
+			fmt.Println("fail to create DEBIAN directory with error: ", err)
+			return
+		}
 
 		packageConfig := ""
 		// Now I will create the debian.
@@ -1446,7 +1565,7 @@ func dist(g *Globule, path string, revision string) {
 		// - The list of dependencies...
 		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~), nmap, arp-scan\n"
 
-		err := os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1708,16 +1827,25 @@ func dist(g *Globule, path string, revision string) {
 		// so here I will create the setup.nsi file.
 
 		// copy assets
-		Utility.CreateDirIfNotExist(root + "/assets")
+		err := Utility.CreateDirIfNotExist(root + "/assets")
+		if err != nil {
+			fmt.Println("fail to create assets directory with error: ", err)
+			return
+		}
+
 		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-		err := Utility.CopyDir(dir+"/assets/.", root+"/assets")
+		err = Utility.CopyDir(dir+"/assets/.", root+"/assets")
 		if err != nil {
 			fmt.Println("--> fail to copy assets ", err)
 		}
 
 		// redist
-		Utility.CreateDirIfNotExist(root + "/redist")
+		err =Utility.CreateDirIfNotExist(root + "/redist")
+		if err != nil {
+			fmt.Println("fail to create redist directory with error: ", err)
+			return
+		}
 
 		if Utility.Exists(dir + "/redist") {
 			err = Utility.CopyDir(dir+"/redist/.", root+"/redist")
@@ -1913,7 +2041,11 @@ func __dist(g *Globule, path, config_path string) []string {
 		dockerfile = string(data)
 	}
 
-	Utility.CreateDirIfNotExist(path)
+	err := Utility.CreateDirIfNotExist(path)
+	if err != nil {
+		fmt.Println("fail to create directory with error: ", err)
+		os.Exit(1)
+	}
 
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir = strings.ReplaceAll(dir, "\\", "/")
@@ -1931,7 +2063,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		destExec += ".exe"
 	}
 
-	err := Utility.Copy(globularExec, path+"/"+destExec)
+	err = Utility.Copy(globularExec, path+"/"+destExec)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1943,7 +2075,12 @@ func __dist(g *Globule, path, config_path string) []string {
 
 	// Copy the bin file from globular
 	if runtime.GOOS == "windows" {
-		Utility.CreateDirIfNotExist(path + "/dependencies")
+		err = Utility.CreateDirIfNotExist(path + "/dependencies")
+		if err != nil {
+			fmt.Println("fail to create dependencies directory with error: ", err)
+			os.Exit(1) 
+		}	
+
 		if Utility.Exists(dir + "/dependencies") {
 
 			err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
@@ -1989,7 +2126,11 @@ func __dist(g *Globule, path, config_path string) []string {
 
 		// Now the libraries...
 		dest = path + "/lib"
-		Utility.CreateDirIfNotExist(dest)
+		err = Utility.CreateDirIfNotExist(dest)
+		if err != nil {
+			fmt.Println("fail to create lib directory with error: ", err)
+			os.Exit(1)
+		}
 
 		if Utility.Exists("/usr/local/lib/libodbc.2.dylib") {
 			Utility.CopyFile("/usr/local/lib/libodbc.2.dylib", dest)
@@ -2089,9 +2230,13 @@ func __dist(g *Globule, path, config_path string) []string {
 								destPath := path + "/" + serviceDir + "/" + id + "/" + execName
 
 								if Utility.Exists(execPath) {
-									Utility.CreateDirIfNotExist(path + "/" + serviceDir + "/" + id)
+									err := Utility.CreateDirIfNotExist(path + "/" + serviceDir + "/" + id)
+									if err != nil {
+										fmt.Println("fail to create service directory with error: ", err)
+										os.Exit(1)
+									}
 
-									err := Utility.Copy(execPath, destPath)
+									err = Utility.Copy(execPath, destPath)
 									if err != nil {
 										fmt.Println(execPath, destPath, err)
 									}
@@ -2154,8 +2299,17 @@ func __dist(g *Globule, path, config_path string) []string {
 									if len(config_path) > 0 {
 										// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
 										// will survive package upgrades...
-										Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
-										os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+										err = Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
+										if err != nil {
+											fmt.Println("fail to create config directory with error: ", err)
+											os.Exit(1)
+										}
+
+										err = os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
+										if err != nil {
+											fmt.Println("fail to create config file with error: ", err)
+											os.Exit(1)
+										}
 
 									}
 

@@ -1,7 +1,25 @@
+// Package controlplane provides utilities for constructing Envoy xDS resources,
+// including clusters, endpoints, routes, listeners, and TLS transport sockets.
+// It facilitates dynamic configuration of Envoy proxies for service discovery,
+// load balancing, routing, and secure communication.
+//
+// Functions:
+//
+//   - MakeCluster: Creates an Envoy Cluster resource with optional TLS configuration and endpoints.
+//   - makeUpstreamTLS: Generates an upstream TLS transport socket configuration for secure connections.
+//   - makeDownstreamTLS: Generates a downstream TLS transport socket configuration for secure client connections.
+//   - makeEndpoint: Constructs a ClusterLoadAssignment for load balancing across specified endpoints.
+//   - MakeRoute: Builds a RouteConfiguration with CORS policy and host header rewriting.
+//   - MakeHTTPListener: Configures an HTTP listener with filters for gRPC-Web, CORS, and routing, with optional TLS.
+//   - makeConfigSource: Creates a ConfigSource for xDS gRPC API configuration.
+//
+// The package leverages Envoy's go-control-plane APIs and protobuf types to
+// programmatically generate configuration resources for Envoy proxies.
 package controlplane
 
 import (
 	"time"
+
 	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -14,7 +32,6 @@ import (
 	tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb_v3 "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -22,11 +39,19 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-/**
- * makeCluster creates a new cluster from a name, LB policy, and a list of hosts.
- * The cluster is configured with a DNS resolver to allow Envoy to resolve the
- * cluster IP address from the DNS name.
- */
+// MakeCluster function constructs a cluster using the STRICT_DNS discovery type, sets a 5-second connection timeout,
+// configures round-robin load balancing, and enables HTTP/2 protocol options. If a key file path is provided,
+// it configures the cluster to use TLS for upstream connections by setting the transport socket.
+//
+// Parameters:
+//   - clusterName:      The name of the Envoy cluster.
+//   - certFilePath:     Path to the TLS certificate file (optional; required for TLS).
+//   - keyFilePath:      Path to the TLS private key file (optional; required for TLS).
+//   - caFilePath:       Path to the CA certificate file (optional; required for TLS).
+//   - endPoints:        Slice of EndPoint structs specifying the cluster's endpoints.
+//
+// Returns:
+//   - *cluster_v3.Cluster: A pointer to the constructed Envoy Cluster resource.
 func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endPoints []EndPoint) *cluster_v3.Cluster {
 
 	// Create the cluster
@@ -42,7 +67,7 @@ func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endP
 
 	// In case of TLS, we need to set the transport socket
 	if len(keyFilePath) > 0 {
-		c.TransportSocket = makeUpstreamTls(certFilePath, keyFilePath, caFilePath)
+		c.TransportSocket = makeUpstreamTLS(certFilePath, keyFilePath, caFilePath)
 	}
 
 	return c
@@ -56,11 +81,21 @@ func toAny(msg protoreflect.ProtoMessage) *any.Any {
 	return anyMsg
 }
 
-/**
- * make TLS creates a TLS transport socket config for upstream connections.
- * This config is intended for use with SDS.
- */
-func makeUpstreamTls(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
+// makeUpstreamTLS creates an Envoy TransportSocket configuration for upstream TLS connections.
+// It sets up the TLS context using the provided certificate, private key, and CA file paths.
+// The function configures ALPN protocols for HTTP/2 and HTTP/1.1, and enforces TLS 1.3 as both
+// the minimum and maximum protocol version.
+//
+// Parameters:
+//
+//	certFilePath - Path to the TLS certificate file.
+//	keyFilePath  - Path to the TLS private key file.
+//	caFilePath   - Path to the CA certificate file for validation.
+//
+// Returns:
+//
+//	*core_v3.TransportSocket - A pointer to the configured TransportSocket for TLS.
+func makeUpstreamTLS(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
 	return &core_v3.TransportSocket{
 		Name: "envoy.transport_sockets.tls",
 		ConfigType: &core_v3.TransportSocket_TypedConfig{
@@ -97,13 +132,21 @@ func makeUpstreamTls(certFilePath, keyFilePath, caFilePath string) *core_v3.Tran
 	}
 }
 
-/**
- * make TLS creates a TLS transport socket config for downstream connections.
- * This config is intended for use with SDS. It is not necessary to specify
- * the downstream TLS context if the downstream client is not configured for TLS.
- * In this case, Envoy will use plaintext downstream connections.
- */
-func makeDownstreamTls(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
+// makeDownstreamTLS creates an Envoy TransportSocket configuration for downstream TLS connections.
+// It sets up the TLS context using the provided certificate, private key, and CA file paths.
+// The function configures ALPN protocols for HTTP/2 and HTTP/1.1, and enforces TLS 1.3 as both
+// the minimum and maximum protocol version.
+//
+// Parameters:
+//
+//	certFilePath - Path to the TLS certificate file.
+//	keyFilePath  - Path to the TLS private key file.
+//	caFilePath   - Path to the CA certificate file for client certificate validation.
+//
+// Returns:
+//
+//	*core_v3.TransportSocket - A pointer to the configured TransportSocket for downstream TLS.
+func makeDownstreamTLS(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
 	return &core_v3.TransportSocket{
 		Name: "envoy.transport_sockets.tls",
 		ConfigType: &core_v3.TransportSocket_TypedConfig{
@@ -197,13 +240,20 @@ func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint_v3.Cluster
 	}
 }
 
-
-// MakeRoute creates and returns a RouteConfiguration for Envoy with the specified route name,
-// cluster name, and host. The configuration includes a virtual host with a single route that matches
-// all paths ("/") and forwards requests to the specified cluster, rewriting the host header.
-// It also sets an infinite timeout for requests and configures CORS policy to allow all origins,
-// specific HTTP methods, headers, and exposes certain headers.
+// MakeRoute creates an Envoy RouteConfiguration with a single virtual host and route.
+// The route matches all paths ("/") and forwards requests to the specified cluster,
+// rewriting the host header to the provided host value. CORS policy is configured to
+// allow all origins, specific HTTP methods, and headers. The route has an infinite timeout.
+//
+// Parameters:
+//   - routeName:     Name of the route configuration.
+//   - clusterName:   Name of the target cluster for routing.
+//   - host:          Host value to rewrite in the request.
+//
+// Returns:
+//   - *route_v3.RouteConfiguration: Pointer to the constructed RouteConfiguration.
 func MakeRoute(routeName string, clusterName, host string) *route_v3.RouteConfiguration {
+
 	return &route_v3.RouteConfiguration{
 		Name: routeName,
 		VirtualHosts: []*route_v3.VirtualHost{{
@@ -224,7 +274,7 @@ func MakeRoute(routeName string, clusterName, host string) *route_v3.RouteConfig
 						HostRewriteSpecifier: &route_v3.RouteAction_HostRewriteLiteral{
 							HostRewriteLiteral: host,
 						},
-						Timeout: ptypes.DurationProto(time.Duration(0)), // Infinite timeout
+						Timeout: durationpb.New(time.Duration(0)), // Infinite idle timeout
 					},
 				},
 			}},
@@ -247,24 +297,24 @@ func MakeRoute(routeName string, clusterName, host string) *route_v3.RouteConfig
 	}
 }
 
-
-
 // MakeHTTPListener creates and configures an Envoy HTTP listener with the specified parameters.
 // It sets up HTTP filters for gRPC-Web, CORS, and routing, and optionally configures TLS if certificate and key file paths are provided.
 //
 // Parameters:
-//   listenerHost   - The host address to bind the listener.
-//   listenerPort   - The port number to bind the listener.
-//   listenerName   - The name of the listener.
-//   clusterName    - The name of the cluster (not directly used in this function).
-//   routeName      - The name of the route configuration.
-//   certFilePath   - Path to the TLS certificate file (optional).
-//   keyFilePath    - Path to the TLS key file (optional).
-//   caFilePath     - Path to the CA certificate file (optional).
+//
+//	listenerHost   - The host address to bind the listener.
+//	listenerPort   - The port number to bind the listener.
+//	listenerName   - The name of the listener.
+//	routeName      - The name of the route configuration.
+//	certFilePath   - Path to the TLS certificate file (optional).
+//	keyFilePath    - Path to the TLS key file (optional).
+//	caFilePath     - Path to the CA certificate file (optional).
 //
 // Returns:
-//   *listener.Listener - A pointer to the configured Envoy listener.
-func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, clusterName, routeName, certFilePath, keyFilePath, caFilePath string) *listener_v3.Listener {
+//
+//	*listener.Listener - A pointer to the configured Envoy listener.
+func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, routeName, certFilePath, keyFilePath, caFilePath string) *listener_v3.Listener {
+
 	// HTTP filter configuration
 	manager := &hcm_v3.HttpConnectionManager{
 		CodecType:  hcm_v3.HttpConnectionManager_AUTO,
@@ -329,13 +379,13 @@ func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, cl
 
 	// I case of TLS, we need to set the transport socket
 	if len(keyFilePath) > 0 {
-		l.FilterChains[0].TransportSocket = makeDownstreamTls(certFilePath, keyFilePath, caFilePath)
+		l.FilterChains[0].TransportSocket = makeDownstreamTLS(certFilePath, keyFilePath, caFilePath)
 	}
 
 	return l
 }
 
-// !!!! here the clusterName can be the one in envoy.yml...
+// !!!! here the clusterName must be the one in envoy.yml...
 // ---> xds_cluster
 func makeConfigSource() *core_v3.ConfigSource {
 	source := &core_v3.ConfigSource{}

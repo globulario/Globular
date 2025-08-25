@@ -287,7 +287,7 @@ func convertToPublicKey(key JWK) (*rsa.PublicKey, error) {
 
 // decodeBase64URL decodes base64 URL-encoded strings.
 func decodeBase64URL(s string) ([]byte, error) {
-	return jwt.DecodeSegment(s)
+	return jwt.NewParser().DecodeSegment(s)
 }
 
 func (e *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -1971,11 +1971,15 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return string(thumbnail), nil
 	}
 
-	Utility.CreateDirIfNotExist(thumbnail_path)
+	err := Utility.CreateDirIfNotExist(thumbnail_path)
+	if err != nil {
+		return "", err
+	}
+	
 	cmd := exec.Command("yt-dlp", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return "", err
 	}
