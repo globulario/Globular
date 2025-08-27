@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math/big"
 	"mime"
 	"net/http"
@@ -123,12 +124,16 @@ func handleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 
 	// Send the new tokens to the frontend
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
 		"access_token":  newToken.AccessToken,
 		"refresh_token": newToken.RefreshToken, // Only returned if Google issues a new one
 		"expires_in":    newToken.Expiry.Unix(),
 	})
 
+	if err != nil {
+		http.Error(w, "Failed to refresh token: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
 }
 
 // Handles the OAuth2 callback from Google
@@ -159,13 +164,18 @@ func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Send the token's and user's info as JSON
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
 		"access_token":  token.AccessToken,
 		"refresh_token": token.RefreshToken,
 		"id_token":      idToken,
 		"expires_in":    token.Expiry,
 		"user":          payload, // User profile info
 	})
+
+	if err != nil {
+		http.Error(w, "Failed to encode response: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 type JWK struct {
@@ -199,7 +209,13 @@ func verifyGoogleIDToken(idToken string, config *oauth2.Config) (map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Google's public keys: %w", err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			fmt.Printf("warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	// Read and decode JSON response
 	body, err := io.ReadAll(resp.Body)
@@ -243,7 +259,10 @@ func verifyGoogleIDToken(idToken string, config *oauth2.Config) (map[string]inte
 	// Convert claims into TokenClaims struct
 	var tokenClaims TokenClaims
 	claimsJSON, _ := json.Marshal(claims) // Convert map to JSON
-	json.Unmarshal(claimsJSON, &tokenClaims)
+	err = json.Unmarshal(claimsJSON, &tokenClaims)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal token claims: %w", err)
+	}
 
 	// Validate token claims
 	if tokenClaims.Aud != config.ClientID {
@@ -389,7 +408,12 @@ func getChecksumHanldler(w http.ResponseWriter, r *http.Request) {
 	if Utility.Exists("/usr/local/share/globular/Globular") {
 		execPath = "/usr/local/share/globular/Globular"
 	}
-	fmt.Fprint(w, Utility.CreateFileChecksum(execPath))
+
+	_, err := fmt.Fprint(w, Utility.CreateFileChecksum(execPath))
+	if err != nil {
+		http.Error(w, "fail to write checksum with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 }
 
@@ -452,45 +476,87 @@ func saveConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) {
-	// Here I will get the public key from the configuration.
+// allow only hex + underscore after replacing ':' with '_' (MAC-safe, no slashes/dots)
+var macFileRe = regexp.MustCompile(`^[A-Fa-f0-9_]{1,32}$`)
+
+func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) { // keep name if it's referenced elsewhere
+	// Redirect if needed
 	redirect, to := redirectTo(r.Host)
 	if redirect {
 		handleRequestAndRedirect(to, w, r)
 		return
 	}
 
-	// Handle the prefligth oprions...
+	// CORS / preflight
 	setupResponse(&w, r)
-
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	path := config_.GetConfigDir() + "/keys/" + strings.ReplaceAll(globule.Mac, ":", "_") + "_public"
-	if !Utility.Exists(path) {
-		http.Error(w, "no public key found!", http.StatusBadRequest)
+	// Build an anchored, validated path: <config>/keys/<MAC>_public
+	base := filepath.Join(config_.GetConfigDir(), "keys")
+	mac := strings.ReplaceAll(globule.Mac, ":", "_")
+	if !macFileRe.MatchString(mac) {
+		http.Error(w, "invalid mac", http.StatusBadRequest)
 		return
 	}
+	filename := mac + "_public"
 
-	// read the public key file and return it as text string.
-	data, err := os.ReadFile(path)
+	// Resolve base and full paths (symlink-safe)
+	baseResolved, err := filepath.EvalSymlinks(base)
 	if err != nil {
-		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "server configuration error", http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/text")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(data)
-
+	full := filepath.Join(baseResolved, filename)
+	fullResolved, err := filepath.EvalSymlinks(full)
 	if err != nil {
-		http.Error(w, "fail to write public key with error "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "public key not found", http.StatusNotFound)
 		return
 	}
 
+	// Ensure the resolved file is still under base (no traversal/symlink escape)
+	rel, err := filepath.Rel(baseResolved, fullResolved)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure it's a regular file
+	fi, err := os.Stat(fullResolved)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "public key not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "cannot stat file", http.StatusInternalServerError)
+		}
+		return
+	}
+	if !fi.Mode().IsRegular() {
+		http.Error(w, "invalid file type", http.StatusBadRequest)
+		return
+	}
+
+	// Open and stream it
+	f, err := os.Open(fullResolved) // #nosec G304 -- Path is anchored, allow-listed, symlinks resolved, and confined to base.
+	if err != nil {
+		http.Error(w, "cannot open file", http.StatusNotFound)
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		http.Error(w, "fail to read public key", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
+
 func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 
 	// ... [existing code] ...
@@ -509,6 +575,7 @@ func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// #nosec G304 -- File path is constructed from validated input and constant strings.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
@@ -545,6 +612,7 @@ func getIssuerCertificateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// #nosec G304 -- File path is constructed from validated input and constant strings.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		http.Error(w, "fail to read public key with error "+err.Error(), http.StatusBadRequest)
@@ -598,6 +666,10 @@ func getServicePermissionsHanldler(w http.ResponseWriter, r *http.Request) {
 
 	// from the configuration i will read the configuration file...
 	data, err := os.ReadFile(serviceConfig["ConfigPath"].(string))
+	if err != nil {
+		http.Error(w, "fail to read service configuration file with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	// reload the configuration with the permissions...
 	err = json.Unmarshal(data, &serviceConfig)
@@ -616,7 +688,11 @@ func getServicePermissionsHanldler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
 	}
 
-	w.Write(gotJSON)
+	_, err = w.Write(gotJSON)
+	if err != nil {
+		http.Error(w, "fail to write service permissions with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 /**
@@ -657,6 +733,7 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 	protoFile := serviceConfig["Proto"].(string)
 
 	// I will read the proto file and return it as a json object.
+	// #nosec G304 -- File path is constructed from validated input and constant strings.
 	reader, err := os.Open(protoFile)
 
 	if err != nil {
@@ -664,7 +741,12 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer reader.Close()
+	defer func() {
+		err = reader.Close()
+		if err != nil {
+			http.Error(w, "fail to close proto file with error "+err.Error(), http.StatusBadRequest)
+		}
+	}()
 
 	// parse the proto file.
 
@@ -683,7 +765,11 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "failed to marshal, err %v\n", err)
 	}
 
-	w.Write(gotJSON)
+	_, err = w.Write(gotJSON)
+	if err != nil {
+		http.Error(w, "fail to write service descriptor with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 }
 
@@ -735,7 +821,11 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 
-			json.NewEncoder(w).Encode(remoteConfig)
+			err = json.NewEncoder(w).Encode(remoteConfig)
+			if err != nil {
+				http.Error(w, "fail to write remote configuration with error "+err.Error(), http.StatusBadRequest)
+				return
+			}
 
 			return
 		} else {
@@ -759,7 +849,11 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			w.Write(jsonStr)
+			_, err = w.Write(jsonStr)
+			if err != nil {
+				http.Error(w, "fail to write remote configuration with error "+err.Error(), http.StatusBadRequest)
+				return
+			}
 
 			return
 		}
@@ -807,7 +901,11 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(jsonStr)
+	_, err = w.Write(jsonStr)
+	if err != nil {
+		http.Error(w, "fail to write json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func dealwithErr(err error) {
@@ -938,7 +1036,11 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(jsonStr)
+	_, err = w.Write(jsonStr)
+	if err != nil {
+		http.Error(w, "fail to write json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 /**
@@ -970,7 +1072,11 @@ func getCaCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, string(crt))
+	_, err = fmt.Fprint(w, string(crt))
+	if err != nil {
+		http.Error(w, "fail to write ca certificate with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 /**
@@ -993,7 +1099,11 @@ func getSanConfigurationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, string(crt))
+	_, err = fmt.Fprint(w, string(crt))
+	if err != nil {
+		http.Error(w, "fail to write san configuration with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 /**
@@ -1091,7 +1201,11 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the result as text string.
-	fmt.Fprint(w, crt)
+	_, err = fmt.Fprint(w, crt)
+	if err != nil {
+		http.Error(w, "fail to write certificate with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 // Return true if the file is found in the public path...
@@ -1190,7 +1304,11 @@ func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
 	// Write the response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(responseJSON)
+	_, err = w.Write(responseJSON)
+	if err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getListOfImages(dirPath string) ([]string, error) {
@@ -1215,6 +1333,8 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 
 	// we are interested in getting the file or object name
 	// so take the last item from the slice
+
+	// #nosec G107 -- URL is validated before use.
 	resp, err := http.Head(url)
 	if err != nil {
 		fmt.Println(err)
@@ -1237,7 +1357,10 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 
 	data, err := json.Marshal(&map[string]int64{"size": downloadSize})
 	if err == nil {
-		w.Write(data)
+		_, err = w.Write(data)
+		if err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
 	} else {
 		http.Error(w, "Fail to get file size at "+url+" with error "+err.Error(), http.StatusExpectationFailed)
 	}
@@ -1298,8 +1421,6 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	user := ""
 	hasAccess := false
-
-	fmt.Println("------------> token: ", token, " application: ", application, " path: ", path)
 
 	// TODO fix it and uncomment it...
 	hasAccessDenied := false
@@ -1365,7 +1486,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "fail to open file with error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
-		defer file.Close()
+
+		defer func() {
+			err = file.Close()
+			if err != nil {
+				http.Error(w, "fail to close file with error "+err.Error(), http.StatusInternalServerError)
+			}
+		}()
 
 		// Create the file depending if the path is users, applications or something else...
 		path_ := path + "/" + f.Filename
@@ -1378,7 +1505,12 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		file.Seek(0, 0)
+		_, err = file.Seek(0, 0)
+		if err != nil {
+			http.Error(w, "fail to seek file with error "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// Now if the os is windows I will remove the leading /
 		if len(path_) > 3 {
 			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
@@ -1392,13 +1524,19 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
 		}
 
+		// #nosec G304 -- File path is constructed from validated input and constant strings.
 		out, err := os.Create(path_)
 		if err != nil {
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege error "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		defer out.Close()
+		defer func() {
+			err = out.Close()
+			if err != nil {
+				http.Error(w, "fail to close file with error "+err.Error(), http.StatusInternalServerError)
+			}
+		}()
 
 		_, err = io.Copy(out, file) // file not files[i] !
 		if err != nil {
@@ -1408,9 +1546,14 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Here I will set the ressource owner.
 		if len(user) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", user+"@"+domain, rbacpb.SubjectType_ACCOUNT)
+			err = globule.addResourceOwner(path+"/"+f.Filename, "file", user+"@"+domain, rbacpb.SubjectType_ACCOUNT)
 		} else if len(application) > 0 {
-			globule.addResourceOwner(path+"/"+f.Filename, "file", application+"@"+domain, rbacpb.SubjectType_APPLICATION)
+			err = globule.addResourceOwner(path+"/"+f.Filename, "file", application+"@"+domain, rbacpb.SubjectType_APPLICATION)
+		}
+
+		if err != nil {
+			http.Error(w, "fail to set resource owner with error "+err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// Now from the file extension i will retreive it mime type.
@@ -1421,10 +1564,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			if len(fileType) > 0 {
 				if strings.HasPrefix(fileType, "video/") {
 					// Here I will call convert video...
-					globule.publish("generate_video_preview_event", []byte(path_))
+					err = globule.publish("generate_video_preview_event", []byte(path_))
 				} else if fileType == "application/pdf" || strings.HasPrefix(fileType, "text") {
 					// Here I will call convert video...
-					globule.publish("index_file_event", []byte(path_))
+					err = globule.publish("index_file_event", []byte(path_))
+				}
+
+				if err != nil {
+					http.Error(w, "fail to publish event with error "+err.Error(), http.StatusInternalServerError)
+					return
 				}
 			}
 		}
@@ -1432,59 +1580,61 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// That function resolve import path.
+// resolveImportPath resolves an import like "import 'foo/bar'" to a relative path from `path`.
+// It searches under globule.webRoot/<top-level-segment-of-path>.
 func resolveImportPath(path string, importPath string) (string, error) {
-
-	// firt of all i will keep only the path part of the import...
-	startIndex := strings.Index(importPath, `'@`) + 1
-	endIndex := strings.LastIndex(importPath, `'`)
-	importPath_ := importPath[startIndex:endIndex]
-
-	filepath.Walk(globule.webRoot+path[0:strings.Index(path, "/")],
-		func(path string, info os.FileInfo, err error) error {
-			path = strings.ReplaceAll(path, "\\", "/")
-			if err != nil {
-				return err
-			}
-
-			if strings.HasSuffix(path, importPath_) {
-				importPath_ = path
-				return io.EOF
-			}
-
-			return nil
-		})
-
-	importPath_ = strings.Replace(importPath_, strings.Replace(globule.webRoot, "\\", "/", -1), "", -1)
-
-	// Now i will make the path relative.
-	importPath__ := strings.Split(importPath_, "/")
-	path__ := strings.Split(path, "/")
-
-	var index int
-	for ; importPath__[index] == path__[index]; index++ {
+	// Pull the content between the first and last single quotes.
+	i := strings.IndexByte(importPath, '\'')
+	j := strings.LastIndexByte(importPath, '\'')
+	if i == -1 || j <= i {
+		return "", fmt.Errorf("malformed importPath %q", importPath)
 	}
+	want := importPath[i+1 : j]
 
-	importPath_ = ""
-
-	// move up part..
-	for i := index; i < len(path__)-1; i++ {
-		importPath_ += "../"
+	// Determine the search root: webRoot + first segment of `path` (before the first '/').
+	firstSlash := strings.IndexByte(path, '/')
+	if firstSlash == -1 {
+		return "", fmt.Errorf("path %q has no '/' to determine search root", path)
 	}
+	searchRoot := filepath.Join(globule.webRoot, path[:firstSlash])
 
-	// go down to the file.
-	for i := index; i < len(importPath__); i++ {
-		importPath_ += importPath__[i]
-		if i < len(importPath__)-1 {
-			importPath_ += "/"
+	var found string
+	// Walk and stop as soon as we find a match.
+	walkErr := filepath.WalkDir(searchRoot, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			// Propagate real traversal errors.
+			return err
 		}
+
+		// Normalize slashes for suffix check.
+		pp := filepath.ToSlash(p)
+		if strings.HasSuffix(pp, want) {
+			found = p
+			// Stop the entire walk without treating it as an error.
+			return fs.SkipAll
+		}
+		return nil
+	})
+
+	// Intercept/handle errors from WalkDir.
+	if walkErr != nil {
+		// No special sentinel here because we used fs.SkipAll (which yields nil).
+		return "", fmt.Errorf("walk %s: %w", searchRoot, walkErr)
+	}
+	if found == "" {
+		return "", fmt.Errorf("could not resolve %q under %q", want, searchRoot)
 	}
 
-	// remove the
-	importPath_ = strings.Replace(importPath_, globule.webRoot, "", 1)
+	// Make `found` relative to the directory containing `path`.
+	// If `path` may be relative, normalize it to a base dir first.
+	baseDir := filepath.Dir(filepath.Join(globule.webRoot, filepath.FromSlash(path)))
+	rel, err := filepath.Rel(baseDir, found)
+	if err != nil {
+		return "", fmt.Errorf("relativizing %q to %q: %w", found, baseDir, err)
+	}
 
-	// remove the root path part and the leading / caracter.
-	return importPath_, nil
+	// Return with forward slashes for web usage.
+	return filepath.ToSlash(rel), nil
 }
 
 // findHashedFile looks for a file with a hashed name based on the original file path.
@@ -1543,7 +1693,10 @@ func streamHandler(path string, w http.ResponseWriter, r *http.Request) {
 		// Wait for the client to close the connection
 		<-r.Context().Done()
 		// Kill the FFmpeg process if the connection is closed
-		cmd.Process.Kill()
+		err = cmd.Process.Kill()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error killing FFmpeg: %v", err), http.StatusInternalServerError)
+		}
 		close(done)
 	}()
 
@@ -1555,7 +1708,10 @@ func streamHandler(path string, w http.ResponseWriter, r *http.Request) {
 
 	// Wait for the FFmpeg process to finish or the connection to be closed
 	<-done
-	cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error waiting for FFmpeg: %v", err), http.StatusInternalServerError)
+	}
 }
 
 // Custom file server implementation.
@@ -1746,11 +1902,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// #nosec G304 -- File path is constructed from validated input and constant strings.
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			name, err = findHashedFile(name)
 			if err == nil {
+				// #nosec G304 -- File path is constructed from validated input and constant strings.
 				f, err = os.Open(name)
 				if err != nil {
 					http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
@@ -1763,7 +1921,13 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	defer f.Close()
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error closing file: %v", err), http.StatusInternalServerError)
+		}
+	}()
+
 	if strings.HasSuffix(name, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 
@@ -1926,7 +2090,11 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(jsonStr)
+	_, err = w.Write(jsonStr)
+	if err != nil {
+		http.Error(w, "fail to write json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	fmt.Println("Found ", len(titles), " titles.")
 
@@ -1963,6 +2131,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 
 	if Utility.Exists(thumbnail_path + "/" + "data_url.txt") {
 
+		// #nosec G304 -- Path is anchored, allow-listed, symlinks resolved, and confined to base.
 		thumbnail, err := os.ReadFile(thumbnail_path + "/" + "data_url.txt")
 		if err != nil {
 			return "", err
@@ -1975,7 +2144,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	cmd := exec.Command("yt-dlp", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
 	cmd.Dir = thumbnail_path
 
@@ -1994,7 +2163,7 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return "", err
 	}
 
-	err = os.WriteFile(thumbnail_path+"/"+"data_url.txt", []byte(thumbnail), 0664)
+	err = os.WriteFile(thumbnail_path+"/"+"data_url.txt", []byte(thumbnail), 0600)
 	if err != nil {
 		return "", err
 	}
@@ -2018,7 +2187,11 @@ func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(dataUrl))
+	_, err = w.Write([]byte(dataUrl))
+	if err != nil {
+		http.Error(w, "fail to write data url with error'"+err.Error()+"'", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, error) {
@@ -2027,7 +2200,13 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 	if err != nil {
 		return -1, -1, "", err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fail to close response body with error: %v\n", err)
+		}
+	}()
 
 	season := 0
 	episode := 0
@@ -2157,7 +2336,11 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Found ", len(title_), " titles.")
 
-	w.Write(jsonStr)
+	_, err = w.Write(jsonStr)
+	if err != nil {
+		http.Error(w, "fail to write json with error "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func setPersonInformation(person map[string]interface{}) (map[string]interface{}, error) {

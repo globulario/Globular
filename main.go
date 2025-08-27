@@ -1,5 +1,3 @@
-
-
 /*
 Package main provides the entry point for the Globular server, a gRPC-based microservices manager and application deployment suite.
 
@@ -33,6 +31,7 @@ Usage:
 Run the executable with appropriate flags to control the server, deploy applications, publish services, manage certificates, and build distributions.
 
 Example:
+
 	./Globular install
 	./Globular deploy -name=myapp -path=./dist -a=globular.io -u=admin -p=secret
 	./Globular publish -path=./service_dir -a=globular.io -u=admin -p=secret
@@ -83,21 +82,40 @@ import (
 func (g *Globule) Start(s service.Service) error {
 
 	// Start should not block. Do the actual work async.
-	go g.run()
+	errs := make(chan error, 1)
+
+	go func() {
+		if err := g.run(); err != nil {
+			errs <- err
+		}
+	}()
+
+	go func() {
+		for err := range errs {
+			if err != nil {
+				log.Println("Globular run error:", err)
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (g *Globule) run() error {
+	errs := make(chan error, 1)
 
-	// start globular and wait on exit chan...
 	go func() {
-		g.Serve()
+		if err := g.Serve(); err != nil {
+			errs <- err
+		}
 	}()
 
-	// wait for exit.
-	<-g.exit
-
-	return nil
+	select {
+	case <-g.exit:
+		return nil
+	case err := <-errs:
+		return err
+	}
 }
 
 func (g *Globule) Stop(s service.Service) error {
@@ -158,7 +176,7 @@ func main() {
 		installCommand_name := installCommand.String("name", "", "The display name of globular service.")
 
 		// Uninstall globular as service.
-		unstallCommand := flag.NewFlagSet("uninstall", flag.ExitOnError)
+		uninstallCommand := flag.NewFlagSet("uninstall", flag.ExitOnError)
 
 		// Package development environnement into a given
 		distCommand := flag.NewFlagSet("dist", flag.ExitOnError)
@@ -265,37 +283,43 @@ func main() {
 
 		switch os.Args[1] {
 		case "start":
-			startCommand.Parse(os.Args[2:])
+			err = startCommand.Parse(os.Args[2:])
 		case "dist":
-			distCommand.Parse(os.Args[2:])
+			err = distCommand.Parse(os.Args[2:])
 		case "deploy":
-			deployCommand.Parse(os.Args[2:])
+			err = deployCommand.Parse(os.Args[2:])
 		case "publish":
-			publishCommand.Parse(os.Args[2:])
+			err = publishCommand.Parse(os.Args[2:])
 		case "install":
-			installCommand.Parse(os.Args[2:])
+			err = installCommand.Parse(os.Args[2:])
 		case "uninstall":
-			unstallCommand.Parse(os.Args[2:])
+			err = uninstallCommand.Parse(os.Args[2:])
 		case "update":
-			update_globular_command.Parse(os.Args[2:])
+			err = update_globular_command.Parse(os.Args[2:])
 		case "update_from":
-			update_globular_from_command.Parse(os.Args[2:])
+			err = update_globular_from_command.Parse(os.Args[2:])
 		case "install_service":
-			install_service_command.Parse(os.Args[2:])
+			err = install_service_command.Parse(os.Args[2:])
 		case "uninstall_service":
-			uninstall_service_command.Parse(os.Args[2:])
+			err = uninstall_service_command.Parse(os.Args[2:])
 		case "install_application":
-			install_application_command.Parse(os.Args[2:])
+			err = install_application_command.Parse(os.Args[2:])
 		case "uninstall_application":
-			uninstall_application_command.Parse(os.Args[2:])
+			err = uninstall_application_command.Parse(os.Args[2:])
 		case "certificates":
-			installCertificatesCommand.Parse(os.Args[2:])
+			err = installCertificatesCommand.Parse(os.Args[2:])
 		case "connect_peer":
-			connect_peer_command.Parse(os.Args[2:])
+			err = connect_peer_command.Parse(os.Args[2:])
 		case "generate_token":
-			generate_token_command.Parse(os.Args[2:])
+			err = generate_token_command.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
+			os.Exit(1)
+		}
+
+		// Check for errors
+		if err != nil {
+			fmt.Println("Error parsing command:", err)
 			os.Exit(1)
 		}
 
@@ -375,7 +399,10 @@ func main() {
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
-			install_service(g, *install_service_command_service, *install_service_command_discovery, *install_service_command_publisher, *install_service_command_address, *install_service_command_user, *install_service_command_pwd)
+			err = install_service(g, *install_service_command_service, *install_service_command_discovery, *install_service_command_publisher, *install_service_command_address, *install_service_command_user, *install_service_command_pwd)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if uninstall_service_command.Parsed() {
@@ -404,7 +431,10 @@ func main() {
 				install_service_command.PrintDefaults()
 				os.Exit(1)
 			}
-			uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
+			err = uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if update_globular_command.Parsed() {
@@ -433,7 +463,10 @@ func main() {
 				*update_globular_command_platform = runtime.GOOS + ":" + runtime.GOARCH
 			}
 
-			update_globular(g, *update_globular_command_exec_path, *update_globular_command_address, *update_globular_command_user, *update_globular_command_pwd, *update_globular_command_platform)
+			err = update_globular(g, *update_globular_command_exec_path, *update_globular_command_address, *update_globular_command_user, *update_globular_command_pwd, *update_globular_command_platform)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if update_globular_from_command.Parsed() {
@@ -464,7 +497,10 @@ func main() {
 				*update_globular_from_command_platform = runtime.GOOS + ":" + runtime.GOARCH
 			}
 
-			update_globular_from(g, *update_globular_command_from_source, *update_globular_from_command_dest, *update_globular_from_command_user, *update_globular_from_command_pwd, *update_globular_from_command_platform)
+			err = update_globular_from(g, *update_globular_command_from_source, *update_globular_from_command_dest, *update_globular_from_command_user, *update_globular_from_command_pwd, *update_globular_from_command_platform)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if install_application_command.Parsed() {
@@ -504,7 +540,10 @@ func main() {
 				set_as_default = *install_application_command_index == "true"
 			}
 
-			install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd, set_as_default)
+			err = install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd, set_as_default)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if uninstall_application_command.Parsed() {
@@ -539,7 +578,10 @@ func main() {
 				fmt.Println("no version was given!")
 				os.Exit(1)
 			}
-			uninstall_application(g, *uninstall_application_command_name, *uninstall_application_command_publisher, *uninstall_application_command_version, *uninstall_application_command_address, *uninstall_application_command_user, *uninstall_application_command_pwd)
+			err = uninstall_application(g, *uninstall_application_command_name, *uninstall_application_command_publisher, *uninstall_application_command_version, *uninstall_application_command_address, *uninstall_application_command_user, *uninstall_application_command_pwd)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if installCertificatesCommand.Parsed() {
@@ -559,16 +601,20 @@ func main() {
 				os.Exit(1)
 			}
 
-			installCertificates(g, *installCertificatesCommand_domain, Utility.ToInt(*installCertificatesCommand_port), *installCertificatesCommand_path)
+			err = installCertificates(g, *installCertificatesCommand_domain, Utility.ToInt(*installCertificatesCommand_port), *installCertificatesCommand_path)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if startCommand.Parsed() {
-			// Required Flags
-
 			if len(*startCommand_domain) > 0 {
 				g.Domain = *startCommand_domain
 			}
-			g.run()
+			if err := g.run(); err != nil {
+				log.Println("Globular run error:", err)
+				os.Exit(1)
+			}
 		}
 
 		// Check if the command was parsed
@@ -583,7 +629,10 @@ func main() {
 				log.Println("Globular service is now installed!")
 				// Here I will keep the start time...
 				// set path...
-				setSystemPath()
+				err = setSystemPath()
+				if err != nil {
+					log.Println("fail to set system path with error", err)
+				}
 
 				os.Exit(0) // exit the program.
 			} else {
@@ -592,7 +641,7 @@ func main() {
 			}
 		}
 
-		if unstallCommand.Parsed() && s != nil {
+		if uninstallCommand.Parsed() && s != nil {
 			fmt.Println("try to remove Globular service...")
 			// Required Flags
 			err := s.Uninstall()
@@ -604,15 +653,37 @@ func main() {
 			}
 
 			// Be sure all process are stop...
-			Utility.KillProcessByName("mongod")
-			Utility.KillProcessByName("prometheus")
-			Utility.KillProcessByName("torrent")
-			Utility.KillProcessByName("envoy")
-			Utility.KillProcessByName("etcd")
+			err = Utility.KillProcessByName("mongod")
+			if err != nil {
+				log.Println("fail to kill mongod process with error", err)
+			}
+			err = Utility.KillProcessByName("prometheus")
+			if err != nil {
+				log.Println("fail to kill prometheus process with error", err)
+			}
+			err = Utility.KillProcessByName("torrent")
+			if err != nil {
+				log.Println("fail to kill torrent process with error", err)
+			}
+			err = Utility.KillProcessByName("envoy")
+			if err != nil {
+				log.Println("fail to kill envoy process with error", err)
+			}
+			err = Utility.KillProcessByName("etcd")
+			if err != nil {
+				log.Println("fail to kill etcd process with error", err)
+			}
 
 			// reset environmement...
-			resetSystemPath()
-			resetRules()
+			err = resetSystemPath()
+			if err != nil {
+				log.Println("fail to reset system path with error", err)
+			}
+
+			err = resetRules()
+			if err != nil {
+				log.Println("fail to reset rules with error", err)
+			}
 
 			os.Exit(0) // exit the program.
 		}
@@ -676,7 +747,10 @@ func main() {
 				set_as_default = *deployCommand_index == "true"
 			}
 
-			deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd, set_as_default)
+			err = deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd, set_as_default)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		if publishCommand.Parsed() {
@@ -717,8 +791,11 @@ func main() {
 				*publishCommand_plaform = runtime.GOOS + "_" + runtime.GOARCH
 			}
 
-			// Pulish the services.
-			publish(g, *publishCommand_user, *publishCommand_pwd, *publishCommand_address, *publishCommand_organization, *publishCommand_path, *publishCommand_plaform)
+			fmt.Println("publish for platform ", *publishCommand_plaform)
+			err = publish(g, *publishCommand_user, *publishCommand_pwd, *publishCommand_address, *publishCommand_organization, *publishCommand_path, *publishCommand_plaform)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 	} else {
@@ -744,7 +821,10 @@ func main() {
 		if s != nil {
 			err = s.Run()
 			if err != nil && g.logger != nil {
-				g.logger.Error(err)
+				err_ := g.logger.Error(err)
+				if err_ != nil {
+					fmt.Println("fail to log error: ", err_)
+				}
 			} else if err != nil {
 				fmt.Println("fail to run Globular with error: ", err)
 			}
@@ -827,6 +907,7 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	fmt.Println("try to read package.json file at ", absolutePath)
 
 	packageConfig := make(map[string]interface{})
+	// #nosec G304 -- File path is constructed from validated input and constant strings.
 	data, err := os.ReadFile(absolutePath)
 	if err != nil {
 		return err
@@ -911,7 +992,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 			// Convert to png before creating the data url.
 			if strings.HasSuffix(strings.ToLower(iconPath), ".svg") {
 				pngPath := os.TempDir() + "/output.png"
-				defer os.Remove(pngPath)
+
+				defer func() {
+					err := os.Remove(pngPath)
+					if err != nil {
+						log.Println("fail to remove temporary png file with error", err)
+					}
+				}()
+
 				err := Utility.SvgToPng(iconPath, pngPath, 128, 128)
 				if err == nil {
 					iconPath = pngPath
@@ -1063,7 +1151,12 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 		return err
 	}
 
-	defer os.RemoveAll(path)
+	defer func() {
+		err := os.RemoveAll(path)
+		if err != nil {
+			log.Println("fail to remove temporary directory with error", err)
+		}
+	}()
 
 	err = update_globular(g, path_, dest, user, pwd, platform)
 	if err != nil {
@@ -1301,7 +1394,11 @@ func dist(g *Globule, path string, revision string) {
 	// TODO see if those values can be use as parameters...
 
 	// Now I will copy the application icon to the resource.
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Println("fail to get current directory with error", err)
+		return
+	}
 
 	// The debian package...
 	// There is a link on how to launch service in macOS
@@ -1329,15 +1426,19 @@ func dist(g *Globule, path string, revision string) {
 	// -stop the service
 	// sudo launchctl unload /Library/LaunchDaemons/Globular.plist
 	//
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 
 		darwin_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
 		// remove existiong files...
-		os.RemoveAll(darwin_package_path)
+		err := os.RemoveAll(darwin_package_path)
+		if err != nil {
+			log.Println("fail to remove existing darwin package directory with error", err)
+		}
 
 		// 1. Create the working directory
-		err := Utility.CreateDirIfNotExist(darwin_package_path)
+		err = Utility.CreateDirIfNotExist(darwin_package_path)
 		if err != nil {
 			fmt.Println("fail to create darwin package directory with error: ", err)
 			return
@@ -1411,20 +1512,23 @@ func dist(g *Globule, path string, revision string) {
 		</dict>
 		</plist>
 		`
-		err = os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0644)
+		err = os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0600)
 		if err != nil {
 			fmt.Println("fail to create Info.plist with error", err)
 			return
 		}
 
-	} else if runtime.GOOS == "linux" {
+	case "linux":
 		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
 		// remove existiong files...
-		os.RemoveAll(debian_package_path)
+		err = os.RemoveAll(debian_package_path)
+		if err != nil {
+			log.Println("fail to remove existing debian package directory with error", err)
+		}
 
 		// 1. Create the working directory
-		err := Utility.CreateDirIfNotExist(debian_package_path)
+		err = Utility.CreateDirIfNotExist(debian_package_path)
 		if err != nil {
 			fmt.Println("fail to create debian package directory with error: ", err)
 			return
@@ -1492,8 +1596,16 @@ func dist(g *Globule, path string, revision string) {
 				return
 			}
 
-			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
-			Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+			err := Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.a", libpath+"/libz.a")
+			if err != nil {
+				log.Println("fail to copy libz.a with error", err)
+			}
+
+			err = Utility.CopyFile("/usr/lib/x86_64-linux-gnu/libz.so.1.2.11", libpath+"/libz.so.1.2.11")
+			if err != nil {
+				log.Println("fail to copy libz.so.1.2.11 with error", err)
+			}
+
 		} else if runtime.GOARCH == "arm64" {
 			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libssl.so.1.1") {
 				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
@@ -1503,8 +1615,14 @@ func dist(g *Globule, path string, revision string) {
 			}
 
 			// Copy lib crypto...
-			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
-			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
+			err := Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libssl.so.1.1", libpath+"/libssl.so.1.1")
+			if err != nil {
+				log.Println("fail to copy libssl.so.1.1 with error", err)
+			}
+			err = Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1", libpath+"/libcrypto.so.1.1")
+			if err != nil {
+				log.Println("fail to copy libcrypto.so.1.1 with error", err)
+			}
 
 			// zlib
 			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libz.a") {
@@ -1512,21 +1630,49 @@ func dist(g *Globule, path string, revision string) {
 				return
 			}
 
-			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.a", libpath+"/libz.a")
-			Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.so.1.2.13", libpath+"/libz.so.1.2.13")
+			err = Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.a", libpath+"/libz.a")
+			if err != nil {
+				log.Println("fail to copy libz.a with error", err)
+			}
+			err = Utility.CopyFile("/usr/lib/aarch64-linux-gnu/libz.so.1.2.13", libpath+"/libz.so.1.2.13")
+			if err != nil {
+				log.Println("fail to copy libz.so.1.2.13 with error", err)
+			}
 		}
 
 		// ODBC libraries...
-		Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
-		Utility.CopyFile("/usr/local/lib/libodbc.so.2.0.0", libpath+"/libodbc.so.2.0.0")
+		err = Utility.CopyFile("/usr/local/lib/libodbc.la", libpath+"/libodbc.la")
+		if err != nil {
+			log.Println("fail to copy libodbc.la with error", err)
+		}
+		err = Utility.CopyFile("/usr/local/lib/libodbc.so.2.0.0", libpath+"/libodbc.so.2.0.0")
+		if err != nil {
+			log.Println("fail to copy libodbc.so.2.0.0 with error", err)
+		}
 
-		Utility.CopyFile("/usr/local/lib/libodbccr.la", libpath+"/libodbccr.la")
-		Utility.CopyFile("/usr/local/lib/libodbccr.so.2.0.0", libpath+"/libodbccr.so.2.0.0")
+		err = Utility.CopyFile("/usr/local/lib/libodbccr.la", libpath+"/libodbccr.la")
+		if err != nil {
+			log.Println("fail to copy libodbccr.la with error", err)
+		}
+		err = Utility.CopyFile("/usr/local/lib/libodbccr.so.2.0.0", libpath+"/libodbccr.so.2.0.0")
+		if err != nil {
+			log.Println("fail to copy libodbccr.so.2.0.0 with error", err)
+		}
 
-		Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
-		Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
+		err = Utility.CopyFile("/usr/local/lib/libodbcinst.la", libpath+"/libodbcinst.la")
+		if err != nil {
+			log.Println("fail to copy libodbcinst.la with error", err)
+		}
 
-		Utility.CopyFile("/usr/local/bin/grpcwebproxy", binpath+"/grpcwebproxy")
+		err = Utility.CopyFile("/usr/local/lib/libodbcinst.so.2.0.0", libpath+"/libodbcinst.so.2.0.0")
+		if err != nil {
+			log.Println("fail to copy libodbcinst.so.2.0.0 with error", err)
+		}
+
+		err = Utility.CopyFile("/usr/local/bin/grpcwebproxy", binpath+"/grpcwebproxy")
+		if err != nil {
+			log.Println("fail to copy grpcwebproxy with error", err)
+		}
 
 		// Now I will create get the configuration files from service and create a copy to /etc/globular/config/services
 		// so modification will survice upgrades.
@@ -1565,7 +1711,7 @@ func dist(g *Globule, path string, revision string) {
 		// - The list of dependencies...
 		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~), nmap, arp-scan\n"
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0644)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1576,7 +1722,8 @@ func dist(g *Globule, path string, revision string) {
 
 		var preinst string
 
-		if runtime.GOARCH == "amd64" {
+		switch runtime.GOARCH {
+		case "amd64":
 			preinst = `
 		echo "Welcome to Globular!-)"
 
@@ -1635,7 +1782,7 @@ func dist(g *Globule, path string, revision string) {
 			rm /usr/local/lib/libodbcinst.so
 		fi
 		`
-		} else if runtime.GOARCH == "arm64" {
+		case "arm64":
 			preinst = `
 		echo "Welcome to Globular!-)"
 
@@ -1683,7 +1830,7 @@ func dist(g *Globule, path string, revision string) {
 
 		}
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1695,7 +1842,7 @@ func dist(g *Globule, path string, revision string) {
 			conffiles += configurations[i] + "\n"
 		}
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1747,7 +1894,7 @@ func dist(g *Globule, path string, revision string) {
 		 service Globular start
 		 
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1769,7 +1916,7 @@ func dist(g *Globule, path string, revision string) {
 			/usr/local/bin/Globular uninstall
 		fi
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1794,13 +1941,14 @@ func dist(g *Globule, path string, revision string) {
 		
 		echo "Hope to see you again soon!"
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0755)
+		err = os.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0600)
 		if err != nil {
 			fmt.Println(err)
 		}
 
 		// 5. Build the deb package
 		fmt.Println("Build the debian package at ", debian_package_path)
+		// #nosec G204 -- Subprocess launched with variable
 		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
 
 		cmdOutput := &bytes.Buffer{}
@@ -1812,13 +1960,19 @@ func dist(g *Globule, path string, revision string) {
 		}
 		fmt.Print(cmdOutput.String())
 
-	} else if runtime.GOOS == "windows" {
+	case "windows":
 		fmt.Println("Create the distro at path ", path)
 		root := path + "/Globular"
-		Utility.CreateIfNotExists(root, 0755)
+		err = Utility.CreateIfNotExists(root, 0600)
+		if err != nil {
+			log.Println("fail to create root directory with error", err)
+		}
 
 		app := root + "/app"
-		Utility.CreateIfNotExists(app, 0755)
+		err = Utility.CreateIfNotExists(app, 0600)
+		if err != nil {
+			log.Println("fail to create app directory with error", err)
+		}
 
 		// Copy globular ditro file.
 		__dist(g, app, app+"/config")
@@ -1841,7 +1995,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 
 		// redist
-		err =Utility.CreateDirIfNotExist(root + "/redist")
+		err = Utility.CreateDirIfNotExist(root + "/redist")
 		if err != nil {
 			fmt.Println("fail to create redist directory with error: ", err)
 			return
@@ -2068,7 +2222,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		fmt.Println(err)
 	}
 
-	err = os.Chmod(path+"/"+destExec, 0755)
+	err = os.Chmod(path+"/"+destExec, 0600)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -2078,8 +2232,8 @@ func __dist(g *Globule, path, config_path string) []string {
 		err = Utility.CreateDirIfNotExist(path + "/dependencies")
 		if err != nil {
 			fmt.Println("fail to create dependencies directory with error: ", err)
-			os.Exit(1) 
-		}	
+			os.Exit(1)
+		}
 
 		if Utility.Exists(dir + "/dependencies") {
 
@@ -2090,7 +2244,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 			execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
 			for i := 0; i < len(execs); i++ {
-				err = os.Chmod(execs[i], 0755)
+				err = os.Chmod(execs[i], 0600)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -2103,69 +2257,126 @@ func __dist(g *Globule, path, config_path string) []string {
 
 		// ffmpeg
 		if Utility.Exists("/usr/local/bin/ffmpeg") {
-			Utility.CopyFile("/usr/local/bin/ffmpeg", dest)
+			err = Utility.CopyFile("/usr/local/bin/ffmpeg", dest)
+			if err != nil {
+				log.Println("fail to copy ffmpeg with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/bin/ffprobe") {
-			Utility.CopyFile("/usr/local/bin/ffprobe", dest)
+			err = Utility.CopyFile("/usr/local/bin/ffprobe", dest)
+			if err != nil {
+				log.Println("fail to copy ffprobe with error", err)
+			}
 		}
 
 		// yt-dlp
 		if Utility.Exists("/usr/local/bin/yt-dlp") {
-			Utility.CopyFile("/usr/local/bin/yt-dlp", dest)
+			err = Utility.CopyFile("/usr/local/bin/yt-dlp", dest)
+			if err != nil {
+				log.Println("fail to copy yt-dlp with error", err)
+			}
 		}
 
 		// unix-odbc
 		if Utility.Exists("/usr/local/bin/odbc_config") {
-			Utility.CopyFile("/usr/local/bin/odbc_config", dest)
+			err = Utility.CopyFile("/usr/local/bin/odbc_config", dest)
+			if err != nil {
+				log.Println("fail to copy odbc_config with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/bin/odbcinst") {
-			Utility.CopyFile("/usr/local/bin/odbcinst", dest)
+			err = Utility.CopyFile("/usr/local/bin/odbcinst", dest)
+			if err != nil {
+				log.Println("fail to copy odbcinst with error", err)
+			}
+		}
+
+		// unix-odbc
+		if Utility.Exists("/usr/local/bin/odbc_config") {
+			err = Utility.CopyFile("/usr/local/bin/odbc_config", dest)
+			if err != nil {
+				log.Println("fail to copy odbc_config with error", err)
+			}
+		}
+
+		if Utility.Exists("/usr/local/bin/odbcinst") {
+			err = Utility.CopyFile("/usr/local/bin/odbcinst", dest)
+			if err != nil {
+				log.Println("fail to copy odbcinst with error", err)
+			}
 		}
 
 		// Now the libraries...
 		dest = path + "/lib"
 		err = Utility.CreateDirIfNotExist(dest)
 		if err != nil {
-			fmt.Println("fail to create lib directory with error: ", err)
+			log.Println("fail to create lib directory with error: ", err)
 			os.Exit(1)
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbc.2.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbc.2.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbc.2.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbc.2.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbc.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbc.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbc.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbc.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbc.la") {
-			Utility.CopyFile("/usr/local/lib/libodbc.la", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbc.la", dest)
+			if err != nil {
+				log.Println("fail to copy libodbc.la with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbccr.2.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbccr.2.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbccr.2.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbccr.2.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbccr.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbccr.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbccr.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbccr.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbccr.la") {
-			Utility.CopyFile("/usr/local/lib/libodbccr.la", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbccr.la", dest)
+			if err != nil {
+				log.Println("fail to copy libodbccr.la with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbcinst.2.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbcinst.2.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbcinst.2.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbcinst.2.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbcinst.dylib") {
-			Utility.CopyFile("/usr/local/lib/libodbcinst.dylib", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbcinst.dylib", dest)
+			if err != nil {
+				log.Println("fail to copy libodbcinst.dylib with error", err)
+			}
 		}
 
 		if Utility.Exists("/usr/local/lib/libodbcinst.la") {
-			Utility.CopyFile("/usr/local/lib/libodbcinst.la", dest)
+			err = Utility.CopyFile("/usr/local/lib/libodbcinst.la", dest)
+			if err != nil {
+				log.Println("fail to copy libodbcinst.la with error", err)
+			}
 		}
 	}
 
@@ -2207,136 +2418,149 @@ func __dist(g *Globule, path, config_path string) []string {
 				configPath := filepath.Dir(execPath) + "/config.json"
 				if Utility.Exists(configPath) {
 					log.Println("install service ", name)
+					// #nosec G304 -- Value is from a trusted source
 					bytes, err := os.ReadFile(configPath)
+					if err != nil {
+						log.Println("fail to read config file with error", err)
+					}
+
 					config := make(map[string]interface{}, 0)
-					json.Unmarshal(bytes, &config)
+					err = json.Unmarshal(bytes, &config)
+					if err != nil {
+						log.Println("fail to unmarshal config file with error", err)
+					}
 
-					if err == nil {
-						hasProto := s["Proto"] != nil
+					hasProto := s["Proto"] != nil
 
-						// set the name.
-						if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
-							protoPath := s["Proto"].(string)
+					// set the name.
+					if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
+						protoPath := s["Proto"].(string)
 
-							if Utility.Exists(execPath) && Utility.Exists(protoPath) {
-								var serviceDir = "services/"
-								if len(config["PublisherId"].(string)) == 0 {
-									serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string)
-								} else {
-									serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
+						if Utility.Exists(execPath) && Utility.Exists(protoPath) {
+							var serviceDir = "services/"
+							if len(config["PublisherId"].(string)) == 0 {
+								serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string)
+							} else {
+								serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
+							}
+
+							execName := filepath.Base(execPath)
+							destPath := path + "/" + serviceDir + "/" + id + "/" + execName
+
+							if Utility.Exists(execPath) {
+								err := Utility.CreateDirIfNotExist(path + "/" + serviceDir + "/" + id)
+								if err != nil {
+									fmt.Println("fail to create service directory with error: ", err)
+									os.Exit(1)
 								}
 
-								execName := filepath.Base(execPath)
-								destPath := path + "/" + serviceDir + "/" + id + "/" + execName
+								err = Utility.Copy(execPath, destPath)
+								if err != nil {
+									fmt.Println(execPath, destPath, err)
+								}
 
-								if Utility.Exists(execPath) {
-									err := Utility.CreateDirIfNotExist(path + "/" + serviceDir + "/" + id)
+								// Set execute permission
+								err = os.Chmod(destPath, 0600)
+								if err != nil {
+									fmt.Println(err)
+								}
+
+								config["Path"] = programFilePath + "/" + serviceDir + "/" + id + "/" + execName
+								config["Proto"] = programFilePath + "/" + serviceDir + "/" + config["Name"].(string) + ".proto"
+
+								if config["CacheType"] != nil {
+									config["CacheType"] = "BADGER"
+								}
+
+								if config["CacheAddress"] != nil {
+									config["CacheAddress"] = "localhost"
+								}
+
+								if config["Backend_address"] != nil {
+									config["Backend_address"] = "localhost"
+								}
+
+								if config["Backend_type"] != nil {
+									config["Backend_type"] = "SQL"
+								}
+
+								// set the security values to nothing...
+								config["CertAuthorityTrust"] = ""
+								config["Process"] = -1
+								config["ProxyProcess"] = -1
+								config["CertFile"] = ""
+								config["KeyFile"] = ""
+								config["TLS"] = false
+
+								if config["Root"] != nil {
+									if name == "file.FileService" {
+										config["Root"] = config_.GetDataDir() + "/files"
+
+										// I will also copy the mime type directory
+										config["Public"] = make([]string, 0)
+										err = Utility.CopyDir(filepath.Dir(execPath)+"/mimetypes", path+"/"+serviceDir+"/"+id)
+										if err != nil {
+											fmt.Println("fail to copy mime types directory with error: ", err)
+											os.Exit(1)
+										}
+
+									} else if name == "conversation.ConversationService" {
+										config["Root"] = config_.GetDataDir()
+									}
+								}
+
+								// Empty the list of connections if connections exist for the services.
+								if config["Connections"] != nil {
+									config["Connections"] = make(map[string]interface{})
+								}
+
+								config["ConfigPath"] = config_.GetConfigDir() + "/" + serviceDir + "/" + id + "/config.json"
+								configs = append(configs, "/etc/globular/config/"+serviceDir+"/"+id+"/config.json")
+								str, _ := Utility.ToJson(&config)
+
+								if len(config_path) > 0 {
+									// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
+									// will survive package upgrades...
+									err = Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
 									if err != nil {
-										fmt.Println("fail to create service directory with error: ", err)
+										fmt.Println("fail to create config directory with error: ", err)
 										os.Exit(1)
 									}
 
-									err = Utility.Copy(execPath, destPath)
+									err = os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0600)
 									if err != nil {
-										fmt.Println(execPath, destPath, err)
+										fmt.Println("fail to create config file with error: ", err)
+										os.Exit(1)
 									}
 
-									// Set execute permission
-									err = os.Chmod(destPath, 0755)
-									if err != nil {
-										fmt.Println(err)
-									}
-
-									config["Path"] = programFilePath + "/" + serviceDir + "/" + id + "/" + execName
-									config["Proto"] = programFilePath + "/" + serviceDir + "/" + config["Name"].(string) + ".proto"
-
-									if config["CacheType"] != nil {
-										config["CacheType"] = "BADGER"
-									}
-
-									if config["CacheAddress"] != nil {
-										config["CacheAddress"] = "localhost"
-									}
-
-									if config["Backend_address"] != nil {
-										config["Backend_address"] = "localhost"
-									}
-
-									if config["Backend_type"] != nil {
-										config["Backend_type"] = "SQL"
-									}
-
-									// set the security values to nothing...
-									config["CertAuthorityTrust"] = ""
-									config["Process"] = -1
-									config["ProxyProcess"] = -1
-									config["CertFile"] = ""
-									config["KeyFile"] = ""
-									config["TLS"] = false
-
-									if config["Root"] != nil {
-										if name == "file.FileService" {
-											config["Root"] = config_.GetDataDir() + "/files"
-
-											// I will also copy the mime type directory
-											config["Public"] = make([]string, 0)
-											Utility.CopyDir(filepath.Dir(execPath)+"/mimetypes", path+"/"+serviceDir+"/"+id)
-
-										} else if name == "conversation.ConversationService" {
-											config["Root"] = config_.GetDataDir()
-										}
-									}
-
-									// Empty the list of connections if connections exist for the services.
-									if config["Connections"] != nil {
-										config["Connections"] = make(map[string]interface{})
-									}
-
-									config["ConfigPath"] = config_.GetConfigDir() + "/" + serviceDir + "/" + id + "/config.json"
-									configs = append(configs, "/etc/globular/config/"+serviceDir+"/"+id+"/config.json")
-									str, _ := Utility.ToJson(&config)
-
-									if len(config_path) > 0 {
-										// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
-										// will survive package upgrades...
-										err = Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
-										if err != nil {
-											fmt.Println("fail to create config directory with error: ", err)
-											os.Exit(1)
-										}
-
-										err = os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0644)
-										if err != nil {
-											fmt.Println("fail to create config file with error: ", err)
-											os.Exit(1)
-										}
-
-									}
-
-									// Copy the proto file.
-									if Utility.Exists(protoPath) {
-										Utility.Copy(protoPath, path+"/"+serviceDir+"/"+name+".proto")
-									}
-								} else {
-									fmt.Println("executable not exist ", execPath)
 								}
-							} else if !Utility.Exists(execPath) {
-								log.Println("no executable found at path " + execPath)
-							} else if !Utility.Exists(protoPath) {
-								log.Println("no proto file found at path " + protoPath)
+
+								// Copy the proto file.
+								if Utility.Exists(protoPath) {
+									err = Utility.Copy(protoPath, path+"/"+serviceDir+"/"+name+".proto")
+									if err != nil {
+										fmt.Println("fail to copy proto file with error: ", err)
+										os.Exit(1)
+									}
+								}
+							} else {
+								fmt.Println("executable not exist ", execPath)
 							}
-						} else if config["PublisherId"] == nil {
-							fmt.Println("no publisher was define!")
-						} else if config["Version"] == nil {
-							fmt.Println("no version was define!")
-						} else if !hasProto {
-							fmt.Println(" no proto file was found!")
-						} else if !hasPath {
-							fmt.Println("no executable was found!")
+						} else if !Utility.Exists(execPath) {
+							log.Println("no executable found at path " + execPath)
+						} else if !Utility.Exists(protoPath) {
+							log.Println("no proto file found at path " + protoPath)
 						}
-					} else {
-						fmt.Println(err)
+					} else if config["PublisherId"] == nil {
+						fmt.Println("no publisher was define!")
+					} else if config["Version"] == nil {
+						fmt.Println("no version was define!")
+					} else if !hasProto {
+						fmt.Println(" no proto file was found!")
+					} else if !hasPath {
+						fmt.Println("no executable was found!")
 					}
+
 				} else {
 					fmt.Println("service", name, ":", id, "configuration is incomplete!")
 				}
@@ -2346,7 +2570,11 @@ func __dist(g *Globule, path, config_path string) []string {
 
 				// Copy the proto file.
 				if Utility.Exists(os.Getenv("ServicesRoot") + "/" + protoPath) {
-					Utility.Copy(os.Getenv("ServicesRoot")+"/"+protoPath, path+"/"+protoPath)
+					err = Utility.Copy(os.Getenv("ServicesRoot")+"/"+protoPath, path+"/"+protoPath)
+					if err != nil {
+						fmt.Println("fail to copy proto file with error: ", err)
+						os.Exit(1)
+					}
 				}
 			}
 		}
@@ -2354,7 +2582,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	}
 
 	// save docker.
-	err = os.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0644)
+	err = os.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0600)
 	if err != nil {
 		log.Println(err)
 	}
