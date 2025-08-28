@@ -33,6 +33,23 @@ jobs:
       - name: Test
         run: go test ./... -race -coverprofile=coverage.out
 
+      - name: Debug jwt version
+        run: |
+          go mod graph | grep 'golang-jwt/jwt' || true
+          go list -m -json github.com/golang-jwt/jwt/v5 || true
+
+      - name: Debug deps selected in CI
+        run: |
+          echo "GOWORK=$(go env GOWORK)"
+          echo "Top-level jwt version:"
+          go list -m -json github.com/golang-jwt/jwt/v5 || true
+          echo "All modules‘ requirements mentioning jwt:"
+          grep -R --line-number --include="go.mod" 'golang-jwt/jwt' . || true
+          echo "Any v5.2.1 references anywhere:"
+          grep -R --line-number 'golang-jwt/jwt/v5@v5\.2\.1' . || true
+          echo "Module graph view:"
+          go mod graph | grep 'golang-jwt/jwt' || true
+
       - name: Govulncheck
         uses: golang/govulncheck-action@v1
         with:
