@@ -2466,7 +2466,8 @@ func generateDistro(path string) []string {
 								config["TLS"] = false
 
 								if config["Root"] != nil {
-									if name == "file.FileService" {
+									switch name {
+									case "file.FileService":
 										config["Root"] = configpkg.GetDataDir() + "/files"
 
 										// I will also copy the mime type directory
@@ -2477,7 +2478,7 @@ func generateDistro(path string) []string {
 											os.Exit(1)
 										}
 
-									} else if name == "conversation.ConversationService" {
+									case "conversation.ConversationService":
 										config["Root"] = configpkg.GetDataDir()
 									}
 								}
