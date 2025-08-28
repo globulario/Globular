@@ -24,7 +24,7 @@ dist/
 config/
 data/
 bin/
-dependencies/
+Dependencys/
 webroot/
 node_modules/
 *.key

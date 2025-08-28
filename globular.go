@@ -75,9 +75,7 @@ var (
 	globule *Globule
 )
 
-/**
- * The web server.
- */
+// Globule represents the main server instance.
 type Globule struct {
 	// The share part of the service.
 	Name string // the hostname.
@@ -88,8 +86,8 @@ type Globule struct {
 
 	// can be https or http.
 	Protocol     string
-	PortHttp     int    // The port of the http file server.
-	PortHttps    int    // The secure port
+	PortHTTP     int    // The port of the http file server.
+	PortHTTPS    int    // The secure port
 	PortsRange   string // The range of grpc ports.
 	BackendPort  int    // This is backend resource port (mongodb port)
 	BackendStore int
@@ -188,9 +186,13 @@ type Globule struct {
 	logger service.Logger
 }
 
-/**
- * Globule constructor.
- */
+// NewGlobule initializes and returns a new Globule instance with default configuration values.
+// It sets up various properties such as version, build, platform, network settings, organization info,
+// DNS and name server details, allowed CORS origins/methods/headers, peer map, protocol, certificate settings,
+// admin credentials, session timeout, and update delay. It also registers HTTP handlers for various endpoints
+// including configuration, certificate management, file uploads, media metadata, OAuth2, and server statistics.
+// If no configuration file exists, it creates the necessary directories and saves the default configuration.
+// Returns a pointer to the newly created Globule.
 func NewGlobule() *Globule {
 
 	// Here I will initialyse configuration.
@@ -202,8 +204,8 @@ func NewGlobule() *Globule {
 	g.Build = 0
 	g.Platform = runtime.GOOS + ":" + runtime.GOARCH
 	g.IndexApplication = ""      // I will use the installer as defaut.
-	g.PortHttp = 80              // The default http port 80 is almost already use by other http server...
-	g.PortHttps = 443            // The default https port number
+	g.PortHTTP = 80              // The default http port 80 is almost already use by other http server...
+	g.PortHTTPS = 443            // The default https port number
 	g.PortsRange = "10000-10100" // The default port range.
 	g.ServicesRoot = config.GetServicesRoot()
 	g.ExternalIpAddress = Utility.MyIP() // The public ip address of the server.
@@ -346,8 +348,8 @@ func (globule *Globule) cleanup() {
 	p["address"] = globule.getAddress()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
-	p["portHttp"] = globule.PortHttp
-	p["portHttps"] = globule.PortHttps
+	p["PortHTTP"] = globule.PortHTTP
+	p["PortHTTPS"] = globule.PortHTTPS
 
 	jsonStr, _ := json.Marshal(&p)
 
@@ -655,10 +657,10 @@ func (globule *Globule) getConfig() map[string]interface{} {
 		s["Mac"] = services[i]["Mac"]
 		s["Port"] = services[i]["Port"]
 		s["Proxy"] = services[i]["Proxy"]
-		s["PublisherId"] = services[i]["PublisherId"]
+		s["PublisherID"] = services[i]["PublisherID"]
 		s["State"] = services[i]["State"]
 		s["TLS"] = services[i]["TLS"]
-		s["Dependencies"] = services[i]["Dependencies"]
+		s["Dependencys"] = services[i]["Dependencys"]
 		s["Version"] = services[i]["Version"]
 		s["CertAuthorityTrust"] = services[i]["CertAuthorityTrust"]
 		s["CertFile"] = services[i]["CertFile"]
@@ -692,9 +694,9 @@ func (globule *Globule) savePeers() error {
 	globule.Peers = make([]interface{}, 0)
 	globule.peers.Range(func(key, value interface{}) bool {
 		p := value.(*resourcepb.Peer)
-		port := p.PortHttp
+		port := p.PortHTTP
 		if p.Protocol == "https" {
-			port = p.PortHttps
+			port = p.PortHTTPS
 		}
 		globule.Peers = append(globule.Peers, map[string]interface{}{"Hostname": p.Hostname, "Domain": p.Domain, "Mac": p.Mac, "Port": port})
 		return true
@@ -762,13 +764,13 @@ func (globule *Globule) setConfig(config map[string]interface{}) error {
 	}
 
 	// Set the port.
-	if config["PortHttp"] != nil {
-		globule.PortHttp = Utility.ToInt(config["PortHttp"])
+	if config["PortHTTP"] != nil {
+		globule.PortHTTP = Utility.ToInt(config["PortHTTP"])
 	}
 
 	// Set the port.
-	if config["PortHttps"] != nil {
-		globule.PortHttps = Utility.ToInt(config["PortHttps"])
+	if config["PortHTTPS"] != nil {
+		globule.PortHTTPS = Utility.ToInt(config["PortHTTPS"])
 	}
 
 	// Set the ports range.
@@ -985,28 +987,17 @@ func (globule *Globule) saveConfig() error {
 	return nil
 }
 
-/**
- * Return the admin email.
- */
+// GetEmail returns the administrator email address associated with the Globule instance.
 func (globule *Globule) GetEmail() string {
 	return globule.AdminEmail
 }
 
-/**
- * Use the time of registration... Nil other wise.
- */
+// GetRegistration returns the registration resource associated with the Globule instance.
 func (globule *Globule) GetRegistration() *registration.Resource {
 	return globule.registration
 }
 
-/**
- * That function must be use to generate public
- */
-
-/**
- * I will reuse the client public key here as key instead of generate another key
- * and manage it...
- */
+// GetPrivateKey returns the private key associated with the Globule instance.
 func (globule *Globule) GetPrivateKey() crypto.PrivateKey {
 	keyPem, err := os.ReadFile(globule.creds + "/client.pem")
 	if err != nil {
@@ -1021,15 +1012,39 @@ func (globule *Globule) GetPrivateKey() crypto.PrivateKey {
 	return privateKey
 }
 
-/** That interface withe the let's encrypt DNS chanlenge. **/
+// DNSProviderGlobularDNS implements the Let's Encrypt DNS challenge.
 type DNSProviderGlobularDNS struct {
 	apiAuthToken string
 }
 
+// NewDNSProviderGlobularDNS creates a new instance of DNSProviderGlobularDNS using the provided API authentication token.
+// It returns a pointer to the DNSProviderGlobularDNS and an error if the creation fails.
+//
+// Parameters:
+//
+//	apiAuthToken - The API authentication token required to interact with the Globular DNS provider.
+//
+// Returns:
+//
+//	*DNSProviderGlobularDNS - A pointer to the newly created DNSProviderGlobularDNS instance.
+//	error - An error value if the creation fails, otherwise nil.
 func NewDNSProviderGlobularDNS(apiAuthToken string) (*DNSProviderGlobularDNS, error) {
 	return &DNSProviderGlobularDNS{apiAuthToken: apiAuthToken}, nil
 }
 
+// Present creates a DNS TXT record to fulfill the ACME DNS-01 challenge for the specified domain.
+// It connects to the Globular DNS service, generates an authentication token, and sets the required
+// key-value pair in the DNS server. If any step fails, an error is returned.
+//
+// Parameters:
+//
+//	domain  - The domain for which the DNS challenge is being performed.
+//	token   - The challenge token provided by the ACME server.
+//	keyAuth - The key authorization string.
+//
+// Returns:
+//
+//	error - An error if the DNS record could not be set, or nil on success.
 func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	key, value := dns01.GetRecord(domain, keyAuth)
 
@@ -1060,6 +1075,10 @@ func (d *DNSProviderGlobularDNS) Present(domain, token, keyAuth string) error {
 	return nil
 }
 
+// CleanUp removes any DNS state created during the ACME DNS-01 challenge,
+// specifically the TXT record associated with the provided domain and keyAuth.
+// It connects to the DNS service, generates an authentication token, and
+// attempts to remove the TXT record. Returns an error if any step fails.
 func (d *DNSProviderGlobularDNS) CleanUp(domain, token, keyAuth string) error {
 	// clean up any state you created in Present, like removing the TXT record
 	key, _ := dns01.GetRecord(domain, keyAuth)
@@ -1136,7 +1155,7 @@ func (globule *Globule) obtainCertificateForCsr() error {
 		}
 
 	} else {
-		provider := http01.NewProviderServer("", strconv.Itoa(globule.PortHttp))
+		provider := http01.NewProviderServer("", strconv.Itoa(globule.PortHTTP))
 		err = client.Challenge.SetHTTP01Provider(provider)
 		if err != nil {
 			fmt.Println("fail to set http provider with error: ", err)
@@ -1621,7 +1640,7 @@ func enableProgramFwMgr(name, appname string) error {
 
 	if runtime.GOOS == "windows" {
 		fmt.Println("enable program: ", name, appname)
-		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\dependencies\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
+		// netsh advfirewall firewall add rule name="MongoDB Database Server" dir=in action=allow program="C:\Program Files\Globular\Dependencys\mongodb-win32-x86_64-windows-5.0.5\bin\mongod.exe" enable=yes
 		appname = strings.ReplaceAll(appname, "/", "\\")
 		// #nosec G204 -- see justification above; name validated in addFirewallRule
 		inboundRule := exec.Command("cmd", "/C", fmt.Sprintf(`netsh advfirewall firewall add rule name="%s" dir=in action=allow program="%s" enable=yes`, name, appname))
@@ -1749,7 +1768,7 @@ func resetSystemPath() error {
 		}
 
 		// remove path...
-		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/dependencies", ".exe")
+		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/Dependencys", ".exe")
 		for i := range execs {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 			exec = exec[:strings.LastIndex(exec, "/")]
@@ -1797,12 +1816,12 @@ func setSystemPath() error {
 			fmt.Println("fail to set rule for Globular-Services with error: ", err)
 		}
 
-		err = enablePorts("Globular-http", strconv.Itoa(globule.PortHttp))
+		err = enablePorts("Globular-http", strconv.Itoa(globule.PortHTTP))
 		if err != nil {
 			fmt.Println("fail to set rule for Globular-http with error: ", err)
 		}
 
-		err = enablePorts("Globular-https", strconv.Itoa(globule.PortHttps))
+		err = enablePorts("Globular-https", strconv.Itoa(globule.PortHTTPS))
 		if err != nil {
 			fmt.Println("fail to set rule for Globular-https with error: ", err)
 		}
@@ -1827,8 +1846,8 @@ func setSystemPath() error {
 			systemPath += ";" + config.GetRootDir() + "/bin"
 		}
 
-		// set rules for services contain in dependencies folder.
-		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/dependencies", ".exe")
+		// set rules for services contain in Dependencys folder.
+		execs := Utility.GetFilePathsByExtension(config.GetRootDir()+"/Dependencys", ".exe")
 		for i := range execs {
 			exec := strings.ReplaceAll(execs[i], "\\", "/")
 
@@ -1893,9 +1912,9 @@ func setSystemPath() error {
 		}
 
 		// Openssl conf require...
-		path := strings.ReplaceAll(config.GetRootDir(), "/", "\\") + `\dependencies\openssl.cnf`
+		path := strings.ReplaceAll(config.GetRootDir(), "/", "\\") + `\Dependencys\openssl.cnf`
 
-		if Utility.Exists(`C:\Program Files\Globular\dependencies\openssl.cnf`) {
+		if Utility.Exists(`C:\Program Files\Globular\Dependencys\openssl.cnf`) {
 			err := Utility.SetWindowsEnvironmentVariable("OPENSSL_CONF", path)
 			if err != nil {
 				fmt.Println("fail to set environment variable OPENSSL_CONF with error:", err)
@@ -2077,8 +2096,8 @@ func (globule *Globule) startServices() error {
 	// Here I will listen for logger event...
 	go func() {
 
-		// wait 15 second before register resource permissions and subscribe to log events.
-		time.Sleep(15 * time.Second)
+		// wait 2 second before register resource permissions and subscribe to log events.
+		time.Sleep(2 * time.Second)
 
 		for i := 0; i < len(services); i++ {
 			s := services[i]
@@ -2116,7 +2135,7 @@ func (globule *Globule) startServices() error {
 					return
 				}
 
-				log.Println("authenticate user ", "sa", " at adress ", address)
+				log.Println("authenticate user ", "sa", " at address ", address)
 				_, err = authentication_client.Authenticate("sa", "adminadmin")
 
 				if err != nil {
@@ -2214,21 +2233,21 @@ func updatePeersEvent(evt *eventpb.Event) {
 		p.State = resourcepb.PeerApprovalState_PEER_REJECTED
 	}
 
-	httpPort := Utility.ToInt(p_["portHttp"])
+	httpPort := Utility.ToInt(p_["PortHTTP"])
 	if httpPort > math.MaxInt32 || httpPort < math.MinInt32 {
 		fmt.Printf("port value %d out of int32 range\n", httpPort)
 		return
 	}
 	// #nosec G115 -- value has been validated above
-	p.PortHttp = int32(httpPort)
+	p.PortHTTP = int32(httpPort)
 
-	httpsPort := Utility.ToInt(p_["portHttps"])
+	httpsPort := Utility.ToInt(p_["PortHTTPS"])
 	if httpsPort > math.MaxInt32 || httpsPort < math.MinInt32 {
 		fmt.Printf("port value %d out of int32 range\n", httpsPort)
 		return
 	}
 	// #nosec G115 -- value has been validated above
-	p.PortHttps = int32(httpsPort)
+	p.PortHTTPS = int32(httpsPort)
 
 	if p_["actions"] != nil {
 		p.Actions = make([]string, len(p_["actions"].([]interface{})))
@@ -2240,7 +2259,7 @@ func updatePeersEvent(evt *eventpb.Event) {
 		p.Actions = make([]string, 0)
 	}
 	// #nosec G115 -- Allowing assignment of port number from trusted source
-	p.PortHttps = int32(httpsPort)
+	p.PortHTTPS = int32(httpsPort)
 
 	if p_["actions"] != nil {
 		p.Actions = make([]string, len(p_["actions"].([]interface{})))
@@ -2297,9 +2316,9 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) error {
 	}
 
 	if p.Protocol == "https" {
-		address += ":" + Utility.ToString(p.PortHttps)
+		address += ":" + Utility.ToString(p.PortHTTPS)
 	} else {
-		address += ":" + Utility.ToString(p.PortHttp)
+		address += ":" + Utility.ToString(p.PortHTTP)
 	}
 
 	// Here I will get the peer public key if not already exist.
@@ -2365,10 +2384,10 @@ func (globule *Globule) initPeer(p *resourcepb.Peer) error {
 		peer_.ExternalIpAddress = Utility.MyIP()
 
 		// #nosec G115 -- Allowing assignment of port number from trusted source
-		peer_.PortHttp = int32(globule.PortHttp)
+		peer_.PortHTTP = int32(globule.PortHTTP)
 
 		// #nosec G115 -- Allowing assignment of port number from trusted source
-		peer_.PortHttps = int32(globule.PortHttps)
+		peer_.PortHTTPS = int32(globule.PortHTTPS)
 
 		peer_.Domain = globule.Domain
 		err := resource_client__.UpdatePeer(token, peer_)
@@ -2470,41 +2489,40 @@ func (globule *Globule) stopServices() error {
 		return err
 	}
 
-	if err == nil {
-		for i := 0; i < len(services_configs); i++ {
-			pid := Utility.ToInt(services_configs[i]["Process"])
-			services_configs[i]["State"] = "killed"
-			proxyPid := Utility.ToInt(services_configs[i]["ProxyProcess"])
-			services_configs[i]["ProxyProcess"] = -1
+	for i := range services_configs {
+		fmt.Println("stop service ", services_configs[i]["Name"], " with id ", services_configs[i]["Id"])
+		pid := Utility.ToInt(services_configs[i]["Process"])
+		services_configs[i]["State"] = "killed"
+		proxyPid := Utility.ToInt(services_configs[i]["ProxyProcess"])
+		services_configs[i]["ProxyProcess"] = -1
 
-			// save config...
-			err := config.SaveServiceConfiguration(services_configs[i])
-			if err == nil {
-				if pid > 0 {
-					// Kill the process.
-					process, err := os.FindProcess(pid)
-					if err == nil {
-						err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
-						if err != nil {
-							fmt.Println("Error sending signal:", err)
-						}
+		// save config...
+		err := config.SaveServiceConfiguration(services_configs[i])
+		if err == nil {
+			if pid > 0 {
+				// Kill the process.
+				process, err := os.FindProcess(pid)
+				if err == nil {
+					err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
+					if err != nil {
+						fmt.Println("Error sending signal:", err)
 					}
-
 				}
 
-				// Kill the proxy process.
-				if proxyPid > 0 {
-					process, err := os.FindProcess(proxyPid)
-					if err == nil {
-						err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
-						if err != nil {
-							fmt.Println("Error sending signal:", err)
-						}
+			}
+
+			// Kill the proxy process.
+			if proxyPid > 0 {
+				process, err := os.FindProcess(proxyPid)
+				if err == nil {
+					err = process.Signal(syscall.SIGTERM) // make the process stop gracefully.
+					if err != nil {
+						fmt.Println("Error sending signal:", err)
 					}
 				}
 			}
-
 		}
+
 	}
 
 	return nil
@@ -2522,12 +2540,12 @@ func (globule *Globule) serve() error {
 	url := globule.Protocol + "://" + globule.getAddress()
 	switch globule.Protocol {
 	case "https":
-		if globule.PortHttps != 443 {
-			url += ":" + Utility.ToString(globule.PortHttps)
+		if globule.PortHTTPS != 443 {
+			url += ":" + Utility.ToString(globule.PortHTTPS)
 		}
 	case "http":
-		if globule.PortHttp != 80 {
-			url += ":" + Utility.ToString(globule.PortHttp)
+		if globule.PortHTTP != 80 {
+			url += ":" + Utility.ToString(globule.PortHTTP)
 		}
 	}
 
@@ -2648,6 +2666,7 @@ admin:
 		port := config["static_resources"].(map[string]interface{})["clusters"].([]interface{})[0].(map[string]interface{})["load_assignment"].(map[string]interface{})["endpoints"].([]interface{})[0].(map[string]interface{})["lb_endpoints"].([]interface{})[0].(map[string]interface{})["endpoint"].(map[string]interface{})["address"].(map[string]interface{})["socket_address"].(map[string]interface{})["port_value"].(int)
 
 		// TODO: Make the control plane port configurable, it must set also in envoy.yml
+		// #nosec G115 -- Ok
 		if err := controlplane.StartControlPlane(ctx, uint(port), globule.exit); err != nil {
 			fmt.Printf("Error starting control plane: %v\n", err)
 		}
@@ -2681,6 +2700,7 @@ func SetSnapshot() error {
 		service := services[i]
 
 		host := strings.Split(service["Address"].(string), ":")[0]
+		// #nosec G115 -- Ok
 		proxy := uint32((Utility.ToInt(service["Proxy"])))
 
 		if _, ok := proxies[proxy]; !ok {
@@ -2692,6 +2712,7 @@ func SetSnapshot() error {
 				ListenerPort: proxy,
 				ListenerHost: "0.0.0.0", // local address.
 
+				// #nosec G115 -- Ok
 				EndPoints: []controlplane.EndPoint{{Host: host, Port: uint32(Utility.ToInt(service["Port"])), Priority: 100}},
 
 				// grpc certificate...
@@ -2823,7 +2844,7 @@ func (globule *Globule) Serve() error {
 	}
 
 	// Start process monitoring with prometheus.
-	err = process.StartProcessMonitoring(globule.Protocol, globule.PortHttp, globule.exit)
+	err = process.StartProcessMonitoring(globule.Protocol, globule.PortHTTP, globule.exit)
 	if err != nil {
 		fmt.Println("fail to start process monitoring with error:", err)
 		return err
@@ -2892,8 +2913,8 @@ func (globule *Globule) Serve() error {
 	p["domain"], _ = config.GetDomain()
 	p["hostname"] = globule.Name
 	p["mac"] = globule.Mac
-	p["portHttp"] = globule.PortHttp
-	p["portHttps"] = globule.PortHttps
+	p["PortHTTP"] = globule.PortHTTP
+	p["PortHTTPS"] = globule.PortHTTPS
 
 	jsonStr, _ := json.Marshal(&p)
 
@@ -3100,10 +3121,8 @@ func (globule *Globule) registerIpToDns() error {
 			if err != nil {
 				fmt.Println("fail to set AAAA  domain ", globule.getLocalDomain(), " with error ", err)
 				return err
-			} else {
-				fmt.Println("set AAAA record for domain ", globule.getLocalDomain(), " with success")
 			}
-
+			fmt.Println("set AAAA record for domain ", globule.getLocalDomain(), " with success")
 		}
 
 		// I will set alternate domain only if the globule is the master.
@@ -3130,9 +3149,8 @@ func (globule *Globule) registerIpToDns() error {
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
 					return err
-				} else {
-					fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
 				}
+				fmt.Println("set A record for alternate domain ", alternateDomain, " with success")
 
 				/*_, err = dns_client_.SetA(token, alternateDomain, config.GetLocalIP(), 60)
 				if err != nil {
@@ -3146,17 +3164,15 @@ func (globule *Globule) registerIpToDns() error {
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
 					return err
-				} else {
-					fmt.Println("set A record for alternate domain ", alternateDomain, Utility.MyIP(), " with success")
 				}
+				fmt.Println("set A record for alternate domain ", alternateDomain, Utility.MyIP(), " with success")
 
 				_, err = dns_client_.SetAAAA(token, alternateDomain, ipv6, 60)
 				if err != nil {
 					fmt.Println("fail to set A record for alternate domain ", alternateDomain, " with error ", err)
 					return err
-				} else {
-					fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
 				}
+				fmt.Println("set AAAA record for alternate domain ", alternateDomain, " with success")
 
 			}
 		}
@@ -3166,16 +3182,12 @@ func (globule *Globule) registerIpToDns() error {
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", "mail."+globule.Domain, " with error ", err)
 			return err
-		} else {
-			fmt.Println("set A record for domain ", "mail."+globule.Domain, " with success")
 		}
 
 		// Now the mx record.
 		err = dns_client_.SetMx(token, globule.Domain, 10, "mail."+globule.Domain, 60)
 		if err != nil {
 			fmt.Println("fail to set MX record for domain ", globule.Domain, " with error ", err)
-		} else {
-			fmt.Println("set MX record for domain ", globule.Domain, " with success")
 		}
 
 		// SPF record
@@ -3189,8 +3201,6 @@ func (globule *Globule) registerIpToDns() error {
 		if err != nil {
 			fmt.Println("fail to set TXT record for domain ", globule.Domain, " with error ", err)
 			return err
-		} else {
-			fmt.Println("set TXT record for domain ", globule.Domain, " with success")
 		}
 
 		// DMARC record
@@ -3205,8 +3215,6 @@ func (globule *Globule) registerIpToDns() error {
 			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
 			return err
 		}
-
-		fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
 
 		// now the  MTA-STS policy
 		if !Utility.Exists(config.GetConfigDir() + "/tls/" + globule.Name + "." + globule.Domain + "/mta-sts.txt") {
@@ -3229,8 +3237,6 @@ ttl: 86400
 		if err != nil {
 			fmt.Println("fail to set A record for domain ", "mta-sts."+globule.Domain, " with error ", err)
 			return err
-		} else {
-			fmt.Println("set A record for domain ", "mta-sts."+globule.Domain, " with success")
 		}
 
 		err = dns_client_.RemoveText(token, "_mta-sts."+globule.Domain+".")
@@ -3242,16 +3248,12 @@ ttl: 86400
 		if err != nil {
 			fmt.Println("fail to set TXT record for domain ", "_mta-sts."+globule.Domain, " with error ", err)
 			return err
-		} else {
-			fmt.Println("set TXT record for domain ", "_mta-sts."+globule.Domain, " with success")
 		}
 
 		_, err = dns_client_.SetAAAA(token, "mail."+globule.Domain, ipv6, 60)
 		if err != nil {
 			fmt.Println("fail to set AAAA record for domain ", "mail."+globule.Domain, " with error ", err)
 			return err
-		} else {
-			fmt.Println("set AAAA record for domain ", "mail."+globule.Domain, " with success")
 		}
 
 		// if the NS server are local I will set the local ip address.
@@ -3265,16 +3267,12 @@ ttl: 86400
 			if err != nil {
 				fmt.Println("fail to set A record for NS server ", ns, " with error ", err)
 				return err
-			} else {
-				fmt.Println("set A record for NS server ", ns, " with success")
 			}
 
 			_, err = dns_client_.SetAAAA(token, globule.NS[j].(string), ipv6, 60)
 			if err != nil {
 				fmt.Println("fail to set AAAA record for domain ", ns, " with error ", err)
 				return err
-			} else {
-				fmt.Println("set AAAA record for domain ", ns, " with success")
 			}
 		}
 
@@ -3302,8 +3300,6 @@ ttl: 86400
 				if err != nil {
 					fmt.Println("fail to set NS record for alternate domain ", alternateDomain, " with error ", err)
 					return err
-				} else {
-					fmt.Println("set NS record for alternate domain ", alternateDomain, ns, " with success")
 				}
 			}
 		}
@@ -3339,8 +3335,6 @@ ttl: 86400
 				if err != nil {
 					fmt.Println("fail to set NS record for alternate domain ", alternateDomain, " with error ", err)
 					return err
-				} else {
-					fmt.Println("set SOA record for alternate domain ", alternateDomain, ns, " with success")
 				}
 
 			}
@@ -3353,8 +3347,6 @@ ttl: 86400
 			if err != nil {
 				fmt.Println("fail to set CAA record for alternate domain ", globule.AlternateDomains[j], " with error ", err)
 				return err
-			} else {
-				fmt.Println("set CAA record for alternate domain ", globule.AlternateDomains[j], " with success")
 			}
 		}
 
@@ -3444,7 +3436,7 @@ func getChecksum(address string, port int) (string, error) {
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err)
+			return "", err
 		}
 		return string(bodyBytes), nil
 	}
@@ -3481,7 +3473,7 @@ func (globule *Globule) watchForUpdate() {
 				if err == nil {
 					if checksum != Utility.CreateFileChecksum(execPath) {
 
-						err := update_globular_from(globule, discovery, globule.getLocalDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
+						err := updateGlobularFrom(discovery, globule.getLocalDomain(), "sa", globule.RootPassword, runtime.GOOS+":"+runtime.GOARCH)
 						if err != nil {
 							fmt.Println("fail to update globular from " + discovery + " with error " + err.Error())
 							return
@@ -3503,16 +3495,16 @@ func (globule *Globule) watchForUpdate() {
 			services, err := config.GetServicesConfigurations()
 			if err == nil {
 				// get the resource client
-				for i := 0; i < len(services); i++ {
+				for i := range services {
 					s := services[i]
-					values := strings.Split(s["PublisherId"].(string), "@")
+					values := strings.Split(s["PublisherID"].(string), "@")
 					if len(values) == 2 {
 						resource_client_, err := getResourceClient(values[1])
 						if err == nil {
 							// test if the service need's to be updated, test if the part is part of installed instance and not developement environement.
 							if s["KeepUpToDate"].(bool) && strings.Contains(s["Path"].(string), "/globular/services/") {
 								// Here I will get the last version of the package...
-								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherId"].(string), "")
+								descriptor, err := resource_client_.GetPackageDescriptor(s["Id"].(string), s["PublisherID"].(string), "")
 
 								if err == nil {
 									descriptorVersion := Utility.NewVersion(descriptor.Version)
@@ -3525,8 +3517,8 @@ func (globule *Globule) watchForUpdate() {
 										if err == nil {
 											if servicesManager.StopServiceInstance(s["Id"].(string)) == nil {
 												token, _ := security.GetLocalToken(globule.Mac)
-												if servicesManager.UninstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), s["Version"].(string)) == nil {
-													err = servicesManager.InstallService(token, s["Domain"].(string), s["PublisherId"].(string), s["Id"].(string), descriptor.Version)
+												if servicesManager.UninstallService(token, s["Domain"].(string), s["PublisherID"].(string), s["Id"].(string), s["Version"].(string)) == nil {
+													err = servicesManager.InstallService(token, s["Domain"].(string), s["PublisherID"].(string), s["Id"].(string), descriptor.Version)
 													if err != nil {
 														fmt.Println("fail to install service ", s["Name"].(string), s["Id"].(string), " with error ", err)
 													}
@@ -3553,13 +3545,13 @@ func (globule *Globule) watchForUpdate() {
 // Try to display application message in a nice way.
 func logListener(g *Globule) func(evt *eventpb.Event) {
 	return func(evt *eventpb.Event) {
-		info := new(logpb.LogInfo)
 
+		info := new(logpb.LogInfo)
 		err := jsonpb.UnmarshalString(string(evt.Data), info)
 
 		if err == nil {
-			// So here Will display message
-
+			// So here Will display message in a nice way...
+			// First the header...
 			header := info.Application
 
 			// Set the occurence date.
@@ -3575,6 +3567,7 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 			}
 
 			if len(info.Message) > 0 {
+				fmt.Println("================= New Log Message ================")
 				// Now I will process the message itself...
 				msg := info.Message
 				// if the message is grpc error I will parse it content and display it content...
@@ -3616,9 +3609,13 @@ func logListener(g *Globule) func(evt *eventpb.Event) {
 						fmt.Printf("warning: failed to log message: %v\n", err)
 					}
 				}
+				fmt.Println("==================================================")
 			}
+
 		}
+
 	}
+
 }
 
 /**
@@ -3705,7 +3702,7 @@ func (globule *Globule) Listen() error {
 		address := "0.0.0.0" // or leave empty to bind all interfaces
 
 		srv := &http.Server{
-			Addr: fmt.Sprintf("%s:%d", address, globule.PortHttp),
+			Addr: fmt.Sprintf("%s:%d", address, globule.PortHTTP),
 			// Defensive timeouts
 			ReadHeaderTimeout: 5 * time.Second,   // <- fixes G112
 			ReadTimeout:       30 * time.Second,  // full request (headers+body)
@@ -3726,7 +3723,7 @@ func (globule *Globule) Listen() error {
 		address := "0.0.0.0" // Utility.MyLocalIP()
 
 		srv := &http.Server{
-			Addr: fmt.Sprintf("%s:%d", address, globule.PortHttps),
+			Addr: fmt.Sprintf("%s:%d", address, globule.PortHTTPS),
 
 			// --- Security & performance timeouts ---
 			ReadHeaderTimeout: 5 * time.Second, // <-- fixes G112
@@ -3879,13 +3876,16 @@ func (globule *Globule) publish(event string, data []byte) error {
 }
 
 func (globule *Globule) subscribe(evt string, listener func(evt *eventpb.Event)) error {
+
 	eventClient, err := globule.getEventClient()
 	if err != nil {
+		log.Panicln("fail to get event client with error ", err)
 		return err
 	}
 
 	err = eventClient.Subscribe(evt, globule.Name, listener)
 	if err != nil {
+		log.Panicln("fail to get event client with error ", err)
 		return err
 	}
 
@@ -3938,11 +3938,12 @@ func (globule *Globule) createApplicationConnection(app *resourcepb.Application)
 	}
 
 	var storeType float64
-	if resourceServiceConfig["Backend_type"].(string) == "SQL" {
+	switch resourceServiceConfig["Backend_type"].(string) {
+	case "SQL":
 		storeType = 1.0
-	} else if resourceServiceConfig["Backend_type"].(string) == "MONGO" {
+	case "MONGO":
 		storeType = 0.0
-	} else if resourceServiceConfig["Backend_type"].(string) == "SCYLLA" {
+	case "SCYLLA":
 		storeType = 2.0
 	}
 

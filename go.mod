@@ -8,8 +8,8 @@ require (
 	github.com/envoyproxy/go-control-plane v0.13.4
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/fsnotify/fsnotify v1.8.0
-	github.com/globulario/services/golang v0.1.2
-	github.com/globulario/utility v0.1.5
+	github.com/globulario/services/golang v0.1.3
+	github.com/globulario/utility v0.1.8
 	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-acme/lego/v4 v4.9.0
 	github.com/gocolly/colly/v2 v2.1.0
@@ -17,7 +17,7 @@ require (
 	github.com/gookit/color v1.5.2
 	github.com/kardianos/service v1.2.2
 	github.com/polds/imgbase64 v0.0.0-20140820003345-cb7bf37298b7
-	github.com/shirou/gopsutil/v3 v3.23.11
+	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/txn2/txeh v1.5.5
 	github.com/yoheimuta/go-protoparser/v4 v4.9.0
 	go.opentelemetry.io/otel v1.37.0
@@ -28,6 +28,8 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8 // indirect
 
 require (
 	cel.dev/expr v0.23.0 // indirect

@@ -18,10 +18,10 @@ Key Functions:
 - Start, Stop, run: Service lifecycle handlers for integration with OS service managers.
 - installCertificates: Installs certificates from a remote admin service.
 - deploy: Deploys a web application, reads package.json, uploads package, and installs via application manager.
-- update_globular, update_globular_from: Pushes or pulls Globular executable updates between servers.
+- updateGlobular, updateGlobularFrom: Pushes or pulls Globular executable updates between servers.
 - publish: Publishes a microservice to the network, uploads its package.
-- install_service, uninstall_service: Installs or uninstalls a microservice on the server.
-- install_application, uninstall_application: Installs or uninstalls a web application.
+- installService, uninstallService: Installs or uninstalls a microservice on the server.
+- installApplication, uninstallApplication: Installs or uninstalls a web application.
 - dist: Builds OS-specific distribution packages for Globular.
 - __dist: Internal helper to copy binaries, services, and configuration files for packaging.
 - generate_token: Authenticates a user and prints a token.
@@ -36,7 +36,7 @@ Example:
 	./Globular deploy -name=myapp -path=./dist -a=globular.io -u=admin -p=secret
 	./Globular publish -path=./service_dir -a=globular.io -u=admin -p=secret
 
-Dependencies:
+Dependencys:
 - github.com/kardianos/service: Cross-platform service management.
 - github.com/globulario/services/golang/*: Globular microservices clients.
 - github.com/polds/imgbase64: Image encoding for application icons.
@@ -66,38 +66,83 @@ import (
 	"github.com/globulario/services/golang/admin/admin_client"
 	"github.com/globulario/services/golang/applications_manager/applications_manager_client"
 	"github.com/globulario/services/golang/authentication/authentication_client"
-	config_ "github.com/globulario/services/golang/config"
+	configpkg "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/discovery/discovery_client"
 	"github.com/globulario/services/golang/repository/repository_client"
 	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
-	service_manager_client "github.com/globulario/services/golang/services_manager/services_manager_client"
+	serviceManagerClient "github.com/globulario/services/golang/services_manager/services_manager_client"
 	Utility "github.com/globulario/utility"
 	"github.com/kardianos/service"
 	"github.com/polds/imgbase64"
 	//"github.com/pkg/profile"
 )
 
+// Start initiates the Globule service asynchronously without blocking the caller.
+// It initializes a platform logger via the service manager (Event Log on Windows,
+// syslog/journal on Linux/macOS) and logs lifecycle events and run-loop errors.
 func (g *Globule) Start(s service.Service) error {
 
-	// Start should not block. Do the actual work async.
-	errs := make(chan error, 1)
+	// Initialize the platform logger once if possible.
+	if g.logger == nil && s != nil {
+		if l, err := s.Logger(nil); err == nil {
+			g.logger = l
+		} else {
+			// Fall back to standard logger if the system logger can't be created.
+			log.Println("failed to create service logger:", err)
+		}
+	}
 
+	// Log a lifecycle message.
+	if g.logger != nil {
+		_ = g.logger.Info("Starting Globular service...")
+	} else {
+		log.Println("Starting Globular service...")
+	}
+
+	// Run the main loop in the background and report any errors via the logger.
 	go func() {
 		if err := g.run(); err != nil {
-			errs <- err
-		}
-	}()
-
-	go func() {
-		for err := range errs {
-			if err != nil {
+			if g.logger != nil {
+				_ = g.logger.Error(err)
+			} else {
 				log.Println("Globular run error:", err)
 			}
 		}
 	}()
 
+	return nil
+}
+
+// Stop gracefully shuts down the Globule service by setting the exit flag and
+// closing the exit channel. It logs the stop lifecycle events using the
+// platform logger when available.
+func (g *Globule) Stop(s service.Service) error {
+	// Ensure we have a logger to report shutdown.
+	if g.logger == nil && s != nil {
+		if l, err := s.Logger(nil); err == nil {
+			g.logger = l
+		} else {
+			log.Println("failed to create service logger:", err)
+		}
+	}
+
+	if g.logger != nil {
+		_ = g.logger.Info("Stopping Globular service...")
+	} else {
+		log.Println("Stopping Globular service...")
+	}
+
+	// Perform fast, graceful shutdown.
+	g.exit_ = true
+	close(g.exit)
+
+	if g.logger != nil {
+		_ = g.logger.Info("Globular service stopped.")
+	} else {
+		log.Println("Globular service stopped.")
+	}
 	return nil
 }
 
@@ -116,13 +161,6 @@ func (g *Globule) run() error {
 	case err := <-errs:
 		return err
 	}
-}
-
-func (g *Globule) Stop(s service.Service) error {
-	// Any work in Stop should be quick, usually a few seconds at most.
-	g.exit_ = true
-	close(g.exit)
-	return nil
 }
 
 func main() {
@@ -167,119 +205,110 @@ func main() {
 
 	if len(os.Args) > 1 {
 
-		// Start with sepecific parameter.
+		// Start with specific parameter.
 		startCommand := flag.NewFlagSet("start", flag.ExitOnError)
-		startCommand_domain := startCommand.String("domain", "", "The domain of the service.")
+		startCommandDomain := startCommand.String("domain", "", "The domain of the service.")
 
-		// Intall globular as service/demon
+		// Install globular as service/daemon
 		installCommand := flag.NewFlagSet("install", flag.ExitOnError)
-		installCommand_name := installCommand.String("name", "", "The display name of globular service.")
+		installCommandName := installCommand.String("name", "", "The display name of globular service.")
 
 		// Uninstall globular as service.
 		uninstallCommand := flag.NewFlagSet("uninstall", flag.ExitOnError)
 
-		// Package development environnement into a given
+		// Package development environment into a given path
 		distCommand := flag.NewFlagSet("dist", flag.ExitOnError)
-		distCommand_path := distCommand.String("path", "", "You must specify the distribution path. (Required)")
-		distCommand_revision := distCommand.String("revision", "", "You must specify the package revision. (Required)")
+		distCommandPath := distCommand.String("path", "", "You must specify the distribution path. (Required)")
+		distCommandRevision := distCommand.String("revision", "", "You must specify the package revision. (Required)")
 
 		// Deploy command
 		deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
-		deployCommand_name := deployCommand.String("name", "", "You must specify an application name. (Required)")
-		deployCommand_organization := deployCommand.String("o", "", "The name of the organisation that responsible of the application. (Required)")
-		deployCommand_path := deployCommand.String("path", "", "You must specify the path that contain the source (bundle.js, index.html...) of the application to deploy. (Required)")
-		deployCommand_user := deployCommand.String("u", "", "The user name. (Required)")
-		deployCommand_pwd := deployCommand.String("p", "", "The user password. (Required)")
-		deployCommand_address := deployCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
-		deployCommand_index := deployCommand.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
+		deployCommandName := deployCommand.String("name", "", "You must specify an application name. (Required)")
+		deployCommandOrganization := deployCommand.String("o", "", "The name of the organisation that responsible of the application. (Required)")
+		deployCommandPath := deployCommand.String("path", "", "You must specify the path that contain the source (bundle.js, index.html...) of the application to deploy. (Required)")
+		deployCommandUser := deployCommand.String("u", "", "The user name. (Required)")
+		deployCommandPwd := deployCommand.String("p", "", "The user password. (Required)")
+		deployCommandAddress := deployCommand.String("a", "", "The domain of the server where to install the appliction (Required)")
+		deployCommandIndex := deployCommand.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
 
 		// Publish Service.
-		// Service can be written in various language, however all service must contain a config.json file and a .proto file.
-		// The config.json file contain field to be inform, the service version, the discovery and the repostiory.
-		// ex. ./Globular publish -a=globular.io -path=/tmp/echo_v_1  -o=globulario  -u=userid -p=*******
 		publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
-		publishCommand_path := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
-		publishCommand_user := publishCommand.String("u", "", "The user name. (Required)")
-		publishCommand_pwd := publishCommand.String("p", "", "The user password. (Required)")
-		publishCommand_address := publishCommand.String("a", "", "The domain of the server where to publish the service (Required)")
-		publishCommand_organization := publishCommand.String("o", "", "The Organization that publish the service. (Optional)")
-		publishCommand_plaform := publishCommand.String("platform", "", "(Optional it take your current platform as default.)")
+		publishCommandPath := publishCommand.String("path", "", "You must specify the path that contain the config.json, .proto and all dependcies require by the service to run. (Required)")
+		publishCommandUser := publishCommand.String("u", "", "The user name. (Required)")
+		publishCommandPwd := publishCommand.String("p", "", "The user password. (Required)")
+		publishCommandAddress := publishCommand.String("a", "", "The domain of the server where to publish the service (Required)")
+		publishCommandOrganization := publishCommand.String("o", "", "The Organization that publish the service. (Optional)")
+		publishCommandPlatform := publishCommand.String("platform", "", "(Optional it take your current platform as default.)")
 
 		// Install certificates on a server from a local service command.
-		// TODO test it... (the path is not working properly, be sure permission are correctly assigned for certificates...)
 		installCertificatesCommand := flag.NewFlagSet("certificates", flag.ExitOnError)
-		installCertificatesCommand_path := installCertificatesCommand.String("path", "", "You must specify where to install certificate (Required)")
-		installCertificatesCommand_port := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
-		installCertificatesCommand_domain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
+		installCertificatesCommandPath := installCertificatesCommand.String("path", "", "You must specify where to install certificate (Required)")
+		installCertificatesCommandPort := installCertificatesCommand.String("port", "", "You must specify the port where the configuration can be found (Required)")
+		installCertificatesCommandDomain := installCertificatesCommand.String("domain", "", "You must specify the domain (Required)")
 
 		// Install a service on the server.
-		// That function must be run as sa.
-		// ex. Globular install_service -publisher=globulario -discovery=globular.io -service=echo.EchoService -a=globular1.globular.io -u=sa -p=*******
-		install_service_command := flag.NewFlagSet("install_service", flag.ExitOnError)
-		install_service_command_publisher := install_service_command.String("publisher", "", "The publisher id (Required)")
-		install_service_command_discovery := install_service_command.String("discovery", "", "The addresse where the service was publish (Required)")
-		install_service_command_service := install_service_command.String("service", "", " the service id (uuid) (Required)")
-		install_service_command_address := install_service_command.String("a", "", "The domain of the server where to install the service (Required)")
-		install_service_command_user := install_service_command.String("u", "", "The user name. (Required)")
-		install_service_command_pwd := install_service_command.String("p", "", "The user password. (Required)")
+		installServiceCommand := flag.NewFlagSet("installService", flag.ExitOnError)
+		installServiceCommandPublisher := installServiceCommand.String("publisher", "", "The publisher id (Required)")
+		installServiceCommandDiscovery := installServiceCommand.String("discovery", "", "The addresse where the service was publish (Required)")
+		installServiceCommandService := installServiceCommand.String("service", "", " the service id (uuid) (Required)")
+		installServiceCommandAddress := installServiceCommand.String("a", "", "The domain of the server where to install the service (Required)")
+		installServiceCommandUser := installServiceCommand.String("u", "", "The user name. (Required)")
+		installServiceCommandPwd := installServiceCommand.String("p", "", "The user password. (Required)")
 
 		// Uninstall a service on the server.
-		// That function must be run as sa.
-		uninstall_service_command := flag.NewFlagSet("uninstall_service", flag.ExitOnError)
-		uninstall_service_command_service := uninstall_service_command.String("service", "", " the service uuid (Required)")
-		uninstall_service_command_publisher := uninstall_service_command.String("publisher", "", "The publisher id (Required)")
-		uninstall_service_command_version := uninstall_service_command.String("version", "", " The service vesion(Required)")
-		uninstall_service_command_address := uninstall_service_command.String("a", "", "The domain of the server where to install the service (Required)")
-		uninstall_service_command_user := uninstall_service_command.String("u", "", "The user name. (Required)")
-		uninstall_service_command_pwd := uninstall_service_command.String("p", "", "The user password. (Required)")
+		uninstallServiceCommand := flag.NewFlagSet("uninstallService", flag.ExitOnError)
+		uninstallServiceCommandService := uninstallServiceCommand.String("service", "", " the service uuid (Required)")
+		uninstallServiceCommandPublisher := uninstallServiceCommand.String("publisher", "", "The publisher id (Required)")
+		uninstallServiceCommandVersion := uninstallServiceCommand.String("version", "", " The service vesion(Required)")
+		uninstallServiceCommandAddress := uninstallServiceCommand.String("a", "", "The domain of the server where to install the service (Required)")
+		uninstallServiceCommandUser := uninstallServiceCommand.String("u", "", "The user name. (Required)")
+		uninstallServiceCommandPwd := uninstallServiceCommand.String("p", "", "The user password. (Required)")
 
-		// Install a application on the server.
-		install_application_command := flag.NewFlagSet("install_application", flag.ExitOnError)
-		install_application_command_publisher := install_application_command.String("publisher", "", "The publisher id (Required)")
-		install_application_command_discovery := install_application_command.String("discovery", "", "The addresse where the application was publish (Required)")
-		install_application_command_name := install_application_command.String("application", "", " the application name (Required)")
-		install_application_command_address := install_application_command.String("a", "", "The domain of the server where to install the application (Required)")
-		install_application_command_user := install_application_command.String("u", "", "The user name. (Required)")
-		install_application_command_pwd := install_application_command.String("p", "", "The user password. (Required)")
-		install_application_command_index := install_application_command.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
+		// Install an application on the server.
+		installApplicationCommand := flag.NewFlagSet("installApplication", flag.ExitOnError)
+		installApplicationCommandPublisher := installApplicationCommand.String("publisher", "", "The publisher id (Required)")
+		installApplicationCommandDiscovery := installApplicationCommand.String("discovery", "", "The addresse where the application was publish (Required)")
+		installApplicationCommandName := installApplicationCommand.String("application", "", " the application name (Required)")
+		installApplicationCommandAddress := installApplicationCommand.String("a", "", "The domain of the server where to install the application (Required)")
+		installApplicationCommandUser := installApplicationCommand.String("u", "", "The user name. (Required)")
+		installApplicationCommandPwd := installApplicationCommand.String("p", "", "The user password. (Required)")
+		installApplicationCommandIndex := installApplicationCommand.String("set_as_default", "", "The value is true the application will be set as default (Optional false by default)")
 
-		// Uninstall a service on the server.
-		uninstall_application_command := flag.NewFlagSet("uninstall_application", flag.ExitOnError)
-		uninstall_application_command_name := uninstall_application_command.String("application", "", " the application name (Required)")
-		uninstall_application_command_publisher := uninstall_application_command.String("publisher", "", "The publisher id (Required)")
-		uninstall_application_command_version := uninstall_application_command.String("version", "", " The application vesion(Required)")
-		uninstall_application_command_address := uninstall_application_command.String("a", "", "The domain where the application is runing (Required)")
-		uninstall_application_command_user := uninstall_application_command.String("u", "", "The user name. (Required)")
-		uninstall_application_command_pwd := uninstall_application_command.String("p", "", "The user password. (Required)")
+		// Uninstall an application on the server.
+		uninstallApplicationCommand := flag.NewFlagSet("uninstallApplication", flag.ExitOnError)
+		uninstallApplicationCommandName := uninstallApplicationCommand.String("application", "", " the application name (Required)")
+		uninstallApplicationCommandPublisher := uninstallApplicationCommand.String("publisher", "", "The publisher id (Required)")
+		uninstallApplicationCommandVersion := uninstallApplicationCommand.String("version", "", " The application vesion(Required)")
+		uninstallApplicationCommandAddress := uninstallApplicationCommand.String("a", "", "The domain where the application is runing (Required)")
+		uninstallApplicationCommandUser := uninstallApplicationCommand.String("u", "", "The user name. (Required)")
+		uninstallApplicationCommandPwd := uninstallApplicationCommand.String("p", "", "The user password. (Required)")
 
 		// push globular update.
-		// Update a given globular server with a new executable file. That command must be call as sa.
-		// ex. ./Globular update -path=/home/dave/go/src/github.com/globulario/Globular/Globular -a=globular.io -u=sa -p=adminadmin
-		update_globular_command := flag.NewFlagSet("update", flag.ExitOnError)
-		update_globular_command_exec_path := update_globular_command.String("path", "", " the path to the new executable to update from")
-		update_globular_command_address := update_globular_command.String("a", "", "The domain of the server where to push the update(Required)")
-		update_globular_command_user := update_globular_command.String("u", "", "The user name. (Required)")
-		update_globular_command_pwd := update_globular_command.String("p", "", "The user password. (Required)")
-		update_globular_command_platform := update_globular_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
+		updateGlobularCommand := flag.NewFlagSet("update", flag.ExitOnError)
+		updateGlobularCommandExecPath := updateGlobularCommand.String("path", "", " the path to the new executable to update from")
+		updateGlobularCommandAddress := updateGlobularCommand.String("a", "", "The domain of the server where to push the update(Required)")
+		updateGlobularCommandUser := updateGlobularCommand.String("u", "", "The user name. (Required)")
+		updateGlobularCommandPwd := updateGlobularCommand.String("p", "", "The user password. (Required)")
+		updateGlobularCommandPlatform := updateGlobularCommand.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
 
 		// pull globular update.
-		update_globular_from_command := flag.NewFlagSet("update_from", flag.ExitOnError)
-		update_globular_command_from_source := update_globular_from_command.String("source", "", " the address of the server from where to update the a given server.")
-		update_globular_from_command_dest := update_globular_from_command.String("a", "", "The domain of the server to update (Required)")
-		update_globular_from_command_user := update_globular_from_command.String("u", "", "The user name. (Required)")
-		update_globular_from_command_pwd := update_globular_from_command.String("p", "", "The user password. (Required)")
-		update_globular_from_command_platform := update_globular_from_command.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
+		updateGlobularFromCommand := flag.NewFlagSet("update_from", flag.ExitOnError)
+		updateGlobularCommandFromSource := updateGlobularFromCommand.String("source", "", " the address of the server from where to update the a given server.")
+		updateGlobularFromCommandDest := updateGlobularFromCommand.String("a", "", "The domain of the server to update (Required)")
+		updateGlobularFromCommandUser := updateGlobularFromCommand.String("u", "", "The user name. (Required)")
+		updateGlobularFromCommandPwd := updateGlobularFromCommand.String("p", "", "The user password. (Required)")
+		updateGlobularFromCommandPlatform := updateGlobularFromCommand.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
 
-		// Connect peer one to another. The peer Domain must be set before the calling that function.
-		connect_peer_command := flag.NewFlagSet("connect_peer", flag.ExitOnError)
-		connect_peer_command_address := connect_peer_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
-		connect_peer_command_token := connect_peer_command.String("token", "", "The token valid on the destination peer (Required)")
+		// Connect peer one to another. The peer Domain must be set before calling that function.
+		connectPeerCommand := flag.NewFlagSet("connect_peer", flag.ExitOnError)
+		connectPeerCommandAddress := connectPeerCommand.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
+		connectPeerCommandToken := connectPeerCommand.String("token", "", "The token valid on the destination peer (Required)")
 
-		// Generate a token from a given globule. The token can be generate as sa or any other valid user.
-		generate_token_command := flag.NewFlagSet("generate_token", flag.ExitOnError)
-		generate_token_command_address := generate_token_command.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
-		generate_token_command_user := generate_token_command.String("u", "", "The user name. (Required)")
-		generate_token_command_pwd := generate_token_command.String("p", "", "The user password. (Required)")
+		// Generate a token from a given globule.
+		generateTokenCommand := flag.NewFlagSet("generate_token", flag.ExitOnError)
+		generateTokenCommandAddress := generateTokenCommand.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
+		generateTokenCommandUser := generateTokenCommand.String("u", "", "The user name. (Required)")
+		generateTokenCommandPwd := generateTokenCommand.String("p", "", "The user password. (Required)")
 
 		switch os.Args[1] {
 		case "start":
@@ -295,23 +324,23 @@ func main() {
 		case "uninstall":
 			err = uninstallCommand.Parse(os.Args[2:])
 		case "update":
-			err = update_globular_command.Parse(os.Args[2:])
+			err = updateGlobularCommand.Parse(os.Args[2:])
 		case "update_from":
-			err = update_globular_from_command.Parse(os.Args[2:])
-		case "install_service":
-			err = install_service_command.Parse(os.Args[2:])
-		case "uninstall_service":
-			err = uninstall_service_command.Parse(os.Args[2:])
-		case "install_application":
-			err = install_application_command.Parse(os.Args[2:])
-		case "uninstall_application":
-			err = uninstall_application_command.Parse(os.Args[2:])
+			err = updateGlobularFromCommand.Parse(os.Args[2:])
+		case "installService":
+			err = installServiceCommand.Parse(os.Args[2:])
+		case "uninstallService":
+			err = uninstallServiceCommand.Parse(os.Args[2:])
+		case "installApplication":
+			err = installApplicationCommand.Parse(os.Args[2:])
+		case "uninstallApplication":
+			err = uninstallApplicationCommand.Parse(os.Args[2:])
 		case "certificates":
 			err = installCertificatesCommand.Parse(os.Args[2:])
 		case "connect_peer":
-			err = connect_peer_command.Parse(os.Args[2:])
+			err = connectPeerCommand.Parse(os.Args[2:])
 		case "generate_token":
-			err = generate_token_command.Parse(os.Args[2:])
+			err = generateTokenCommand.Parse(os.Args[2:])
 		default:
 			flag.PrintDefaults()
 			os.Exit(1)
@@ -323,293 +352,293 @@ func main() {
 			os.Exit(1)
 		}
 
-		if generate_token_command.Parsed() {
-			address := *generate_token_command_address
-			if *generate_token_command_address == "" {
+		if generateTokenCommand.Parsed() {
+			address := *generateTokenCommandAddress
+			if *generateTokenCommandAddress == "" {
 				address = g.getAddress()
 				if strings.Contains(address, ":") {
 					address = strings.Split(address, ":")[0]
 				}
 			}
 
-			if *generate_token_command_user == "" {
-				generate_token_command.PrintDefaults()
+			if *generateTokenCommandUser == "" {
+				generateTokenCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
 
-			if *generate_token_command_pwd == "" {
-				generate_token_command.PrintDefaults()
+			if *generateTokenCommandPwd == "" {
+				generateTokenCommand.PrintDefaults()
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
 
-			err = generate_token(g, address, *generate_token_command_user, *generate_token_command_pwd)
+			err = generate_token(g, address, *generateTokenCommandUser, *generateTokenCommandPwd)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to generate token:", err)
 			}
 		}
 
-		if connect_peer_command.Parsed() {
-			if *connect_peer_command_address == "" {
-				connect_peer_command.PrintDefaults()
+		if connectPeerCommand.Parsed() {
+			if *connectPeerCommandAddress == "" {
+				connectPeerCommand.PrintDefaults()
 				fmt.Println("No peer address given!")
 				os.Exit(1)
 			}
-			if *connect_peer_command_token == "" {
-				connect_peer_command.PrintDefaults()
+			if *connectPeerCommandToken == "" {
+				connectPeerCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
 
-			err = connect_peer(g, *connect_peer_command_address, *connect_peer_command_token)
+			err = connect_peer(g, *connectPeerCommandAddress, *connectPeerCommandToken)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to connect peer:", err)
 			}
 		}
 
-		if install_service_command.Parsed() {
-			if *install_service_command_service == "" {
-				install_service_command.PrintDefaults()
+		if installServiceCommand.Parsed() {
+			if *installServiceCommandService == "" {
+				installServiceCommand.PrintDefaults()
 				fmt.Println("no service name was given!")
 				os.Exit(1)
 			}
-			if *install_service_command_discovery == "" {
-				install_service_command.PrintDefaults()
-				fmt.Println("no discovery adress was given!")
+			if *installServiceCommandDiscovery == "" {
+				installServiceCommand.PrintDefaults()
+				fmt.Println("no discovery address was given!")
 				os.Exit(1)
 			}
-			if *install_service_command_publisher == "" {
-				install_service_command.PrintDefaults()
-				fmt.Println("no publiser was given!")
+			if *installServiceCommandPublisher == "" {
+				installServiceCommand.PrintDefaults()
+				fmt.Println("no publisher was given!")
 				os.Exit(1)
 			}
-			if *install_service_command_address == "" {
-				install_service_command.PrintDefaults()
+			if *installServiceCommandAddress == "" {
+				installServiceCommand.PrintDefaults()
 				fmt.Println("no domain was given!")
 				os.Exit(1)
 			}
-			if *install_service_command_user == "" {
-				install_service_command.PrintDefaults()
+			if *installServiceCommandUser == "" {
+				installServiceCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *install_service_command_pwd == "" {
-				install_service_command.PrintDefaults()
+			if *installServiceCommandPwd == "" {
+				installServiceCommand.PrintDefaults()
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
-			err = install_service(g, *install_service_command_service, *install_service_command_discovery, *install_service_command_publisher, *install_service_command_address, *install_service_command_user, *install_service_command_pwd)
+			err = installService(*installServiceCommandService, *installServiceCommandDiscovery, *installServiceCommandPublisher, *installServiceCommandAddress, *installServiceCommandUser, *installServiceCommandPwd)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to install service:", err)
 			}
 		}
 
-		if uninstall_service_command.Parsed() {
-			if *uninstall_service_command_service == "" {
-				install_service_command.PrintDefaults()
+		if uninstallServiceCommand.Parsed() {
+			if *uninstallServiceCommandService == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *uninstall_service_command_publisher == "" {
-				install_service_command.PrintDefaults()
+			if *uninstallServiceCommandPublisher == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *uninstall_service_command_address == "" {
-				install_service_command.PrintDefaults()
+			if *uninstallServiceCommandAddress == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *uninstall_service_command_user == "" {
-				install_service_command.PrintDefaults()
+			if *uninstallServiceCommandUser == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *uninstall_service_command_pwd == "" {
-				install_service_command.PrintDefaults()
+			if *uninstallServiceCommandPwd == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *uninstall_service_command_version == "" {
-				install_service_command.PrintDefaults()
+			if *uninstallServiceCommandVersion == "" {
+				uninstallServiceCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			err = uninstall_service(g, *uninstall_service_command_service, *uninstall_service_command_publisher, *uninstall_service_command_version, *uninstall_service_command_address, *uninstall_service_command_user, *uninstall_service_command_pwd)
+			err = uninstallService(*uninstallServiceCommandService, *uninstallServiceCommandPublisher, *uninstallServiceCommandVersion, *uninstallServiceCommandAddress, *uninstallServiceCommandUser, *uninstallServiceCommandPwd)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to uninstall service:", err)
 			}
 		}
 
-		if update_globular_command.Parsed() {
-			if *update_globular_command_exec_path == "" {
-				update_globular_command.PrintDefaults()
+		if updateGlobularCommand.Parsed() {
+			if *updateGlobularCommandExecPath == "" {
+				updateGlobularCommand.PrintDefaults()
 				fmt.Println("no executable path was given!")
 				os.Exit(1)
 			}
 
-			if *update_globular_command_address == "" {
-				update_globular_command.PrintDefaults()
+			if *updateGlobularCommandAddress == "" {
+				updateGlobularCommand.PrintDefaults()
 				fmt.Println("no domain was given!")
 				os.Exit(1)
 			}
-			if *update_globular_command_user == "" {
-				update_globular_command.PrintDefaults()
+			if *updateGlobularCommandUser == "" {
+				updateGlobularCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *update_globular_command_pwd == "" {
-				update_globular_command.PrintDefaults()
+			if *updateGlobularCommandPwd == "" {
+				updateGlobularCommand.PrintDefaults()
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
-			if *update_globular_command_platform == "" {
-				*update_globular_command_platform = runtime.GOOS + ":" + runtime.GOARCH
+			if *updateGlobularCommandPlatform == "" {
+				*updateGlobularCommandPlatform = runtime.GOOS + ":" + runtime.GOARCH
 			}
 
-			err = update_globular(g, *update_globular_command_exec_path, *update_globular_command_address, *update_globular_command_user, *update_globular_command_pwd, *update_globular_command_platform)
+			err = updateGlobular(*updateGlobularCommandExecPath, *updateGlobularCommandAddress, *updateGlobularCommandUser, *updateGlobularCommandPwd, *updateGlobularCommandPlatform)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to update Globular:", err)
 			}
 		}
 
-		if update_globular_from_command.Parsed() {
-			if *update_globular_command_from_source == "" {
-				update_globular_from_command.PrintDefaults()
+		if updateGlobularFromCommand.Parsed() {
+			if *updateGlobularCommandFromSource == "" {
+				updateGlobularFromCommand.PrintDefaults()
 				fmt.Println("no address was given to update Globular from")
 				os.Exit(1)
 			}
 
-			if *update_globular_from_command_dest == "" {
-				update_globular_command.PrintDefaults()
+			if *updateGlobularFromCommandDest == "" {
+				updateGlobularFromCommand.PrintDefaults()
 				fmt.Println("no domain was given!")
 				os.Exit(1)
 			}
-			if *update_globular_from_command_user == "" {
-				update_globular_from_command.PrintDefaults()
+			if *updateGlobularFromCommandUser == "" {
+				updateGlobularFromCommand.PrintDefaults()
 				fmt.Println("no user (for domain) was given!")
 				os.Exit(1)
 			}
 
-			if *update_globular_from_command_pwd == "" {
-				update_globular_from_command.PrintDefaults()
+			if *updateGlobularFromCommandPwd == "" {
+				updateGlobularFromCommand.PrintDefaults()
 				fmt.Println("no password (for domain) was given!")
 				os.Exit(1)
 			}
 
-			if *update_globular_from_command_platform == "" {
-				*update_globular_from_command_platform = runtime.GOOS + ":" + runtime.GOARCH
+			if *updateGlobularFromCommandPlatform == "" {
+				*updateGlobularFromCommandPlatform = runtime.GOOS + ":" + runtime.GOARCH
 			}
 
-			err = update_globular_from(g, *update_globular_command_from_source, *update_globular_from_command_dest, *update_globular_from_command_user, *update_globular_from_command_pwd, *update_globular_from_command_platform)
+			err = updateGlobularFrom(*updateGlobularCommandFromSource, *updateGlobularFromCommandDest, *updateGlobularFromCommandUser, *updateGlobularFromCommandPwd, *updateGlobularFromCommandPlatform)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to update Globular from:", err)
 			}
 		}
 
-		if install_application_command.Parsed() {
-			if *install_application_command_name == "" {
-				install_application_command.PrintDefaults()
+		if installApplicationCommand.Parsed() {
+			if *installApplicationCommandName == "" {
+				installApplicationCommand.PrintDefaults()
 				fmt.Println("no application name was given!")
 				os.Exit(1)
 			}
-			if *install_application_command_discovery == "" {
-				install_application_command.PrintDefaults()
-				fmt.Println("no discovery adress was given!")
+			if *installApplicationCommandDiscovery == "" {
+				installApplicationCommand.PrintDefaults()
+				fmt.Println("no discovery address was given!")
 				os.Exit(1)
 			}
-			if *install_application_command_publisher == "" {
-				install_application_command.PrintDefaults()
-				fmt.Println("no publiser was given!")
+			if *installApplicationCommandPublisher == "" {
+				installApplicationCommand.PrintDefaults()
+				fmt.Println("no publisher was given!")
 				os.Exit(1)
 			}
-			if *install_application_command_address == "" {
-				install_application_command.PrintDefaults()
+			if *installApplicationCommandAddress == "" {
+				installApplicationCommand.PrintDefaults()
 				fmt.Println("no domain was given!")
 				os.Exit(1)
 			}
-			if *install_application_command_user == "" {
-				install_application_command.PrintDefaults()
+			if *installApplicationCommandUser == "" {
+				installApplicationCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *install_application_command_pwd == "" {
-				install_application_command.PrintDefaults()
+			if *installApplicationCommandPwd == "" {
+				installApplicationCommand.PrintDefaults()
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
 
-			var set_as_default bool
-			if *install_application_command_index != "" {
-				set_as_default = *install_application_command_index == "true"
+			var setAsDefault bool
+			if *installApplicationCommandIndex != "" {
+				setAsDefault = *installApplicationCommandIndex == "true"
 			}
 
-			err = install_application(g, *install_application_command_name, *install_application_command_discovery, *install_application_command_publisher, *install_application_command_address, *install_application_command_user, *install_application_command_pwd, set_as_default)
+			err = installApplication(*installApplicationCommandName, *installApplicationCommandDiscovery, *installApplicationCommandPublisher, *installApplicationCommandAddress, *installApplicationCommandUser, *installApplicationCommandPwd, setAsDefault)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to install application:", err)
 			}
 		}
 
-		if uninstall_application_command.Parsed() {
-			if *uninstall_application_command_name == "" {
-				uninstall_application_command.PrintDefaults()
+		if uninstallApplicationCommand.Parsed() {
+			if *uninstallApplicationCommandName == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no application name was given!")
 				os.Exit(1)
 			}
-			if *uninstall_application_command_publisher == "" {
-				uninstall_application_command.PrintDefaults()
+			if *uninstallApplicationCommandPublisher == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no publisher was given!")
 				os.Exit(1)
 			}
 
-			if *uninstall_application_command_address == "" {
-				uninstall_application_command.PrintDefaults()
+			if *uninstallApplicationCommandAddress == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no domain was given!")
 				os.Exit(1)
 			}
-			if *uninstall_application_command_user == "" {
-				uninstall_application_command.PrintDefaults()
+			if *uninstallApplicationCommandUser == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no user was given!")
 				os.Exit(1)
 			}
-			if *uninstall_application_command_pwd == "" {
-				uninstall_application_command.PrintDefaults()
+			if *uninstallApplicationCommandPwd == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no password was given!")
 				os.Exit(1)
 			}
-			if *uninstall_application_command_version == "" {
-				uninstall_application_command.PrintDefaults()
+			if *uninstallApplicationCommandVersion == "" {
+				uninstallApplicationCommand.PrintDefaults()
 				fmt.Println("no version was given!")
 				os.Exit(1)
 			}
-			err = uninstall_application(g, *uninstall_application_command_name, *uninstall_application_command_publisher, *uninstall_application_command_version, *uninstall_application_command_address, *uninstall_application_command_user, *uninstall_application_command_pwd)
+			err = uninstallApplication(*uninstallApplicationCommandName, *uninstallApplicationCommandPublisher, *uninstallApplicationCommandVersion, *uninstallApplicationCommandAddress, *uninstallApplicationCommandUser, *uninstallApplicationCommandPwd)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to uninstall application:", err)
 			}
 		}
 
 		if installCertificatesCommand.Parsed() {
 			// Required Flags
-			if *installCertificatesCommand_path == "" {
+			if *installCertificatesCommandPath == "" {
 				installCertificatesCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *installCertificatesCommand_domain == "" {
+			if *installCertificatesCommandDomain == "" {
 				installCertificatesCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *installCertificatesCommand_port == "" {
+			if *installCertificatesCommandPort == "" {
 				installCertificatesCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			err = installCertificates(g, *installCertificatesCommand_domain, Utility.ToInt(*installCertificatesCommand_port), *installCertificatesCommand_path)
+			err = installCertificates(*installCertificatesCommandDomain, Utility.ToInt(*installCertificatesCommandPort), *installCertificatesCommandPath)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to install certificates:", err)
 			}
 		}
 
 		if startCommand.Parsed() {
-			if len(*startCommand_domain) > 0 {
-				g.Domain = *startCommand_domain
+			if len(*startCommandDomain) > 0 {
+				g.Domain = *startCommandDomain
 			}
 			if err := g.run(); err != nil {
 				log.Println("Globular run error:", err)
@@ -619,26 +648,29 @@ func main() {
 
 		// Check if the command was parsed
 		if installCommand.Parsed() {
-			if *installCommand_name != "" {
-				svcConfig.DisplayName = *installCommand_name
+			if *installCommandName != "" {
+				svcConfig.DisplayName = *installCommandName
 				s, _ = service.New(g, svcConfig)
 			}
 			// Required Flags
 			err := s.Install()
-			if err == nil {
-				log.Println("Globular service is now installed!")
-				// Here I will keep the start time...
-				// set path...
-				err = setSystemPath()
-				if err != nil {
-					log.Println("fail to set system path with error", err)
-				}
-
-				os.Exit(0) // exit the program.
-			} else {
-				log.Println(err)
-				os.Exit(0) // exit the program.
+			if err != nil {
+				log.Println("fail to install service:", err)
+				os.Exit(1) // exit the program.
 			}
+
+			log.Println("Globular service is now installed!")
+			// Here I will keep the start time...
+			// set path...
+			err = setSystemPath()
+			if err != nil {
+				log.Println("fail to set system path with error", err)
+				os.Exit(1) // exit the program.
+
+			}
+
+			os.Exit(0) // exit the program.
+
 		}
 
 		if uninstallCommand.Parsed() && s != nil {
@@ -690,90 +722,90 @@ func main() {
 
 		if distCommand.Parsed() {
 			// Required Flags
-			if *distCommand_path == "" {
+			if *distCommandPath == "" {
 				fmt.Println("No path was given!")
 				distCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *distCommand_revision == "" {
+			if *distCommandRevision == "" {
 				fmt.Println("No revision number was given!")
 				distCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			dist(g, *distCommand_path, *distCommand_revision)
+			dist(g, *distCommandPath, *distCommandRevision)
 		}
 
 		if deployCommand.Parsed() {
 			// Required Flags
-			if *deployCommand_path == "" {
+			if *deployCommandPath == "" {
 				fmt.Print("No application 'dist' path was given")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
-			if *deployCommand_name == "" {
-				fmt.Print("No applicaiton 'name' was given")
+			if *deployCommandName == "" {
+				fmt.Print("No application 'name' was given")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *deployCommand_user == "" {
+			if *deployCommandUser == "" {
 				fmt.Print("You must authenticate yourself")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *deployCommand_pwd == "" {
+			if *deployCommandPwd == "" {
 				fmt.Print("You must specifie the user password.")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *deployCommand_address == "" {
+			if *deployCommandAddress == "" {
 				fmt.Print("You must sepcie the server address")
 				deployCommand.PrintDefaults()
 				os.Exit(1)
 			}
 
-			if *deployCommand_organization != "" {
-				if !strings.Contains(*deployCommand_organization, "@") {
+			if *deployCommandOrganization != "" {
+				if !strings.Contains(*deployCommandOrganization, "@") {
 					fmt.Print("You must sepcie the organisation domain ex. organization@domain.com where the domain is the domain where the globule where the organization is define.")
 					deployCommand.PrintDefaults()
 					os.Exit(1)
 				}
 			}
 
-			var set_as_default bool
-			if *deployCommand_index != "" {
-				set_as_default = *deployCommand_index == "true"
+			var setAsDefault bool
+			if *deployCommandIndex != "" {
+				setAsDefault = *deployCommandIndex == "true"
 			}
 
-			err = deploy(g, *deployCommand_name, *deployCommand_organization, *deployCommand_path, *deployCommand_address, *deployCommand_user, *deployCommand_pwd, set_as_default)
+			err = deploy(*deployCommandName, *deployCommandOrganization, *deployCommandPath, *deployCommandAddress, *deployCommandUser, *deployCommandPwd, setAsDefault)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to deploy application:", err)
 			}
 		}
 
 		if publishCommand.Parsed() {
 
-			if *publishCommand_path == "" {
+			if *publishCommandPath == "" {
 				publishCommand.PrintDefaults()
 				fmt.Println("No -path was given!")
 				os.Exit(1)
 			}
 
-			if *publishCommand_user == "" {
+			if *publishCommandUser == "" {
 				publishCommand.PrintDefaults()
 				fmt.Println("No -u (user) was given!")
 				os.Exit(1)
 			}
 
-			if *publishCommand_pwd == "" {
+			if *publishCommandPwd == "" {
 				publishCommand.PrintDefaults()
 				fmt.Println("No -p (password) was given!")
 				os.Exit(1)
 			}
 
-			if *publishCommand_address == "" {
+			if *publishCommandAddress == "" {
 				publishCommand.PrintDefaults()
 				fmt.Println("No -a (address or domain) was given!")
 				os.Exit(1)
@@ -781,20 +813,20 @@ func main() {
 
 			// Here I will read the configuration file...
 
-			if !Utility.Exists(*publishCommand_path) {
-				fmt.Println("No configuration file was found at " + *publishCommand_path)
+			if !Utility.Exists(*publishCommandPath) {
+				fmt.Println("No configuration file was found at " + *publishCommandPath)
 				os.Exit(1)
 			}
 
 			// Detect the platform if none was given...
-			if *publishCommand_plaform == "" {
-				*publishCommand_plaform = runtime.GOOS + "_" + runtime.GOARCH
+			if *publishCommandPlatform == "" {
+				*publishCommandPlatform = runtime.GOOS + "_" + runtime.GOARCH
 			}
 
-			fmt.Println("publish for platform ", *publishCommand_plaform)
-			err = publish(g, *publishCommand_user, *publishCommand_pwd, *publishCommand_address, *publishCommand_organization, *publishCommand_path, *publishCommand_plaform)
+			fmt.Println("publish for platform ", *publishCommandPlatform)
+			err = publish(*publishCommandUser, *publishCommandPwd, *publishCommandAddress, *publishCommandOrganization, *publishCommandPath, *publishCommandPlatform)
 			if err != nil {
-				log.Println(err)
+				log.Println("fail to publish application:", err)
 			}
 		}
 
@@ -821,9 +853,9 @@ func main() {
 		if s != nil {
 			err = s.Run()
 			if err != nil && g.logger != nil {
-				err_ := g.logger.Error(err)
-				if err_ != nil {
-					fmt.Println("fail to log error: ", err_)
+				logError := g.logger.Error(err)
+				if logError != nil {
+					fmt.Println("fail to log error: ", logError)
 				}
 			} else if err != nil {
 				fmt.Println("fail to run Globular with error: ", err)
@@ -836,15 +868,17 @@ func main() {
 /**
  * Service interface use to run as Windows Service or Linux deamon...
  */
-func installCertificates(g *Globule, domain string, port int, path string) error {
+func installCertificates(domain string, port int, path string) error {
+
 	log.Println("Get certificates from ", domain, "...")
-	admin_client_, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
+
+	adminClient, err := admin_client.NewAdminService_Client(domain, "admin.AdminService")
 	if err != nil {
 		log.Println("fail to get certificates...", err)
 		return err
 	}
 
-	key, cert, ca, err := admin_client_.GetCertificates(domain, port, path)
+	key, cert, ca, err := adminClient.GetCertificates(domain, port, path)
 	if err != nil {
 		log.Println("fail to get certificates...", err)
 	}
@@ -858,18 +892,18 @@ func installCertificates(g *Globule, domain string, port int, path string) error
 /**
  * That function can be use to deploy an application on the server...
  */
-func deploy(g *Globule, name string, organization string, path string, address string, user string, pwd string, set_as_default bool) error {
+func deploy(name string, organization string, path string, address string, user string, pwd string, setAsDefault bool) error {
 
 	log.Println("try to deploy application", name, " to address ", address, " with user ", user)
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
 		log.Println("fail to access resource service at "+address+" with error ", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate user ", err)
 		return err
@@ -947,17 +981,17 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	roles := make([]*resourcepb.Role, 0)
 	if packageConfig["roles"] != nil {
 		// Here I will create the roles require by the applications.
-		roles_ := packageConfig["roles"].([]interface{})
-		for i := 0; i < len(roles_); i++ {
-			role_ := roles_[i].(map[string]interface{})
+		rolesData := packageConfig["roles"].([]interface{})
+		for i := 0; i < len(rolesData); i++ {
+			roleMap := rolesData[i].(map[string]interface{})
 			role := new(resourcepb.Role)
-			role.Id = role_["id"].(string)
-			role.Name = role_["name"].(string)
-			role.Domain = role_["domain"].(string)
-			role.Description = role_["description"].(string)
+			role.Id = roleMap["id"].(string)
+			role.Name = roleMap["name"].(string)
+			role.Domain = roleMap["domain"].(string)
+			role.Description = roleMap["description"].(string)
 			role.Actions = make([]string, 0)
-			for j := 0; j < len(role_["actions"].([]interface{})); j++ {
-				role.Actions = append(role.Actions, role_["actions"].([]interface{})[j].(string))
+			for j := 0; j < len(roleMap["actions"].([]interface{})); j++ {
+				role.Actions = append(role.Actions, roleMap["actions"].([]interface{})[j].(string))
 			}
 			roles = append(roles, role)
 		}
@@ -966,14 +1000,14 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	// Create groups.
 	groups := make([]*resourcepb.Group, 0)
 	if packageConfig["groups"] != nil {
-		groups_ := packageConfig["groups"].([]interface{})
-		for i := 0; i < len(groups_); i++ {
-			group_ := groups_[i].(map[string]interface{})
+		groupsData := packageConfig["groups"].([]interface{})
+		for i := 0; i < len(groupsData); i++ {
+			groupMap := groupsData[i].(map[string]interface{})
 			group := new(resourcepb.Group)
-			group.Id = group_["id"].(string)
-			group.Name = group_["name"].(string)
-			group.Description = group_["description"].(string)
-			group.Domain = group_["domain"].(string)
+			group.Id = groupMap["id"].(string)
+			group.Name = groupMap["name"].(string)
+			group.Description = groupMap["description"].(string)
+			group.Domain = groupMap["domain"].(string)
 			groups = append(groups, group)
 		}
 	}
@@ -1013,26 +1047,26 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
 	fmt.Println("try to publish the application...")
-	discovery_client_, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
+	discoveryClient, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
 	if err != nil {
 		fmt.Println("fail to connecto to discovery service at address", address, "with error", err)
 		return err
 	}
 
-	err = discovery_client_.PublishApplication(token, user, organization, "/"+name, name, address, version, description, icon, alias, address, address, actions, keywords, roles, groups)
+	err = discoveryClient.PublishApplication(token, user, organization, "/"+name, name, address, version, description, icon, alias, address, address, actions, keywords, roles, groups)
 	if err != nil {
 		fmt.Println("fail to publish the application with error:", err)
 		return err
 	}
 
-	repository_client_, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
+	repositoryClient, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
 	if err != nil {
 		fmt.Println("fail to connecto to repository service at address", address, "with error", err)
 		return err
 	}
 
 	log.Println("Upload application package at path ", path)
-	_, err = repository_client_.UploadApplicationPackage(user, organization, path, token, address, name, version)
+	_, err = repositoryClient.UploadApplicationPackage(user, organization, path, token, address, name, version)
 	if err != nil {
 		fmt.Println("fail to upload the application package with error:", err)
 		return err
@@ -1041,30 +1075,30 @@ func deploy(g *Globule, name string, organization string, path string, address s
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
 	log.Println("Connect with application manager at address ", address)
-	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
+	applicationsManagerClient, err := applications_manager_client.NewApplicationsManager_Client(address, "applications_manager.ApplicationManagerService") // create the resource server.
 	if err != nil {
 		fmt.Println("fail to connecto to application manager service at address", address, "with error", err)
 		return err
 	}
 
 	// set the publisher id.
-	publisherId := user
+	publisherID := user
 	if len(organization) > 0 {
-		publisherId = organization
+		publisherID = organization
 	}
 
 	// if no domain was given i will user the local domain.
-	if !strings.Contains(publisherId, "@") {
-		domain, err := config_.GetDomain()
+	if !strings.Contains(publisherID, "@") {
+		domain, err := configpkg.GetDomain()
 		if err != nil {
 			fmt.Println("fail to get domain with error", err)
 			return err
 		}
-		publisherId += "@" + domain
+		publisherID += "@" + domain
 	}
 
 	fmt.Println("try to install the newly deployed application...")
-	err = applications_manager_client_.InstallApplication(token, authentication_client.GetDomain(), user, address, publisherId, name, false)
+	err = applicationsManagerClient.InstallApplication(token, authenticationClient.GetDomain(), user, address, publisherID, name, setAsDefault)
 	if err != nil {
 		log.Println("fail to install application with error ", err)
 		return err
@@ -1080,30 +1114,30 @@ func deploy(g *Globule, name string, organization string, path string, address s
  * ex.
  * sudo ./Globular update -path=/home/dave/go/src/github.com/globulario/Globular/Globular -a=globular.cloud -u=sa -p=adminadmin
  */
-func update_globular(g *Globule, path, address, user, pwd string, platform string) error {
+func updateGlobular(path, address, user, pwd string, platform string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to authenticate user:", err)
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	admin_client_, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
+	adminClient, err := admin_client.NewAdminService_Client(address, "admin.AdminService")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to create admin client:", err)
 		return err
 	}
 
-	_, err = admin_client_.Update(path, platform, token, address)
+	_, err = adminClient.Update(path, platform, token, address)
 	if err != nil {
 		return err
 	}
@@ -1116,51 +1150,51 @@ func update_globular(g *Globule, path, address, user, pwd string, platform strin
  * ex.
  * ./Globular update_from -a=globular.cloud -p=adminadmin -source=globular.cloud -u=sa
  */
-func update_globular_from(g *Globule, src, dest, user, pwd string, platform string) error {
+func updateGlobularFrom(src, dest, user, pwd string, platform string) error {
 	fmt.Println("pull globular update from ", src, " to ", dest)
 
-	admin_source, err := admin_client.NewAdminService_Client(src, "admin.AdminService")
+	adminSource, err := admin_client.NewAdminService_Client(src, "admin.AdminService")
 	if err != nil {
 		return err
 	}
 
 	// From the source I will download the new executable and save it in the
 	// temp directory...
-	path := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
-	err = Utility.CreateDirIfNotExist(path)
+	tempPath := os.TempDir() + "/Globular_" + Utility.ToString(time.Now().Unix())
+	err = Utility.CreateDirIfNotExist(tempPath)
 	if err != nil {
 		log.Println("fail to create temp directory with error: ", err)
 		return err
 	}
 
-	fmt.Println("download exec to ", path)
-	err = admin_source.DownloadGlobular(src, platform, path)
+	fmt.Println("download exec to ", tempPath)
+	err = adminSource.DownloadGlobular(src, platform, tempPath)
 	if err != nil {
 		log.Println("fail to download new globular executable file with error: ", err)
 		return err
 	}
 
-	path_ := path
-	path_ += "/Globular"
+	pathWithExec := tempPath
+	pathWithExec += "/Globular"
 	if runtime.GOOS == "windows" {
-		path_ += ".exe"
+		pathWithExec += ".exe"
 	}
 
-	if !Utility.Exists(path_) {
-		err := errors.New(path_ + " not found! ")
+	if !Utility.Exists(pathWithExec) {
+		err := errors.New(pathWithExec + " not found! ")
 		return err
 	}
 
 	defer func() {
-		err := os.RemoveAll(path)
+		err := os.RemoveAll(tempPath)
 		if err != nil {
 			log.Println("fail to remove temporary directory with error", err)
 		}
 	}()
 
-	err = update_globular(g, path_, dest, user, pwd, platform)
+	err = updateGlobular(pathWithExec, dest, user, pwd, platform)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to update Globular from:", err)
 		return err
 	}
 
@@ -1169,59 +1203,64 @@ func update_globular_from(g *Globule, src, dest, user, pwd string, platform stri
 
 }
 
-/**
- * That function is use to publish a service on the network.
- * The service must contain
- * - A .proto file that define it gRPC services interface.
- * - A config.json file that define it service configuration.
- * - (optional) A preinst shell script file that contain the script to be run before the installation
- * - (optional) A postinst shell script file tha contain the script to be run after the installation
- * - (optional) A prerm shell script file that contain the script to be run before the service removal
- * - (optional) A postrm shell script file tha contain the script to be run after the service removal
- * All file in the service directory will be part of the package, so take
- * care to include all dependencies, dll... to be sure your services will run
- * as expected.
- */
-func publish(g *Globule, user, pwd, address, organization, path, platform string) error {
+// publish authenticates a user and publishes a service package to the specified platform.
+// It performs the following steps:
+//  1. Authenticates the user to obtain a token.
+//  2. Publishes the service using the discovery client.
+//  3. Uploads the service package using the repository client.
+//
+// Parameters:
+//
+//	user         - The username for authentication.
+//	pwd          - The password for authentication.
+//	address      - The service address.
+//	organization - The organization name.
+//	path         - The path to the service package.
+//	platform     - The target platform.
+//
+// Returns:
+//
+//	error - An error if any step fails, otherwise nil.
+func publish(user, pwd, address, organization, path, platform string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	// first of all I need to get all credential informations...
-	// The certificates will be taken from the address
-	discovery_client_, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = discovery_client_.PublishService(user, organization, token, discovery_client_.GetDomain(), path, platform)
-	if err != nil {
+		log.Println("fail to authenticate user:", err)
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	repository_client_, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
+	discoveryClient, err := discovery_client.NewDiscoveryService_Client(address, "discovery.PackageDiscovery")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to create discovery client:", err)
+		return err
+	}
+
+	err = discoveryClient.PublishService(user, organization, token, discoveryClient.GetDomain(), path, platform)
+	if err != nil {
+		return err
+	}
+
+	// first of all I need to get all credential informations...
+	// The certificates will be taken from the address
+	repositoryClient, err := repository_client.NewRepositoryService_Client(address, "repository.PackageRepository")
+	if err != nil {
+		log.Println("fail to create repository client:", err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = repository_client_.UploadServicePackage(user, organization, token, address, path, platform)
+	err = repositoryClient.UploadServicePackage(user, organization, token, address, path, platform)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to upload service package:", err)
 		return err
 	}
 
@@ -1230,19 +1269,19 @@ func publish(g *Globule, user, pwd, address, organization, path, platform string
 }
 
 /**
- * That function is use to intall a service at given adresse. The service Id is the unique identifier of
+ * That function is use to intall a service at given addresse. The service Id is the unique identifier of
  * the service to be install.
  */
-func install_service(g *Globule, serviceId, discovery, publisherId, domain, user, pwd string) error {
-	log.Println("try to install service", serviceId, "from", publisherId, "on", domain)
+func installService(serviceID, discovery, publisherID, domain, user, pwd string) error {
+	log.Println("try to install service", serviceID, "from", publisherID, "on", domain)
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
 		log.Println("fail to authenticate with error ", err.Error())
 		return err
@@ -1250,16 +1289,16 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
+	servicesManagerCli, err := serviceManagerClient.NewServicesManagerService_Client(domain, "services_manager.ServicesManagerService")
 	if err != nil {
 		log.Println("fail to connect to services manager at ", domain, " with error ", err.Error())
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = services_manager_client_.InstallService(token, domain, discovery, publisherId, serviceId)
+	err = servicesManagerCli.InstallService(token, domain, discovery, publisherID, serviceID)
 	if err != nil {
-		log.Println("fail to install service", serviceId, "with error ", err.Error())
+		log.Println("fail to install service", serviceID, "with error ", err.Error())
 		return err
 	}
 
@@ -1268,33 +1307,33 @@ func install_service(g *Globule, serviceId, discovery, publisherId, domain, user
 	return nil
 }
 
-func uninstall_service(g *Globule, serviceId, publisherId, version, address, user, pwd string) error {
+func uninstallService(serviceID, publisherID, version, address, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to authenticate user:", err)
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	services_manager_client_, err := service_manager_client.NewServicesManagerService_Client(address, "services_manager.ServicesManagerService")
+	servicesManagerCli, err := serviceManagerClient.NewServicesManagerService_Client(address, "services_manager.ServicesManagerService")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to create services manager client:", err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = services_manager_client_.UninstallService(token, address, publisherId, serviceId, version)
+	err = servicesManagerCli.UninstallService(token, address, publisherID, serviceID, version)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to uninstall service:", err)
 		return err
 	}
 
@@ -1304,65 +1343,65 @@ func uninstall_service(g *Globule, serviceId, publisherId, version, address, use
 /**
  * Install Globular web application.
  */
-func install_application(g *Globule, applicationId, discovery, publisherId, domain, user, pwd string, set_as_default bool) error {
+func installApplication(applicationID, discovery, publisherID, domain, user, pwd string, setAsDefault bool) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
+	applicationsManagerClient, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to create applications manager client:", err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = applications_manager_client_.InstallApplication(token, domain, user, discovery, publisherId, applicationId, set_as_default)
+	err = applicationsManagerClient.InstallApplication(token, domain, user, discovery, publisherID, applicationID, setAsDefault)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to install application:", err)
 		return err
 	}
 
 	return nil
 }
 
-func uninstall_application(g *Globule, applicationId, publisherId, version, domain, user, pwd string) error {
+func uninstallApplication(applicationID, publisherID, version, domain, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(domain, "authentication.AuthenticationService")
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to create authentication client:", err)
 		return err
 	}
 
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to authenticate user:", err)
 		return err
 	}
 
 	// first of all I need to get all credential informations...
 	// The certificates will be taken from the address
-	applications_manager_client_, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
+	applicationsManagerClient, err := applications_manager_client.NewApplicationsManager_Client(domain, "applications_manager.ApplicationManagerService")
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to create applications manager client:", err)
 		return err
 	}
 
 	// first of all I will create and upload the package on the discovery...
-	err = applications_manager_client_.UninstallApplication(token, domain, user, publisherId, applicationId, version)
+	err = applicationsManagerClient.UninstallApplication(token, domain, user, publisherID, applicationID, version)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to uninstall application:", err)
 		return err
 	}
 
@@ -1377,7 +1416,7 @@ func uninstall_application(g *Globule, applicationId, publisherId, version, doma
  * The basic sequence are describe at
  * https://www.internalpointers.com/post/build-binary-deb-package-practical-guide
  *
- * Dependencie script are describe at
+ * Dependency script are describe at
  *
  * Utilisation:
  * Globular dist -path=/tmp -revision=1
@@ -1400,98 +1439,72 @@ func dist(g *Globule, path string, revision string) {
 		return
 	}
 
-	// The debian package...
-	// There is a link on how to launch service in macOS
-	// https://medium.com/swlh/how-to-use-launchd-to-run-services-in-macos-b972ed1e352
-	//
-	// But the way to use globular is pretty simple,
-	// from the package, go to
-	//
-	// cd /Globular/Contents/MacOS
-	//
-	// from the terminal and with admin right you can run globular.
-	// sudo ./Globular
-	//
-	// To install globular permentaly
-	// sudo ./Globular install
-	//
-	// To uninstall Globular,
-	// sudo ./Globular uninstall
-	//
-	// To stop/start the globular deamon,
-	//
-	// -Start the service
-	// sudo launchctl load /Library/LaunchDaemons/Globular.plist
-	//
-	// -stop the service
-	// sudo launchctl unload /Library/LaunchDaemons/Globular.plist
-	//
 	switch runtime.GOOS {
 	case "darwin":
 
-		darwin_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
+		darwinPackagePath := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
-		// remove existiong files...
-		err := os.RemoveAll(darwin_package_path)
+		// remove existing files...
+		err := os.RemoveAll(darwinPackagePath)
 		if err != nil {
 			log.Println("fail to remove existing darwin package directory with error", err)
 		}
 
 		// 1. Create the working directory
-		err = Utility.CreateDirIfNotExist(darwin_package_path)
+		err = Utility.CreateDirIfNotExist(darwinPackagePath)
 		if err != nil {
 			fmt.Println("fail to create darwin package directory with error: ", err)
 			return
 		}
 
 		// 2. Create application directory.
-		app_path := darwin_package_path + "/globular.cloud"
-		app_content := app_path + "/Contents"
-		app_bin := app_content + "/MacOS"
-		app_resource := app_content + "/Resources"
-		config_path := app_bin + "/etc/globular/config"
-		applications_path := app_bin + "/var/globular/applications"
+		appPath := darwinPackagePath + "/globular.cloud"
+		appContent := appPath + "/Contents"
+		appBin := appContent + "/MacOS"
+		appResource := appContent + "/Resources"
+		configPath := appBin + "/etc/globular/config"
+		applicationsPath := appBin + "/var/globular/applications"
 
 		// Copy applications for offline installation...
-		err = Utility.CopyDir(dir+"/applications/.", applications_path)
+		err = Utility.CopyDir(dir+"/applications/.", applicationsPath)
 		if err != nil {
 			fmt.Println("fail to copy applications for offline installation with error: ", err)
 			return
 		}
 
 		// create directories...
-		err = Utility.CreateDirIfNotExist(app_content)
+		err = Utility.CreateDirIfNotExist(appContent)
 		if err != nil {
 			fmt.Println("fail to create application content directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(app_bin)
+		err = Utility.CreateDirIfNotExist(appBin)
 		if err != nil {
 			fmt.Println("fail to create application binary directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(config_path)
+		err = Utility.CreateDirIfNotExist(configPath)
 		if err != nil {
 			fmt.Println("fail to create application config directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(app_resource)
+		err = Utility.CreateDirIfNotExist(appResource)
 		if err != nil {
 			fmt.Println("fail to create application resource directory with error: ", err)
 			return
 		}
 
-		err = Utility.CopyFile(dir+"/assets/icon.icns", app_resource+"/icon.icns")
+		err = Utility.CopyFile(dir+"/assets/icon.icns", appResource+"/icon.icns")
 
 		if err != nil {
 			fmt.Println("fail to copy icon from ", dir+"/assets/icon.icns"+"whit error", err)
 		}
 
 		// Create the distribution.
-		__dist(g, app_bin, config_path)
+		__dist(g, appBin, configPath)
 
 		// Now I will create the plist file.
 		plistFile := `
@@ -1512,7 +1525,7 @@ func dist(g *Globule, path string, revision string) {
 		</dict>
 		</plist>
 		`
-		err = os.WriteFile(app_content+"/Info.plist", []byte(plistFile), 0600)
+		err = os.WriteFile(appContent+"/Info.plist", []byte(plistFile), 0600)
 		if err != nil {
 			fmt.Println("fail to create Info.plist with error", err)
 			return
@@ -1708,12 +1721,12 @@ func dist(g *Globule, path string, revision string) {
 		// - The project homepage
 		packageConfig += "Homepage: https://globular.io\n"
 
-		// - The list of dependencies...
+		// - The list of Dependencys...
 		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~), nmap, arp-scan\n"
 
 		err = os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		// Here I will set the script to run before the installation...
@@ -1832,7 +1845,7 @@ func dist(g *Globule, path string, revision string) {
 
 		err = os.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		// the list of list of configurations
@@ -1844,7 +1857,7 @@ func dist(g *Globule, path string, revision string) {
 
 		err = os.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		postinst := `
@@ -1896,7 +1909,7 @@ func dist(g *Globule, path string, revision string) {
 		`
 		err = os.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		prerm := `
@@ -1918,7 +1931,7 @@ func dist(g *Globule, path string, revision string) {
 		`
 		err = os.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		postrm := `
@@ -1943,7 +1956,7 @@ func dist(g *Globule, path string, revision string) {
 		`
 		err = os.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0600)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to create debian package control file:", err)
 		}
 
 		// 5. Build the deb package
@@ -1956,7 +1969,7 @@ func dist(g *Globule, path string, revision string) {
 
 		err = cmd.Run()
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to build debian package:", err)
 		}
 		fmt.Print(cmdOutput.String())
 
@@ -2138,7 +2151,7 @@ func dist(g *Globule, path string, revision string) {
   
 	  ;Delete Folder's *keep config webroot and data folder.
 	  RMDir /r "$INSTDIR\bin"
-	  RMDir /r "$INSTDIR\dependencies"
+	  RMDir /r "$INSTDIR\Dependencys"
 	  RMDir /r "$INSTDIR\Redist"
 	  RMDir /r "$INSTDIR\services"
 	  RMDir /r "$INSTDIR\applications"
@@ -2182,14 +2195,14 @@ func __dist(g *Globule, path, config_path string) []string {
 	if runtime.GOARCH == "amd64" {
 		data, err := os.ReadFile("Dockerfile_amd64")
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to read Dockerfile_amd64:", err)
 			os.Exit(1)
 		}
 		dockerfile = string(data)
 	} else if runtime.GOARCH == "arm64" {
 		data, err := os.ReadFile("Dockerfile_arm64")
 		if err != nil {
-			fmt.Println(err)
+			log.Println("fail to read Dockerfile_arm64:", err)
 			os.Exit(1)
 		}
 		dockerfile = string(data)
@@ -2219,38 +2232,38 @@ func __dist(g *Globule, path, config_path string) []string {
 
 	err = Utility.Copy(globularExec, path+"/"+destExec)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to copy globular executable:", err)
 	}
 
 	err = os.Chmod(path+"/"+destExec, 0600)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("fail to change mode of globular executable:", err)
 	}
 
 	// Copy the bin file from globular
 	if runtime.GOOS == "windows" {
-		err = Utility.CreateDirIfNotExist(path + "/dependencies")
+		err = Utility.CreateDirIfNotExist(path + "/Dependencys")
 		if err != nil {
-			fmt.Println("fail to create dependencies directory with error: ", err)
+			fmt.Println("fail to create Dependencys directory with error: ", err)
 			os.Exit(1)
 		}
 
-		if Utility.Exists(dir + "/dependencies") {
+		if Utility.Exists(dir + "/Dependencys") {
 
-			err = Utility.CopyDir(dir+"/dependencies/.", path+"/dependencies")
+			err = Utility.CopyDir(dir+"/Dependencys/.", path+"/Dependencys")
 			if err != nil {
-				fmt.Println("--> fail to copy dependencies ", err)
+				fmt.Println("--> fail to copy Dependencys ", err)
 			}
 
-			execs := Utility.GetFilePathsByExtension(path+"/dependencies", ".exe")
+			execs := Utility.GetFilePathsByExtension(path+"/Dependencys", ".exe")
 			for i := 0; i < len(execs); i++ {
 				err = os.Chmod(execs[i], 0600)
 				if err != nil {
-					fmt.Println(err)
+					log.Println("fail to change mode of dependency:", err)
 				}
 			}
 		} else {
-			fmt.Println("no dir with dependencie was found at path", dir+"/dependencies")
+			fmt.Println("no dir with Dependency was found at path", dir+"/Dependencys")
 		}
 	} else if runtime.GOOS == "darwin" {
 		dest := path + "/bin"
@@ -2381,7 +2394,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	}
 
 	// install services...
-	services, err := config_.GetServicesConfigurations()
+	services, err := configpkg.GetServicesConfigurations()
 	if err != nil {
 		log.Println("fail to retreive services with error ", err)
 	}
@@ -2433,15 +2446,15 @@ func __dist(g *Globule, path, config_path string) []string {
 					hasProto := s["Proto"] != nil
 
 					// set the name.
-					if config["PublisherId"] != nil && config["Version"] != nil && hasProto {
+					if config["PublisherID"] != nil && config["Version"] != nil && hasProto {
 						protoPath := s["Proto"].(string)
 
 						if Utility.Exists(execPath) && Utility.Exists(protoPath) {
 							var serviceDir = "services/"
-							if len(config["PublisherId"].(string)) == 0 {
+							if len(config["PublisherID"].(string)) == 0 {
 								serviceDir += config["Domain"].(string) + "/" + name + "/" + config["Version"].(string)
 							} else {
-								serviceDir += config["PublisherId"].(string) + "/" + name + "/" + config["Version"].(string)
+								serviceDir += config["PublisherID"].(string) + "/" + name + "/" + config["Version"].(string)
 							}
 
 							execName := filepath.Base(execPath)
@@ -2462,7 +2475,7 @@ func __dist(g *Globule, path, config_path string) []string {
 								// Set execute permission
 								err = os.Chmod(destPath, 0600)
 								if err != nil {
-									fmt.Println(err)
+									fmt.Println("fail to change mode of service executable:", err)
 								}
 
 								config["Path"] = programFilePath + "/" + serviceDir + "/" + id + "/" + execName
@@ -2494,7 +2507,7 @@ func __dist(g *Globule, path, config_path string) []string {
 
 								if config["Root"] != nil {
 									if name == "file.FileService" {
-										config["Root"] = config_.GetDataDir() + "/files"
+										config["Root"] = configpkg.GetDataDir() + "/files"
 
 										// I will also copy the mime type directory
 										config["Public"] = make([]string, 0)
@@ -2505,7 +2518,7 @@ func __dist(g *Globule, path, config_path string) []string {
 										}
 
 									} else if name == "conversation.ConversationService" {
-										config["Root"] = config_.GetDataDir()
+										config["Root"] = configpkg.GetDataDir()
 									}
 								}
 
@@ -2514,7 +2527,7 @@ func __dist(g *Globule, path, config_path string) []string {
 									config["Connections"] = make(map[string]interface{})
 								}
 
-								config["ConfigPath"] = config_.GetConfigDir() + "/" + serviceDir + "/" + id + "/config.json"
+								config["ConfigPath"] = configpkg.GetConfigDir() + "/" + serviceDir + "/" + id + "/config.json"
 								configs = append(configs, "/etc/globular/config/"+serviceDir+"/"+id+"/config.json")
 								str, _ := Utility.ToJson(&config)
 
@@ -2551,7 +2564,7 @@ func __dist(g *Globule, path, config_path string) []string {
 						} else if !Utility.Exists(protoPath) {
 							log.Println("no proto file found at path " + protoPath)
 						}
-					} else if config["PublisherId"] == nil {
+					} else if config["PublisherID"] == nil {
 						fmt.Println("no publisher was define!")
 					} else if config["Version"] == nil {
 						fmt.Println("no version was define!")
@@ -2584,7 +2597,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	// save docker.
 	err = os.WriteFile(path+"/Dockerfile", []byte(dockerfile), 0600)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to write Dockerfile:", err)
 	}
 
 	//
@@ -2630,19 +2643,19 @@ func connect_peer(g *Globule, address, token string) error {
 	// Get the local peer key
 	key, err := security.GetPeerKey(globule.Mac)
 	if err != nil {
-		log.Println(err)
+		log.Println("fail to get peer key:", err)
 		return err
 	}
 
 	// Register the peer on the remote resourse client...
 	hostname, _ := os.Hostname()
 
-	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: config_.GetLocalIP(), ExternalIpAddress: Utility.MyIP()})
+	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: configpkg.GetLocalIP(), ExternalIpAddress: Utility.MyIP()})
 	if err != nil {
 		return err
 	}
 
-	address_, _ := config_.GetAddress()
+	address_, _ := configpkg.GetAddress()
 	// I will also register the peer to the local server, the local server must running and it domain register,
 	// he can be set in /etc/hosts if it's not a public domain.
 	local_resource_client_, err := resource_client.NewResourceService_Client(address_, "resource.ResourceService")

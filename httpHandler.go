@@ -104,13 +104,13 @@ func handleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	// Parse the request body
-	refresh_token := r.URL.Query().Get("refresh_token")
+	refreshToken := r.URL.Query().Get("refresh_token")
 
 	// Get OAuth2 Config
 	conf := getGoogleOauthConfig()
 
 	// Create a new token object with the refresh token
-	token := &oauth2.Token{RefreshToken: refresh_token}
+	token := &oauth2.Token{RefreshToken: refreshToken}
 
 	// Create a token source
 	tokenSource := conf.TokenSource(context.Background(), token)
@@ -178,6 +178,7 @@ func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// JWK represents a JSON Web Key as per RFC 7517.
 type JWK struct {
 	Kid string `json:"kid"`
 	Alg string `json:"alg"`
@@ -185,6 +186,7 @@ type JWK struct {
 	E   string `json:"e"`
 }
 
+// GoogleKeys represents a set of JSON Web Keys.
 type GoogleKeys struct {
 	Keys []JWK `json:"keys"`
 }
@@ -320,33 +322,33 @@ func (e *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	// read the actual configuration.
-	__address__, err := config_.GetAddress()
+	localAddress, err := config_.GetAddress()
 	if err == nil {
 		// no redirection if the address is the same...
-		if strings.HasPrefix(__address__, host) {
+		if strings.HasPrefix(localAddress, host) {
 			return false, nil
 		}
 	}
 
-	var p *resourcepb.Peer
+	var peer *resourcepb.Peer
 
 	globule.peers.Range(func(key, value interface{}) bool {
-		p_ := value.(*resourcepb.Peer)
-		address := p_.Hostname + "." + p_.Domain
-		if p_.Protocol == "https" {
-			address += ":" + Utility.ToString(p_.PortHttps)
+		p := value.(*resourcepb.Peer)
+		address := p.Hostname + "." + p.Domain
+		if p.Protocol == "https" {
+			address += ":" + Utility.ToString(p.PortHTTPS)
 		} else {
-			address += ":" + Utility.ToString(p_.PortHttp)
+			address += ":" + Utility.ToString(p.PortHTTP)
 		}
 
 		if strings.HasPrefix(address, host) {
-			p = p_
+			peer = p
 			return false // stop the iteration.
 		}
 		return true
 	})
 
-	return p != nil, p
+	return peer != nil, peer
 }
 
 // Redirect the query to a peer one the network
@@ -355,9 +357,9 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 	address := to.Domain
 	scheme := "http"
 	if to.Protocol == "https" {
-		address += ":" + Utility.ToString(to.PortHttps)
+		address += ":" + Utility.ToString(to.PortHTTPS)
 	} else {
-		address += ":" + Utility.ToString(to.PortHttp)
+		address += ":" + Utility.ToString(to.PortHTTP)
 	}
 
 	// Here I will remove the .localhost part of the address (if it exist)
@@ -375,9 +377,15 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 	proxy.ServeHTTP(res, req)
 }
 
-// Display error message.
+// ErrHandle logs the provided error to the standard output.
+// It is intended to be used as an HTTP error handler.
+// Parameters:
+//   - res: the HTTP response writer.
+//   - req: the HTTP request.
+//   - err: the error to be handled and logged.
 func ErrHandle(res http.ResponseWriter, req *http.Request, err error) {
-	fmt.Println(err)
+	fmt.Fprintf(os.Stderr, "proxy error: %v\n", err)
+	http.Error(res, "proxy error: "+err.Error(), http.StatusBadGateway)
 }
 
 /**
@@ -828,35 +836,36 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			return
-		} else {
-			// I will get the remote configuration and return it.
-			remoteConfig, err := config_.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
+		}
+
+		// I will get the remote configuration and return it.
+		remoteConfig, err := config_.GetRemoteConfig(r.URL.Query().Get("host"), Utility.ToInt(r.URL.Query().Get("port")))
+		if err != nil {
+			// Try again with port 80...
+			remoteConfig, err = config_.GetRemoteConfig(r.URL.Query().Get("host"), 80)
 			if err != nil {
-				// Try again with port 80...
-				remoteConfig, err = config_.GetRemoteConfig(r.URL.Query().Get("host"), 80)
-				if err != nil {
-					http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
-					return
-				}
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-
-			jsonStr, err := json.MarshalIndent(remoteConfig, "", "  ")
-			if err != nil {
-				http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
-
-			}
-
-			_, err = w.Write(jsonStr)
-			if err != nil {
-				http.Error(w, "fail to write remote configuration with error "+err.Error(), http.StatusBadRequest)
+				http.Error(w, "Fail to get remote configuration with error "+err.Error(), http.StatusBadRequest)
 				return
 			}
+		}
 
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		jsonStr, err := json.MarshalIndent(remoteConfig, "", "  ")
+		if err != nil {
+			http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
+
+		}
+
+		_, err = w.Write(jsonStr)
+		if err != nil {
+			http.Error(w, "fail to write remote configuration with error "+err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		return
+
 	}
 
 	setupResponse(&w, r)
@@ -910,8 +919,8 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 
 func dealwithErr(err error) {
 	if err != nil {
-		fmt.Println(err)
-		//os.Exit(-1)
+		//fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
@@ -1227,10 +1236,11 @@ type ImageList struct {
 	Images []string `json:"images"`
 }
 
-/**
- * Return a list of images from a given path. The path is given in the query.
- * The path is relative to the web root directory.
- */
+// GetImagesHandler handles HTTP requests to retrieve a list of image files from a specified directory.
+// It supports CORS preflight requests and redirects if necessary based on the request host.
+// The handler expects a "path" query parameter indicating the directory to search for images.
+// If the path is not provided or does not exist, it returns an error.
+// On success, it responds with a JSON-encoded list of image file paths relative to the web root.
 func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
@@ -1323,9 +1333,19 @@ func getListOfImages(dirPath string) ([]string, error) {
 	return fileList, err
 }
 
-/**
- * Evaluate the file size at given url
- */
+// GetFileSizeAtUrl handles HTTP requests to retrieve the size of a file at a given URL.
+// It expects a "url" query parameter specifying the file location.
+// The handler sends a HEAD request to the provided URL and reads the "Content-Length" header
+// to determine the file size. The result is returned as a JSON object with the "size" field.
+// If the request fails or the file size cannot be determined, an appropriate error response is sent.
+//
+// Example request:
+//
+//	GET /get-file-size-at-url?url=https://example.com/file.mp4
+//
+// Response:
+//
+//	{ "size": 12345678 }
 func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 
 	// here in case of file uploaded from other website like pornhub...
@@ -1337,7 +1357,8 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	// #nosec G107 -- URL is validated before use.
 	resp, err := http.Head(url)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintf(os.Stderr, "failed to get file size at %s: %v\n", url, err)
+		http.Error(w, "failed to get file size at "+url+": "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -1366,10 +1387,8 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-/**
- * This code is use to upload a file into the tmp directory of the server
- * via http request.
- */
+
+
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
@@ -1498,6 +1517,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		path_ := path + "/" + f.Filename
 		size, _ := file.Seek(0, 2)
 		if len(user) > 0 {
+			// #nosec G115 -- Ok
 			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
 			if !hasSpace || err != nil {
 				http.Error(w, user+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)

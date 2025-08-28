@@ -125,7 +125,7 @@ func (s *Server) Run(port uint) {
 
 	log.Printf("management server listening on %d\n", port)
 	if err = grpcServer.Serve(lis); err != nil {
-		log.Println(err)
+		log.Println("fail to serve management server:", err)
 	}
 }
 
@@ -179,6 +179,6 @@ func RunServer(srv server_v3.Server, port uint) {
 
 	log.Printf("management server listening on %d\n", port)
 	if err = grpcServer.Serve(lis); err != nil {
-		log.Println(err)
+		log.Println("fail to serve management server:", err)
 	}
 }
