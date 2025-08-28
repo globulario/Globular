@@ -1,50 +1,4 @@
-/*
-Package main provides the entry point for the Globular server, a gRPC-based microservices manager and application deployment suite.
-
-Main Features:
-- Service management: Install, uninstall, start, stop, and update Globular as a system service/daemon.
-- Application deployment: Deploy, install, and uninstall web applications on the server.
-- Service publishing: Publish microservices with required configuration and proto files.
-- Certificate management: Install certificates on a server for secure communication.
-- Peer connectivity: Connect Globular peers for distributed token generation and resource sharing.
-- Distribution packaging: Build OS-specific packages (Debian, macOS, Windows) for Globular and its services/applications.
-- Token generation: Generate authentication tokens for users.
-- Observability: Integrates with observability tools for monitoring and tracing.
-
-Command-Line Interface:
-The main function parses a rich set of command-line flags to control service lifecycle, deployment, publishing, updating, and more.
-
-Key Functions:
-- Start, Stop, run: Service lifecycle handlers for integration with OS service managers.
-- installCertificates: Installs certificates from a remote admin service.
-- deploy: Deploys a web application, reads package.json, uploads package, and installs via application manager.
-- updateGlobular, updateGlobularFrom: Pushes or pulls Globular executable updates between servers.
-- publish: Publishes a microservice to the network, uploads its package.
-- installService, uninstallService: Installs or uninstalls a microservice on the server.
-- installApplication, uninstallApplication: Installs or uninstalls a web application.
-- dist: Builds OS-specific distribution packages for Globular.
-- __dist: Internal helper to copy binaries, services, and configuration files for packaging.
-- generate_token: Authenticates a user and prints a token.
-- connect_peer: Registers the local peer with a remote Globular instance.
-
-Usage:
-Run the executable with appropriate flags to control the server, deploy applications, publish services, manage certificates, and build distributions.
-
-Example:
-
-	./Globular install
-	./Globular deploy -name=myapp -path=./dist -a=globular.io -u=admin -p=secret
-	./Globular publish -path=./service_dir -a=globular.io -u=admin -p=secret
-
-Dependencys:
-- github.com/kardianos/service: Cross-platform service management.
-- github.com/globulario/services/golang/*: Globular microservices clients.
-- github.com/polds/imgbase64: Image encoding for application icons.
-- Utility: Custom utility functions for file and process management.
-
-Note:
-This file contains extensive logic for service and application lifecycle management, packaging, and deployment. See individual function comments for details on parameters and behavior.
-*/
+// main package
 package main
 
 import (
@@ -135,7 +89,7 @@ func (g *Globule) Stop(s service.Service) error {
 	}
 
 	// Perform fast, graceful shutdown.
-	g.exit_ = true
+	g.isExit = true
 	close(g.exit)
 
 	if g.logger != nil {
@@ -279,7 +233,7 @@ func main() {
 		uninstallApplicationCommandName := uninstallApplicationCommand.String("application", "", " the application name (Required)")
 		uninstallApplicationCommandPublisher := uninstallApplicationCommand.String("publisher", "", "The publisher id (Required)")
 		uninstallApplicationCommandVersion := uninstallApplicationCommand.String("version", "", " The application vesion(Required)")
-		uninstallApplicationCommandAddress := uninstallApplicationCommand.String("a", "", "The domain where the application is runing (Required)")
+		uninstallApplicationCommandAddress := uninstallApplicationCommand.String("a", "", "The domain where the application is running (Required)")
 		uninstallApplicationCommandUser := uninstallApplicationCommand.String("u", "", "The user name. (Required)")
 		uninstallApplicationCommandPwd := uninstallApplicationCommand.String("p", "", "The user password. (Required)")
 
@@ -300,7 +254,7 @@ func main() {
 		updateGlobularFromCommandPlatform := updateGlobularFromCommand.String("platform", "", "The os and arch info ex: linux:arm64 (optional)")
 
 		// Connect peer one to another. The peer Domain must be set before calling that function.
-		connectPeerCommand := flag.NewFlagSet("connect_peer", flag.ExitOnError)
+		connectPeerCommand := flag.NewFlagSet("connectPeer", flag.ExitOnError)
 		connectPeerCommandAddress := connectPeerCommand.String("dest", "", "The address of the peer to connect to, can contain it configuration port (80) by defaut.")
 		connectPeerCommandToken := connectPeerCommand.String("token", "", "The token valid on the destination peer (Required)")
 
@@ -337,7 +291,7 @@ func main() {
 			err = uninstallApplicationCommand.Parse(os.Args[2:])
 		case "certificates":
 			err = installCertificatesCommand.Parse(os.Args[2:])
-		case "connect_peer":
+		case "connectPeer":
 			err = connectPeerCommand.Parse(os.Args[2:])
 		case "generate_token":
 			err = generateTokenCommand.Parse(os.Args[2:])
@@ -373,7 +327,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			err = generate_token(g, address, *generateTokenCommandUser, *generateTokenCommandPwd)
+			err = generateToken(address, *generateTokenCommandUser, *generateTokenCommandPwd)
 			if err != nil {
 				log.Println("fail to generate token:", err)
 			}
@@ -391,7 +345,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			err = connect_peer(g, *connectPeerCommandAddress, *connectPeerCommandToken)
+			err = connectPeer(g, *connectPeerCommandAddress)
 			if err != nil {
 				log.Println("fail to connect peer:", err)
 			}
@@ -1104,7 +1058,7 @@ func deploy(name string, organization string, path string, address string, user 
 		return err
 	}
 
-	log.Println("Application was deployed and installed sucessfully!")
+	log.Println("Application was deployed and installed successfully!")
 	return nil
 
 }
@@ -1504,7 +1458,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 
 		// Create the distribution.
-		__dist(g, appBin, configPath)
+		generateDistro(appBin)
 
 		// Now I will create the plist file.
 		plistFile := `
@@ -1532,16 +1486,16 @@ func dist(g *Globule, path string, revision string) {
 		}
 
 	case "linux":
-		debian_package_path := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
+		debianPackagePath := path + "/globular_" + g.Version + "-" + revision + "_" + runtime.GOARCH
 
 		// remove existiong files...
-		err = os.RemoveAll(debian_package_path)
+		err = os.RemoveAll(debianPackagePath)
 		if err != nil {
 			log.Println("fail to remove existing debian package directory with error", err)
 		}
 
 		// 1. Create the working directory
-		err = Utility.CreateDirIfNotExist(debian_package_path)
+		err = Utility.CreateDirIfNotExist(debianPackagePath)
 		if err != nil {
 			fmt.Println("fail to create debian package directory with error: ", err)
 			return
@@ -1550,51 +1504,51 @@ func dist(g *Globule, path string, revision string) {
 		// 2. Create the internal structure
 
 		// globular exec and other services exec
-		distro_path := debian_package_path + "/usr/local/share/globular"
+		distroPath := debianPackagePath + "/usr/local/share/globular"
 
 		// globular data
-		data_path := debian_package_path + "/var/globular/data"
+		dataPath := debianPackagePath + "/var/globular/data"
 
 		// globular data
-		applications_path := debian_package_path + "/var/globular/applications"
+		applicationsPath := debianPackagePath + "/var/globular/applications"
 
 		// globular configurations
-		config_path := debian_package_path + "/etc/globular/config"
+		configPath := debianPackagePath + "/etc/globular/config"
 
 		// Create the bin directories.
-		err = Utility.CreateDirIfNotExist(distro_path)
+		err = Utility.CreateDirIfNotExist(distroPath)
 		if err != nil {
 			fmt.Println("fail to create distribution directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(data_path)
+		err = Utility.CreateDirIfNotExist(dataPath)
 		if err != nil {
 			fmt.Println("fail to create data directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(config_path)
+		err = Utility.CreateDirIfNotExist(configPath)
 		if err != nil {
 			fmt.Println("fail to create config directory with error: ", err)
 			return
 		}
 
-		err = Utility.CreateDirIfNotExist(applications_path)
+		err = Utility.CreateDirIfNotExist(applicationsPath)
 		if err != nil {
 			fmt.Println("fail to create applications directory with error: ", err)
 			return
 		}
 
 		// Now the libraries...
-		libpath := debian_package_path + "/usr/local/lib"
+		libpath := debianPackagePath + "/usr/local/lib"
 		err = Utility.CreateDirIfNotExist(libpath)
 		if err != nil {
 			fmt.Println("fail to create lib directory with error: ", err)
 			return
 		}
 
-		binpath := debian_package_path + "/usr/local/bin"
+		binpath := debianPackagePath + "/usr/local/bin"
 		err = Utility.CreateDirIfNotExist(binpath)
 		if err != nil {
 			fmt.Println("fail to create bin directory with error: ", err)
@@ -1691,10 +1645,10 @@ func dist(g *Globule, path string, revision string) {
 		// so modification will survice upgrades.
 
 		// Create the distribution.
-		configurations := __dist(g, distro_path, config_path)
+		configurations := generateDistro(distroPath)
 
 		// 3. Create the control file
-		err = Utility.CreateDirIfNotExist(debian_package_path + "/DEBIAN")
+		err = Utility.CreateDirIfNotExist(debianPackagePath + "/DEBIAN")
 		if err != nil {
 			fmt.Println("fail to create DEBIAN directory with error: ", err)
 			return
@@ -1716,7 +1670,7 @@ func dist(g *Globule, path string, revision string) {
 		packageConfig += "Maintainer: Project developed and maitained by Globular.io for more infos <info@globular.io>\n"
 
 		// - Description - a brief description of the program.
-		packageConfig += "Description: Globular is a complete web application developement suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
+		packageConfig += "Description: Globular is a complete web application development suite. Globular is based on microservices architecture and implemented with help of gRPC.\n"
 
 		// - The project homepage
 		packageConfig += "Homepage: https://globular.io\n"
@@ -1724,7 +1678,7 @@ func dist(g *Globule, path string, revision string) {
 		// - The list of Dependencys...
 		packageConfig += "Depends: python3 (>= 3.8.~), python-is-python3 (>=3.8.~), ffmpeg (>=4.4.~), curl(>=7.8.~), dpkg(>=1.21.~), nmap, arp-scan\n"
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/control", []byte(packageConfig), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/control", []byte(packageConfig), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
@@ -1843,7 +1797,7 @@ func dist(g *Globule, path string, revision string) {
 
 		}
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/preinst", []byte(preinst), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/preinst", []byte(preinst), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
@@ -1855,7 +1809,7 @@ func dist(g *Globule, path string, revision string) {
 			conffiles += configurations[i] + "\n"
 		}
 
-		err = os.WriteFile(debian_package_path+"/DEBIAN/conffiles", []byte(conffiles), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/conffiles", []byte(conffiles), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
@@ -1907,7 +1861,7 @@ func dist(g *Globule, path string, revision string) {
 		 service Globular start
 		 
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/postinst", []byte(postinst), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/postinst", []byte(postinst), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
@@ -1917,7 +1871,7 @@ func dist(g *Globule, path string, revision string) {
 
 		if [ -f "/etc/systemd/system/Globular.service" ]; then
 			# Stop, Disable and Uninstall Globular service.
-			echo "Stop runing globular service..."
+			echo "Stop running globular service..."
 			systemctl stop Globular
 			systemctl disable Globular
 			systemctl daemon-reload
@@ -1929,7 +1883,7 @@ func dist(g *Globule, path string, revision string) {
 			/usr/local/bin/Globular uninstall
 		fi
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/prerm", []byte(prerm), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/prerm", []byte(prerm), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
@@ -1954,15 +1908,15 @@ func dist(g *Globule, path string, revision string) {
 		
 		echo "Hope to see you again soon!"
 		`
-		err = os.WriteFile(debian_package_path+"/DEBIAN/postrm", []byte(postrm), 0600)
+		err = os.WriteFile(debianPackagePath+"/DEBIAN/postrm", []byte(postrm), 0600)
 		if err != nil {
 			log.Println("fail to create debian package control file:", err)
 		}
 
 		// 5. Build the deb package
-		fmt.Println("Build the debian package at ", debian_package_path)
+		fmt.Println("Build the debian package at ", debianPackagePath)
 		// #nosec G204 -- Subprocess launched with variable
-		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debian_package_path)
+		cmd := exec.Command("dpkg-deb", "--build", "--root-owner-group", debianPackagePath)
 
 		cmdOutput := &bytes.Buffer{}
 		cmd.Stdout = cmdOutput
@@ -1988,7 +1942,7 @@ func dist(g *Globule, path string, revision string) {
 		}
 
 		// Copy globular ditro file.
-		__dist(g, app, app+"/config")
+		generateDistro(app)
 
 		// I will make use of NSIS: Nullsoft Scriptable Install System to create an installer for window.
 		// so here I will create the setup.nsi file.
@@ -2027,7 +1981,7 @@ func dist(g *Globule, path string, revision string) {
 		err = Utility.CopyFile(dir+"/license.txt", root+"/license.txt")
 		if err != nil {
 			fmt.Println("--> fail to copy license ", err)
-			err = nil
+			return
 		}
 
 		// Now I will create the setup.nsi file.
@@ -2162,6 +2116,10 @@ func dist(g *Globule, path string, revision string) {
   
 `
 		err = Utility.WriteStringToFile(root+"/setup.nsi", setupNsi)
+		if err != nil {
+			log.Println("fail to write setup.nsi file:", err)
+			return
+		}
 	}
 
 }
@@ -2185,7 +2143,7 @@ func dist(g *Globule, path string, revision string) {
 // https://ma.ttias.be/auto-restart-crashed-service-systemd/
 // https://www.digitalocean.com/community/questions/proper-permissions-for-web-server-s-directory
 
-func __dist(g *Globule, path, config_path string) []string {
+func generateDistro(path string) []string {
 
 	// Return the configurations list
 	configs := make([]string, 0)
@@ -2241,7 +2199,8 @@ func __dist(g *Globule, path, config_path string) []string {
 	}
 
 	// Copy the bin file from globular
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		err = Utility.CreateDirIfNotExist(path + "/Dependencys")
 		if err != nil {
 			fmt.Println("fail to create Dependencys directory with error: ", err)
@@ -2252,11 +2211,11 @@ func __dist(g *Globule, path, config_path string) []string {
 
 			err = Utility.CopyDir(dir+"/Dependencys/.", path+"/Dependencys")
 			if err != nil {
-				fmt.Println("--> fail to copy Dependencys ", err)
+				fmt.Println("fail to copy Dependencys ", err)
 			}
 
 			execs := Utility.GetFilePathsByExtension(path+"/Dependencys", ".exe")
-			for i := 0; i < len(execs); i++ {
+			for i := range execs {
 				err = os.Chmod(execs[i], 0600)
 				if err != nil {
 					log.Println("fail to change mode of dependency:", err)
@@ -2265,7 +2224,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		} else {
 			fmt.Println("no dir with Dependency was found at path", dir+"/Dependencys")
 		}
-	} else if runtime.GOOS == "darwin" {
+	case "darwin":
 		dest := path + "/bin"
 
 		// ffmpeg
@@ -2396,7 +2355,7 @@ func __dist(g *Globule, path, config_path string) []string {
 	// install services...
 	services, err := configpkg.GetServicesConfigurations()
 	if err != nil {
-		log.Println("fail to retreive services with error ", err)
+		log.Println("fail to find services with error ", err)
 	}
 
 	var programFilePath string
@@ -2422,7 +2381,7 @@ func __dist(g *Globule, path, config_path string) []string {
 		id := s["Id"].(string)
 		name := s["Name"].(string)
 
-		// I will read the configuration file to have nessecary service information
+		// I will read the configuration file to have necessary service information
 		// to be able to create the path.
 		hasPath := s["Path"] != nil
 		if hasPath {
@@ -2531,16 +2490,16 @@ func __dist(g *Globule, path, config_path string) []string {
 								configs = append(configs, "/etc/globular/config/"+serviceDir+"/"+id+"/config.json")
 								str, _ := Utility.ToJson(&config)
 
-								if len(config_path) > 0 {
+								if len(configPath) > 0 {
 									// So here I will set the service configuration at /etc/globular/config/service... to be sure configuration
 									// will survive package upgrades...
-									err = Utility.CreateDirIfNotExist(config_path + "/" + serviceDir + "/" + id)
+									err = Utility.CreateDirIfNotExist(configPath + "/" + serviceDir + "/" + id)
 									if err != nil {
 										fmt.Println("fail to create config directory with error: ", err)
 										os.Exit(1)
 									}
 
-									err = os.WriteFile(config_path+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0600)
+									err = os.WriteFile(configPath+"/"+serviceDir+"/"+id+"/config.json", []byte(str), 0600)
 									if err != nil {
 										fmt.Println("fail to create config file with error: ", err)
 										os.Exit(1)
@@ -2607,22 +2566,21 @@ func __dist(g *Globule, path, config_path string) []string {
 /**
  * Generate a token that will be valid for 15 minutes or the session timeout delay.
  */
-func generate_token(g *Globule, address, user, pwd string) error {
+func generateToken(address, user, pwd string) error {
 
 	// Authenticate the user in order to get the token
-	authentication_client, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
+	authenticationClient, err := authentication_client.NewAuthenticationService_Client(address, "authentication.AuthenticationService")
 	if err != nil {
 		return err
 	}
 
 	// Get the remote token
-	token, err := authentication_client.Authenticate(user, pwd)
+	token, err := authenticationClient.Authenticate(user, pwd)
 	if err != nil {
 		return err
 	}
 
-	// simply print the token in the console.
-	fmt.Println(token)
+	_, _ = fmt.Println(token)
 
 	return nil
 }
@@ -2630,12 +2588,12 @@ func generate_token(g *Globule, address, user, pwd string) error {
 /**
  * Connect one peer's with another. When connected peer's are able to generate token valid for both side.
  * The usr and pwd are the admin password in the destionation (ns1.mycelius.com)
- * ex. ./Globular connect_peer -dest=ns1.mycelius.com -u=sa -p=adminadmin
+ * ex. ./Globular connectPeer -dest=ns1.mycelius.com -u=sa -p=adminadmin
  */
-func connect_peer(g *Globule, address, token string) error {
+func connectPeer(g *Globule, address string) error {
 
-	// Create the remote ressource service
-	remote_resource_client_, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+	// Create the remote resource service
+	remoteResourceClient, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
 	if err != nil {
 		return err
 	}
@@ -2647,23 +2605,23 @@ func connect_peer(g *Globule, address, token string) error {
 		return err
 	}
 
-	// Register the peer on the remote resourse client...
+	// Register the peer on the remote resource client...
 	hostname, _ := os.Hostname()
 
-	peer, key_, err := remote_resource_client_.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: configpkg.GetLocalIP(), ExternalIpAddress: Utility.MyIP()})
+	peer, generateKey, err := remoteResourceClient.RegisterPeer(string(key), &resourcepb.Peer{Hostname: hostname, Mac: g.Mac, Domain: g.Domain, LocalIpAddress: configpkg.GetLocalIP(), ExternalIpAddress: Utility.MyIP()})
 	if err != nil {
 		return err
 	}
 
-	address_, _ := configpkg.GetAddress()
+	peerAddress, _ := configpkg.GetAddress()
 	// I will also register the peer to the local server, the local server must running and it domain register,
 	// he can be set in /etc/hosts if it's not a public domain.
-	local_resource_client_, err := resource_client.NewResourceService_Client(address_, "resource.ResourceService")
+	localResouceClient, err := resource_client.NewResourceService_Client(peerAddress, "resource.ResourceService")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = local_resource_client_.RegisterPeer(key_, peer)
+	_, _, err = localResouceClient.RegisterPeer(generateKey, peer)
 
 	return err
 }

@@ -8,7 +8,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.13.4
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/fsnotify/fsnotify v1.8.0
-	github.com/globulario/services/golang v0.1.3
+	github.com/globulario/services/golang v0.1.5
 	github.com/globulario/utility v0.1.8
 	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-acme/lego/v4 v4.9.0

@@ -77,8 +77,8 @@ var googleOauthConfig *oauth2.Config
 func getGoogleOauthConfig() *oauth2.Config {
 	if googleOauthConfig == nil {
 		googleOauthConfig = &oauth2.Config{
-			ClientID:     globule.OAuth2_ClientId,
-			ClientSecret: globule.OAuth2_ClientSecret,
+			ClientID:     globule.OAuth2ClientID,
+			ClientSecret: globule.OAuth2ClientSecret,
 			RedirectURL:  "postmessage",
 			Scopes:       []string{"openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 			Endpoint:     google.Endpoint,
@@ -332,13 +332,13 @@ func redirectTo(host string) (bool, *resourcepb.Peer) {
 
 	var peer *resourcepb.Peer
 
-	globule.peers.Range(func(key, value interface{}) bool {
+	globule.peers.Range(func(_, value interface{}) bool {
 		p := value.(*resourcepb.Peer)
 		address := p.Hostname + "." + p.Domain
 		if p.Protocol == "https" {
-			address += ":" + Utility.ToString(p.PortHTTPS)
+			address += ":" + Utility.ToString(p.PortHttps)
 		} else {
-			address += ":" + Utility.ToString(p.PortHTTP)
+			address += ":" + Utility.ToString(p.PortHttp)
 		}
 
 		if strings.HasPrefix(address, host) {
@@ -357,9 +357,9 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 	address := to.Domain
 	scheme := "http"
 	if to.Protocol == "https" {
-		address += ":" + Utility.ToString(to.PortHTTPS)
+		address += ":" + Utility.ToString(to.PortHttps)
 	} else {
-		address += ":" + Utility.ToString(to.PortHTTP)
+		address += ":" + Utility.ToString(to.PortHttp)
 	}
 
 	// Here I will remove the .localhost part of the address (if it exist)
@@ -381,9 +381,9 @@ func handleRequestAndRedirect(to *resourcepb.Peer, res http.ResponseWriter, req 
 // It is intended to be used as an HTTP error handler.
 // Parameters:
 //   - res: the HTTP response writer.
-//   - req: the HTTP request.
+//   - _: the HTTP request (ignored).
 //   - err: the error to be handled and logged.
-func ErrHandle(res http.ResponseWriter, req *http.Request, err error) {
+func ErrHandle(res http.ResponseWriter, _ *http.Request, err error) {
 	fmt.Fprintf(os.Stderr, "proxy error: %v\n", err)
 	http.Error(res, "proxy error: "+err.Error(), http.StatusBadGateway)
 }
@@ -565,7 +565,7 @@ func getPublicKeyHanldler(w http.ResponseWriter, r *http.Request) { // keep name
 	_, _ = w.Write(data)
 }
 
-func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
+func getCertificateHanldler(w http.ResponseWriter, _ *http.Request) {
 
 	// ... [existing code] ...
 	address, err := config_.GetAddress()
@@ -602,7 +602,7 @@ func getCertificateHanldler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getIssuerCertificateHandler(w http.ResponseWriter, r *http.Request) {
+func getIssuerCertificateHandler(w http.ResponseWriter, _ *http.Request) {
 
 	// ... [existing code] ...
 	address, err := config_.GetAddress()
@@ -662,11 +662,11 @@ func getServicePermissionsHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	// so here I will retreive the service configuration from the service id given in the query
-	serviceId := r.URL.Query().Get("id") // the csr in base64
+	// so here I will read the service configuration from the service id given in the query
+	serviceID := r.URL.Query().Get("id") // the csr in base64
 
 	//add prefix and clean
-	serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
+	serviceConfig, err := config_.GetServiceConfigurationById(serviceID)
 	if err != nil {
 		http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
 		return
@@ -727,11 +727,11 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	// so here I will retreive the service configuration from the service id given in the query
-	serviceId := r.URL.Query().Get("id") // the csr in base64
+	// so here I will read the service configuration from the service id given in the query
+	serviceID := r.URL.Query().Get("id") // the csr in base64
 
 	//add prefix and clean
-	serviceConfig, err := config_.GetServiceConfigurationById(serviceId)
+	serviceConfig, err := config_.GetServiceConfigurationById(serviceID)
 	if err != nil {
 		http.Error(w, "fail to get service configuration with error "+err.Error(), http.StatusBadRequest)
 		return
@@ -765,8 +765,7 @@ func getServiceDescriptorHanldler(w http.ResponseWriter, r *http.Request) {
 		protoparser.WithFilename(filepath.Base(protoFile)),
 	)
 
-	var v interface{}
-	v = got
+	var v interface{} = got
 
 	gotJSON, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -871,7 +870,7 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	setupResponse(&w, r)
 
 	// if the host is not the same...
-	serviceId := r.URL.Query().Get("id") // the csr in base64
+	serviceID := r.URL.Query().Get("id") // the csr in base64
 
 	//add prefix and clean
 	config := globule.getConfig()
@@ -882,21 +881,21 @@ func getConfigHanldler(w http.ResponseWriter, r *http.Request) {
 	config["ConfigPath"] = config_.GetConfigDir()
 	config["WebRoot"] = config_.GetWebRootDir()
 	config["Public"] = config_.GetPublicDirs()
-	config["OAuth2_ClientSecret"] = "********" // hide the secret...
+	config["OAuth2ClientSecret"] = "********" // hide the secret...
 
 	// ask for a service configuration...
-	if len(serviceId) > 0 {
+	if len(serviceID) > 0 {
 		services := config["Services"].(map[string]interface{})
 		exist := false
 		for _, service := range services {
-			if service.(map[string]interface{})["Id"].(string) == serviceId || service.(map[string]interface{})["Name"].(string) == serviceId {
+			if service.(map[string]interface{})["Id"].(string) == serviceID || service.(map[string]interface{})["Name"].(string) == serviceID {
 				config = service.(map[string]interface{})
 				exist = true
 				break
 			}
 		}
 		if !exist {
-			http.Error(w, "no service found with name or id "+serviceId, http.StatusBadRequest)
+			http.Error(w, "no service found with name or id "+serviceID, http.StatusBadRequest)
 			return
 		}
 	}
@@ -1016,20 +1015,20 @@ func getHardwareData(w http.ResponseWriter, r *http.Request) {
 	stats["os"] = hostStat.OS
 	stats["platform"] = hostStat.Platform
 
-	stats["network_interfaces"] = make([]map[string]interface{}, 0)
+	stats["  networkInterfacess"] = make([]map[string]interface{}, 0)
 
 	// the unique hardware id for this machine
 	for _, interf := range interfStat {
-		network_interface := make(map[string]interface{}, 0)
-		network_interface["mac"] = interf.HardwareAddr
+		networkInterfaces := make(map[string]interface{}, 0)
+		networkInterfaces["mac"] = interf.HardwareAddr
 
-		network_interface["flags"] = interf.Flags
-		network_interface["addresses"] = make([]string, 0)
+		networkInterfaces["flags"] = interf.Flags
+		networkInterfaces["addresses"] = make([]string, 0)
 		for _, addr := range interf.Addrs {
-			network_interface["addresses"] = append(network_interface["addresses"].([]string), addr.String())
+			networkInterfaces["addresses"] = append(networkInterfaces["addresses"].([]string), addr.String())
 		}
 
-		stats["network_interfaces"] = append(stats["network_interfaces"].([]map[string]interface{}), network_interface)
+		stats["network_interfaces"] = append(stats["network_interfaces"].([]map[string]interface{}), networkInterfaces)
 
 	}
 
@@ -1195,8 +1194,8 @@ func signCaCertificateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	// sign the certificate.
-	csr_str := r.URL.Query().Get("csr") // the csr in base64
-	csr, err := base64.StdEncoding.DecodeString(csr_str)
+	csrStr := r.URL.Query().Get("csr") // the csr in base64
+	csr, err := base64.StdEncoding.DecodeString(csrStr)
 	if err != nil {
 		http.Error(w, "Fail to decode csr base64 string", http.StatusBadRequest)
 		return
@@ -1323,17 +1322,34 @@ func GetImagesHandler(w http.ResponseWriter, r *http.Request) {
 
 func getListOfImages(dirPath string) ([]string, error) {
 	var fileList []string
-	err := filepath.Walk(dirPath, func(path string, f os.FileInfo, err error) error {
+
+	err := filepath.Walk(dirPath, func(path string, f os.FileInfo, walkErr error) error {
+		// If Walk itself reports an error, propagate it
+		if walkErr != nil {
+			return walkErr
+		}
+
+		// Sanity check f (can be nil if walkErr != nil, but we already handled that)
+		if f == nil {
+			return fmt.Errorf("nil FileInfo for path: %s", path)
+		}
+
+		// Skip directories, only add files
 		if !f.IsDir() {
 			fileList = append(fileList, path)
 		}
+
 		return nil
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk directory %q: %w", dirPath, err)
+	}
 
-	return fileList, err
+	return fileList, nil
 }
 
-// GetFileSizeAtUrl handles HTTP requests to retrieve the size of a file at a given URL.
+//	GetFileSizeAtURL handles HTTP requests to retrieve the size of a file at a given URL.
+//
 // It expects a "url" query parameter specifying the file location.
 // The handler sends a HEAD request to the provided URL and reads the "Content-Length" header
 // to determine the file size. The result is returned as a JSON object with the "size" field.
@@ -1346,7 +1362,7 @@ func getListOfImages(dirPath string) ([]string, error) {
 // Response:
 //
 //	{ "size": 12345678 }
-func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
+func GetFileSizeAtURL(w http.ResponseWriter, r *http.Request) {
 
 	// here in case of file uploaded from other website like pornhub...
 	url := r.URL.Query().Get("url")
@@ -1387,8 +1403,13 @@ func GetFileSizeAtUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-
+// FileUploadHandler handles HTTP file upload requests.
+// It supports multipart form uploads, validates access permissions for users and applications,
+// checks available storage space, and saves uploaded files to the appropriate location based on the path.
+// The handler also sets resource ownership and triggers post-upload events such as video preview generation
+// or file indexing based on the file type. Access control is enforced via token and application validation.
+// Responds with appropriate HTTP status codes for errors such as invalid permissions, insufficient space,
+// or file operation failures.
 func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
@@ -1514,13 +1535,13 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}()
 
 		// Create the file depending if the path is users, applications or something else...
-		path_ := path + "/" + f.Filename
+		filePath := path + "/" + f.Filename
 		size, _ := file.Seek(0, 2)
 		if len(user) > 0 {
 			// #nosec G115 -- Ok
 			hasSpace, err := ValidateSubjectSpace(user, rbacpb.SubjectType_ACCOUNT, uint64(size))
 			if !hasSpace || err != nil {
-				http.Error(w, user+" has no space available to copy file "+path_+" allocated space and try again.", http.StatusUnauthorized)
+				http.Error(w, user+" has no space available to copy file "+filePath+" allocated space and try again.", http.StatusUnauthorized)
 				return
 			}
 		}
@@ -1532,20 +1553,20 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Now if the os is windows I will remove the leading /
-		if len(path_) > 3 {
-			if runtime.GOOS == "windows" && path_[0] == '/' && path_[2] == ':' {
-				path_ = path_[1:]
+		if len(filePath) > 3 {
+			if runtime.GOOS == "windows" && filePath[0] == '/' && filePath[2] == ':' {
+				filePath = filePath[1:]
 			}
 		}
 
 		if strings.HasPrefix(path, "/users") || strings.HasPrefix(path, "/applications") {
-			path_ = strings.ReplaceAll(globule.data+"/files"+path_, "\\", "/")
-		} else if !isPublic(path_) && !strings.HasPrefix(path_, globule.webRoot) {
-			path_ = strings.ReplaceAll(globule.webRoot+path_, "\\", "/")
+			filePath = strings.ReplaceAll(globule.data+"/files"+filePath, "\\", "/")
+		} else if !isPublic(filePath) && !strings.HasPrefix(filePath, globule.webRoot) {
+			filePath = strings.ReplaceAll(globule.webRoot+filePath, "\\", "/")
 		}
 
 		// #nosec G304 -- File path is constructed from validated input and constant strings.
-		out, err := os.Create(path_)
+		out, err := os.Create(filePath)
 		if err != nil {
 			http.Error(w, "Unable to create the file for writing. Check your write access privilege error "+err.Error(), http.StatusUnauthorized)
 			return
@@ -1576,18 +1597,18 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Now from the file extension i will retreive it mime type.
-		if strings.LastIndex(path_, ".") != -1 {
-			fileExtension := path_[strings.LastIndex(path_, "."):]
+		// Now from the file extension i will read it mime type.
+		if strings.LastIndex(filePath, ".") != -1 {
+			fileExtension := filePath[strings.LastIndex(filePath, "."):]
 			fileType := mime.TypeByExtension(fileExtension)
-			path_ = strings.ReplaceAll(path_, "\\", "/")
+			filePath = strings.ReplaceAll(filePath, "\\", "/")
 			if len(fileType) > 0 {
 				if strings.HasPrefix(fileType, "video/") {
 					// Here I will call convert video...
-					err = globule.publish("generate_video_preview_event", []byte(path_))
+					err = globule.publish("generate_video_preview_event", []byte(filePath))
 				} else if fileType == "application/pdf" || strings.HasPrefix(fileType, "text") {
 					// Here I will call convert video...
-					err = globule.publish("index_file_event", []byte(path_))
+					err = globule.publish("index_file_event", []byte(filePath))
 				}
 
 				if err != nil {
@@ -1620,7 +1641,7 @@ func resolveImportPath(path string, importPath string) (string, error) {
 
 	var found string
 	// Walk and stop as soon as we find a match.
-	walkErr := filepath.WalkDir(searchRoot, func(p string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(searchRoot, func(p string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			// Propagate real traversal errors.
 			return err
@@ -1734,7 +1755,38 @@ func streamHandler(path string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Custom file server implementation.
+// ServeFileHandler handles HTTP requests for serving files from the server.
+// It supports reverse proxying, access control based on tokens and application headers,
+// and dynamic file path resolution. The handler checks if the requested file path should
+// be redirected to a reverse proxy, validates access permissions for protected resources,
+// and serves files with appropriate content types. Special handling is provided for
+// streaming video files, CA certificates, and JavaScript imports. If access is denied
+// or the file is not found, the handler responds with the appropriate HTTP error code.
+//
+// Request headers:
+//   - "application": Specifies the application context for access control.
+//   - "token": JWT token for user authentication and authorization.
+//
+// Query parameters:
+//   - "application": Alternative way to specify the application context.
+//   - "token": Alternative way to provide the JWT token.
+//
+// Access control:
+//   - Validates user or application access to protected resources using RBAC.
+//   - Public resources are served without access validation.
+//   - Special handling for streaming files and hidden directories.
+//
+// Content types:
+//   - Sets "Content-Type" header based on file extension (.js, .css, .html, .htm).
+//
+// Errors:
+//   - Responds with 400 Bad Request if no file path is provided.
+//   - Responds with 401 Unauthorized if access is denied.
+//   - Responds with 204 No Content if the file is not found.
+//
+// Parameters:
+//   - w: http.ResponseWriter to write the response.
+//   - r: *http.Request representing the incoming HTTP request.
 func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirect, to := redirectTo(r.Host)
@@ -1745,29 +1797,29 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//add prefix and clean
-	rqst_path := path.Clean(r.URL.Path)
+	rqstPath := path.Clean(r.URL.Path)
 
-	if rqst_path == "/null" {
+	if rqstPath == "/null" {
 		http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
 	}
 
 	// I will test if the requested path is in the reverse proxy list.
 	// if it is the case I will redirect the request to the reverse proxy.
 	for _, proxy := range globule.ReverseProxies {
-		proxyPath_ := strings.TrimSpace(strings.Split(proxy.(string), "|")[1])
-		proxyURL_ := strings.TrimSpace(strings.Split(proxy.(string), "|")[0])
+		proxyPath := strings.TrimSpace(strings.Split(proxy.(string), "|")[1])
+		proxyURLStr := strings.TrimSpace(strings.Split(proxy.(string), "|")[0])
 
-		if strings.HasPrefix(rqst_path, proxyPath_) {
+		if strings.HasPrefix(rqstPath, proxyPath) {
 			// Create a reverse proxy
-			proxyURL, _ := url.Parse(proxyURL_)
+			proxyURL, _ := url.Parse(proxyURLStr)
 
 			// Connect to the proxy host
-			hostUrl, _ := url.Parse(proxyURL.Scheme + "://" + proxyURL.Host)
+			hostURL, _ := url.Parse(proxyURL.Scheme + "://" + proxyURL.Host)
 
-			reverseProxy := httputil.NewSingleHostReverseProxy(hostUrl)
+			reverseProxy := httputil.NewSingleHostReverseProxy(hostURL)
 
 			// Update the request URL and headers
-			r.URL, _ = url.Parse(proxyURL_)
+			r.URL, _ = url.Parse(proxyURLStr)
 
 			// Update headers to reflect the forwarded host
 			r.Host = proxyURL.Host
@@ -1815,93 +1867,93 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If the path is '/' it mean's no application name was given and we are
 	// at the root.
-	if rqst_path == "/" {
+	if rqstPath == "/" {
 		// if a default application is define in the globule i will use it.
 		if len(globule.IndexApplication) > 0 {
-			rqst_path += globule.IndexApplication
+			rqstPath += globule.IndexApplication
 			application = globule.IndexApplication
 		}
 
-	} else if strings.Count(rqst_path, "/") == 1 {
-		if strings.HasSuffix(rqst_path, ".js") ||
-			strings.HasSuffix(rqst_path, ".json") ||
-			strings.HasSuffix(rqst_path, ".css") ||
-			strings.HasSuffix(rqst_path, ".htm") ||
-			strings.HasSuffix(rqst_path, ".html") {
-			if Utility.Exists(dir + "/" + rqst_path) {
-				rqst_path = "/" + globule.IndexApplication + rqst_path
+	} else if strings.Count(rqstPath, "/") == 1 {
+		if strings.HasSuffix(rqstPath, ".js") ||
+			strings.HasSuffix(rqstPath, ".json") ||
+			strings.HasSuffix(rqstPath, ".css") ||
+			strings.HasSuffix(rqstPath, ".htm") ||
+			strings.HasSuffix(rqstPath, ".html") {
+			if Utility.Exists(dir + "/" + rqstPath) {
+				rqstPath = "/" + globule.IndexApplication + rqstPath
 			}
 		}
 	}
 
 	hasAccess := true
 	var name string
-	if strings.HasPrefix(rqst_path, "/users/") || strings.HasPrefix(rqst_path, "/applications/") || strings.HasPrefix(rqst_path, "/templates/") || strings.HasPrefix(rqst_path, "/projects/") {
+	if strings.HasPrefix(rqstPath, "/users/") || strings.HasPrefix(rqstPath, "/applications/") || strings.HasPrefix(rqstPath, "/templates/") || strings.HasPrefix(rqstPath, "/projects/") {
 		dir = globule.data + "/files"
-		if !strings.Contains(rqst_path, "/.hidden/") {
+		if !strings.Contains(rqstPath, "/.hidden/") {
 			hasAccess = false
 		}
 	}
 
 	// Now if the os is windows I will remove the leading /
-	if len(rqst_path) > 3 {
-		if runtime.GOOS == "windows" && rqst_path[0] == '/' && rqst_path[2] == ':' {
-			rqst_path = rqst_path[1:]
+	if len(rqstPath) > 3 {
+		if runtime.GOOS == "windows" && rqstPath[0] == '/' && rqstPath[2] == ':' {
+			rqstPath = rqstPath[1:]
 		}
 	}
 	// path to file
-	if !isPublic(rqst_path) {
-		name = path.Join(dir, rqst_path)
+	if !isPublic(rqstPath) {
+		name = path.Join(dir, rqstPath)
 	} else {
-		name = rqst_path
+		name = rqstPath
 		hasAccess = false // force validation (denied access...)
 	}
 
 	// stream, the validation is made on the directory containning the playlist...
-	if strings.Contains(rqst_path, "/.hidden/") ||
-		strings.HasSuffix(rqst_path, ".ts") ||
-		strings.HasSuffix(rqst_path, "240p.m3u8") ||
-		strings.HasSuffix(rqst_path, "360p.m3u8") ||
-		strings.HasSuffix(rqst_path, "480p.m3u8") ||
-		strings.HasSuffix(rqst_path, "720p.m3u8") ||
-		strings.HasSuffix(rqst_path, "1080p.m3u8") ||
-		strings.HasSuffix(rqst_path, "2160p.m3u8") {
+	if strings.Contains(rqstPath, "/.hidden/") ||
+		strings.HasSuffix(rqstPath, ".ts") ||
+		strings.HasSuffix(rqstPath, "240p.m3u8") ||
+		strings.HasSuffix(rqstPath, "360p.m3u8") ||
+		strings.HasSuffix(rqstPath, "480p.m3u8") ||
+		strings.HasSuffix(rqstPath, "720p.m3u8") ||
+		strings.HasSuffix(rqstPath, "1080p.m3u8") ||
+		strings.HasSuffix(rqstPath, "2160p.m3u8") {
 		hasAccess = true
 	}
 
 	// this is the ca certificate use to sign client certificate.
-	if rqst_path == "/ca.crt" {
-		name = globule.creds + rqst_path
+	if rqstPath == "/ca.crt" {
+		name = globule.creds + rqstPath
 	}
 
-	if strings.Contains(rqst_path, "pdf") {
+	if strings.Contains(rqstPath, "pdf") {
 
-		fmt.Println("validate access ", rqst_path)
+		fmt.Println("validate access ", rqstPath)
 	}
 	hasAccessDenied := false
 	var err error
-	var userId string
+	var userID string
 	if len(token) != 0 && !hasAccess {
 		var claims *security.Claims
 		claims, err = security.ValidateToken(token)
-		userId = claims.Id + "@" + claims.UserDomain
+		userID = claims.Id + "@" + claims.UserDomain
 		if err == nil {
-			hasAccess, hasAccessDenied, err = globule.validateAccess(userId, rbacpb.SubjectType_ACCOUNT, "read", rqst_path)
+			hasAccess, hasAccessDenied, err = globule.validateAccess(userID, rbacpb.SubjectType_ACCOUNT, "read", rqstPath)
 		} else {
 			fmt.Println("fail to validate token with error: ", err)
 		}
 	}
 
 	// Here I will validate applications...
-	if isPublic(rqst_path) && !hasAccessDenied && !hasAccess {
+	if isPublic(rqstPath) && !hasAccessDenied && !hasAccess {
 		hasAccess = true
 	} else if !hasAccess && !hasAccessDenied && len(application) != 0 {
-		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqst_path)
+		hasAccess, hasAccessDenied, err = globule.validateAccess(application, rbacpb.SubjectType_APPLICATION, "read", rqstPath)
 	}
 
 	// validate ressource access...
 	if !hasAccess || hasAccessDenied || err != nil {
-		msg := "unable to read the file " + rqst_path + " Check your access privilege"
+		msg := "unable to read the file " + rqstPath + " Check your access privilege"
 		http.Error(w, msg, http.StatusUnauthorized)
 		return
 	}
@@ -1911,7 +1963,7 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	hasChange := false
 
 	if !Utility.Exists(name) {
-		name = "/" + rqst_path // try network path...
+		name = "/" + rqstPath // try network path...
 	}
 
 	// Try to find the file in the hidden directory...
@@ -1931,11 +1983,11 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 				// #nosec G304 -- File path is constructed from validated input and constant strings.
 				f, err = os.Open(name)
 				if err != nil {
-					http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
+					http.Error(w, "File "+rqstPath+" not found!", http.StatusNoContent)
 					return
 				}
 			} else {
-				http.Error(w, "File "+rqst_path+" not found!", http.StatusNoContent)
+				http.Error(w, "File "+rqstPath+" not found!", http.StatusNoContent)
 				return
 			}
 		}
@@ -1958,9 +2010,9 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 				line := scanner.Text()
 				if strings.HasPrefix(line, "import") {
 					if strings.Contains(line, `'@`) {
-						path_, err := resolveImportPath(rqst_path, line)
+						filePath, err := resolveImportPath(rqstPath, line)
 						if err == nil {
-							line = line[0:strings.Index(line, `'@`)] + `'` + path_ + `'`
+							line = line[0:strings.Index(line, `'@`)] + `'` + filePath + `'`
 							hasChange = true
 						}
 					}
@@ -1984,6 +2036,22 @@ func ServeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetIMDBPoster retrieves the highest resolution poster image URL for a given IMDb title ID.
+// It performs the following steps:
+//  1. Visits the IMDb title page to find the media viewer URL.
+//  2. Extracts the image resource ID (rmID) from the media viewer URL.
+//  3. Visits the media viewer page and parses the available images to find the poster
+//     with the matching rmID, selecting the highest resolution image from the srcset attribute.
+//  4. Returns the poster image URL or an error if the poster cannot be found.
+//
+// Parameters:
+//
+//	imdbID - The IMDb title identifier (e.g., "tt0111161").
+//
+// Returns:
+//
+//	string - The URL of the poster image.
+//	error  - An error if the poster cannot be found or if any step fails.
 func GetIMDBPoster(imdbID string) (string, error) {
 	mainURL := "https://www.imdb.com/title/" + imdbID + "/"
 	var posterViewerURL string
@@ -2122,37 +2190,37 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 
 // ////////////////////////// imdb missing sesson and episode number info... /////////////////////////
 // get the thumbnail fil with help of youtube dl...
-func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
+func downloadThumbnail(videoID, videoURL, videoPath string) (string, error) {
 
-	if len(video_id) == 0 {
+	if len(videoID) == 0 {
 		return "", errors.New("no video id was given")
 	}
-	if len(video_url) == 0 {
+	if len(videoURL) == 0 {
 		return "", errors.New("no video url was given")
 	}
-	if len(video_path) == 0 {
+	if len(videoPath) == 0 {
 		return "", errors.New("no video path was given")
 	}
 
 	lastIndex := -1
-	if strings.Contains(video_path, ".mp4") {
-		lastIndex = strings.LastIndex(video_path, ".")
+	if strings.Contains(videoPath, ".mp4") {
+		lastIndex = strings.LastIndex(videoPath, ".")
 	}
 
 	// The hidden folder path...
-	path_ := video_path[0:strings.LastIndex(video_path, "/")]
+	filePath := videoPath[0:strings.LastIndex(videoPath, "/")]
 
-	name_ := video_path[strings.LastIndex(video_path, "/")+1:]
+	name := videoPath[strings.LastIndex(videoPath, "/")+1:]
 	if lastIndex != -1 {
-		name_ = video_path[strings.LastIndex(video_path, "/")+1 : lastIndex]
+		name = videoPath[strings.LastIndex(videoPath, "/")+1 : lastIndex]
 	}
 
-	thumbnail_path := path_ + "/.hidden/" + name_ + "/__thumbnail__"
+	thumbnailPath := filePath + "/.hidden/" + name + "/__thumbnail__"
 
-	if Utility.Exists(thumbnail_path + "/" + "data_url.txt") {
+	if Utility.Exists(thumbnailPath + "/" + "data_url.txt") {
 
 		// #nosec G304 -- Path is anchored, allow-listed, symlinks resolved, and confined to base.
-		thumbnail, err := os.ReadFile(thumbnail_path + "/" + "data_url.txt")
+		thumbnail, err := os.ReadFile(thumbnailPath + "/" + "data_url.txt")
 		if err != nil {
 			return "", err
 		}
@@ -2160,30 +2228,30 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 		return string(thumbnail), nil
 	}
 
-	err := Utility.CreateDirIfNotExist(thumbnail_path)
+	err := Utility.CreateDirIfNotExist(thumbnailPath)
 	if err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("yt-dlp", video_url, "-o", video_id, "--write-thumbnail", "--skip-download")
-	cmd.Dir = thumbnail_path
+	cmd := exec.Command("yt-dlp", videoURL, "-o", videoID, "--write-thumbnail", "--skip-download")
+	cmd.Dir = thumbnailPath
 
 	err = cmd.Run()
 	if err != nil {
 		return "", err
 	}
 
-	files, err := Utility.ReadDir(thumbnail_path)
+	files, err := Utility.ReadDir(thumbnailPath)
 	if err != nil {
 		return "", err
 	}
 
-	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnail_path, files[0].Name()), 300, 180)
+	thumbnail, err := Utility.CreateThumbnail(filepath.Join(thumbnailPath, files[0].Name()), 300, 180)
 	if err != nil {
 		return "", err
 	}
 
-	err = os.WriteFile(thumbnail_path+"/"+"data_url.txt", []byte(thumbnail), 0600)
+	err = os.WriteFile(thumbnailPath+"/"+"data_url.txt", []byte(thumbnail), 0600)
 	if err != nil {
 		return "", err
 	}
@@ -2192,31 +2260,32 @@ func downloadThumbnail(video_id, video_url, video_path string) (string, error) {
 	return thumbnail, nil
 }
 
-/**
- * Return the cover image...
- */
-func GetCoverDataUrl(w http.ResponseWriter, r *http.Request) {
+// GetCoverDataURL handles HTTP requests to retrieve a cover image as a data URL for a video.
+// It expects query parameters "id" (video ID), "url" (video URL), and "path" (video file path).
+// The function attempts to download the thumbnail using these parameters and returns the data URL.
+// On error, it responds with an appropriate HTTP error status and message.
+func GetCoverDataURL(w http.ResponseWriter, r *http.Request) {
 	// here in case of file uploaded from other website like pornhub...
-	video_id := r.URL.Query().Get("id")
-	video_url := r.URL.Query().Get("url")
-	video_path := r.URL.Query().Get("path")
+	videoID := r.URL.Query().Get("id")
+	videoURL := r.URL.Query().Get("url")
+	videoPath := r.URL.Query().Get("path")
 
-	dataUrl, err := downloadThumbnail(video_id, video_url, video_path)
+	dataURL, err := downloadThumbnail(videoID, videoURL, videoPath)
 	if err != nil {
 		http.Error(w, "fail to create data url with error'"+err.Error()+"'", http.StatusExpectationFailed)
 		return
 	}
 
-	_, err = w.Write([]byte(dataUrl))
+	_, err = w.Write([]byte(dataURL))
 	if err != nil {
 		http.Error(w, "fail to write data url with error'"+err.Error()+"'", http.StatusInternalServerError)
 		return
 	}
 }
 
-func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, error) {
+func getSeasonAndEpisodeNumber(titleID string) (int, int, string, error) {
 
-	resp, err := client.Get(`https://www.imdb.com/title/` + titleId)
+	resp, err := client.Get(`https://www.imdb.com/title/` + titleID)
 	if err != nil {
 		return -1, -1, "", err
 	}
@@ -2233,25 +2302,25 @@ func getSeasonAndEpisodeNumber(titleId string, nbCall int) (int, int, string, er
 	serie := ""
 
 	// The first regex to locate the information...
-	re_SE := regexp.MustCompile(`>S\d{1,2}<!-- -->\.<!-- -->E\d{1,2}<`)
+	regexSE := regexp.MustCompile(`>S\d{1,2}<!-- -->\.<!-- -->E\d{1,2}<`)
 	page, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return -1, -1, "", err
 	}
 
-	matchs_SE := re_SE.FindStringSubmatch(string(page))
+	matchsSE := regexSE.FindStringSubmatch(string(page))
 
-	if len(matchs_SE) > 0 {
-		re_S := regexp.MustCompile(`S\d{1,2}`)
-		matchs_S := re_S.FindStringSubmatch(matchs_SE[0])
-		if len(matchs_S) > 0 {
-			season = Utility.ToInt(matchs_S[0][1:])
+	if len(matchsSE) > 0 {
+		regexS := regexp.MustCompile(`S\d{1,2}`)
+		matchsS := regexS.FindStringSubmatch(matchsSE[0])
+		if len(matchsS) > 0 {
+			season = Utility.ToInt(matchsS[0][1:])
 		}
 
-		re_E := regexp.MustCompile(`E\d{1,2}`)
-		matchs_E := re_E.FindStringSubmatch(matchs_SE[0])
-		if len(matchs_E) > 0 {
-			episode = Utility.ToInt(matchs_E[0][1:])
+		regexE := regexp.MustCompile(`E\d{1,2}`)
+		matchsE := regexE.FindStringSubmatch(matchsSE[0])
+		if len(matchsE) > 0 {
+			episode = Utility.ToInt(matchsE[0][1:])
 		}
 	}
 
@@ -2293,46 +2362,46 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	title_, _ := Utility.ToMap(title)
+	titleMap, _ := Utility.ToMap(title)
 
 	if title.Type == "TVEpisode" {
-		s, e, t, err := getSeasonAndEpisodeNumber(id, 10)
+		s, e, t, err := getSeasonAndEpisodeNumber(id)
 		if err == nil {
-			title_["Season"] = s
-			title_["Episode"] = e
-			title_["Serie"] = t
+			titleMap["Season"] = s
+			titleMap["Episode"] = e
+			titleMap["Serie"] = t
 		} else {
-			fmt.Println("fail to retreive episode info ", err)
+			fmt.Println("fail to find episode info ", err)
 		}
 	}
 
 	// Now I will try to complete the casting informations...
-	if title_["Actors"] != nil {
-		for i := 0; i < len(title_["Actors"].([]interface{})); i++ {
-			p := title_["Actors"].([]interface{})[i].(map[string]interface{})
-			p_, err := setPersonInformation(p)
+	if titleMap["Actors"] != nil {
+		for i := 0; i < len(titleMap["Actors"].([]interface{})); i++ {
+			p := titleMap["Actors"].([]interface{})[i].(map[string]interface{})
+			a, err := setPersonInformation(p)
 			if err == nil {
-				title_["Actors"].([]interface{})[i] = p_
+				titleMap["Actors"].([]interface{})[i] = a
 			}
 		}
 	}
 
-	if title_["Writers"] != nil {
-		for i := 0; i < len(title_["Writers"].([]interface{})); i++ {
-			p := title_["Writers"].([]interface{})[i].(map[string]interface{})
-			p_, err := setPersonInformation(p)
+	if titleMap["Writers"] != nil {
+		for i := 0; i < len(titleMap["Writers"].([]interface{})); i++ {
+			p := titleMap["Writers"].([]interface{})[i].(map[string]interface{})
+			w, err := setPersonInformation(p)
 			if err == nil {
-				title_["Writers"].([]interface{})[i] = p_
+				titleMap["Writers"].([]interface{})[i] = w
 			}
 		}
 	}
 
-	if title_["Directors"] != nil {
-		for i := 0; i < len(title_["Directors"].([]interface{})); i++ {
-			p := title_["Directors"].([]interface{})[i].(map[string]interface{})
-			p_, err := setPersonInformation(p)
+	if titleMap["Directors"] != nil {
+		for i := 0; i < len(titleMap["Directors"].([]interface{})); i++ {
+			p := titleMap["Directors"].([]interface{})[i].(map[string]interface{})
+			d, err := setPersonInformation(p)
 			if err == nil {
-				title_["Directors"].([]interface{})[i] = p_
+				titleMap["Directors"].([]interface{})[i] = d
 			}
 		}
 	}
@@ -2346,15 +2415,15 @@ func getImdbTitleHanldler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Now I will download the poster image...
-	title_["Poster"] = map[string]interface{}{"URL": poster, "ContentURL": poster, "TitleId": title.ID, "id": title.ID}
+	titleMap["Poster"] = map[string]interface{}{"URL": poster, "ContentURL": poster, "titleID": title.ID, "id": title.ID}
 
-	jsonStr, err := json.MarshalIndent(title_, "", "  ")
+	jsonStr, err := json.MarshalIndent(titleMap, "", "  ")
 	if err != nil {
 		http.Error(w, "fail to encode json with error "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("Found ", len(title_), " titles.")
+	fmt.Println("Found ", len(titleMap), " titles.")
 
 	_, err = w.Write(jsonStr)
 	if err != nil {
