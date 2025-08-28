@@ -1,3 +1,0 @@
-mail._domainkey	IN	TXT	( "v=DKIM1; h=sha256; k=rsa; t=y; "
-	  "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA11F9ujtHm9fg2CrraBJac73xV1EEnc0JgIjpAq/lpv4OuG+TrCkRXNPfxZ74dGdcH+x/JM9ldoE+2XstSgGwJZ8Qcsc4pwfIjXB+9WBgalPZbOfv9kz8eJYvfz/Sw9FZnYSrVUHClOtYWfRfayQaMV1j89OXrqA+rcPg9/7jbMMIqodjxC+vcVsaxlZ4I1hzfnHmNL3fAkcckB"
-	  "b4ESFmC/r9DY5mNGRUBRrHYTzCHjdWP0KmS9j4lema5ACUzQ4t6d3rHqAUxzCRyKahr8X8pdNjhXiramQIASYOdMSCX3wNmXsrEl9l0OAKDqNfPMzXBmNZKFqsBAriZyAdYIluIwIDAQAB" )  ; ----- DKIM key mail for globular.io

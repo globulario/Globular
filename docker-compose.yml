@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Grafana + Tempo + Loki + Prometheus (LGTM stack)
+  o11y:
+    image: grafana/otel-lgtm:0.7.1
+    ports:
+      - "3000:3000"   # Grafana
+      - "4318:4318"   # OTLP HTTP ingest
+      - "9090:9090"   # Prometheus
