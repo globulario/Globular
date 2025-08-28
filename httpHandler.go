@@ -39,8 +39,7 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 	protoparser "github.com/yoheimuta/go-protoparser/v4"
-
-	"github.com/golang-jwt/jwt/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -2150,7 +2149,11 @@ func getImdbTitlesHanldler(w http.ResponseWriter, r *http.Request) {
 
 	if len(titles) == 0 {
 		fmt.Fprintf(os.Stderr, "Not found.")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, "No titles found", http.StatusBadRequest)
+		}
 		return
 	}
 

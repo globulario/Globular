@@ -1555,7 +1555,8 @@ func dist(g *Globule, path string, revision string) {
 			return
 		}
 
-		if runtime.GOARCH == "amd64" {
+		switch runtime.GOARCH {
+		case "amd64":
 
 			// zlib
 			if !Utility.Exists("/usr/lib/x86_64-linux-gnu/libz.a") {
@@ -1573,7 +1574,7 @@ func dist(g *Globule, path string, revision string) {
 				log.Println("fail to copy libz.so.1.2.11 with error", err)
 			}
 
-		} else if runtime.GOARCH == "arm64" {
+		case "arm64":
 			if !Utility.Exists("/usr/lib/aarch64-linux-gnu/libssl.so.1.1") {
 				fmt.Println("libssl.so.1.1 not found on your computer, please install it: ")
 				fmt.Println("   wget http://launchpadlibrarian.net/475575244/libssl1.1_1.1.1f-1ubuntu2_arm64.deb")
@@ -2383,7 +2384,7 @@ func generateDistro(path string) []string {
 
 		// I will read the configuration file to have necessary service information
 		// to be able to create the path.
-		hasPath := s["Path"] != nil
+		hasPath := s["Path"] != ""
 		if hasPath {
 			execPath := s["Path"].(string)
 			if len(execPath) > 0 {

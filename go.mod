@@ -26,7 +26,7 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8 // indirect
