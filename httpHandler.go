@@ -202,9 +202,20 @@ type TokenClaims struct {
 
 // Google's public keys URL
 const googleJWTKeySetURL = "https://www.googleapis.com/oauth2/v3/certs"
+const maxJWTLen = 16 * 1024 // 16KB is plenty for an ID token
 
 // verifyGoogleIDToken verifies the Google ID token and returns the claims.
 func verifyGoogleIDToken(idToken string, config *oauth2.Config) (map[string]interface{}, error) {
+
+	if len(idToken) == 0 || len(idToken) > maxJWTLen {
+		return nil, fmt.Errorf("invalid token size")
+	}
+
+	parser := jwt.NewParser(
+		jwt.WithValidMethods([]string{"RS256"}), // Google uses RS256
+		// jwt.WithLeeway(30*time.Second), // optional clock skew
+	)
+
 	// Fetch Google's public keys
 	resp, err := http.Get(googleJWTKeySetURL)
 	if err != nil {
@@ -229,29 +240,21 @@ func verifyGoogleIDToken(idToken string, config *oauth2.Config) (map[string]inte
 		return nil, fmt.Errorf("failed to decode Google's keys: %w", err)
 	}
 
-	// Parse and verify the JWT token
-	token, err := jwt.Parse(idToken, func(token *jwt.Token) (interface{}, error) {
-		// Ensure the signing method is RSA
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	token, err := parser.Parse(idToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-
-		// Find the key used to sign the token (match 'kid' field)
 		for _, key := range keySet.Keys {
-			if key.Kid == token.Header["kid"] {
-				// Convert key data into an RSA public key
+			if key.Kid == t.Header["kid"] {
 				return convertToPublicKey(key)
 			}
 		}
-
 		return nil, errors.New("key not found")
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ID token: %w", err)
 	}
 
-	// Extract token claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
