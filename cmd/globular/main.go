@@ -4,13 +4,16 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	httplib "Globular/internal/http"
-	"Globular/internal/server"
+	cfgHandlers "github.com/globulario/Globular/internal/handlers/config"
+	httplib "github.com/globulario/Globular/internal/http"
+
+	"github.com/globulario/Globular/internal/server"
 )
 
 func main() {
@@ -33,7 +36,9 @@ func main() {
 	})
 
 	// ---- Mount existing handlers here (no behavior change) ----
-	// mux.Handle("/getConfig", http.HandlerFunc(getConfigHanldler))
+	cfgHandlers.Mount(mux, cfgHandlers.Deps{
+		GetConfig: http.HandlerFunc(getConfigHandler),
+	})
 	// mux.Handle("/get-images", http.HandlerFunc(GetImagesHandler))
 	// mux.Handle("/file-upload", http.HandlerFunc(FileUploadHandler))
 	// mux.Handle("/serve", http.HandlerFunc(ServeFileHandler))

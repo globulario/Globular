@@ -1,7 +1,7 @@
 package http
 
 import (
-	"Globular/internal/http/middleware"
+	"github.com/globulario/Globular/internal/http/middleware"
 	"log/slog"
 	"net/http"
 
