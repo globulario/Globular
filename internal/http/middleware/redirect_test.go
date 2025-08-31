@@ -40,7 +40,7 @@ func TestWithRedirectAndPreflight_Redirects(t *testing.T) {
 	h := middleware.WithRedirectAndPreflight(rdr, nil)(next)
 
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/getConfig", nil)
+	req := httptest.NewRequest(http.MethodGet, "api/getConfig", nil)
 	req.Host = "peer.example:8081"
 
 	h.ServeHTTP(rr, req)

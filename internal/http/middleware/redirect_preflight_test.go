@@ -17,7 +17,7 @@ func TestWithRedirectAndPreflight_OptionsShortCircuit(t *testing.T) {
 	})(next)
 
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodOptions, "/getConfig", nil)
+	req := httptest.NewRequest(http.MethodOptions, "/api/getConfig", nil)
 
 	h.ServeHTTP(rr, req)
 
