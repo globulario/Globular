@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/globulario/Globular/internal/logsink"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
+	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
@@ -19,16 +21,92 @@ import (
 )
 
 // maybeStartDNSAndRegister starts dns.DnsService if configured locally, then registers A/AAAA/MX, etc.
-func (g *Globule) maybeStartDNSAndRegister(_ context.Context) error {
-	// best-effort boot of local DNS service
-	if cfg, err := config.GetServiceConfigurationById("dns.DnsService"); err == nil {
-		cfg["State"] = "starting"
-		cfg["ProxyProcess"] = -1
-		port := Utility.ToInt(cfg["Port"])
-		if _, err := process.StartServiceProcess(cfg, port); err != nil {
-			g.log.Warn("dns service start failed", "err", err)
-		}
+// maybeStartDNSAndRegister ensures the DNS service has a desired config in etcd,
+// starts it (if not running), waits for readiness, then updates DNS records.
+func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
+	const svcName = "dns.DnsService"
+
+	// 1) Ensure desired exists for DNS (describe/merge/allocate like the main boot)
+	desc, bin, err := g.describeServiceByName(svcName, 5*time.Second)
+	if err != nil {
+		g.log.Warn("dns describe failed (service binary not found yet?)", "err", err)
+		// best-effort: still attempt register using external DNS if your registerIPToDNS() supports it
+		return g.registerIPToDNS()
 	}
+
+	alloc, err := config.NewDefaultPortAllocator()
+	if err != nil {
+		return err
+	}
+
+	// Merge or create desired config for DNS service
+	desired, err := g.mergeOrCreateDesired(desc, alloc)
+	if err != nil {
+		return fmt.Errorf("dns desired creation failed: %w", err)
+	}
+
+	desired["Path"] = bin
+	desired["Domain"] = g.Domain
+	desired["Address"] = g.localIPAddress
+	desired["Mac"] = g.Mac
+
+	if err := config.SaveServiceConfiguration(desired); err != nil {
+
+		return fmt.Errorf("dns desired save failed: %w", err)
+	}
+
+	// 2) If already running, skip start
+	id := Utility.ToString(desired["Id"])
+	if id == "" {
+		return fmt.Errorf("dns desired missing Id")
+	}
+	state := ""
+	if cfg, _ := config.GetServiceConfigurationById(id); cfg != nil {
+		state = Utility.ToString(cfg["State"])
+	}
+	if state == "running" {
+		// already up; proceed to register
+		return g.registerIPToDNS()
+	}
+
+	// 3) Start DNS with logs and wait readiness
+	address, _ := config.GetAddress()
+	name := svcName
+	port := Utility.ToInt(desired["Port"])
+	proxy := Utility.ToInt(desired["Proxy"])
+	outW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stdout", logpb.LogLevel_INFO_MESSAGE, os.Stdout)
+	errW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stderr", logpb.LogLevel_ERROR_MESSAGE, os.Stderr)
+
+	g.log.Info("starting dns", "port", port, "proxy", proxy, "path", desired["Path"])
+	pid, err := process.StartServiceProcessWithWriters(desired, port, outW, errW)
+	if err != nil {
+		_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "failed", "LastError": err.Error()})
+		g.log.Warn("dns start failed", "err", err)
+		// Still attempt external registration so HTTPS bootstrap can proceed if possible.
+		return g.registerIPToDNS()
+	}
+	_ = config.PutRuntime(id, map[string]any{"Process": pid, "State": "starting", "LastError": ""})
+
+	// set pid in desired for proxy use
+	desired["Process"] = pid
+
+	// optional: start grpc-web proxy
+	if _, err := process.StartServiceProxyProcess(desired, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
+		g.log.Warn("dns proxy start failed", "err", err)
+	}
+
+	// bounded readiness wait
+	addr := "127.0.0.1:" + Utility.ToString(port)
+	ok := g.waitServiceReady(name, addr, 15*time.Second)
+	if !ok {
+		_ = config.PutRuntime(id, map[string]any{"State": "failed", "LastError": "dns startup timeout"})
+		g.log.Warn("dns failed to become ready")
+		// Attempt external register anyway.
+		return g.registerIPToDNS()
+	}
+	_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
+
+	// 4) Now we can safely register IP → DNS
 	return g.registerIPToDNS()
 }
 
@@ -66,6 +144,7 @@ func (g *Globule) setHost(ipv4, address string) error {
 
 // registerIPToDNS reproduces your previous behavior, but keeps errors informative and short.
 func (g *Globule) registerIPToDNS() error {
+
 	if g.DNS == "" {
 		return nil
 	}
@@ -95,6 +174,7 @@ func (g *Globule) registerIPToDNS() error {
 			if err == nil && cfg["State"] == "running" {
 				break
 			}
+
 			time.Sleep(time.Second)
 			if try == maxTry-1 {
 				return fmt.Errorf("dns server not running")
@@ -113,9 +193,27 @@ func (g *Globule) registerIPToDNS() error {
 	}
 	ipv6, _ := Utility.MyIPv6()
 
+	// first of all I will set the domains for the dns server...
+	domains := []string{}
+
+	for _, v := range g.AlternateDomains {
+		alt := strings.TrimPrefix(fmt.Sprint(v), "*.")
+		domains = append(domains, alt)
+	}
+
+	if !Utility.Contains(domains, domain) {
+		domains = append(domains, domain)
+	}
+
+	err = c.SetDomains(tk, domains)
+	if err != nil {
+		return fmt.Errorf("set domains: %w", err)
+	}
+
 	// --- Primary host records (A/AAAA) ---
 	_ = c.RemoveA(tk, localFQDN)
 	if _, err := c.SetA(tk, localFQDN, ipv4, 60); err != nil {
+
 		return fmt.Errorf("set A %s: %w", localFQDN, err)
 	}
 	if ipv6 != "" {

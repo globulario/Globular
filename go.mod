@@ -2,9 +2,12 @@ module github.com/globulario/Globular
 
 go 1.24.5
 
+// set local replace github.com/globulario/services/golang => ../services/golang
+replace github.com/globulario/services/golang => ../services/golang
+
 require (
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/globulario/services/golang v0.1.8
+	//github.com/globulario/services/golang v0.1.29
 	github.com/globulario/utility v0.1.8
 	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-acme/lego/v4 v4.25.2
@@ -15,6 +18,21 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.37.0
 	go.opentelemetry.io/otel/sdk v1.37.0
 	golang.org/x/time v0.12.0
+)
+
+require github.com/globulario/services/golang v0.0.0-00010101000000-000000000000
+
+require (
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	go.etcd.io/etcd/api/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.14 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 )
 
 require (
@@ -32,6 +50,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gookit/color v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
 	github.com/kalafut/imohash v1.1.0 // indirect
 	github.com/miekg/dns v1.1.67 // indirect
@@ -63,7 +82,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

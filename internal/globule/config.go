@@ -103,7 +103,7 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 		s["PublisherID"] = services[i]["PublisherID"]
 		s["State"] = services[i]["State"]
 		s["TLS"] = services[i]["TLS"]
-		s["Dependencys"] = services[i]["Dependencys"]
+		s["Dependencies"] = services[i]["Dependencies"]
 		s["Version"] = services[i]["Version"]
 		s["CertAuthorityTrust"] = services[i]["CertAuthorityTrust"]
 		s["CertFile"] = services[i]["CertFile"]

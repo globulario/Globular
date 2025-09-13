@@ -61,6 +61,7 @@ var (
 // main()
 // ============================================================
 func main() {
+
 	// Keep flags around for future expansion, but ports will come from Globule config.
 	_ = flag.String("http", "", "ignored: HTTP port is taken from Globule config")
 	_ = flag.String("https", "", "ignored: HTTPS port is taken from Globule config")
@@ -129,19 +130,31 @@ func main() {
 	// Wait until a listener is bound (https preferred in your config)
 	<-sup.Ready
 
-	servicesCtx, servicesCancel := context.WithCancel(context.Background())
+	// single parent shutdown context
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// start services tied to that context
+	servicesCtx, servicesCancel := context.WithCancel(ctx)
 	go globule.StartServices(servicesCtx)
 
-	// 6) Block until SIGINT/SIGTERM, then stop gracefully
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	// one-shot shutdown path
+	go func() {
+		<-ctx.Done()
+		slog.Info("shutdown requested; stopping services...")
+
+		// stop service supervisor first (cancels StartServices loop)
+		servicesCancel()
+
+		// ask Globule to stop all children (use your robust killers inside)
+		globule.StopServices()
+
+		// stop HTTP/S (best-effort; add a timeout if you want)
+		_ = sup.Stop(context.Background())
+	}()
+
+	// block main until shutdown happened
 	<-ctx.Done()
-	stop()
-	servicesCancel()
-
-	// 7) Stop services and shutdown
-	globule.StopServices()
-
-	_ = sup.Stop(context.Background())
 }
 
 // ============================================================
