@@ -246,6 +246,7 @@ func (g *Globule) RegisterIPToDNS() error { return g.registerIPToDNS() }
 
 // StartServices is the public entry used by main.go.
 func (g *Globule) StartServices(ctx context.Context) {
+
 	defer g.startConsoleLogs()
 	if err := g.startServicesEtcd(ctx); err != nil {
 		g.log.Error("StartServices failed", "err", err)

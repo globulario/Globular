@@ -32,6 +32,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -44,6 +45,7 @@ import (
 	"github.com/globulario/Globular/internal/server"
 
 	config_ "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
@@ -79,7 +81,6 @@ func main() {
 	var httpAddr, httpsAddr string
 	switch strings.ToLower(globule.Protocol) {
 	case "https":
-
 		// Bootstrap DNS+ACME and write the certs
 		if err := globule.BootstrapTLSAndDNS(context.Background()); err != nil {
 			logger.Error("tls/dns bootstrap failed", "err", err)
@@ -134,27 +135,40 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// start services tied to that context
+	// start services tied to that context (and wait for them on shutdown)
 	servicesCtx, servicesCancel := context.WithCancel(ctx)
-	go globule.StartServices(servicesCtx)
-
-	// one-shot shutdown path
+	var svcWG sync.WaitGroup
+	svcWG.Add(1)
 	go func() {
-		<-ctx.Done()
-		slog.Info("shutdown requested; stopping services...")
-
-		// stop service supervisor first (cancels StartServices loop)
-		servicesCancel()
-
-		// ask Globule to stop all children (use your robust killers inside)
-		globule.StopServices()
-
-		// stop HTTP/S (best-effort; add a timeout if you want)
-		_ = sup.Stop(context.Background())
+		defer svcWG.Done()
+		globule.StartServices(servicesCtx)
 	}()
 
-	// block main until shutdown happened
+	// --- block main until we get a signal ---
 	<-ctx.Done()
+
+	// Synchronous, ordered shutdown (so we don't race with process exit)
+	logger.Info("shutdown requested; stopping services...")
+
+	// 1) stop service supervisor first (cancels StartServices loop)
+	servicesCancel()
+	// 2) ask Globule to stop all children (use your robust killers inside)
+	globule.StopServices()
+	// 3) wait for StartServices() to unwind
+	svcWG.Wait()
+
+	// 4) stop HTTP/S with a timeout
+	shCtx, shCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shCancel()
+	if err := sup.Stop(shCtx); err != nil {
+		logger.Error("HTTP/S shutdown error", "err", err)
+	}
+
+	// 5) stop etcd server (if any)
+	err := process.StopEtcdServer()
+	if err != nil {
+		logger.Error("etcd shutdown error", "err", err)
+	}
 }
 
 // ============================================================
@@ -415,10 +429,7 @@ func setHeaders(w http.ResponseWriter, r *http.Request) {
 
 type cfgProvider struct{}
 
-func (cfgProvider) Address() (string, error) { return config_.GetAddress() }
-func (cfgProvider) RemoteConfig(host string, port int) (map[string]any, error) {
-	return config_.GetRemoteConfig(host, port)
-}
+func (cfgProvider) Address() (string, error)    { return config_.GetAddress() }
 func (cfgProvider) MyIP() string                { return Utility.MyIP() }
 func (cfgProvider) LocalConfig() map[string]any { return globule.GetConfig() }
 func (cfgProvider) RootDir() string             { return config_.GetRootDir() }

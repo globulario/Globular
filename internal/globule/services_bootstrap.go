@@ -199,7 +199,9 @@ func (g *Globule) isActuallyRunning(name string, port int) bool {
 		return false
 	}
 
-	addr := net.JoinHostPort("127.0.0.1", fmt.Sprint(port))
+	addr, _ := config.GetAddress()
+	addr = strings.Split(addr, ":")[0] // host only
+	addr = net.JoinHostPort(addr, fmt.Sprint(port))
 
 	// TCP connect
 	if c, err := net.DialTimeout("tcp", addr, 600*time.Millisecond); err == nil {
@@ -213,6 +215,7 @@ func (g *Globule) isActuallyRunning(name string, port int) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -386,18 +389,66 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 
 // stopServicesEtcd stops proxies first, then services (same behavior as before).
 func (g *Globule) stopServicesEtcd() error {
+
 	svcs, err := config.GetServicesConfigurations()
 	if err != nil {
 		return err
 	}
+
+	// 1) Stop proxies first (unchanged)
 	for _, s := range svcs {
 		_ = process.KillServiceProxyProcess(s)
 	}
+
+	// 2) Ask each service to close cooperatively by setting desired State="closing"
 	for _, s := range svcs {
-		_ = process.KillServiceProcess(s)
 		id := Utility.ToString(s["Id"])
-		_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "stopped", "LastError": ""})
+		// reload desired to avoid clobbering
+		if cur, err := config.GetServiceConfigurationById(id); err == nil && cur != nil {
+			cur["State"] = "closing"
+			g.log.Info("setting desired State=closing for service %s (%s)", Utility.ToString(s["Name"]), id)
+			_ = config.SaveServiceConfiguration(cur) // triggers watchDesiredConfig in the service
+		} else {
+			g.log.Warn("cannot set desired State=closing; config not found", "id", id)
+		}
 	}
+
+	// 3) Wait for runtime State="closed" with a timeout; fallback to hard kill if needed
+	deadline := time.Now().Add(30 * time.Second)
+	closed := map[string]bool{}
+	for time.Now().Before(deadline) {
+		allClosed := true
+		for _, s := range svcs {
+			id := Utility.ToString(s["Id"])
+			if closed[id] {
+				continue
+			}
+			// Fetch runtime (process/state) — if your config pkg has a getter use it.
+			rt, _ := config.GetRuntime(id) // implement if not present; or keep runtime under /globular/services/<id>/runtime
+			if Utility.ToString(rt["State"]) == "closed" {
+				closed[id] = true
+				g.log.Info("service closed", "id", id, "name", Utility.ToString(s["Name"]))
+				continue
+			}
+			allClosed = false
+		}
+		if allClosed {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// 4) Hard-kill any stragglers and mark them failed, so issues are visible
+	for _, s := range svcs {
+		id := Utility.ToString(s["Id"])
+		if closed[id] {
+			continue
+		}
+		g.log.Warn("service did not close in time; forcing kill", "id", id, "name", Utility.ToString(s["Name"]))
+		_ = process.KillServiceProcess(s)
+		_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "failed", "LastError": "forced kill on shutdown"})
+	}
+
 	return nil
 }
 
