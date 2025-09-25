@@ -103,6 +103,26 @@ func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 	}()
 }
 
+var (
+	envoySnapMu    sync.Mutex
+	envoySnapTimer *time.Timer
+)
+
+func (g *Globule) refreshEnvoySnapshotDebounced() {
+	envoySnapMu.Lock()
+	defer envoySnapMu.Unlock()
+	if envoySnapTimer != nil {
+		envoySnapTimer.Stop()
+	}
+	envoySnapTimer = time.AfterFunc(500*time.Millisecond, func() {
+		if err := g.SetSnapshot(); err != nil {
+			g.log.Warn("envoy snapshot refresh failed", "err", err)
+		} else {
+			g.log.Info("envoy snapshot updated")
+		}
+	})
+}
+
 func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard, id string) {
 	// per-id dedupe
 	guard.mu.Lock()
@@ -165,13 +185,17 @@ func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard
 			_ = config.PutRuntime(id, map[string]any{"Process": pid, "State": "starting", "LastError": ""})
 			cfg["Process"] = pid
 
-			if _, perr := process.StartServiceProxyProcess(cfg, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); perr != nil {
-				g.log.Warn("keepalive: proxy start failed", "name", name, "err", perr)
+			if !g.UseEnvoy {
+				if _, perr := process.StartServiceProxyProcess(cfg, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); perr != nil {
+					g.log.Warn("keepalive: proxy start failed", "name", name, "err", perr)
+				}
 			}
 
-			// short readiness wait
 			if g.waitServiceReady(name, addr, 8*time.Second) {
 				_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
+				if g.UseEnvoy {
+					g.refreshEnvoySnapshotDebounced()
+				}
 			} else {
 				_ = config.PutRuntime(id, map[string]any{"State": "failed", "LastError": "keepalive startup timeout"})
 			}
@@ -268,7 +292,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		return err
 	}
 
-	// 2) Discover executables (shared in config)
+	// 2) Discover executables
 	bins, err := config.DiscoverExecutables(config.GetServicesRoot())
 	if err != nil {
 		return err
@@ -277,7 +301,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		return errors.New("no service executables found; check GetServicesRoot()")
 	}
 
-	// 3) Allocate ports with conflict checks against existing desired
+	// 3) Allocate ports
 	alloc, err := config.NewPortAllocator(g.PortsRange)
 	if err != nil {
 		return err
@@ -286,7 +310,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		alloc.ReserveExisting(existing)
 	}
 
-	// 4) Describe -> normalize -> merge/author desired
+	// 4) Describe -> desired
 	address, _ := config.GetAddress()
 	address = strings.Split(address, ":")[0] // host only
 
@@ -301,20 +325,35 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 			continue
 		}
 		g.normalizeDescriptor(&desc)
-
 		m, err := g.mergeOrCreateDesired(desc, alloc)
 		if err != nil {
 			g.log.Error("merge/create desired failed", "name", desc.Name, "err", err)
 			continue
 		}
+
+		if g.Protocol == "https" {
+			// Ensure service has TLS certs if running in https mode
+			if _, err := os.Stat(config.GetLocalServerKeyPath()); os.IsNotExist(err) {
+				g.log.Error("missing TLS certificate", "service", desc.Name)
+			} else {
+				// The certificate private key
+				m["KeyFile"] = config.GetLocalServerKeyPath()
+				// The certificate chain to present to clients
+				m["CertFile"] = config.GetLocalServerCertificatePath()
+				// The CA bundle to validate client certs (if mTLS)
+				m["CertAuthorityTrust"] = config.GetLocalCACertificate()
+			}
+		}
+
 		if err := config.SaveServiceConfiguration(m); err != nil {
 			g.log.Error("save desired failed", "service", desc.Name, "id", m["Id"], "err", err)
 			continue
 		}
+
 		desiredByID[Utility.ToString(m["Id"])] = m
 	}
 
-	// 5) Order by dependencies
+	// 5) Order by deps
 	ordered, err := g.topoOrder(desiredByID)
 	if err != nil {
 		return err
@@ -323,7 +362,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		return errors.New("no services to start after desired authoring")
 	}
 
-	// 6) Spawn with log sinks + proxies
+	// 6) Spawn services (no per-service proxy when UseEnvoy)
 	for _, id := range ordered {
 		m := desiredByID[id]
 		name := Utility.ToString(m["Name"])
@@ -335,7 +374,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 			continue
 		}
 
-		// Skip if already running (per runtime state or port check)
+		// Skip if already running
 		addr := address + ":" + Utility.ToString(m["Port"])
 		if isListening(addr, 300*time.Millisecond) {
 			g.log.Info("service already running; skipping start", "name", name, "addr", addr)
@@ -354,16 +393,18 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 			continue
 		}
 
-		// IMPORTANT: update in-memory map so proxy code sees the pid
 		_ = config.PutRuntime(id, map[string]any{"Process": pid, "State": "starting", "LastError": ""})
 		m["Process"] = pid
 
-		if _, err := process.StartServiceProxyProcess(m, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
-			g.log.Warn("proxy start failed", "name", name, "err", err)
+		if !g.UseEnvoy {
+			// Legacy per-service proxy path
+			if _, err := process.StartServiceProxyProcess(m, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
+				g.log.Warn("proxy start failed", "name", name, "err", err)
+			}
 		}
 	}
 
-	// 7) Readiness wait (bounded)
+	// 7) Readiness wait
 	deadline := time.Now().Add(20 * time.Second)
 	for _, id := range ordered {
 		m := desiredByID[id]
@@ -380,10 +421,15 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		g.log.Info("service ready", "name", name, "addr", addr)
 	}
 
+	// 8) If using Envoy, publish a fresh snapshot now that services are up.
+	if g.UseEnvoy {
+		if err := g.SetSnapshot(); err != nil {
+			g.log.Warn("initial envoy snapshot failed", "err", err)
+		}
+	}
+
 	go refreshTokenPeriodically(ctx, g)
-
 	go g.startKeepAliveSupervisor(ctx)
-
 	return nil
 }
 
@@ -521,6 +567,7 @@ func (g *Globule) mergeOrCreateDesired(desc serviceDesc, alloc *config.PortAlloc
 			proxy = desc.Proxy
 			err   error
 		)
+
 		if port == 0 || proxy == 0 {
 			port, proxy, err = alloc.NextPair(desc.Id)
 			if err != nil {
@@ -609,6 +656,7 @@ func (g *Globule) topoOrder(desiredByID map[string]map[string]interface{}) ([]st
 	return out, nil
 }
 
+// /// TODO not working with TLS
 func (g *Globule) waitServiceReady(name, addr string, total time.Duration) bool {
 	if total <= 0 {
 		total = 20 * time.Second

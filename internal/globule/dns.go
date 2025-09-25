@@ -91,8 +91,10 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 	desired["Process"] = pid
 
 	// optional: start grpc-web proxy
-	if _, err := process.StartServiceProxyProcess(desired, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
-		g.log.Warn("dns proxy start failed", "err", err)
+	if !g.UseEnvoy {
+		if _, err := process.StartServiceProxyProcess(desired, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
+			g.log.Warn("dns proxy start failed", "err", err)
+		}
 	}
 
 	// bounded readiness wait

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -108,6 +109,9 @@ type Globule struct {
 	log *slog.Logger
 
 	stopConsole func()
+
+	// Use Envoy proxy for service communication
+	UseEnvoy bool
 }
 
 // registrationResource kept only to avoid breaking struct fields;
@@ -145,6 +149,7 @@ func New(logger *slog.Logger) *Globule {
 		ServicesRoot:        config.GetServicesRoot(),
 		peers:               &sync.Map{},
 		configDir:           config.GetConfigDir(),
+		UseEnvoy:            false,
 	}
 
 	// Load existing config (if present)
@@ -172,6 +177,12 @@ func New(logger *slog.Logger) *Globule {
 	g.Mac, _ = config.GetMacAddress()
 	g.localIPAddress, _ = Utility.MyLocalIP(g.Mac)
 	g.ExternalIPAddress = Utility.MyIP()
+
+	// I will try to get the envoy version from the binary if possible
+	if version, err := exec.Command("envoy", "--version").Output(); err == nil {
+		g.log.Info("envoy version", "info", strings.TrimSpace(string(version)))
+		g.UseEnvoy = true
+	}
 
 	// Banner
 	PrintBanner(g.Version, g.Build)
@@ -251,6 +262,16 @@ func (g *Globule) StartServices(ctx context.Context) {
 	if err := g.startServicesEtcd(ctx); err != nil {
 		g.log.Error("StartServices failed", "err", err)
 		os.Exit(1)
+	}
+
+	if g.UseEnvoy {
+		// Start xDS server and Envoy after initial service bring-up.
+		go g.initControlPlane()
+		g.startEnvoyProxy()
+	}
+
+	if err := g.BootstrapAdmin(); err != nil {
+		g.log.Error("admin bootstrap failed", "err", err)
 	}
 }
 
@@ -498,7 +519,13 @@ func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {
 		}
 	}
 
+	// 5) Promote etcd and proxies to TLS if certs are ready (idempotent)
+	if err := g.promoteEtcdAndProxiesToTLS(ctx); err != nil {
+		return err
+	}
+
 	return nil
+
 }
 
 // scheduleCertRenewal sets a background timer to renew the certificate shortly before it expires.
@@ -617,4 +644,40 @@ func PrintBanner(version string, build int) {
 		color.Green.Println(l)
 	}
 	fmt.Println(strings.Repeat("-", 100))
+}
+
+// promoteEtcdAndProxiesToTLS restarts etcd on TLS if certs are ready,
+// persists Protocol="https", and asks proxies to flip to TLS.
+func (g *Globule) promoteEtcdAndProxiesToTLS(ctx context.Context) error {
+	g.Protocol = "https"
+	if err := g.SaveConfig(); err != nil {
+		g.log.Warn("failed to persist Protocol=https", "err", err)
+	}
+
+	if err := process.RestartEtcdIfCertsReady(); err != nil {
+		g.log.Error("failed to restart etcd with TLS", "err", err)
+		return err
+	}
+	if err := process.WaitForEtcdHTTPS(30 * time.Second); err != nil {
+		g.log.Error("etcd not healthy on https after restart", "err", err)
+		return err
+	}
+
+	if err := process.RestartAllServicesForEtcdTLS(); err != nil {
+		g.log.Warn("some services failed to restart for TLS; KeepAlive may recover them", "err", err)
+	}
+
+	if g.UseEnvoy {
+		// Re-push snapshot so clusters/listeners pick up new cert paths or SNI.
+		if err := g.SetSnapshot(); err != nil {
+			g.log.Warn("envoy snapshot refresh after TLS promote failed", "err", err)
+		}
+		// Optional: restart Envoy process to reload its own downstream certs, if those files changed.
+		// _ = process.RestartEnvoyProxy() // only if you implement it; otherwise hot reload via file-watching or SDS.
+	} else {
+		if err := process.RestartAllServiceProxiesTLS(); err != nil {
+			g.log.Warn("some proxies failed to restart with TLS", "err", err)
+		}
+	}
+	return nil
 }
