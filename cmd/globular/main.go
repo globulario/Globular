@@ -587,22 +587,24 @@ func (imdbTitles) SearchIMDBTitles(q mediaHandlers.TitlesQuery) ([]map[string]an
 	return out[start:end], nil
 }
 
-// ============================================================
-// HTTP Wiring (handlers + middleware)
-// ============================================================
-
 func wireConfig(mux *http.ServeMux) {
+
 	getConfig := cfgHandlers.NewGetConfig(cfgProvider{})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{})
 
-	// Redirect (peer) + Preflight wrapper
+	ca := cfgHandlers.NewCAProvider()
+
 	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
 
 	cfgHandlers.Mount(mux, cfgHandlers.Deps{
 		GetConfig:             wrap(getConfig),
 		SaveConfig:            wrap(saveConfig),
 		GetServicePermissions: wrap(getSvcPerms),
+
+		GetCACertificate:  wrap(cfgHandlers.NewGetCACertificate(ca)),
+		SignCACertificate: wrap(cfgHandlers.NewSignCACertificate(ca)),
+		GetSANConf:        wrap(cfgHandlers.NewGetSANConf(ca)),
 	})
 }
 

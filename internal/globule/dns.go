@@ -98,7 +98,9 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 	}
 
 	// bounded readiness wait
-	addr := "127.0.0.1:" + Utility.ToString(port)
+	addr, _ := config.GetHostname()
+	addr += ":" + Utility.ToString(port)
+
 	ok := g.waitServiceReady(name, addr, 15*time.Second)
 	if !ok {
 		_ = config.PutRuntime(id, map[string]any{"State": "failed", "LastError": "dns startup timeout"})

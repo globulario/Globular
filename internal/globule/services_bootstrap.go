@@ -2,10 +2,13 @@ package globule
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +24,7 @@ import (
 	Utility "github.com/globulario/utility"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
@@ -656,50 +660,98 @@ func (g *Globule) topoOrder(desiredByID map[string]map[string]interface{}) ([]st
 	return out, nil
 }
 
-// /// TODO not working with TLS
+// normalizeAddr ensures "host:port", strips schemes, fixes IPv6 literals, and
+// adds a sensible default port if missing (proxy vs direct).
+func (g *Globule) normalizeAddr(addr string) (host, hostPort string) {
+	a := strings.TrimSpace(addr)
+	a = strings.TrimPrefix(a, "http://")
+	a = strings.TrimPrefix(a, "https://")
+	// If it's a bare IPv6 without brackets, add them later via netip parsing.
+	// Add default port if missing.
+	if !strings.Contains(a, ":") || (strings.Count(a, ":") > 1 && !strings.Contains(a, "]")) {
+		// no explicit port, choose based on protocol
+		defPort := "443"
+		if !strings.EqualFold(g.Protocol, "https") {
+			defPort = "80"
+		}
+		// If it *is* IPv6, we'll bracket it below.
+		a = a + ":" + defPort
+	}
+
+	// Split host/port reliably; if it fails, try netip.
+	if h, p, err := net.SplitHostPort(a); err == nil {
+		host = h
+		hostPort = net.JoinHostPort(h, p)
+	} else {
+		// Try to parse host as IP (IPv6 literal without brackets).
+		// Take last colon as port sep.
+		last := strings.LastIndexByte(a, ':')
+		h := a[:last]
+		p := a[last+1:]
+		if ip, perr := netip.ParseAddr(h); perr == nil && ip.Is6() {
+			host = ip.String()
+			hostPort = net.JoinHostPort(host, p) // adds brackets
+		} else {
+			// Fallback: best effort
+			host = h
+			hostPort = h + ":" + p
+		}
+	}
+	return host, hostPort
+}
+
 func (g *Globule) waitServiceReady(name, addr string, total time.Duration) bool {
 	if total <= 0 {
 		total = 20 * time.Second
 	}
 	deadline := time.Now().Add(total)
 
-	dials := []time.Duration{150 * time.Millisecond, 300 * time.Millisecond, 600 * time.Millisecond, 1200 * time.Millisecond, 2000 * time.Millisecond}
+	backoff := []time.Duration{150 * time.Millisecond, 300 * time.Millisecond, 600 * time.Millisecond, 1200 * time.Millisecond, 2000 * time.Millisecond}
 	i := 0
 
+	host, hostPort := g.normalizeAddr(addr)
+	dialer := &net.Dialer{Timeout: 800 * time.Millisecond}
+
 	for time.Now().Before(deadline) {
-		// 1) TCP check
-		if conn, err := net.DialTimeout("tcp", addr, 800*time.Millisecond); err == nil {
+		// 1) TCP reachability (IPv4/IPv6 handled)
+		conn, err := dialer.Dial("tcp", hostPort)
+		if err == nil {
 			_ = conn.Close()
-			// 2) gRPC health
-			if g.grpcHealthOK(addr) {
+
+			// 2) gRPC health over proper creds (handles TLS/mTLS)
+			if g.grpcHealthOK(hostPort) {
 				return true
 			}
-			// 3) fallback to --health (best-effort)
-			if g.binHealthOK(name) {
-				return true
+
+			// 3) As an extra sanity check: if TLS is expected, confirm the port actually speaks TLS.
+			if strings.EqualFold(g.Protocol, "https") {
+				tlsCfg, terr := g.tlsConfigFor(host) // ServerName=SNI
+				if terr == nil {
+					if tconn, herr := tls.DialWithDialer(dialer, "tcp", hostPort, tlsCfg); herr == nil {
+						_ = tconn.Close()
+						// If TLS handshake works but health fails, service is up but health RPC isn’t ready yet.
+						// Try the binary --health as last resort.
+						if g.binHealthOK(name) {
+							return true
+						}
+					}
+				}
+			} else {
+				// plaintext path: try binary --health
+				if g.binHealthOK(name) {
+					return true
+				}
 			}
 		}
+
 		// backoff
-		wait := dials[i]
-		if i < len(dials)-1 {
+		wait := backoff[i]
+		if i < len(backoff)-1 {
 			i++
 		}
 		time.Sleep(wait)
 	}
 	return false
-}
-
-func (g *Globule) grpcHealthOK(addr string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	cc, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		return false
-	}
-	defer cc.Close()
-	hc := healthpb.NewHealthClient(cc)
-	_, err = hc.Check(ctx, &healthpb.HealthCheckRequest{Service: ""})
-	return err == nil
 }
 
 func (g *Globule) binHealthOK(serviceName string) bool {
@@ -745,4 +797,70 @@ func coalesce(s, def string) string {
 		return def
 	}
 	return s
+}
+
+// grpcHealthOK checks the gRPC health endpoint on addr within 2s, using TLS if g.Protocol=="https".
+func (g *Globule) grpcHealthOK(addr string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	host := addr
+	if i := strings.IndexByte(addr, ':'); i > 0 {
+		host = addr[:i]
+	}
+
+	var dialOpt grpc.DialOption
+	if strings.EqualFold(g.Protocol, "https") {
+		tlsCfg, err := g.tlsConfigFor(host)
+		if err != nil {
+			return false
+		}
+		dialOpt = grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg))
+	} else {
+		dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+
+	cc, err := grpc.DialContext(ctx, addr, dialOpt, grpc.WithBlock())
+	if err != nil {
+		return false
+	}
+	defer cc.Close()
+
+	hc := healthpb.NewHealthClient(cc)
+	_, err = hc.Check(ctx, &healthpb.HealthCheckRequest{Service: ""})
+	return err == nil
+}
+
+func (g *Globule) tlsConfigFor(serverName string) (*tls.Config, error) {
+	// Build roots: prefer the local CA bundle if present; else system.
+	roots, _ := x509.SystemCertPool()
+	if roots == nil {
+		roots = x509.NewCertPool()
+	}
+
+	// e.g. /etc/globular/config/tls/<domain>/<issuer-bundle>.pem
+	caPath := config.GetLocalCACertificate()
+
+	if data, err := os.ReadFile(caPath); err == nil {
+		_ = roots.AppendCertsFromPEM(data)
+	}
+
+	tlsCfg := &tls.Config{
+		ServerName: serverName, // SNI
+		RootCAs:    roots,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Try mTLS if client certs exist (optional).
+	clientCert := g.creds + "/client.crt"
+	clientKey := g.creds + "/client.pem"
+	if _, err1 := os.Stat(clientCert); err1 == nil {
+		if _, err2 := os.Stat(clientKey); err2 == nil {
+			if cert, err := tls.LoadX509KeyPair(clientCert, clientKey); err == nil {
+				tlsCfg.Certificates = []tls.Certificate{cert}
+			}
+		}
+	}
+
+	return tlsCfg, nil
 }
