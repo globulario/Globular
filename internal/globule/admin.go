@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/globulario/services/golang/authentication/authentication_client"
+	"github.com/globulario/services/golang/security"
 	serviceManagerClient "github.com/globulario/services/golang/services_manager/services_manager_client"
 
 	"github.com/globulario/services/golang/config"
@@ -21,7 +22,13 @@ func (globule *Globule) addResourceOwner(path, resourceType, subject string, sub
 	if err != nil {
 		return err
 	}
-	return rbacClient.AddResourceOwner(path, resourceType, subject, subjectType)
+
+	token, err := security.GetLocalToken(globule.Mac)
+	if err != nil {
+		return err
+	}
+
+	return rbacClient.AddResourceOwner(token, path, resourceType, subject, subjectType)
 }
 
 // getAuthenticationClient returns an authenticated client to the authentication service.
@@ -119,7 +126,7 @@ func (g *Globule) BootstrapAdmin() error {
 	}
 
 	// 6) Assign "admin" role to "sa"
-	if err := resourceClient.AddAccountRole("sa", "admin"); err != nil &&
+	if err := resourceClient.AddAccountRole(token, "sa", "admin"); err != nil &&
 		!strings.Contains(strings.ToLower(err.Error()), "already") {
 		return err
 	}
