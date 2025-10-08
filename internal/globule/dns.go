@@ -21,7 +21,6 @@ import (
 )
 
 // maybeStartDNSAndRegister starts dns.DnsService if configured locally, then registers A/AAAA/MX, etc.
-// maybeStartDNSAndRegister ensures the DNS service has a desired config in etcd,
 // starts it (if not running), waits for readiness, then updates DNS records.
 func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 	const svcName = "dns.DnsService"

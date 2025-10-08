@@ -9,9 +9,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/log/log_client"
 	"github.com/globulario/services/golang/log/logpb"
+	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 )
 
@@ -82,9 +84,13 @@ func (w *ServiceLogWriter) Write(p []byte) (int, error) {
 			_, _ = w.echoTo.Write([]byte(line + "\n"))
 		}
 
+		// Get the local token
+		mac, _ := config.GetMacAddress()
+		localToken, _ := security.GetLocalToken(mac)
+
 		// Send to LogService (best-effort)
 		if err := w.ensureClient(); err == nil {
-			_ = w.lc.Log(w.app, w.user, w.method, w.level, line, "-1", "-1")
+			_ = w.lc.Log(w.app, w.user, w.method, w.level, line, "-1", "-1", localToken)
 		}
 	}
 	return n, nil

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,8 @@ import (
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/process"
+	"github.com/globulario/services/golang/resource/resource_client"
+	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 
@@ -285,6 +288,177 @@ func isListening(addr string, timeout time.Duration) bool {
 	return true
 }
 
+// EnsureRolesWithResource takes role definitions as []map[string]any and upserts
+// them in the Resource service, keeping actions in sync (add missing, remove extras).
+// address is the peer address (e.g., "<host>:<port>") hosting the Resource service.
+func EnsureRolesWithResource(roleMaps []any) error {
+	if len(roleMaps) == 0 {
+		return nil
+	}
+
+	// Get resource service address
+	address, _ := config.GetAddress()
+
+	// Connect client
+	rc, err := resource_client.NewResourceService_Client(address, "resource.ResourceService")
+	if err != nil {
+		return fmt.Errorf("resource client: %w", err)
+	}
+	defer rc.Close()
+
+	// Local token for admin ops
+	mac, _ := config.GetMacAddress()
+	token, err := security.GetLocalToken(mac)
+	if err != nil {
+		return fmt.Errorf("get local token: %w", err)
+	}
+
+	// Fetch existing roles once
+	existing, err := rc.GetRoles("") // fetch all; filter locally by Id
+	if err != nil {
+		return fmt.Errorf("get roles: %w", err)
+	}
+	exByID := make(map[string]*resourcepb.Role, len(existing))
+	for _, r := range existing {
+		exByID[r.Id] = r
+	}
+
+	for _, m := range roleMaps {
+		role, e := mapToRole(m.(map[string]any))
+		if e != nil {
+			return e
+		}
+		if role.Id == "" {
+			return errors.New("role missing Id")
+		}
+
+		// Normalize unique action list in target
+		role.Actions = unique(role.Actions)
+
+		// Does it exist already?
+		if cur, ok := exByID[role.Id]; ok {
+			// 1) Update metadata (name/description/domain)
+			if err := rc.UpdateRole(string(token), &resourcepb.Role{
+				Id:          role.Id,
+				Name:        role.Name,
+				Description: role.Description,
+				Domain:      role.Domain,
+			}); err != nil {
+				return fmt.Errorf("update role %s: %w", role.Id, err)
+			}
+
+			// 2) Sync actions
+			toAdd, toRemove := diffActions(cur.Actions, role.Actions)
+			if len(toAdd) > 0 {
+				if err := rc.AddRoleActions(cur.Id, toAdd); err != nil {
+					return fmt.Errorf("add role actions %s: %w", cur.Id, err)
+				}
+			}
+			for _, a := range toRemove {
+				if err := rc.RemoveRoleAction(cur.Id, a); err != nil {
+					return fmt.Errorf("remove role action %s %s: %w", cur.Id, a, err)
+				}
+			}
+		} else {
+			// Create with actions
+			if err := rc.CreateRole(string(token), role.Id, role.Name, role.Actions); err != nil {
+				return fmt.Errorf("create role %s: %w", role.Id, err)
+			}
+			// Then set description/domain if provided (UpdateRole updates metadata fields)
+			if role.Description != "" || role.Domain != "" {
+				if err := rc.UpdateRole(string(token), &resourcepb.Role{
+					Id:          role.Id,
+					Name:        role.Name,
+					Description: role.Description,
+					Domain:      role.Domain,
+				}); err != nil {
+					return fmt.Errorf("post-create update role %s: %w", role.Id, err)
+				}
+			}
+		}
+
+		// Now i will AddAccountRole to the admin user
+		if err := rc.AddAccountRole(string(token), "sa", role.Id); err != nil {
+			return fmt.Errorf("add account role %s: %w", role.Id, err)
+		}
+	}
+
+	return nil
+}
+
+func mapToRole(m map[string]any) (*resourcepb.Role, error) {
+	if m == nil {
+		return nil, errors.New("nil role map")
+	}
+	role := &resourcepb.Role{
+		Id:          Utility.ToString(m["id"]),
+		Name:        Utility.ToString(m["name"]),
+		Description: Utility.ToString(m["description"]),
+		Domain:      Utility.ToString(m["domain"]),
+		TypeName:    firstNonEmpty(Utility.ToString(m["typeName"]), "resource.Role"),
+	}
+	// actions can be []string or []any
+	switch v := m["actions"].(type) {
+	case []string:
+		role.Actions = append([]string(nil), v...)
+	case []interface{}:
+		role.Actions = make([]string, 0, len(v))
+		for _, it := range v {
+			role.Actions = append(role.Actions, Utility.ToString(it))
+		}
+	case nil:
+		// ok
+	default:
+		// try to stringify fallback
+		s := Utility.ToString(v)
+		if strings.TrimSpace(s) != "" {
+			role.Actions = []string{s}
+		}
+	}
+	return role, nil
+}
+
+// diffActions returns (toAdd, toRemove) to transform current -> target
+func diffActions(current, target []string) (add []string, remove []string) {
+	cur := make(map[string]bool, len(current))
+	tgt := make(map[string]bool, len(target))
+	for _, a := range current {
+		cur[a] = true
+	}
+	for _, a := range target {
+		tgt[a] = true
+	}
+	for a := range tgt {
+		if !cur[a] {
+			add = append(add, a)
+		}
+	}
+	for a := range cur {
+		if !tgt[a] {
+			remove = append(remove, a)
+		}
+	}
+	sort.Strings(add)
+	sort.Strings(remove)
+	return
+}
+
+func unique(in []string) []string {
+	if len(in) == 0 {
+		return in
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
+}
+
 // startServicesEtcd discovers binaries, authors desired in etcd, orders by dependencies,
 // spawns, then waits for health readiness with bounded timeout.
 func (g *Globule) startServicesEtcd(ctx context.Context) error {
@@ -430,6 +604,19 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		if err := g.SetSnapshot(); err != nil {
 			g.log.Warn("initial envoy snapshot failed", "err", err)
 		}
+	}
+
+	// 9) Ensure default roles (if any) are present in Resource service
+	// (do this after services are running so Resource is available)
+	for _, id := range ordered {
+
+		desc, _ := config.GetServiceConfigurationById(id)
+		if desc["RolesDefault"] != nil {
+			if err := EnsureRolesWithResource(desc["RolesDefault"].([]interface{})); err != nil {
+				g.log.Warn("ensure roles failed", "service", desc["Name"], "err", err)
+			}
+		}
+
 	}
 
 	go refreshTokenPeriodically(ctx, g)

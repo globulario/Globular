@@ -112,6 +112,7 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 		s["KeepAlive"] = services[i]["KeepAlive"]
 		s["KeepUpToDate"] = services[i]["KeepUpToDate"]
 		s["Pid"] = services[i]["Process"]
+		s["Permissions"] = services[i]["Permissions"]
 
 		if services[i]["Name"] == "file.FileService" {
 			s["MaximumVideoConversionDelay"] = services[i]["MaximumVideoConversionDelay"]
@@ -229,6 +230,7 @@ func (g *Globule) SaveConfig() error {
 	}
 
 	fmt.Println("globular configuration saved at", cfgPath)
+
 	return nil
 }
 

@@ -138,7 +138,7 @@ func (g *Globule) BootstrapAdmin() error {
 			return fmt.Errorf("create sa home: %w", err)
 		}
 	}
-	if err := g.addResourceOwner("/users/sa@"+domain, "file", "sa@"+domain, rbacpb.SubjectType_ACCOUNT); err != nil {
+	if err := g.addResourceOwner("/users/sa@"+domain, "sa@"+domain, "file", rbacpb.SubjectType_ACCOUNT); err != nil {
 		// non-fatal, but useful
 		g.log.Warn("addResourceOwner", "err", err)
 	}

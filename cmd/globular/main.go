@@ -298,31 +298,21 @@ type svcPermsProvider struct{}
 
 // LoadPermissions returns the "Permissions" array from a service config file.
 func (svcPermsProvider) LoadPermissions(serviceID string) ([]any, error) {
+
 	cfg, err := config_.GetServiceConfigurationById(serviceID)
+
 	if err != nil {
 		return nil, err
 	}
-	path, _ := cfg["ConfigPath"].(string)
-	if path == "" {
-		return nil, fmt.Errorf("missing ConfigPath for service %q", serviceID)
+	if cfg == nil {
+		return nil, fmt.Errorf("service not found")
 	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+
+	perms, ok := cfg["Permissions"].([]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid Permissions format")
 	}
-	var disk map[string]any
-	if err := json.Unmarshal(data, &disk); err != nil {
-		return nil, err
-	}
-	raw := disk["Permissions"]
-	switch v := raw.(type) {
-	case nil:
-		return []any{}, nil
-	case []interface{}:
-		return v, nil
-	default:
-		return []any{}, nil
-	}
+	return perms, nil
 }
 
 // ---------------------
