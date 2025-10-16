@@ -4,6 +4,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
@@ -64,6 +65,7 @@ type Snapshot struct {
 	ServerCertPath string
 	KeyFilePath    string
 	CAFilePath     string
+	SNI            string // Server Name Indication for upstream TLS
 
 	// Downstream (client → Envoy) TLS
 	CertFilePath   string
@@ -83,36 +85,70 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 	resources := make(map[string][]types.Resource)
 
 	for _, v := range values {
-		// Ingress block: only builds RouteConfiguration + Listener.
+		// ---------------------------
+		// Ingress (shared listener)
+		// ---------------------------
 		if len(v.IngressRoutes) > 0 {
-			ingressRC := MakeRoutes(v.RouteName, v.IngressRoutes)
-			ingressL := MakeHTTPListener(
-				v.ListenerHost, v.ListenerPort, v.ListenerName, v.RouteName,
+			host := strings.TrimSpace(v.ListenerHost)
+			if host == "" {
+				host = "0.0.0.0"
+			}
+			port := v.ListenerPort
+			if port == 0 {
+				port = 443
+			}
+
+			rc := MakeRoutes(v.RouteName, v.IngressRoutes)
+			ln := MakeHTTPListener(
+				host, port,
+				v.ListenerName, v.RouteName,
 				v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
 			)
-			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], ingressRC)
-			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], ingressL)
+
+			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], rc)
+			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], ln)
 			continue
 		}
 
-		// Regular sidecar (cluster + single route + listener)
-		cluster := MakeCluster(v.ClusterName, v.ServerCertPath, v.KeyFilePath, v.CAFilePath, v.EndPoints)
-		route := MakeRoute(v.RouteName, v.ClusterName, v.ListenerHost)
-		listener := MakeHTTPListener(
-			v.ListenerHost, v.ListenerPort, v.ListenerName, v.RouteName,
-			v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
-		)
+		// ---------------------------
+		// Cluster-only or Sidecar
+		// ---------------------------
 
-		resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], cluster)
-		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], route)
-		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
+		// Always register the cluster if provided.
+		if v.ClusterName != "" && len(v.EndPoints) > 0 {
+			cluster := MakeCluster(v.ClusterName, v.ServerCertPath, v.KeyFilePath, v.CAFilePath, v.SNI, v.EndPoints)
+			resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], cluster)
+		}
+
+		// Only build route+listener when explicitly requested with a real port.
+		if v.ListenerPort > 0 && v.ListenerName != "" && v.RouteName != "" {
+			host := strings.TrimSpace(v.ListenerHost)
+			if host == "" {
+				host = "0.0.0.0"
+			}
+
+			route := MakeRoute(v.RouteName, v.ClusterName, v.HostRewrite)
+			listener := MakeHTTPListener(
+				host, v.ListenerPort,
+				v.ListenerName, v.RouteName,
+				v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
+			)
+
+			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], route)
+			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
+		}
 	}
 
 	snap, err := cache_v3.NewSnapshot(version, resources)
 	if err != nil {
 		return err
 	}
-	l.Debugf("will serve snapshot %+v", snap)
+	l.Infof("xds: pushing snapshot %s (L:%d R:%d C:%d)",
+		version,
+		len(resources[resource_v3.ListenerType]),
+		len(resources[resource_v3.RouteType]),
+		len(resources[resource_v3.ClusterType]),
+	)
 	return cache.SetSnapshot(context.Background(), id, snap)
 }
 

@@ -109,16 +109,19 @@ func CORS(origins, methods, headers []string) func(http.Handler) http.Handler {
 				h := w.Header()
 				h.Set("Access-Control-Allow-Origin", origin)
 				h.Set("Access-Control-Allow-Credentials", "true")
+				h.Add("Vary", "Origin") // <— add this
 				if len(methods) > 0 {
 					h.Set("Access-Control-Allow-Methods", join(methods))
 				}
 				if len(headers) > 0 {
 					h.Set("Access-Control-Allow-Headers", join(headers))
 				}
+				// Optional: only if you truly need it
+				h.Set("Access-Control-Allow-Private-Network", "true")
 				h.Set("Access-Control-Max-Age", "3600")
 			}
 			if r.Method == http.MethodOptions {
-				w.WriteHeader(http.StatusNoContent)
+				w.WriteHeader(http.StatusNoContent) // 204 everywhere
 				return
 			}
 			next.ServeHTTP(w, r)

@@ -77,78 +77,153 @@ func (globule *Globule) initControlPlane() {
 	fmt.Println("xDS control-plane shutdown complete.")
 }
 
-// SetSnapshot builds a per-service Listener/Route/Cluster and pushes a single
-// snapshot addressing *all* locally configured services, plus selected peer endpoints.
+// Public HTTPS ingress on :443 forwards everything to Globular's internal HTTPS on 127.0.0.1:8181.
+// SetSnapshot: single public HTTPS listener on :443.
+// - One CLUSTER per backend service (host:port) using your upstream TLS material
+// - One ROUTE per service: "/<Pkg.Service>/" -> its cluster
+// - Final catch-all "/" -> gateway cluster (127.0.0.1:8181)
+// - No per-service listeners, no proxy ports.
 func (globule *Globule) SetSnapshot() error {
-	services, _ := config.GetServicesConfigurations()
+	services, err := config.GetServicesConfigurations()
+	if err != nil {
+		return fmt.Errorf("unable to read local services configuration: %w", err)
+	}
+
+	// helpers
+	pathIfExists := func(p string) string {
+		s := strings.TrimSpace(fmt.Sprintf("%v", p))
+		if s == "" {
+			return ""
+		}
+		if Utility.Exists(s) {
+			return s
+		}
+		return ""
+	}
+	require := func(label, p string) (string, error) {
+		if q := pathIfExists(p); q != "" {
+			return q, nil
+		}
+		return "", fmt.Errorf("%s path missing or empty: %q", label, p)
+	}
+
+	const (
+		ingressVHost   = "ingress_routes"
+		ingressLdsName = "ingress_listener_443"
+		gatewayCluster = "globular_https"
+	)
+
+	// ---------------- Downstream TLS (public :443) ----------------
+	downCert, err := require("downstream certificate", config.GetLocalClientCertificatePath())
+	if err != nil {
+		return err
+	}
+	downKey, err := require("downstream private key", config.GetLocalClientKeyPath())
+	if err != nil {
+		return err
+	}
+	downIssuer := pathIfExists(config.GetLocalCACertificate()) // optional
+
+	// ---------------- Upstream TLS (Envoy -> services) ----------------
+	// Use EXACTLY your getters, no improvisation.
+	upCA := pathIfExists(config.GetLocalCertificateAuthorityBundle())
+	upCert := pathIfExists(config.GetLocalCertificate())  // client cert (only if mTLS required)
+	upKey := pathIfExists(config.GetLocalServerKeyPath()) // client key  (only if mTLS required)
 
 	var snapshots []controlplane.Snapshot
-	proxies := make(map[uint32]bool) // avoid duplicate listeners on same proxy port
+	var routes []controlplane.IngressRoute
+	added := map[string]bool{}
+	var allClusterNames []string
 
-	// Iterate known services and create one Listener/Cluster/Route per *proxy port*.
+	// (A) Per-service clusters + routes
 	for i := range services {
 		svc := services[i]
-		name := fmt.Sprintf("%s", svc["Name"])
-		host := strings.Split(fmt.Sprintf("%s", svc["Address"]), ":")[0]
-		port := uint32(Utility.ToInt(svc["Port"]))
-		proxy := uint32(Utility.ToInt(svc["Proxy"]))
 
-		if proxies[proxy] {
-			fmt.Println("proxy", proxy, "already set for service", name)
+		name := fmt.Sprintf("%s", svc["Name"]) // e.g. "rbac.RbacService"
+		host := strings.Split(fmt.Sprintf("%s", svc["Address"]), ":")[0]
+		port := uint32(Utility.ToInt(svc["Port"])) // service's real port
+		if name == "" || host == "" || port == 0 {
+			fmt.Printf("[xds] skip service: name=%q host=%q port=%d\n", name, host, port)
 			continue
 		}
 
-		// Compute resource names (Envoy resources don’t allow dots well → use underscores)
 		safe := strings.ReplaceAll(name, ".", "_")
 		clusterName := safe + "_cluster"
-		routeName := safe + "_route"
-		listenerName := safe + "_listener"
 
-		// Build base endpoints with the *local* instance first.
-		endpoints := []controlplane.EndPoint{{Host: host, Port: port, Priority: 100}}
+		if !added[clusterName] {
+			snapshots = append(snapshots, controlplane.Snapshot{
+				ClusterName: clusterName,
+				EndPoints:   []controlplane.EndPoint{{Host: host, Port: port, Priority: 0}},
 
-		// Build the Snapshot piece for that proxy port.
-		// NOTE about host-rewrite:
-		//   controlplane.MakeRoute currently *always* sets HostRewriteLiteral(host).
-		//   Pass a *meaningful upstream host* here (the primary backend host),
-		//   NOT "0.0.0.0", otherwise gRPC auth/certs may break.
-		snap := controlplane.Snapshot{
-			ClusterName:  clusterName,
-			RouteName:    routeName,
-			ListenerName: listenerName,
-			ListenerHost: "0.0.0.0", // bind address only
-			ListenerPort: proxy,
-
-			EndPoints: endpoints,
-
-			// Upstream (Envoy -> service) mTLS
-
-			ServerCertPath: config.GetLocalServerCertificatePath(),
-			KeyFilePath:    config.GetLocalServerKeyPath(),
-			CAFilePath:     config.GetLocalCACertificate(),
-
-			// Downstream (client -> Envoy) TLS: use your public chain and key.
-			// If you don't want client-mTLS, you may leave IssuerFilePath empty.
-			CertFilePath:   config.GetLocalCertificate(),
-			IssuerFilePath: config.GetLocalCertificateAuthorityBundle(),
-
-			// Ingress: if non-empty, build one listener with many routes (clusters must exist).
-			HostRewrite: host, // IMPORTANT: pick a host for host-rewrite. Use the *primary backend host*.
-
+				// Upstream TLS:
+				// - CA:     config.GetLocalCACertificate()
+				// - mTLS:   config.GetLocalServerCertificatePath()/GetLocalServerKeyPath() ONLY if your backend requires client-auth
+				// - SNI:    backend host
+				CAFilePath:     downIssuer,
+				ServerCertPath: downCert, // leave as-is; backend will ignore if not enforcing mTLS
+				KeyFilePath:    downKey,  // leave as-is; backend will ignore if not enforcing mTLS
+				SNI:            host,
+			})
+			added[clusterName] = true
+			allClusterNames = append(allClusterNames, clusterName)
 		}
 
-		// IMPORTANT: pick a host for host-rewrite. Use the *primary backend host*.
-		// We'll piggyback on ListenerHost field for MakeRoute, but with an upstream host value.
-		// Here we choose the first endpoint host:
-		snap.HostRewrite = host
-
-		proxies[proxy] = true
-		snapshots = append(snapshots, snap)
+		// Route "/Pkg.Service/" -> cluster (order matters: service routes first)
+		routes = append(routes, controlplane.IngressRoute{
+			Prefix:  "/" + name + "/",
+			Cluster: clusterName,
+		})
 	}
 
-	// Push one snapshot containing all resources (clusters/routes/listeners).
-	// NodeID must match the bootstrap’s node.id.
-	return controlplane.AddSnapshot(nodeID, "1", snapshots)
+	// (A.1) Add a DEBUG health route so grpcurl via ingress hits a real gRPC cluster
+	// Prefer the authentication service if present, else first service cluster if any.
+	healthTarget := ""
+	for _, cn := range allClusterNames {
+		if strings.HasPrefix(cn, "authentication_AuthenticationService_") {
+			healthTarget = cn
+			break
+		}
+	}
+	if healthTarget == "" && len(allClusterNames) > 0 {
+		healthTarget = allClusterNames[0]
+	}
+	if healthTarget != "" {
+		// Ensure the health route is evaluated BEFORE the catch-all
+		routes = append([]controlplane.IngressRoute{{
+			Prefix:  "/grpc.health.v1.Health/",
+			Cluster: healthTarget,
+		}}, routes...)
+	}
+
+	// (B) Fallback gateway cluster for "/"
+	//     Uses the SAME upstream TLS sources you identified.
+	address, _ := config.GetAddress()
+	hostname := strings.Split(address, ":")[0]
+	port := Utility.ToInt(strings.Split(address, ":")[1])
+	snapshots = append(snapshots, controlplane.Snapshot{
+		ClusterName:    gatewayCluster,
+		EndPoints:      []controlplane.EndPoint{{Host: hostname, Port: uint32(port), Priority: 0}},
+		CAFilePath:     upCA,
+		ServerCertPath: upCert, // if your gateway enforces mTLS from Envoy, this is already correct
+		KeyFilePath:    upKey,
+		SNI:            hostname, // the hostname on your 8181 cert
+	})
+	routes = append(routes, controlplane.IngressRoute{Prefix: "/", Cluster: gatewayCluster}) // LAST
+
+	// (C) Single public listener on :443 with all routes
+	snapshots = append(snapshots, controlplane.Snapshot{
+		RouteName:      ingressVHost,
+		ListenerName:   ingressLdsName,
+		ListenerHost:   "0.0.0.0",
+		ListenerPort:   443,
+		CertFilePath:   upCert,
+		KeyFilePath:    upKey,
+		IssuerFilePath: upCA,
+		IngressRoutes:  routes,
+	})
+
+	// push (bump version)
+	return controlplane.AddSnapshot(nodeID, "5", snapshots)
 }
 
 // startEnvoyProxy builds the snapshot, then starts Envoy (supervised). On failure,

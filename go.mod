@@ -8,7 +8,7 @@ replace github.com/globulario/services/golang => ../services/golang
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	//github.com/globulario/services/golang v0.1.29
-	github.com/globulario/utility v0.1.8
+	github.com/globulario/utility v0.1.9
 	github.com/go-acme/lego/v4 v4.25.2 // indirect
 	github.com/kardianos/service v1.2.4
 	github.com/prometheus/client_golang v1.23.0
@@ -33,6 +33,7 @@ require (
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.etcd.io/etcd/api/v3 v3.5.14 // indirect
@@ -47,7 +48,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/webp v1.4.0 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8 // indirect
 	github.com/emicklei/proto v1.13.2 // indirect
 	github.com/envoyproxy/go-control-plane v0.13.4

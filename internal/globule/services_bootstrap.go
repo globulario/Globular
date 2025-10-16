@@ -350,12 +350,12 @@ func EnsureRolesWithResource(roleMaps []any) error {
 			// 2) Sync actions
 			toAdd, toRemove := diffActions(cur.Actions, role.Actions)
 			if len(toAdd) > 0 {
-				if err := rc.AddRoleActions(cur.Id, toAdd); err != nil {
+				if err := rc.AddRoleActions(token, cur.Id, toAdd); err != nil {
 					return fmt.Errorf("add role actions %s: %w", cur.Id, err)
 				}
 			}
 			for _, a := range toRemove {
-				if err := rc.RemoveRoleAction(cur.Id, a); err != nil {
+				if err := rc.RemoveRoleAction(token, cur.Id, a); err != nil {
 					return fmt.Errorf("remove role action %s %s: %w", cur.Id, a, err)
 				}
 			}

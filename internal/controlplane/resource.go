@@ -18,6 +18,7 @@
 package controlplane
 
 import (
+	"net"
 	"time"
 
 	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -29,7 +30,6 @@ import (
 	grpc_web_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_web/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	auth_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -39,6 +39,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Builds: typed_extension_protocol_options["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"]
@@ -82,25 +83,42 @@ func h2TypedOption() (map[string]*anypb.Any, error) {
 //
 // Returns:
 //   - *cluster_v3.Cluster: A pointer to the constructed Envoy Cluster resource.
-func MakeCluster(clusterName, certFilePath, keyFilePath, caFilePath string, endPoints []EndPoint) *cluster_v3.Cluster {
-
+//
+// MakeCluster builds an upstream cluster. If caFilePath != "" OR both cert/key are set,
+// Envoy will use TLS (and HTTP/2) to the upstream. Pass SNI = the DNS name on the
+// Globular 8181 certificate (e.g., "globular.io" or your host FQDN).
+func MakeCluster(
+	clusterName, certFilePath, keyFilePath, caFilePath, sni string,
+	endPoints []EndPoint,
+) *cluster_v3.Cluster {
 	typed, _ := h2TypedOption() // HTTP/2 upstream
 
-	// Create the cluster
-	c := &cluster_v3.Cluster{
-		Name:                 clusterName,
-		ConnectTimeout:       durationpb.New(5 * time.Second),
-		ClusterDiscoveryType: &cluster_v3.Cluster_Type{Type: cluster_v3.Cluster_STRICT_DNS},
-		LbPolicy:             cluster_v3.Cluster_ROUND_ROBIN,
-		LoadAssignment:       makeEndpoint(clusterName, endPoints),
-		DnsLookupFamily:      cluster_v3.Cluster_V4_ONLY,
-		//Http2ProtocolOptions: &core_v3.Http2ProtocolOptions{},
-		TypedExtensionProtocolOptions: typed, // ✅ new way
+	// STATIC for IPs, STRICT_DNS for hostnames. (Never EDS here.)
+	useStrictDNS := false
+	for _, ep := range endPoints {
+		if net.ParseIP(ep.Host) == nil {
+			useStrictDNS = true
+			break
+		}
+	}
+	discoveryType := cluster_v3.Cluster_STATIC
+	if useStrictDNS {
+		discoveryType = cluster_v3.Cluster_STRICT_DNS
 	}
 
-	// In case of TLS, we need to set the transport socket
-	if len(keyFilePath) > 0 {
-		c.TransportSocket = makeUpstreamTLS(certFilePath, keyFilePath, caFilePath)
+	c := &cluster_v3.Cluster{
+		Name:                          clusterName,
+		ConnectTimeout:                durationpb.New(5 * time.Second),
+		ClusterDiscoveryType:          &cluster_v3.Cluster_Type{Type: discoveryType},
+		LbPolicy:                      cluster_v3.Cluster_ROUND_ROBIN,
+		LoadAssignment:                makeEndpoint(clusterName, endPoints),
+		DnsLookupFamily:               cluster_v3.Cluster_V4_ONLY,
+		TypedExtensionProtocolOptions: typed, // HTTP/2 upstream
+	}
+
+	// Enable TLS if we have any trust material (CA) or mTLS (cert+key).
+	if caFilePath != "" || (certFilePath != "" && keyFilePath != "") {
+		c.TransportSocket = makeUpstreamTLS(certFilePath, keyFilePath, caFilePath, sni)
 	}
 
 	return c
@@ -128,39 +146,41 @@ func toAny(msg protoreflect.ProtoMessage) *any.Any {
 // Returns:
 //
 //	*core_v3.TransportSocket - A pointer to the configured TransportSocket for TLS.
-func makeUpstreamTLS(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
+func makeUpstreamTLS(certFilePath, keyFilePath, caFilePath, sni string) *core_v3.TransportSocket {
+	utls := &tls_v3.UpstreamTlsContext{
+		Sni: sni,
+		CommonTlsContext: &tls_v3.CommonTlsContext{
+			AlpnProtocols: []string{"h2"}, // gRPC over TLS
+		},
+	}
+
+	// Validate server (Globular) with CA if provided
+	if caFilePath != "" {
+		utls.CommonTlsContext.ValidationContextType = &tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &tls_v3.CertificateValidationContext{
+				TrustedCa: &core_v3.DataSource{
+					Specifier: &core_v3.DataSource_Filename{Filename: caFilePath},
+				},
+			},
+		}
+	}
+
+	// Optional mTLS: client cert/key from Envoy to Globular
+	if certFilePath != "" && keyFilePath != "" {
+		utls.CommonTlsContext.TlsCertificates = []*tls_v3.TlsCertificate{{
+			CertificateChain: &core_v3.DataSource{
+				Specifier: &core_v3.DataSource_Filename{Filename: certFilePath},
+			},
+			PrivateKey: &core_v3.DataSource{
+				Specifier: &core_v3.DataSource_Filename{Filename: keyFilePath},
+			},
+		}}
+	}
+
 	return &core_v3.TransportSocket{
 		Name: "envoy.transport_sockets.tls",
 		ConfigType: &core_v3.TransportSocket_TypedConfig{
-			TypedConfig: toAny(&tls_v3.UpstreamTlsContext{
-				CommonTlsContext: &tls_v3.CommonTlsContext{
-					TlsCertificates: []*tls_v3.TlsCertificate{
-						{
-							CertificateChain: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: certFilePath,
-								},
-							},
-							PrivateKey: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: keyFilePath,
-								},
-							},
-						},
-					},
-					ValidationContextType: &tls_v3.CommonTlsContext_ValidationContext{
-						ValidationContext: &tls_v3.CertificateValidationContext{
-							TrustedCa: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: caFilePath,
-								},
-							},
-						},
-					},
-					AlpnProtocols: []string{"h2", "http/1.1"},
-					TlsParams:     &tls_v3.TlsParameters{TlsMinimumProtocolVersion: tls_v3.TlsParameters_TLSv1_3, TlsMaximumProtocolVersion: tls_v3.TlsParameters_TLSv1_3},
-				},
-			}),
+			TypedConfig: toAny(utls),
 		},
 	}
 }
@@ -287,6 +307,12 @@ func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint_v3.Cluster
 // Returns:
 //   - *route_v3.RouteConfiguration: Pointer to the constructed RouteConfiguration.
 func MakeRoute(routeName string, clusterName, host string) *route_v3.RouteConfiguration {
+	allowedOrigins := []*matcher_v3.StringMatcher{
+		// List each origin that may send credentials
+		{MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: "http://localhost:5173"}},
+		{MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: "https://globule-ryzen.globular.io"}},
+		// add more exact origins here if needed
+	}
 
 	return &route_v3.RouteConfiguration{
 		Name: routeName,
@@ -294,37 +320,29 @@ func MakeRoute(routeName string, clusterName, host string) *route_v3.RouteConfig
 			Name:    "local_service",
 			Domains: []string{"*"},
 			Routes: []*route_v3.Route{{
-
 				Match: &route_v3.RouteMatch{
-					PathSpecifier: &route_v3.RouteMatch_Prefix{
-						Prefix: "/",
-					},
+					PathSpecifier: &route_v3.RouteMatch_Prefix{Prefix: "/"},
 				},
 				Action: &route_v3.Route_Route{
 					Route: &route_v3.RouteAction{
-						ClusterSpecifier: &route_v3.RouteAction_Cluster{
-							Cluster: clusterName,
-						},
+						ClusterSpecifier: &route_v3.RouteAction_Cluster{Cluster: clusterName},
 						HostRewriteSpecifier: &route_v3.RouteAction_HostRewriteLiteral{
 							HostRewriteLiteral: host,
 						},
-						Timeout: durationpb.New(time.Duration(0)), // Infinite idle timeout
+						Timeout: durationpb.New(time.Duration(0)), // no per-route timeout
 					},
 				},
 			}},
-			TypedPerFilterConfig: map[string]*any.Any{
+			TypedPerFilterConfig: map[string]*anypb.Any{
 				"envoy.filters.http.cors": toAny(&cors_v3.CorsPolicy{
-					AllowOriginStringMatch: []*matcher_v3.StringMatcher{
-						{
-							MatchPattern: &matcher_v3.StringMatcher_Prefix{
-								Prefix: "*",
-							},
-						},
-					},
+					AllowOriginStringMatch: allowedOrigins,
+					// Must be true when the browser sends credentials (cookies, auth headers)
+					AllowCredentials: wrapperspb.Bool(true),
+
 					AllowMethods:  "GET, PUT, DELETE, POST, OPTIONS",
-					AllowHeaders:  "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout, domain, address, token, application, path, routing",
-					MaxAge:        "1728000",
+					AllowHeaders:  "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,domain,address,token,application,path,routing,authorization",
 					ExposeHeaders: "custom-header-1,grpc-status,grpc-message",
+					MaxAge:        "1728000",
 				}),
 			},
 		}},
@@ -444,16 +462,4 @@ func fileDS(path string) *core_v3.DataSource {
 		return nil
 	}
 	return &core_v3.DataSource{Specifier: &core_v3.DataSource_Filename{Filename: path}}
-}
-
-func downstreamSecret(name, certPath, keyPath string) *auth_v3.Secret {
-	return &auth_v3.Secret{
-		Name: name,
-		Type: &auth_v3.Secret_TlsCertificate{
-			TlsCertificate: &tls_v3.TlsCertificate{
-				CertificateChain: fileDS(certPath),
-				PrivateKey:       fileDS(keyPath),
-			},
-		},
-	}
 }

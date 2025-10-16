@@ -1,42 +1,52 @@
 package http
 
 import (
-	"github.com/globulario/Globular/internal/http/middleware"
 	"log/slog"
 	"net/http"
 
+	middleware "github.com/globulario/Globular/internal/http/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// NewRouter creates and configures a new HTTP router with middleware and route handlers.
-// It sets up health check and metrics endpoints, applies a chain of middleware for
-// recovery, security headers, CORS, logging, and rate limiting, and returns the root ServeMux.
-// Parameters:
-//   - logger: a structured logger for logging middleware and error recovery.
-//   - cfg: configuration containing allowed CORS origins, methods, headers, and rate limiting settings.
-//
-// Returns:
-//   - *http.ServeMux: the configured HTTP router ready to be used by an HTTP server.
-func NewRouter(logger *slog.Logger, cfg Config) *http.ServeMux {
+// Config carries public HTTP knobs the router needs.
+type Config struct {
+	AllowedOrigins []string
+	AllowedMethods []string
+	AllowedHeaders []string
+	RateRPS        int
+	RateBurst      int
+}
+
+// NewRouter creates the outer mux with the middleware chain, and lets you
+// inject a rootHandler that will serve "/" (e.g., your static file server).
+// More-specific handlers like /healthz and /metrics are registered on the
+// inner 'base' mux so they still win over "/".
+func NewRouter(logger *slog.Logger, cfg Config, rootHandler http.Handler) *http.ServeMux {
 	base := http.NewServeMux()
 
-	// health & metrics
+	// health & metrics (specific paths)
 	base.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
-
 	base.Handle("/metrics", promhttp.Handler())
 
-	// middleware chain
+	// If provided, this serves "/" (and subpaths) via your static handler.
+	// Handlers above (like /healthz) remain higher-priority.
+	if rootHandler != nil {
+		base.Handle("/", rootHandler)
+	}
+
+	// middleware chain (order matters)
 	chain := middleware.Compose(
 		middleware.Recoverer(logger),
 		middleware.SecurityHeaders,
 		middleware.CORS(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders),
 		middleware.Logger(logger),
-		middleware.RateLimiter(middleware.NewLimiterStore(cfg.RateRPS, cfg.RateBurst)),
+		middleware.RateLimiter(middleware.NewLimiterStore(float64(cfg.RateRPS), cfg.RateBurst)),
 	)
 
+	// Outer mux owns "/" exactly once.
 	root := http.NewServeMux()
 	root.Handle("/", chain.Then(base))
 	return root

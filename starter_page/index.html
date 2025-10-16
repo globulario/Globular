@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Globular • Welcome</title>
+  <meta name="description" content="Globular landing page" />
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img class="logo" src="img/logo.png" alt="Globular Puffer Logo" />
+      <h1>Globular</h1>
+    </header>
+
+    <section class="hero">
+      <div class="copy">
+        <h2>Local-first microservices — with a smile.</h2>
+        <p>Welcome to your Globular node. Serve static apps, stream media, mount services, and manage configuration — all from one tiny entrypoint.</p>
+        <div class="cta">
+          <a class="btn" href="/healthz">Health Check</a>
+          <a class="btn secondary" href="/metrics">Metrics</a>
+          <a class="btn secondary" href="/serve/">Browse WebRoot</a>
+        </div>
+        <div class="status" id="status">Checking node status…</div>
+      </div>
+      <div class="art">
+        <img src="img/puffer-welcome.png" alt="Welcome artwork" />
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Quick Links</h3>
+        <p>Jump to common entry points.</p>
+        <ul class="steps">
+          <li><a href="/serve/">/serve/</a> – static files & apps</li>
+          <li><a href="/config/get">/config/get</a> – current configuration</li>
+          <li><a href="/media/imdb/titles?q=Matrix">/media/imdb/titles</a> – IMDb search demo</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Getting Started</h3>
+        <ol class="steps">
+          <li>Drop your SPA in <code>webroot/your-app/</code>.</li>
+          <li>Point your domain and enable TLS/ACME in Globule.</li>
+          <li>Wire services & RBAC permissions as needed.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>About</h3>
+        <p>Globular is an OS-like runtime for gRPC services with RBAC, storage, media, and a friendly <em>puffer</em> mascot.</p>
+      </div>
+    </section>
+
+    <section class="gallery">
+      <img src="img/puffer-bubbles.png" alt="Puffer with bubbles" />
+      <img src="img/puffer-sunglasses.png" alt="Puffer with sunglasses" />
+      <img src="img/logo.png" alt="Globular logo" />
+    </section>
+
+    <footer>
+      © <span id="y"></span> Globular — All fish, no fuss.
+    </footer>
+  </div>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>

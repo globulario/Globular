@@ -63,8 +63,6 @@ var (
 // main()
 // ============================================================
 func main() {
-
-	// Keep flags around for future expansion, but ports will come from Globule config.
 	_ = flag.String("http", "", "ignored: HTTP port is taken from Globule config")
 	_ = flag.String("https", "", "ignored: HTTPS port is taken from Globule config")
 	flag.Parse()
@@ -81,7 +79,6 @@ func main() {
 	var httpAddr, httpsAddr string
 	switch strings.ToLower(globule.Protocol) {
 	case "https":
-		// Bootstrap DNS+ACME and write the certs
 		if err := globule.BootstrapTLSAndDNS(context.Background()); err != nil {
 			logger.Error("tls/dns bootstrap failed", "err", err)
 			os.Exit(1)
@@ -89,7 +86,6 @@ func main() {
 		httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
 		logger.Info("starting HTTPS (from globule config)", "addr", httpsAddr, "domain", globule.Domain)
 	default:
-		// keep basic FS for HTTP-only
 		if err := globule.InitFS(); err != nil {
 			logger.Error("bootstrap failed", "err", err)
 			os.Exit(1)
@@ -98,10 +94,27 @@ func main() {
 		logger.Info("starting HTTP (from globule config)", "addr", httpAddr, "domain", globule.Domain)
 	}
 
-	// router wiring unchanged...
-	mux := httplib.NewRouter(logger, httplib.Config{ /* ... */ })
+	// Build the static file handler once (DRY)
+	serve := filesHandlers.NewServeFile(serveProvider{})
+
+	// Same wrapper you already use (redirect host + CORS setHeaders + preflight)
+	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
+
+	// 2) Router: inject the static handler as the root handler so "/" resolves to index.html
+	mux := httplib.NewRouter(logger, httplib.Config{
+		AllowedOrigins: []string{"*"}, // or your domains
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization", "X-Requested-With"},
+		RateRPS:        5,  // e.g. 5 req/sec per IP
+		RateBurst:      20, // e.g. allow short bursts
+	}, wrap(serve))
+
+	// Optional: keep a second entry point at /serve/*
+	mux.Handle("/serve/", wrap(http.StripPrefix("/serve", serve)))
+
+	// Mount the rest
 	wireConfig(mux)
-	wireFiles(mux)
+	wireFiles(mux) // images + upload endpoints (no extra "/" registrations)
 	wireMedia(mux)
 
 	// supervisor with TLS files when needed
@@ -165,8 +178,7 @@ func main() {
 	}
 
 	// 5) stop etcd server (if any)
-	err := process.StopEtcdServer()
-	if err != nil {
+	if err := process.StopEtcdServer(); err != nil {
 		logger.Error("etcd shutdown error", "err", err)
 	}
 }
@@ -188,7 +200,7 @@ func (tokenParser) ParseUserID(tok string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return claims.Id + "@" + claims.UserDomain, nil
+	return claims.ID + "@" + claims.UserDomain, nil
 }
 
 type accessControl struct{}
@@ -252,9 +264,9 @@ func (serveProvider) ResolveImportPath(base, line string) (string, error) {
 }
 
 // MaybeStream serves media with Range support (placeholder streaming).
+// Return true only if we actually streamed, so normal ServeFile can still run.
 func (serveProvider) MaybeStream(name string, w http.ResponseWriter, r *http.Request) bool {
-	streamHandler(name, w, r)
-	return true
+	return streamHandlerMaybe(name, w, r)
 }
 
 // Reverse proxy pass-through.
@@ -275,20 +287,19 @@ func (uploadProvider) ValidateApplication(app, action, p string) (bool, bool, er
 }
 
 // ---------------------
-// Config adapters
+// Config wiring
 // ---------------------
 
-type tokenValidator struct{}
+type cfgProvider struct{}
 
-func (tokenValidator) Validate(tok string) error {
-	_, err := security.ValidateToken(tok)
-	return err
-}
-
-type cfgSaver struct{}
-
-// Save persists config through Globule (keeps compatible shape: map[string]any).
-func (cfgSaver) Save(m map[string]any) error { return globule.SetConfig(m) }
+func (cfgProvider) Address() (string, error)    { return config_.GetAddress() }
+func (cfgProvider) MyIP() string                { return Utility.MyIP() }
+func (cfgProvider) LocalConfig() map[string]any { return globule.GetConfig() }
+func (cfgProvider) RootDir() string             { return config_.GetRootDir() }
+func (cfgProvider) DataDir() string             { return config_.GetDataDir() }
+func (cfgProvider) ConfigDir() string           { return config_.GetConfigDir() }
+func (cfgProvider) WebRootDir() string          { return config_.GetWebRootDir() }
+func (cfgProvider) PublicDirs() []string        { return config_.GetPublicDirs() }
 
 // ---------------------
 // Service permissions
@@ -298,16 +309,13 @@ type svcPermsProvider struct{}
 
 // LoadPermissions returns the "Permissions" array from a service config file.
 func (svcPermsProvider) LoadPermissions(serviceID string) ([]any, error) {
-
 	cfg, err := config_.GetServiceConfigurationById(serviceID)
-
 	if err != nil {
 		return nil, err
 	}
 	if cfg == nil {
 		return nil, fmt.Errorf("service not found")
 	}
-
 	perms, ok := cfg["Permissions"].([]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid Permissions format")
@@ -338,7 +346,6 @@ func (imgLister) ListImages(dir string) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("dir not allowed")
 	}
-
 	var out []string
 	err := filepath.WalkDir(cleanDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -408,29 +415,193 @@ func (redirector) HandleRedirect(to *middleware.Target, w http.ResponseWriter, r
 // setHeaders is available if you want to force specific CORS headers here.
 // Router middleware may already handle these.
 func setHeaders(w http.ResponseWriter, r *http.Request) {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	// w.Header().Set("Access-Control-Allow-Headers", "*")
-	// w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+	// Determine allowed origin (echo the request origin if it’s allowed or "*" is configured)
+	origin := r.Header.Get("Origin")
+	allowedOrigin := globule.Protocol + "://" + globule.Domain
+	if origin != "" {
+		for _, allowed := range globule.AllowedOrigins {
+			if allowed == "*" || allowed == origin {
+				allowedOrigin = origin
+				break
+			}
+		}
+	}
+
+	// Join allowed methods/headers from globule config
+	allowedMethods := strings.Join(globule.AllowedMethods, ",")
+	allowedHeaders := strings.Join(globule.AllowedHeaders, ",")
+
+	h := w.Header()
+	if allowedOrigin != "" {
+		h.Set("Access-Control-Allow-Origin", allowedOrigin)
+		// Only send Allow-Credentials when not using "*"
+		if allowedOrigin != "*" {
+			h.Set("Access-Control-Allow-Credentials", "true")
+		}
+		h.Add("Vary", "Origin")
+	}
+	h.Set("Access-Control-Allow-Methods", allowedMethods)
+	h.Set("Access-Control-Allow-Headers", allowedHeaders)
+	h.Set("Access-Control-Allow-Private-Network", "true")
+
+	// Short-circuit preflight
+	if r.Method == http.MethodOptions {
+		h.Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 }
 
 // ---------------------
 // Config wiring
 // ---------------------
 
-type cfgProvider struct{}
+func wireConfig(mux *http.ServeMux) {
+	getConfig := cfgHandlers.NewGetConfig(cfgProvider{})
+	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{}, tokenValidator{})
+	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{})
 
-func (cfgProvider) Address() (string, error)    { return config_.GetAddress() }
-func (cfgProvider) MyIP() string                { return Utility.MyIP() }
-func (cfgProvider) LocalConfig() map[string]any { return globule.GetConfig() }
-func (cfgProvider) RootDir() string             { return config_.GetRootDir() }
-func (cfgProvider) DataDir() string             { return config_.GetDataDir() }
-func (cfgProvider) ConfigDir() string           { return config_.GetConfigDir() }
-func (cfgProvider) WebRootDir() string          { return config_.GetWebRootDir() }
-func (cfgProvider) PublicDirs() []string        { return config_.GetPublicDirs() }
+	ca := cfgHandlers.NewCAProvider()
+	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
+
+	cfgHandlers.Mount(mux, cfgHandlers.Deps{
+		GetConfig:             wrap(getConfig),
+		SaveConfig:            wrap(saveConfig),
+		GetServicePermissions: wrap(getSvcPerms),
+
+		GetCACertificate:  wrap(cfgHandlers.NewGetCACertificate(ca)),
+		SignCACertificate: wrap(cfgHandlers.NewSignCACertificate(ca)),
+		GetSANConf:        wrap(cfgHandlers.NewGetSANConf(ca)),
+	})
+}
+
+// ---------------------
+// Files wiring (no "/" registrations here)
+// ---------------------
+
+type tokenValidator struct{}
+
+func (tokenValidator) Validate(tok string) error {
+	_, err := security.ValidateToken(tok)
+	return err
+}
+
+type cfgSaver struct{}
+
+func (cfgSaver) Save(m map[string]any) error { return globule.SetConfig(m) }
+
+func wireFiles(mux *http.ServeMux) {
+	getImages := filesHandlers.NewGetImages(imgLister{})
+
+	upload := filesHandlers.NewUploadFileWithOptions(
+		uploadProvider{},
+		filesHandlers.UploadOptions{
+			MaxBytes:    *maxUpload,
+			AllowedExts: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt"},
+		},
+	)
+
+	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
+
+	// Mount imgs + uploads (the public /serve/* mapping is set in main)
+	filesHandlers.Mount(mux, filesHandlers.Deps{
+		GetImages: wrap(getImages),
+		Upload:    wrap(upload),
+	})
+}
+
+// ---------------------
+// Media wiring (IMDb)
+// ---------------------
+
+func wireMedia(mux *http.ServeMux) {
+	titles := mediaHandlers.NewGetIMDBTitles(imdbTitles{})
+	poster := mediaHandlers.NewGetIMDBPoster(imdbPoster{})
+
+	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
+	mediaHandlers.Mount(mux, mediaHandlers.Deps{
+		GetIMDBTitles: wrap(titles),
+		GetIMDBPoster: wrap(poster),
+	})
+}
 
 // ============================================================
-// Media adapters (IMDb)
+// Helpers (assets, imports, basic streaming, IMDb internals)
 // ============================================================
+
+// findHashedFile resolves a file "name.ext" to "name.<hash>.ext" within the same dir.
+func findHashedFile(p string) (string, error) {
+	dir := filepath.Dir(p)
+	base := filepath.Base(p)
+
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		fname := e.Name()
+		// minimal heuristic: "name.<something>.ext"
+		if strings.HasPrefix(fname, name+".") && strings.HasSuffix(fname, ext) {
+			return filepath.Join(dir, fname), nil
+		}
+	}
+	return "", errors.New("hashed file not found for " + base)
+}
+
+// resolveImportPath optionally rewrites a JS import line to a hashed target
+// (only for relative imports inside the same base directory).
+func resolveImportPath(base, line string) (string, error) {
+	re := regexp.MustCompile(`from\s+['"]([^'"]+)['"]`)
+	m := re.FindStringSubmatch(line)
+	if len(m) != 2 {
+		return line, nil // no import path found
+	}
+	importPath := m[1]
+
+	// only rewrite relative imports
+	if strings.HasPrefix(importPath, ".") {
+		target := filepath.Join(base, importPath)
+		if hashed, err := findHashedFile(target); err == nil {
+			hashedRel := strings.TrimPrefix(hashed, base+string(filepath.Separator))
+			return strings.Replace(line, importPath, "./"+hashedRel, 1), nil
+		}
+	}
+	return line, nil
+}
+
+// streamHandlerMaybe serves local files with Range support.
+// Returns true if it actually streamed something.
+func streamHandlerMaybe(name string, w http.ResponseWriter, r *http.Request) bool {
+	clean := filepath.Clean(name)
+	if strings.Contains(clean, "..") {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return true
+	}
+
+	f, err := os.Open(clean)
+	if err != nil {
+		// Let caller fall back to normal static handling if we couldn't open.
+		return false
+	}
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("stat %s: %v", clean, err), http.StatusInternalServerError)
+		return true
+	}
+	http.ServeContent(w, r, stat.Name(), stat.ModTime(), f)
+	return true
+}
+
+// ----- IMDb helpers (shared by media adapters) -----
 
 // -- Season/Episode scraping (best-effort) --
 
@@ -577,133 +748,7 @@ func (imdbTitles) SearchIMDBTitles(q mediaHandlers.TitlesQuery) ([]map[string]an
 	return out[start:end], nil
 }
 
-func wireConfig(mux *http.ServeMux) {
-
-	getConfig := cfgHandlers.NewGetConfig(cfgProvider{})
-	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{}, tokenValidator{})
-	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{})
-
-	ca := cfgHandlers.NewCAProvider()
-
-	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
-
-	cfgHandlers.Mount(mux, cfgHandlers.Deps{
-		GetConfig:             wrap(getConfig),
-		SaveConfig:            wrap(saveConfig),
-		GetServicePermissions: wrap(getSvcPerms),
-
-		GetCACertificate:  wrap(cfgHandlers.NewGetCACertificate(ca)),
-		SignCACertificate: wrap(cfgHandlers.NewSignCACertificate(ca)),
-		GetSANConf:        wrap(cfgHandlers.NewGetSANConf(ca)),
-	})
-}
-
-func wireFiles(mux *http.ServeMux) {
-	getImages := filesHandlers.NewGetImages(imgLister{})
-	serve := filesHandlers.NewServeFile(serveProvider{})
-
-	upload := filesHandlers.NewUploadFileWithOptions(
-		uploadProvider{},
-		filesHandlers.UploadOptions{
-			MaxBytes:    *maxUpload,
-			AllowedExts: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt"},
-		},
-	)
-
-	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
-	filesHandlers.Mount(mux, filesHandlers.Deps{
-		GetImages: wrap(getImages),
-		Serve:     wrap(serve),
-		Upload:    wrap(upload),
-	})
-}
-
-func wireMedia(mux *http.ServeMux) {
-	titles := mediaHandlers.NewGetIMDBTitles(imdbTitles{})
-	poster := mediaHandlers.NewGetIMDBPoster(imdbPoster{})
-
-	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
-	mediaHandlers.Mount(mux, mediaHandlers.Deps{
-		GetIMDBTitles: wrap(titles),
-		GetIMDBPoster: wrap(poster),
-	})
-}
-
-// ============================================================
-// Helpers (assets, imports, basic streaming, IMDb internals)
-// ============================================================
-
-// findHashedFile resolves a file "name.ext" to "name.<hash>.ext" within the same dir.
-func findHashedFile(p string) (string, error) {
-	dir := filepath.Dir(p)
-	base := filepath.Base(p)
-
-	ext := filepath.Ext(base)
-	name := strings.TrimSuffix(base, ext)
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		fname := e.Name()
-		// minimal heuristic: "name.<something>.ext"
-		if strings.HasPrefix(fname, name+".") && strings.HasSuffix(fname, ext) {
-			return filepath.Join(dir, fname), nil
-		}
-	}
-	return "", errors.New("hashed file not found for " + base)
-}
-
-// resolveImportPath optionally rewrites a JS import line to a hashed target
-// (only for relative imports inside the same base directory).
-func resolveImportPath(base, line string) (string, error) {
-	re := regexp.MustCompile(`from\s+['"]([^'"]+)['"]`)
-	m := re.FindStringSubmatch(line)
-	if len(m) != 2 {
-		return line, nil // no import path found
-	}
-	importPath := m[1]
-
-	// only rewrite relative imports
-	if strings.HasPrefix(importPath, ".") {
-		target := filepath.Join(base, importPath)
-		if hashed, err := findHashedFile(target); err == nil {
-			hashedRel := strings.TrimPrefix(hashed, base+string(filepath.Separator))
-			return strings.Replace(line, importPath, "./"+hashedRel, 1), nil
-		}
-	}
-	return line, nil
-}
-
-// streamHandler serves local files with Range support (placeholder for real streaming).
-func streamHandler(name string, w http.ResponseWriter, r *http.Request) {
-	clean := filepath.Clean(name)
-	if strings.Contains(clean, "..") {
-		http.Error(w, "invalid path", http.StatusBadRequest)
-		return
-	}
-
-	f, err := os.Open(clean)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("open %s: %v", clean, err), http.StatusNotFound)
-		return
-	}
-	defer f.Close()
-
-	stat, err := f.Stat()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("stat %s: %v", clean, err), http.StatusInternalServerError)
-		return
-	}
-	http.ServeContent(w, r, stat.Name(), stat.ModTime(), f)
-}
-
-// ----- IMDb helpers (shared by media adapters) -----
+// ----- IMDb helpers -----
 
 func fetchIMDBPosterURL(imdbID string) (string, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
