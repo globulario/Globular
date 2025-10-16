@@ -37,7 +37,7 @@ func TestGetImages_MissingDir_400(t *testing.T) {
 func TestGetImages_DirRejected_400(t *testing.T) {
 	h := files.NewGetImages(fakeLister{err: errors.New("dir not allowed")})
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "api/get-images?dir=/secret", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://globular.io/api/get-images?dir=/secret", nil)
 
 	h.ServeHTTP(rr, req)
 
@@ -49,7 +49,7 @@ func TestGetImages_DirRejected_400(t *testing.T) {
 func TestGetImages_OK_200(t *testing.T) {
 	h := files.NewGetImages(fakeLister{out: []string{"a.jpg", "b.png"}})
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "api/get-images?dir=/public", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://globular.io/api/get-images?dir=/public", nil)
 
 	h.ServeHTTP(rr, req)
 
