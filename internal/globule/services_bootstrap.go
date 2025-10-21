@@ -58,26 +58,23 @@ func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 			state := strings.ToLower(Utility.ToString(rt["State"]))
 			updated := Utility.ToInt(rt["UpdatedAt"])
 
-			// If we recently moved to "starting", give it time.
 			if state == "starting" && g.recentlyStarting(int64(updated), 15*time.Second) {
 				continue
 			}
 
-			// If it’s actually alive on the network, correct etcd and skip.
 			if g.isActuallyRunning(name, port) {
 				_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
 				continue
 			}
 
-			// Otherwise, try to (re)start.
 			go func(id string, delay time.Duration) {
-				time.Sleep(delay) // 0–300ms jitter
+				time.Sleep(delay)
 				g.tryRestartWithBackoff(ctx, guard, id)
 			}(id, time.Duration(50+rand.Intn(250))*time.Millisecond)
 		}
 	}
 
-	// 2) Live watch — act only on *real* down states, with liveness re-check
+	// 2) Live watch
 	go func() {
 		_ = config.WatchRuntimes(ctx, func(ev config.RuntimeEvent) {
 			cfg, err := config.GetServiceConfigurationById(ev.ID)
@@ -91,18 +88,15 @@ func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 			port := Utility.ToInt(cfg["Port"])
 			updated := Utility.ToInt(ev.Runtime["UpdatedAt"])
 
-			// Ignore short "starting" to "running" churn
 			if state == "starting" && g.recentlyStarting(int64(updated), 15*time.Second) {
 				return
 			}
 
-			// If the service is actually responding, normalize runtime and skip.
 			if g.isActuallyRunning(name, port) {
 				_ = config.PutRuntime(ev.ID, map[string]any{"State": "running", "LastError": ""})
 				return
 			}
 
-			// Only restart on true-down
 			if proc == -1 || state == "failed" || state == "stopped" {
 				go g.tryRestartWithBackoff(ctx, guard, ev.ID)
 			}
@@ -131,7 +125,6 @@ func (g *Globule) refreshEnvoySnapshotDebounced() {
 }
 
 func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard, id string) {
-	// per-id dedupe
 	guard.mu.Lock()
 	if _, ok := guard.busy[id]; ok {
 		guard.mu.Unlock()
@@ -162,16 +155,13 @@ func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard
 		name := Utility.ToString(cfg["Name"])
 		port := Utility.ToInt(cfg["Port"])
 		address, _ := config.GetAddress()
-		address = strings.Split(address, ":")[0] // host only
+		address = strings.Split(address, ":")[0]
 		addr := net.JoinHostPort(address, fmt.Sprint(port))
 
-		// FINAL sanity: if already up, just mark running and stop.
 		if g.isActuallyRunning(name, port) {
 			_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
 			return
 		}
-
-		// Start service (log sinks)
 
 		outW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stdout", logpb.LogLevel_INFO_MESSAGE, os.Stdout)
 		errW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stderr", logpb.LogLevel_ERROR_MESSAGE, os.Stderr)
@@ -231,7 +221,7 @@ func (g *Globule) isActuallyRunning(name string, port int) bool {
 	}
 
 	addr, _ := config.GetAddress()
-	addr = strings.Split(addr, ":")[0] // host only
+	addr = strings.Split(addr, ":")[0]
 	addr = net.JoinHostPort(addr, fmt.Sprint(port))
 
 	// TCP connect
@@ -254,10 +244,9 @@ func (g *Globule) recentlyStarting(updatedAt int64, grace time.Duration) bool {
 	if updatedAt <= 0 {
 		return false
 	}
-	// updatedAt is ms since epoch in your etcd docs; tolerate both seconds/ms
 	nowMs := time.Now().UnixMilli()
 	tsMs := updatedAt
-	if updatedAt < 2_000_000_000 { // seconds?
+	if updatedAt < 2_000_000_000 {
 		tsMs = updatedAt * 1000
 	}
 	return nowMs-tsMs < grace.Milliseconds()
@@ -266,10 +255,6 @@ func (g *Globule) recentlyStarting(updatedAt int64, grace time.Duration) bool {
 // Use the strongly-typed descriptor from config.
 type serviceDesc = config.ServiceDesc
 
-// ------------------------------
-// Public entry points
-// ------------------------------
-
 func shortName(full string) string {
 	if full == "" {
 		return ""
@@ -277,7 +262,6 @@ func shortName(full string) string {
 	return strings.ToLower(strings.Split(full, ".")[0])
 }
 
-// helper (put near Globule methods)
 func isListening(addr string, timeout time.Duration) bool {
 	d := net.Dialer{Timeout: timeout}
 	c, err := d.Dial("tcp", addr)
@@ -563,8 +547,19 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		outW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stdout", logpb.LogLevel_INFO_MESSAGE, os.Stdout)
 		errW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stderr", logpb.LogLevel_ERROR_MESSAGE, os.Stderr)
 
+		// ---- Inject bootstrap env just for the child, then restore ----
+		restore := g.pushChildEnv(map[string]string{
+			"GLOBULAR_DOMAIN":     strings.ToLower(Utility.ToString(m["Domain"])),
+			"GLOBULAR_ADDRESS":    address,
+			"GLOBULAR_SERVICE_ID": Utility.ToString(m["Id"]),
+			"GLOBULAR_PORT":       fmt.Sprint(port),
+			"GLOBULAR_PROXY":      fmt.Sprint(proxy),
+		})
+
 		g.log.Info("starting service", "name", name, "id", id, "port", port, "proxy", proxy)
 		pid, err := process.StartServiceProcessWithWriters(m, port, outW, errW)
+		restore() // always restore parent env
+
 		if err != nil {
 			g.log.Warn("service start failed", "name", name, "err", err)
 			_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "failed", "LastError": err.Error()})
@@ -900,38 +895,33 @@ func (g *Globule) waitServiceReady(name, addr string, total time.Duration) bool 
 	dialer := &net.Dialer{Timeout: 800 * time.Millisecond}
 
 	for time.Now().Before(deadline) {
-		// 1) TCP reachability (IPv4/IPv6 handled)
 		conn, err := dialer.Dial("tcp", hostPort)
 		if err == nil {
 			_ = conn.Close()
 
-			// 2) gRPC health over proper creds (handles TLS/mTLS)
 			if g.grpcHealthOK(hostPort) {
 				return true
 			}
 
-			// 3) As an extra sanity check: if TLS is expected, confirm the port actually speaks TLS.
 			if strings.EqualFold(g.Protocol, "https") {
-				tlsCfg, terr := g.tlsConfigFor(host) // ServerName=SNI
+				// IMPORTANT: ensure SNI is a hostname even if we dial an IP
+				sni := g.pickSNI(host)
+				tlsCfg, terr := g.tlsConfigFor(sni)
 				if terr == nil {
 					if tconn, herr := tls.DialWithDialer(dialer, "tcp", hostPort, tlsCfg); herr == nil {
 						_ = tconn.Close()
-						// If TLS handshake works but health fails, service is up but health RPC isn’t ready yet.
-						// Try the binary --health as last resort.
 						if g.binHealthOK(name) {
 							return true
 						}
 					}
 				}
 			} else {
-				// plaintext path: try binary --health
 				if g.binHealthOK(name) {
 					return true
 				}
 			}
 		}
 
-		// backoff
 		wait := backoff[i]
 		if i < len(backoff)-1 {
 			i++
@@ -942,12 +932,10 @@ func (g *Globule) waitServiceReady(name, addr string, total time.Duration) bool 
 }
 
 func (g *Globule) binHealthOK(serviceName string) bool {
-
 	root := config.GetServicesRoot()
 	if root == "" {
 		return false
 	}
-	// Use shared finder instead of ad-hoc walk.
 	bin, err := config.FindServiceBinary(root, shortName(serviceName))
 	if err != nil || strings.TrimSpace(bin) == "" {
 		return false
@@ -956,12 +944,141 @@ func (g *Globule) binHealthOK(serviceName string) bool {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bin, "--health")
 	address, _ := config.GetAddress()
-	address = strings.Split(address, ":")[0] // host only
+	address = strings.Split(address, ":")[0]
 	cmd.Env = append(os.Environ(),
 		"GLOBULAR_DOMAIN="+g.Domain,
 		"GLOBULAR_ADDRESS="+address,
 	)
 	return cmd.Run() == nil
+}
+
+// utilities toAnySlice, toAnyAnySlice, coalesce unchanged (omitted) ...
+func looksLikeIP(h string) bool {
+	if h == "" {
+		return false
+	}
+	if ip := net.ParseIP(strings.Trim(h, "[]")); ip != nil {
+		return true
+	}
+	// netip is stricter and faster for v6 literals
+	if ip, err := netip.ParseAddr(strings.Trim(h, "[]")); err == nil && (ip.Is4() || ip.Is6()) {
+		return true
+	}
+	return false
+}
+
+func (g *Globule) defaultSNI() string {
+	// prefer node FQDN like "globule-ryzen.globular.io"
+	if addr, _ := config.GetAddress(); addr != "" {
+		host := strings.Split(addr, ":")[0]
+		if host != "" && !looksLikeIP(host) && host != "localhost" {
+			return host
+		}
+	}
+	// try service FQDN
+	if g.Domain != "" && g.Name != "" {
+		return strings.ToLower(g.Name + "." + g.Domain)
+	}
+	return ""
+}
+
+func (g *Globule) pickSNI(serverNameHint string) string {
+	// If caller passed a hostname (not an IP), use it.
+	if serverNameHint != "" && !looksLikeIP(serverNameHint) && serverNameHint != "localhost" {
+		return serverNameHint
+	}
+	// Otherwise use our best FQDN guess.
+	if sni := g.defaultSNI(); sni != "" {
+		return sni
+	}
+	// Last resort: whatever we got (may be IP; TLS will likely fail hostname verification).
+	return serverNameHint
+}
+
+// ---------- gRPC health with proper SNI ----------
+func (g *Globule) grpcHealthOK(addr string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	host := addr
+	if i := strings.IndexByte(addr, ':'); i > 0 {
+		host = addr[:i]
+	}
+
+	var dialOpt grpc.DialOption
+	if strings.EqualFold(g.Protocol, "https") {
+		sni := g.pickSNI(host)
+		tlsCfg, err := g.tlsConfigFor(sni)
+		if err != nil {
+			return false
+		}
+		dialOpt = grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg))
+	} else {
+		dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+
+	cc, err := grpc.DialContext(ctx, addr, dialOpt, grpc.WithBlock())
+	if err != nil {
+		return false
+	}
+	defer cc.Close()
+
+	hc := healthpb.NewHealthClient(cc)
+	_, err = hc.Check(ctx, &healthpb.HealthCheckRequest{Service: ""})
+	return err == nil
+}
+
+func (g *Globule) tlsConfigFor(serverName string) (*tls.Config, error) {
+	roots, _ := x509.SystemCertPool()
+	if roots == nil {
+		roots = x509.NewCertPool()
+	}
+	caPath := config.GetLocalCACertificate()
+	if data, err := os.ReadFile(caPath); err == nil {
+		_ = roots.AppendCertsFromPEM(data)
+	}
+
+	tlsCfg := &tls.Config{
+		ServerName: g.pickSNI(serverName),
+		RootCAs:    roots,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Optional mTLS
+	clientCert := g.creds + "/client.crt"
+	clientKey := g.creds + "/client.pem"
+	if _, err1 := os.Stat(clientCert); err1 == nil {
+		if _, err2 := os.Stat(clientKey); err2 == nil {
+			if cert, err := tls.LoadX509KeyPair(clientCert, clientKey); err == nil {
+				tlsCfg.Certificates = []tls.Certificate{cert}
+			}
+		}
+	}
+
+	return tlsCfg, nil
+}
+
+// pushChildEnv temporarily sets a few env vars for the child process and returns a restore func.
+func (g *Globule) pushChildEnv(kv map[string]string) func() {
+	type prev struct {
+		val string
+		ok  bool
+	}
+	saved := map[string]prev{}
+	for k, v := range kv {
+		pv, ok := os.LookupEnv(k)
+		saved[k] = prev{val: pv, ok: ok}
+		_ = os.Setenv(k, v)
+	}
+	return func() {
+		for k, p := range saved {
+			if p.ok {
+				_ = os.Setenv(k, p.val)
+			} else {
+				_ = os.Unsetenv(k)
+			}
+		}
+	}
 }
 
 // utilities
@@ -984,70 +1101,4 @@ func coalesce(s, def string) string {
 		return def
 	}
 	return s
-}
-
-// grpcHealthOK checks the gRPC health endpoint on addr within 2s, using TLS if g.Protocol=="https".
-func (g *Globule) grpcHealthOK(addr string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	host := addr
-	if i := strings.IndexByte(addr, ':'); i > 0 {
-		host = addr[:i]
-	}
-
-	var dialOpt grpc.DialOption
-	if strings.EqualFold(g.Protocol, "https") {
-		tlsCfg, err := g.tlsConfigFor(host)
-		if err != nil {
-			return false
-		}
-		dialOpt = grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg))
-	} else {
-		dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
-	}
-
-	cc, err := grpc.DialContext(ctx, addr, dialOpt, grpc.WithBlock())
-	if err != nil {
-		return false
-	}
-	defer cc.Close()
-
-	hc := healthpb.NewHealthClient(cc)
-	_, err = hc.Check(ctx, &healthpb.HealthCheckRequest{Service: ""})
-	return err == nil
-}
-
-func (g *Globule) tlsConfigFor(serverName string) (*tls.Config, error) {
-	// Build roots: prefer the local CA bundle if present; else system.
-	roots, _ := x509.SystemCertPool()
-	if roots == nil {
-		roots = x509.NewCertPool()
-	}
-
-	// e.g. /etc/globular/config/tls/<domain>/<issuer-bundle>.pem
-	caPath := config.GetLocalCACertificate()
-
-	if data, err := os.ReadFile(caPath); err == nil {
-		_ = roots.AppendCertsFromPEM(data)
-	}
-
-	tlsCfg := &tls.Config{
-		ServerName: serverName, // SNI
-		RootCAs:    roots,
-		MinVersion: tls.VersionTLS12,
-	}
-
-	// Try mTLS if client certs exist (optional).
-	clientCert := g.creds + "/client.crt"
-	clientKey := g.creds + "/client.pem"
-	if _, err1 := os.Stat(clientCert); err1 == nil {
-		if _, err2 := os.Stat(clientKey); err2 == nil {
-			if cert, err := tls.LoadX509KeyPair(clientCert, clientKey); err == nil {
-				tlsCfg.Certificates = []tls.Certificate{cert}
-			}
-		}
-	}
-
-	return tlsCfg, nil
 }

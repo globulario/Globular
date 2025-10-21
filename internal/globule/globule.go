@@ -264,6 +264,9 @@ func (g *Globule) StartServices(ctx context.Context) {
 		os.Exit(1)
 	}
 
+	// restart dns service if present this fix reflexion issue...
+	Utility.KillProcessByName("dns_server")
+
 	if g.UseEnvoy {
 		// Start xDS server and Envoy after initial service bring-up.
 		go g.initControlPlane()
