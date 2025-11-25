@@ -36,3 +36,12 @@ func (g *Globule) ValidateAccess(subject string, subjectType rbacpb.SubjectType,
 	}
 	return rbac.ValidateAccess(subject, subjectType, action, path)
 }
+
+// set the owner of a path
+func (g *Globule) AddResourceOwner(token, path, owner, resourceType string, subjectType rbacpb.SubjectType) error {
+	rbac, err := getRbacClient()
+	if err != nil {
+		return err
+	}
+	return rbac.AddResourceOwner(token, path, owner, resourceType, subjectType)
+}

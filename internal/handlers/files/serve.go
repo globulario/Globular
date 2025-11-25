@@ -155,8 +155,12 @@ func NewServeFile(p ServeProvider) http.Handler {
 		if token != "" && !hasAccess {
 			if uid, e := p.ParseUserID(token); e == nil && uid != "" {
 				hasAccess, hasDenied, err = p.ValidateAccount(uid, "read", rqstPath)
+			} else if e != nil {
+				http.Error(w, "invalid access token", http.StatusUnauthorized)
+				return
 			}
 		}
+
 		if isPublicLike(rqstPath, p.PublicDirs()) && !hasDenied && !hasAccess {
 			hasAccess = true
 		} else if !hasAccess && !hasDenied && app != "" {

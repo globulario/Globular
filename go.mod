@@ -6,6 +6,7 @@ go 1.24.5
 replace github.com/globulario/services/golang => ../services/golang
 
 require (
+	github.com/StalkR/imdb v1.0.15
 	github.com/fsnotify/fsnotify v1.9.0
 	//github.com/globulario/services/golang v0.1.29
 	github.com/globulario/utility v0.1.9
