@@ -3,6 +3,8 @@ package files
 import (
 	"encoding/json"
 	"net/http"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 type ImageLister interface {
@@ -16,12 +18,12 @@ func NewGetImages(l ImageLister) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dir := r.URL.Query().Get("dir")
 		if dir == "" {
-			http.Error(w, "missing 'dir' query param", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'dir' query param")
 			return
 		}
 		files, err := l.ListImages(dir)
 		if err != nil {
-			http.Error(w, "fail to list images: "+err.Error(), http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "fail to list images: "+err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // UploadProvider abstracts write roots and access checks for uploads.
@@ -54,7 +56,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			httplib.WriteJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
 
@@ -68,7 +70,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		// Client sends "path" (not "dir"). Keep backward-compat on query "dir" just in case.
 		dir := firstNonEmpty(r.FormValue("path"), r.URL.Query().Get("path"), r.URL.Query().Get("dir"), r.FormValue("dir"))
 		if dir == "" {
-			http.Error(w, "missing 'path' to upload into", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'path' to upload into")
 			return
 		}
 		dir = pathCleanOS(dir)
@@ -88,7 +90,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			cleanRoot := filepath.Clean(root) + string(filepath.Separator)
 			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
 			if !strings.HasPrefix(cleanTarget, cleanRoot) {
-				http.Error(w, "invalid path", http.StatusBadRequest)
+				httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 				return
 			}
 			addOwner = true
@@ -96,7 +98,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			targetDir = resolved
 			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
 		} else {
-			http.Error(w, "path not allowed", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "path not allowed")
 			return
 		}
 
@@ -114,7 +116,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		}
 		if !has || denied || err != nil {
 			fmt.Println("UploadFile: access denied for", ownerID, "app", app, "to", dir, "has:", has, "denied:", denied, "err:", err)
-			http.Error(w, "write access denied", http.StatusUnauthorized)
+			httplib.WriteJSONError(w, http.StatusUnauthorized, "write access denied")
 			return
 		}
 
@@ -124,7 +126,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			if strings.Contains(strings.ToLower(err.Error()), "request body too large") {
 				status = http.StatusRequestEntityTooLarge
 			}
-			http.Error(w, "multipart error: "+err.Error(), status)
+			httplib.WriteJSONError(w, status, "multipart error: "+err.Error())
 			return
 		}
 
@@ -139,13 +141,13 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			}
 		}
 		if len(fhs) == 0 {
-			http.Error(w, "no files provided (multiplefiles)", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "no files provided (multiplefiles)")
 			return
 		}
 
 		// Ensure destination directory exists.
 		if err := os.MkdirAll(targetDir, 0o755); err != nil {
-			http.Error(w, "mkdir error: "+err.Error(), http.StatusInternalServerError)
+			httplib.WriteJSONError(w, http.StatusInternalServerError, "mkdir error: "+err.Error())
 			return
 		}
 
@@ -156,14 +158,14 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			if len(allowed) > 0 {
 				ext := strings.ToLower(filepath.Ext(fh.Filename))
 				if _, ok := allowed[ext]; !ok {
-					http.Error(w, "file type not allowed: "+fh.Filename, http.StatusBadRequest)
+					httplib.WriteJSONError(w, http.StatusBadRequest, "file type not allowed: "+fh.Filename)
 					return
 				}
 			}
 
 			src, err := fh.Open()
 			if err != nil {
-				http.Error(w, "form file open error: "+err.Error(), http.StatusBadRequest)
+				httplib.WriteJSONError(w, http.StatusBadRequest, "form file open error: "+err.Error())
 				return
 			}
 
@@ -174,14 +176,14 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			if !strings.HasPrefix(filepath.Clean(dst)+string(filepath.Separator), cleanTarget) &&
 				!strings.HasPrefix(filepath.Clean(dst), strings.TrimSuffix(cleanTarget, string(filepath.Separator))) {
 				_ = src.Close()
-				http.Error(w, "invalid file name", http.StatusBadRequest)
+				httplib.WriteJSONError(w, http.StatusBadRequest, "invalid file name")
 				return
 			}
 
 			out, err := os.Create(dst)
 			if err != nil {
 				_ = src.Close()
-				http.Error(w, "create error: "+err.Error(), http.StatusInternalServerError)
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "create error: "+err.Error())
 				return
 			}
 
@@ -191,18 +193,18 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			if err != nil {
 				// io.Copy can surface body-too-large here as well
 				if strings.Contains(strings.ToLower(err.Error()), "request body too large") {
-					http.Error(w, "payload too large", http.StatusRequestEntityTooLarge)
+					httplib.WriteJSONError(w, http.StatusRequestEntityTooLarge, "payload too large")
 					return
 				}
-				http.Error(w, "write error: "+err.Error(), http.StatusInternalServerError)
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "write error: "+err.Error())
 				return
 			}
 			if closeErr != nil {
-				http.Error(w, "close error: "+closeErr.Error(), http.StatusInternalServerError)
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "close error: "+closeErr.Error())
 				return
 			}
 			if n == 0 {
-				http.Error(w, "empty file: "+fh.Filename, http.StatusBadRequest)
+				httplib.WriteJSONError(w, http.StatusBadRequest, "empty file: "+fh.Filename)
 				return
 			}
 
@@ -210,7 +212,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 				logicalPath := path.Join(dir, fh.Filename)
 				if err := p.AddResourceOwner(token, logicalPath, ownerID, "file"); err != nil {
 					_ = os.Remove(dst)
-					http.Error(w, "ownership error: "+err.Error(), http.StatusInternalServerError)
+					httplib.WriteJSONError(w, http.StatusInternalServerError, "ownership error: "+err.Error())
 					return
 				}
 			}

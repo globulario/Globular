@@ -3,6 +3,8 @@ package media
 import (
 	"encoding/json"
 	"net/http"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // TrailerFetcher resolves an IMDb trailer video URL.
@@ -24,12 +26,12 @@ func NewGetIMDBTrailer(f TrailerFetcher) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			http.Error(w, "missing 'id' (IMDb title id like tt1234567)", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'id' (IMDb title id like tt1234567)")
 			return
 		}
 		url, image, video, err := f.FetchIMDBTrailer(id)
 		if err != nil {
-			http.Error(w, "fail to fetch IMDb trailer: "+err.Error(), http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "fail to fetch IMDb trailer: "+err.Error())
 			return
 		}
 		if url == "" && image == "" && video == "" {

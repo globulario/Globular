@@ -54,8 +54,8 @@ import (
 )
 
 var (
-	// 200 MiB cap by default (tweak with --max-upload)
-	maxUpload = flag.Int64("max-upload", 200<<20, "max upload size in bytes")
+	// 2 GiB cap by default (tweak with --max-upload)
+	maxUpload = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
 
 	// Process-wide Globule instance (keeps adapters simple)
 	globule *globpkg.Globule
@@ -502,7 +502,7 @@ func wireFiles(mux *http.ServeMux) {
 		uploadProvider{},
 		filesHandlers.UploadOptions{
 			MaxBytes:    *maxUpload,
-			AllowedExts: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".mp4", ".mov", ".avi", ".mkv", ".mp3", ".wav", ".zip", ".rar", ".7z", ".tar", ".gz"},
+			AllowedExts: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".mp4", ".webm", ".mov", ".avi", ".mkv", ".mp3", ".wav", ".zip", ".rar", ".7z", ".tar", ".gz", ".csv", ".json", ".xml", ".md", ".html", ".css", ".js", ".svg", ".ttf", ".otf", ".woff", ".woff2", ".eot", ".tgz"},
 		},
 	)
 

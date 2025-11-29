@@ -10,6 +10,9 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // TLSFiles points to on-disk cert/key (fullchain.pem + server.key).
@@ -158,13 +161,23 @@ func (s *Supervisor) Start(handler http.Handler) error {
 	}
 
 	if s.HTTPAddr != "" {
+		h2Server := &http2.Server{}
+		httpHandler := handler
+		if httpHandler == nil {
+			httpHandler = http.DefaultServeMux
+		}
+		httpHandler = h2c.NewHandler(httpHandler, h2Server)
+
 		s.httpSrv = &http.Server{
 			Addr:              s.HTTPAddr,
-			Handler:           handler,
+			Handler:           httpHandler,
 			ReadHeaderTimeout: s.ReadHeaderTimeout,
 			ReadTimeout:       s.ReadTimeout,
 			WriteTimeout:      s.WriteTimeout,
 			IdleTimeout:       s.IdleTimeout,
+		}
+		if err := http2.ConfigureServer(s.httpSrv, h2Server); err != nil {
+			return err
 		}
 		go func() {
 			s.Logger.Info("http listen", "addr", s.HTTPAddr)
@@ -185,6 +198,7 @@ func (s *Supervisor) Start(handler http.Handler) error {
 			MinVersion:     tls.VersionTLS12,
 			GetCertificate: reloader.getCertificate,
 		}
+		tlsH2Server := &http2.Server{}
 		s.httpsSrv = &http.Server{
 			Addr:              s.HTTPSAddr,
 			Handler:           handler,
@@ -194,7 +208,9 @@ func (s *Supervisor) Start(handler http.Handler) error {
 			IdleTimeout:       s.IdleTimeout,
 			TLSConfig:         tcfg,
 		}
-
+		if err := http2.ConfigureServer(s.httpsSrv, tlsH2Server); err != nil {
+			return err
+		}
 		// Background cert polling (1s cadence is plenty; bump if you prefer).
 		ctx, _ := context.WithCancel(context.Background())
 		go reloader.watch(ctx, time.Second, s.Logger)

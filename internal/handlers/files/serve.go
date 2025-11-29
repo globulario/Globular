@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // ServeProvider abstracts all platform-specific bits needed to serve files.
@@ -75,7 +77,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Local path handling (cleaned)
 		rqstPath := path.Clean(reqPath)
 		if rqstPath == "/null" {
-			http.Error(w, "No file path was given in the file url path!", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "No file path was given in the file url path!")
 			return
 		}
 
@@ -156,7 +158,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 			if uid, e := p.ParseUserID(token); e == nil && uid != "" {
 				hasAccess, hasDenied, err = p.ValidateAccount(uid, "read", rqstPath)
 			} else if e != nil {
-				http.Error(w, "invalid access token", http.StatusUnauthorized)
+				httplib.WriteJSONError(w, http.StatusUnauthorized, "invalid access token")
 				return
 			}
 		}
@@ -167,7 +169,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 			hasAccess, hasDenied, err = p.ValidateApplication(app, "read", rqstPath)
 		}
 		if !hasAccess || hasDenied || err != nil {
-			http.Error(w, "unable to read the file "+rqstPath+"; check your access privilege", http.StatusUnauthorized)
+			httplib.WriteJSONError(w, http.StatusUnauthorized, "unable to read the file "+rqstPath+"; check your access privilege")
 			return
 		}
 
@@ -182,7 +184,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Open or hashed fallback
 		f, ferr := openFile(p, name)
 		if ferr != nil {
-			http.Error(w, ferr.Error(), http.StatusNoContent)
+			httplib.WriteJSONError(w, http.StatusNoContent, ferr.Error())
 			return
 		}
 		defer f.Close()

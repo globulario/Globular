@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // TitlesQuery captures common filters.
@@ -40,13 +42,13 @@ func NewGetIMDBTitles(s TitlesSearcher) http.Handler {
 			}
 		}
 		if q.Q == "" {
-			http.Error(w, "missing 'q' query param", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'q' query param")
 			return
 		}
 
 		res, err := s.SearchIMDBTitles(q)
 		if err != nil {
-			http.Error(w, "fail to search IMDB titles: "+err.Error(), http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "fail to search IMDB titles: "+err.Error())
 			return
 		}
 

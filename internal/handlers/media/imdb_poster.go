@@ -2,6 +2,8 @@ package media
 
 import (
 	"net/http"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // PosterFetcher can return the raw image OR a URL to redirect to.
@@ -19,7 +21,7 @@ func NewGetIMDBPoster(p PosterFetcher) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			http.Error(w, "missing 'id' (IMDB id like tt1234567)", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'id' (IMDB id like tt1234567)")
 			return
 		}
 		size := r.URL.Query().Get("size") // provider-specific (e.g. small, medium, large)
@@ -27,7 +29,7 @@ func NewGetIMDBPoster(p PosterFetcher) http.Handler {
 
 		content, ctype, url, err := p.FetchIMDBPoster(id, size)
 		if err != nil {
-			http.Error(w, "fail to get IMDB poster: "+err.Error(), http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "fail to get IMDB poster: "+err.Error())
 			return
 		}
 

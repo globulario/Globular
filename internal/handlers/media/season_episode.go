@@ -3,6 +3,8 @@ package media
 import (
 	"encoding/json"
 	"net/http"
+
+	httplib "github.com/globulario/Globular/internal/http"
 )
 
 // SeasonEpisodeResolver abstracts how we obtain season/episode/series for a title.
@@ -27,12 +29,12 @@ func NewGetIMDBSeasonEpisode(r SeasonEpisodeResolver) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		id := req.URL.Query().Get("id")
 		if id == "" {
-			http.Error(w, "missing 'id' (IMDB title id like tt1234567)", http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "missing 'id' (IMDB title id like tt1234567)")
 			return
 		}
 		season, episode, seriesID, err := r.ResolveSeasonEpisode(id)
 		if err != nil {
-			http.Error(w, "fail to resolve season/episode: "+err.Error(), http.StatusBadRequest)
+			httplib.WriteJSONError(w, http.StatusBadRequest, "fail to resolve season/episode: "+err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
