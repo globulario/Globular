@@ -300,11 +300,14 @@ type cfgProvider struct{}
 func (cfgProvider) Address() (string, error)    { return config_.GetAddress() }
 func (cfgProvider) MyIP() string                { return Utility.MyIP() }
 func (cfgProvider) LocalConfig() map[string]any { return globule.GetConfig() }
-func (cfgProvider) RootDir() string             { return config_.GetRootDir() }
-func (cfgProvider) DataDir() string             { return config_.GetDataDir() }
-func (cfgProvider) ConfigDir() string           { return config_.GetConfigDir() }
-func (cfgProvider) WebRootDir() string          { return config_.GetWebRootDir() }
-func (cfgProvider) PublicDirs() []string        { return config_.GetPublicDirs() }
+func (cfgProvider) ServiceConfig(idOrName string) (map[string]any, error) {
+	return config_.GetServiceConfigurationById(idOrName)
+}
+func (cfgProvider) RootDir() string      { return config_.GetRootDir() }
+func (cfgProvider) DataDir() string      { return config_.GetDataDir() }
+func (cfgProvider) ConfigDir() string    { return config_.GetConfigDir() }
+func (cfgProvider) WebRootDir() string   { return config_.GetWebRootDir() }
+func (cfgProvider) PublicDirs() []string { return config_.GetPublicDirs() }
 
 // ---------------------
 // Service permissions
@@ -463,6 +466,7 @@ func setHeaders(w http.ResponseWriter, r *http.Request) {
 
 func wireConfig(mux *http.ServeMux) {
 	getConfig := cfgHandlers.NewGetConfig(cfgProvider{})
+	getServiceConfig := cfgHandlers.NewGetServiceConfig(cfgProvider{})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{})
 
@@ -471,6 +475,7 @@ func wireConfig(mux *http.ServeMux) {
 
 	cfgHandlers.Mount(mux, cfgHandlers.Deps{
 		GetConfig:             wrap(getConfig),
+		GetServiceConfig:      wrap(getServiceConfig),
 		SaveConfig:            wrap(saveConfig),
 		GetServicePermissions: wrap(getSvcPerms),
 
