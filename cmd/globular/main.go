@@ -56,6 +56,9 @@ import (
 var (
 	// 2 GiB cap by default (tweak with --max-upload)
 	maxUpload = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
+	// Rate limit defaults (can be relaxed/disabled per deployment).
+	rateRPS   = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
+	rateBurst = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
 
 	// Process-wide Globule instance (keeps adapters simple)
 	globule *globpkg.Globule
@@ -102,13 +105,18 @@ func main() {
 	// Same wrapper you already use (redirect host + CORS setHeaders + preflight)
 	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
 
+	limiterDisabled := *rateRPS <= 0 || *rateBurst <= 0
+	if limiterDisabled {
+		logger.Warn("http rate limiter disabled", "rateRPS", *rateRPS, "rateBurst", *rateBurst)
+	}
+
 	// 2) Router: inject the static handler as the root handler so "/" resolves to index.html
 	mux := httplib.NewRouter(logger, httplib.Config{
 		AllowedOrigins: []string{"*"}, // or your domains
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization", "X-Requested-With"},
-		RateRPS:        5,  // e.g. 5 req/sec per IP
-		RateBurst:      20, // e.g. allow short bursts
+		RateRPS:        *rateRPS,
+		RateBurst:      *rateBurst,
 	}, wrap(serve))
 
 	// Optional: keep a second entry point at /serve/*

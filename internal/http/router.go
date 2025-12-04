@@ -13,8 +13,8 @@ type Config struct {
 	AllowedOrigins []string
 	AllowedMethods []string
 	AllowedHeaders []string
-	RateRPS        int
-	RateBurst      int
+	RateRPS        int // <=0 disables throttling
+	RateBurst      int // <=0 disables throttling
 }
 
 // NewRouter creates the outer mux with the middleware chain, and lets you
@@ -38,13 +38,18 @@ func NewRouter(logger *slog.Logger, cfg Config, rootHandler http.Handler) *http.
 	}
 
 	// middleware chain (order matters)
-	chain := middleware.Compose(
+	middlewares := []func(http.Handler) http.Handler{
 		middleware.Recoverer(logger),
 		middleware.SecurityHeaders,
 		middleware.CORS(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders),
 		middleware.Logger(logger),
-		middleware.RateLimiter(middleware.NewLimiterStore(float64(cfg.RateRPS), cfg.RateBurst)),
-	)
+	}
+	if cfg.RateRPS > 0 && cfg.RateBurst > 0 {
+		middlewares = append(middlewares, middleware.RateLimiter(
+			middleware.NewLimiterStore(float64(cfg.RateRPS), cfg.RateBurst),
+		))
+	}
+	chain := middleware.Compose(middlewares...)
 
 	// Outer mux owns "/" exactly once.
 	root := http.NewServeMux()
