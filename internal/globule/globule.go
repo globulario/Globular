@@ -259,6 +259,12 @@ func (g *Globule) RegisterIPToDNS() error { return g.registerIPToDNS() }
 func (g *Globule) StartServices(ctx context.Context) {
 
 	defer g.startConsoleLogs()
+
+	// Seed etcd service configs from disk without clobbering existing entries.
+	if err := g.bootstrapServiceConfigsFromDisk(); err != nil {
+		g.log.Warn("bootstrap services from files failed", "err", err)
+	}
+
 	if err := g.startServicesEtcd(ctx); err != nil {
 		g.log.Error("StartServices failed", "err", err)
 		os.Exit(1)
