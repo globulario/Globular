@@ -51,6 +51,8 @@ import (
 	"github.com/globulario/services/golang/security"
 	"github.com/globulario/services/golang/title/titlepb"
 	Utility "github.com/globulario/utility"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 var (
@@ -260,7 +262,10 @@ func (serveProvider) IndexApplication() string                { return globule.I
 func (serveProvider) PublicDirs() []string                    { return config_.GetPublicDirs() }
 func (serveProvider) Exists(p string) bool                    { return Utility.Exists(p) }
 func (serveProvider) FindHashedFile(p string) (string, error) { return findHashedFile(p) }
-func (serveProvider) ParseUserID(tok string) (string, error)  { return tokenParser{}.ParseUserID(tok) }
+func (serveProvider) FileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, bool) {
+	return fileServiceMinioConfigCache.get()
+}
+func (serveProvider) ParseUserID(tok string) (string, error) { return tokenParser{}.ParseUserID(tok) }
 func (serveProvider) ValidateAccount(u, action, p string) (bool, bool, error) {
 	return accessControl{}.ValidateAccount(u, action, p)
 }
@@ -284,6 +289,104 @@ func (serveProvider) ResolveProxy(reqPath string) (string, bool) {
 	return proxyResolver{}.ResolveProxy(reqPath)
 }
 
+var fileServiceMinioConfigCache = minioConfigCache{ttl: 30 * time.Second}
+
+type minioConfigCache struct {
+	mu       sync.RWMutex
+	cfg      *filesHandlers.MinioProxyConfig
+	loadedAt time.Time
+	ttl      time.Duration
+}
+
+func (c *minioConfigCache) get() (*filesHandlers.MinioProxyConfig, bool) {
+	now := time.Now()
+	c.mu.RLock()
+	cfg := c.cfg
+	loaded := c.loadedAt
+	ttl := c.ttl
+	c.mu.RUnlock()
+	if ttl <= 0 {
+		ttl = 30 * time.Second
+	}
+	if cfg != nil && now.Sub(loaded) < ttl {
+		return cfg, true
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cfg != nil && now.Sub(c.loadedAt) < ttl {
+		return c.cfg, true
+	}
+	cfg, err := loadFileServiceMinioConfig()
+	c.loadedAt = time.Now()
+	if err != nil || cfg == nil {
+		c.cfg = nil
+		return nil, false
+	}
+	c.cfg = cfg
+	return cfg, true
+}
+
+func loadFileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, error) {
+	cfg, err := config_.GetServiceConfigurationById("file.FileService")
+	if err != nil || cfg == nil {
+		return nil, err
+	}
+	if !Utility.ToBool(cfg["UseMinio"]) {
+		return nil, nil
+	}
+	endpoint := strings.TrimSpace(Utility.ToString(cfg["MinioEndpoint"]))
+	bucket := strings.TrimSpace(Utility.ToString(cfg["MinioBucket"]))
+	if endpoint == "" || bucket == "" {
+		return nil, fmt.Errorf("file service missing MinIO endpoint or bucket")
+	}
+	accessKey := strings.TrimSpace(Utility.ToString(cfg["MinioAccessKey"]))
+	secretKey := strings.TrimSpace(Utility.ToString(cfg["MinioSecretKey"]))
+	if accessKey == "" || secretKey == "" {
+		return nil, fmt.Errorf("file service missing MinIO credentials")
+	}
+	prefix := strings.Trim(Utility.ToString(cfg["MinioPrefix"]), "/")
+	useSSL := Utility.ToBool(cfg["MinioUseSSL"])
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &filesHandlers.MinioProxyConfig{
+		Endpoint: endpoint,
+		Bucket:   bucket,
+		Prefix:   prefix,
+		UseSSL:   useSSL,
+		Fetch: func(ctx context.Context, bucket, key string) (io.ReadSeekCloser, filesHandlers.MinioObjectInfo, error) {
+			obj, err := client.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
+			if err != nil {
+				return nil, filesHandlers.MinioObjectInfo{}, err
+			}
+			st, err := obj.Stat()
+			if err != nil {
+				_ = obj.Close()
+				return nil, filesHandlers.MinioObjectInfo{}, err
+			}
+			return obj, filesHandlers.MinioObjectInfo{
+				Size:    st.Size,
+				ModTime: st.LastModified,
+			}, nil
+		},
+		Put: func(ctx context.Context, bucket, key string, src io.Reader, size int64, contentType string) error {
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+			_, err := client.PutObject(ctx, bucket, key, src, size, minio.PutObjectOptions{ContentType: contentType})
+			return err
+		},
+		Delete: func(ctx context.Context, bucket, key string) error {
+			return client.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
+		},
+	}, nil
+}
+
 type uploadProvider struct{}
 
 func (uploadProvider) DataRoot() string                       { return config_.GetDataDir() }
@@ -297,6 +400,9 @@ func (uploadProvider) ValidateApplication(app, action, p string) (bool, bool, er
 }
 func (uploadProvider) AddResourceOwner(token, path, owner, resourceType string) error {
 	return globule.AddResourceOwner(token, path, owner, resourceType, rbacpb.SubjectType_ACCOUNT)
+}
+func (uploadProvider) FileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, bool) {
+	return fileServiceMinioConfigCache.get()
 }
 
 // ---------------------

@@ -1,11 +1,15 @@
 package files_test
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	files "github.com/globulario/Globular/internal/handlers/files"
 )
@@ -18,7 +22,14 @@ type fakeServe struct {
 	publicDirs []string
 	allowRead  bool
 	streamed   bool
+	minioCfg   *files.MinioProxyConfig
 }
+
+type nopSeekCloser struct {
+	*strings.Reader
+}
+
+func (n nopSeekCloser) Close() error { return nil }
 
 func (f fakeServe) WebRoot() string                       { return f.webRoot }
 func (f fakeServe) DataRoot() string                      { return f.dataRoot }
@@ -27,6 +38,12 @@ func (f fakeServe) IndexApplication() string              { return f.indexApp }
 func (f fakeServe) PublicDirs() []string                  { return f.publicDirs }
 func (f fakeServe) Exists(p string) bool                  { _, err := os.Stat(p); return err == nil }
 func (f fakeServe) FindHashedFile(string) (string, error) { return "", fmt.Errorf("no-hash") }
+func (f fakeServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
+	if f.minioCfg == nil {
+		return nil, false
+	}
+	return f.minioCfg, true
+}
 func (f fakeServe) ParseUserID(tok string) (string, error) {
 	if tok == "ok" {
 		return "u@d", nil
@@ -87,5 +104,42 @@ func TestServe_StreamMKV_AllowsAndShortCircuits_200(t *testing.T) {
 	}
 	if !p.streamed {
 		t.Fatalf("expected streaming path to be taken")
+	}
+}
+
+func TestServe_MinioUsersProxy(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg: &files.MinioProxyConfig{
+			Endpoint: "ignored",
+			Bucket:   "bucket",
+			Prefix:   "files",
+			Fetch: func(_ context.Context, bucket, key string) (io.ReadSeekCloser, files.MinioObjectInfo, error) {
+				if bucket != "bucket" {
+					t.Fatalf("expected bucket bucket, got %s", bucket)
+				}
+				if key != "files/users/alice/avatar.png" {
+					t.Fatalf("unexpected key %s", key)
+				}
+				return nopSeekCloser{Reader: strings.NewReader("MINIO")}, files.MinioObjectInfo{ModTime: time.Unix(10, 0)}, nil
+			},
+		},
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/users/alice/avatar.png", nil)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if body := rr.Body.String(); body != "MINIO" {
+		t.Fatalf("expected backend payload, got %q", body)
 	}
 }

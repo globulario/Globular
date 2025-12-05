@@ -1,6 +1,7 @@
 package files_test
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +18,10 @@ func (p proxyServe) IndexApplication() string              { return "" }
 func (p proxyServe) PublicDirs() []string                  { return nil }
 func (p proxyServe) Exists(string) bool                    { return false }
 func (p proxyServe) FindHashedFile(string) (string, error) { return "", nil }
-func (p proxyServe) ParseUserID(string) (string, error)    { return "", nil }
+func (p proxyServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
+	return nil, false
+}
+func (p proxyServe) ParseUserID(string) (string, error) { return "", nil }
 func (p proxyServe) ValidateAccount(string, string, string) (bool, bool, error) {
 	return false, false, nil
 }
@@ -35,13 +39,19 @@ func (p proxyServe) ResolveProxy(reqPath string) (string, bool) {
 }
 
 func TestServe_ReverseProxy_ShortCircuits(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("listen not permitted: %v", err)
+	}
+	backend := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/proxied" {
 			t.Fatalf("expected /proxied, got %s", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("PROXIED"))
 	}))
+	backend.Listener = ln
+	backend.Start()
 	t.Cleanup(backend.Close)
 
 	p := proxyServe{target: backend.URL}

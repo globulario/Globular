@@ -2,6 +2,7 @@ package files
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,33 @@ import (
 	httplib "github.com/globulario/Globular/internal/http"
 )
 
+// MinioProxyConfig captures the subset of FileService MinIO settings required
+// to proxy /users/ requests directly to the MinIO gateway.
+type MinioProxyConfig struct {
+	Endpoint string
+	Bucket   string
+	Prefix   string
+	UseSSL   bool
+	Fetch    MinioFetchFunc
+	Put      MinioPutFunc
+	Delete   MinioDeleteFunc
+}
+
+// MinioObjectInfo describes an object served from MinIO.
+type MinioObjectInfo struct {
+	Size    int64
+	ModTime time.Time
+}
+
+// MinioFetchFunc fetches an object reader + metadata for a given bucket/key.
+type MinioFetchFunc func(ctx context.Context, bucket, key string) (io.ReadSeekCloser, MinioObjectInfo, error)
+
+// MinioPutFunc uploads a new object into MinIO.
+type MinioPutFunc func(ctx context.Context, bucket, key string, src io.Reader, size int64, contentType string) error
+
+// MinioDeleteFunc removes an object from MinIO.
+type MinioDeleteFunc func(ctx context.Context, bucket, key string) error
+
 // ServeProvider abstracts all platform-specific bits needed to serve files.
 type ServeProvider interface {
 	// Roots & config
@@ -27,6 +55,7 @@ type ServeProvider interface {
 	PublicDirs() []string
 	Exists(p string) bool
 	FindHashedFile(p string) (string, error)
+	FileServiceMinioConfig() (*MinioProxyConfig, bool)
 
 	// Security
 	ParseUserID(token string) (string, error) // returns "id@domain" or ""
@@ -81,6 +110,9 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
+		minioCfg, hasMinio := p.FileServiceMinioConfig()
+		useMinioUsers := hasMinio && minioCfg != nil && strings.HasPrefix(rqstPath, "/users/")
+
 		// Base root from webRoot, with vhost subdir if present
 		dir := p.WebRoot()
 		if p.Exists(filepath.Join(dir, r.Host)) {
@@ -110,11 +142,11 @@ func NewServeFile(p ServeProvider) http.Handler {
 
 		// Protected areas under data/files
 		hasAccess := true
-		if strings.HasPrefix(rqstPath, "/users/") ||
-			strings.HasPrefix(rqstPath, "/applications/") ||
+		if strings.HasPrefix(rqstPath, "/users/") {
+			/*strings.HasPrefix(rqstPath, "/applications/") ||
 			strings.HasPrefix(rqstPath, "/templates/") ||
 			strings.HasPrefix(rqstPath, "/projects/") {
-			dir = filepath.Join(p.DataRoot(), "files")
+			dir = filepath.Join(p.DataRoot(), "files")*/
 			if !strings.Contains(rqstPath, "/.hidden/") {
 				hasAccess = false
 			}
@@ -173,6 +205,12 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
+		if useMinioUsers {
+			if serveUsersFromMinio(w, r, minioCfg, rqstPath) {
+				return
+			}
+		}
+
 		// Streaming hook
 		lname := strings.ToLower(name)
 		if r.Method == http.MethodGet && strings.HasSuffix(lname, ".mkv") {
@@ -228,8 +266,31 @@ func NewServeFile(p ServeProvider) http.Handler {
 	})
 }
 
-// --- helpers (internal) ---
+func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxyConfig, rqstPath string) bool {
+	if cfg == nil || cfg.Fetch == nil {
+		return false
+	}
+	key := strings.TrimPrefix(rqstPath, "/")
+	prefix := strings.Trim(cfg.Prefix, "/")
+	if prefix != "" {
+		key = path.Join(prefix, key)
+	}
+	reader, info, err := cfg.Fetch(r.Context(), cfg.Bucket, key)
+	if err != nil {
+		httplib.WriteJSONError(w, http.StatusBadGateway, "failed to reach storage: "+err.Error())
+		return true
+	}
+	defer reader.Close()
+	mod := info.ModTime
+	if mod.IsZero() {
+		mod = time.Now().UTC()
+	}
+	name := path.Base(key)
+	http.ServeContent(w, r, name, mod, reader)
+	return true
+}
 
+// --- helpers (internal) ---
 func headerOrQuery(r *http.Request, key string) string {
 	if v := r.Header.Get(key); v != "" {
 		return v

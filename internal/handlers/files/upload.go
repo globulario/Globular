@@ -1,6 +1,7 @@
 package files
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ type UploadProvider interface {
 	ValidateAccount(userID, action, reqPath string) (has, denied bool, err error)
 	ValidateApplication(app, action, reqPath string) (has, denied bool, err error)
 	AddResourceOwner(token, path, owner, resourceType string) error
+	FileServiceMinioConfig() (*MinioProxyConfig, bool)
 }
 
 type UploadOptions struct {
@@ -84,7 +86,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		)
 
 		if isRBACProtected(dir) {
-			root := filepath.Join(p.DataRoot(), "files")
+			/*root := filepath.Join(p.DataRoot(), "files")
 			targetDir = filepath.Join(root, strings.TrimPrefix(dir, "/"))
 
 			cleanRoot := filepath.Clean(root) + string(filepath.Separator)
@@ -92,7 +94,8 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			if !strings.HasPrefix(cleanTarget, cleanRoot) {
 				httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 				return
-			}
+			}*/
+			targetDir = filepath.Clean(targetDir)
 			addOwner = true
 		} else if resolved, ok := resolvePublicDir(dir, publicDirs); ok {
 			targetDir = resolved
@@ -101,6 +104,9 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			httplib.WriteJSONError(w, http.StatusBadRequest, "path not allowed")
 			return
 		}
+
+		minioCfg, hasMinio := p.FileServiceMinioConfig()
+		useMinio := hasMinio && minioCfg != nil && minioCfg.Put != nil && strings.HasPrefix(dir, "/users/")
 
 		// Validate write access (account first via token; fallback to application).
 		has, denied, err := false, false, error(nil)
@@ -146,9 +152,11 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		}
 
 		// Ensure destination directory exists.
-		if err := os.MkdirAll(targetDir, 0o755); err != nil {
-			httplib.WriteJSONError(w, http.StatusInternalServerError, "mkdir error: "+err.Error())
-			return
+		if !useMinio {
+			if err := os.MkdirAll(targetDir, 0o755); err != nil {
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "mkdir error: "+err.Error())
+				return
+			}
 		}
 
 		writtenPaths := make([]string, 0, len(fhs))
@@ -161,6 +169,27 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 					httplib.WriteJSONError(w, http.StatusBadRequest, "file type not allowed: "+fh.Filename)
 					return
 				}
+			}
+
+			logicalPath := path.Join(dir, fh.Filename)
+
+			if useMinio {
+				objKey, err := uploadFileToMinio(r.Context(), minioCfg, logicalPath, fh)
+				if err != nil {
+					httplib.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				if ownerID != "" && addOwner {
+					if err := p.AddResourceOwner(token, logicalPath, ownerID, "file"); err != nil {
+						if minioCfg.Delete != nil {
+							_ = minioCfg.Delete(r.Context(), minioCfg.Bucket, objKey)
+						}
+						httplib.WriteJSONError(w, http.StatusInternalServerError, "ownership error: "+err.Error())
+						return
+					}
+				}
+				writtenPaths = append(writtenPaths, logicalPath)
+				continue
 			}
 
 			src, err := fh.Open()
@@ -209,7 +238,6 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			}
 
 			if ownerID != "" && addOwner {
-				logicalPath := path.Join(dir, fh.Filename)
 				if err := p.AddResourceOwner(token, logicalPath, ownerID, "file"); err != nil {
 					_ = os.Remove(dst)
 					httplib.WriteJSONError(w, http.StatusInternalServerError, "ownership error: "+err.Error())
@@ -273,5 +301,34 @@ func resolvePublicDir(dir string, publicRoots []string) (string, bool) {
 	return "", false
 }
 
-// keep imports tidy
-var _ = multipart.FileHeader{} // ensure the package is retained if tools strip unused
+func uploadFileToMinio(ctx context.Context, cfg *MinioProxyConfig, logicalPath string, fh *multipart.FileHeader) (string, error) {
+	if cfg == nil || cfg.Put == nil {
+		return "", fmt.Errorf("storage backend not configured")
+	}
+	if fh.Size == 0 {
+		return "", fmt.Errorf("empty file: %s", fh.Filename)
+	}
+	src, err := fh.Open()
+	if err != nil {
+		return "", fmt.Errorf("form file open error: %w", err)
+	}
+	defer src.Close()
+	key := minioObjectKey(cfg.Prefix, logicalPath)
+	contentType := fh.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	if err := cfg.Put(ctx, cfg.Bucket, key, src, fh.Size, contentType); err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func minioObjectKey(prefix, logicalPath string) string {
+	key := strings.TrimPrefix(path.Clean(logicalPath), "/")
+	trimmed := strings.Trim(prefix, "/")
+	if trimmed != "" {
+		key = path.Join(trimmed, key)
+	}
+	return key
+}

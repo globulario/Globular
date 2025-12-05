@@ -602,6 +602,38 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		desiredByID[Utility.ToString(m["Id"])] = m
 	}
 
+	// --- Start MinIO (if enabled) and inject its settings into FileService ---
+	minioCfg, err := g.startMinioIfNeeded(ctx, g.log)
+	if err != nil {
+		g.log.Error("failed to start MinIO", "err", err)
+	} else if minioCfg != nil {
+		for id, m := range desiredByID {
+			name := Utility.ToString(m["Name"])
+			if strings.EqualFold(name, "file.FileService") {
+				g.log.Info("configuring FileService to use MinIO",
+					"serviceId", id,
+					"endpoint", minioCfg.Endpoint,
+					"bucket", minioCfg.Bucket,
+					"prefix", minioCfg.Prefix,
+				)
+
+				m["UseMinio"] = true
+				m["MinioEndpoint"] = minioCfg.Endpoint
+				m["MinioAccessKey"] = minioCfg.AccessKey
+				m["MinioSecretKey"] = minioCfg.SecretKey
+				m["MinioBucket"] = minioCfg.Bucket
+				m["MinioPrefix"] = minioCfg.Prefix
+				m["MinioUseSSL"] = minioCfg.UseSSL
+
+				if err := config.SaveServiceConfiguration(m); err != nil {
+					g.log.Error("failed to save FileService MinIO config", "id", id, "err", err)
+				} else {
+					desiredByID[id] = m
+				}
+			}
+		}
+	}
+
 	// 5) Order by deps
 	ordered, err := g.topoOrder(desiredByID)
 	if err != nil {

@@ -25,7 +25,7 @@ func (f fakeLister) ListImages(dir string) ([]string, error) {
 func TestGetImages_MissingDir_400(t *testing.T) {
 	h := files.NewGetImages(fakeLister{})
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "api/get-images", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/get-images", nil)
 
 	h.ServeHTTP(rr, req)
 

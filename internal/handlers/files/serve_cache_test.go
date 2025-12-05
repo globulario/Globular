@@ -22,7 +22,10 @@ func (c cacheServe) IndexApplication() string              { return "" }
 func (c cacheServe) PublicDirs() []string                  { return nil }
 func (c cacheServe) Exists(p string) bool                  { _, err := os.Stat(p); return err == nil }
 func (c cacheServe) FindHashedFile(string) (string, error) { return "", nil }
-func (c cacheServe) ParseUserID(string) (string, error)    { return "", nil }
+func (c cacheServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
+	return nil, false
+}
+func (c cacheServe) ParseUserID(string) (string, error) { return "", nil }
 func (c cacheServe) ValidateAccount(string, string, string) (bool, bool, error) {
 	return true, false, nil
 }
