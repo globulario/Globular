@@ -609,27 +609,11 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 	} else if minioCfg != nil {
 		for id, m := range desiredByID {
 			name := Utility.ToString(m["Name"])
-			if strings.EqualFold(name, "file.FileService") {
-				g.log.Info("configuring FileService to use MinIO",
-					"serviceId", id,
-					"endpoint", minioCfg.Endpoint,
-					"bucket", minioCfg.Bucket,
-					"prefix", minioCfg.Prefix,
-				)
-
-				m["UseMinio"] = true
-				m["MinioEndpoint"] = minioCfg.Endpoint
-				m["MinioAccessKey"] = minioCfg.AccessKey
-				m["MinioSecretKey"] = minioCfg.SecretKey
-				m["MinioBucket"] = minioCfg.Bucket
-				m["MinioPrefix"] = minioCfg.Prefix
-				m["MinioUseSSL"] = minioCfg.UseSSL
-
-				if err := config.SaveServiceConfiguration(m); err != nil {
-					g.log.Error("failed to save FileService MinIO config", "id", id, "err", err)
-				} else {
-					desiredByID[id] = m
-				}
+			switch {
+			case strings.EqualFold(name, "file.FileService"):
+				g.applyMinioConfigToService(id, m, minioCfg, "FileService", desiredByID)
+			case strings.EqualFold(name, "media.MediaService"):
+				g.applyMinioConfigToService(id, m, minioCfg, "MediaService", desiredByID)
 			}
 		}
 	}
@@ -1220,4 +1204,32 @@ func coalesce(s, def string) string {
 		return def
 	}
 	return s
+}
+
+func (g *Globule) applyMinioConfigToService(id string, m map[string]interface{}, cfg *MinioRuntime, label string, desired map[string]map[string]interface{}) {
+	if cfg == nil || m == nil {
+		return
+	}
+	g.log.Info("configuring "+label+" to use MinIO",
+		"serviceId", id,
+		"endpoint", cfg.Endpoint,
+		"bucket", cfg.Bucket,
+		"prefix", cfg.Prefix,
+	)
+
+	m["UseMinio"] = true
+	m["MinioEndpoint"] = cfg.Endpoint
+	m["MinioAccessKey"] = cfg.AccessKey
+	m["MinioSecretKey"] = cfg.SecretKey
+	m["MinioBucket"] = cfg.Bucket
+	m["MinioPrefix"] = cfg.Prefix
+	m["MinioUseSSL"] = cfg.UseSSL
+
+	if err := config.SaveServiceConfiguration(m); err != nil {
+		g.log.Error("failed to save "+label+" MinIO config", "id", id, "err", err)
+		return
+	}
+	if desired != nil {
+		desired[id] = m
+	}
 }
