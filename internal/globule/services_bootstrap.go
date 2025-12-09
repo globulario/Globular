@@ -602,7 +602,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		desiredByID[Utility.ToString(m["Id"])] = m
 	}
 
-	// --- Start MinIO (if enabled) and inject its settings into FileService ---
+	// --- Start MinIO (if enabled) and inject its settings into FileService, MediaService, and TorrentService ---
 	minioCfg, err := g.startMinioIfNeeded(ctx, g.log)
 	if err != nil {
 		g.log.Error("failed to start MinIO", "err", err)
@@ -614,6 +614,8 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 				g.applyMinioConfigToService(id, m, minioCfg, "FileService", desiredByID)
 			case strings.EqualFold(name, "media.MediaService"):
 				g.applyMinioConfigToService(id, m, minioCfg, "MediaService", desiredByID)
+			case strings.EqualFold(name, "torrent.TorrentService"):
+				g.applyMinioConfigToService(id, m, minioCfg, "TorrentService", desiredByID)
 			}
 		}
 	}
