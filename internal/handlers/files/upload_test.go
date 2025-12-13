@@ -23,7 +23,8 @@ type fakeUpload struct {
 	minioCfg   *files.MinioProxyConfig
 }
 
-func (f fakeUpload) DataRoot() string     { return f.dataRoot }
+func (f fakeUpload) DataRoot() string { return f.dataRoot }
+
 func (f fakeUpload) PublicDirs() []string { return f.publicDirs }
 func (f fakeUpload) ParseUserID(tok string) (string, error) {
 	if tok == "ok" {
@@ -59,8 +60,8 @@ func newMultipart(dir, filename, content string) (*bytes.Buffer, string) {
 }
 
 func TestUpload_DenyWithoutWrite_401(t *testing.T) {
-	tmp := t.TempDir()
-	p := fakeUpload{dataRoot: tmp, allowWrite: false}
+
+	p := fakeUpload{allowWrite: false}
 
 	h := files.NewUploadFile(p)
 
@@ -78,8 +79,7 @@ func TestUpload_DenyWithoutWrite_401(t *testing.T) {
 }
 
 func TestUpload_Success_201(t *testing.T) {
-	tmp := t.TempDir()
-	p := fakeUpload{dataRoot: tmp, allowWrite: true}
+	p := fakeUpload{allowWrite: true}
 
 	h := files.NewUploadFile(p)
 
@@ -96,7 +96,7 @@ func TestUpload_Success_201(t *testing.T) {
 	}
 
 	// file should be at <dataRoot>/files/users/alice/note.txt
-	dst := filepath.Join(tmp, "files", "users", "alice", "note.txt")
+	dst := filepath.Join("files", "users", "alice", "note.txt")
 	b, err := os.ReadFile(dst)
 	if err != nil {
 		t.Fatalf("expected file written at %s: %v", dst, err)
@@ -128,7 +128,7 @@ func TestUpload_MinioUsers(t *testing.T) {
 	}
 
 	tmp := t.TempDir()
-	p := fakeUpload{dataRoot: tmp, allowWrite: true, minioCfg: cfg}
+	p := fakeUpload{allowWrite: true, minioCfg: cfg}
 
 	h := files.NewUploadFile(p)
 
