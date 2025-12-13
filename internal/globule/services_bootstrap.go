@@ -616,6 +616,8 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 				g.applyMinioConfigToService(id, m, minioCfg, "MediaService", desiredByID)
 			case strings.EqualFold(name, "torrent.TorrentService"):
 				g.applyMinioConfigToService(id, m, minioCfg, "TorrentService", desiredByID)
+			case strings.EqualFold(name, "rbac.RbacService"):
+				g.applyMinioConfigToService(id, m, minioCfg, "RbacService", desiredByID)
 			}
 		}
 	}

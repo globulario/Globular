@@ -256,7 +256,7 @@ func (proxyResolver) ResolveProxy(reqPath string) (string, bool) {
 type serveProvider struct{}
 
 func (serveProvider) WebRoot() string                         { return config_.GetWebRootDir() }
-func (serveProvider) DataRoot() string                        { return config_.GetDataDir() }
+func (serveProvider) DataRoot() string                        { return /*config_.GetDataDir()*/ "" }
 func (serveProvider) CredsDir() string                        { return config_.GetConfigDir() + "/tls" }
 func (serveProvider) IndexApplication() string                { return globule.IndexApplication }
 func (serveProvider) PublicDirs() []string                    { return config_.GetPublicDirs() }
@@ -389,7 +389,7 @@ func loadFileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, error) {
 
 type uploadProvider struct{}
 
-func (uploadProvider) DataRoot() string                       { return config_.GetDataDir() }
+func (uploadProvider) DataRoot() string                       { return /*config_.GetDataDir()*/ "" }
 func (uploadProvider) PublicDirs() []string                   { return config_.GetPublicDirs() }
 func (uploadProvider) ParseUserID(tok string) (string, error) { return tokenParser{}.ParseUserID(tok) }
 func (uploadProvider) ValidateAccount(u, action, p string) (bool, bool, error) {

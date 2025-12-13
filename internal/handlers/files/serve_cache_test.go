@@ -1,14 +1,14 @@
 package files_test
 
 import (
+	files "github.com/globulario/Globular/internal/handlers/files"
+	"github.com/globulario/services/golang/config"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	files "github.com/globulario/Globular/internal/handlers/files"
 )
 
 type cacheServe struct {
@@ -16,8 +16,8 @@ type cacheServe struct {
 }
 
 func (c cacheServe) WebRoot() string                       { return c.webRoot }
-func (c cacheServe) DataRoot() string                      { return c.webRoot }
-func (c cacheServe) CredsDir() string                      { return c.webRoot }
+func (c cacheServe) DataRoot() string                      { return "" }
+func (c cacheServe) CredsDir() string                      { return config.GetConfigDir() + "/tls" }
 func (c cacheServe) IndexApplication() string              { return "" }
 func (c cacheServe) PublicDirs() []string                  { return nil }
 func (c cacheServe) Exists(p string) bool                  { _, err := os.Stat(p); return err == nil }

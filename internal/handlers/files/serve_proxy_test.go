@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	files "github.com/globulario/Globular/internal/handlers/files"
+	"github.com/globulario/services/golang/config"
 )
 
 type proxyServe struct{ target string }
 
 func (p proxyServe) WebRoot() string                       { return "" }
 func (p proxyServe) DataRoot() string                      { return "" }
-func (p proxyServe) CredsDir() string                      { return "" }
+func (p proxyServe) CredsDir() string                      { return config.GetConfigDir() + "/tls" }
 func (p proxyServe) IndexApplication() string              { return "" }
 func (p proxyServe) PublicDirs() []string                  { return nil }
 func (p proxyServe) Exists(string) bool                    { return false }

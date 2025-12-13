@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minio/minio-go/v7"
+
 	files "github.com/globulario/Globular/internal/handlers/files"
 )
 
@@ -142,4 +144,63 @@ func TestServe_MinioUsersProxy(t *testing.T) {
 	if body := rr.Body.String(); body != "MINIO" {
 		t.Fatalf("expected backend payload, got %q", body)
 	}
+}
+
+func TestServe_MinioDirectoryRedirectsToPlaylist(t *testing.T) {
+	tmp := t.TempDir()
+	var keys []string
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg: &files.MinioProxyConfig{
+			Endpoint: "ignored",
+			Bucket:   "bucket",
+			Prefix:   "files",
+			Fetch: func(_ context.Context, bucket, key string) (io.ReadSeekCloser, files.MinioObjectInfo, error) {
+				if bucket != "bucket" {
+					t.Fatalf("expected bucket bucket, got %s", bucket)
+				}
+				keys = append(keys, key)
+				switch key {
+				case "files/users/alice/dir":
+					return nil, files.MinioObjectInfo{}, minio.ErrorResponse{Code: "NoSuchKey", Message: "missing"}
+				case "files/users/alice/dir/playlist.m3u8":
+					return nopSeekCloser{Reader: strings.NewReader("PLAYLIST")}, files.MinioObjectInfo{ModTime: time.Unix(10, 0)}, nil
+				default:
+					t.Fatalf("unexpected key %s", key)
+				}
+				return nil, files.MinioObjectInfo{}, fmt.Errorf("unreachable")
+			},
+		},
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/users/alice/dir", nil)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("expected 307, got %d", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/users/alice/dir/playlist.m3u8" {
+		t.Fatalf("unexpected location %s", loc)
+	}
+	if got, want := keys, []string{"files/users/alice/dir", "files/users/alice/dir/playlist.m3u8"}; !equalStringSlices(got, want) {
+		t.Fatalf("unexpected keys: %v", got)
+	}
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

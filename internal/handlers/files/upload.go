@@ -86,15 +86,6 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		)
 
 		if isRBACProtected(dir) {
-			/*root := filepath.Join(p.DataRoot(), "files")
-			targetDir = filepath.Join(root, strings.TrimPrefix(dir, "/"))
-
-			cleanRoot := filepath.Clean(root) + string(filepath.Separator)
-			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
-			if !strings.HasPrefix(cleanTarget, cleanRoot) {
-				httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
-				return
-			}*/
 			targetDir = filepath.Clean(targetDir)
 			addOwner = true
 		} else if resolved, ok := resolvePublicDir(dir, publicDirs); ok {

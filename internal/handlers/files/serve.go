@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/minio/minio-go/v7"
+
 	httplib "github.com/globulario/Globular/internal/http"
 )
 
@@ -143,10 +145,6 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Protected areas under data/files
 		hasAccess := true
 		if strings.HasPrefix(rqstPath, "/users/") {
-			/*strings.HasPrefix(rqstPath, "/applications/") ||
-			strings.HasPrefix(rqstPath, "/templates/") ||
-			strings.HasPrefix(rqstPath, "/projects/") {
-			dir = filepath.Join(p.DataRoot(), "files")*/
 			if !strings.Contains(rqstPath, "/.hidden/") {
 				hasAccess = false
 			}
@@ -159,6 +157,18 @@ func NewServeFile(p ServeProvider) http.Handler {
 
 		// Compute filename; "public" paths are absolute and force validation
 		name := filepath.Join(dir, rqstPath)
+		// Directory request should redirect to a playlist manifest when available
+		if info, err := os.Stat(name); err == nil && info.IsDir() && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+			playlist := filepath.Join(name, "playlist.m3u8")
+			if p.Exists(playlist) {
+				redirectPath := path.Join(rqstPath, "playlist.m3u8")
+				if q := r.URL.RawQuery; q != "" {
+					redirectPath += "?" + q
+				}
+				http.Redirect(w, r, redirectPath, http.StatusTemporaryRedirect)
+				return
+			}
+		}
 		if isPublicLike(rqstPath, p.PublicDirs()) {
 			name = rqstPath
 			hasAccess = false
@@ -270,13 +280,16 @@ func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxy
 	if cfg == nil || cfg.Fetch == nil {
 		return false
 	}
-	key := strings.TrimPrefix(rqstPath, "/")
-	prefix := strings.Trim(cfg.Prefix, "/")
-	if prefix != "" {
-		key = path.Join(prefix, key)
-	}
+	key := serveMinioObjectKey(cfg, rqstPath)
 	reader, info, err := cfg.Fetch(r.Context(), cfg.Bucket, key)
 	if err != nil {
+		if isMinioNoSuchKey(err) && isDirCandidate(rqstPath) {
+			playlistPath := path.Join(rqstPath, "playlist.m3u8")
+			if minioObjectExists(r.Context(), cfg, playlistPath) {
+				redirectToPlaylist(w, r, playlistPath)
+				return true
+			}
+		}
 		httplib.WriteJSONError(w, http.StatusBadGateway, "failed to reach storage: "+err.Error())
 		return true
 	}
@@ -288,6 +301,54 @@ func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxy
 	name := path.Base(key)
 	http.ServeContent(w, r, name, mod, reader)
 	return true
+}
+
+func redirectToPlaylist(w http.ResponseWriter, r *http.Request, playlistPath string) {
+	redirectPath := playlistPath
+	if q := r.URL.RawQuery; q != "" {
+		redirectPath += "?" + q
+	}
+	http.Redirect(w, r, redirectPath, http.StatusTemporaryRedirect)
+}
+
+func isDirCandidate(rqstPath string) bool {
+	if rqstPath == "" || rqstPath == "/" {
+		return false
+	}
+	base := path.Base(rqstPath)
+	return !strings.Contains(base, ".")
+}
+
+func minioObjectExists(ctx context.Context, cfg *MinioProxyConfig, rqstPath string) bool {
+	if cfg == nil || cfg.Fetch == nil {
+		return false
+	}
+	key := serveMinioObjectKey(cfg, rqstPath)
+	reader, _, err := cfg.Fetch(ctx, cfg.Bucket, key)
+	if err != nil {
+		return false
+	}
+	_ = reader.Close()
+	return true
+}
+
+func serveMinioObjectKey(cfg *MinioProxyConfig, rqstPath string) string {
+	key := strings.TrimPrefix(rqstPath, "/")
+	prefix := strings.Trim(cfg.Prefix, "/")
+	if prefix != "" {
+		return path.Join(prefix, key)
+	}
+	return key
+}
+
+func isMinioNoSuchKey(err error) bool {
+	if err == nil {
+		return false
+	}
+	if resp := minio.ToErrorResponse(err); resp.Code == "NoSuchKey" {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "nosuchkey")
 }
 
 // --- helpers (internal) ---
