@@ -1,26 +1,11 @@
 # ---- Project settings ----
-# We'll auto-detect PKG below; BIN defaults to "globular" (lowercase for Docker tags)
 BIN ?= globular
 IMG := ghcr.io/globulario/$(BIN):$(shell git rev-parse --short HEAD)
+PKG ?= .
+LEGACY_CMD := ./cmd/globular
+LEGACY_BIN ?= globular-dev
 
-# --- Auto-detect entrypoint (root or cmd/*) ---
-# Prefer root main.go, else cmd/Globular, else cmd/globular.
-ifeq ("$(wildcard main.go)","")
-  ifneq ("$(wildcard cmd/Globular/main.go)","")
-    PKG ?= ./cmd/Globular
-    BIN ?= Globular
-  else ifneq ("$(wildcard cmd/globular/main.go)","")
-    PKG ?= ./cmd/globular
-    BIN ?= globular
-  else
-    # Fallback (still allows override: make build PKG=./some/other/cmd)
-    PKG ?= .
-  endif
-else
-  PKG ?= .
-endif
-
-.PHONY: tidy fmt vet lint test bench run dev-up dev-down build image vuln sec sbom clean print-vars build-gateway build-xds build-all
+.PHONY: tidy fmt vet lint test bench run dev-up dev-down build image vuln sec sbom clean print-vars build-legacy build-gateway build-xds build-all check-legacy-guard
 
 tidy:
 	go mod tidy
@@ -44,11 +29,13 @@ bench:
 # allow override: make build CGO=1
 CGO ?= 1   # set 1 by default since you use chai2010/webp
 
-build:
-	mkdir -p ./.bin
-	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/$(BIN) $(PKG)
+build: build-all
 
-build-gateway:
+build-legacy:
+	mkdir -p ./.bin
+	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/$(LEGACY_BIN) $(LEGACY_CMD)
+
+build-gateway: check-gateway-no-exec
 	mkdir -p ./.bin
 	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/globular-gateway ./cmd/globular-gateway
 
@@ -56,7 +43,15 @@ build-xds:
 	mkdir -p ./.bin
 	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/globular-xds ./cmd/globular-xds
 
-build-all: build build-gateway build-xds
+build-all: check-legacy-guard build-gateway build-xds
+
+check-legacy-guard:
+	@pattern=$$(printf "%s($$|[^-])" "$(LEGACY_CMD)"); \
+	count=$$(rg -c "$$pattern" Makefile 2>/dev/null || true); \
+	if [ "$$count" -ne 1 ]; then \
+		echo "expected exactly one legacy reference to $(LEGACY_CMD) in the Makefile, found $$count"; \
+		exit 1; \
+	fi
 
 check-gateway-no-exec:
 	@if rg -n "os/exec" cmd/globular-gateway internal/gateway >/dev/null 2>&1; then \

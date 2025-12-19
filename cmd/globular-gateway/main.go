@@ -17,11 +17,12 @@ import (
 )
 
 var (
-	maxUpload     = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
-	rateRPS       = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
-	rateBurst     = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
-	modeFlag      = flag.String("mode", "direct", "routing mode (direct|mesh)")
-	envoyHttpAddr = flag.String("envoy_http_addr", "127.0.0.1:8080", "HTTP address of the Envoy ingress for mesh mode")
+	maxUpload      = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
+	rateRPS        = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
+	rateBurst      = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
+	modeFlag       = flag.String("mode", "direct", "routing mode (direct|mesh)")
+	envoyHttpAddr  = flag.String("envoy_http_addr", "127.0.0.1:8080", "HTTP address of the Envoy ingress for mesh mode")
+	requireDNSBoot = flag.Bool("require-dns-bootstrap", false, "fail startup if DNS bootstrap cannot contact DNS service")
 )
 
 func main() {
@@ -48,8 +49,11 @@ func main() {
 	switch strings.ToLower(globule.Protocol) {
 	case "https":
 		if err := globule.BootstrapTLSAndDNS(context.Background()); err != nil {
-			logger.Error("tls/dns bootstrap failed", "err", err)
-			os.Exit(1)
+			if *requireDNSBoot {
+				logger.Error("tls/dns bootstrap failed", "err", err)
+				os.Exit(1)
+			}
+			logger.Warn("tls/dns bootstrap warning", "err", err)
 		}
 		httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
 		logger.Info("starting HTTPS (from globule config)", "addr", httpsAddr, "domain", globule.Domain)

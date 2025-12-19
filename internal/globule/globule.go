@@ -489,7 +489,7 @@ func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {
 	// 2) Start DNS locally if present + register A/AAAA/MX/TXT
 	if err := g.maybeStartDNSAndRegister(ctx); err != nil {
 		g.log.Warn("tls/dns bootstrap: dns bootstrap failed", "err", err)
-		os.Exit(1)
+		return err
 	}
 
 	// 3) Make sure we have client key + server CSR on disk
