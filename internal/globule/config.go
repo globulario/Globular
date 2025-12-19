@@ -56,6 +56,31 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		g.SessionTimeout = v
 	}
 
+	if v, ok := asBool(m["MinioDisabled"]); ok {
+		g.MinioDisabled = v
+	}
+	if v, ok := asString(m["MinioRootUser"]); ok {
+		g.MinioRootUser = v
+	}
+	if v, ok := asString(m["MinioRootPassword"]); ok {
+		g.MinioRootPassword = v
+	}
+	if v, ok := asString(m["MinioBucket"]); ok {
+		g.MinioBucket = v
+	}
+	if v, ok := asString(m["MinioPrefix"]); ok {
+		g.MinioPrefix = v
+	}
+	if v, ok := asString(m["MinioDataDir"]); ok {
+		g.MinioDataDir = v
+	}
+	if v, ok := asString(m["MinioPort"]); ok {
+		g.MinioPort = v
+	}
+	if v, ok := asString(m["MinioBin"]); ok {
+		g.MinioBin = v
+	}
+
 	// Persist
 	if err := g.SaveConfig(); err != nil {
 		return fmt.Errorf("setConfig: saveConfig: %w", err)
@@ -155,6 +180,32 @@ func asStrings(v interface{}) ([]string, bool) {
 		}
 	}
 	return out, true
+}
+
+func asBool(v interface{}) (bool, bool) {
+	switch t := v.(type) {
+	case bool:
+		return t, true
+	case string:
+		lower := strings.ToLower(strings.TrimSpace(t))
+		if lower == "true" || lower == "1" || lower == "yes" {
+			return true, true
+		}
+		if lower == "false" || lower == "0" || lower == "no" {
+			return false, true
+		}
+	}
+	return false, false
+}
+
+func asString(v interface{}) (string, bool) {
+	if v == nil {
+		return "", false
+	}
+	if s, ok := v.(string); ok {
+		return s, true
+	}
+	return "", false
 }
 
 func (g *Globule) watchConfig() {

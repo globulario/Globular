@@ -44,3 +44,4 @@ mail.txt
 .env
 .env.*
 secrets/**
+.cache/

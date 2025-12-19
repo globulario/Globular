@@ -11,17 +11,17 @@ import (
 	"net"
 	"net/netip"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/globulario/Globular/internal/legacy"
+	"github.com/globulario/Globular/internal/legacy/lifecycle"
 	"github.com/globulario/Globular/internal/logsink"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/log/logpb"
-	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
@@ -39,8 +39,21 @@ type restartGuard struct {
 	busy map[string]struct{}
 }
 
+func (g *Globule) legacyDeps() legacy.Deps {
+	return legacy.Deps{
+		Logger:   g.log,
+		Stdout:   os.Stdout,
+		Stderr:   os.Stderr,
+		Domain:   g.Domain,
+		Protocol: g.Protocol,
+		Email:    g.AdminEmail,
+		Timeout:  1500 * time.Millisecond,
+	}
+}
+
 func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 	guard := &restartGuard{busy: make(map[string]struct{})}
+	lc := lifecycle.New(g.legacyDeps())
 
 	// 1) Initial reconcile — use RUNTIME truth, not config snapshot
 	if svcs, err := config.GetServicesConfigurations(); err == nil {
@@ -70,7 +83,7 @@ func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 
 			go func(id string, delay time.Duration) {
 				time.Sleep(delay)
-				g.tryRestartWithBackoff(ctx, guard, id)
+				g.tryRestartWithBackoff(ctx, guard, id, lc)
 			}(id, time.Duration(50+rand.Intn(250))*time.Millisecond)
 		}
 	}
@@ -99,30 +112,10 @@ func (g *Globule) startKeepAliveSupervisor(ctx context.Context) {
 			}
 
 			if proc == -1 || state == "failed" || state == "stopped" {
-				go g.tryRestartWithBackoff(ctx, guard, ev.ID)
+				go g.tryRestartWithBackoff(ctx, guard, ev.ID, lc)
 			}
 		})
 	}()
-}
-
-var (
-	envoySnapMu    sync.Mutex
-	envoySnapTimer *time.Timer
-)
-
-func (g *Globule) refreshEnvoySnapshotDebounced() {
-	envoySnapMu.Lock()
-	defer envoySnapMu.Unlock()
-	if envoySnapTimer != nil {
-		envoySnapTimer.Stop()
-	}
-	envoySnapTimer = time.AfterFunc(500*time.Millisecond, func() {
-		if err := g.SetSnapshot(); err != nil {
-			g.log.Warn("envoy snapshot refresh failed", "err", err)
-		} else {
-			g.log.Info("envoy snapshot updated")
-		}
-	})
 }
 
 // bootstrapServiceConfigsFromDisk syncs service definition files into etcd
@@ -211,7 +204,7 @@ func (g *Globule) bootstrapServiceConfigsFromDisk() error {
 	return nil
 }
 
-func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard, id string) {
+func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard, id string, lc *lifecycle.Lifecycle) {
 	guard.mu.Lock()
 	if _, ok := guard.busy[id]; ok {
 		guard.mu.Unlock()
@@ -264,22 +257,19 @@ func (g *Globule) tryRestartWithBackoff(ctx context.Context, guard *restartGuard
 		}
 
 		g.log.Info("keepalive: restarting service", "name", name, "id", id, "port", port)
-		pid, startErr := process.StartServiceProcessWithWriters(cfg, port, outW, errW)
+		pid, startErr := lc.StartService(ctx, cfg, port, outW, errW)
 		if startErr == nil {
 			_ = config.PutRuntime(id, map[string]any{"Process": pid, "State": "starting", "LastError": ""})
 			cfg["Process"] = pid
 
 			if !g.UseEnvoy {
-				if _, perr := process.StartServiceProxyProcess(cfg, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); perr != nil {
+				if _, perr := lc.StartProxy(ctx, cfg, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); perr != nil {
 					g.log.Warn("keepalive: proxy start failed", "name", name, "err", perr)
 				}
 			}
 
 			if g.waitServiceReady(name, addr, 8*time.Second) {
 				_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
-				if g.UseEnvoy {
-					g.refreshEnvoySnapshotDebounced()
-				}
 			} else {
 				_ = config.PutRuntime(id, map[string]any{"State": "failed", "LastError": "keepalive startup timeout"})
 			}
@@ -631,6 +621,8 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		return errors.New("no services to start after desired authoring")
 	}
 
+	lc := lifecycle.New(g.legacyDeps())
+
 	// 6) Spawn services (no per-service proxy when UseEnvoy)
 	for _, id := range ordered {
 		m := desiredByID[id]
@@ -664,7 +656,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		})
 
 		g.log.Info("starting service", "name", name, "id", id, "port", port, "proxy", proxy)
-		pid, err := process.StartServiceProcessWithWriters(m, port, outW, errW)
+		pid, err := lc.StartService(ctx, m, port, outW, errW)
 		restore() // always restore parent env
 
 		if err != nil {
@@ -678,7 +670,7 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 
 		if !g.UseEnvoy {
 			// Legacy per-service proxy path
-			if _, err := process.StartServiceProxyProcess(m, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
+			if _, err := lc.StartProxy(ctx, m, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
 				g.log.Warn("proxy start failed", "name", name, "err", err)
 			}
 		}
@@ -699,13 +691,6 @@ func (g *Globule) startServicesEtcd(ctx context.Context) error {
 		}
 		_ = config.PutRuntime(id, map[string]any{"State": "running", "LastError": ""})
 		g.log.Info("service ready", "name", name, "addr", addr)
-	}
-
-	// 8) If using Envoy, publish a fresh snapshot now that services are up.
-	if g.UseEnvoy {
-		if err := g.SetSnapshot(); err != nil {
-			g.log.Warn("initial envoy snapshot failed", "err", err)
-		}
 	}
 
 	// 9) Ensure default roles (if any) are present in Resource service
@@ -734,9 +719,11 @@ func (g *Globule) stopServicesEtcd() error {
 		return err
 	}
 
+	lc := lifecycle.New(g.legacyDeps())
+
 	// 1) Stop proxies first (unchanged)
 	for _, s := range svcs {
-		_ = process.KillServiceProxyProcess(s)
+		_ = lc.KillProxy(s)
 	}
 
 	// 2) Ask each service to close cooperatively by setting desired State="closing"
@@ -784,7 +771,7 @@ func (g *Globule) stopServicesEtcd() error {
 			continue
 		}
 		g.log.Warn("service did not close in time; forcing kill", "id", id, "name", Utility.ToString(s["Name"]))
-		_ = process.KillServiceProcess(s)
+		_ = lc.KillService(s)
 		_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "failed", "LastError": "forced kill on shutdown"})
 	}
 
@@ -1047,16 +1034,14 @@ func (g *Globule) binHealthOK(serviceName string) bool {
 	if err != nil || strings.TrimSpace(bin) == "" {
 		return false
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, bin, "--health")
 	address, _ := config.GetAddress()
 	address = strings.Split(address, ":")[0]
-	cmd.Env = append(os.Environ(),
-		"GLOBULAR_DOMAIN="+g.Domain,
-		"GLOBULAR_ADDRESS="+address,
-	)
-	return cmd.Run() == nil
+	env := []string{
+		"GLOBULAR_DOMAIN=" + g.Domain,
+		"GLOBULAR_ADDRESS=" + address,
+	}
+	lc := lifecycle.New(g.legacyDeps())
+	return lc.RunHealthCheck(context.Background(), bin, []string{"--health"}, env) == nil
 }
 
 // utilities toAnySlice, toAnyAnySlice, coalesce unchanged (omitted) ...

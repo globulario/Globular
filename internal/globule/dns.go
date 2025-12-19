@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/globulario/Globular/internal/legacy/bootstrap"
 	"github.com/globulario/Globular/internal/logsink"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/log/logpb"
-	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 	"github.com/txn2/txeh"
@@ -74,7 +74,7 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 	errW := logsink.NewServiceLogWriter(address, name, "sa", "/"+name+"/stderr", logpb.LogLevel_ERROR_MESSAGE, os.Stderr)
 
 	g.log.Info("starting dns", "port", port, "proxy", proxy, "path", desired["Path"])
-	pid, err := process.StartServiceProcessWithWriters(desired, port, outW, errW)
+	pid, err := bootstrap.StartDNSService(ctx, desired, port, outW, errW)
 	if err != nil {
 		_ = config.PutRuntime(id, map[string]any{"Process": -1, "State": "failed", "LastError": err.Error()})
 		g.log.Warn("dns start failed", "err", err)
@@ -84,7 +84,7 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 	desired["Process"] = pid
 
 	if !g.UseEnvoy {
-		if _, err := process.StartServiceProxyProcess(desired, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
+		if _, err := bootstrap.StartDNSProxy(ctx, desired, config.GetLocalCertificateAuthorityBundle(), config.GetLocalCertificate()); err != nil {
 			g.log.Warn("dns proxy start failed", "err", err)
 		}
 	}

@@ -145,9 +145,19 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Protected areas under data/files
 		hasAccess := true
 		if strings.HasPrefix(rqstPath, "/users/") {
-			if !strings.Contains(rqstPath, "/.hidden/") {
-				hasAccess = false
-			}
+			hasAccess = false
+
+		}
+
+		if strings.Contains(rqstPath, "/.hidden/") ||
+			strings.HasSuffix(rqstPath, ".ts") ||
+			strings.HasSuffix(rqstPath, "240p.m3u8") ||
+			strings.HasSuffix(rqstPath, "360p.m3u8") ||
+			strings.HasSuffix(rqstPath, "480p.m3u8") ||
+			strings.HasSuffix(rqstPath, "720p.m3u8") ||
+			strings.HasSuffix(rqstPath, "1080p.m3u8") ||
+			strings.HasSuffix(rqstPath, "2160p.m3u8") {
+			hasAccess = true
 		}
 
 		// Windows drive quirk: "/C:..." -> "C:..."

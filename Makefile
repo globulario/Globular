@@ -20,7 +20,7 @@ else
   PKG ?= .
 endif
 
-.PHONY: tidy fmt vet lint test bench run dev-up dev-down build image vuln sec sbom clean print-vars
+.PHONY: tidy fmt vet lint test bench run dev-up dev-down build image vuln sec sbom clean print-vars build-gateway build-xds build-all
 
 tidy:
 	go mod tidy
@@ -48,6 +48,24 @@ build:
 	mkdir -p ./.bin
 	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/$(BIN) $(PKG)
 
+build-gateway:
+	mkdir -p ./.bin
+	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/globular-gateway ./cmd/globular-gateway
+
+build-xds:
+	mkdir -p ./.bin
+	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/globular-xds ./cmd/globular-xds
+
+build-all: build build-gateway build-xds
+
+check-gateway-no-exec:
+	@if rg -n "os/exec" cmd/globular-gateway internal/gateway >/dev/null 2>&1; then \
+		echo "gateway must not import os/exec"; \
+		exit 1; \
+	else \
+		echo "gateway exec check: OK"; \
+	fi
+
 run:
 	GOLOG_LOG_LEVEL=info CGO_ENABLED=$(CGO) go run $(PKG)
 
@@ -69,4 +87,3 @@ clean:
 print-vars:
 	@echo "BIN=$(BIN)"
 	@echo "PKG=$(PKG)"
-

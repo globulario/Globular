@@ -423,6 +423,12 @@ func (cfgProvider) ConfigDir() string    { return config_.GetConfigDir() }
 func (cfgProvider) WebRootDir() string   { return config_.GetWebRootDir() }
 func (cfgProvider) PublicDirs() []string { return config_.GetPublicDirs() }
 
+type describeProvider struct{}
+
+func (describeProvider) DescribeService(name string, timeout time.Duration) (config_.ServiceDesc, string, error) {
+	return globule.DescribeService(name, timeout)
+}
+
 // ---------------------
 // Service permissions
 // ---------------------
@@ -583,6 +589,7 @@ func wireConfig(mux *http.ServeMux) {
 	getServiceConfig := cfgHandlers.NewGetServiceConfig(cfgProvider{})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{})
+	describeService := cfgHandlers.NewDescribeService(describeProvider{})
 
 	ca := cfgHandlers.NewCAProvider()
 	wrap := middleware.WithRedirectAndPreflight(redirector{}, setHeaders)
@@ -592,6 +599,7 @@ func wireConfig(mux *http.ServeMux) {
 		GetServiceConfig:      wrap(getServiceConfig),
 		SaveConfig:            wrap(saveConfig),
 		GetServicePermissions: wrap(getSvcPerms),
+		DescribeService:       wrap(describeService),
 
 		GetCACertificate:  wrap(cfgHandlers.NewGetCACertificate(ca)),
 		SignCACertificate: wrap(cfgHandlers.NewSignCACertificate(ca)),

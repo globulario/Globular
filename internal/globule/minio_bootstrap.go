@@ -8,11 +8,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/globulario/Globular/internal/legacy/bootstrap"
 	"github.com/globulario/services/golang/config"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -80,16 +80,20 @@ func (g *Globule) prepareMinioCerts() (string, error) {
 
 // startMinioIfNeeded boots MinIO unless MINIO_DISABLED=1, wiring TLS + credentials.
 func (g *Globule) startMinioIfNeeded(ctx context.Context, log *slog.Logger) (*MinioRuntime, error) {
-	if v := os.Getenv("MINIO_DISABLED"); v == "1" {
+	disabled := g.MinioDisabled
+	if !disabled && os.Getenv("MINIO_DISABLED") == "1" {
+		disabled = true
+	}
+	if disabled {
 		return nil, nil
 	}
 
-	accessKey := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_USER")), "globular")
-	secretKey := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_PASSWORD")), "globular-secret")
-	bucket := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BUCKET")), "globular")
-	prefix := strings.TrimSpace(os.Getenv("MINIO_PREFIX"))
+	accessKey := pickMinioSetting(g.MinioRootUser, "MINIO_ROOT_USER", "globular")
+	secretKey := pickMinioSetting(g.MinioRootPassword, "MINIO_ROOT_PASSWORD", "globular-secret")
+	bucket := pickMinioSetting(g.MinioBucket, "MINIO_BUCKET", "globular")
+	prefix := pickMinioSetting(g.MinioPrefix, "MINIO_PREFIX", "")
 
-	dataDir := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_DATA_DIR")), "/mnt/globular-minio")
+	dataDir := pickMinioSetting(g.MinioDataDir, "MINIO_DATA_DIR", "/mnt/globular-minio")
 	if err := os.MkdirAll(dataDir, 0o750); err != nil {
 		return nil, fmt.Errorf("startMinio: mkdir dataDir %s: %w", dataDir, err)
 	}
@@ -98,7 +102,7 @@ func (g *Globule) startMinioIfNeeded(ctx context.Context, log *slog.Logger) (*Mi
 	if strings.TrimSpace(host) == "" {
 		host = "0.0.0.0"
 	}
-	port := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_PORT")), "9000")
+	port := pickMinioSetting(g.MinioPort, "MINIO_PORT", "9000")
 	listenAddr := host + ":" + port
 
 	endpointHost := host
@@ -113,19 +117,11 @@ func (g *Globule) startMinioIfNeeded(ctx context.Context, log *slog.Logger) (*Mi
 		return nil, err
 	}
 
-	minioBin := firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BIN")), "minio")
-	cmd := exec.CommandContext(ctx, minioBin,
-		"server",
-		"--certs-dir", certsDir,
-		"--address", listenAddr,
-		dataDir,
-	)
-	cmd.Env = append(os.Environ(),
-		"MINIO_ROOT_USER="+accessKey,
-		"MINIO_ROOT_PASSWORD="+secretKey,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	minioBin := pickMinioSetting(g.MinioBin, "MINIO_BIN", "minio")
+	env := []string{
+		"MINIO_ROOT_USER=" + accessKey,
+		"MINIO_ROOT_PASSWORD=" + secretKey,
+	}
 
 	log.Info("starting MinIO",
 		"bin", minioBin,
@@ -135,16 +131,15 @@ func (g *Globule) startMinioIfNeeded(ctx context.Context, log *slog.Logger) (*Mi
 		"certsDir", certsDir,
 	)
 
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("startMinio: %w", err)
+	cmd, err := bootstrap.StartMinio(ctx, minioBin, listenAddr, certsDir, dataDir, env, os.Stdout, os.Stderr)
+	if err != nil {
+		return nil, err
 	}
 
 	go func() {
 		_ = cmd.Wait()
 		log.Warn("MinIO process exited")
 	}()
-
-	time.Sleep(2 * time.Second)
 
 	rt := &MinioRuntime{
 		Endpoint:   clientEndpoint,
@@ -228,6 +223,16 @@ func (g *Globule) newMinioClient(log *slog.Logger, cfg *MinioRuntime) (*minio.Cl
 	}
 
 	return minio.New(cfg.Endpoint, opts)
+}
+
+func pickMinioSetting(primary, envKey, fallback string) string {
+	if s := strings.TrimSpace(primary); s != "" {
+		return s
+	}
+	if env := strings.TrimSpace(os.Getenv(envKey)); env != "" {
+		return env
+	}
+	return fallback
 }
 
 func cloneHTTPTransport() *http.Transport {

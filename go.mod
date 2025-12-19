@@ -5,9 +5,12 @@ go 1.24.5
 // set local replace github.com/globulario/services/golang => ../services/golang
 replace github.com/globulario/services/golang => ../services/golang
 
+replace github.com/globulario/services/golang/services_manager/services_manager_client => ./internal/stubs/services_manager/services_manager_client
+
 require (
 	github.com/StalkR/imdb v1.0.15
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/globulario/services/golang/services_manager/services_manager_client v0.0.0
 	//github.com/globulario/services/golang v0.1.29
 	github.com/globulario/utility v0.1.9
 	github.com/go-acme/lego/v4 v4.25.2 // indirect

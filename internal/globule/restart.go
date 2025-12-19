@@ -1,17 +1,27 @@
 package globule
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
+
+	agentclient "github.com/globulario/Globular/internal/agentclient"
 )
 
 // restart terminates the current Globular process and re-executes it
 // with the same binary + args. It preserves environment variables.
 // Use only for disruptive config changes (Protocol/Domain).
 func (g *Globule) restart() error {
+	ctx := context.Background()
+	if err := agentclient.ApplySingleUnitAction(ctx, NodeAgentAddress(), "globular", "restart"); err == nil {
+		return nil
+	} else {
+		g.log.Warn("node-agent restart failed; falling back to legacy exec", "err", err)
+	}
+
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("restart: resolve executable: %w", err)
@@ -21,7 +31,6 @@ func (g *Globule) restart() error {
 
 	fmt.Println("Restarting Globular...")
 
-	// On Windows, execve semantics differ; just spawn new process and exit.
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command(exe, args[1:]...)
 		cmd.Env = env
@@ -34,6 +43,5 @@ func (g *Globule) restart() error {
 		return nil
 	}
 
-	// On Unix, replace the current process image.
 	return syscall.Exec(exe, args, env)
 }

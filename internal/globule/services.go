@@ -32,6 +32,12 @@ func refreshTokenPeriodically(ctx context.Context, g *Globule) {
 	}
 }
 
+// DescribeService exposes describeServiceByName to external callers (e.g., HTTP handlers).
+func (g *Globule) DescribeService(name string, timeout time.Duration) (config.ServiceDesc, string, error) {
+	desc, bin, err := g.describeServiceByName(name, timeout)
+	return config.ServiceDesc(desc), bin, err
+}
+
 func (g *Globule) describeServiceByName(name string, timeout time.Duration) (serviceDesc, string, error) {
 	root := config.GetServicesRoot()
 	if root == "" {

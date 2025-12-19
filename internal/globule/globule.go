@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -112,6 +111,16 @@ type Globule struct {
 
 	// Use Envoy proxy for service communication
 	UseEnvoy bool
+
+	// MinIO configuration
+	MinioDisabled     bool
+	MinioRootUser     string
+	MinioRootPassword string
+	MinioBucket       string
+	MinioPrefix       string
+	MinioDataDir      string
+	MinioPort         string
+	MinioBin          string
 }
 
 // registrationResource kept only to avoid breaking struct fields;
@@ -150,6 +159,14 @@ func New(logger *slog.Logger) *Globule {
 		peers:               &sync.Map{},
 		configDir:           config.GetConfigDir(),
 		UseEnvoy:            false,
+		MinioDisabled:       os.Getenv("MINIO_DISABLED") == "1",
+		MinioRootUser:       firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_USER")), "globular"),
+		MinioRootPassword:   firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_PASSWORD")), "globular-secret"),
+		MinioBucket:         firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BUCKET")), "globular"),
+		MinioPrefix:         strings.TrimSpace(os.Getenv("MINIO_PREFIX")),
+		MinioDataDir:        firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_DATA_DIR")), "/mnt/globular-minio"),
+		MinioPort:           firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_PORT")), "9000"),
+		MinioBin:            firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BIN")), "minio"),
 	}
 
 	// Load existing config (if present)
@@ -177,12 +194,6 @@ func New(logger *slog.Logger) *Globule {
 	g.Mac, _ = config.GetMacAddress()
 	g.localIPAddress, _ = Utility.MyLocalIP(g.Mac)
 	g.ExternalIPAddress = Utility.MyIP()
-
-	// I will try to get the envoy version from the binary if possible
-	if version, err := exec.Command("envoy", "--version").Output(); err == nil {
-		g.log.Info("envoy version", "info", strings.TrimSpace(string(version)))
-		g.UseEnvoy = true
-	}
 
 	// Banner
 	PrintBanner(g.Version, g.Build)
@@ -272,12 +283,6 @@ func (g *Globule) StartServices(ctx context.Context) {
 
 	// restart dns service if present this fix reflexion issue...
 	Utility.KillProcessByName("dns_server")
-
-	if g.UseEnvoy {
-		// Start xDS server and Envoy after initial service bring-up.
-		go g.initControlPlane()
-		g.startEnvoyProxy()
-	}
 
 	if err := g.BootstrapAdmin(); err != nil {
 		g.log.Error("admin bootstrap failed", "err", err)
@@ -676,14 +681,7 @@ func (g *Globule) promoteEtcdAndProxiesToTLS(ctx context.Context) error {
 		g.log.Warn("some services failed to restart for TLS; KeepAlive may recover them", "err", err)
 	}
 
-	if g.UseEnvoy {
-		// Re-push snapshot so clusters/listeners pick up new cert paths or SNI.
-		if err := g.SetSnapshot(); err != nil {
-			g.log.Warn("envoy snapshot refresh after TLS promote failed", "err", err)
-		}
-		// Optional: restart Envoy process to reload its own downstream certs, if those files changed.
-		// _ = process.RestartEnvoyProxy() // only if you implement it; otherwise hot reload via file-watching or SDS.
-	} else {
+	if !g.UseEnvoy {
 		if err := process.RestartAllServiceProxiesTLS(); err != nil {
 			g.log.Warn("some proxies failed to restart with TLS", "err", err)
 		}

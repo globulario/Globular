@@ -15,7 +15,6 @@ import (
 	"github.com/globulario/services/golang/globular_client"
 	"github.com/globulario/services/golang/resource/resource_client"
 	"github.com/globulario/services/golang/resource/resourcepb"
-	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 )
 
@@ -32,16 +31,16 @@ func getResourceClient(address string) (*resource_client.Resource_Client, error)
 
 // -------------------- peers public API --------------------
 
-// getPeers returns the list of registered peers from ResourceService.
-func (g *Globule) getPeers() ([]*resourcepb.Peer, error) {
+// getPeers returns the list of stored node identities from ResourceService.
+func (g *Globule) getPeers() ([]*resourcepb.NodeIdentity, error) {
 	addr, _ := config.GetAddress()
 	rc, err := getResourceClient(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	var peers []*resourcepb.Peer
-	peers, err = rc.GetPeers("")
+	var peers []*resourcepb.NodeIdentity
+	peers, err = rc.ListNodeIdentities("", "")
 	if err == nil {
 		return peers, nil
 	}
@@ -51,7 +50,7 @@ func (g *Globule) getPeers() ([]*resourcepb.Peer, error) {
 
 // initPeer updates /etc/hosts (or Windows hosts), fetches public key if missing,
 // and refreshes this node's info on the remote ResourceService peer.
-func (g *Globule) initPeer(p *resourcepb.Peer) error {
+func (g *Globule) initPeer(p *resourcepb.NodeIdentity) error {
 	// Build address for hosts mapping
 	address := p.Hostname
 	if p.Domain != "localhost" {
@@ -90,23 +89,18 @@ func (g *Globule) initPeer(p *resourcepb.Peer) error {
 		}
 	}
 
-	// Refresh our own peer info on that remote node (best-effort)
-	token, err := security.GenerateToken(g.SessionTimeout, p.GetMac(), "sa", "", g.AdminEmail, g.Domain)
-	if err != nil {
-		return err
-	}
-
+	// Refresh our own node identity on that remote node (best-effort)
 	rc, err := getResourceClient(address)
 	if err != nil {
 		return err
 	}
 
-	peers, err := rc.GetPeers(`{"mac":"` + g.Mac + `"}`)
-	if err != nil || len(peers) == 0 {
-		return errors.New("initPeer: failed to read local peer on remote")
+	nodes, err := rc.ListNodeIdentities(`{"mac":"`+g.Mac+`"}`, "")
+	if err != nil || len(nodes) == 0 {
+		return errors.New("initPeer: failed to read local node on remote")
 	}
 
-	me := peers[0]
+	me := nodes[0]
 	me.Protocol = g.Protocol
 	me.LocalIpAddress = config.GetLocalIP()
 	me.ExternalIpAddress = Utility.MyIP()
@@ -114,7 +108,7 @@ func (g *Globule) initPeer(p *resourcepb.Peer) error {
 	me.PortHttps = int32(g.PortHTTPS)
 	me.Domain = g.Domain
 
-	if err := rc.UpdatePeer(token, me); err != nil {
+	if _, err := rc.UpsertNodeIdentity(me); err != nil {
 		return err
 	}
 	return nil
@@ -125,7 +119,7 @@ func (g *Globule) savePeers() error {
 	// Build serializable view
 	peers := make([]interface{}, 0)
 	g.peers.Range(func(_, v any) bool {
-		p := v.(*resourcepb.Peer)
+		p := v.(*resourcepb.NodeIdentity)
 		port := p.PortHttp
 		if p.Protocol == "https" {
 			port = p.PortHttps
@@ -146,31 +140,25 @@ func (g *Globule) savePeers() error {
 
 // updatePeersEvent handles "update_peers_evt" payloads.
 func (g *Globule) updatePeersEvent(evt *eventpb.Event) {
-	peer := &resourcepb.Peer{}
+	peer := &resourcepb.NodeIdentity{}
 	var m map[string]interface{}
 	if err := json.Unmarshal(evt.Data, &m); err != nil {
 		fmt.Println("updatePeersEvent: bad payload:", err)
 		return
 	}
 
-	peer.Domain = asString(m["domain"])
-	peer.Hostname = asString(m["hostname"])
-	peer.Mac = asString(m["mac"])
-	peer.Protocol = asString(m["protocol"])
-	peer.LocalIpAddress = firstNonEmpty(asString(m["local_ip_address"]), asString(m["localIPAddress"]))
-	peer.ExternalIpAddress = firstNonEmpty(asString(m["external_ip_address"]), asString(m["ExternalIPAddress"]))
+	peer.Domain = asString_(m["domain"])
+	peer.Hostname = asString_(m["hostname"])
+	peer.Mac = asString_(m["mac"])
+	peer.Protocol = asString_(m["protocol"])
+	peer.LocalIpAddress = firstNonEmpty(asString_(m["local_ip_address"]), asString_(m["localIPAddress"]))
+	peer.ExternalIpAddress = firstNonEmpty(asString_(m["external_ip_address"]), asString_(m["ExternalIPAddress"]))
 	peer.PortHttp = int32(Utility.ToInt(m["PortHTTP"]))
 	peer.PortHttps = int32(Utility.ToInt(m["PortHTTPS"]))
-
-	// actions (optional)
-	if a, ok := m["actions"].([]interface{}); ok {
-		peer.Actions = make([]string, 0, len(a))
-		for _, x := range a {
-			if s, ok := x.(string); ok {
-				peer.Actions = append(peer.Actions, s)
-			}
-		}
-	}
+	peer.NodeId = firstNonEmpty(asString_(m["node_id"]), asString_(m["_id"]))
+	peer.Fingerprint = asString_(m["fingerprint"])
+	peer.Status = asString_(m["status"])
+	peer.Enabled = Utility.ToBool(m["enabled"])
 
 	g.peers.Store(peer.Mac, peer)
 	if err := g.savePeers(); err != nil {
@@ -221,7 +209,7 @@ func (g *Globule) initPeers() error {
 
 // -------------------- helpers --------------------
 
-func asString(v interface{}) string {
+func asString_(v interface{}) string {
 	if s, ok := v.(string); ok {
 		return s
 	}
@@ -242,7 +230,7 @@ func osWriteFile0600(path string, data []byte) error {
 
 // redirectTo looks up the peer for a given host (domain).
 // Returns (ok, *Peer) if found.
-func (g *Globule) RedirectTo(host string) (bool, *resourcepb.Peer) {
+func (g *Globule) RedirectTo(host string) (bool, *resourcepb.NodeIdentity) {
 
 	if host == "" {
 		return false, nil
@@ -263,7 +251,7 @@ func (g *Globule) RedirectTo(host string) (bool, *resourcepb.Peer) {
 		h = host[:i]
 	}
 
-	var found *resourcepb.Peer
+	var found *resourcepb.NodeIdentity
 	for _, p := range peers {
 		// Match domain or hostname+domain
 		if p.Domain == h || (p.Hostname+"."+p.Domain) == h {
