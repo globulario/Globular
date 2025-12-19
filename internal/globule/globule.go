@@ -75,6 +75,7 @@ type Globule struct {
 	DNS              string
 	NS               []interface{}
 	DNSUpdateIPInfos []interface{}
+	SkipLocalDNS     bool
 
 	// OAuth2 configuration.
 	OAuth2ClientID     string

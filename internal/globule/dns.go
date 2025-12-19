@@ -32,6 +32,11 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 		return g.registerIPToDNS()
 	}
 
+	if g.SkipLocalDNS {
+		g.log.Info("dns start skipped (gateway mode)")
+		return g.registerIPToDNS()
+	}
+
 	alloc, err := config.NewDefaultPortAllocator()
 	if err != nil {
 		return err

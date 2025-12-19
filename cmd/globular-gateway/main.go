@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -14,6 +15,7 @@ import (
 	gatewayhandlers "github.com/globulario/Globular/internal/gateway/handlers"
 	gatewayhttp "github.com/globulario/Globular/internal/gateway/httpserver"
 	globpkg "github.com/globulario/Globular/internal/globule"
+	"github.com/globulario/services/golang/config"
 )
 
 var (
@@ -33,6 +35,7 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	globule := globpkg.New(logger)
+	globule.SkipLocalDNS = true
 
 	switch mode := strings.ToLower(strings.TrimSpace(*modeFlag)); mode {
 	case "direct":
@@ -46,17 +49,29 @@ func main() {
 	}
 
 	var httpAddr, httpsAddr string
-	switch strings.ToLower(globule.Protocol) {
+	protocol := strings.ToLower(strings.TrimSpace(globule.Protocol))
+	switch protocol {
 	case "https":
-		if err := globule.BootstrapTLSAndDNS(context.Background()); err != nil {
+		err := globule.BootstrapTLSAndDNS(context.Background())
+		if err != nil {
 			if *requireDNSBoot {
 				logger.Error("tls/dns bootstrap failed", "err", err)
 				os.Exit(1)
 			}
 			logger.Warn("tls/dns bootstrap warning", "err", err)
+			if hasExistingTLSCert(globule) {
+				logger.Info("existing TLS certificate found; continuing with HTTPS")
+				httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
+				logger.Info("starting HTTPS (from globule config)", "addr", httpsAddr, "domain", globule.Domain)
+			} else {
+				httpAddr = fmt.Sprintf(":%d", globule.PortHTTP)
+				logger.Warn("falling back to HTTP; TLS certificate not available", "addr", httpAddr)
+				logger.Info("starting HTTP (from globule config)", "addr", httpAddr, "domain", globule.Domain)
+			}
+		} else {
+			httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
+			logger.Info("starting HTTPS (from globule config)", "addr", httpsAddr, "domain", globule.Domain)
 		}
-		httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
-		logger.Info("starting HTTPS (from globule config)", "addr", httpsAddr, "domain", globule.Domain)
 	default:
 		if err := globule.InitFS(); err != nil {
 			logger.Error("bootstrap failed", "err", err)
@@ -100,4 +115,12 @@ func main() {
 	if err := httpServer.Stop(shCtx); err != nil {
 		logger.Error("HTTP/S shutdown error", "err", err)
 	}
+}
+
+func hasExistingTLSCert(g *globpkg.Globule) bool {
+	fullchain := filepath.Join(config.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem")
+	if _, err := os.Stat(fullchain); err == nil {
+		return true
+	}
+	return false
 }
