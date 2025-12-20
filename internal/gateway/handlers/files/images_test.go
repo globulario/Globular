@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	files "github.com/globulario/Globular/internal/handlers/files"
+	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 )
 
 type fakeLister struct {

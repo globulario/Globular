@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/globulario/Globular/internal/controllerclient"
+	clusterHandlers "github.com/globulario/Globular/internal/gateway/handlers/cluster"
+	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
+	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
+	mediaHandlers "github.com/globulario/Globular/internal/gateway/handlers/media"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
+	middleware "github.com/globulario/Globular/internal/gateway/http/middleware"
 	globpkg "github.com/globulario/Globular/internal/globule"
-	clusterHandlers "github.com/globulario/Globular/internal/handlers/cluster"
-	cfgHandlers "github.com/globulario/Globular/internal/handlers/config"
-	filesHandlers "github.com/globulario/Globular/internal/handlers/files"
-	mediaHandlers "github.com/globulario/Globular/internal/handlers/media"
-	httplib "github.com/globulario/Globular/internal/http"
-	middleware "github.com/globulario/Globular/internal/http/middleware"
 	Utility "github.com/globulario/utility"
 )
 

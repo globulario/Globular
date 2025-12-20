@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/StalkR/imdb"
-	mediaHandlers "github.com/globulario/Globular/internal/handlers/media"
+	mediaHandlers "github.com/globulario/Globular/internal/gateway/handlers/media"
 	"github.com/globulario/services/golang/title/titlepb"
 	Utility "github.com/globulario/utility"
 )

@@ -37,12 +37,12 @@ import (
 	"time"
 
 	"github.com/StalkR/imdb"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
+	middleware "github.com/globulario/Globular/internal/gateway/http/middleware"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	cfgHandlers "github.com/globulario/Globular/internal/handlers/config"
 	filesHandlers "github.com/globulario/Globular/internal/handlers/files"
 	mediaHandlers "github.com/globulario/Globular/internal/handlers/media"
-	httplib "github.com/globulario/Globular/internal/http"
-	middleware "github.com/globulario/Globular/internal/http/middleware"
 	"github.com/globulario/Globular/internal/server"
 
 	config_ "github.com/globulario/services/golang/config"

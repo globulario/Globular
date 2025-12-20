@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // TitlesQuery captures common filters.

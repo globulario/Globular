@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // SeasonEpisodeResolver abstracts how we obtain season/episode/series for a title.

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/globulario/Globular/internal/http/middleware"
+	"github.com/globulario/Globular/internal/gateway/http/middleware"
 )
 
 type fakeRedirector struct {
@@ -40,7 +40,7 @@ func TestWithRedirectAndPreflight_Redirects(t *testing.T) {
 	h := middleware.WithRedirectAndPreflight(rdr, nil)(next)
 
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "api/getConfig", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://peer.example:8081/api/getConfig", nil)
 	req.Host = "peer.example:8081"
 
 	h.ServeHTTP(rr, req)

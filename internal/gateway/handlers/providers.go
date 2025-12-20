@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
+	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	globpkg "github.com/globulario/Globular/internal/globule"
-	filesHandlers "github.com/globulario/Globular/internal/handlers/files"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"

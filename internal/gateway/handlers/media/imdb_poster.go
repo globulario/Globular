@@ -3,7 +3,7 @@ package media
 import (
 	"net/http"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // PosterFetcher can return the raw image OR a URL to redirect to.

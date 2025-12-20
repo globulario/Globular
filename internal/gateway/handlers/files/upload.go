@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strings"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // UploadProvider abstracts write roots and access checks for uploads.

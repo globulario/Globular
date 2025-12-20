@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // TrailerFetcher resolves an IMDb trailer video URL.

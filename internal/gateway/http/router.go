@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	middleware "github.com/globulario/Globular/internal/http/middleware"
+	middleware "github.com/globulario/Globular/internal/gateway/http/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

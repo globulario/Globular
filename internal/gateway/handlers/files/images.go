@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 type ImageLister interface {

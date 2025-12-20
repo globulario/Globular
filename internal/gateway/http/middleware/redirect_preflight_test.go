@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/globulario/Globular/internal/http/middleware"
+	"github.com/globulario/Globular/internal/gateway/http/middleware"
 )
 
 func TestWithRedirectAndPreflight_OptionsShortCircuit(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	files "github.com/globulario/Globular/internal/handlers/files"
+	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 )
 
 type fakeServe struct {

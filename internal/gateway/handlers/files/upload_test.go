@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	files "github.com/globulario/Globular/internal/handlers/files"
+	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 )
 
 type fakeUpload struct {

@@ -17,7 +17,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	httplib "github.com/globulario/Globular/internal/http"
+	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
 // MinioProxyConfig captures the subset of FileService MinIO settings required
