@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -41,9 +42,11 @@ type Listener struct {
 
 // Route maps a prefix to a cluster.
 type Route struct {
-	Prefix      string `json:"prefix"`
-	Cluster     string `json:"cluster"`
-	HostRewrite string `json:"host_rewrite,omitempty"`
+	Prefix      string   `json:"prefix"`
+	Cluster     string   `json:"cluster"`
+	HostRewrite string   `json:"host_rewrite,omitempty"`
+	Domains     []string `json:"domains,omitempty"`
+	Authority   string   `json:"authority,omitempty"`
 }
 
 // Input is the data required to build an xDS snapshot.
@@ -100,6 +103,8 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				Prefix:      prefix,
 				Cluster:     strings.TrimSpace(route.Cluster),
 				HostRewrite: strings.TrimSpace(route.HostRewrite),
+				Domains:     trimValues(route.Domains),
+				Authority:   strings.TrimSpace(route.Authority),
 			})
 		}
 		if len(ingressRoutes) > 0 {
@@ -139,5 +144,23 @@ func toControlplaneEndpoints(ends []Endpoint) []controlplane.EndPoint {
 			Priority: ep.Priority,
 		})
 	}
+	return out
+}
+
+func trimValues(in []string) []string {
+	out := make([]string, 0, len(in))
+	seen := map[string]struct{}{}
+	for _, v := range in {
+		s := strings.TrimSpace(v)
+		if s == "" {
+			continue
+		}
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	sort.Strings(out)
 	return out
 }

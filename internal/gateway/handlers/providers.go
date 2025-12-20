@@ -86,8 +86,8 @@ func (u uploadProvider) ValidateAccount(uID, action, path string) (bool, bool, e
 func (u uploadProvider) ValidateApplication(app, action, path string) (bool, bool, error) {
 	return accessControl{globule: u.globule}.ValidateApplication(app, action, path)
 }
-func (u uploadProvider) AddResourceOwner(token, path, owner, resourceType string) error {
-	return u.globule.AddResourceOwner(token, path, owner, resourceType, rbacpb.SubjectType_ACCOUNT)
+func (u uploadProvider) AddResourceOwner(path, resourceType, owner string) error {
+	return u.globule.AddResourceOwner(path, resourceType, owner, rbacpb.SubjectType_ACCOUNT)
 }
 func (uploadProvider) FileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, bool) {
 	return fileServiceMinioConfigCache.get()
@@ -131,12 +131,10 @@ func (cfgProvider) ConfigDir() string    { return config_.GetConfigDir() }
 func (cfgProvider) WebRootDir() string   { return config_.GetWebRootDir() }
 func (cfgProvider) PublicDirs() []string { return config_.GetPublicDirs() }
 
-type describeProvider struct {
-	globule *globpkg.Globule
-}
+type describeProvider struct{}
 
-func (p describeProvider) DescribeService(name string, timeout time.Duration) (config_.ServiceDesc, string, error) {
-	return p.globule.DescribeService(name, timeout)
+func (describeProvider) DescribeService(name string, timeout time.Duration) (config_.ServiceDesc, string, error) {
+	return config_.ServiceDesc{}, "", fmt.Errorf("describe service not supported in gateway (name=%s)", name)
 }
 
 type tokenValidator struct{}

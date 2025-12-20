@@ -31,6 +31,7 @@ func (g *Globule) subscribe(topic string, handler func(evt *eventpb.Event)) erro
 	if err := ev.Subscribe(topic, g.Name, handler); err != nil {
 		return fmt.Errorf("subscribe(%s): %w", topic, err)
 	}
+	// Subscription keeps the client open; ownership stays with the caller.
 	return nil
 }
 
@@ -40,6 +41,7 @@ func (g *Globule) publish(topic string, data []byte) error {
 	if err != nil {
 		return fmt.Errorf("publish(%s): %w", topic, err)
 	}
+	defer ev.Close()
 	if err := ev.Publish(topic, data); err != nil {
 		return fmt.Errorf("publish(%s): %w", topic, err)
 	}

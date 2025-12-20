@@ -12,3 +12,8 @@ func NewServicesManagerService_Client(_ string, _ string) (*Services_Manager_Cli
 func (c *Services_Manager_Client) GetAllActions() ([]string, error) {
 	return []string{}, nil
 }
+
+// Close matches the generated client API; stub is a no-op.
+func (c *Services_Manager_Client) Close() error {
+	return nil
+}

@@ -24,7 +24,7 @@ type UploadProvider interface {
 	ParseUserID(token string) (string, error)
 	ValidateAccount(userID, action, reqPath string) (has, denied bool, err error)
 	ValidateApplication(app, action, reqPath string) (has, denied bool, err error)
-	AddResourceOwner(token, path, owner, resourceType string) error
+	AddResourceOwner(path, resourceType, owner string) error
 	FileServiceMinioConfig() (*MinioProxyConfig, bool)
 }
 
@@ -171,7 +171,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 					return
 				}
 				if ownerID != "" && addOwner {
-					if err := p.AddResourceOwner(token, logicalPath, ownerID, "file"); err != nil {
+					if err := p.AddResourceOwner(logicalPath, "file", ownerID); err != nil {
 						if minioCfg.Delete != nil {
 							_ = minioCfg.Delete(r.Context(), minioCfg.Bucket, objKey)
 						}
@@ -229,7 +229,7 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			}
 
 			if ownerID != "" && addOwner {
-				if err := p.AddResourceOwner(token, logicalPath, ownerID, "file"); err != nil {
+				if err := p.AddResourceOwner(logicalPath, "file", ownerID); err != nil {
 					_ = os.Remove(dst)
 					httplib.WriteJSONError(w, http.StatusInternalServerError, "ownership error: "+err.Error())
 					return

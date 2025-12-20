@@ -1,9 +1,8 @@
 package globule
 
 import (
+	"context"
 	"encoding/json"
-	"log"
-
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"os"
@@ -16,20 +15,26 @@ import (
 )
 
 // setConfig applies a subset of runtime-reloadable settings and persists them.
-// It restarts the process if a change requires it (protocol/domain).
+// Changes that affect the runtime simply flag NodeAgent for reconciliation.
 func (g *Globule) SetConfig(m map[string]interface{}) error {
-	needRestart := false
+	reconcileNeeded := false
 
 	// Domain
 	if v, ok := m["Domain"].(string); ok && v != "" && v != g.Domain {
 		g.Domain = v
-		needRestart = true
+		reconcileNeeded = true
 	}
 
 	// Protocol
 	if v, ok := m["Protocol"].(string); ok && v != "" && v != g.Protocol {
 		g.Protocol = v
-		needRestart = true
+		reconcileNeeded = true
+	}
+
+	// PortsRange
+	if v, ok := asString(m["PortsRange"]); ok && v != "" && v != g.PortsRange {
+		g.PortsRange = v
+		reconcileNeeded = true
 	}
 
 	// Ports
@@ -58,27 +63,48 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 
 	if v, ok := asBool(m["MinioDisabled"]); ok {
 		g.MinioDisabled = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioRootUser"]); ok {
 		g.MinioRootUser = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioRootPassword"]); ok {
 		g.MinioRootPassword = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioBucket"]); ok {
 		g.MinioBucket = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioPrefix"]); ok {
 		g.MinioPrefix = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioDataDir"]); ok {
 		g.MinioDataDir = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioPort"]); ok {
 		g.MinioPort = v
+		reconcileNeeded = true
 	}
 	if v, ok := asString(m["MinioBin"]); ok {
 		g.MinioBin = v
+		reconcileNeeded = true
+	}
+
+	if v, ok := asBool(m["MutateHostsFile"]); ok {
+		g.MutateHostsFile = v
+	}
+	if v, ok := asBool(m["MutateResolvConf"]); ok {
+		g.MutateResolvConf = v
+	}
+	if v, ok := asBool(m["EnableConsoleLogs"]); ok {
+		g.EnableConsoleLogs = v
+	}
+	if v, ok := asBool(m["EnablePeerUpserts"]); ok {
+		g.EnablePeerUpserts = v
 	}
 
 	// Persist
@@ -86,8 +112,8 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		return fmt.Errorf("setConfig: saveConfig: %w", err)
 	}
 
-	if needRestart {
-		return g.restart()
+	if reconcileNeeded {
+		g.NotifyNodeAgentReconcile(context.Background())
 	}
 	return nil
 }
@@ -211,7 +237,8 @@ func asString(v interface{}) (string, bool) {
 func (g *Globule) watchConfig() {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal("NewWatcher failed:", err)
+		g.log.Warn("watchConfig: NewWatcher failed", "err", err)
+		return
 	}
 	defer func() { _ = w.Close() }()
 
@@ -230,8 +257,7 @@ func (g *Globule) watchConfig() {
 					m := map[string]interface{}{}
 					if err := json.Unmarshal(b, &m); err == nil {
 						if err := g.SetConfig(m); err != nil {
-							fmt.Println("invalid config on write:", err)
-							os.Exit(1)
+							g.log.Warn("invalid config on write", "err", err)
 						}
 					}
 				}
@@ -274,10 +300,11 @@ func (g *Globule) SaveConfig() error {
 		return fmt.Errorf("saveConfig: write %s: %w", cfgPath, err)
 	}
 
-	// Update hosts file entries for local resolution convenience
-	if err := g.updateHostsFile(); err != nil {
-		// Not fatal to saving config; log and continue
-		fmt.Println("saveConfig: warning: update hosts file:", err)
+	// Update hosts file entries for local resolution convenience (optional).
+	if g.MutateHostsFile {
+		if err := g.updateHostsFile(); err != nil {
+			fmt.Println("saveConfig: warning: update hosts file:", err)
+		}
 	}
 
 	fmt.Println("globular configuration saved at", cfgPath)

@@ -166,7 +166,9 @@ func main() {
 	svcWG.Add(1)
 	go func() {
 		defer svcWG.Done()
-		globule.StartServices(servicesCtx)
+		if err := globule.StartServices(servicesCtx); err != nil {
+			logger.Error("start services failed", "err", err)
+		}
 	}()
 
 	// --- block main until we get a signal ---
@@ -398,8 +400,8 @@ func (uploadProvider) ValidateAccount(u, action, p string) (bool, bool, error) {
 func (uploadProvider) ValidateApplication(app, action, p string) (bool, bool, error) {
 	return accessControl{}.ValidateApplication(app, action, p)
 }
-func (uploadProvider) AddResourceOwner(token, path, owner, resourceType string) error {
-	return globule.AddResourceOwner(token, path, owner, resourceType, rbacpb.SubjectType_ACCOUNT)
+func (uploadProvider) AddResourceOwner(path, resourceType, owner string) error {
+	return globule.AddResourceOwner(path, resourceType, owner, rbacpb.SubjectType_ACCOUNT)
 }
 func (uploadProvider) FileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, bool) {
 	return fileServiceMinioConfigCache.get()
@@ -426,7 +428,7 @@ func (cfgProvider) PublicDirs() []string { return config_.GetPublicDirs() }
 type describeProvider struct{}
 
 func (describeProvider) DescribeService(name string, timeout time.Duration) (config_.ServiceDesc, string, error) {
-	return globule.DescribeService(name, timeout)
+	return config_.ServiceDesc{}, "", fmt.Errorf("describe service not supported in this binary (name=%s)", name)
 }
 
 // ---------------------
@@ -502,20 +504,7 @@ type redirector struct{}
 
 // RedirectTo maps an incoming Host header to a peer target (via Globule).
 func (redirector) RedirectTo(host string) (bool, *middleware.Target) {
-	ok, p := globule.RedirectTo(host)
-	if !ok || p == nil {
-		return false, nil
-	}
-	return true, &middleware.Target{
-		Hostname:   p.Hostname,
-		Domain:     p.Domain,
-		Protocol:   p.Protocol,
-		PortHTTP:   int(p.PortHttp),
-		PortHTTPS:  int(p.PortHttps),
-		LocalIP:    p.LocalIpAddress,
-		ExternalIP: p.ExternalIpAddress,
-		Raw:        p,
-	}
+	return false, nil
 }
 
 // HandleRedirect proxies the current request to the chosen target.

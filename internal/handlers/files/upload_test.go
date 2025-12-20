@@ -41,7 +41,7 @@ func (f fakeUpload) ValidateAccount(string, string, string) (bool, bool, error) 
 func (f fakeUpload) ValidateApplication(string, string, string) (bool, bool, error) {
 	return false, false, nil
 }
-func (f fakeUpload) AddResourceOwner(string, string, string, string) error { return nil }
+func (f fakeUpload) AddResourceOwner(path, resourceType, owner string) error { return nil }
 func (f fakeUpload) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
 	if f.minioCfg == nil {
 		return nil, false

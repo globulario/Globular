@@ -68,20 +68,7 @@ func (h *GatewayHandlers) Middleware() func(http.Handler) http.Handler {
 }
 
 func (h *GatewayHandlers) RedirectTo(host string) (bool, *middleware.Target) {
-	ok, p := h.globule.RedirectTo(host)
-	if !ok || p == nil {
-		return false, nil
-	}
-	return true, &middleware.Target{
-		Hostname:   p.Hostname,
-		Domain:     p.Domain,
-		Protocol:   p.Protocol,
-		PortHTTP:   int(p.PortHttp),
-		PortHTTPS:  int(p.PortHttps),
-		LocalIP:    p.LocalIpAddress,
-		ExternalIP: p.ExternalIpAddress,
-		Raw:        p,
-	}
+	return false, nil
 }
 
 func (h *GatewayHandlers) HandleRedirect(to *middleware.Target, w http.ResponseWriter, r *http.Request) {
@@ -143,7 +130,7 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 	getServiceConfig := cfgHandlers.NewGetServiceConfig(cfgProvider{globule: h.globule})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{globule: h.globule}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{globule: h.globule})
-	describeService := cfgHandlers.NewDescribeService(describeProvider{globule: h.globule})
+	describeService := cfgHandlers.NewDescribeService(describeProvider{})
 
 	ca := cfgHandlers.NewCAProvider()
 

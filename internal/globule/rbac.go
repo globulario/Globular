@@ -7,6 +7,7 @@ import (
 	"github.com/globulario/services/golang/globular_client"
 	rbac_client "github.com/globulario/services/golang/rbac/rbac_client"
 	"github.com/globulario/services/golang/rbac/rbacpb"
+	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 )
 
@@ -34,14 +35,20 @@ func (g *Globule) ValidateAccess(subject string, subjectType rbacpb.SubjectType,
 	if err != nil {
 		return false, false, err
 	}
+	defer rbac.Close()
 	return rbac.ValidateAccess(subject, subjectType, action, path)
 }
 
 // set the owner of a path
-func (g *Globule) AddResourceOwner(token, path, owner, resourceType string, subjectType rbacpb.SubjectType) error {
+func (g *Globule) AddResourceOwner(path, resourceType, subject string, subjectType rbacpb.SubjectType) error {
 	rbac, err := getRbacClient()
 	if err != nil {
 		return err
 	}
-	return rbac.AddResourceOwner(token, path, owner, resourceType, subjectType)
+	defer rbac.Close()
+	token, err := security.GetLocalToken(g.Mac)
+	if err != nil {
+		return err
+	}
+	return rbac.AddResourceOwner(token, path, resourceType, subject, subjectType)
 }

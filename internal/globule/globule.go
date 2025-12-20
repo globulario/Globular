@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,19 +21,15 @@ import (
 	"github.com/globulario/services/golang/dns/dns_client"
 	"github.com/globulario/services/golang/log/logpb"
 	"github.com/globulario/services/golang/pki"
-	"github.com/globulario/services/golang/process"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 	"github.com/gookit/color"
-	"github.com/kardianos/service"
 )
 
 // Supervisor in main.go runs HTTP/HTTPS. Globule now focuses on:
-// - Directories/config
-// - DNS/IP registration
-// - ACME/lego certificate management
-// - Microservice lifecycle
-// - Peers & events
+// - Directories/config and desired-state seeds
+// - DNS/IP registration and PKI/TLS bootstrapping
+// - Peers & events (NodeAgent/Controller own lifecycle)
 
 type Globule struct {
 	// Identity / network
@@ -63,19 +60,24 @@ type Globule struct {
 	RootPassword   string
 	SessionTimeout int
 
-	// Services / peers
+	// Services / nodes
 	ServicesRoot   string
 	BackendPort    int
 	BackendStore   int
 	ReverseProxies []interface{}
-	peers          *sync.Map
-	Peers          []interface{}
+	nodes          *sync.Map
+	Nodes          []interface{}
 
 	// Discovery / DNS
 	DNS              string
 	NS               []interface{}
 	DNSUpdateIPInfos []interface{}
 	SkipLocalDNS     bool
+	MutateHostsFile  bool
+	MutateResolvConf bool
+
+	EnableConsoleLogs bool
+	EnablePeerUpserts bool
 
 	// OAuth2 configuration.
 	OAuth2ClientID     string
@@ -91,20 +93,13 @@ type Globule struct {
 	Version          string
 	Build            int
 	Platform         string
-	Discoveries      []string
 	WatchUpdateDelay int64
 
 	// Directories
 	Path, webRoot, data, configDir string
-	users, applications            string
 
 	// lifecycle
-	logger    service.Logger
 	startTime time.Time
-
-	// log/signal
-	exit   chan bool
-	isExit bool
 
 	log *slog.Logger
 
@@ -123,10 +118,6 @@ type Globule struct {
 	MinioPort         string
 	MinioBin          string
 }
-
-// registrationResource kept only to avoid breaking struct fields;
-// lego handles the real registration inside the PKI manager.
-type registrationResource struct{}
 
 // New creates a minimally initialized Globule.
 // HTTP handlers/mux are wired elsewhere; we don’t touch net/http servers here.
@@ -157,7 +148,7 @@ func New(logger *slog.Logger) *Globule {
 		SessionTimeout:      15,
 		WatchUpdateDelay:    30,
 		ServicesRoot:        config.GetServicesRoot(),
-		peers:               &sync.Map{},
+		nodes:               &sync.Map{},
 		configDir:           config.GetConfigDir(),
 		UseEnvoy:            false,
 		MinioDisabled:       os.Getenv("MINIO_DISABLED") == "1",
@@ -172,9 +163,8 @@ func New(logger *slog.Logger) *Globule {
 
 	// Load existing config (if present)
 	if data, err := os.ReadFile(g.configDir + "/config.json"); err == nil {
-		if err := json.Unmarshal(data, &g); err != nil {
-			fmt.Println("failed to load config:", err)
-			os.Exit(1)
+		if err := json.Unmarshal(data, g); err != nil {
+			g.log.Warn("failed to load config", "err", err)
 		}
 	}
 
@@ -187,9 +177,6 @@ func New(logger *slog.Logger) *Globule {
 	if g.DNS == "" {
 		g.DNS = g.localDomain()
 	}
-
-	// Ensure sensible defaults
-	g.SaveConfig()
 
 	// Runtime only
 	g.Mac, _ = config.GetMacAddress()
@@ -212,8 +199,6 @@ func (g *Globule) InitFS() error {
 
 	for _, d := range []string{
 		g.data, g.webRoot,
-		filepath.Join(g.data, "files", "templates"),
-		filepath.Join(g.data, "files", "projects"),
 		g.configDir,
 		filepath.Join(g.configDir, "tokens"),
 	} {
@@ -224,85 +209,74 @@ func (g *Globule) InitFS() error {
 
 	// TLS creds dir: config/tls/<domain>
 	g.creds = filepath.Join(g.configDir, "tls", g.localDomain())
-	if err := Utility.CreateDirIfNotExist(g.creds); err != nil {
-		return err
-	}
 
-	// Users / apps
-	g.users = filepath.Join(g.data, "files", "users")
-	g.applications = filepath.Join(g.data, "files", "applications")
-	if err := Utility.CreateDirIfNotExist(g.users); err != nil {
-		return err
-	}
-	if err := Utility.CreateDirIfNotExist(g.applications); err != nil {
-		return err
-	}
-
-	// Persist defaults on first run
+	// Persist defaults on first run if config missing (single save later).
 	cfgPath := filepath.Join(g.configDir, "config.json")
-	if !Utility.Exists(cfgPath) {
-		if err := g.SaveConfig(); err != nil {
-			return err
-		}
-	}
+	needsSave := !Utility.Exists(cfgPath)
 
 	// Generate peer keys for this server if missing
 	if err := security.GeneratePeerKeys(g.Mac); err != nil {
 		g.log.Error("fail to generate peer keys", "err", err)
 		return err
 	}
-	if err := g.SaveConfig(); err != nil {
-		g.log.Error("fail to save config file", "err", err)
-		return err
+	if needsSave {
+		if err := g.SaveConfig(); err != nil {
+			g.log.Error("fail to save config file", "err", err)
+			return err
+		}
 	}
 
-	// Start the etcd server before starting other services
-	if err := process.StartEtcdServer(); err != nil {
-		g.log.Error("fail to start etcd server", "err", err)
-		return err
-	}
 	return nil
 }
 
 // RegisterIPToDNS is kept public so you can call it on a cron/loop if you want.
-func (g *Globule) RegisterIPToDNS() error { return g.registerIPToDNS() }
+func (g *Globule) RegisterIPToDNS(ctx context.Context) error { return g.registerIPToDNS(ctx) }
 
 // StartServices is the public entry used by main.go.
-func (g *Globule) StartServices(ctx context.Context) {
+func (g *Globule) StartServices(ctx context.Context) error {
 
-	defer g.startConsoleLogs()
+	if g.EnableConsoleLogs {
+		g.startConsoleLogs()
+	}
 
 	// Seed etcd service configs from disk without clobbering existing entries.
 	if err := g.bootstrapServiceConfigsFromDisk(); err != nil {
 		g.log.Warn("bootstrap services from files failed", "err", err)
 	}
 
-	if err := g.startServicesEtcd(ctx); err != nil {
-		g.log.Error("StartServices failed", "err", err)
-		os.Exit(1)
-	}
-
-	// restart dns service if present this fix reflexion issue...
-	Utility.KillProcessByName("dns_server")
+	g.NotifyNodeAgentReconcile(ctx)
 
 	if err := g.BootstrapAdmin(); err != nil {
 		g.log.Error("admin bootstrap failed", "err", err)
 	}
+
+	return nil
 }
 
 // StopServices is the public shutdown entry used by main.go.
 func (g *Globule) StopServices() {
 	defer g.stopConsoleLogs()
-	if err := g.stopServicesEtcd(); err != nil {
+	if err := g.stopServicesEtcd(context.Background()); err != nil {
 		g.log.Error("StopServices failed", "err", err)
 	}
+	g.log.Info("StopServices: requested closing state via desired configs")
+}
+
+// NotifyNodeAgentReconcile records that desired configs changed and NodeAgent should reconcile.
+func (g *Globule) NotifyNodeAgentReconcile(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	g.log.Info("desired configs updated; reconcile requested", "node_agent", NodeAgentAddress())
+	// TODO: call NodeAgent reconcile RPC when available.
+	_ = ctx
 }
 
 // WatchConfig hot-reloads the process-level config.json into Globule.
 func (g *Globule) WatchConfig() { g.watchConfig() }
 
-// InitPeers initializes peer map and subscribes to updates.
-func (g *Globule) InitPeers() error { return g.initPeers() }
+// InitNodes initializes node identity map and subscribes to updates.
+func (g *Globule) InitNodes() error { return g.initNodes() }
 
 // Publish event convenience
 func (g *Globule) Publish(evt string, data []byte) error { return g.publish(evt, data) }
@@ -310,7 +284,13 @@ func (g *Globule) Publish(evt string, data []byte) error { return g.publish(evt,
 // Helpers
 func (g *Globule) localDomain() string {
 	addr, _ := config.GetAddress()
-	return strings.Split(addr, ":")[0]
+	if host := config.HostOnly(addr); host != "" {
+		return host
+	}
+	if host, _, err := net.SplitHostPort(addr); err == nil && host != "" {
+		return host
+	}
+	return addr
 }
 func (g *Globule) getAddress() string {
 	addr, _ := config.GetAddress()
@@ -329,7 +309,7 @@ func (g *Globule) ensureAccountKeyAndCSR() error {
 	acct := filepath.Join(creds, "client.pem")
 	m := g.newPKIManager()
 	if !Utility.Exists(acct) {
-		_, _, _, _ = m.EnsureClientCert(creds, "acme-account", nil, 24*time.Hour) // local CA client auth cert (account key managed by PKI) :contentReference[oaicite:2]{index=2}
+		_, _, _, _ = m.EnsureClientCert(creds, "acme-account", nil, 24*time.Hour) // local CA client auth cert (account key managed by PKI)
 	}
 
 	// Maintain historical CSR files for compatibility
@@ -337,7 +317,7 @@ func (g *Globule) ensureAccountKeyAndCSR() error {
 	csr := filepath.Join(creds, "server.csr")
 	if !Utility.Exists(sk) || !Utility.Exists(csr) {
 		// DNS SAN CSR (legacy filenames)
-		if err := m.EnsureServerKeyAndCSR(creds, g.Domain, g.Country, g.State, g.City, g.Organization, g.allDNS()); err != nil { // :contentReference[oaicite:3]{index=3}
+		if err := m.EnsureServerKeyAndCSR(creds, g.Domain, g.Country, g.State, g.City, g.Organization, g.allDNS()); err != nil {
 			return fmt.Errorf("ensure server csr: %w", err)
 		}
 	}
@@ -350,7 +330,7 @@ func (g *Globule) obtainInternalServerCert(ctx context.Context) error { // <<< N
 	m := g.newPKIManager()
 	dir := filepath.Join(config.GetConfigDir(), "tls", g.localDomain())
 
-	// Always local CA for server.crt (internal mTLS). The PKI EnsureServerCert now uses local CA here. :contentReference[oaicite:4]{index=4}
+	// Always local CA for server.crt (internal mTLS). The PKI EnsureServerCert now uses local CA here.
 	_, leaf, ca, err := m.EnsureServerCert(dir, g.Domain, g.allDNS(), 0)
 	if err != nil {
 		return err
@@ -626,12 +606,8 @@ func (g *Globule) buildFullChainIfPossible() error {
 // console logs
 func (g *Globule) startConsoleLogs() {
 	sink := logsink.NewConsoleSink(g.getAddress(), logsink.Filter{
-		MinLevel:            logpb.LogLevel_INFO_MESSAGE,
-		ShowFields:          true,
-		BackfillSince:       3 * time.Minute,
-		BackfillPerAppLimit: 250,
-		BackfillApps:        []string{"dns.DnsService"},
-		Apps:                map[string]bool{"dns.DnsService": true},
+		MinLevel:   logpb.LogLevel_INFO_MESSAGE,
+		ShowFields: true,
 	})
 	stop, _ := sink.Start()
 	g.stopConsole = stop
@@ -667,25 +643,10 @@ func (g *Globule) promoteEtcdAndProxiesToTLS(ctx context.Context) error {
 	g.Protocol = "https"
 	if err := g.SaveConfig(); err != nil {
 		g.log.Warn("failed to persist Protocol=https", "err", err)
-	}
-
-	if err := process.RestartEtcdIfCertsReady(); err != nil {
-		g.log.Error("failed to restart etcd with TLS", "err", err)
 		return err
 	}
-	if err := process.WaitForEtcdHTTPS(30 * time.Second); err != nil {
-		g.log.Error("etcd not healthy on https after restart", "err", err)
-		return err
-	}
-
-	if err := process.RestartAllServicesForEtcdTLS(); err != nil {
-		g.log.Warn("some services failed to restart for TLS; KeepAlive may recover them", "err", err)
-	}
-
-	if !g.UseEnvoy {
-		if err := process.RestartAllServiceProxiesTLS(); err != nil {
-			g.log.Warn("some proxies failed to restart with TLS", "err", err)
-		}
-	}
+	g.log.Info("promoteEtcdAndProxiesToTLS: Protocol set to https; NodeAgent should reconcile TLS")
+	g.NotifyNodeAgentReconcile(ctx)
+	// TODO: notify node-agent that TLS config changed/reconciliation required.
 	return nil
 }
