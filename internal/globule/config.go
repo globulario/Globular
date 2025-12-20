@@ -131,7 +131,10 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 	localConfig["Name"] = globule.Name
 	localConfig["OAuth2ClientID"] = globule.OAuth2ClientID
 
-	services, _ := config.GetServicesConfigurations()
+	services, err := config.GetServicesConfigurations()
+	if err != nil || len(services) == 0 {
+		services = loadLocalServiceConfigs()
+	}
 
 	// Get the array of service and set it back in the configurations.
 	localConfig["Services"] = make(map[string]interface{})

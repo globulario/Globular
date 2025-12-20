@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
 	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	config_ "github.com/globulario/services/golang/config"
@@ -117,12 +118,18 @@ func (a accessControl) ValidateApplication(app, action, reqPath string) (bool, b
 
 type cfgProvider struct {
 	globule *globpkg.Globule
+	cache   *cfgHandlers.ServiceConfigCache
 }
 
 func (cfgProvider) Address() (string, error)      { return config_.GetAddress() }
 func (cfgProvider) MyIP() string                  { return Utility.MyIP() }
 func (p cfgProvider) LocalConfig() map[string]any { return p.globule.GetConfig() }
-func (cfgProvider) ServiceConfig(idOrName string) (map[string]any, error) {
+func (p cfgProvider) ServiceConfig(idOrName string) (map[string]any, error) {
+	if p.cache != nil {
+		if svc, ok := p.cache.Get(idOrName); ok {
+			return svc, nil
+		}
+	}
 	return config_.GetServiceConfigurationById(idOrName)
 }
 func (cfgProvider) RootDir() string      { return config_.GetRootDir() }

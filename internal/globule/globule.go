@@ -74,6 +74,7 @@ type Globule struct {
 	SkipLocalDNS     bool
 	MutateHostsFile  bool
 	MutateResolvConf bool
+	dnsRetryCancel   context.CancelFunc
 
 	EnableConsoleLogs bool
 	EnablePeerUpserts bool
@@ -229,7 +230,10 @@ func (g *Globule) InitFS() error {
 }
 
 // RegisterIPToDNS is kept public so you can call it on a cron/loop if you want.
-func (g *Globule) RegisterIPToDNS(ctx context.Context) error { return g.registerIPToDNS(ctx) }
+func (g *Globule) RegisterIPToDNS(ctx context.Context) error {
+	_, err := g.registerIPToDNS(ctx)
+	return err
+}
 
 // NotifyNodeAgentReconcile records that desired configs changed and NodeAgent should reconcile.
 func (g *Globule) NotifyNodeAgentReconcile(ctx context.Context) {

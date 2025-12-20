@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -24,7 +25,8 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 
 	if g.SkipLocalDNS {
 		g.log.Info("dns desired config check skipped (gateway mode)")
-		return g.registerIPToDNS(ctx)
+		_, err := g.registerIPToDNS(ctx)
+		return err
 	}
 
 	if err := g.bootstrapServiceConfigsFromDisk(); err != nil {
@@ -35,20 +37,21 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 
 	cfg, err := config.GetServiceConfigurationById(svcName)
 	if err != nil {
-		g.log.Warn("dns desired config lookup failed", "err", err)
-		return g.registerIPToDNS(ctx)
-	}
-	if cfg == nil {
+		g.log.Warn("dns desired config lookup failed, will retry later", "err", err)
+	} else if cfg == nil {
 		g.log.Warn("dns desired config missing; ensure service config JSON is present", "service", svcName)
-		return g.registerIPToDNS(ctx)
+	} else {
+		g.log.Info("dns desired config exists; using configured values", "service", svcName)
 	}
 
-	g.log.Info("dns desired config exists; using configured values", "service", svcName)
-	if err := g.registerIPToDNS(ctx); err != nil {
-		if g.DNS == g.Name+"."+g.Domain {
-			return fmt.Errorf("dns service not ready yet: %w", err)
-		}
-		return err
+	registered, err := g.registerIPToDNS(ctx)
+	if err != nil {
+		g.log.Warn("dns registration deferred", "err", err)
+	} else if !registered {
+		g.log.Debug("dns registration deferred; service not ready yet")
+		g.startDNSRegistrationLoop()
+	} else {
+		g.stopDNSRegistrationLoop()
 	}
 	return nil
 }
@@ -56,9 +59,10 @@ func (g *Globule) maybeStartDNSAndRegister(ctx context.Context) error {
 // setHost unchanged ...
 
 // registerIPToDNS fixes: guaranteed non-empty primary NS for SOA; minor tidies.
-func (g *Globule) registerIPToDNS(ctx context.Context) error {
+// returns true if DNS service was contacted and records were applied.
+func (g *Globule) registerIPToDNS(ctx context.Context) (bool, error) {
 	if g.DNS == "" {
-		return nil
+		return false, nil
 	}
 
 	domain := g.Domain
@@ -117,14 +121,15 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 	}
 
 	if client == nil {
-		if lastErr == nil {
-			lastErr = errors.New("dns client connection failed")
-		}
 		detail := strings.Join(tried, "; ")
 		if detail == "" {
 			detail = "no endpoints attempted"
 		}
-		return fmt.Errorf("dns client failed: %w; tried endpoints: %s", lastErr, detail)
+		if lastErr == nil {
+			lastErr = errors.New("dns client connection failed")
+		}
+		g.log.Warn("dns client not ready", "err", lastErr, "tried", detail)
+		return false, nil
 	}
 
 	defer client.Close()
@@ -142,19 +147,19 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 			}
 			time.Sleep(time.Second)
 			if try == maxTry-1 {
-				return fmt.Errorf("dns server not running")
+				return false, fmt.Errorf("dns server not running")
 			}
 		}
 	}
 
 	tk, err := security.GenerateToken(g.SessionTimeout, client.GetMac(), "sa", "", g.AdminEmail, g.Domain)
 	if err != nil {
-		return fmt.Errorf("token: %w", err)
+		return true, fmt.Errorf("token: %w", err)
 	}
 
 	ipv4 := Utility.MyIP()
 	if ipv4 == "" {
-		return errors.New("no public IPv4")
+		return false, errors.New("no public IPv4")
 	}
 	ipv6, _ := Utility.MyIPv6()
 
@@ -168,17 +173,17 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 		domains = append(domains, domain)
 	}
 	if err := client.SetDomains(tk, domains); err != nil {
-		return fmt.Errorf("set domains: %w", err)
+		return false, fmt.Errorf("set domains: %w", err)
 	}
 
 	// Primary host (A/AAAA)
 	_ = client.RemoveA(tk, localFQDN)
 	if _, err := client.SetA(tk, localFQDN, ipv4, 60); err != nil {
-		return fmt.Errorf("set A %s: %w", localFQDN, err)
+		return false, fmt.Errorf("set A %s: %w", localFQDN, err)
 	}
 	if ipv6 != "" {
 		if _, err := client.SetAAAA(tk, localFQDN, ipv6, 60); err != nil {
-			return fmt.Errorf("set AAAA %s: %w", localFQDN, err)
+			return false, fmt.Errorf("set AAAA %s: %w", localFQDN, err)
 		}
 	}
 
@@ -186,11 +191,11 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 	for _, v := range g.AlternateDomains {
 		alt := strings.TrimPrefix(fmt.Sprint(v), "*.")
 		if _, err := client.SetA(tk, alt, ipv4, 60); err != nil {
-			return fmt.Errorf("set A %s: %w", alt, err)
+			return false, fmt.Errorf("set A %s: %w", alt, err)
 		}
 		if ipv6 != "" {
 			if _, err := client.SetAAAA(tk, alt, ipv6, 60); err != nil {
-				return fmt.Errorf("set AAAA %s: %w", alt, err)
+				return false, fmt.Errorf("set AAAA %s: %w", alt, err)
 			}
 		}
 
@@ -198,11 +203,11 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 		for _, rawNS := range g.NS {
 			ns := fmt.Sprint(rawNS)
 			if _, err := client.SetA(tk, ns, ipv4, 60); err != nil {
-				return fmt.Errorf("set A NS %s: %w", ns, err)
+				return false, fmt.Errorf("set A NS %s: %w", ns, err)
 			}
 			if ipv6 != "" {
 				if _, err := client.SetAAAA(tk, ns, ipv6, 60); err != nil {
-					return fmt.Errorf("set AAAA NS %s: %w", ns, err)
+					return false, fmt.Errorf("set AAAA NS %s: %w", ns, err)
 				}
 			}
 		}
@@ -218,7 +223,7 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 				ns += "."
 			}
 			if err := client.SetNs(tk, altDot, ns, 60); err != nil {
-				return fmt.Errorf("set NS %s -> %s: %w", altDot, ns, err)
+				return false, fmt.Errorf("set NS %s -> %s: %w", altDot, ns, err)
 			}
 		}
 
@@ -251,38 +256,38 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 			ttl     = uint32(11200)
 		)
 		if err := client.SetSoa(tk, altDot, primaryNS, email, serial, refresh, retry, expire, ttl, ttl); err != nil {
-			return fmt.Errorf("set SOA %s: %w", altDot, err)
+			return false, fmt.Errorf("set SOA %s: %w", altDot, err)
 		}
 
 		if err := client.SetCaa(tk, alt+".", 0, "issue", "letsencrypt.org", 60); err != nil {
-			return fmt.Errorf("set CAA %s: %w", alt, err)
+			return false, fmt.Errorf("set CAA %s: %w", alt, err)
 		}
 	}
 
 	// Mail, SPF, DMARC, MTA-STS
 	mailHost := "mail." + domain
 	if _, err := client.SetA(tk, mailHost, ipv4, 60); err != nil {
-		return fmt.Errorf("set A %s: %w", mailHost, err)
+		return false, fmt.Errorf("set A %s: %w", mailHost, err)
 	}
 	if ipv6 != "" {
 		if _, err := client.SetAAAA(tk, mailHost, ipv6, 60); err != nil {
-			return fmt.Errorf("set AAAA %s: %w", mailHost, err)
+			return false, fmt.Errorf("set AAAA %s: %w", mailHost, err)
 		}
 	}
 	if err := client.SetMx(tk, domain, 10, mailHost, 60); err != nil {
-		return fmt.Errorf("set MX %s: %w", domain, err)
+		return false, fmt.Errorf("set MX %s: %w", domain, err)
 	}
 
 	_ = client.RemoveText(tk, domain+".")
 	spf := fmt.Sprintf(`v=spf1 mx ip4:%s include:_spf.google.com ~all`, ipv4)
 	if err := client.SetText(tk, domain+".", []string{spf}, 60); err != nil {
-		return fmt.Errorf("set SPF TXT: %w", err)
+		return false, fmt.Errorf("set SPF TXT: %w", err)
 	}
 
 	_ = client.RemoveText(tk, "_dmarc."+domain+".")
 	dmarc := fmt.Sprintf(`v=DMARC1;p=quarantine;rua=mailto:%s;ruf=mailto:%s;adkim=r;aspf=r;pct=100`, g.AdminEmail, g.AdminEmail)
 	if err := client.SetText(tk, "_dmarc."+domain+".", []string{dmarc}, 60); err != nil {
-		return fmt.Errorf("set DMARC TXT: %w", err)
+		return false, fmt.Errorf("set DMARC TXT: %w", err)
 	}
 
 	mtaPath := filepath.Join(g.configDir, "tls", localFQDN, "mta-sts.txt")
@@ -291,11 +296,11 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 		_ = os.WriteFile(mtaPath, []byte(policy), 0600)
 	}
 	if _, err := client.SetA(tk, "mta-sts."+domain, ipv4, 60); err != nil {
-		return fmt.Errorf("set A mta-sts: %w", err)
+		return false, fmt.Errorf("set A mta-sts: %w", err)
 	}
 	_ = client.RemoveText(tk, "_mta-sts."+domain+".")
 	if err := client.SetText(tk, "_mta-sts."+domain+".", []string{"v=STSv1; id=globular;"}, 60); err != nil {
-		return fmt.Errorf("set _mta-sts TXT: %w", err)
+		return false, fmt.Errorf("set _mta-sts TXT: %w", err)
 	}
 
 	for _, raw := range g.DNSUpdateIPInfos {
@@ -313,10 +318,8 @@ func (g *Globule) registerIPToDNS(ctx context.Context) error {
 			g.log.Warn("setHost failed", "err", err)
 		}
 	}
-	return nil
+	return true, nil
 }
-
-const defaultDNSPort = "10033"
 
 func (g *Globule) dnsBootstrapEndpoints() []string {
 	if g.DNS == "" {
@@ -357,6 +360,50 @@ func (g *Globule) dnsBootstrapEndpoints() []string {
 
 	return list
 }
+
+func (g *Globule) startDNSRegistrationLoop() {
+	g.stopDNSRegistrationLoop()
+	if g.DNS == "" {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	g.dnsRetryCancel = cancel
+	go g.dnsRegistrationLoop(ctx)
+}
+
+func (g *Globule) stopDNSRegistrationLoop() {
+	if g.dnsRetryCancel != nil {
+		g.dnsRetryCancel()
+		g.dnsRetryCancel = nil
+	}
+}
+
+func (g *Globule) dnsRegistrationLoop(ctx context.Context) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	interval := 5 * time.Second
+	const maxInterval = 2 * time.Minute
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(interval + time.Duration(r.Int63n(int64(interval)))):
+			success, err := g.registerIPToDNS(ctx)
+			if err != nil {
+				g.log.Warn("dns registration retry failed", "err", err)
+			}
+			if success {
+				interval = 5 * time.Minute
+				continue
+			}
+			interval *= 2
+			if interval > maxInterval {
+				interval = maxInterval
+			}
+		}
+	}
+}
+
+const defaultDNSPort = "10033"
 
 func dnsPortOrDefault(addr string) string {
 	if _, port, err := net.SplitHostPort(addr); err == nil && port != "" {

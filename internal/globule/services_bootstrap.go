@@ -96,3 +96,42 @@ func (g *Globule) bootstrapServiceConfigsFromDisk() error {
 	}
 	return nil
 }
+
+func loadLocalServiceConfigs() []map[string]interface{} {
+	dir := config.GetServicesConfigDir()
+	if dir == "" {
+		return nil
+	}
+	entries := []map[string]interface{}{}
+
+	infos, err := os.ReadDir(dir)
+	if err != nil {
+		return entries
+	}
+
+	for _, entry := range infos {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var parsed map[string]interface{}
+		if err := json.Unmarshal(raw, &parsed); err != nil {
+			continue
+		}
+		id := strings.TrimSpace(Utility.ToString(parsed["Id"]))
+		if id == "" {
+			id = strings.TrimSuffix(name, filepath.Ext(name))
+			parsed["Id"] = id
+		}
+		entries = append(entries, parsed)
+	}
+	return entries
+}

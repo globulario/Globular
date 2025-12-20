@@ -18,6 +18,8 @@ import (
 	Utility "github.com/globulario/utility"
 )
 
+var serviceConfigCache = cfgHandlers.NewServiceConfigCache()
+
 // HandlerConfig holds knobs consumed by the HTTP surface.
 type HandlerConfig struct {
 	MaxUpload      int64
@@ -126,7 +128,7 @@ func (h *GatewayHandlers) setHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
-	getConfig := cfgHandlers.NewGetConfig(cfgProvider{globule: h.globule})
+	getConfig := cfgHandlers.NewGetConfig(cfgProvider{globule: h.globule, cache: serviceConfigCache})
 	getServiceConfig := cfgHandlers.NewGetServiceConfig(cfgProvider{globule: h.globule})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{globule: h.globule}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{globule: h.globule})
