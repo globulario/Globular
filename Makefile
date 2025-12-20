@@ -31,10 +31,6 @@ CGO ?= 1   # set 1 by default since you use chai2010/webp
 
 build: build-all
 
-build-legacy:
-	mkdir -p ./.bin
-	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/$(LEGACY_BIN) $(LEGACY_CMD)
-
 build-gateway: check-gateway-no-exec
 	mkdir -p ./.bin
 	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/globular-gateway ./cmd/globular-gateway

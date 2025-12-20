@@ -1,7 +1,6 @@
 package globule
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -95,43 +94,5 @@ func (g *Globule) bootstrapServiceConfigsFromDisk() error {
 	if loaded > 0 {
 		g.log.Info("bootstrap services: registered missing service configs", "count", loaded)
 	}
-	return nil
-}
-
-func (g *Globule) stopServicesEtcd(ctx context.Context) error {
-	svcs, err := config.GetServicesConfigurations()
-	if err != nil {
-		return err
-	}
-
-	if ctx != nil {
-		if cerr := ctx.Err(); cerr != nil {
-			return cerr
-		}
-	}
-
-	updated := 0
-	for _, svc := range svcs {
-		id := Utility.ToString(svc["Id"])
-		if id == "" {
-			continue
-		}
-		cur, err := config.GetServiceConfigurationById(id)
-		if err != nil || cur == nil {
-			continue
-		}
-		if Utility.ToString(cur["State"]) == "closing" {
-			continue
-		}
-		cur["State"] = "closing"
-		cur["LastError"] = ""
-		if err := config.SaveServiceConfiguration(cur); err != nil {
-			g.log.Warn("stopServicesEtcd: save desired closing failed", "id", id, "err", err)
-			continue
-		}
-		updated++
-	}
-
-	g.log.Info("stopServicesEtcd: requested closing state", "services", updated)
 	return nil
 }

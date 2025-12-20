@@ -111,28 +111,6 @@ func (g *Globule) initNodeIdentity(p *resourcepb.NodeIdentity) error {
 	return nil
 }
 
-// saveNodeIdentities persists the current nodes into g.Nodes and saves config.
-func (g *Globule) saveNodeIdentities() error {
-	// Build serializable view
-	nodes := make([]interface{}, 0)
-	g.nodes.Range(func(_, v any) bool {
-		p := v.(*resourcepb.NodeIdentity)
-		port := p.PortHttp
-		if p.Protocol == "https" {
-			port = p.PortHttps
-		}
-		nodes = append(nodes, map[string]interface{}{
-			"Hostname": p.Hostname,
-			"Domain":   p.Domain,
-			"Mac":      p.Mac,
-			"Port":     int(port),
-		})
-		return true
-	})
-	g.Nodes = nodes
-	return g.SaveConfig()
-}
-
 // -------------------- event handlers --------------------
 
 // updateNodesEvent handles "update_peers_evt" payloads.
@@ -158,9 +136,6 @@ func (g *Globule) updateNodesEvent(evt *eventpb.Event) {
 	node.Enabled = Utility.ToBool(m["enabled"])
 
 	g.nodes.Store(node.Mac, node)
-	if err := g.saveNodeIdentities(); err != nil {
-		fmt.Println("updateNodesEvent: saveNodeIdentities:", err)
-	}
 
 	// If same external IP, maintain local hosts mapping
 	if g.MutateHostsFile && Utility.MyIP() == node.ExternalIpAddress {
@@ -174,9 +149,6 @@ func (g *Globule) updateNodesEvent(evt *eventpb.Event) {
 func (g *Globule) deleteNodesEvent(evt *eventpb.Event) {
 	key := string(evt.Data) // Mac is the typical key
 	g.nodes.Delete(key)
-	if err := g.saveNodeIdentities(); err != nil {
-		fmt.Println("deleteNodesEvent: saveNodeIdentities:", err)
-	}
 }
 
 // Nodes & events (trimmed but behaviorally equivalent)
@@ -191,7 +163,6 @@ func (g *Globule) initNodes() error {
 		go func() {
 			if err := g.initNodeIdentity(pp); err != nil {
 				g.nodes.Delete(pp.Mac)
-				_ = g.saveNodeIdentities()
 			}
 		}()
 	}
@@ -201,7 +172,7 @@ func (g *Globule) initNodes() error {
 	if err := g.subscribe("delete_peer_evt", g.deleteNodesEvent); err != nil {
 		g.log.Warn("subscribe delete_peer_evt failed", "err", err)
 	}
-	return g.saveNodeIdentities()
+	return nil
 }
 
 // -------------------- helpers --------------------

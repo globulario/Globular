@@ -66,7 +66,6 @@ type Globule struct {
 	BackendStore   int
 	ReverseProxies []interface{}
 	nodes          *sync.Map
-	Nodes          []interface{}
 
 	// Discovery / DNS
 	DNS              string
@@ -231,36 +230,6 @@ func (g *Globule) InitFS() error {
 
 // RegisterIPToDNS is kept public so you can call it on a cron/loop if you want.
 func (g *Globule) RegisterIPToDNS(ctx context.Context) error { return g.registerIPToDNS(ctx) }
-
-// StartServices is the public entry used by main.go.
-func (g *Globule) StartServices(ctx context.Context) error {
-
-	if g.EnableConsoleLogs {
-		g.startConsoleLogs()
-	}
-
-	// Seed etcd service configs from disk without clobbering existing entries.
-	if err := g.bootstrapServiceConfigsFromDisk(); err != nil {
-		g.log.Warn("bootstrap services from files failed", "err", err)
-	}
-
-	g.NotifyNodeAgentReconcile(ctx)
-
-	if err := g.BootstrapAdmin(); err != nil {
-		g.log.Error("admin bootstrap failed", "err", err)
-	}
-
-	return nil
-}
-
-// StopServices is the public shutdown entry used by main.go.
-func (g *Globule) StopServices() {
-	defer g.stopConsoleLogs()
-	if err := g.stopServicesEtcd(context.Background()); err != nil {
-		g.log.Error("StopServices failed", "err", err)
-	}
-	g.log.Info("StopServices: requested closing state via desired configs")
-}
 
 // NotifyNodeAgentReconcile records that desired configs changed and NodeAgent should reconcile.
 func (g *Globule) NotifyNodeAgentReconcile(ctx context.Context) {
