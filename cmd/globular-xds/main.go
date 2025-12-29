@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,7 +15,6 @@ import (
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/xds/server"
 	"github.com/globulario/Globular/internal/xds/watchers"
-	"github.com/globulario/services/golang/config"
 )
 
 const (
@@ -33,45 +33,107 @@ func main() {
 		bootstrapCluster   = flag.String("bootstrap_cluster", "globular-cluster", "cluster name used in bootstrap")
 		bootstrapAdminPort = flag.Int("bootstrap_admin", 9901, "admin port in bootstrap")
 		bootstrapMaxConn   = flag.Uint64("bootstrap_max_downstream_connections", 0, "max active downstream connections (0 disables)")
+		downstreamTLSMode  = flag.String("downstream_tls_mode", "optional", "downstream TLS mode (disabled|optional|required)")
 		watchInterval      = flag.Duration("watch_interval", 5*time.Second, "static config polling interval")
+		debugSignals       = flag.Bool("debug_signals", false, "log signals received while running")
 	)
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	if *bootstrapPath == "" {
-		*bootstrapPath = filepath.Join(config.GetConfigDir(), "envoy.yml")
+	opts := controlplane.BootstrapOptions{
+		NodeID:    *nodeID,
+		Cluster:   *bootstrapCluster,
+		XDSHost:   *bootstrapHost,
+		XDSPort:   *bootstrapPort,
+		AdminPort: *bootstrapAdminPort,
 	}
-	if err := writeBootstrap(*bootstrapPath, *nodeID, *bootstrapCluster, *bootstrapHost, *bootstrapPort, *bootstrapAdminPort, *bootstrapMaxConn); err != nil {
-		logger.Warn("write bootstrap", "err", err)
+	if *bootstrapMaxConn > 0 {
+		opts.MaxActiveDownstreamConns = *bootstrapMaxConn
 	}
+	writeBootstrap(logger, opts, *bootstrapPath)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	xdsServer := server.New(logger, ctx)
+	errCh := make(chan error, 2)
 	go func() {
 		if err := xdsServer.Serve(ctx, *grpcAddr); err != nil && !errors.Is(err, context.Canceled) {
-			logger.Error("xDS serve failed", "err", err)
+			errCh <- err
 		}
 	}()
 
-	watcher := watchers.New(logger, xdsServer, *xdsConfigPath, *nodeID, *watchInterval)
-	if err := watcher.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		logger.Error("xDS watcher stopped", "err", err)
+	watcher := watchers.New(logger, xdsServer, *xdsConfigPath, *nodeID, *watchInterval, watchers.ParseDownstreamTLSMode(*downstreamTLSMode))
+	go func() {
+		if err := watcher.Run(ctx); err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			errCh <- err
+			return
+		}
+		errCh <- fmt.Errorf("watcher exited unexpectedly")
+	}()
+
+	if *debugSignals {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt, syscall.SIGHUP)
+		go func() {
+			for sig := range sigCh {
+				logger.Info("signal received", "signal", sig)
+			}
+		}()
+		defer signal.Stop(sigCh)
+	}
+
+	go func() {
+		<-ctx.Done()
+		logger.Info("root context canceled", "err", ctx.Err())
+	}()
+
+	select {
+	case err := <-errCh:
+		logger.Error("fatal xDS component exited", "err", err)
+		stop()
+		os.Exit(1)
+	case <-ctx.Done():
 	}
 }
 
-func writeBootstrap(path, nodeID, cluster, host string, port, admin int, maxConn uint64) error {
-	opts := controlplane.BootstrapOptions{
-		NodeID:    nodeID,
-		Cluster:   cluster,
-		XDSHost:   host,
-		XDSPort:   port,
-		AdminPort: admin,
+func writeBootstrap(logger *slog.Logger, opts controlplane.BootstrapOptions, overridePath string) {
+	data, err := controlplane.MarshalBootstrap(opts)
+	if err != nil {
+		logger.Warn("marshal bootstrap", "err", err)
+		return
 	}
-	if maxConn > 0 {
-		opts.MaxActiveDownstreamConns = maxConn
+
+	paths := []string{}
+	if overridePath != "" {
+		paths = append(paths, overridePath)
+	} else {
+		paths = bootstrapCandidates()
 	}
-	return controlplane.WriteBootstrap(path, opts)
+
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			logger.Warn("bootstrap dir create", "err", err, "dir", dir)
+			continue
+		}
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			logger.Warn("write bootstrap", "err", err, "path", p)
+			continue
+		}
+		logger.Info("wrote bootstrap", "path", p)
+		return
+	}
+	logger.Warn("failed to write bootstrap to any candidate")
+}
+
+func bootstrapCandidates() []string {
+	return []string{
+		filepath.Join("/run/globular", "envoy", "envoy.yml"),
+		filepath.Join("/var/lib/globular", "envoy", "envoy.yml"),
+	}
 }

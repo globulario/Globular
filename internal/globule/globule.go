@@ -2,6 +2,7 @@ package globule
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -149,7 +150,7 @@ func New(logger *slog.Logger) *Globule {
 		WatchUpdateDelay:    30,
 		ServicesRoot:        config.GetServicesRoot(),
 		nodes:               &sync.Map{},
-		configDir:           config.GetConfigDir(),
+		configDir:           config.GetRuntimeConfigDir(),
 		UseEnvoy:            false,
 		MinioDisabled:       os.Getenv("MINIO_DISABLED") == "1",
 		MinioRootUser:       firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_USER")), "globular"),
@@ -161,10 +162,13 @@ func New(logger *slog.Logger) *Globule {
 		MinioBin:            firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BIN")), "minio"),
 	}
 
-	// Load existing config (if present)
-	if data, err := os.ReadFile(g.configDir + "/config.json"); err == nil {
-		if err := json.Unmarshal(data, g); err != nil {
-			g.log.Warn("failed to load config", "err", err)
+	configPaths := []string{
+		filepath.Join(g.configDir, "config.json"),
+		filepath.Join(config.GetConfigDir(), "config.json"),
+	}
+	for _, cfgPath := range configPaths {
+		if g.loadConfigFile(cfgPath) {
+			break
 		}
 	}
 
@@ -189,30 +193,66 @@ func New(logger *slog.Logger) *Globule {
 	return g
 }
 
+func (g *Globule) loadConfigFile(path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	if err := json.Unmarshal(data, g); err != nil {
+		g.log.Warn("failed to load config", "path", path, "err", err)
+		return false
+	}
+	return true
+}
+
 // InitFS initializes required directories and reads/saves config.json.
 func (g *Globule) InitFS() error {
 	// Data / webroot / config roots
 	g.data = config.GetDataDir()
 	g.webRoot = config.GetWebRootDir()
-	g.configDir = config.GetConfigDir()
+	g.configDir = config.GetRuntimeConfigDir()
 	g.Path, _ = os.Executable()
+	stateRoot := config.GetStateRootDir()
+	tokensDir := config.GetTokensDir()
+	keysDir := config.GetKeysDir()
+	tlsDir := config.GetRuntimeTLSDir()
+	g.log.Info("runtime paths",
+		"stateRoot", stateRoot,
+		"runtimeConfig", g.configDir,
+		"tokensDir", tokensDir,
+		"keysDir", keysDir,
+		"tlsDir", tlsDir,
+		"adminConfigDir", config.GetConfigDir(),
+	)
 
 	for _, d := range []string{
 		g.data, g.webRoot,
 		g.configDir,
-		filepath.Join(g.configDir, "tokens"),
+		tokensDir,
+		keysDir,
+		tlsDir,
 	} {
-		if err := Utility.CreateDirIfNotExist(d); err != nil {
+		if err := config.EnsureRuntimeDir(d); err != nil {
 			return err
 		}
 	}
 
-	// TLS creds dir: config/tls/<domain>
-	g.creds = filepath.Join(g.configDir, "tls", g.localDomain())
+	// TLS creds dir: runtime tls/<domain>
+	g.creds = filepath.Join(tlsDir, g.localDomain())
 
 	// Persist defaults on first run if config missing (single save later).
 	cfgPath := filepath.Join(g.configDir, "config.json")
 	needsSave := !Utility.Exists(cfgPath)
+
+	// Ensure we have a stable identity before generating keys.
+	changedID, err := g.ensureNodeID()
+	if err != nil {
+		g.log.Error("ensure node id", "err", err)
+		return err
+	}
+	if changedID {
+		needsSave = true
+	}
 
 	// Generate peer keys for this server if missing
 	if err := security.GeneratePeerKeys(g.Mac); err != nil {
@@ -227,6 +267,52 @@ func (g *Globule) InitFS() error {
 	}
 
 	return nil
+}
+
+func (g *Globule) ensureNodeID() (bool, error) {
+	if id := strings.TrimSpace(g.Mac); id != "" {
+		g.Mac = id
+		return false, nil
+	}
+
+	if env := strings.TrimSpace(os.Getenv("GLOBULAR_NODE_ID")); env != "" {
+		g.log.Info("using GLOBULAR_NODE_ID fallback", "id", env)
+		g.Mac = env
+		return true, nil
+	}
+
+	if hostname, err := os.Hostname(); err == nil {
+		if hostID := strings.TrimSpace(hostname); hostID != "" {
+			g.log.Info("using hostname fallback", "id", hostID)
+			g.Mac = hostID
+			return true, nil
+		}
+	} else {
+		g.log.Warn("hostname fallback failed", "err", err)
+	}
+
+	if machineID, err := machineIDDerivedID(); err == nil {
+		g.log.Info("using machine-id fallback", "id", machineID)
+		g.Mac = machineID
+		return true, nil
+	} else {
+		g.log.Warn("machine-id fallback failed", "err", err)
+	}
+
+	return false, errors.New("node id is empty after evaluating fallback sources")
+}
+
+func machineIDDerivedID() (string, error) {
+	data, err := os.ReadFile("/etc/machine-id")
+	if err != nil {
+		return "", err
+	}
+	machineID := strings.TrimSpace(string(data))
+	if machineID == "" {
+		return "", errors.New("machine-id is empty")
+	}
+	sum := sha256.Sum256([]byte(machineID))
+	return fmt.Sprintf("%x", sum[:8]), nil
 }
 
 // RegisterIPToDNS is kept public so you can call it on a cron/loop if you want.
@@ -273,8 +359,8 @@ func (g *Globule) LocalDomain() string { return g.localDomain() }
 
 // ensureAccountKeyAndCSR creates/loads the legacy account key (client.pem) and a server CSR.
 func (g *Globule) ensureAccountKeyAndCSR() error {
-	creds := filepath.Join(config.GetConfigDir(), "tls", g.localDomain())
-	if err := Utility.CreateDirIfNotExist(creds); err != nil {
+	creds := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain())
+	if err := config.EnsureRuntimeDir(creds); err != nil {
 		return err
 	}
 
@@ -301,7 +387,10 @@ func (g *Globule) ensureAccountKeyAndCSR() error {
 // obtainInternalServerCert ensures server.crt is signed by the local CA only (mTLS for etcd). // <<< NEW
 func (g *Globule) obtainInternalServerCert(ctx context.Context) error { // <<< NEW
 	m := g.newPKIManager()
-	dir := filepath.Join(config.GetConfigDir(), "tls", g.localDomain())
+	dir := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain())
+	if err := config.EnsureRuntimeDir(dir); err != nil {
+		return err
+	}
 
 	// Always local CA for server.crt (internal mTLS). The PKI EnsureServerCert now uses local CA here.
 	_, leaf, ca, err := m.EnsureServerCert(dir, g.Domain, g.allDNS(), 0)
@@ -321,7 +410,10 @@ func (g *Globule) obtainInternalServerCert(ctx context.Context) error { // <<< N
 // obtainPublicACMECert writes <domain>.crt, <domain>.issuer.crt, and fullchain.pem (ACME). // <<< NEW
 func (g *Globule) obtainPublicACMECert(ctx context.Context) error { // <<< NEW
 	m := g.newPKIManager()
-	dir := filepath.Join(config.GetConfigDir(), "tls", g.localDomain())
+	dir := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain())
+	if err := config.EnsureRuntimeDir(dir); err != nil {
+		return err
+	}
 
 	// Issue public cert to domain-named files; does NOT touch server.crt. (Requires PKI EnsurePublicACMECert impl.)
 	key, leaf, issuer, full, err := m.EnsurePublicACMECert(
@@ -458,7 +550,7 @@ func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {
 	}
 
 	// 3.5) If a valid fullchain already exists (public), just schedule renewal
-	fullchain := filepath.Join(config.GetConfigDir(), "tls", g.localDomain(), "fullchain.pem")
+	fullchain := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain(), "fullchain.pem")
 	if Utility.Exists(fullchain) {
 		if notAfter, err := readCertNotAfter(fullchain); err == nil {
 			now := time.Now()
@@ -546,7 +638,7 @@ func (g *Globule) scheduleCertRenewal(ctx context.Context, fullchain string, not
 			if err := g.buildFullChainIfPossible(); err != nil {
 				g.log.Warn("tls: post-renew fullchain build failed", "err", err)
 			}
-			full := filepath.Join(config.GetConfigDir(), "tls", g.localDomain(), "fullchain.pem")
+			full := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain(), "fullchain.pem")
 			if na, err := readCertNotAfter(full); err == nil {
 				g.scheduleCertRenewal(context.Background(), full, na)
 			}
@@ -556,7 +648,10 @@ func (g *Globule) scheduleCertRenewal(ctx context.Context, fullchain string, not
 
 // buildFullChainIfPossible concatenates <domain>.crt + <domain>.issuer.crt into fullchain.pem.
 func (g *Globule) buildFullChainIfPossible() error {
-	dir := filepath.Join(config.GetConfigDir(), "tls", g.localDomain())
+	dir := filepath.Join(config.GetRuntimeTLSDir(), g.localDomain())
+	if err := config.EnsureRuntimeDir(dir); err != nil {
+		return err
+	}
 	leaf := filepath.Join(dir, g.Domain+".crt")
 	issuer := filepath.Join(dir, g.Domain+".issuer.crt")
 	full := filepath.Join(dir, "fullchain.pem")

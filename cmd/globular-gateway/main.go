@@ -34,6 +34,15 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
+	bootstrapped, err := config.EnsureLocalConfig()
+	if err != nil {
+		logger.Error("ensure local config failed", "err", err)
+		os.Exit(1)
+	}
+	if bootstrapped {
+		logger.Info("bootstrapped local config")
+	}
+
 	globule := globpkg.New(logger)
 	globule.SkipLocalDNS = true
 
@@ -118,9 +127,14 @@ func main() {
 }
 
 func hasExistingTLSCert(g *globpkg.Globule) bool {
-	fullchain := filepath.Join(config.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem")
-	if _, err := os.Stat(fullchain); err == nil {
-		return true
+	candidates := []string{
+		filepath.Join(config.GetRuntimeTLSDir(), g.LocalDomain(), "fullchain.pem"),
+		filepath.Join(config.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem"),
+	}
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return true
+		}
 	}
 	return false
 }

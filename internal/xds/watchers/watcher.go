@@ -16,6 +16,8 @@ import (
 	Utility "github.com/globulario/utility"
 )
 
+type DownstreamTLSMode string
+
 const (
 	defaultNodeID    = "globular-xds"
 	defaultInterval  = 5 * time.Second
@@ -23,21 +25,44 @@ const (
 	defaultRouteName = "ingress_routes"
 )
 
+const (
+	DownstreamTLSDisabled DownstreamTLSMode = "disabled"
+	DownstreamTLSOptional DownstreamTLSMode = "optional"
+	DownstreamTLSRequired DownstreamTLSMode = "required"
+)
+
+// ParseDownstreamTLSMode returns a normalized downstream TLS mode value.
+func ParseDownstreamTLSMode(value string) DownstreamTLSMode {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(DownstreamTLSDisabled):
+		return DownstreamTLSDisabled
+	case string(DownstreamTLSRequired):
+		return DownstreamTLSRequired
+	default:
+		return DownstreamTLSOptional
+	}
+}
+
 var errNoChange = errors.New("config unchanged")
 
 // Watcher reloads xDS configuration from file or service registry and pushes snapshots to the server.
 type Watcher struct {
-	logger     *slog.Logger
-	server     *server.XDSServer
-	configPath string
-	nodeID     string
-	interval   time.Duration
+	logger              *slog.Logger
+	server              *server.XDSServer
+	configPath          string
+	nodeID              string
+	interval            time.Duration
+	downstreamTLSMode   DownstreamTLSMode
+	downstreamTLSWarned bool
 
-	lastMod time.Time
+	protocol                    string
+	gatewayTLSWarned            bool
+	downstreamTLSRequiredWarned bool
+	lastMod                     time.Time
 }
 
 // New creates a watcher bound to the given server.
-func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, interval time.Duration) *Watcher {
+func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, interval time.Duration, downstreamMode DownstreamTLSMode) *Watcher {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
@@ -50,12 +75,18 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 	if interval <= 0 {
 		interval = defaultInterval
 	}
+	if downstreamMode == "" {
+		downstreamMode = DownstreamTLSOptional
+	}
+	protocol := detectLocalProtocol()
 	return &Watcher{
-		logger:     logger,
-		server:     srv,
-		configPath: strings.TrimSpace(configPath),
-		nodeID:     nodeID,
-		interval:   interval,
+		logger:            logger,
+		server:            srv,
+		configPath:        strings.TrimSpace(configPath),
+		nodeID:            nodeID,
+		interval:          interval,
+		downstreamTLSMode: downstreamMode,
+		protocol:          protocol,
 	}
 }
 
@@ -163,19 +194,10 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 		return builder.Input{}, "", err
 	}
 
-	downCert, err := require("downstream certificate", config.GetLocalClientCertificatePath())
+	downCert, downKey, downIssuer, err := w.downstreamTLSConfig()
 	if err != nil {
 		return builder.Input{}, "", err
 	}
-	downKey, err := require("downstream private key", config.GetLocalClientKeyPath())
-	if err != nil {
-		return builder.Input{}, "", err
-	}
-	downIssuer := pathIfExists(config.GetLocalCACertificate())
-
-	upCA := pathIfExists(config.GetLocalCertificateAuthorityBundle())
-	upCert := pathIfExists(config.GetLocalCertificate())
-	upKey := pathIfExists(config.GetLocalServerKeyPath())
 
 	var (
 		clusters        []builder.Cluster
@@ -230,12 +252,13 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 		port = 8181
 	}
 	gatewayCluster := "globular_https"
+	gatewayCert, gatewayKey, gatewayCA, _ := w.gatewayTLSPaths()
 	clusters = append(clusters, builder.Cluster{
 		Name:       gatewayCluster,
 		Endpoints:  []builder.Endpoint{{Host: host, Port: uint32(port)}},
-		CAFile:     upCA,
-		ServerCert: upCert,
-		KeyFile:    upKey,
+		CAFile:     gatewayCA,
+		ServerCert: gatewayCert,
+		KeyFile:    gatewayKey,
 		SNI:        host,
 	})
 	routes = append(routes, builder.Route{Prefix: "/", Cluster: gatewayCluster})
@@ -245,9 +268,9 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 		RouteName:  defaultRouteName,
 		Host:       "0.0.0.0",
 		Port:       443,
-		CertFile:   upCert,
-		KeyFile:    upKey,
-		IssuerFile: upCA,
+		CertFile:   gatewayCert,
+		KeyFile:    gatewayKey,
+		IssuerFile: gatewayCA,
 	}
 
 	version := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -259,6 +282,45 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 		Version:  version,
 	}
 	return input, version, nil
+}
+
+func (w *Watcher) downstreamTLSConfig() (string, string, string, error) {
+	certPath := config.GetLocalClientCertificatePath()
+	keyPath := config.GetLocalClientKeyPath()
+	switch w.downstreamTLSMode {
+	case DownstreamTLSDisabled:
+		return "", "", "", nil
+	case DownstreamTLSRequired:
+		if pathIfExists(certPath) == "" || pathIfExists(keyPath) == "" {
+			if w.logger != nil && !w.downstreamTLSRequiredWarned {
+				w.logger.Warn("downstream TLS required but certificate/key missing; serving without TLS",
+					"cert_path", certPath, "key_path", keyPath)
+				w.downstreamTLSRequiredWarned = true
+			}
+			return "", "", "", nil
+		}
+		downCert, err := require("downstream certificate", certPath)
+		if err != nil {
+			return "", "", "", err
+		}
+		downKey, err := require("downstream private key", keyPath)
+		if err != nil {
+			return "", "", "", err
+		}
+		return downCert, downKey, pathIfExists(config.GetLocalCACertificate()), nil
+	default:
+		downCert := pathIfExists(certPath)
+		downKey := pathIfExists(keyPath)
+		if downCert == "" || downKey == "" {
+			if !w.downstreamTLSWarned && w.logger != nil {
+				w.logger.Warn("downstream TLS optional but certificate/key missing; serving without TLS",
+					"cert_path", certPath, "key_path", keyPath)
+				w.downstreamTLSWarned = true
+			}
+			return "", "", "", nil
+		}
+		return downCert, downKey, pathIfExists(config.GetLocalCACertificate()), nil
+	}
 }
 
 func require(label, path string) (string, error) {
@@ -288,4 +350,33 @@ func parseAddress(address string) (string, int) {
 		port = Utility.ToInt(parts[1])
 	}
 	return host, port
+}
+
+func detectLocalProtocol() string {
+	cfg, err := config.GetLocalConfig(true)
+	if err != nil {
+		return "http"
+	}
+	protocol := strings.ToLower(strings.TrimSpace(Utility.ToString(cfg["Protocol"])))
+	if protocol == "" {
+		return "http"
+	}
+	return protocol
+}
+
+func (w *Watcher) gatewayTLSPaths() (string, string, string, bool) {
+	if strings.ToLower(strings.TrimSpace(w.protocol)) != "https" {
+		return "", "", "", false
+	}
+	cert := pathIfExists(config.GetLocalCertificate())
+	key := pathIfExists(config.GetLocalServerKeyPath())
+	if cert == "" || key == "" {
+		if w.logger != nil && !w.gatewayTLSWarned {
+			w.logger.Warn("HTTPS configured but gateway certificate/key missing; serving without TLS until certificates are available")
+			w.gatewayTLSWarned = true
+		}
+		return "", "", "", false
+	}
+	ca := pathIfExists(config.GetLocalCACertificate())
+	return cert, key, ca, true
 }

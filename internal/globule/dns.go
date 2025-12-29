@@ -290,10 +290,16 @@ func (g *Globule) registerIPToDNS(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("set DMARC TXT: %w", err)
 	}
 
-	mtaPath := filepath.Join(g.configDir, "tls", localFQDN, "mta-sts.txt")
+	tlsDir := filepath.Join(config.GetRuntimeTLSDir(), localFQDN)
+	if err := config.EnsureRuntimeDir(tlsDir); err != nil {
+		g.log.Warn("dns: ensure tls dir", "dir", tlsDir, "err", err)
+	}
+	mtaPath := filepath.Join(tlsDir, "mta-sts.txt")
 	if !Utility.Exists(mtaPath) {
 		policy := fmt.Sprintf("version: STSv1\nmode: enforce\nmx: %s\nttl: 86400\n", domain)
-		_ = os.WriteFile(mtaPath, []byte(policy), 0600)
+		if err := os.WriteFile(mtaPath, []byte(policy), 0600); err != nil {
+			g.log.Warn("dns: write mta-sts policy", "err", err)
+		}
 	}
 	if _, err := client.SetA(tk, "mta-sts."+domain, ipv4, 60); err != nil {
 		return false, fmt.Errorf("set A mta-sts: %w", err)

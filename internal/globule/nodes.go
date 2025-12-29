@@ -66,7 +66,10 @@ func (g *Globule) initNodeIdentity(p *resourcepb.NodeIdentity) error {
 	apiAddr := g.nodeAPIAddress(p)
 
 	// Ensure we have the node's public key locally
-	keyPath := filepath.Join(g.configDir, "keys", strings.ReplaceAll(p.Mac, ":", "_")+"_public")
+	keyPath := filepath.Join(config.GetKeysDir(), strings.ReplaceAll(p.Mac, ":", "_")+"_public")
+	if err := config.EnsureRuntimeDir(filepath.Dir(keyPath)); err != nil {
+		return err
+	}
 	if !Utility.Exists(keyPath) {
 		url := p.Protocol + "://" + apiAddr + "/public_key"
 		resp, err := http.Get(url) // #nosec G107 — controlled URL

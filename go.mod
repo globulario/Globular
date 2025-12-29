@@ -5,16 +5,12 @@ go 1.24.5
 // set local replace github.com/globulario/services/golang => ../services/golang
 replace github.com/globulario/services/golang => ../services/golang
 
-replace github.com/globulario/services/golang/services_manager/services_manager_client => ./internal/stubs/services_manager/services_manager_client
-
 require (
 	github.com/StalkR/imdb v1.0.15
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/globulario/services/golang/services_manager/services_manager_client v0.0.0
 	//github.com/globulario/services/golang v0.1.29
 	github.com/globulario/utility v0.1.9
 	github.com/go-acme/lego/v4 v4.25.2 // indirect
-	github.com/kardianos/service v1.2.4
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/prometheus/client_golang v1.23.0
 	github.com/txn2/txeh v1.5.5
@@ -85,7 +81,6 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/struCoder/pidusage v0.2.1 // indirect
 	github.com/twmb/murmur3 v1.1.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.33.0 // indirect

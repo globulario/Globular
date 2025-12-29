@@ -280,8 +280,8 @@ func (g *Globule) watchConfig() {
 func (g *Globule) SaveConfig() error {
 
 	// Ensure config dir exists and remember it on the struct
-	cfgDir := config.GetConfigDir()
-	if err := Utility.CreateDirIfNotExist(cfgDir); err != nil {
+	cfgDir := config.GetRuntimeConfigDir()
+	if err := config.EnsureRuntimeDir(cfgDir); err != nil {
 		return fmt.Errorf("saveConfig: create config dir: %w", err)
 	}
 
