@@ -21,8 +21,8 @@ type DownstreamTLSMode string
 const (
 	defaultNodeID    = "globular-xds"
 	defaultInterval  = 5 * time.Second
-	defaultListener  = "ingress_listener_443"
 	defaultRouteName = "ingress_routes"
+	listenerNameBase = "ingress_listener"
 )
 
 const (
@@ -246,16 +246,16 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 		routes = append([]builder.Route{{Prefix: "/grpc.health.v1.Health/", Cluster: healthTarget}}, routes...)
 	}
 
-	address, _ := config.GetAddress()
-	host, port := parseAddress(address)
+	host, port := readGatewayAddress()
 	if port == 0 {
 		port = 8181
 	}
+	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCluster := "globular_https"
 	gatewayCert, gatewayKey, gatewayCA, _ := w.gatewayTLSPaths()
 	clusters = append(clusters, builder.Cluster{
 		Name:       gatewayCluster,
-		Endpoints:  []builder.Endpoint{{Host: host, Port: uint32(port)}},
+		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(port)}},
 		CAFile:     gatewayCA,
 		ServerCert: gatewayCert,
 		KeyFile:    gatewayKey,
@@ -263,11 +263,17 @@ func (w *Watcher) buildDynamicInput() (builder.Input, string, error) {
 	})
 	routes = append(routes, builder.Route{Prefix: "/", Cluster: gatewayCluster})
 
+	listenerPort := uint32(443)
+	lowerHost := strings.ToLower(strings.TrimSpace(host))
+	if lowerHost == "" || lowerHost == "0.0.0.0" || lowerHost == "127.0.0.1" || lowerHost == "localhost" {
+		listenerPort = 8443
+	}
+
 	listener := builder.Listener{
-		Name:       defaultListener,
+		Name:       fmt.Sprintf("%s_%d", listenerNameBase, listenerPort),
 		RouteName:  defaultRouteName,
 		Host:       "0.0.0.0",
-		Port:       443,
+		Port:       listenerPort,
 		CertFile:   gatewayCert,
 		KeyFile:    gatewayKey,
 		IssuerFile: gatewayCA,
@@ -350,6 +356,34 @@ func parseAddress(address string) (string, int) {
 		port = Utility.ToInt(parts[1])
 	}
 	return host, port
+}
+
+func readGatewayAddress() (string, int) {
+	cfg, err := config.GetLocalConfig(true)
+	if err == nil && cfg != nil {
+		if gwRaw, ok := cfg["gateway"]; ok {
+			if gwMap, ok := gwRaw.(map[string]interface{}); ok {
+				if listen := strings.TrimSpace(Utility.ToString(gwMap["listen"])); listen != "" {
+					host, port := parseAddress(listen)
+					if port != 0 {
+						return host, port
+					}
+				}
+			}
+		}
+	}
+	address, _ := config.GetAddress()
+	return parseAddress(address)
+}
+
+func normalizeUpstreamHost(host string) string {
+	h := strings.TrimSpace(host)
+	switch strings.ToLower(h) {
+	case "", "0.0.0.0", "*":
+		return "127.0.0.1"
+	default:
+		return h
+	}
 }
 
 func detectLocalProtocol() string {

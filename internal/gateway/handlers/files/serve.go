@@ -27,10 +27,15 @@ type MinioProxyConfig struct {
 	Bucket   string
 	Prefix   string
 	UseSSL   bool
+	Client   *minio.Client
+	Stat     MinioStatFunc
 	Fetch    MinioFetchFunc
 	Put      MinioPutFunc
 	Delete   MinioDeleteFunc
 }
+
+// MinioStatFunc checks whether a MinIO object exists.
+type MinioStatFunc func(ctx context.Context, bucket, key string) (MinioObjectInfo, error)
 
 // MinioObjectInfo describes an object served from MinIO.
 type MinioObjectInfo struct {
@@ -57,7 +62,8 @@ type ServeProvider interface {
 	PublicDirs() []string
 	Exists(p string) bool
 	FindHashedFile(p string) (string, error)
-	FileServiceMinioConfig() (*MinioProxyConfig, bool)
+	FileServiceMinioConfig() (*MinioProxyConfig, error)
+	FileServiceMinioConfigStrict(ctx context.Context) (*MinioProxyConfig, error)
 
 	// Security
 	ParseUserID(token string) (string, error) // returns "id@domain" or ""
@@ -112,8 +118,13 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
-		minioCfg, hasMinio := p.FileServiceMinioConfig()
-		useMinioUsers := hasMinio && minioCfg != nil && strings.HasPrefix(rqstPath, "/users/")
+		minioCfg, minioErr := p.FileServiceMinioConfig()
+		useMinioPath := strings.HasPrefix(rqstPath, "/users/")
+		if minioErr != nil && useMinioPath {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+			return
+		}
+		useMinioUsers := minioErr == nil && minioCfg != nil && useMinioPath
 
 		// Base root from webRoot, with vhost subdir if present
 		dir := p.WebRoot()
@@ -295,12 +306,15 @@ func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxy
 	if err != nil {
 		if isMinioNoSuchKey(err) && isDirCandidate(rqstPath) {
 			playlistPath := path.Join(rqstPath, "playlist.m3u8")
-			if minioObjectExists(r.Context(), cfg, playlistPath) {
+			if exists, statErr := minioObjectExists(r.Context(), cfg, playlistPath); statErr != nil {
+				httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+				return true
+			} else if exists {
 				redirectToPlaylist(w, r, playlistPath)
 				return true
 			}
 		}
-		httplib.WriteJSONError(w, http.StatusBadGateway, "failed to reach storage: "+err.Error())
+		httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
 		return true
 	}
 	defer reader.Close()
@@ -329,17 +343,30 @@ func isDirCandidate(rqstPath string) bool {
 	return !strings.Contains(base, ".")
 }
 
-func minioObjectExists(ctx context.Context, cfg *MinioProxyConfig, rqstPath string) bool {
-	if cfg == nil || cfg.Fetch == nil {
-		return false
+func minioObjectExists(ctx context.Context, cfg *MinioProxyConfig, rqstPath string) (bool, error) {
+	if cfg == nil {
+		return false, fmt.Errorf("minio config missing")
 	}
 	key := serveMinioObjectKey(cfg, rqstPath)
-	reader, _, err := cfg.Fetch(ctx, cfg.Bucket, key)
-	if err != nil {
-		return false
+	if cfg.Stat != nil {
+		if _, err := cfg.Stat(ctx, cfg.Bucket, key); err != nil {
+			if isMinioNoSuchKey(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
 	}
-	_ = reader.Close()
-	return true
+	if cfg.Client != nil {
+		if _, err := cfg.Client.StatObject(ctx, cfg.Bucket, key, minio.StatObjectOptions{}); err != nil {
+			if isMinioNoSuchKey(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}
+	return false, fmt.Errorf("minio stat not available")
 }
 
 func serveMinioObjectKey(cfg *MinioProxyConfig, rqstPath string) string {

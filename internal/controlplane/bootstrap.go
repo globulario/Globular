@@ -2,10 +2,9 @@
 package controlplane
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
-
-	"gopkg.in/yaml.v3"
 )
 
 type BootstrapOptions struct {
@@ -19,7 +18,7 @@ type BootstrapOptions struct {
 	MaxActiveDownstreamConns uint64
 }
 
-// MarshalBootstrap builds the Envoy bootstrap YAML bytes without writing to disk.
+// MarshalBootstrap builds the Envoy bootstrap JSON bytes without writing to disk.
 func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 	if opt.NodeID == "" {
 		opt.NodeID = "globular-xds"
@@ -38,11 +37,11 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 	}
 
 	type socketAddr struct {
-		Address   string `yaml:"address"`
-		PortValue int    `yaml:"port_value"`
+		Address   string `json:"address"`
+		PortValue int    `json:"port_value"`
 	}
 	type address struct {
-		SocketAddress socketAddr `yaml:"socket_address"`
+		SocketAddress socketAddr `json:"socket_address"`
 	}
 
 	doc := map[string]any{
@@ -110,7 +109,7 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 		},
 		"admin": map[string]any{
 			"address": address{SocketAddress: socketAddr{
-				Address:   "0.0.0.0",
+				Address:   "127.0.0.1",
 				PortValue: opt.AdminPort,
 			}},
 			"access_log": []any{
@@ -138,17 +137,37 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 		}
 	}
 
-	return yaml.Marshal(doc)
+	return json.Marshal(doc)
 }
 
 // WriteBootstrap writes the generated Envoy bootstrap to disk.
 func WriteBootstrap(path string, opt BootstrapOptions) error {
-	b, err := MarshalBootstrap(opt)
+	data, err := MarshalBootstrap(opt)
 	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, b, 0o644)
+
+	tmp := path + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	_ = f.Sync()
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }

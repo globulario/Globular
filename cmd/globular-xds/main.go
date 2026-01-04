@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -18,8 +17,9 @@ import (
 )
 
 const (
-	defaultGRPCAddr  = "0.0.0.0:18000"
-	defaultXDSConfig = "/etc/globular/xds/config.json"
+	defaultGRPCAddr           = "0.0.0.0:18000"
+	defaultXDSConfig          = "/etc/globular/xds/config.json"
+	defaultEnvoyBootstrapPath = "/run/globular/envoy/envoy-bootstrap.json"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 		grpcAddr           = flag.String("grpc_addr", defaultGRPCAddr, "address for the xDS gRPC server")
 		xdsConfigPath      = flag.String("xds_config", defaultXDSConfig, "path to the xDS config JSON")
 		nodeID             = flag.String("node_id", "globular-xds", "node id for xDS snapshots")
-		bootstrapPath      = flag.String("envoy_bootstrap", "", "path to write Envoy bootstrap YAML")
+		bootstrapPath      = flag.String("envoy_bootstrap", defaultEnvoyBootstrapPath, "path to write Envoy bootstrap JSON")
 		bootstrapHost      = flag.String("bootstrap_host", "127.0.0.1", "host advertised in envoy bootstrap")
 		bootstrapPort      = flag.Int("bootstrap_port", 18000, "port advertised in envoy bootstrap")
 		bootstrapCluster   = flag.String("bootstrap_cluster", "globular-cluster", "cluster name used in bootstrap")
@@ -101,39 +101,13 @@ func main() {
 	}
 }
 
-func writeBootstrap(logger *slog.Logger, opts controlplane.BootstrapOptions, overridePath string) {
-	data, err := controlplane.MarshalBootstrap(opts)
-	if err != nil {
-		logger.Warn("marshal bootstrap", "err", err)
+func writeBootstrap(logger *slog.Logger, opts controlplane.BootstrapOptions, path string) {
+	if path == "" {
+		path = defaultEnvoyBootstrapPath
+	}
+	if err := controlplane.WriteBootstrap(path, opts); err != nil {
+		logger.Warn("write bootstrap", "err", err, "path", path)
 		return
 	}
-
-	paths := []string{}
-	if overridePath != "" {
-		paths = append(paths, overridePath)
-	} else {
-		paths = bootstrapCandidates()
-	}
-
-	for _, p := range paths {
-		dir := filepath.Dir(p)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			logger.Warn("bootstrap dir create", "err", err, "dir", dir)
-			continue
-		}
-		if err := os.WriteFile(p, data, 0o644); err != nil {
-			logger.Warn("write bootstrap", "err", err, "path", p)
-			continue
-		}
-		logger.Info("wrote bootstrap", "path", p)
-		return
-	}
-	logger.Warn("failed to write bootstrap to any candidate")
-}
-
-func bootstrapCandidates() []string {
-	return []string{
-		filepath.Join("/run/globular", "envoy", "envoy.yml"),
-		filepath.Join("/var/lib/globular", "envoy", "envoy.yml"),
-	}
+	logger.Info("wrote envoy bootstrap", "path", path, "xds", fmt.Sprintf("%s:%d", opts.XDSHost, opts.XDSPort))
 }

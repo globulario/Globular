@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	handlers "github.com/globulario/Globular/internal/gateway/handlers"
 	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 )
 
@@ -21,6 +22,7 @@ type fakeUpload struct {
 	publicDirs []string
 	allowWrite bool
 	minioCfg   *files.MinioProxyConfig
+	minioErr   error
 }
 
 func (f fakeUpload) DataRoot() string { return f.dataRoot }
@@ -42,11 +44,8 @@ func (f fakeUpload) ValidateApplication(string, string, string) (bool, bool, err
 	return false, false, nil
 }
 func (f fakeUpload) AddResourceOwner(path, resourceType, owner string) error { return nil }
-func (f fakeUpload) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
-	if f.minioCfg == nil {
-		return nil, false
-	}
-	return f.minioCfg, true
+func (f fakeUpload) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
+	return f.minioCfg, f.minioErr
 }
 
 func newMultipart(dir, filename, content string) (*bytes.Buffer, string) {
@@ -160,5 +159,21 @@ func TestUpload_MinioUsers(t *testing.T) {
 	}
 	if len(resp.Paths) != 1 || resp.Paths[0] != "/users/alice/note.txt" {
 		t.Fatalf("unexpected response paths: %#v", resp.Paths)
+	}
+}
+
+func TestUpload_MinioUnavailable503(t *testing.T) {
+	p := fakeUpload{allowWrite: true, minioErr: handlers.ErrObjectStoreUnavailable}
+	h := files.NewUploadFile(p)
+	body, ctype := newMultipart("/users/alice", "note.txt", "cloud-data")
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/file-upload", body)
+	req.Header.Set("Content-Type", ctype)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d (body: %s)", rr.Code, rr.Body.String())
 	}
 }

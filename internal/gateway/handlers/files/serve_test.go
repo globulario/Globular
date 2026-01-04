@@ -13,6 +13,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
+	handlers "github.com/globulario/Globular/internal/gateway/handlers"
 	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 )
 
@@ -25,6 +26,7 @@ type fakeServe struct {
 	allowRead  bool
 	streamed   bool
 	minioCfg   *files.MinioProxyConfig
+	minioErr   error
 }
 
 type nopSeekCloser struct {
@@ -40,11 +42,11 @@ func (f fakeServe) IndexApplication() string              { return f.indexApp }
 func (f fakeServe) PublicDirs() []string                  { return f.publicDirs }
 func (f fakeServe) Exists(p string) bool                  { _, err := os.Stat(p); return err == nil }
 func (f fakeServe) FindHashedFile(string) (string, error) { return "", fmt.Errorf("no-hash") }
-func (f fakeServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
-	if f.minioCfg == nil {
-		return nil, false
-	}
-	return f.minioCfg, true
+func (f fakeServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
+	return f.minioCfg, f.minioErr
+}
+func (f fakeServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
+	return f.minioCfg, f.minioErr
 }
 func (f fakeServe) ParseUserID(tok string) (string, error) {
 	if tok == "ok" {
@@ -128,6 +130,20 @@ func TestServe_MinioUsersProxy(t *testing.T) {
 				}
 				return nopSeekCloser{Reader: strings.NewReader("MINIO")}, files.MinioObjectInfo{ModTime: time.Unix(10, 0)}, nil
 			},
+			Stat: func(_ context.Context, bucket, key string) (files.MinioObjectInfo, error) {
+				if bucket != "bucket" {
+					t.Fatalf("expected bucket bucket, got %s stat", bucket)
+				}
+				switch key {
+				case "files/users/alice/dir":
+					return files.MinioObjectInfo{}, minio.ErrorResponse{Code: "NoSuchKey", Message: "missing"}
+				case "files/users/alice/dir/playlist.m3u8":
+					return files.MinioObjectInfo{ModTime: time.Unix(10, 0)}, nil
+				default:
+					t.Fatalf("unexpected stat key %s", key)
+				}
+				return files.MinioObjectInfo{}, fmt.Errorf("unreachable")
+			},
 		},
 	}
 
@@ -190,6 +206,27 @@ func TestServe_MinioDirectoryRedirectsToPlaylist(t *testing.T) {
 	}
 	if got, want := keys, []string{"files/users/alice/dir", "files/users/alice/dir/playlist.m3u8"}; !equalStringSlices(got, want) {
 		t.Fatalf("unexpected keys: %v", got)
+	}
+}
+
+func TestServe_MinioUnavailable503(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioErr:  handlers.ErrObjectStoreUnavailable,
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/users/alice/avatar.png", nil)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 

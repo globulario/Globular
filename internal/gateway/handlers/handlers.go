@@ -59,6 +59,7 @@ func (h *GatewayHandlers) Router(logger *slog.Logger) *http.ServeMux {
 
 	h.wireConfig(mux, wrap)
 	h.wireFiles(mux, wrap)
+	h.wireObjectStoreHealth(mux, wrap)
 	h.wireMedia(mux, wrap)
 	h.wireCluster(mux, wrap)
 
@@ -158,6 +159,27 @@ func (h *GatewayHandlers) wireFiles(mux *http.ServeMux, wrap func(http.Handler) 
 		GetImages: wrap(getImages),
 		Upload:    wrap(upload),
 	})
+}
+
+func (h *GatewayHandlers) wireObjectStoreHealth(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		strict := r.URL.Query().Get("strict") == "1"
+		var (
+			cfg *filesHandlers.MinioProxyConfig
+			err error
+		)
+		if strict {
+			cfg, err = h.newServeProvider().FileServiceMinioConfigStrict(r.Context())
+		} else {
+			cfg, err = h.newServeProvider().FileServiceMinioConfig()
+		}
+		if err != nil || cfg == nil {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+			return
+		}
+		httplib.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.Handle("/health/objectstore", wrap(handler))
 }
 
 func (h *GatewayHandlers) wireMedia(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {

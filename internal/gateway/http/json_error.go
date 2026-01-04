@@ -23,3 +23,14 @@ func WriteJSONError(w stdhttp.ResponseWriter, status int, message string) {
 	}
 	_ = json.NewEncoder(w).Encode(jsonErrorResp{Error: message})
 }
+
+// WriteJSON sends any JSON payload using the specified status code.
+// An empty payload is allowed but if data is nil and status is NoContent the body stays empty.
+func WriteJSON(w stdhttp.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data == nil || status == stdhttp.StatusNoContent {
+		return
+	}
+	_ = json.NewEncoder(w).Encode(data)
+}

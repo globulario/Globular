@@ -25,7 +25,7 @@ type UploadProvider interface {
 	ValidateAccount(userID, action, reqPath string) (has, denied bool, err error)
 	ValidateApplication(app, action, reqPath string) (has, denied bool, err error)
 	AddResourceOwner(path, resourceType, owner string) error
-	FileServiceMinioConfig() (*MinioProxyConfig, bool)
+	FileServiceMinioConfig() (*MinioProxyConfig, error)
 }
 
 type UploadOptions struct {
@@ -96,8 +96,13 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			return
 		}
 
-		minioCfg, hasMinio := p.FileServiceMinioConfig()
-		useMinio := hasMinio && minioCfg != nil && minioCfg.Put != nil && strings.HasPrefix(dir, "/users/")
+		minioCfg, minioErr := p.FileServiceMinioConfig()
+		minioPath := strings.HasPrefix(dir, "/users/")
+		if minioErr != nil && minioPath {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+			return
+		}
+		useMinio := minioErr == nil && minioCfg != nil && minioCfg.Put != nil && minioPath
 
 		// Validate write access (account first via token; fallback to application).
 		has, denied, err := false, false, error(nil)

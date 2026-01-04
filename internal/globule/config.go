@@ -61,39 +61,6 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		g.SessionTimeout = v
 	}
 
-	if v, ok := asBool(m["MinioDisabled"]); ok {
-		g.MinioDisabled = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioRootUser"]); ok {
-		g.MinioRootUser = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioRootPassword"]); ok {
-		g.MinioRootPassword = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioBucket"]); ok {
-		g.MinioBucket = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioPrefix"]); ok {
-		g.MinioPrefix = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioDataDir"]); ok {
-		g.MinioDataDir = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioPort"]); ok {
-		g.MinioPort = v
-		reconcileNeeded = true
-	}
-	if v, ok := asString(m["MinioBin"]); ok {
-		g.MinioBin = v
-		reconcileNeeded = true
-	}
-
 	if v, ok := asBool(m["MutateHostsFile"]); ok {
 		g.MutateHostsFile = v
 	}

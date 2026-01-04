@@ -108,16 +108,6 @@ type Globule struct {
 
 	// Use Envoy proxy for service communication
 	UseEnvoy bool
-
-	// MinIO configuration
-	MinioDisabled     bool
-	MinioRootUser     string
-	MinioRootPassword string
-	MinioBucket       string
-	MinioPrefix       string
-	MinioDataDir      string
-	MinioPort         string
-	MinioBin          string
 }
 
 // New creates a minimally initialized Globule.
@@ -152,14 +142,6 @@ func New(logger *slog.Logger) *Globule {
 		nodes:               &sync.Map{},
 		configDir:           config.GetRuntimeConfigDir(),
 		UseEnvoy:            false,
-		MinioDisabled:       os.Getenv("MINIO_DISABLED") == "1",
-		MinioRootUser:       firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_USER")), "globular"),
-		MinioRootPassword:   firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_ROOT_PASSWORD")), "globular-secret"),
-		MinioBucket:         firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BUCKET")), "globular"),
-		MinioPrefix:         strings.TrimSpace(os.Getenv("MINIO_PREFIX")),
-		MinioDataDir:        firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_DATA_DIR")), "/mnt/globular-minio"),
-		MinioPort:           firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_PORT")), "9000"),
-		MinioBin:            firstNonEmpty(strings.TrimSpace(os.Getenv("MINIO_BIN")), "minio"),
 	}
 
 	configPaths := []string{

@@ -1,6 +1,7 @@
 package files_test
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,8 +20,11 @@ func (p proxyServe) IndexApplication() string              { return "" }
 func (p proxyServe) PublicDirs() []string                  { return nil }
 func (p proxyServe) Exists(string) bool                    { return false }
 func (p proxyServe) FindHashedFile(string) (string, error) { return "", nil }
-func (p proxyServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
-	return nil, false
+func (p proxyServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
+	return nil, nil
+}
+func (p proxyServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
+	return nil, nil
 }
 func (p proxyServe) ParseUserID(string) (string, error) { return "", nil }
 func (p proxyServe) ValidateAccount(string, string, string) (bool, bool, error) {

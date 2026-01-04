@@ -95,13 +95,17 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 			}
 			port := v.ListenerPort
 			if port == 0 {
-				port = 443
+				port = defaultIngressPort(host)
+			}
+			listenerName := v.ListenerName
+			if listenerName == "" {
+				listenerName = fmt.Sprintf("ingress_listener_%d", port)
 			}
 
 			rc := MakeRoutes(v.RouteName, v.IngressRoutes)
 			ln := MakeHTTPListener(
 				host, port,
-				v.ListenerName, v.RouteName,
+				listenerName, v.RouteName,
 				v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
 			)
 
@@ -150,6 +154,22 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 		len(resources[resource_v3.ClusterType]),
 	)
 	return cache.SetSnapshot(context.Background(), id, snap)
+}
+
+func defaultIngressPort(host string) uint32 {
+	if isLocalhostHost(host) {
+		return 8443
+	}
+	return 443
+}
+
+func isLocalhostHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "", "0.0.0.0", "127.0.0.1", "localhost":
+		return true
+	default:
+		return false
+	}
 }
 
 // RemoveSnapshot clears cached resources for the given node.

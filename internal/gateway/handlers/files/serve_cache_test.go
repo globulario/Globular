@@ -1,6 +1,7 @@
 package files_test
 
 import (
+	"context"
 	files "github.com/globulario/Globular/internal/gateway/handlers/files"
 	"github.com/globulario/services/golang/config"
 	"net/http"
@@ -22,8 +23,11 @@ func (c cacheServe) IndexApplication() string              { return "" }
 func (c cacheServe) PublicDirs() []string                  { return nil }
 func (c cacheServe) Exists(p string) bool                  { _, err := os.Stat(p); return err == nil }
 func (c cacheServe) FindHashedFile(string) (string, error) { return "", nil }
-func (c cacheServe) FileServiceMinioConfig() (*files.MinioProxyConfig, bool) {
-	return nil, false
+func (c cacheServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
+	return nil, nil
+}
+func (c cacheServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
+	return nil, nil
 }
 func (c cacheServe) ParseUserID(string) (string, error) { return "", nil }
 func (c cacheServe) ValidateAccount(string, string, string) (bool, bool, error) {
