@@ -92,40 +92,66 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], c)
 	}
 
-	if input.Listener.Port > 0 && input.Listener.Name != "" && input.Listener.RouteName != "" {
-		var ingressRoutes []controlplane.IngressRoute
-		for _, route := range input.Routes {
-			prefix := strings.TrimSpace(route.Prefix)
-			if prefix == "" {
-				continue
-			}
-			ingressRoutes = append(ingressRoutes, controlplane.IngressRoute{
-				Prefix:      prefix,
-				Cluster:     strings.TrimSpace(route.Cluster),
-				HostRewrite: strings.TrimSpace(route.HostRewrite),
-				Domains:     trimValues(route.Domains),
-				Authority:   strings.TrimSpace(route.Authority),
-			})
+	var ingressRoutes []controlplane.IngressRoute
+	for _, route := range input.Routes {
+		prefix := strings.TrimSpace(route.Prefix)
+		if prefix == "" {
+			continue
 		}
-		if len(ingressRoutes) > 0 {
-			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(input.Listener.RouteName, ingressRoutes))
+		ingressRoutes = append(ingressRoutes, controlplane.IngressRoute{
+			Prefix:      prefix,
+			Cluster:     strings.TrimSpace(route.Cluster),
+			HostRewrite: strings.TrimSpace(route.HostRewrite),
+			Domains:     trimValues(route.Domains),
+			Authority:   strings.TrimSpace(route.Authority),
+		})
+	}
 
-			host := strings.TrimSpace(input.Listener.Host)
-			if host == "" {
-				host = "0.0.0.0"
-			}
-
-			listener := controlplane.MakeHTTPListener(
-				host,
-				input.Listener.Port,
-				input.Listener.Name,
-				input.Listener.RouteName,
-				strings.TrimSpace(input.Listener.CertFile),
-				strings.TrimSpace(input.Listener.KeyFile),
-				strings.TrimSpace(input.Listener.IssuerFile),
-			)
-			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
+	if len(ingressRoutes) > 0 {
+		routeName := strings.TrimSpace(input.Listener.RouteName)
+		if routeName == "" {
+			routeName = fmt.Sprintf("ingress_routes_%d", controlplane.DefaultIngressPort(strings.TrimSpace(input.Listener.Host)))
 		}
+		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(routeName, ingressRoutes))
+
+		host := strings.TrimSpace(input.Listener.Host)
+		if host == "" {
+			host = "0.0.0.0"
+		}
+
+		httpsPort := input.Listener.Port
+		if httpsPort == 0 {
+			httpsPort = controlplane.DefaultIngressPort(host)
+		}
+		httpPort := controlplane.DefaultIngressHTTPPort(host)
+
+		listenerName := strings.TrimSpace(input.Listener.Name)
+		if listenerName == "" {
+			listenerName = fmt.Sprintf("ingress_listener_%d", httpsPort)
+		}
+
+		redirectRouteName := fmt.Sprintf("%s_http_redirect", routeName)
+		redirectListenerName := fmt.Sprintf("%s_http", listenerName)
+		redirectRC, err := controlplane.MakeRedirectRoutes(redirectRouteName, httpsPort, true)
+		if err != nil {
+			return nil, err
+		}
+		redirectListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
+
+		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
+		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
+
+		listener := controlplane.MakeHTTPListener(
+			host,
+			httpsPort,
+			listenerName,
+			routeName,
+			strings.TrimSpace(input.Listener.CertFile),
+			strings.TrimSpace(input.Listener.KeyFile),
+			strings.TrimSpace(input.Listener.IssuerFile),
+		)
+
+		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
 	}
 
 	return cache_v3.NewSnapshot(version, resources)

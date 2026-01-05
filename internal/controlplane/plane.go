@@ -93,19 +93,37 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 			if host == "" {
 				host = "0.0.0.0"
 			}
-			port := v.ListenerPort
-			if port == 0 {
-				port = defaultIngressPort(host)
+			httpsPort := v.ListenerPort
+			if httpsPort == 0 {
+				httpsPort = defaultIngressPort(host)
 			}
-			listenerName := v.ListenerName
+			routeName := strings.TrimSpace(v.RouteName)
+			if routeName == "" {
+				routeName = fmt.Sprintf("ingress_routes_%d", httpsPort)
+			}
+			listenerName := strings.TrimSpace(v.ListenerName)
 			if listenerName == "" {
-				listenerName = fmt.Sprintf("ingress_listener_%d", port)
+				listenerName = fmt.Sprintf("ingress_listener_%d", httpsPort)
 			}
 
-			rc := MakeRoutes(v.RouteName, v.IngressRoutes)
+			redirectRouteName := fmt.Sprintf("%s_http_redirect", routeName)
+			redirectListenerName := fmt.Sprintf("%s_http", listenerName)
+			httpPort := defaultIngressHTTPPort(host)
+
+			redirectRC, err := MakeRedirectRoutes(redirectRouteName, httpsPort, true)
+			if err != nil {
+				return err
+			}
+
+			redirectListener := MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
+
+			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
+			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
+
+			rc := MakeRoutes(routeName, v.IngressRoutes)
 			ln := MakeHTTPListener(
-				host, port,
-				listenerName, v.RouteName,
+				host, httpsPort,
+				listenerName, routeName,
 				v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
 			)
 
@@ -161,6 +179,23 @@ func defaultIngressPort(host string) uint32 {
 		return 8443
 	}
 	return 443
+}
+
+func defaultIngressHTTPPort(host string) uint32 {
+	if isLocalhostHost(host) {
+		return 8080
+	}
+	return 80
+}
+
+// DefaultIngressPort exposes the HTTPS port selection logic for other packages.
+func DefaultIngressPort(host string) uint32 {
+	return defaultIngressPort(host)
+}
+
+// DefaultIngressHTTPPort exposes the HTTP port selection logic for other packages.
+func DefaultIngressHTTPPort(host string) uint32 {
+	return defaultIngressHTTPPort(host)
 }
 
 func isLocalhostHost(host string) bool {

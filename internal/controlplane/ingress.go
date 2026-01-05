@@ -10,6 +10,7 @@ import (
 	route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	cors_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -129,4 +130,40 @@ func hashKey(key string) string {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(key))
 	return fmt.Sprintf("%x", h.Sum32())
+}
+
+// MakeRedirectRoutes builds a simple redirect configuration that sends all HTTP requests to HTTPS.
+func MakeRedirectRoutes(routeName string, httpsPort uint32, permanent bool) (types.Resource, error) {
+	name := strings.TrimSpace(routeName)
+	if name == "" {
+		name = "http_redirect"
+	}
+
+	redirect := &route_v3.RedirectAction{
+		SchemeRewriteSpecifier: &route_v3.RedirectAction_HttpsRedirect{
+			HttpsRedirect: true,
+		},
+	}
+	if httpsPort > 0 {
+		redirect.PortRedirect = httpsPort
+	}
+	if permanent {
+		redirect.ResponseCode = route_v3.RedirectAction_PERMANENT_REDIRECT
+	}
+
+	return &route_v3.RouteConfiguration{
+		Name: name,
+		VirtualHosts: []*route_v3.VirtualHost{{
+			Name:    "redirect_vhost",
+			Domains: []string{"*"},
+			Routes: []*route_v3.Route{{
+				Match: &route_v3.RouteMatch{
+					PathSpecifier: &route_v3.RouteMatch_Prefix{Prefix: "/"},
+				},
+				Action: &route_v3.Route_Redirect{
+					Redirect: redirect,
+				},
+			}},
+		}},
+	}, nil
 }
