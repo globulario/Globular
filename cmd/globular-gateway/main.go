@@ -2,39 +2,91 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	gatewayconfig "github.com/globulario/Globular/internal/config"
 	gatewayhandlers "github.com/globulario/Globular/internal/gateway/handlers"
 	gatewayhttp "github.com/globulario/Globular/internal/gateway/httpserver"
 	globpkg "github.com/globulario/Globular/internal/globule"
-	"github.com/globulario/services/golang/config"
+	globconfig "github.com/globulario/services/golang/config"
 )
 
 var (
-	maxUpload      = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
-	rateRPS        = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
-	rateBurst      = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
-	modeFlag       = flag.String("mode", "direct", "routing mode (direct|mesh)")
-	envoyHttpAddr  = flag.String("envoy_http_addr", "127.0.0.1:8080", "HTTP address of the Envoy ingress for mesh mode")
-	requireDNSBoot = flag.Bool("require-dns-bootstrap", false, "fail startup if DNS bootstrap cannot contact DNS service")
+	maxUpload           = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
+	rateRPS             = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
+	rateBurst           = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
+	modeFlag            = flag.String("mode", "direct", "routing mode (direct|mesh)")
+	envoyHttpAddr       = flag.String("envoy_http_addr", "127.0.0.1:8080", "HTTP address of the Envoy ingress for mesh mode")
+	requireDNSBoot      = flag.Bool("require-dns-bootstrap", false, "fail startup if DNS bootstrap cannot contact DNS service")
+	httpPortOverride    = flag.String("http", "", "override HTTP port when config file is used")
+	httpsPortOverride   = flag.String("https", "", "override HTTPS port when config file is used")
+	gatewayConfigPath   = flag.String("config", "", "path to gateway config file (JSON)")
+	printDefaultGateway = flag.Bool("print-default-config", false, "print default gateway config and exit")
 )
 
 func main() {
-	_ = flag.String("http", "", "ignored: HTTP port is taken from Globule config")
-	_ = flag.String("https", "", "ignored: HTTPS port is taken from Globule config")
 	flag.Parse()
+	if *printDefaultGateway {
+		data, err := json.MarshalIndent(gatewayconfig.DefaultGatewayConfig(), "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "marshal default config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(data))
+		os.Exit(0)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	bootstrapped, err := config.EnsureLocalConfig()
+	finalCfg := gatewayconfig.DefaultGatewayConfig()
+	gatewayCfgPath := strings.TrimSpace(*gatewayConfigPath)
+	if gatewayCfgPath != "" {
+		loadedCfg, err := gatewayconfig.LoadGatewayConfig(gatewayCfgPath)
+		if err != nil {
+			logger.Error("load gateway config", "path", gatewayCfgPath, "err", err)
+			os.Exit(1)
+		}
+		finalCfg = loadedCfg
+		logger.Info("loaded gateway config", "path", gatewayCfgPath)
+	}
+
+	finalCfg.Mode = strings.TrimSpace(*modeFlag)
+	finalCfg.EnvoyHTTPAddr = strings.TrimSpace(*envoyHttpAddr)
+	finalCfg.MaxUpload = *maxUpload
+	finalCfg.RateRPS = *rateRPS
+	finalCfg.RateBurst = *rateBurst
+	finalCfg.RequireDNSBootstrap = *requireDNSBoot
+
+	if httpPort, err := parsePortOverride(*httpPortOverride); err != nil {
+		logger.Error("parse http override", "err", err, "value", *httpPortOverride)
+		os.Exit(1)
+	} else if httpPort > 0 {
+		finalCfg.HTTPPort = httpPort
+	}
+
+	if httpsPort, err := parsePortOverride(*httpsPortOverride); err != nil {
+		logger.Error("parse https override", "err", err, "value", *httpsPortOverride)
+		os.Exit(1)
+	} else if httpsPort > 0 {
+		finalCfg.HTTPSPort = httpsPort
+	}
+
+	if err := finalCfg.Validate(); err != nil {
+		logger.Error("validate gateway config", "err", err)
+		os.Exit(1)
+	}
+
+	bootstrapped, err := globconfig.EnsureLocalConfig()
 	if err != nil {
 		logger.Error("ensure local config failed", "err", err)
 		os.Exit(1)
@@ -44,16 +96,18 @@ func main() {
 	}
 
 	globule := globpkg.New(logger)
+	applyGatewayConfigToGlobule(globule, finalCfg)
 	globule.SkipLocalDNS = true
 
-	switch mode := strings.ToLower(strings.TrimSpace(*modeFlag)); mode {
+	mode := strings.ToLower(strings.TrimSpace(finalCfg.Mode))
+	switch mode {
 	case "direct":
 		globule.UseEnvoy = false
 	case "mesh":
 		globule.UseEnvoy = true
 		logger.Info("running in mesh mode; expecting Envoy + xDS externally")
 	default:
-		logger.Error("invalid mode", "mode", *modeFlag)
+		logger.Error("invalid mode", "mode", finalCfg.Mode)
 		os.Exit(1)
 	}
 
@@ -63,7 +117,7 @@ func main() {
 	case "https":
 		err := globule.BootstrapTLSAndDNS(context.Background())
 		if err != nil {
-			if *requireDNSBoot {
+			if finalCfg.RequireDNSBootstrap {
 				logger.Error("tls/dns bootstrap failed", "err", err)
 				os.Exit(1)
 			}
@@ -96,13 +150,13 @@ func main() {
 	}
 
 	handlerSet := gatewayhandlers.New(globule, gatewayhandlers.HandlerConfig{
-		MaxUpload:      *maxUpload,
-		RateRPS:        *rateRPS,
-		RateBurst:      *rateBurst,
+		MaxUpload:      finalCfg.MaxUpload,
+		RateRPS:        finalCfg.RateRPS,
+		RateBurst:      finalCfg.RateBurst,
 		NodeAgentAddr:  globpkg.NodeAgentAddress(),
 		ControllerAddr: globpkg.ControllerAddress(),
-		EnvoyHTTPAddr:  strings.TrimSpace(*envoyHttpAddr),
-		Mode:           strings.ToLower(strings.TrimSpace(*modeFlag)),
+		EnvoyHTTPAddr:  strings.TrimSpace(finalCfg.EnvoyHTTPAddr),
+		Mode:           mode,
 	})
 	mux := handlerSet.Router(logger)
 
@@ -128,8 +182,8 @@ func main() {
 
 func hasExistingTLSCert(g *globpkg.Globule) bool {
 	candidates := []string{
-		filepath.Join(config.GetRuntimeTLSDir(), g.LocalDomain(), "fullchain.pem"),
-		filepath.Join(config.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem"),
+		filepath.Join(globconfig.GetRuntimeTLSDir(), g.LocalDomain(), "fullchain.pem"),
+		filepath.Join(globconfig.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem"),
 	}
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {
@@ -137,4 +191,34 @@ func hasExistingTLSCert(g *globpkg.Globule) bool {
 		}
 	}
 	return false
+}
+
+func parsePortOverride(raw string) (int, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return 0, nil
+	}
+	port, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return 0, fmt.Errorf("invalid port %q: %w", raw, err)
+	}
+	if port < 1 || port > 65535 {
+		return 0, fmt.Errorf("port must be between 1 and 65535")
+	}
+	return port, nil
+}
+
+func applyGatewayConfigToGlobule(g *globpkg.Globule, cfg gatewayconfig.GatewayConfig) {
+	if cfg.Domain != "" {
+		g.Domain = cfg.Domain
+	}
+	if cfg.Protocol != "" {
+		g.Protocol = cfg.Protocol
+	}
+	if cfg.HTTPPort > 0 {
+		g.PortHTTP = cfg.HTTPPort
+	}
+	if cfg.HTTPSPort > 0 {
+		g.PortHTTPS = cfg.HTTPSPort
+	}
 }

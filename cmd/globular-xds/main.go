@@ -8,24 +8,30 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/xds/server"
 	"github.com/globulario/Globular/internal/xds/watchers"
+	Utility "github.com/globulario/utility"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	defaultGRPCAddr           = "0.0.0.0:18000"
+	defaultGRPCAddr           = "127.0.0.1:18000"
 	defaultXDSConfig          = "/etc/globular/xds/config.json"
 	defaultEnvoyBootstrapPath = "/run/globular/envoy/envoy-bootstrap.json"
+	defaultServiceConfigPath  = "/etc/globular/xds/xds.yaml"
 )
 
 func main() {
 	var (
 		grpcAddr           = flag.String("grpc_addr", defaultGRPCAddr, "address for the xDS gRPC server")
 		xdsConfigPath      = flag.String("xds_config", defaultXDSConfig, "path to the xDS config JSON")
+		serviceConfigPath  = flag.String("config", defaultServiceConfigPath, "path to a globular-xds YAML service config")
 		nodeID             = flag.String("node_id", "globular-xds", "node id for xDS snapshots")
 		bootstrapPath      = flag.String("envoy_bootstrap", defaultEnvoyBootstrapPath, "path to write Envoy bootstrap JSON")
 		bootstrapHost      = flag.String("bootstrap_host", "127.0.0.1", "host advertised in envoy bootstrap")
@@ -39,7 +45,52 @@ func main() {
 	)
 	flag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	serviceCfg, cfgErr := loadXDSServiceConfig(*serviceConfigPath)
+	var missingConfigErr error
+	if cfgErr != nil {
+		if errors.Is(cfgErr, os.ErrNotExist) {
+			missingConfigErr = cfgErr
+			serviceCfg = nil
+		} else {
+			fmt.Fprintf(os.Stderr, "load service config %q: %v\n", *serviceConfigPath, cfgErr)
+			os.Exit(1)
+		}
+	}
+
+	logLevel := slog.LevelInfo
+	if serviceCfg != nil {
+		if lvlStr := strings.TrimSpace(serviceCfg.Logging.Level); lvlStr != "" {
+			if parsed, err := parseLogLevel(lvlStr); err == nil {
+				logLevel = parsed
+			} else {
+				fmt.Fprintf(os.Stderr, "invalid logging level %q: %v; falling back to info\n", lvlStr, err)
+			}
+		}
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+
+	if serviceCfg != nil {
+		logger.Info("loaded service config", "path", *serviceConfigPath)
+	} else if missingConfigErr != nil {
+		logger.Info("service config missing; using defaults", "path", *serviceConfigPath, "err", missingConfigErr)
+	} else {
+		logger.Info("running without service config; using defaults", "path", *serviceConfigPath)
+	}
+
+	if serviceCfg != nil {
+		if sd := strings.TrimSpace(serviceCfg.Runtime.StateDir); sd != "" {
+			sd = filepath.Clean(sd)
+			if err := Utility.CreateDirIfNotExist(sd); err != nil {
+				logger.Error("ensure runtime state dir", "err", err, "path", sd)
+				os.Exit(1)
+			}
+			if err := os.Setenv("GLOBULAR_STATE_DIR", sd); err != nil {
+				logger.Error("export runtime state dir", "err", err, "path", sd)
+				os.Exit(1)
+			}
+			logger.Info("runtime state dir applied", "path", sd)
+		}
+	}
 
 	opts := controlplane.BootstrapOptions{
 		NodeID:    *nodeID,
@@ -58,8 +109,18 @@ func main() {
 
 	xdsServer := server.New(logger, ctx)
 	errCh := make(chan error, 2)
+	grpcListenAddr := strings.TrimSpace(*grpcAddr)
+	if serviceCfg != nil {
+		if cfgAddr := strings.TrimSpace(serviceCfg.GRPC.Address); cfgAddr != "" {
+			grpcListenAddr = cfgAddr
+		}
+	}
+	if grpcListenAddr == "" {
+		grpcListenAddr = defaultGRPCAddr
+	}
+
 	go func() {
-		if err := xdsServer.Serve(ctx, *grpcAddr); err != nil && !errors.Is(err, context.Canceled) {
+		if err := xdsServer.Serve(ctx, grpcListenAddr); err != nil && !errors.Is(err, context.Canceled) {
 			errCh <- err
 		}
 	}()
@@ -110,4 +171,47 @@ func writeBootstrap(logger *slog.Logger, opts controlplane.BootstrapOptions, pat
 		return
 	}
 	logger.Info("wrote envoy bootstrap", "path", path, "xds", fmt.Sprintf("%s:%d", opts.XDSHost, opts.XDSPort))
+}
+
+type xdsServiceConfig struct {
+	GRPC struct {
+		Address string `yaml:"address"`
+	} `yaml:"grpc"`
+	Logging struct {
+		Level string `yaml:"level"`
+	} `yaml:"logging"`
+	Runtime struct {
+		StateDir string `yaml:"state_dir"`
+	} `yaml:"runtime"`
+}
+
+func loadXDSServiceConfig(path string) (*xdsServiceConfig, error) {
+	cleanPath := strings.TrimSpace(path)
+	if cleanPath == "" {
+		return nil, fmt.Errorf("service config path is empty")
+	}
+	data, err := os.ReadFile(cleanPath)
+	if err != nil {
+		return nil, err
+	}
+	var cfg xdsServiceConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", cleanPath, err)
+	}
+	return &cfg, nil
+}
+
+func parseLogLevel(value string) (slog.Level, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info", "":
+		return slog.LevelInfo, nil
+	case "warn", "warning":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return slog.LevelInfo, fmt.Errorf("unknown logging level %q", value)
+	}
 }
