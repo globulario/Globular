@@ -3,8 +3,10 @@ package controlplane
 
 import (
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type BootstrapOptions struct {
@@ -75,7 +77,8 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 		"static_resources": map[string]any{
 			"clusters": []any{
 				map[string]any{
-					"type": "STRICT_DNS",
+					"type":            clusterTypeForHost(opt.XDSHost),
+					"connect_timeout": "1s",
 					"typed_extension_protocol_options": map[string]any{
 						"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": map[string]any{
 							"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
@@ -170,4 +173,22 @@ func WriteBootstrap(path string, opt BootstrapOptions) error {
 		return err
 	}
 	return nil
+}
+
+func clusterTypeForHost(host string) string {
+	if isIP(host) {
+		return "STATIC"
+	}
+	return "STRICT_DNS"
+}
+
+func isIP(host string) bool {
+	h := strings.TrimSpace(host)
+	if h == "" {
+		return false
+	}
+	if parsedHost, _, err := net.SplitHostPort(h); err == nil {
+		h = parsedHost
+	}
+	return net.ParseIP(h) != nil
 }

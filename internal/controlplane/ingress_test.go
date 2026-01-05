@@ -51,11 +51,15 @@ func TestAddSnapshotIngressRedirect(t *testing.T) {
 
 	err := AddSnapshot(id, "v-test", []Snapshot{
 		{
-			ListenerName:  "ingress_listener",
-			RouteName:     "ingress_routes",
-			ListenerHost:  "0.0.0.0",
-			ListenerPort:  0,
-			IngressRoutes: []IngressRoute{{Prefix: "/", Cluster: "files"}},
+			ListenerName:       "ingress_listener",
+			RouteName:          "ingress_routes",
+			ListenerHost:       "0.0.0.0",
+			ListenerPort:       0,
+			IngressRoutes:      []IngressRoute{{Prefix: "/", Cluster: "files"}},
+			CertFilePath:       "/tmp/tls.crt",
+			KeyFilePath:        "/tmp/tls.key",
+			HTTPPort:           80,
+			EnableHTTPRedirect: true,
 		},
 	})
 	if err != nil {
@@ -74,7 +78,7 @@ func TestAddSnapshotIngressRedirect(t *testing.T) {
 	if _, ok := routes["ingress_routes"]; !ok {
 		t.Fatalf("missing ingress_routes config")
 	}
-	if _, ok := routes["ingress_routes_http_redirect"]; !ok {
+	if _, ok := routes["ingress_routes_http_redirect_80"]; !ok {
 		t.Fatalf("missing redirect config")
 	}
 
@@ -85,8 +89,138 @@ func TestAddSnapshotIngressRedirect(t *testing.T) {
 	if _, ok := listeners["ingress_listener"]; !ok {
 		t.Fatalf("missing ingress_listener")
 	}
-	if _, ok := listeners["ingress_listener_http"]; !ok {
-		t.Fatalf("missing ingress_listener_http")
+	if _, ok := listeners["ingress_listener_http_80"]; !ok {
+		t.Fatalf("missing ingress_listener_http_80")
+	}
+}
+
+func TestAddSnapshotIngressHTTPOnly(t *testing.T) {
+	id := fmt.Sprintf("test-ingress-http-only-%s", t.Name())
+	defer RemoveSnapshot(id)
+
+	err := AddSnapshot(id, "v-test", []Snapshot{
+		{
+			ListenerName:  "ingress_listener",
+			RouteName:     "ingress_routes",
+			ListenerHost:  "0.0.0.0",
+			ListenerPort:  0,
+			IngressRoutes: []IngressRoute{{Prefix: "/", Cluster: "files"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddSnapshot: %v", err)
+	}
+
+	snap, err := GetSnapshot(id)
+	if err != nil {
+		t.Fatalf("GetSnapshot: %v", err)
+	}
+
+	routes := snap.GetResources(resource_v3.RouteType)
+	if len(routes) != 1 {
+		t.Fatalf("expected 1 route config, got %d", len(routes))
+	}
+	if _, ok := routes["ingress_routes"]; !ok {
+		t.Fatalf("missing ingress_routes config")
+	}
+
+	listeners := snap.GetResources(resource_v3.ListenerType)
+	if len(listeners) != 1 {
+		t.Fatalf("expected 1 listener, got %d", len(listeners))
+	}
+	if _, ok := listeners["ingress_listener_http_8080"]; !ok {
+		t.Fatalf("missing ingress_listener_http_8080")
+	}
+}
+
+func TestAddSnapshotIngressSkipHTTPOnGatewayPort(t *testing.T) {
+	id := fmt.Sprintf("test-ingress-collision-%s", t.Name())
+	defer RemoveSnapshot(id)
+
+	err := AddSnapshot(id, "v-test", []Snapshot{
+		{
+			ListenerName:       "ingress_listener",
+			RouteName:          "ingress_routes",
+			ListenerHost:       "0.0.0.0",
+			ListenerPort:       443,
+			HTTPPort:           8080,
+			EnableHTTPRedirect: true,
+			GatewayPort:        8080,
+			IngressRoutes:      []IngressRoute{{Prefix: "/", Cluster: "files"}},
+			CertFilePath:       "/tmp/tls.crt",
+			KeyFilePath:        "/tmp/tls.key",
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddSnapshot: %v", err)
+	}
+
+	snap, err := GetSnapshot(id)
+	if err != nil {
+		t.Fatalf("GetSnapshot: %v", err)
+	}
+
+	routes := snap.GetResources(resource_v3.RouteType)
+	if len(routes) != 1 {
+		t.Fatalf("expected 1 route config (no redirect), got %d", len(routes))
+	}
+	if _, ok := routes["ingress_routes"]; !ok {
+		t.Fatalf("missing ingress_routes config")
+	}
+
+	listeners := snap.GetResources(resource_v3.ListenerType)
+	if len(listeners) != 1 {
+		t.Fatalf("expected 1 listener (TLS only), got %d", len(listeners))
+	}
+	if _, ok := listeners["ingress_listener_http_8080"]; ok {
+		t.Fatalf("unexpected gateway collision listener")
+	}
+	if _, ok := listeners["ingress_listener"]; !ok {
+		t.Fatalf("missing TLS listener")
+	}
+}
+
+func TestAddSnapshotIngressTLSMissing(t *testing.T) {
+	id := fmt.Sprintf("test-ingress-tls-missing-%s", t.Name())
+	defer RemoveSnapshot(id)
+
+	err := AddSnapshot(id, "v-test", []Snapshot{
+		{
+			ListenerName:       "ingress_listener",
+			RouteName:          "ingress_routes",
+			ListenerHost:       "0.0.0.0",
+			ListenerPort:       443,
+			HTTPPort:           80,
+			EnableHTTPRedirect: true,
+			IngressRoutes:      []IngressRoute{{Prefix: "/", Cluster: "files"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddSnapshot: %v", err)
+	}
+
+	snap, err := GetSnapshot(id)
+	if err != nil {
+		t.Fatalf("GetSnapshot: %v", err)
+	}
+
+	routes := snap.GetResources(resource_v3.RouteType)
+	if len(routes) != 1 {
+		t.Fatalf("expected 1 route config (no redirect), got %d", len(routes))
+	}
+	if _, ok := routes["ingress_routes"]; !ok {
+		t.Fatalf("missing ingress_routes config")
+	}
+
+	listeners := snap.GetResources(resource_v3.ListenerType)
+	if len(listeners) != 1 {
+		t.Fatalf("expected 1 listener (HTTP only), got %d", len(listeners))
+	}
+	if _, ok := listeners["ingress_listener_http_80"]; !ok {
+		t.Fatalf("missing ingress_listener_http_80")
+	}
+	if _, ok := listeners["ingress_listener"]; ok {
+		t.Fatalf("TLS listener should not exist without certs")
 	}
 }
 

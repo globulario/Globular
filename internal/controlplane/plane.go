@@ -54,12 +54,15 @@ type EndPoint struct {
 //   - a shared ingress listener with multiple routes (no cluster/endpoints needed here).
 type Snapshot struct {
 	// Sidecar fields
-	ClusterName  string
-	RouteName    string
-	ListenerName string
-	ListenerHost string // used for host-rewrite toward upstream
-	ListenerPort uint32
-	EndPoints    []EndPoint
+	ClusterName        string
+	RouteName          string
+	ListenerName       string
+	ListenerHost       string // used for host-rewrite toward upstream
+	ListenerPort       uint32
+	HTTPPort           uint32
+	EnableHTTPRedirect bool
+	GatewayPort        uint32
+	EndPoints          []EndPoint
 
 	// Upstream (Envoy → service) mTLS
 	ServerCertPath string
@@ -106,29 +109,41 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 				listenerName = fmt.Sprintf("ingress_listener_%d", httpsPort)
 			}
 
-			redirectRouteName := fmt.Sprintf("%s_http_redirect", routeName)
-			redirectListenerName := fmt.Sprintf("%s_http", listenerName)
-			httpPort := defaultIngressHTTPPort(host)
-
-			redirectRC, err := MakeRedirectRoutes(redirectRouteName, httpsPort, true)
-			if err != nil {
-				return err
+			httpPort := v.HTTPPort
+			if httpPort == 0 {
+				httpPort = defaultIngressHTTPPort(host)
 			}
-
-			redirectListener := MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
-
-			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
-			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
+			gatewayPort := v.GatewayPort
+			tlsEnabled := strings.TrimSpace(v.CertFilePath) != "" && strings.TrimSpace(v.KeyFilePath) != ""
+			httpAllowed := httpPort > 0 && (gatewayPort == 0 || httpPort != gatewayPort)
 
 			rc := MakeRoutes(routeName, v.IngressRoutes)
-			ln := MakeHTTPListener(
-				host, httpsPort,
-				listenerName, routeName,
-				v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
-			)
-
 			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], rc)
-			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], ln)
+
+			if tlsEnabled {
+				ln := MakeHTTPListener(
+					host, httpsPort,
+					listenerName, routeName,
+					v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
+				)
+				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], ln)
+
+				if v.EnableHTTPRedirect && httpAllowed {
+					redirectRouteName := fmt.Sprintf("%s_http_redirect_%d", routeName, httpPort)
+					redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
+					redirectRC, err := MakeRedirectRoutes(redirectRouteName, httpsPort, true)
+					if err != nil {
+						return err
+					}
+					redirectListener := MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
+					resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
+					resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
+				}
+			} else if httpAllowed {
+				redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
+				httpListener := MakeHTTPListener(host, httpPort, redirectListenerName, routeName, "", "", "")
+				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], httpListener)
+			}
 			continue
 		}
 

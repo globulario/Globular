@@ -51,12 +51,15 @@ type Route struct {
 
 // Input is the data required to build an xDS snapshot.
 type Input struct {
-	NodeID   string    `json:"node_id"`
-	Version  string    `json:"version,omitempty"`
-	Nodes    []string  `json:"nodes,omitempty"` // unused but reserved for future use
-	Listener Listener  `json:"listener"`
-	Routes   []Route   `json:"routes"`
-	Clusters []Cluster `json:"clusters"`
+	NodeID             string    `json:"node_id"`
+	Version            string    `json:"version,omitempty"`
+	Nodes              []string  `json:"nodes,omitempty"` // unused but reserved for future use
+	Listener           Listener  `json:"listener"`
+	Routes             []Route   `json:"routes"`
+	Clusters           []Cluster `json:"clusters"`
+	IngressHTTPPort    uint32    `json:"ingress_http_port"`
+	EnableHTTPRedirect bool      `json:"enable_http_redirect"`
+	GatewayPort        uint32    `json:"gateway_port"`
 }
 
 // BuildSnapshot returns a go-control-plane snapshot based on the configured input.
@@ -123,35 +126,47 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		if httpsPort == 0 {
 			httpsPort = controlplane.DefaultIngressPort(host)
 		}
-		httpPort := controlplane.DefaultIngressHTTPPort(host)
+		httpPort := input.IngressHTTPPort
+		if httpPort == 0 {
+			httpPort = controlplane.DefaultIngressHTTPPort(host)
+		}
+		gatewayPort := input.GatewayPort
 
 		listenerName := strings.TrimSpace(input.Listener.Name)
 		if listenerName == "" {
 			listenerName = fmt.Sprintf("ingress_listener_%d", httpsPort)
 		}
+		tlsEnabled := strings.TrimSpace(input.Listener.CertFile) != "" && strings.TrimSpace(input.Listener.KeyFile) != ""
+		httpAllowed := httpPort > 0 && (gatewayPort == 0 || httpPort != gatewayPort)
 
-		redirectRouteName := fmt.Sprintf("%s_http_redirect", routeName)
-		redirectListenerName := fmt.Sprintf("%s_http", listenerName)
-		redirectRC, err := controlplane.MakeRedirectRoutes(redirectRouteName, httpsPort, true)
-		if err != nil {
-			return nil, err
+		if tlsEnabled {
+			listener := controlplane.MakeHTTPListener(
+				host,
+				httpsPort,
+				listenerName,
+				routeName,
+				strings.TrimSpace(input.Listener.CertFile),
+				strings.TrimSpace(input.Listener.KeyFile),
+				strings.TrimSpace(input.Listener.IssuerFile),
+			)
+
+			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
+			if input.EnableHTTPRedirect && httpAllowed {
+				redirectRouteName := fmt.Sprintf("%s_http_redirect_%d", routeName, httpPort)
+				redirectRC, err := controlplane.MakeRedirectRoutes(redirectRouteName, httpsPort, true)
+				if err != nil {
+					return nil, err
+				}
+				redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
+				redirectListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
+				resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
+				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
+			}
+		} else if httpAllowed {
+			redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
+			httpListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, routeName, "", "", "")
+			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], httpListener)
 		}
-		redirectListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, redirectRouteName, "", "", "")
-
-		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
-		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
-
-		listener := controlplane.MakeHTTPListener(
-			host,
-			httpsPort,
-			listenerName,
-			routeName,
-			strings.TrimSpace(input.Listener.CertFile),
-			strings.TrimSpace(input.Listener.KeyFile),
-			strings.TrimSpace(input.Listener.IssuerFile),
-		)
-
-		resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
 	}
 
 	return cache_v3.NewSnapshot(version, resources)
