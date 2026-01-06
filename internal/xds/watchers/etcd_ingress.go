@@ -30,6 +30,7 @@ type IngressSpec struct {
 	HTTPPort           uint32
 	EnableHTTPRedirect bool
 	GatewayPort        uint32
+	RedirectConfigured bool
 }
 
 func parseEtcdIngress(ctx context.Context, getter EtcdGetter) (*IngressSpec, error) {
@@ -49,16 +50,24 @@ func parseEtcdIngress(ctx context.Context, getter EtcdGetter) (*IngressSpec, err
 	if err != nil {
 		return nil, err
 	}
+	httpPort, err := parseUint32Value(ctx, getter, etcdIngressPrefix+"/http_port")
+	if err != nil {
+		return nil, err
+	}
 
-	tlsCert, err := getStringValue(ctx, getter, etcdIngressPrefix+"/tls/cert_file")
+	tlsCert, err := lookupTLSValue(ctx, getter, etcdIngressPrefix+"/tls/cert_chain_path", etcdIngressPrefix+"/tls/cert_file")
 	if err != nil {
 		return nil, err
 	}
-	tlsKey, err := getStringValue(ctx, getter, etcdIngressPrefix+"/tls/key_file")
+	tlsKey, err := lookupTLSValue(ctx, getter, etcdIngressPrefix+"/tls/private_key_path", etcdIngressPrefix+"/tls/key_file")
 	if err != nil {
 		return nil, err
 	}
-	tlsIssuer, err := getStringValue(ctx, getter, etcdIngressPrefix+"/tls/issuer_file")
+	tlsIssuer, err := lookupTLSValue(ctx, getter, etcdIngressPrefix+"/tls/ca_path", etcdIngressPrefix+"/tls/issuer_file")
+	if err != nil {
+		return nil, err
+	}
+	redirect, redirectSet, err := parseBoolValue(ctx, getter, etcdIngressPrefix+"/redirect_to_https")
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +97,11 @@ func parseEtcdIngress(ctx context.Context, getter EtcdGetter) (*IngressSpec, err
 			KeyFile:    tlsKey,
 			IssuerFile: tlsIssuer,
 		},
-		Routes:   routes,
-		Clusters: clusters,
+		HTTPPort:           httpPort,
+		EnableHTTPRedirect: redirect,
+		RedirectConfigured: redirectSet,
+		Routes:             routes,
+		Clusters:           clusters,
 	}
 	return spec, nil
 }
@@ -118,6 +130,30 @@ func parseUint32Value(ctx context.Context, getter EtcdGetter, key string) (uint3
 		return 0, err
 	}
 	return uint32(v), nil
+}
+
+func lookupTLSValue(ctx context.Context, getter EtcdGetter, primary, fallback string) (string, error) {
+	if val, err := getStringValue(ctx, getter, primary); err != nil {
+		return "", err
+	} else if val != "" {
+		return val, nil
+	}
+	return getStringValue(ctx, getter, fallback)
+}
+
+func parseBoolValue(ctx context.Context, getter EtcdGetter, key string) (bool, bool, error) {
+	val, err := getStringValue(ctx, getter, key)
+	if err != nil {
+		return false, false, err
+	}
+	if val == "" {
+		return false, false, nil
+	}
+	parsed, err := strconv.ParseBool(strings.TrimSpace(val))
+	if err != nil {
+		return false, false, err
+	}
+	return parsed, true, nil
 }
 
 func collectRoutes(ctx context.Context, getter EtcdGetter) ([]builder.Route, error) {

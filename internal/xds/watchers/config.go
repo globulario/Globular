@@ -29,7 +29,7 @@ type IngressConfig struct {
 
 // IngressTLS describes TLS assets for ingress listeners.
 type IngressTLS struct {
-	Enabled        bool   `json:"enabled"`
+	Enabled        *bool  `json:"enabled"`
 	CertChainPath  string `json:"cert_chain_path"`
 	PrivateKeyPath string `json:"private_key_path"`
 }
@@ -140,9 +140,19 @@ func (ic *IngressConfig) normalize() {
 	if ic.TLS.PrivateKeyPath == "" {
 		ic.TLS.PrivateKeyPath = defaultIngressKeyPath
 	}
+	if ic.TLS.Enabled == nil {
+		ic.TLS.Enabled = boolPtr(true)
+	}
 	if ic.MTLS.CAPath == "" {
 		ic.MTLS.CAPath = defaultIngressProvisionCA
 	}
+}
+
+func (ic *IngressConfig) tlsEnabled() bool {
+	if ic.TLS.Enabled == nil {
+		return true
+	}
+	return *ic.TLS.Enabled
 }
 
 func (fb *FallbackConfig) normalize() {

@@ -200,38 +200,43 @@ func makeUpstreamTLS(certFilePath, keyFilePath, caFilePath, sni string) *core_v3
 //
 //	*core_v3.TransportSocket - A pointer to the configured TransportSocket for downstream TLS.
 func makeDownstreamTLS(certFilePath, keyFilePath, caFilePath string) *core_v3.TransportSocket {
+	common := &tls_v3.CommonTlsContext{
+		TlsCertificates: []*tls_v3.TlsCertificate{{
+			CertificateChain: &core_v3.DataSource{
+				Specifier: &core_v3.DataSource_Filename{
+					Filename: certFilePath,
+				},
+			},
+			PrivateKey: &core_v3.DataSource{
+				Specifier: &core_v3.DataSource_Filename{
+					Filename: keyFilePath,
+				},
+			},
+		}},
+		AlpnProtocols: []string{"h2", "http/1.1"},
+		TlsParams: &tls_v3.TlsParameters{
+			TlsMinimumProtocolVersion: tls_v3.TlsParameters_TLSv1_3,
+			TlsMaximumProtocolVersion: tls_v3.TlsParameters_TLSv1_3,
+		},
+	}
+
+	if caFilePath != "" {
+		common.ValidationContextType = &tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &tls_v3.CertificateValidationContext{
+				TrustedCa: &core_v3.DataSource{
+					Specifier: &core_v3.DataSource_Filename{
+						Filename: caFilePath,
+					},
+				},
+			},
+		}
+	}
 
 	return &core_v3.TransportSocket{
 		Name: "envoy.transport_sockets.tls",
 		ConfigType: &core_v3.TransportSocket_TypedConfig{
 			TypedConfig: toAny(&tls_v3.DownstreamTlsContext{
-				CommonTlsContext: &tls_v3.CommonTlsContext{
-					TlsCertificates: []*tls_v3.TlsCertificate{
-						{
-							CertificateChain: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: certFilePath,
-								},
-							},
-							PrivateKey: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: keyFilePath,
-								},
-							},
-						},
-					},
-					ValidationContextType: &tls_v3.CommonTlsContext_ValidationContext{
-						ValidationContext: &tls_v3.CertificateValidationContext{
-							TrustedCa: &core_v3.DataSource{
-								Specifier: &core_v3.DataSource_Filename{
-									Filename: caFilePath,
-								},
-							},
-						},
-					},
-					AlpnProtocols: []string{"h2", "http/1.1"},
-					TlsParams:     &tls_v3.TlsParameters{TlsMinimumProtocolVersion: tls_v3.TlsParameters_TLSv1_3, TlsMaximumProtocolVersion: tls_v3.TlsParameters_TLSv1_3},
-				},
+				CommonTlsContext: common,
 			}),
 		},
 	}

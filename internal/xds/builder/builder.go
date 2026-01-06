@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -136,8 +137,14 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		if listenerName == "" {
 			listenerName = fmt.Sprintf("ingress_listener_%d", httpsPort)
 		}
-		tlsEnabled := strings.TrimSpace(input.Listener.CertFile) != "" && strings.TrimSpace(input.Listener.KeyFile) != ""
+		certFile := strings.TrimSpace(input.Listener.CertFile)
+		keyFile := strings.TrimSpace(input.Listener.KeyFile)
+		issuerFile := strings.TrimSpace(input.Listener.IssuerFile)
+		tlsEnabled := tlsReady(certFile, keyFile)
 		httpAllowed := httpPort > 0 && (gatewayPort == 0 || httpPort != gatewayPort)
+		if issuerFile != "" && !fileExists(issuerFile) {
+			issuerFile = ""
+		}
 
 		if tlsEnabled {
 			listener := controlplane.MakeHTTPListener(
@@ -145,9 +152,9 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				httpsPort,
 				listenerName,
 				routeName,
-				strings.TrimSpace(input.Listener.CertFile),
-				strings.TrimSpace(input.Listener.KeyFile),
-				strings.TrimSpace(input.Listener.IssuerFile),
+				certFile,
+				keyFile,
+				issuerFile,
 			)
 
 			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
@@ -204,4 +211,19 @@ func trimValues(in []string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func tlsReady(certPath, keyPath string) bool {
+	return fileExists(certPath) && fileExists(keyPath)
 }

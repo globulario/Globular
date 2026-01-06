@@ -4,6 +4,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -114,8 +115,16 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 				httpPort = defaultIngressHTTPPort(host)
 			}
 			gatewayPort := v.GatewayPort
-			tlsEnabled := strings.TrimSpace(v.CertFilePath) != "" && strings.TrimSpace(v.KeyFilePath) != ""
 			httpAllowed := httpPort > 0 && (gatewayPort == 0 || httpPort != gatewayPort)
+			tlsEnabled := fileExists(v.CertFilePath) && fileExists(v.KeyFilePath)
+			issuer := v.IssuerFilePath
+			if !fileExists(issuer) {
+				issuer = ""
+			}
+			redirectAllowed := v.EnableHTTPRedirect && httpAllowed
+			if gatewayPort != 0 && httpPort == gatewayPort {
+				redirectAllowed = false
+			}
 
 			rc := MakeRoutes(routeName, v.IngressRoutes)
 			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], rc)
@@ -124,11 +133,11 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 				ln := MakeHTTPListener(
 					host, httpsPort,
 					listenerName, routeName,
-					v.CertFilePath, v.KeyFilePath, v.IssuerFilePath,
+					v.CertFilePath, v.KeyFilePath, issuer,
 				)
 				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], ln)
 
-				if v.EnableHTTPRedirect && httpAllowed {
+				if redirectAllowed {
 					redirectRouteName := fmt.Sprintf("%s_http_redirect_%d", routeName, httpPort)
 					redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
 					redirectRC, err := MakeRedirectRoutes(redirectRouteName, httpsPort, true)
@@ -189,17 +198,11 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 	return cache.SetSnapshot(context.Background(), id, snap)
 }
 
-func defaultIngressPort(host string) uint32 {
-	if isLocalhostHost(host) {
-		return 8443
-	}
+func defaultIngressPort(_ string) uint32 {
 	return 443
 }
 
-func defaultIngressHTTPPort(host string) uint32 {
-	if isLocalhostHost(host) {
-		return 8080
-	}
+func defaultIngressHTTPPort(_ string) uint32 {
 	return 80
 }
 
@@ -213,13 +216,13 @@ func DefaultIngressHTTPPort(host string) uint32 {
 	return defaultIngressHTTPPort(host)
 }
 
-func isLocalhostHost(host string) bool {
-	switch strings.ToLower(strings.TrimSpace(host)) {
-	case "", "0.0.0.0", "127.0.0.1", "localhost":
-		return true
-	default:
+func fileExists(p string) bool {
+	p = strings.TrimSpace(p)
+	if p == "" {
 		return false
 	}
+	_, err := os.Stat(p)
+	return err == nil
 }
 
 // RemoveSnapshot clears cached resources for the given node.

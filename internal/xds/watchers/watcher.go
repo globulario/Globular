@@ -62,6 +62,7 @@ type Watcher struct {
 	downstreamTLSRequiredWarned bool
 	ingressTLSWarned            bool
 	ingressMTLSWarned           bool
+	ingressPortCollisionWarned  bool
 	configCached                *XDSConfig
 	configMod                   time.Time
 }
@@ -466,9 +467,11 @@ func (w *Watcher) ingressFromFallback(fb *FallbackConfig) *IngressSpec {
 			KeyFile:    strings.TrimSpace(fb.Ingress.TLS.KeyFile),
 			IssuerFile: strings.TrimSpace(fb.Ingress.TLS.IssuerFile),
 		},
-		Routes:   routes,
-		Clusters: clusters,
-		HTTPPort: fb.Ingress.HTTPPort,
+		Routes:             routes,
+		Clusters:           clusters,
+		HTTPPort:           fb.Ingress.HTTPPort,
+		EnableHTTPRedirect: boolValue(fb.Ingress.EnableHTTPRedirect, true),
+		RedirectConfigured: fb.Ingress.EnableHTTPRedirect != nil,
 	}
 }
 
@@ -485,7 +488,13 @@ func (w *Watcher) applyIngressSettings(spec *IngressSpec, cfg *XDSConfig) {
 	if spec.HTTPPort == 0 {
 		spec.HTTPPort = cfg.Ingress.HTTPPort
 	}
-	spec.EnableHTTPRedirect = cfg.ingressRedirectEnabled()
+	if spec.HTTPPort == cfg.gatewayPort() {
+		w.warnIngressPortCollision(spec.HTTPPort)
+		spec.HTTPPort = controlplane.DefaultIngressHTTPPort(spec.Listener.Host)
+	}
+	if !spec.RedirectConfigured {
+		spec.EnableHTTPRedirect = cfg.ingressRedirectEnabled()
+	}
 	spec.GatewayPort = cfg.gatewayPort()
 	w.applyIngressTLS(spec, cfg)
 }
@@ -495,7 +504,7 @@ func (w *Watcher) applyIngressTLS(spec *IngressSpec, cfg *XDSConfig) {
 		return
 	}
 	tlsConfig := cfg.Ingress
-	if !tlsConfig.TLS.Enabled {
+	if !tlsConfig.tlsEnabled() {
 		w.disableIngressTLS(spec)
 		return
 	}
@@ -550,6 +559,14 @@ func (w *Watcher) warnIngressMTLSMissing(caPath string) {
 	}
 	w.logger.Warn("ingress mTLS enabled but CA certificate missing", "ca", caPath)
 	w.ingressMTLSWarned = true
+}
+
+func (w *Watcher) warnIngressPortCollision(port uint32) {
+	if w.logger == nil || w.ingressPortCollisionWarned {
+		return
+	}
+	w.logger.Warn("ingress HTTP port collides with gateway listen port; forcing default 80", "port", port)
+	w.ingressPortCollisionWarned = true
 }
 
 func (w *Watcher) downstreamTLSConfig() (string, string, string, error) {

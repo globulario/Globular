@@ -42,9 +42,11 @@ func TestParseEtcdIngress(t *testing.T) {
 			etcdIngressPrefix + "/enabled":           {kv(etcdIngressPrefix+"/enabled", "true")},
 			etcdIngressPrefix + "/listener_host":     {kv(etcdIngressPrefix+"/listener_host", "0.0.0.0")},
 			etcdIngressPrefix + "/https_port":        {kv(etcdIngressPrefix+"/https_port", "8443")},
+			etcdIngressPrefix + "/http_port":         {kv(etcdIngressPrefix+"/http_port", "80")},
 			etcdIngressPrefix + "/tls/cert_file":     {kv(etcdIngressPrefix+"/tls/cert_file", "/etc/foo.crt")},
 			etcdIngressPrefix + "/tls/key_file":      {kv(etcdIngressPrefix+"/tls/key_file", "/etc/foo.key")},
 			etcdIngressPrefix + "/tls/issuer_file":   {kv(etcdIngressPrefix+"/tls/issuer_file", "/etc/ca.crt")},
+			etcdIngressPrefix + "/redirect_to_https": {kv(etcdIngressPrefix+"/redirect_to_https", "true")},
 			etcdRoutesPrefix + "route1/prefix":       {kv(etcdRoutesPrefix+"route1/prefix", "/")},
 			etcdRoutesPrefix + "route1/cluster":      {kv(etcdRoutesPrefix+"route1/cluster", "gateway_http")},
 			etcdRoutesPrefix + "route1/domains":      {kv(etcdRoutesPrefix+"route1/domains", "example.com,foo.example.com")},
@@ -77,6 +79,15 @@ func TestParseEtcdIngress(t *testing.T) {
 	}
 	if len(spec.Clusters) != 1 {
 		t.Fatalf("expected 1 cluster, got %d", len(spec.Clusters))
+	}
+	if spec.HTTPPort != 80 {
+		t.Fatalf("expected http port 80, got %d", spec.HTTPPort)
+	}
+	if !spec.EnableHTTPRedirect {
+		t.Fatalf("expected redirect enabled")
+	}
+	if !spec.RedirectConfigured {
+		t.Fatalf("expected redirect configuration to be marked as set")
 	}
 }
 
