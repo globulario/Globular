@@ -125,7 +125,7 @@ func New(logger *slog.Logger) *Globule {
 		Version:             "1.0.0",
 		Build:               0,
 		Platform:            runtime.GOOS + ":" + runtime.GOARCH,
-		PortHTTP:            8081,
+		PortHTTP:            8080,
 		PortHTTPS:           8443,
 		PortsRange:          "10000-10100",
 		AllowedOrigins:      []string{"*"},

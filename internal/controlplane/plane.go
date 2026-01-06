@@ -115,7 +115,10 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 				httpPort = defaultIngressHTTPPort(host)
 			}
 			gatewayPort := v.GatewayPort
-			httpAllowed := httpPort > 0 && (gatewayPort == 0 || httpPort != gatewayPort)
+			if gatewayPort == 0 {
+				gatewayPort = 8080
+			}
+			httpAllowed := httpPort > 0 && httpPort != gatewayPort
 			tlsEnabled := fileExists(v.CertFilePath) && fileExists(v.KeyFilePath)
 			issuer := v.IssuerFilePath
 			if !fileExists(issuer) {

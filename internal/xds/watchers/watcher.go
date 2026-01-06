@@ -215,10 +215,14 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	var ingressHTTPPort uint32
 	var enableHTTPRedirect bool
 	var gatewayPort uint32
+	_, resolvedGatewayPort := readGatewayAddress()
+	localGatewayPort := uint32(defaultGatewayPort(resolvedGatewayPort))
 	if ingressSpec != nil {
 		clusters = append(clusters, ingressSpec.Clusters...)
 		routes = append(routes, ingressSpec.Routes...)
 		listener = ingressSpec.Listener
+		normalizeGatewayHTTPCluster(ingressSpec, localGatewayPort)
+		ingressSpec.GatewayPort = localGatewayPort
 		ingressHTTPPort = ingressSpec.HTTPPort
 		enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
 		gatewayPort = ingressSpec.GatewayPort
@@ -236,13 +240,14 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
 		}
 	} else {
-		legacyClusters, legacyRoutes, legacyListener, err := w.buildLegacyGatewayResources()
+		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, err := w.buildLegacyGatewayResources()
 		if err != nil {
 			return builder.Input{}, "", err
 		}
 		clusters = append(clusters, legacyClusters...)
 		routes = append(routes, legacyRoutes...)
 		listener = legacyListener
+		gatewayPort = legacyGatewayPort
 	}
 
 	if listener.RouteName == "" {
@@ -324,11 +329,9 @@ func (w *Watcher) buildServiceResources() ([]builder.Cluster, []builder.Route, e
 	return clusters, routes, nil
 }
 
-func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, error) {
+func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, uint32, error) {
 	host, port := readGatewayAddress()
-	if port == 0 {
-		port = 8181
-	}
+	port = defaultGatewayPort(port)
 	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCluster := "globular_https"
 	gatewayCert, gatewayKey, gatewayCA, _ := w.gatewayTLSPaths()
@@ -357,7 +360,7 @@ func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Ro
 		KeyFile:    gatewayKey,
 		IssuerFile: gatewayCA,
 	}
-	return clusters, routes, listener, nil
+	return clusters, routes, listener, uint32(port), nil
 }
 
 func (w *Watcher) buildIngressSpec(ctx context.Context, cfg *XDSConfig) (*IngressSpec, error) {
@@ -637,22 +640,111 @@ func parseAddress(address string) (string, int) {
 	return host, port
 }
 
-func readGatewayAddress() (string, int) {
-	cfg, err := config.GetLocalConfig(true)
-	if err == nil && cfg != nil {
-		if gwRaw, ok := cfg["gateway"]; ok {
-			if gwMap, ok := gwRaw.(map[string]interface{}); ok {
-				if listen := strings.TrimSpace(Utility.ToString(gwMap["listen"])); listen != "" {
-					host, port := parseAddress(listen)
-					if port != 0 {
-						return host, port
+func parseGatewayListenValue(raw any) (string, int, bool) {
+	value := strings.TrimSpace(Utility.ToString(raw))
+	if value == "" {
+		return "", 0, false
+	}
+	host, port := parseAddress(value)
+	if port == 0 {
+		return "", 0, false
+	}
+	return host, port, true
+}
+
+func toStringAnyMap(raw any) (map[string]any, bool) {
+	switch m := raw.(type) {
+	case map[string]any:
+		return m, true
+	case map[interface{}]interface{}:
+		result := make(map[string]any, len(m))
+		for key, value := range m {
+			if keyStr, ok := key.(string); ok {
+				result[keyStr] = value
+			}
+		}
+		return result, true
+	default:
+		return nil, false
+	}
+}
+
+func readGatewayAddressFrom(cfg map[string]any) (string, int) {
+	if cfg == nil {
+		return "", 0
+	}
+	for _, gatewayKey := range []string{"gateway", "Gateway"} {
+		if raw, ok := cfg[gatewayKey]; ok {
+			if host, port, ok := parseGatewayListenValue(raw); ok {
+				return host, port
+			}
+			if gwMap, ok := toStringAnyMap(raw); ok {
+				for _, listenKey := range []string{"listen", "Listen"} {
+					if listenRaw, ok := gwMap[listenKey]; ok {
+						if host, port, ok := parseGatewayListenValue(listenRaw); ok {
+							return host, port
+						}
 					}
 				}
 			}
 		}
 	}
-	address, _ := config.GetAddress()
-	return parseAddress(address)
+	return "", 0
+}
+
+func readGatewayAddressFromConfig(cfg map[string]any) (string, int) {
+	host := "127.0.0.1"
+	port := 0
+	if cfg == nil {
+		return host, defaultGatewayPort(port)
+	}
+	if cfgHost, cfgPort := readGatewayAddressFrom(cfg); cfgHost != "" {
+		host = normalizeUpstreamHost(cfgHost)
+		if cfgPort != 0 {
+			port = cfgPort
+		}
+	}
+	return host, defaultGatewayPort(port)
+}
+
+func readGatewayAddress() (string, int) {
+	cfg, err := config.GetLocalConfig(true)
+	if err != nil || cfg == nil {
+		return readGatewayAddressFromConfig(nil)
+	}
+	return readGatewayAddressFromConfig(cfg)
+}
+
+func defaultGatewayPort(port int) int {
+	if port == 0 {
+		return 8080
+	}
+	return port
+}
+
+func normalizeGatewayHTTPCluster(spec *IngressSpec, gatewayPort uint32) {
+	if spec == nil || gatewayPort == 0 {
+		return
+	}
+	for ci := range spec.Clusters {
+		if strings.TrimSpace(spec.Clusters[ci].Name) != "gateway_http" {
+			continue
+		}
+		for ei := range spec.Clusters[ci].Endpoints {
+			endpoint := &spec.Clusters[ci].Endpoints[ei]
+			if shouldNormalizeGatewayEndpoint(endpoint.Host) {
+				endpoint.Port = gatewayPort
+			}
+		}
+	}
+}
+
+func shouldNormalizeGatewayEndpoint(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "", "0.0.0.0", "127.0.0.1", "localhost", "*":
+		return true
+	}
+	return Utility.IsLocal(host)
 }
 
 func normalizeUpstreamHost(host string) string {

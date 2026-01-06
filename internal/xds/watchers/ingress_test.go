@@ -5,6 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/globulario/Globular/internal/xds/builder"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -53,10 +56,10 @@ func TestParseEtcdIngress(t *testing.T) {
 			etcdRoutesPrefix + "route1/authority":    {kv(etcdRoutesPrefix+"route1/authority", "example.com")},
 			etcdRoutesPrefix + "route1/host_rewrite": {kv(etcdRoutesPrefix+"route1/host_rewrite", "internal.host")},
 			etcdClustersPrefix + "gateway_http/endpoints/node1": {
-				kv(etcdClustersPrefix+"gateway_http/endpoints/node1", `{"host":"10.0.0.10","port":8081}`),
+				kv(etcdClustersPrefix+"gateway_http/endpoints/node1", `{"host":"10.0.0.10","port":8080}`),
 			},
 			etcdClustersPrefix + "gateway_http/endpoints/node2": {
-				kv(etcdClustersPrefix+"gateway_http/endpoints/node2", `{"host":"10.0.0.11","port":8081}`),
+				kv(etcdClustersPrefix+"gateway_http/endpoints/node2", `{"host":"10.0.0.11","port":8080}`),
 			},
 		},
 	}
@@ -111,7 +114,7 @@ func TestIngressFromFallback(t *testing.T) {
 			{
 				Name: "gateway_http",
 				Endpoints: []FallbackEndpoint{
-					{Host: "10.0.0.10", Port: 8081},
+					{Host: "10.0.0.10", Port: 8080},
 				},
 			},
 		},
@@ -125,5 +128,55 @@ func TestIngressFromFallback(t *testing.T) {
 	}
 	if spec.Listener.CertFile == "" {
 		t.Fatalf("expected TLS paths, got %v", spec.Listener)
+	}
+}
+
+func TestGatewayHTTPClusterUsesGatewayPort(t *testing.T) {
+	input := builder.Input{
+		NodeID: "test-gateway",
+		Clusters: []builder.Cluster{
+			{
+				Name: "gateway_http",
+				Endpoints: []builder.Endpoint{
+					{Host: "127.0.0.1", Port: 8080},
+				},
+			},
+		},
+		GatewayPort:     8080,
+		IngressHTTPPort: 80,
+	}
+	snap, err := builder.BuildSnapshot(input, "version-1")
+	if err != nil {
+		t.Fatalf("BuildSnapshot: %v", err)
+	}
+	clusters := snap.GetResources(resource_v3.ClusterType)
+	var gwCluster *cluster_v3.Cluster
+	for _, res := range clusters {
+		c, ok := res.(*cluster_v3.Cluster)
+		if !ok {
+			continue
+		}
+		if c.Name == "gateway_http" {
+			gwCluster = c
+			break
+		}
+	}
+	if gwCluster == nil {
+		t.Fatalf("missing gateway_http cluster")
+	}
+	endpoints := gwCluster.LoadAssignment.GetEndpoints()
+	if len(endpoints) == 0 {
+		t.Fatalf("gateway_http missing endpoints")
+	}
+	lbEndpoints := endpoints[0].LbEndpoints
+	if len(lbEndpoints) == 0 {
+		t.Fatalf("gateway_http endpoint missing lb entry")
+	}
+	socket := lbEndpoints[0].GetEndpoint().GetAddress().GetSocketAddress()
+	if socket == nil {
+		t.Fatalf("gateway_http lb endpoint missing socket address")
+	}
+	if socket.GetPortValue() != 8080 {
+		t.Fatalf("gateway_http endpoint port = %d, want 8080", socket.GetPortValue())
 	}
 }

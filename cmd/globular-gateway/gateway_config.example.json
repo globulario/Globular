@@ -5,7 +5,7 @@
   "rate_rps": 50,
   "rate_burst": 200,
   "require_dns_bootstrap": false,
-  "http_port": 8081,
+  "http_port": 8080,
   "https_port": 8443,
   "domain": "localhost",
   "protocol": "http"

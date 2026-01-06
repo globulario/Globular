@@ -248,6 +248,50 @@ func TestAddSnapshotIngressCollisionDisablesRedirect(t *testing.T) {
 	}
 }
 
+func TestAddSnapshotIngressMissingGatewayPortStillSkips8080(t *testing.T) {
+	id := fmt.Sprintf("test-ingress-collision-missing-gw-%s", t.Name())
+	defer RemoveSnapshot(id)
+
+	cert := filepath.Join(t.TempDir(), "cert.pem")
+	key := filepath.Join(t.TempDir(), "key.pem")
+	if err := os.WriteFile(cert, []byte("cert"), 0o644); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := os.WriteFile(key, []byte("key"), 0o644); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	err := AddSnapshot(id, "v-test", []Snapshot{
+		{
+			ListenerName:       "ingress_listener",
+			RouteName:          "ingress_routes",
+			ListenerHost:       "0.0.0.0",
+			ListenerPort:       443,
+			HTTPPort:           8080,
+			EnableHTTPRedirect: true,
+			IngressRoutes:      []IngressRoute{{Prefix: "/", Cluster: "files"}},
+			CertFilePath:       cert,
+			KeyFilePath:        key,
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddSnapshot: %v", err)
+	}
+
+	snap, err := GetSnapshot(id)
+	if err != nil {
+		t.Fatalf("GetSnapshot: %v", err)
+	}
+
+	listeners := snap.GetResources(resource_v3.ListenerType)
+	if _, ok := listeners["ingress_listener_http_8080"]; ok {
+		t.Fatalf("redirect listener should not bind 8080 even if gateway_port missing")
+	}
+	if _, ok := listeners["ingress_listener"]; !ok {
+		t.Fatalf("missing TLS listener")
+	}
+}
+
 func TestAddSnapshotIngressIssuerMissing(t *testing.T) {
 	id := fmt.Sprintf("test-ingress-issuer-%s", t.Name())
 	defer RemoveSnapshot(id)
