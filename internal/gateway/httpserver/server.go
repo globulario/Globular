@@ -31,7 +31,11 @@ func New(logger *slog.Logger, globule *globpkg.Globule, httpAddr, httpsAddr stri
 	}
 
 	if httpsAddr != "" {
-		credDir := config_.GetConfigDir() + "/tls/" + globule.LocalDomain()
+		domainDir := globule.Domain
+		if domainDir == "" {
+			domainDir = "localhost"
+		}
+		credDir := filepath.Join(config_.GetConfigDir(), "tls", domainDir)
 		sup.TLS = &server.TLSFiles{
 			CertFile: filepath.Join(credDir, "fullchain.pem"),
 			KeyFile:  filepath.Join(credDir, "server.key"),

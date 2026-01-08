@@ -97,7 +97,6 @@ func main() {
 
 	globule := globpkg.New(logger)
 	applyGatewayConfigToGlobule(globule, finalCfg)
-	globule.SkipLocalDNS = true
 
 	mode := strings.ToLower(strings.TrimSpace(finalCfg.Mode))
 	switch mode {
@@ -180,9 +179,10 @@ func main() {
 }
 
 func hasExistingTLSCert(g *globpkg.Globule) bool {
+	domainDir := tlsDomain(g)
 	candidates := []string{
-		filepath.Join(globconfig.GetRuntimeTLSDir(), g.LocalDomain(), "fullchain.pem"),
-		filepath.Join(globconfig.GetConfigDir(), "tls", g.LocalDomain(), "fullchain.pem"),
+		filepath.Join(globconfig.GetRuntimeTLSDir(), domainDir, "fullchain.pem"),
+		filepath.Join(globconfig.GetConfigDir(), "tls", domainDir, "fullchain.pem"),
 	}
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {
@@ -190,6 +190,13 @@ func hasExistingTLSCert(g *globpkg.Globule) bool {
 		}
 	}
 	return false
+}
+
+func tlsDomain(g *globpkg.Globule) string {
+	if g.Domain != "" {
+		return g.Domain
+	}
+	return "localhost"
 }
 
 func parsePortOverride(raw string) (int, error) {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -145,10 +144,6 @@ func New(logger *slog.Logger) *Globule {
 	if g.Domain == "" {
 		g.Domain = "localhost"
 	}
-	if g.DNS == "" {
-		g.DNS = g.localDomain()
-	}
-
 	// Runtime only
 	g.Mac, _ = config.GetMacAddress()
 	g.localIPAddress, _ = Utility.MyLocalIP(g.Mac)
@@ -205,7 +200,11 @@ func (g *Globule) InitFS() error {
 	}
 
 	// TLS creds dir: runtime tls/<domain>
-	g.creds = filepath.Join(tlsDir, g.localDomain())
+	credsDomain := g.Domain
+	if credsDomain == "" {
+		credsDomain = "localhost"
+	}
+	g.creds = filepath.Join(tlsDir, credsDomain)
 
 	// Persist defaults on first run if config missing (single save later).
 	cfgPath := filepath.Join(g.configDir, "config.json")
@@ -297,25 +296,6 @@ func (g *Globule) WatchConfig() { g.watchConfig() }
 
 // Publish event convenience
 func (g *Globule) Publish(evt string, data []byte) error { return g.publish(evt, data) }
-
-// Helpers
-func (g *Globule) localDomain() string {
-	addr, _ := config.GetAddress()
-	if host := config.HostOnly(addr); host != "" {
-		return host
-	}
-	if host, _, err := net.SplitHostPort(addr); err == nil && host != "" {
-		return host
-	}
-	return addr
-}
-
-func (g *Globule) LocalDomain() string { return g.localDomain() }
-
-func (g *Globule) getAddress() string {
-	addr, _ := config.GetAddress()
-	return addr
-}
 
 // BootstrapTLSAndDNS ensures runtime directories exist while TLS/DNS is handled elsewhere.
 func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {

@@ -1,7 +1,6 @@
 package globule
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
@@ -16,24 +15,17 @@ import (
 // setConfig applies a subset of runtime-reloadable settings and persists them.
 // Changes that affect the runtime simply flag NodeAgent for reconciliation.
 func (g *Globule) SetConfig(m map[string]interface{}) error {
-	reconcileNeeded := false
-
-	// Domain
+	// Domain updates are managed by the controller; the gateway does not change cluster network settings.
 	if v, ok := m["Domain"].(string); ok && v != "" && v != g.Domain {
-		g.Domain = v
-		reconcileNeeded = true
+		g.log.Info("ignoring Domain change; use globular-cli/cluster-controller for cluster networking", "value", v)
 	}
 
-	// Protocol
 	if v, ok := m["Protocol"].(string); ok && v != "" && v != g.Protocol {
-		g.Protocol = v
-		reconcileNeeded = true
+		g.log.Info("ignoring Protocol change; use globular-cli/cluster-controller for cluster networking", "value", v)
 	}
 
-	// PortsRange
 	if v, ok := asString(m["PortsRange"]); ok && v != "" && v != g.PortsRange {
-		g.PortsRange = v
-		reconcileNeeded = true
+		g.log.Info("ignoring PortsRange change; use globular-cli/cluster-controller for cluster networking", "value", v)
 	}
 
 	// Ports
@@ -72,9 +64,6 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		return fmt.Errorf("setConfig: saveConfig: %w", err)
 	}
 
-	if reconcileNeeded {
-		g.NotifyNodeAgentReconcile(context.Background())
-	}
 	return nil
 }
 
@@ -128,7 +117,7 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 		s["Pid"] = services[i]["Process"]
 		s["Permissions"] = services[i]["Permissions"]
 
-		if services[i]["Name"] == "file.FileService" {
+		if services[i]["Name"] == "media.MediaService" {
 			s["MaximumVideoConversionDelay"] = services[i]["MaximumVideoConversionDelay"]
 			s["HasEnableGPU"] = services[i]["HasEnableGPU"]
 			s["AutomaticStreamConversion"] = services[i]["AutomaticStreamConversion"]
