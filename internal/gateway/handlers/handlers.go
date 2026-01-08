@@ -25,7 +25,6 @@ type HandlerConfig struct {
 	MaxUpload      int64
 	RateRPS        int
 	RateBurst      int
-	NodeAgentAddr  string
 	ControllerAddr string
 	EnvoyHTTPAddr  string
 	Mode           string
@@ -198,8 +197,7 @@ func (h *GatewayHandlers) wireMedia(mux *http.ServeMux, wrap func(http.Handler) 
 
 func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
 	deps := clusterHandlers.HandlerDeps{
-		Controller:    controllerclient.New(h.cfg.ControllerAddr),
-		NodeAgentAddr: h.cfg.NodeAgentAddr,
+		Controller: controllerclient.New(h.cfg.ControllerAddr),
 	}
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
 		JoinToken:   wrap(clusterHandlers.NewJoinTokenHandler(deps)),

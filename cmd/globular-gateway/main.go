@@ -153,7 +153,6 @@ func main() {
 		MaxUpload:      finalCfg.MaxUpload,
 		RateRPS:        finalCfg.RateRPS,
 		RateBurst:      finalCfg.RateBurst,
-		NodeAgentAddr:  globpkg.NodeAgentAddress(),
 		ControllerAddr: globpkg.ControllerAddress(),
 		EnvoyHTTPAddr:  strings.TrimSpace(finalCfg.EnvoyHTTPAddr),
 		Mode:           mode,

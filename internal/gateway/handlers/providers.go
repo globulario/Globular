@@ -17,12 +17,12 @@ import (
 	"sync"
 	"time"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
 	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
-	"github.com/globulario/services/golang/resource/resourcepb"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
 	"github.com/minio/minio-go/v7"
@@ -266,7 +266,7 @@ func (c *minioConfigCache) getStrict(ctx context.Context) (*filesHandlers.MinioP
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cfg, err := LoadMinioProxyConfig()
+	cfg, err := coreConfig.LoadMinioProxyConfig()
 	if err != nil || cfg == nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (c *minioConfigCache) getStrict(ctx context.Context) (*filesHandlers.MinioP
 }
 
 func (c *minioConfigCache) refresh() (*filesHandlers.MinioProxyConfig, error) {
-	cfg, err := LoadMinioProxyConfig()
+	cfg, err := coreConfig.LoadMinioProxyConfig()
 	if err != nil || cfg == nil {
 		return nil, err
 	}
@@ -303,17 +303,18 @@ func (c *minioConfigCache) logUnavailable(cfg *filesHandlers.MinioProxyConfig, e
 var ErrObjectStoreUnavailable = errors.New("object store unavailable")
 
 const (
-	minioHealthTimeout = 3 * time.Second
-	strictProbeTimeout = 3 * time.Second
+	minioHealthTimeout  = 5 * time.Second
+	minioConfigCacheTTL = 30 * time.Second
+	strictProbeTimeout  = 3 * time.Second
 )
 
-func buildFilesMinioProxyConfig(cfg *resourcepb.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
+func buildFilesMinioProxyConfig(cfg *config_.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), minioHealthTimeout)
 	defer cancel()
 	return buildFilesMinioProxyConfigWithContext(ctx, cfg)
 }
 
-func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *resourcepb.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
+func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
 	opts, err := buildMinioOptions(cfg)
 	if err != nil {
 		return nil, err
@@ -375,7 +376,7 @@ func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *resourcepb.
 	}, nil
 }
 
-func buildMinioOptions(cfg *resourcepb.MinioProxyConfig) (minio.Options, error) {
+func buildMinioOptions(cfg *config_.MinioProxyConfig) (minio.Options, error) {
 	opts := minio.Options{
 		Secure: cfg.Secure,
 	}
@@ -396,25 +397,25 @@ func buildMinioOptions(cfg *resourcepb.MinioProxyConfig) (minio.Options, error) 
 	return opts, nil
 }
 
-func buildMinioCredentials(auth *resourcepb.MinioProxyAuth) (*credentials.Credentials, error) {
+func buildMinioCredentials(auth *config_.MinioProxyAuth) (*credentials.Credentials, error) {
 	if auth == nil {
 		return credentials.NewStatic("", "", "", credentials.SignatureAnonymous), nil
 	}
 	switch auth.Mode {
-	case resourcepb.MinioProxyAuthModeFile:
+	case config_.MinioProxyAuthModeFile:
 		ak, sk, err := readMinioCredentialsFile(auth.CredFile)
 		if err != nil {
 			return nil, err
 		}
 		return credentials.NewStaticV4(ak, sk, ""), nil
-	case resourcepb.MinioProxyAuthModeAccessKey, "":
+	case config_.MinioProxyAuthModeAccessKey, "":
 		ak := strings.TrimSpace(auth.AccessKey)
 		sk := strings.TrimSpace(auth.SecretKey)
 		if ak == "" || sk == "" {
 			return nil, fmt.Errorf("missing MinIO access key/secret")
 		}
 		return credentials.NewStaticV4(ak, sk, ""), nil
-	case resourcepb.MinioProxyAuthModeNone:
+	case config_.MinioProxyAuthModeNone:
 		return credentials.NewStatic("", "", "", credentials.SignatureAnonymous), nil
 	default:
 		return nil, fmt.Errorf("unsupported auth mode %q", auth.Mode)

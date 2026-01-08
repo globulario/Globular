@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	agentclient "github.com/globulario/Globular/internal/agentclient"
 	"github.com/globulario/Globular/internal/controllerclient"
 )
 
 // HandlerDeps contains dependencies that cluster handlers need.
 type HandlerDeps struct {
-	Controller    *controllerclient.Client
-	NodeAgentAddr string
+	Controller *controllerclient.Client
 }
 
 // Deps groups HTTP handlers to register.
@@ -131,24 +129,19 @@ func handleSetProfiles(w http.ResponseWriter, r *http.Request, controller *contr
 
 func handleApplyPlan(w http.ResponseWriter, r *http.Request, deps HandlerDeps, nodeID string) {
 	ctx := r.Context()
-	plan, err := deps.Controller.GetNodePlan(ctx, nodeID)
+	if deps.Controller == nil || strings.TrimSpace(deps.Controller.Address()) == "" {
+		http.Error(w, "cluster controller not configured", http.StatusServiceUnavailable)
+		return
+	}
+	resp, err := deps.Controller.ApplyNodePlan(ctx, nodeID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("get plan: %v", err), http.StatusServiceUnavailable)
-		return
-	}
-	if plan == nil || len(plan.GetUnitActions()) == 0 {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "plan empty"})
-		return
-	}
-	if strings.TrimSpace(deps.NodeAgentAddr) == "" {
-		http.Error(w, "node agent address not configured", http.StatusServiceUnavailable)
-		return
-	}
-	if err := agentclient.ApplyPlan(ctx, deps.NodeAgentAddr, plan); err != nil {
 		http.Error(w, fmt.Sprintf("apply plan: %v", err), http.StatusServiceUnavailable)
 		return
 	}
-	respondJSON(w, http.StatusOK, map[string]string{"status": "plan applied"})
+	respondJSON(w, http.StatusOK, map[string]string{
+		"status":       "plan dispatch requested",
+		"operation_id": strings.TrimSpace(resp.GetOperationId()),
+	})
 }
 
 func parseNodeRoute(path string) (string, string) {

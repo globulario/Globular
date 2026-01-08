@@ -122,6 +122,24 @@ func (c *Client) GetNodePlan(ctx context.Context, nodeID string) (*clustercontro
 	return resp.GetPlan(), nil
 }
 
+func (c *Client) UpdateClusterNetwork(ctx context.Context, spec *clustercontrollerpb.ClusterNetworkSpec) (*clustercontrollerpb.UpdateClusterNetworkResponse, error) {
+	client, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	return client.UpdateClusterNetwork(ctx, &clustercontrollerpb.UpdateClusterNetworkRequest{Spec: spec})
+}
+
+func (c *Client) ApplyNodePlan(ctx context.Context, nodeID string) (*clustercontrollerpb.ApplyNodePlanResponse, error) {
+	client, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	return client.ApplyNodePlan(ctx, &clustercontrollerpb.ApplyNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
+}
+
 // Address returns the configured controller address.
 func (c *Client) Address() string {
 	if c == nil {

@@ -30,8 +30,8 @@ func applyPlan(ctx context.Context, nodeAgentAddr string, plan *clustercontrolle
 	if nodeAgentAddr == "" {
 		return fmt.Errorf("node-agent address is empty")
 	}
-	if plan == nil || len(plan.GetUnitActions()) == 0 {
-		return fmt.Errorf("plan must include at least one unit action")
+	if plan == nil || (len(plan.GetUnitActions()) == 0 && len(plan.GetRenderedConfig()) == 0) {
+		return fmt.Errorf("plan must include at least one action or rendered config change")
 	}
 
 	dialCtx, dialCancel := context.WithTimeout(ctx, 5*time.Second)
