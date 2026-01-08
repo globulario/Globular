@@ -27,7 +27,7 @@ var (
 	rateBurst           = flag.Int("rate-burst", 200, "max burst per client; <=0 disables throttling")
 	modeFlag            = flag.String("mode", "direct", "routing mode (direct|mesh)")
 	envoyHttpAddr       = flag.String("envoy_http_addr", "127.0.0.1:8080", "HTTP address of the Envoy ingress for mesh mode")
-	requireDNSBoot      = flag.Bool("require-dns-bootstrap", false, "fail startup if DNS bootstrap cannot contact DNS service")
+	requireTLSBoot      = flag.Bool("require-tls-bootstrap", false, "fail startup if TLS bootstrap fails or TLS assets are unavailable when HTTPS is configured")
 	httpPortOverride    = flag.String("http", "", "override HTTP port when config file is used")
 	httpsPortOverride   = flag.String("https", "", "override HTTPS port when config file is used")
 	gatewayConfigPath   = flag.String("config", "", "path to gateway config file (JSON)")
@@ -65,7 +65,8 @@ func main() {
 	finalCfg.MaxUpload = *maxUpload
 	finalCfg.RateRPS = *rateRPS
 	finalCfg.RateBurst = *rateBurst
-	finalCfg.RequireDNSBootstrap = *requireDNSBoot
+
+	requireTLSBootFlag := *requireTLSBoot
 
 	if httpPort, err := parsePortOverride(*httpPortOverride); err != nil {
 		logger.Error("parse http override", "err", err, "value", *httpPortOverride)
@@ -96,7 +97,7 @@ func main() {
 	}
 
 	globule := globpkg.New(logger)
-	applyGatewayConfigToGlobule(globule, finalCfg)
+	applyGatewayConfigToGlobule(logger, globule, finalCfg)
 
 	mode := strings.ToLower(strings.TrimSpace(finalCfg.Mode))
 	switch mode {
@@ -116,11 +117,11 @@ func main() {
 	case "https":
 		err := globule.BootstrapTLSAndDNS(context.Background())
 		if err != nil {
-			if finalCfg.RequireDNSBootstrap {
-				logger.Error("tls/dns bootstrap failed", "err", err)
+			if requireTLSBootFlag {
+				logger.Error("tls bootstrap failed", "err", err)
 				os.Exit(1)
 			}
-			logger.Warn("tls/dns bootstrap warning", "err", err)
+			logger.Warn("tls bootstrap warning", "err", err)
 			if hasExistingTLSCert(globule) {
 				logger.Info("existing TLS certificate found; continuing with HTTPS")
 				httpsAddr = fmt.Sprintf(":%d", globule.PortHTTPS)
@@ -214,12 +215,12 @@ func parsePortOverride(raw string) (int, error) {
 	return port, nil
 }
 
-func applyGatewayConfigToGlobule(g *globpkg.Globule, cfg gatewayconfig.GatewayConfig) {
+func applyGatewayConfigToGlobule(logger *slog.Logger, g *globpkg.Globule, cfg gatewayconfig.GatewayConfig) {
 	if cfg.Domain != "" {
-		g.Domain = cfg.Domain
+		logger.Warn("ignoring gateway config Domain; cluster networking is controller-managed", "value", cfg.Domain)
 	}
 	if cfg.Protocol != "" {
-		g.Protocol = cfg.Protocol
+		logger.Warn("ignoring gateway config Protocol; cluster networking is controller-managed", "value", cfg.Protocol)
 	}
 	if cfg.HTTPPort > 0 {
 		g.PortHTTP = cfg.HTTPPort

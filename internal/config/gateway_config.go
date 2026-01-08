@@ -10,16 +10,15 @@ import (
 // GatewayConfig defines the settings used by the gateway when bootstrapping from
 // an explicit configuration file.
 type GatewayConfig struct {
-	Mode                string `json:"mode"`
-	EnvoyHTTPAddr       string `json:"envoy_http_addr"`
-	MaxUpload           int64  `json:"max_upload"`
-	RateRPS             int    `json:"rate_rps"`
-	RateBurst           int    `json:"rate_burst"`
-	RequireDNSBootstrap bool   `json:"require_dns_bootstrap"`
-	HTTPPort            int    `json:"http_port"`
-	HTTPSPort           int    `json:"https_port"`
-	Domain              string `json:"domain,omitempty"`
-	Protocol            string `json:"protocol,omitempty"`
+	Mode          string `json:"mode"`
+	EnvoyHTTPAddr string `json:"envoy_http_addr"`
+	MaxUpload     int64  `json:"max_upload"`
+	RateRPS       int    `json:"rate_rps"`
+	RateBurst     int    `json:"rate_burst"`
+	HTTPPort      int    `json:"http_port"`
+	HTTPSPort     int    `json:"https_port"`
+	Domain        string `json:"domain,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
 }
 
 // DefaultGatewayConfig returns the defaults used by the gateway CLI.
