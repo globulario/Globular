@@ -11,7 +11,6 @@ import (
 
 	"github.com/globulario/services/golang/config"
 	Utility "github.com/globulario/utility"
-	"github.com/txn2/txeh"
 )
 
 // setConfig applies a subset of runtime-reloadable settings and persists them.
@@ -61,12 +60,6 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		g.SessionTimeout = v
 	}
 
-	if v, ok := asBool(m["MutateHostsFile"]); ok {
-		g.MutateHostsFile = v
-	}
-	if v, ok := asBool(m["MutateResolvConf"]); ok {
-		g.MutateResolvConf = v
-	}
 	if v, ok := asBool(m["EnableConsoleLogs"]); ok {
 		g.EnableConsoleLogs = v
 	}
@@ -241,9 +234,8 @@ func (g *Globule) watchConfig() {
 	}()
 }
 
-// saveConfig writes the current Globule configuration to disk and updates the hosts file.
+// saveConfig writes the current Globule configuration to disk.
 // - Writes <configDir>/config.json with 0600 permissions
-// - Adds local host mappings for Domain, Name.Domain, and AlternateDomains
 func (g *Globule) SaveConfig() error {
 
 	// Ensure config dir exists and remember it on the struct
@@ -270,73 +262,7 @@ func (g *Globule) SaveConfig() error {
 		return fmt.Errorf("saveConfig: write %s: %w", cfgPath, err)
 	}
 
-	// Update hosts file entries for local resolution convenience (optional).
-	if g.MutateHostsFile {
-		if err := g.updateHostsFile(); err != nil {
-			fmt.Println("saveConfig: warning: update hosts file:", err)
-		}
-	}
-
 	fmt.Println("globular configuration saved at", cfgPath)
 
 	return nil
-}
-
-// updateHostsFile ensures local DNS shortcuts are present in the system hosts file.
-func (g *Globule) updateHostsFile() error {
-	h, err := txeh.NewHostsDefault()
-	if err != nil {
-		return fmt.Errorf("hosts init: %w", err)
-	}
-
-	// Resolve local IP (best effort)
-	localIP, _ := Utility.MyLocalIP(g.Mac)
-	if localIP == "" {
-		localIP = "127.0.0.1"
-	}
-
-	// Main domain entries
-	if g.Domain != "" {
-		h.AddHost(localIP, g.Domain)
-		if g.Name != "" {
-			h.AddHost(localIP, g.Name+"."+g.Domain)
-		}
-	}
-
-	// Alternate domains (handle either []string or []interface{})
-	for _, alt := range asStringSlice(g.AlternateDomains) {
-		alt = strings.TrimSpace(strings.TrimPrefix(alt, "*."))
-		if alt == "" {
-			continue
-		}
-		h.AddHost(localIP, alt)
-		if g.Name != "" {
-			h.AddHost(localIP, g.Name+"."+alt)
-		}
-	}
-
-	if err := h.Save(); err != nil {
-		return fmt.Errorf("hosts save: %w", err)
-	}
-	return nil
-}
-
-// asStringSlice converts an interface{} slice (e.g., []interface{}) to []string safely.
-func asStringSlice(v any) []string {
-	switch t := v.(type) {
-	case nil:
-		return nil
-	case []string:
-		return t
-	case []interface{}:
-		out := make([]string, 0, len(t))
-		for _, e := range t {
-			if s, ok := e.(string); ok {
-				out = append(out, s)
-			}
-		}
-		return out
-	default:
-		return nil
-	}
 }

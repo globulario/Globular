@@ -23,7 +23,7 @@ import (
 
 // Supervisor in main.go runs HTTP/HTTPS. Globule now focuses on:
 // - Directories/config and desired-state seeds
-// - DNS/IP registration and PKI/TLS bootstrapping
+// - Gateway configuration surface (no TLS/DNS ownership)
 // - Peers & events (NodeAgent/Controller own lifecycle)
 
 type Globule struct {
@@ -61,15 +61,6 @@ type Globule struct {
 	BackendStore   int
 	ReverseProxies []interface{}
 	nodes          *sync.Map
-
-	// Discovery / DNS
-	DNS              string
-	NS               []interface{}
-	DNSUpdateIPInfos []interface{}
-	SkipLocalDNS     bool
-	MutateHostsFile  bool
-	MutateResolvConf bool
-	dnsRetryCancel   context.CancelFunc
 
 	EnableConsoleLogs bool
 	EnablePeerUpserts bool
@@ -291,19 +282,13 @@ func machineIDDerivedID() (string, error) {
 	return fmt.Sprintf("%x", sum[:8]), nil
 }
 
-// RegisterIPToDNS is kept public so you can call it on a cron/loop if you want.
-func (g *Globule) RegisterIPToDNS(ctx context.Context) error {
-	_, err := g.registerIPToDNS(ctx)
-	return err
-}
-
-// NotifyNodeAgentReconcile records that desired configs changed and NodeAgent should reconcile.
+// NotifyNodeAgentReconcile is a legacy hook. Reconciliation is driven by controller plans,
+// so this helper only logs the observation and does not trigger any action.
 func (g *Globule) NotifyNodeAgentReconcile(ctx context.Context) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	g.log.Info("desired configs updated; reconcile requested", "node_agent", NodeAgentAddress())
-	// TODO: call NodeAgent reconcile RPC when available.
+	g.log.Info("node-agent reconcile is controller-driven; this call is a no-op", "reason", "globule-config-change")
 	_ = ctx
 }
 
@@ -324,26 +309,22 @@ func (g *Globule) localDomain() string {
 	}
 	return addr
 }
+
+func (g *Globule) LocalDomain() string { return g.localDomain() }
+
 func (g *Globule) getAddress() string {
 	addr, _ := config.GetAddress()
 	return addr
 }
-func (g *Globule) LocalDomain() string { return g.localDomain() }
 
-// BootstrapTLSAndDNS initializes FS, brings up DNS (if local), and registers IPs.
+// BootstrapTLSAndDNS ensures runtime directories exist while TLS/DNS is handled elsewhere.
 func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {
-	// 1) Ensure dirs/config
+	// Ensure dirs/config
 	if err := g.InitFS(); err != nil {
 		return err
 	}
 
-	// 2) Start DNS locally if present + register A/AAAA/MX/TXT
-	if err := g.maybeStartDNSAndRegister(ctx); err != nil {
-		g.log.Warn("tls/dns bootstrap: dns bootstrap failed", "err", err)
-		return err
-	}
-
-	g.log.Info("tls bootstrap is now handled by NodeAgent; skipping certificate issuance")
+	g.log.Info("tls and dns bootstrap is handled by NodeAgent/controller; gateway makes no changes")
 	return nil
 }
 
