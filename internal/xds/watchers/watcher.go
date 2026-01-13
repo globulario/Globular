@@ -240,7 +240,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
 		}
 	} else {
-		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, err := w.buildLegacyGatewayResources()
+		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources()
 		if err != nil {
 			return builder.Input{}, "", err
 		}
@@ -248,6 +248,10 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		routes = append(routes, legacyRoutes...)
 		listener = legacyListener
 		gatewayPort = legacyGatewayPort
+		if cfg != nil && legacyTLSEnabled && cfg.ingressRedirectEnabled() {
+			enableHTTPRedirect = cfg.ingressRedirectEnabled()
+			ingressHTTPPort = cfg.Ingress.HTTPPort
+		}
 	}
 
 	if listener.RouteName == "" {
@@ -329,12 +333,19 @@ func (w *Watcher) buildServiceResources() ([]builder.Cluster, []builder.Route, e
 	return clusters, routes, nil
 }
 
-func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, uint32, error) {
+func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, uint32, bool, error) {
 	host, port := readGatewayAddress()
 	port = defaultGatewayPort(port)
 	upstreamHost := normalizeUpstreamHost(host)
-	gatewayCluster := "globular_https"
-	gatewayCert, gatewayKey, gatewayCA, _ := w.gatewayTLSPaths()
+	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
+	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
+	if !tlsEnabled {
+		gatewayCert, gatewayKey, gatewayCA = "", "", ""
+	}
+	gatewayCluster := "gateway_http"
+	if tlsEnabled {
+		gatewayCluster = "globular_https"
+	}
 	clusters := []builder.Cluster{{
 		Name:       gatewayCluster,
 		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(port)}},
@@ -350,6 +361,9 @@ func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Ro
 	if lowerHost == "" || lowerHost == "0.0.0.0" || lowerHost == "127.0.0.1" || lowerHost == "localhost" {
 		listenerPort = 8443
 	}
+	if !tlsEnabled {
+		listenerPort = controlplane.DefaultIngressHTTPPort("0.0.0.0")
+	}
 
 	listener := builder.Listener{
 		Name:       fmt.Sprintf("%s_%d", listenerNameBase, listenerPort),
@@ -360,7 +374,10 @@ func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Ro
 		KeyFile:    gatewayKey,
 		IssuerFile: gatewayCA,
 	}
-	return clusters, routes, listener, uint32(port), nil
+	if !tlsEnabled {
+		listener.CertFile, listener.KeyFile, listener.IssuerFile = "", "", ""
+	}
+	return clusters, routes, listener, uint32(port), tlsEnabled, nil
 }
 
 func (w *Watcher) buildIngressSpec(ctx context.Context, cfg *XDSConfig) (*IngressSpec, error) {

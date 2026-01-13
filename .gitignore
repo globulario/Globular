@@ -45,5 +45,7 @@ mail.txt
 .env.*
 secrets/**
 .cache/
+.gocache/
+.bin/
 !internal/config/
 !internal/config/*
