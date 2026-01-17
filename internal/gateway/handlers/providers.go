@@ -70,7 +70,12 @@ type proxyResolver struct {
 
 func (r proxyResolver) ResolveProxy(reqPath string) (string, bool) {
 	for _, v := range r.globule.ReverseProxies {
-		parts := strings.SplitN(strings.TrimSpace(v.(string)), "|", 2)
+		// Safe type assertion with check
+		str, ok := v.(string)
+		if !ok {
+			continue
+		}
+		parts := strings.SplitN(strings.TrimSpace(str), "|", 2)
 		if len(parts) != 2 {
 			continue
 		}

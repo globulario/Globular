@@ -31,6 +31,7 @@ type IngressSpec struct {
 	EnableHTTPRedirect bool
 	GatewayPort        uint32
 	RedirectConfigured bool
+	FromEtcd           bool
 }
 
 func parseEtcdIngress(ctx context.Context, getter EtcdGetter) (*IngressSpec, error) {
@@ -102,6 +103,7 @@ func parseEtcdIngress(ctx context.Context, getter EtcdGetter) (*IngressSpec, err
 		RedirectConfigured: redirectSet,
 		Routes:             routes,
 		Clusters:           clusters,
+		FromEtcd:           true,
 	}
 	return spec, nil
 }

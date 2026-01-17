@@ -98,12 +98,25 @@ func NewServeFile(p ServeProvider) http.Handler {
 
 		// --- reverse proxy by path prefix ---
 		if target, ok := p.ResolveProxy(reqPath); ok {
-			u, _ := url.Parse(target)
-			hostURL, _ := url.Parse(u.Scheme + "://" + u.Host)
+			u, err := url.Parse(target)
+			if err != nil {
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "invalid proxy target URL")
+				return
+			}
+			hostURL, err := url.Parse(u.Scheme + "://" + u.Host)
+			if err != nil {
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "invalid proxy host URL")
+				return
+			}
 			rp := httputil.NewSingleHostReverseProxy(hostURL)
 
 			// forward to full target
-			r.URL, _ = url.Parse(target)
+			targetURL, err := url.Parse(target)
+			if err != nil {
+				httplib.WriteJSONError(w, http.StatusInternalServerError, "invalid target URL")
+				return
+			}
+			r.URL = targetURL
 			r.Host = u.Host
 			r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 

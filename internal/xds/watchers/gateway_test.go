@@ -49,14 +49,14 @@ func TestNormalizeGatewayHTTPClusterOverridesLocalEndpoints(t *testing.T) {
 			{
 				Name: "gateway_http",
 				Endpoints: []builder.Endpoint{
-					{Host: "", Port: 8181},
-					{Host: "0.0.0.0", Port: 8181},
+					{Host: "", Port: 0},
+					{Host: "0.0.0.0", Port: 0},
 					{Host: "external.host", Port: 9090},
 				},
 			},
 		},
 	}
-	normalizeGatewayHTTPCluster(spec, 8080)
+	normalizeGatewayHTTPCluster(spec, 8080, nil)
 	pts := spec.Clusters[0].Endpoints
 	if pts[0].Port != 8080 {
 		t.Fatalf("expected endpoint[0] port replaced with 8080, got %d", pts[0].Port)
@@ -66,5 +66,22 @@ func TestNormalizeGatewayHTTPClusterOverridesLocalEndpoints(t *testing.T) {
 	}
 	if pts[2].Port != 9090 {
 		t.Fatalf("expected external endpoint port untouched (9090), got %d", pts[2].Port)
+	}
+}
+
+func TestNormalizeGatewayHTTPClusterPreservesExplicitPorts(t *testing.T) {
+	spec := &IngressSpec{
+		Clusters: []builder.Cluster{
+			{
+				Name: "gateway_http",
+				Endpoints: []builder.Endpoint{
+					{Host: "127.0.0.1", Port: 8181},
+				},
+			},
+		},
+	}
+	normalizeGatewayHTTPCluster(spec, 8080, nil)
+	if got := spec.Clusters[0].Endpoints[0].Port; got != 8181 {
+		t.Fatalf("expected port preserved at 8181, got %d", got)
 	}
 }

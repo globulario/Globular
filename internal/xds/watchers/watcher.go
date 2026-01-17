@@ -134,6 +134,12 @@ func (w *Watcher) Run(ctx context.Context) error {
 }
 
 func (w *Watcher) sync(ctx context.Context) error {
+	prevProtocol := w.protocol
+	w.protocol = detectLocalProtocol()
+	if w.logger != nil && prevProtocol != "" && prevProtocol != w.protocol {
+		w.logger.Info("protocol changed", "from", prevProtocol, "to", w.protocol)
+	}
+
 	input, version, err := w.buildInput(ctx)
 	if err != nil {
 		return err
@@ -202,7 +208,7 @@ func (w *Watcher) loadXDSConfig(fi os.FileInfo) (*XDSConfig, error) {
 }
 
 func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builder.Input, string, error) {
-	clusters, routes, err := w.buildServiceResources()
+	clusters, routes, err := w.buildServiceResources(ctx, cfg)
 	if err != nil {
 		return builder.Input{}, "", err
 	}
@@ -212,17 +218,30 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	if err != nil {
 		return builder.Input{}, "", err
 	}
+	if w.logger != nil {
+		if ingressSpec != nil {
+			hasGatewayHTTP := findClusterByName(ingressSpec.Clusters, "gateway_http") != nil
+			hasGatewayHTTPS := findClusterByName(ingressSpec.Clusters, "globular_https") != nil
+			w.logger.Info("ingress path active",
+				"https_port", ingressSpec.Listener.Port,
+				"http_port", ingressSpec.HTTPPort,
+				"redirect", ingressSpec.EnableHTTPRedirect,
+				"has_gateway_http", hasGatewayHTTP,
+				"has_globular_https", hasGatewayHTTPS,
+			)
+		} else {
+			w.logger.Info("legacy path active")
+		}
+	}
 	var ingressHTTPPort uint32
 	var enableHTTPRedirect bool
 	var gatewayPort uint32
-	_, resolvedGatewayPort := readGatewayAddress()
-	localGatewayPort := uint32(defaultGatewayPort(resolvedGatewayPort))
 	if ingressSpec != nil {
 		clusters = append(clusters, ingressSpec.Clusters...)
 		routes = append(routes, ingressSpec.Routes...)
 		listener = ingressSpec.Listener
-		normalizeGatewayHTTPCluster(ingressSpec, localGatewayPort)
-		ingressSpec.GatewayPort = localGatewayPort
+		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w)
+		ingressSpec.GatewayPort = normalizedGatewayPort
 		ingressHTTPPort = ingressSpec.HTTPPort
 		enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
 		gatewayPort = ingressSpec.GatewayPort
@@ -259,6 +278,13 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	}
 
 	version := fmt.Sprintf("%d", time.Now().UnixNano())
+	if w.logger != nil {
+		if gw := findClusterByName(clusters, "gateway_http"); gw != nil {
+			w.logger.Info("xDS clusters resolved", "gateway_http", gw.Endpoints)
+		} else {
+			w.logger.Info("xDS clusters resolved", "gateway_http", "missing")
+		}
+	}
 	input := builder.Input{
 		NodeID:             w.nodeID,
 		Listener:           listener,
@@ -272,10 +298,20 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	return input, version, nil
 }
 
-func (w *Watcher) buildServiceResources() ([]builder.Cluster, []builder.Route, error) {
-	services, err := config.GetServicesConfigurations()
-	if err != nil {
-		return nil, nil, err
+func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]builder.Cluster, []builder.Route, error) {
+	var services []map[string]any
+	var err error
+	if cfg != nil && len(cfg.EtcdEndpoints) > 0 {
+		services, err = w.buildServiceResourcesFromEtcd(ctx, cfg)
+		if err != nil && w.logger != nil {
+			w.logger.Warn("etcd service discovery failed; falling back to local config", "err", err)
+		}
+	}
+	if services == nil {
+		services, err = config.GetServicesConfigurations()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	downCert, downKey, downIssuer, err := w.downstreamTLSConfig()
@@ -292,9 +328,10 @@ func (w *Watcher) buildServiceResources() ([]builder.Cluster, []builder.Route, e
 
 	for _, svc := range services {
 		name := strings.TrimSpace(fmt.Sprint(svc["Name"]))
-		address := strings.TrimSpace(fmt.Sprint(svc["Address"]))
-		host := strings.Split(address, ":")[0]
-		port := Utility.ToInt(svc["Port"])
+		host, port := resolveServiceHostPort(svc)
+		if w.logger != nil && strings.TrimSpace(fmt.Sprint(svc["Address"])) == "" {
+			w.logger.Debug("service Address empty; defaulting to local endpoint", "service", name, "host", host, "port", port)
+		}
 		if name == "" || host == "" || port == 0 {
 			continue
 		}
@@ -334,35 +371,40 @@ func (w *Watcher) buildServiceResources() ([]builder.Cluster, []builder.Route, e
 }
 
 func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, uint32, bool, error) {
-	host, port := readGatewayAddress()
-	port = defaultGatewayPort(port)
+	cfg, _ := config.GetLocalConfig(true)
+	host, listenPort := readGatewayAddress()
+	listenPort = defaultGatewayPort(listenPort)
+	domain, portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
 	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
 	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
 	if !tlsEnabled {
 		gatewayCert, gatewayKey, gatewayCA = "", "", ""
 	}
+
 	gatewayCluster := "gateway_http"
+	upstreamPort := portHTTP
 	if tlsEnabled {
 		gatewayCluster = "globular_https"
+		upstreamPort = portHTTPS
 	}
+	if listenPort != defaultGatewayPort(0) {
+		upstreamPort = listenPort
+	}
+
 	clusters := []builder.Cluster{{
 		Name:       gatewayCluster,
-		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(port)}},
+		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
 		CAFile:     gatewayCA,
 		ServerCert: gatewayCert,
 		KeyFile:    gatewayKey,
-		SNI:        host,
+		SNI:        domain,
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
-	listenerPort := uint32(443)
-	lowerHost := strings.ToLower(strings.TrimSpace(host))
-	if lowerHost == "" || lowerHost == "0.0.0.0" || lowerHost == "127.0.0.1" || lowerHost == "localhost" {
-		listenerPort = 8443
-	}
+	listenerPort := uint32(portHTTPS)
 	if !tlsEnabled {
-		listenerPort = controlplane.DefaultIngressHTTPPort("0.0.0.0")
+		listenerPort = uint32(portHTTP)
 	}
 
 	listener := builder.Listener{
@@ -377,7 +419,18 @@ func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Ro
 	if !tlsEnabled {
 		listener.CertFile, listener.KeyFile, listener.IssuerFile = "", "", ""
 	}
-	return clusters, routes, listener, uint32(port), tlsEnabled, nil
+	if w.logger != nil {
+		w.logger.Info("legacy gateway resolved",
+			"protocol", w.protocol,
+			"tls_enabled", tlsEnabled,
+			"port_http", portHTTP,
+			"port_https", portHTTPS,
+			"gateway_listen_override", listenPort != defaultGatewayPort(0),
+			"cluster", gatewayCluster,
+			"upstream_port", upstreamPort,
+		)
+	}
+	return clusters, routes, listener, uint32(upstreamPort), tlsEnabled, nil
 }
 
 func (w *Watcher) buildIngressSpec(ctx context.Context, cfg *XDSConfig) (*IngressSpec, error) {
@@ -732,6 +785,19 @@ func readGatewayAddress() (string, int) {
 	return readGatewayAddressFromConfig(cfg)
 }
 
+func readGatewayPortsFromConfig(cfg map[string]any) (string, int, int) {
+	domain := normalizeUpstreamHost(Utility.ToString(cfg["Domain"]))
+	if domain == "" {
+		domain = "127.0.0.1"
+	}
+	portHTTP := defaultGatewayPort(Utility.ToInt(cfg["PortHTTP"]))
+	portHTTPS := Utility.ToInt(cfg["PortHTTPS"])
+	if portHTTPS == 0 {
+		portHTTPS = 8443
+	}
+	return domain, portHTTP, portHTTPS
+}
+
 func defaultGatewayPort(port int) int {
 	if port == 0 {
 		return 8080
@@ -739,7 +805,7 @@ func defaultGatewayPort(port int) int {
 	return port
 }
 
-func normalizeGatewayHTTPCluster(spec *IngressSpec, gatewayPort uint32) {
+func normalizeGatewayHTTPCluster(spec *IngressSpec, gatewayPort uint32, logger *slog.Logger) {
 	if spec == nil || gatewayPort == 0 {
 		return
 	}
@@ -750,7 +816,11 @@ func normalizeGatewayHTTPCluster(spec *IngressSpec, gatewayPort uint32) {
 		for ei := range spec.Clusters[ci].Endpoints {
 			endpoint := &spec.Clusters[ci].Endpoints[ei]
 			if shouldNormalizeGatewayEndpoint(endpoint.Host) {
-				endpoint.Port = gatewayPort
+				if endpoint.Port == 0 {
+					endpoint.Port = gatewayPort
+				} else if endpoint.Port != gatewayPort && logger != nil {
+					logger.Info("gateway_http endpoint preserved from configuration", "host", endpoint.Host, "port", endpoint.Port, "expected_port", gatewayPort)
+				}
 			}
 		}
 	}
@@ -762,6 +832,147 @@ func shouldNormalizeGatewayEndpoint(host string) bool {
 		return true
 	}
 	return Utility.IsLocal(host)
+}
+
+func findClusterByName(clusters []builder.Cluster, name string) *builder.Cluster {
+	for i := range clusters {
+		if strings.TrimSpace(clusters[i].Name) == name {
+			return &clusters[i]
+		}
+	}
+	return nil
+}
+
+func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
+	if spec == nil || w == nil {
+		return 0
+	}
+	cfg, _ := config.GetLocalConfig(true)
+	domain, portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
+	host, listenPort := readGatewayAddress()
+	upstreamHost := normalizeUpstreamHost(host)
+	if upstreamHost == "" {
+		upstreamHost = "127.0.0.1"
+	}
+	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
+	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
+
+	targetCluster := "gateway_http"
+	targetPort := portHTTP
+	if tlsEnabled {
+		targetCluster = "globular_https"
+		targetPort = portHTTPS
+	}
+	if listenPort != defaultGatewayPort(0) {
+		targetPort = listenPort
+	}
+
+	ensureCluster := func(name string, port uint32, enableTLS bool) *builder.Cluster {
+		cl := findClusterByName(spec.Clusters, name)
+		if cl == nil {
+			spec.Clusters = append(spec.Clusters, builder.Cluster{Name: name})
+			cl = &spec.Clusters[len(spec.Clusters)-1]
+		}
+		if len(cl.Endpoints) == 0 {
+			cl.Endpoints = []builder.Endpoint{{Host: upstreamHost, Port: port}}
+		} else {
+			for i := range cl.Endpoints {
+				if shouldNormalizeGatewayEndpoint(cl.Endpoints[i].Host) {
+					cl.Endpoints[i].Port = port
+					if cl.Endpoints[i].Host == "" {
+						cl.Endpoints[i].Host = upstreamHost
+					}
+				}
+			}
+		}
+		cl.SNI = domain
+		if enableTLS {
+			cl.ServerCert = gatewayCert
+			cl.KeyFile = gatewayKey
+			cl.CAFile = gatewayCA
+		} else {
+			cl.ServerCert, cl.KeyFile, cl.CAFile = "", "", ""
+		}
+		return cl
+	}
+
+	ensureCluster(targetCluster, uint32(targetPort), tlsEnabled)
+	if targetCluster == "gateway_http" {
+		ensureCluster("globular_https", uint32(portHTTPS), true) // keep available if present, but not default
+	} else {
+		ensureCluster("gateway_http", uint32(portHTTP), false)
+	}
+
+	rootUpdated := false
+	for i := range spec.Routes {
+		if strings.TrimSpace(spec.Routes[i].Prefix) == "/" {
+			spec.Routes[i].Cluster = targetCluster
+			rootUpdated = true
+		}
+	}
+	if !rootUpdated {
+		spec.Routes = append([]builder.Route{{Prefix: "/", Cluster: targetCluster}}, spec.Routes...)
+	}
+
+	return uint32(targetPort)
+}
+
+func resolveServiceHostPort(svc map[string]any) (string, int) {
+	addr := strings.TrimSpace(fmt.Sprint(svc["Address"]))
+
+	host := ""
+	if addr != "" {
+		host = strings.TrimSpace(strings.Split(addr, ":")[0])
+	}
+
+	port := Utility.ToInt(svc["Port"])
+	if port == 0 {
+		port = Utility.ToInt(svc["Proxy"])
+	}
+
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	return host, port
+}
+
+func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
+	if cfg == nil || len(cfg.EtcdEndpoints) == 0 {
+		return nil, nil
+	}
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   cfg.EtcdEndpoints,
+		DialTimeout: 5 * time.Second,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cli.Close()
+
+	etcdCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	resp, err := cli.Get(etcdCtx, "/globular/services/", clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+	if resp.Count == 0 {
+		return nil, nil
+	}
+
+	services := make([]map[string]any, 0, resp.Count)
+	for _, kv := range resp.Kvs {
+		var svc map[string]any
+		if err := json.Unmarshal(kv.Value, &svc); err != nil {
+			if w.logger != nil {
+				w.logger.Warn("failed to unmarshal service from etcd", "key", string(kv.Key), "err", err)
+			}
+			continue
+		}
+		services = append(services, svc)
+	}
+	return services, nil
 }
 
 func normalizeUpstreamHost(host string) string {

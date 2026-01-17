@@ -281,16 +281,6 @@ func machineIDDerivedID() (string, error) {
 	return fmt.Sprintf("%x", sum[:8]), nil
 }
 
-// NotifyNodeAgentReconcile is a legacy hook. Reconciliation is driven by controller plans,
-// so this helper only logs the observation and does not trigger any action.
-func (g *Globule) NotifyNodeAgentReconcile(ctx context.Context) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	g.log.Info("node-agent reconcile is controller-driven; this call is a no-op", "reason", "globule-config-change")
-	_ = ctx
-}
-
 // WatchConfig hot-reloads the process-level config.json into Globule.
 func (g *Globule) WatchConfig() { g.watchConfig() }
 

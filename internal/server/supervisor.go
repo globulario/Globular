@@ -26,9 +26,10 @@ type certReloader struct {
 	certPath string
 	keyPath  string
 
-	mu      sync.RWMutex
-	cert    *tls.Certificate
-	checked time.Time // last stat time used to decide reload
+	mu         sync.RWMutex
+	cert       *tls.Certificate
+	checked    time.Time // last stat time used to decide reload
+	lastLoaded time.Time // when cert was last successfully loaded
 }
 
 // newCertReloader loads the initial certificate pair.
@@ -74,15 +75,11 @@ func (r *certReloader) maybeReload() error {
 	}
 
 	// If either file is newer than what the current cert was loaded from, reload.
-	if r.cert == nil || cInfo.ModTime().After(cmt(r.cert)) || kInfo.ModTime().After(cmt(r.cert)) {
+	if r.cert == nil || cInfo.ModTime().After(r.lastLoaded) || kInfo.ModTime().After(r.lastLoaded) {
 		return r.reload()
 	}
 	return nil
 }
-
-// cmt extracts our last-known modtime from the certificate's leaf if present.
-// (We stash it via the checked field instead; this helper just keeps intent clear.)
-func cmt(_ *tls.Certificate) time.Time { return time.Time{} }
 
 func (r *certReloader) reload() error {
 	crt, err := tls.LoadX509KeyPair(r.certPath, r.keyPath)
@@ -112,8 +109,10 @@ func (r *certReloader) reload() error {
 		}
 	}
 
+	now := time.Now()
 	r.cert = &crt
-	r.checked = time.Now()
+	r.checked = now
+	r.lastLoaded = now
 	return nil
 }
 
@@ -151,6 +150,9 @@ type Supervisor struct {
 	httpsSrv *http.Server
 
 	Ready chan struct{} // closed once first listener is bound
+
+	// certReloaderCancel stops the background cert watcher goroutine
+	certReloaderCancel context.CancelFunc
 }
 
 // Start launches HTTP/HTTPS servers. Call Stop to shut down gracefully.
@@ -212,7 +214,8 @@ func (s *Supervisor) Start(handler http.Handler) error {
 			return err
 		}
 		// Background cert polling (1s cadence is plenty; bump if you prefer).
-		ctx, _ := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		s.certReloaderCancel = cancel
 		go reloader.watch(ctx, time.Second, s.Logger)
 
 		go func() {
@@ -228,8 +231,13 @@ func (s *Supervisor) Start(handler http.Handler) error {
 	return nil
 }
 
-// Stop gracefully shuts down both servers.
+// Stop gracefully shuts down both servers and stops the cert reloader.
 func (s *Supervisor) Stop(ctx context.Context) error {
+	// Stop the cert reloader goroutine if it's running
+	if s.certReloaderCancel != nil {
+		s.certReloaderCancel()
+	}
+
 	if s.httpsSrv != nil {
 		_ = s.httpsSrv.Shutdown(ctx)
 	}

@@ -83,7 +83,11 @@ func (h *GatewayHandlers) HandleRedirect(to *middleware.Target, w http.ResponseW
 	}
 	addr = strings.ReplaceAll(addr, ".localhost", "")
 
-	u, _ := url.Parse(scheme + "://" + addr)
+	u, err := url.Parse(scheme + "://" + addr)
+	if err != nil {
+		httplib.WriteJSONError(w, http.StatusInternalServerError, "invalid redirect target URL")
+		return
+	}
 	proxy := httputil.NewSingleHostReverseProxy(u)
 
 	r.URL.Host = u.Host

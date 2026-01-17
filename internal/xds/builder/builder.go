@@ -54,7 +54,6 @@ type Route struct {
 type Input struct {
 	NodeID             string    `json:"node_id"`
 	Version            string    `json:"version,omitempty"`
-	Nodes              []string  `json:"nodes,omitempty"` // unused but reserved for future use
 	Listener           Listener  `json:"listener"`
 	Routes             []Route   `json:"routes"`
 	Clusters           []Cluster `json:"clusters"`
