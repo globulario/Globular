@@ -140,6 +140,32 @@ func (c *Client) ApplyNodePlan(ctx context.Context, nodeID string) (*clustercont
 	return client.ApplyNodePlan(ctx, &clustercontrollerpb.ApplyNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
 }
 
+// RemoveNode removes a node from the cluster.
+func (c *Client) RemoveNode(ctx context.Context, nodeID string, force, drain bool) (*clustercontrollerpb.RemoveNodeResponse, error) {
+	client, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+
+	req := &clustercontrollerpb.RemoveNodeRequest{
+		NodeId: strings.TrimSpace(nodeID),
+		Force:  force,
+		Drain:  drain,
+	}
+	return client.RemoveNode(ctx, req)
+}
+
+// GetClusterHealth returns the overall health status of the cluster.
+func (c *Client) GetClusterHealth(ctx context.Context) (*clustercontrollerpb.GetClusterHealthResponse, error) {
+	client, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	return client.GetClusterHealth(ctx, &clustercontrollerpb.GetClusterHealthRequest{})
+}
+
 // Address returns the configured controller address.
 func (c *Client) Address() string {
 	if c == nil {

@@ -20,6 +20,7 @@ type Deps struct {
 	JoinToken   http.Handler
 	Nodes       http.Handler
 	NodeActions http.Handler
+	Health      http.Handler
 }
 
 // Mount registers the cluster-related routes.
@@ -32,6 +33,9 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.NodeActions != nil {
 		mux.Handle("/api/cluster/nodes/", d.NodeActions)
+	}
+	if d.Health != nil {
+		mux.Handle("/api/cluster/health", d.Health)
 	}
 }
 
@@ -72,7 +76,7 @@ func NewNodesHandler(deps HandlerDeps) http.Handler {
 	})
 }
 
-// NewNodeActionsHandler handles node-specific subpaths (profiles, plan apply).
+// NewNodeActionsHandler handles node-specific subpaths (profiles, plan apply, remove).
 func NewNodeActionsHandler(deps HandlerDeps) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if deps.Controller == nil || deps.Controller.Address() == "" {
@@ -81,7 +85,18 @@ func NewNodeActionsHandler(deps HandlerDeps) http.Handler {
 		}
 
 		nodeID, action := parseNodeRoute(r.URL.Path)
-		if nodeID == "" || action == "" {
+		if nodeID == "" {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Handle DELETE /api/cluster/nodes/{node_id} for node removal
+		if action == "" && r.Method == http.MethodDelete {
+			handleRemoveNode(w, r, deps.Controller, nodeID)
+			return
+		}
+
+		if action == "" {
 			http.NotFound(w, r)
 			return
 		}
@@ -101,9 +116,43 @@ func NewNodeActionsHandler(deps HandlerDeps) http.Handler {
 			}
 			handleApplyPlan(w, r, deps, nodeID)
 			return
+		case "remove":
+			if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handleRemoveNode(w, r, deps.Controller, nodeID)
+			return
 		default:
 			http.NotFound(w, r)
 		}
+	})
+}
+
+func handleRemoveNode(w http.ResponseWriter, r *http.Request, controller *controllerclient.Client, nodeID string) {
+	var req struct {
+		Force bool `json:"force"`
+		Drain bool `json:"drain"`
+	}
+	// Default drain to true
+	req.Drain = true
+
+	// Try to decode JSON body if present
+	if r.Body != nil && r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, fmt.Sprintf("decode request: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
+	resp, err := controller.RemoveNode(r.Context(), nodeID, req.Force, req.Drain)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("remove node: %v", err), http.StatusServiceUnavailable)
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{
+		"operation_id": strings.TrimSpace(resp.GetOperationId()),
+		"message":      strings.TrimSpace(resp.GetMessage()),
 	})
 }
 
@@ -144,6 +193,26 @@ func handleApplyPlan(w http.ResponseWriter, r *http.Request, deps HandlerDeps, n
 	})
 }
 
+// NewHealthHandler returns the cluster health status.
+func NewHealthHandler(deps HandlerDeps) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if deps.Controller == nil || deps.Controller.Address() == "" {
+			http.Error(w, "cluster controller not configured", http.StatusServiceUnavailable)
+			return
+		}
+		resp, err := deps.Controller.GetClusterHealth(r.Context())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("get cluster health: %v", err), http.StatusServiceUnavailable)
+			return
+		}
+		respondJSON(w, http.StatusOK, resp)
+	})
+}
+
 func parseNodeRoute(path string) (string, string) {
 	const prefix = "/api/cluster/nodes/"
 	if !strings.HasPrefix(path, prefix) {
@@ -155,10 +224,12 @@ func parseNodeRoute(path string) (string, string) {
 		return "", ""
 	}
 	parts := strings.Split(trimmed, "/")
-	if len(parts) < 2 {
-		return "", ""
+	nodeID := parts[0]
+	action := ""
+	if len(parts) >= 2 {
+		action = strings.Join(parts[1:], "/")
 	}
-	return parts[0], strings.Join(parts[1:], "/")
+	return nodeID, action
 }
 
 func respondJSON(w http.ResponseWriter, status int, v interface{}) {
