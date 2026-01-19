@@ -22,9 +22,9 @@ import (
 
 const (
 	defaultGRPCAddr           = "127.0.0.1:18000"
-	defaultXDSConfig          = "/etc/globular/xds/config.json"
+	defaultXDSConfig          = "/var/lib/globular/xds/config.json"
 	defaultEnvoyBootstrapPath = "/run/globular/envoy/envoy-bootstrap.json"
-	defaultServiceConfigPath  = "/etc/globular/xds/xds.yaml"
+	defaultServiceConfigPath  = "/var/lib/globular/xds/xds.yaml"
 )
 
 func main() {

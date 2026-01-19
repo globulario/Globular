@@ -4,9 +4,9 @@ const (
 	defaultIngressHTTPPort    = uint32(80)
 	defaultIngressHTTPSPort   = uint32(443)
 	defaultGatewayListenPort  = uint32(8080)
-	defaultIngressCertPath    = "/etc/globular/certs/fullchain.pem"
-	defaultIngressKeyPath     = "/etc/globular/certs/privkey.pem"
-	defaultIngressProvisionCA = "/etc/globular/certs/ca.pem"
+	defaultIngressCertPath    = "/var/lib/globular/tls/fullchain.pem"
+	defaultIngressKeyPath     = "/var/lib/globular/tls/privkey.pem"
+	defaultIngressProvisionCA = "/var/lib/globular/tls/ca.pem"
 )
 
 // XDSConfig describes the static configuration needed by globular-xds.

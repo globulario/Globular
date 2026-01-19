@@ -15,15 +15,14 @@ import (
 )
 
 const (
-	MinioContractPathEtc = "/etc/globular/objectstore.d/minio.json"
 	MinioContractPathVar = "/var/lib/globular/objectstore/minio.json"
 )
 
 const minioContractLogTTL = 30 * time.Second
 
 var (
-	minioContractPaths    = []string{MinioContractPathEtc, MinioContractPathVar}
-	minioContractSavePath = MinioContractPathEtc
+	minioContractPaths    = []string{MinioContractPathVar}
+	minioContractSavePath = MinioContractPathVar
 	minioContractLogState = struct {
 		mu   sync.Mutex
 		last time.Time
