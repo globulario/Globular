@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -32,6 +33,7 @@ import (
 // serveProvider satisfies files.ServeProvider for the gateway surface.
 type serveProvider struct {
 	globule *globpkg.Globule
+	mode    string
 }
 
 func (p serveProvider) WebRoot() string                           { return config_.GetWebRootDir() }
@@ -41,6 +43,7 @@ func (p serveProvider) IndexApplication() string                  { return p.glo
 func (p serveProvider) PublicDirs() []string                      { return config_.GetPublicDirs() }
 func (p serveProvider) Exists(pth string) bool                    { return Utility.Exists(pth) }
 func (p serveProvider) FindHashedFile(pth string) (string, error) { return findHashedFile(pth) }
+func (p serveProvider) Mode() string                              { return p.mode }
 func (p serveProvider) FileServiceMinioConfig() (*filesHandlers.MinioProxyConfig, error) {
 	return fileServiceMinioConfigCache.get()
 }
@@ -235,6 +238,11 @@ type minioConfigCache struct {
 	loadedAt time.Time
 	lastWarn time.Time
 	ttl      time.Duration
+
+	// cold-start strict probe controls
+	strictOnce  bool
+	strictUntil time.Time
+	strictProbe func(context.Context) (*filesHandlers.MinioProxyConfig, error)
 }
 
 func (c *minioConfigCache) get() (*filesHandlers.MinioProxyConfig, error) {
@@ -244,10 +252,43 @@ func (c *minioConfigCache) get() (*filesHandlers.MinioProxyConfig, error) {
 	err := c.err
 	loaded := c.loadedAt
 	ttl := c.ttl
+	strictOnce := c.strictOnce
+	strictUntil := c.strictUntil
+	strictProbe := c.strictProbe
 	c.mu.RUnlock()
 	if ttl <= 0 {
 		ttl = minioConfigCacheTTL
 	}
+
+	if strictProbe == nil {
+		strictProbe = c.getStrict
+	}
+
+	if !strictOnce && (strictUntil.IsZero() || now.After(strictUntil)) {
+		c.mu.Lock()
+		if strictProbe == nil {
+			strictProbe = c.getStrict
+		}
+		if !c.strictOnce && (c.strictUntil.IsZero() || now.After(c.strictUntil)) {
+			strictCfg, strictErr := strictProbe(context.Background())
+			if strictErr == nil && strictCfg != nil {
+				c.cfg = strictCfg
+				c.err = nil
+				c.loadedAt = now
+				c.strictOnce = true
+				c.mu.Unlock()
+				return strictCfg, nil
+			}
+			c.err = strictErr
+			c.strictUntil = now.Add(strictProbeBackoff)
+			c.loadedAt = now
+		}
+		cfg = c.cfg
+		err = c.err
+		c.mu.Unlock()
+		return cfg, err
+	}
+
 	if now.Sub(loaded) < ttl {
 		return cfg, err
 	}
@@ -311,6 +352,7 @@ const (
 	minioHealthTimeout  = 5 * time.Second
 	minioConfigCacheTTL = 30 * time.Second
 	strictProbeTimeout  = 3 * time.Second
+	strictProbeBackoff  = 10 * time.Second
 )
 
 func buildFilesMinioProxyConfig(cfg *config_.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
@@ -328,13 +370,14 @@ func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.Min
 	if err != nil {
 		return nil, err
 	}
-	exists, err := client.BucketExists(ctx, cfg.Bucket)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrObjectStoreUnavailable, err)
+	layout := deriveMinioLayout(cfg)
+	if err := validateBucketExists(ctx, client, layout.usersBucket); err != nil {
+		return nil, err
 	}
-	if !exists {
-		return nil, fmt.Errorf("%w: bucket %s not found", ErrObjectStoreUnavailable, cfg.Bucket)
+	if err := validateBucketExists(ctx, client, layout.webrootBucket); err != nil {
+		return nil, err
 	}
+
 	prefix := strings.Trim(cfg.Prefix, "/")
 	statFn := func(ctx context.Context, bucket, key string) (filesHandlers.MinioObjectInfo, error) {
 		st, err := client.StatObject(ctx, bucket, key, minio.StatObjectOptions{})
@@ -347,12 +390,17 @@ func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.Min
 		}, nil
 	}
 	return &filesHandlers.MinioProxyConfig{
-		Endpoint: cfg.Endpoint,
-		Bucket:   cfg.Bucket,
-		Prefix:   prefix,
-		UseSSL:   cfg.Secure,
-		Client:   client,
-		Stat:     statFn,
+		Endpoint:      cfg.Endpoint,
+		Bucket:        cfg.Bucket,
+		Prefix:        prefix,
+		UsersPrefix:   layout.usersPrefix,
+		WebrootPrefix: layout.webrootPrefix,
+		UsersBucket:   layout.usersBucket,
+		WebrootBucket: layout.webrootBucket,
+		Domain:        layout.domain,
+		UseSSL:        cfg.Secure,
+		Client:        client,
+		Stat:          statFn,
 		Fetch: func(ctx context.Context, bucket, key string) (io.ReadSeekCloser, filesHandlers.MinioObjectInfo, error) {
 			obj, err := client.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
 			if err != nil {
@@ -481,8 +529,63 @@ func loadCABundle(path string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
+type minioLayout struct {
+	usersPrefix   string
+	webrootPrefix string
+	usersBucket   string
+	webrootBucket string
+	domain        string
+}
+
+func deriveMinioLayout(cfg *config_.MinioProxyConfig) minioLayout {
+	domain, _ := config_.GetDomain()
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		domain = "localhost"
+	}
+	layout := minioLayout{
+		usersBucket:   strings.TrimSpace(cfg.Bucket),
+		webrootBucket: strings.TrimSpace(cfg.Bucket),
+		domain:        domain,
+	}
+	if ub := strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_USERS_BUCKET")); ub != "" {
+		layout.usersBucket = ub
+	}
+	if wb := strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_WEBROOT_BUCKET")); wb != "" {
+		layout.webrootBucket = wb
+	}
+
+	basePrefix := strings.Trim(cfg.Prefix, "/")
+	layout.usersPrefix = strings.Trim(strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_USERS_PREFIX")), "/")
+	layout.webrootPrefix = strings.Trim(strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_WEBROOT_PREFIX")), "/")
+	if layout.usersPrefix == "" && basePrefix != "" {
+		layout.usersPrefix = path.Join(basePrefix, "users")
+	}
+	if layout.webrootPrefix == "" && basePrefix != "" {
+		layout.webrootPrefix = path.Join(basePrefix, "webroot")
+	}
+	if layout.usersPrefix == "" {
+		layout.usersPrefix = path.Join(layout.domain, "users")
+	}
+	if layout.webrootPrefix == "" {
+		layout.webrootPrefix = path.Join(layout.domain, "webroot")
+	}
+	return layout
+}
+
+func validateBucketExists(ctx context.Context, client *minio.Client, bucket string) error {
+	exists, err := client.BucketExists(ctx, bucket)
+	if err != nil {
+		return fmt.Errorf("%w: objectstore not provisioned: %v (run node-agent plan ensure-objectstore-layout)", ErrObjectStoreUnavailable, err)
+	}
+	if exists {
+		return nil
+	}
+	return fmt.Errorf("%w: objectstore not provisioned: missing bucket %s (run node-agent plan ensure-objectstore-layout)", ErrObjectStoreUnavailable, bucket)
+}
+
 func (h *GatewayHandlers) newServeProvider() serveProvider {
-	return serveProvider{globule: h.globule}
+	return serveProvider{globule: h.globule, mode: h.cfg.Mode}
 }
 
 func (h *GatewayHandlers) newUploadProvider() uploadProvider {

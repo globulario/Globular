@@ -26,6 +26,7 @@ func (p proxyServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
 func (p proxyServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
 	return nil, nil
 }
+func (p proxyServe) Mode() string                       { return "direct" }
 func (p proxyServe) ParseUserID(string) (string, error) { return "", nil }
 func (p proxyServe) ValidateAccount(string, string, string) (bool, bool, error) {
 	return false, false, nil

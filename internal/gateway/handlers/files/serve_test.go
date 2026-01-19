@@ -48,6 +48,7 @@ func (f fakeServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
 func (f fakeServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
 	return f.minioCfg, f.minioErr
 }
+func (f fakeServe) Mode() string { return "direct" }
 func (f fakeServe) ParseUserID(tok string) (string, error) {
 	if tok == "ok" {
 		return "u@d", nil
@@ -227,6 +228,68 @@ func TestServe_MinioUnavailable503(t *testing.T) {
 
 	if rr.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestServe_MinioNotProvisionedMessage(t *testing.T) {
+	tmp := t.TempDir()
+	errMsg := "objectstore not provisioned: missing bucket globular (run node-agent plan ensure-objectstore-layout)"
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioErr:  fmt.Errorf("%w: %s", handlers.ErrObjectStoreUnavailable, errMsg),
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/users/alice/avatar.png", nil)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "ensure-objectstore-layout") {
+		t.Fatalf("expected actionable error, got %s", rr.Body.String())
+	}
+}
+
+func TestServe_MinioWebroot(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg: &files.MinioProxyConfig{
+			Domain:        "example.com",
+			WebrootPrefix: "example.com/webroot",
+			WebrootBucket: "bucket",
+			Fetch: func(_ context.Context, bucket, key string) (io.ReadSeekCloser, files.MinioObjectInfo, error) {
+				if bucket != "bucket" {
+					t.Fatalf("expected bucket bucket, got %s", bucket)
+				}
+				if key != "example.com/webroot/globular.io/index.html" {
+					t.Fatalf("unexpected key %s", key)
+				}
+				return nopSeekCloser{Reader: strings.NewReader("WEBROOT")}, files.MinioObjectInfo{ModTime: time.Unix(20, 0)}, nil
+			},
+		},
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/index.html", nil)
+	req.Host = "globular.io"
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if rr.Body.String() != "WEBROOT" {
+		t.Fatalf("unexpected body %q", rr.Body.String())
 	}
 }
 

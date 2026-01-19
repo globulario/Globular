@@ -23,15 +23,20 @@ import (
 // MinioProxyConfig captures the subset of FileService MinIO settings required
 // to proxy /users/ requests directly to the MinIO gateway.
 type MinioProxyConfig struct {
-	Endpoint string
-	Bucket   string
-	Prefix   string
-	UseSSL   bool
-	Client   *minio.Client
-	Stat     MinioStatFunc
-	Fetch    MinioFetchFunc
-	Put      MinioPutFunc
-	Delete   MinioDeleteFunc
+	Endpoint      string
+	Bucket        string
+	Prefix        string
+	UsersPrefix   string
+	WebrootPrefix string
+	Domain        string
+	UsersBucket   string
+	WebrootBucket string
+	UseSSL        bool
+	Client        *minio.Client
+	Stat          MinioStatFunc
+	Fetch         MinioFetchFunc
+	Put           MinioPutFunc
+	Delete        MinioDeleteFunc
 }
 
 // MinioStatFunc checks whether a MinIO object exists.
@@ -64,6 +69,7 @@ type ServeProvider interface {
 	FindHashedFile(p string) (string, error)
 	FileServiceMinioConfig() (*MinioProxyConfig, error)
 	FileServiceMinioConfigStrict(ctx context.Context) (*MinioProxyConfig, error)
+	Mode() string
 
 	// Security
 	ParseUserID(token string) (string, error) // returns "id@domain" or ""
@@ -131,13 +137,11 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
-		minioCfg, minioErr := p.FileServiceMinioConfig()
-		useMinioPath := strings.HasPrefix(rqstPath, "/users/")
-		if minioErr != nil && useMinioPath {
-			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+		rqstPath, cleanErr := sanitizeRequestPath(rqstPath)
+		if cleanErr != nil {
+			httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 			return
 		}
-		useMinioUsers := minioErr == nil && minioCfg != nil && useMinioPath
 
 		// Base root from webRoot, with vhost subdir if present
 		dir := p.WebRoot()
@@ -187,6 +191,23 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Windows drive quirk: "/C:..." -> "C:..."
 		if len(rqstPath) > 3 && runtime.GOOS == "windows" && rqstPath[0] == '/' && rqstPath[2] == ':' {
 			rqstPath = rqstPath[1:]
+		}
+
+		minioCfg, minioErr := p.FileServiceMinioConfig()
+		hasMinio := minioErr == nil && minioCfg != nil
+		isUsersPath := strings.HasPrefix(rqstPath, "/users/")
+		if minioErr != nil && isUsersPath {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
+			return
+		}
+		useMinioUsers := hasMinio && isUsersPath
+		useMinioWeb := hasMinio && !isUsersPath
+		// Only fallback to disk if MinIO is not available at all
+		// This ensures we use MinIO bucket when it's configured
+		fallbackToDisk := !hasMinio
+		if minioErr != nil && !isUsersPath && !fallbackToDisk {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
+			return
 		}
 
 		// Compute filename; "public" paths are absolute and force validation
@@ -249,10 +270,13 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
-		if useMinioUsers {
-			if serveUsersFromMinio(w, r, minioCfg, rqstPath) {
-				return
-			}
+		if useMinioUsers && serveUsersFromMinio(w, r, minioCfg, rqstPath) {
+			return
+		}
+
+		hostPart := cleanRequestHost(r.Host, minioCfg)
+		if useMinioWeb && serveWebrootFromMinio(w, r, minioCfg, rqstPath, hostPart, fallbackToDisk) {
+			return
 		}
 
 		// Streaming hook
@@ -314,29 +338,41 @@ func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxy
 	if cfg == nil || cfg.Fetch == nil {
 		return false
 	}
-	key := serveMinioObjectKey(cfg, rqstPath)
-	reader, info, err := cfg.Fetch(r.Context(), cfg.Bucket, key)
+	key, err := usersObjectKey(cfg, rqstPath)
 	if err != nil {
-		if isMinioNoSuchKey(err) && isDirCandidate(rqstPath) {
-			playlistPath := path.Join(rqstPath, "playlist.m3u8")
-			if exists, statErr := minioObjectExists(r.Context(), cfg, playlistPath); statErr != nil {
-				httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
-				return true
-			} else if exists {
-				redirectToPlaylist(w, r, playlistPath)
-				return true
+		httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
+		return true
+	}
+	reader, info, err := cfg.Fetch(r.Context(), cfg.usersBucket(), key)
+	if err != nil {
+		if isMinioNoSuchKey(err) {
+			if isDirCandidate(rqstPath) {
+				playlistPath := path.Join(rqstPath, "playlist.m3u8")
+				playlistKey, keyErr := usersObjectKey(cfg, playlistPath)
+				if keyErr != nil {
+					httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
+					return true
+				}
+				playlistReader, _, perr := cfg.Fetch(r.Context(), cfg.usersBucket(), playlistKey)
+				if perr == nil {
+					_ = playlistReader.Close()
+					redirectToPlaylist(w, r, playlistPath)
+					return true
+				}
+				if !isMinioNoSuchKey(perr) {
+					httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+					return true
+				}
 			}
+			return false
 		}
 		httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
 		return true
 	}
 	defer reader.Close()
-	mod := info.ModTime
-	if mod.IsZero() {
-		mod = time.Now().UTC()
-	}
+
 	name := path.Base(key)
-	http.ServeContent(w, r, name, mod, reader)
+	serveMinioContent(w, r, name, info, reader)
 	return true
 }
 
@@ -356,39 +392,55 @@ func isDirCandidate(rqstPath string) bool {
 	return !strings.Contains(base, ".")
 }
 
-func minioObjectExists(ctx context.Context, cfg *MinioProxyConfig, rqstPath string) (bool, error) {
-	if cfg == nil {
-		return false, fmt.Errorf("minio config missing")
+func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxyConfig, rqstPath, host string, fallbackOnError bool) bool {
+	if cfg == nil || cfg.Fetch == nil {
+		return false
 	}
-	key := serveMinioObjectKey(cfg, rqstPath)
-	if cfg.Stat != nil {
-		if _, err := cfg.Stat(ctx, cfg.Bucket, key); err != nil {
-			if isMinioNoSuchKey(err) {
-				return false, nil
-			}
-			return false, err
+	key, err := webrootObjectKey(cfg, host, rqstPath)
+	if err != nil {
+		httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
+		return true
+	}
+	reader, info, err := cfg.Fetch(r.Context(), cfg.webrootBucket(), key)
+	if err != nil {
+		if isMinioNoSuchKey(err) {
+			return false
 		}
-		return true, nil
-	}
-	if cfg.Client != nil {
-		if _, err := cfg.Client.StatObject(ctx, cfg.Bucket, key, minio.StatObjectOptions{}); err != nil {
-			if isMinioNoSuchKey(err) {
-				return false, nil
-			}
-			return false, err
+		if !fallbackOnError {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+			return true
 		}
-		return true, nil
+		return false
 	}
-	return false, fmt.Errorf("minio stat not available")
+	defer reader.Close()
+	name := path.Base(key)
+	serveMinioContent(w, r, name, info, reader)
+	return true
 }
 
-func serveMinioObjectKey(cfg *MinioProxyConfig, rqstPath string) string {
-	key := strings.TrimPrefix(rqstPath, "/")
-	prefix := strings.Trim(cfg.Prefix, "/")
-	if prefix != "" {
-		return path.Join(prefix, key)
+func serveMinioContent(w http.ResponseWriter, r *http.Request, name string, info MinioObjectInfo, reader io.ReadSeeker) {
+	mod := info.ModTime.UTC()
+	if mod.IsZero() {
+		mod = time.Now().UTC()
 	}
-	return key
+	etag := weakMinioETag(info)
+
+	// Conditional GET (304)
+	if inm := r.Header.Get("If-None-Match"); inm != "" && etagMatch(etag, inm) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	if ims := r.Header.Get("If-Modified-Since"); ims != "" {
+		if t, err := time.Parse(http.TimeFormat, ims); err == nil && !mod.After(t) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Last-Modified", mod.Format(http.TimeFormat))
+	setContentTypeFromName(w, name)
+	http.ServeContent(w, r, name, mod, reader)
 }
 
 func isMinioNoSuchKey(err error) bool {
@@ -399,6 +451,175 @@ func isMinioNoSuchKey(err error) bool {
 		return true
 	}
 	return strings.Contains(strings.ToLower(err.Error()), "nosuchkey")
+}
+
+func (cfg *MinioProxyConfig) usersBucket() string {
+	if cfg == nil {
+		return ""
+	}
+	if bucket := strings.TrimSpace(cfg.UsersBucket); bucket != "" {
+		return bucket
+	}
+	return strings.TrimSpace(cfg.Bucket)
+}
+
+func (cfg *MinioProxyConfig) webrootBucket() string {
+	if cfg == nil {
+		return ""
+	}
+	if bucket := strings.TrimSpace(cfg.WebrootBucket); bucket != "" {
+		return bucket
+	}
+	return strings.TrimSpace(cfg.Bucket)
+}
+
+func (cfg *MinioProxyConfig) usersPrefixValue() string {
+	if cfg == nil {
+		return ""
+	}
+	if p := strings.Trim(cfg.UsersPrefix, "/"); p != "" {
+		return p
+	}
+	if p := strings.Trim(cfg.Prefix, "/"); p != "" {
+		return path.Join(p, "users")
+	}
+	return path.Join(defaultDomain(cfg), "users")
+}
+
+func (cfg *MinioProxyConfig) webrootPrefixValue() string {
+	if cfg == nil {
+		return ""
+	}
+	if p := strings.Trim(cfg.WebrootPrefix, "/"); p != "" {
+		return p
+	}
+	if p := strings.Trim(cfg.Prefix, "/"); p != "" {
+		return path.Join(p, "webroot")
+	}
+	return path.Join(defaultDomain(cfg), "webroot")
+}
+
+func defaultDomain(cfg *MinioProxyConfig) string {
+	if cfg != nil && strings.TrimSpace(cfg.Domain) != "" {
+		return strings.TrimSpace(cfg.Domain)
+	}
+	return "localhost"
+}
+
+func usersObjectKey(cfg *MinioProxyConfig, rqstPath string) (string, error) {
+	cleanPath, err := sanitizeRequestPath(rqstPath)
+	if err != nil {
+		return "", err
+	}
+	logical := strings.TrimPrefix(cleanPath, "/users/")
+	return joinKey(cfg.usersPrefixValue(), logical)
+}
+
+func webrootObjectKey(cfg *MinioProxyConfig, host, rqstPath string) (string, error) {
+	cleanPath, err := sanitizeRequestPath(rqstPath)
+	if err != nil {
+		return "", err
+	}
+	host = strings.TrimSpace(host)
+	if host == "" {
+		host = defaultDomain(cfg)
+	}
+	host = strings.Split(host, ":")[0]
+	host = strings.Trim(host, " /.")
+	if host == "" {
+		host = defaultDomain(cfg)
+	}
+	logical := strings.TrimPrefix(cleanPath, "/")
+	return joinKey(cfg.webrootPrefixValue(), host, logical)
+}
+
+func joinKey(parts ...string) (string, error) {
+	cleaned := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		cleanPart, err := safeKeyPart(p)
+		if err != nil {
+			return "", err
+		}
+		if cleanPart != "" {
+			cleaned = append(cleaned, cleanPart)
+		}
+	}
+	return strings.Join(cleaned, "/"), nil
+}
+
+func safeKeyPart(part string) (string, error) {
+	normalized := path.Clean(strings.ReplaceAll(part, "\\", "/"))
+	normalized = strings.Trim(normalized, "/")
+	if normalized == "" || normalized == "." {
+		return "", nil
+	}
+	if normalized == ".." || strings.HasPrefix(normalized, "../") || strings.Contains(normalized, "/../") {
+		return "", fmt.Errorf("invalid path segment")
+	}
+	return normalized, nil
+}
+
+func sanitizeRequestPath(p string) (string, error) {
+	if p == "" {
+		return "/", nil
+	}
+	raw := strings.ReplaceAll(p, "\\", "/")
+	for _, seg := range strings.Split(raw, "/") {
+		if seg == ".." {
+			return "", fmt.Errorf("invalid path traversal")
+		}
+	}
+	cleaned := path.Clean("/" + strings.TrimLeft(strings.TrimSpace(p), "/"))
+	if strings.HasPrefix(cleaned, "/..") || strings.Contains(cleaned, "/../") {
+		return "", fmt.Errorf("invalid path traversal")
+	}
+	return cleaned, nil
+}
+
+func cleanRequestHost(host string, cfg *MinioProxyConfig) string {
+	h := strings.TrimSpace(host)
+	if h == "" && cfg != nil {
+		h = cfg.Domain
+	}
+	h = strings.Split(h, ":")[0]
+	h = strings.Trim(h, " /.")
+	if h == "" && cfg != nil {
+		h = cfg.Domain
+	}
+	if h == "" {
+		h = "localhost"
+	}
+	return h
+}
+
+func setContentTypeFromName(w http.ResponseWriter, name string) {
+	lname := strings.ToLower(name)
+	switch {
+	case strings.HasSuffix(lname, ".js"):
+		w.Header().Set("Content-Type", "application/javascript")
+	case strings.HasSuffix(lname, ".css"):
+		w.Header().Set("Content-Type", "text/css")
+	case strings.HasSuffix(lname, ".html") || strings.HasSuffix(lname, ".htm"):
+		w.Header().Set("Content-Type", "text/html")
+	}
+}
+
+func weakMinioETag(info MinioObjectInfo) string {
+	mod := info.ModTime
+	if mod.IsZero() {
+		mod = time.Now().UTC()
+	}
+	return fmt.Sprintf(`W/"%d-%d"`, info.Size, mod.Unix())
+}
+
+func objectStoreErrMsg(err error) string {
+	if err == nil {
+		return "object store unavailable"
+	}
+	return err.Error()
 }
 
 // --- helpers (internal) ---

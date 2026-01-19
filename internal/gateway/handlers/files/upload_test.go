@@ -162,6 +162,51 @@ func TestUpload_MinioUsers(t *testing.T) {
 	}
 }
 
+func TestUpload_MinioWebroot(t *testing.T) {
+	uploaded := struct {
+		bucket string
+		key    string
+		data   string
+	}{}
+	cfg := &files.MinioProxyConfig{
+		Bucket: "bucket",
+		Domain: "example.com",
+		Put: func(ctx context.Context, bucket, key string, src io.Reader, size int64, contentType string) error {
+			b, err := io.ReadAll(src)
+			if err != nil {
+				return err
+			}
+			uploaded.bucket = bucket
+			uploaded.key = key
+			uploaded.data = string(b)
+			return nil
+		},
+	}
+
+	p := fakeUpload{allowWrite: true, minioCfg: cfg}
+
+	h := files.NewUploadFile(p)
+
+	body, ctype := newMultipart("/", "index.html", "home")
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/file-upload", body)
+	req.Header.Set("Content-Type", ctype)
+	req.Host = "globular.io"
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d (body: %s)", rr.Code, rr.Body.String())
+	}
+	if uploaded.bucket != "bucket" || uploaded.key != "example.com/webroot/globular.io/index.html" {
+		t.Fatalf("unexpected object uploaded: %#v", uploaded)
+	}
+	if uploaded.data != "home" {
+		t.Fatalf("unexpected object data: %q", uploaded.data)
+	}
+}
+
 func TestUpload_MinioUnavailable503(t *testing.T) {
 	p := fakeUpload{allowWrite: true, minioErr: handlers.ErrObjectStoreUnavailable}
 	h := files.NewUploadFile(p)

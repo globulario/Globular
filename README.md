@@ -146,6 +146,16 @@ Globular favors **clarity, control, and self-hosting** over abstraction and vend
 
 ---
 
+## MinIO Webroot / Users Sanity Check
+
+- Buckets and the `webroot`/`users` prefixes are created automatically when the gateway loads the MinIO contract (sentinel `.keep` objects make prefixes visible).
+- Quick manual test (replace host, token, and paths as needed):
+  - Upload to webroot: `curl -X POST http://<gateway>/file-upload -H "token: <admin-token>" -F path=/ -F multiplefiles=@/tmp/index.html`
+  - Upload to users: `curl -X POST http://<gateway>/file-upload -H "token: <user-token>" -F path=/users/alice -F multiplefiles=@/tmp/avatar.png`
+  - Verify: `curl http://<gateway>/index.html` and `curl http://<gateway>/users/alice/avatar.png`
+
+---
+
 ## Installation & Resources
 
 - [General overview of Globular as a personal cloud](https://medium.com/@dave.courtois60/here-comes-globular-5dee34eb52f8)

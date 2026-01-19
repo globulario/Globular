@@ -80,41 +80,51 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		publicDirs := p.PublicDirs()
 
 		var (
-			targetDir   string
-			cleanTarget string
-			addOwner    bool
+			targetDir       string
+			cleanTarget     string
+			addOwner        bool
+			isWebrootTarget bool
+			minioTargetPath bool
 		)
 
+		filesRoot := filepath.Join(p.DataRoot(), "files")
 		if isRBACProtected(dir) {
-			targetDir = filepath.Clean(targetDir)
+			targetDir = filepath.Join(filesRoot, filepath.FromSlash(strings.TrimPrefix(dir, "/")))
+			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
 			addOwner = true
+			minioTargetPath = strings.HasPrefix(dir, "/users/")
 		} else if resolved, ok := resolvePublicDir(dir, publicDirs); ok {
 			targetDir = resolved
 			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
 		} else {
-			httplib.WriteJSONError(w, http.StatusBadRequest, "path not allowed")
-			return
+			targetDir = filepath.Join(p.DataRoot(), "webroot", filepath.FromSlash(strings.TrimPrefix(dir, "/")))
+			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
+			isWebrootTarget = true
+			minioTargetPath = true
 		}
 
 		minioCfg, minioErr := p.FileServiceMinioConfig()
-		minioPath := strings.HasPrefix(dir, "/users/")
-		if minioErr != nil && minioPath {
-			httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+		if minioErr != nil && strings.HasPrefix(dir, "/users/") {
+			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
 			return
 		}
-		useMinio := minioErr == nil && minioCfg != nil && minioCfg.Put != nil && minioPath
+		useMinio := minioErr == nil && minioCfg != nil && minioCfg.Put != nil && minioTargetPath
 
 		// Validate write access (account first via token; fallback to application).
 		has, denied, err := false, false, error(nil)
 		var ownerID string
+		action := "write"
+		if isWebrootTarget {
+			action = "deploy"
+		}
 		if token != "" {
 			if uid, e := p.ParseUserID(token); e == nil && uid != "" {
 				ownerID = uid
-				has, denied, err = p.ValidateAccount(uid, "write", dir)
+				has, denied, err = p.ValidateAccount(uid, action, dir)
 			}
 		}
 		if !has && !denied && app != "" {
-			has, denied, err = p.ValidateApplication(app, "write", dir)
+			has, denied, err = p.ValidateApplication(app, action, dir)
 		}
 		if !has || denied || err != nil {
 			fmt.Println("UploadFile: access denied for", ownerID, "app", app, "to", dir, "has:", has, "denied:", denied, "err:", err)
@@ -170,15 +180,31 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 			logicalPath := path.Join(dir, fh.Filename)
 
 			if useMinio {
-				objKey, err := uploadFileToMinio(r.Context(), minioCfg, logicalPath, fh)
+				var (
+					objKey string
+					bucket string
+					err    error
+				)
+				if strings.HasPrefix(dir, "/users/") {
+					bucket = minioCfg.usersBucket()
+					objKey, err = usersObjectKey(minioCfg, logicalPath)
+				} else {
+					bucket = minioCfg.webrootBucket()
+					host := cleanRequestHost(r.Host, minioCfg)
+					objKey, err = webrootObjectKey(minioCfg, host, logicalPath)
+				}
 				if err != nil {
+					httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
+					return
+				}
+				if err := uploadFileToMinio(r.Context(), minioCfg, bucket, objKey, fh); err != nil {
 					httplib.WriteJSONError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 				if ownerID != "" && addOwner {
 					if err := p.AddResourceOwner(logicalPath, "file", ownerID); err != nil {
 						if minioCfg.Delete != nil {
-							_ = minioCfg.Delete(r.Context(), minioCfg.Bucket, objKey)
+							_ = minioCfg.Delete(r.Context(), bucket, objKey)
 						}
 						httplib.WriteJSONError(w, http.StatusInternalServerError, "ownership error: "+err.Error())
 						return
@@ -297,34 +323,21 @@ func resolvePublicDir(dir string, publicRoots []string) (string, bool) {
 	return "", false
 }
 
-func uploadFileToMinio(ctx context.Context, cfg *MinioProxyConfig, logicalPath string, fh *multipart.FileHeader) (string, error) {
+func uploadFileToMinio(ctx context.Context, cfg *MinioProxyConfig, bucket, key string, fh *multipart.FileHeader) error {
 	if cfg == nil || cfg.Put == nil {
-		return "", fmt.Errorf("storage backend not configured")
+		return fmt.Errorf("storage backend not configured")
 	}
 	if fh.Size == 0 {
-		return "", fmt.Errorf("empty file: %s", fh.Filename)
+		return fmt.Errorf("empty file: %s", fh.Filename)
 	}
 	src, err := fh.Open()
 	if err != nil {
-		return "", fmt.Errorf("form file open error: %w", err)
+		return fmt.Errorf("form file open error: %w", err)
 	}
 	defer src.Close()
-	key := minioObjectKey(cfg.Prefix, logicalPath)
 	contentType := fh.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	if err := cfg.Put(ctx, cfg.Bucket, key, src, fh.Size, contentType); err != nil {
-		return "", err
-	}
-	return key, nil
-}
-
-func minioObjectKey(prefix, logicalPath string) string {
-	key := strings.TrimPrefix(path.Clean(logicalPath), "/")
-	trimmed := strings.Trim(prefix, "/")
-	if trimmed != "" {
-		key = path.Join(trimmed, key)
-	}
-	return key
+	return cfg.Put(ctx, bucket, key, src, fh.Size, contentType)
 }

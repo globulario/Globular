@@ -29,6 +29,7 @@ func (c cacheServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
 func (c cacheServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
 	return nil, nil
 }
+func (c cacheServe) Mode() string                       { return "direct" }
 func (c cacheServe) ParseUserID(string) (string, error) { return "", nil }
 func (c cacheServe) ValidateAccount(string, string, string) (bool, bool, error) {
 	return true, false, nil
