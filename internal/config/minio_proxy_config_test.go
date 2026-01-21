@@ -74,48 +74,6 @@ func TestLoadMinioProxyConfigEnvFallback(t *testing.T) {
 	}
 }
 
-func TestLoadMinioProxyConfigLegacyFallback(t *testing.T) {
-	tempDir := t.TempDir()
-	missing := filepath.Join(tempDir, "missing.json")
-	oldPaths := minioContractPaths
-	t.Cleanup(func() { minioContractPaths = oldPaths })
-	minioContractPaths = []string{missing}
-
-	origGet := getServiceConfigurationByID
-	t.Cleanup(func() { getServiceConfigurationByID = origGet })
-	getServiceConfigurationByID = func(id string) (map[string]any, error) {
-		if id != "file.FileService" {
-			t.Fatalf("unexpected service id %s", id)
-		}
-		return map[string]any{
-			"UseMinio":       true,
-			"MinioEndpoint":  "legacy.example",
-			"MinioBucket":    "bucket",
-			"MinioPrefix":    "/legacy/",
-			"MinioUseSSL":    true,
-			"MinioAccessKey": "ak",
-			"MinioSecretKey": "sk",
-		}, nil
-	}
-
-	t.Setenv("GLOBULAR_MINIO_ENDPOINT", "")
-	t.Setenv("GLOBULAR_MINIO_BUCKET", "")
-
-	cfg, err := LoadMinioProxyConfig()
-	if err != nil {
-		t.Fatalf("legacy load: %v", err)
-	}
-	if cfg.Endpoint != "legacy.example" {
-		t.Fatalf("unexpected endpoint %s", cfg.Endpoint)
-	}
-	if cfg.Prefix != "legacy" {
-		t.Fatalf("unexpected prefix %s", cfg.Prefix)
-	}
-	if cfg.Auth == nil || cfg.Auth.Mode != servicesConfig.MinioProxyAuthModeAccessKey {
-		t.Fatalf("unexpected auth %+v", cfg.Auth)
-	}
-}
-
 func TestLoadMinioProxyConfigInvalidContract(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "minio.json")
@@ -182,6 +140,33 @@ func TestSaveMinioProxyConfig(t *testing.T) {
 	}
 	if loaded.Prefix != "saved" {
 		t.Fatalf("prefix mismatch %s", loaded.Prefix)
+	}
+}
+
+func TestLoadMinioContractPrefersStateOverServiceDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	global := filepath.Join(tmpDir, "objectstore", "minio.json")
+	service := filepath.Join(tmpDir, "services", "minio.json")
+
+	writeContractFile(t, global, &servicesConfig.MinioProxyConfig{
+		Endpoint: "global.example",
+		Bucket:   "bucket",
+	})
+	writeContractFile(t, service, &servicesConfig.MinioProxyConfig{
+		Endpoint: "service.example",
+		Bucket:   "bucket",
+	})
+
+	oldPaths := minioContractPaths
+	t.Cleanup(func() { minioContractPaths = oldPaths })
+	minioContractPaths = []string{global, service}
+
+	cfg, err := LoadMinioProxyConfig()
+	if err != nil {
+		t.Fatalf("load contract: %v", err)
+	}
+	if cfg == nil || cfg.Endpoint != "global.example" {
+		t.Fatalf("expected global contract, got %+v", cfg)
 	}
 }
 

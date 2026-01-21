@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
+	"log/slog"
 
 	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
@@ -101,6 +102,12 @@ func NewServeFile(p ServeProvider) http.Handler {
 		if reqPath == "" || reqPath[0] != '/' {
 			reqPath = "/" + reqPath
 		}
+		isRoot := reqPath == "/" || reqPath == ""
+		xfp := r.Header.Get("X-Forwarded-Proto")
+		xff := r.Header.Get("X-Forwarded-For")
+		if isRoot && r.Method == http.MethodGet {
+			slog.Info("gateway root request", "host", r.Host, "xfp", xfp, "xff", xff)
+		}
 
 		// --- reverse proxy by path prefix ---
 		if target, ok := p.ResolveProxy(reqPath); ok {
@@ -142,6 +149,18 @@ func NewServeFile(p ServeProvider) http.Handler {
 			httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 			return
 		}
+		protoHint := strings.TrimSpace(xfp)
+		if protoHint == "" {
+			protoHint = strings.ToLower(strings.TrimSpace(r.URL.Scheme))
+		}
+		if protoHint == "" {
+			protoHint = strings.ToLower(strings.TrimSpace(strings.Split(r.Proto, "/")[0]))
+		}
+		if protoHint == "" {
+			protoHint = "http"
+		}
+		marker := fmt.Sprintf("Served-By: gateway at %s host=%s proto=%s", time.Now().UTC().Format(time.RFC3339), r.Host, protoHint)
+		w.Header().Set("X-Served-By", marker)
 
 		// Base root from webRoot, with vhost subdir if present
 		dir := p.WebRoot()
@@ -161,6 +180,8 @@ func NewServeFile(p ServeProvider) http.Handler {
 			if idx := p.IndexApplication(); idx != "" {
 				rqstPath = "/" + idx
 				app = idx
+			} else {
+				rqstPath = "/index.html"
 			}
 		} else if strings.Count(rqstPath, "/") == 1 {
 			if hasExt(rqstPath, ".js", ".json", ".css", ".htm", ".html") && p.Exists(filepath.Join(dir, rqstPath)) {
@@ -194,21 +215,17 @@ func NewServeFile(p ServeProvider) http.Handler {
 		}
 
 		minioCfg, minioErr := p.FileServiceMinioConfig()
-		hasMinio := minioErr == nil && minioCfg != nil
 		isUsersPath := strings.HasPrefix(rqstPath, "/users/")
-		if minioErr != nil && isUsersPath {
+		minioConfigured := minioCfg != nil || minioErr != nil
+		if minioConfigured && minioErr != nil {
 			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
 			return
 		}
+		hasMinio := minioConfigured && minioErr == nil
 		useMinioUsers := hasMinio && isUsersPath
 		useMinioWeb := hasMinio && !isUsersPath
-		// Only fallback to disk if MinIO is not available at all
-		// This ensures we use MinIO bucket when it's configured
-		fallbackToDisk := !hasMinio
-		if minioErr != nil && !isUsersPath && !fallbackToDisk {
-			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
-			return
-		}
+		// Only fallback to disk if MinIO is not configured at all
+		fallbackToDisk := !minioConfigured
 
 		// Compute filename; "public" paths are absolute and force validation
 		name := filepath.Join(dir, rqstPath)
@@ -290,7 +307,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Open or hashed fallback
 		f, ferr := openFile(p, name)
 		if ferr != nil {
-			httplib.WriteJSONError(w, http.StatusNoContent, ferr.Error())
+			httplib.WriteJSONError(w, http.StatusNotFound, ferr.Error())
 			return
 		}
 		defer f.Close()
@@ -327,6 +344,13 @@ func NewServeFile(p ServeProvider) http.Handler {
 			w.Header().Set("Content-Type", "text/css")
 		case strings.HasSuffix(lname, ".html") || strings.HasSuffix(lname, ".htm"):
 			w.Header().Set("Content-Type", "text/html")
+			if isRoot {
+				if data, err := os.ReadFile(name); err == nil {
+					htmlWithMarker := fmt.Sprintf("<!-- %s -->\n<div id=\"served-by\">%s</div>\n%s", marker, marker, string(data))
+					http.ServeContent(w, r, name, fi.ModTime(), strings.NewReader(htmlWithMarker))
+					return
+				}
+			}
 		}
 
 		// Default: Range + Last-Modified supported by stdlib
@@ -530,7 +554,23 @@ func webrootObjectKey(cfg *MinioProxyConfig, host, rqstPath string) (string, err
 		host = defaultDomain(cfg)
 	}
 	logical := strings.TrimPrefix(cleanPath, "/")
-	return joinKey(cfg.webrootPrefixValue(), host, logical)
+	if logical == "" {
+		logical = "index.html"
+	}
+	switch {
+	case strings.TrimSpace(cfg.WebrootPrefix) != "":
+		return joinKey(cfg.webrootPrefixValue(), logical)
+	case strings.TrimSpace(cfg.Prefix) != "":
+		return joinKey(cfg.webrootPrefixValue(), logical)
+	default:
+		base := path.Join(host, "webroot")
+		return joinKey(base, logical)
+	}
+}
+
+// Exposed for tests
+func WebrootObjectKeyForTest(cfg *MinioProxyConfig, host, rqstPath string) (string, error) {
+	return webrootObjectKey(cfg, host, rqstPath)
 }
 
 func joinKey(parts ...string) (string, error) {

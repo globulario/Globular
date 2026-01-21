@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ type fakeServe struct {
 	streamed   bool
 	minioCfg   *files.MinioProxyConfig
 	minioErr   error
+	mode       string
 }
 
 type nopSeekCloser struct {
@@ -48,7 +50,12 @@ func (f fakeServe) FileServiceMinioConfig() (*files.MinioProxyConfig, error) {
 func (f fakeServe) FileServiceMinioConfigStrict(ctx context.Context) (*files.MinioProxyConfig, error) {
 	return f.minioCfg, f.minioErr
 }
-func (f fakeServe) Mode() string { return "direct" }
+func (f fakeServe) Mode() string {
+	if f.mode == "" {
+		return "direct"
+	}
+	return f.mode
+}
 func (f fakeServe) ParseUserID(tok string) (string, error) {
 	if tok == "ok" {
 		return "u@d", nil
@@ -216,6 +223,7 @@ func TestServe_MinioUnavailable503(t *testing.T) {
 		webRoot:   tmp,
 		dataRoot:  tmp,
 		allowRead: true,
+		minioCfg:  &files.MinioProxyConfig{Bucket: "bucket"},
 		minioErr:  handlers.ErrObjectStoreUnavailable,
 	}
 
@@ -238,6 +246,7 @@ func TestServe_MinioNotProvisionedMessage(t *testing.T) {
 		webRoot:   tmp,
 		dataRoot:  tmp,
 		allowRead: true,
+		minioCfg:  &files.MinioProxyConfig{Bucket: "bucket"},
 		minioErr:  fmt.Errorf("%w: %s", handlers.ErrObjectStoreUnavailable, errMsg),
 	}
 
@@ -256,6 +265,81 @@ func TestServe_MinioNotProvisionedMessage(t *testing.T) {
 	}
 }
 
+func TestServe_WebrootUnavailableWhenMinioConfigured(t *testing.T) {
+	tmp := t.TempDir()
+	minioCfg := &files.MinioProxyConfig{Bucket: "bucket"}
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg:  minioCfg,
+		minioErr:  handlers.ErrObjectStoreUnavailable,
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/index.html", nil)
+	req.Host = "globular.io"
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rr.Code)
+	}
+}
+
+func TestServe_DirectModeStillRequiresMinioWhenConfigured(t *testing.T) {
+	tmp := t.TempDir()
+	// place a file locally to detect unintended disk fallback
+	if err := os.WriteFile(filepath.Join(tmp, "index.html"), []byte("LOCAL"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg:  &files.MinioProxyConfig{Bucket: "bucket"},
+		minioErr:  handlers.ErrObjectStoreUnavailable,
+		mode:      "direct",
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/index.html", nil)
+	req.Host = "globular.io"
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d (body: %s)", rr.Code, rr.Body.String())
+	}
+	if body := rr.Body.String(); strings.Contains(body, "LOCAL") {
+		t.Fatalf("should not fall back to disk when minio configured; body=%s", body)
+	}
+}
+
+func TestServe_MinioErrorWithoutConfigStill503(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg:  nil,
+		minioErr:  handlers.ErrObjectStoreUnavailable,
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/index.html", nil)
+	req.Host = "globular.io"
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rr.Code)
+	}
+}
+
 func TestServe_MinioWebroot(t *testing.T) {
 	tmp := t.TempDir()
 	p := &fakeServe{
@@ -264,13 +348,13 @@ func TestServe_MinioWebroot(t *testing.T) {
 		allowRead: true,
 		minioCfg: &files.MinioProxyConfig{
 			Domain:        "example.com",
-			WebrootPrefix: "example.com/webroot",
+			WebrootPrefix: "",
 			WebrootBucket: "bucket",
 			Fetch: func(_ context.Context, bucket, key string) (io.ReadSeekCloser, files.MinioObjectInfo, error) {
 				if bucket != "bucket" {
 					t.Fatalf("expected bucket bucket, got %s", bucket)
 				}
-				if key != "example.com/webroot/globular.io/index.html" {
+				if key != "globular.io/webroot/index.html" {
 					t.Fatalf("unexpected key %s", key)
 				}
 				return nopSeekCloser{Reader: strings.NewReader("WEBROOT")}, files.MinioObjectInfo{ModTime: time.Unix(20, 0)}, nil
@@ -290,6 +374,84 @@ func TestServe_MinioWebroot(t *testing.T) {
 	}
 	if rr.Body.String() != "WEBROOT" {
 		t.Fatalf("unexpected body %q", rr.Body.String())
+	}
+}
+
+func TestWebrootObjectKey_DefaultPrefixUsesHost(t *testing.T) {
+	cfg := &files.MinioProxyConfig{Domain: "localhost"}
+	key, err := files.WebrootObjectKeyForTest(cfg, "localhost", "/")
+	if err != nil {
+		t.Fatalf("webroot key err: %v", err)
+	}
+	if key != "localhost/webroot/index.html" {
+		t.Fatalf("unexpected key %s", key)
+	}
+}
+
+func TestWebrootObjectKey_ExplicitPrefix(t *testing.T) {
+	cfg := &files.MinioProxyConfig{WebrootPrefix: "customprefix"}
+	key, err := files.WebrootObjectKeyForTest(cfg, "localhost", "/")
+	if err != nil {
+		t.Fatalf("webroot key err: %v", err)
+	}
+	if key != "customprefix/index.html" {
+		t.Fatalf("unexpected key %s", key)
+	}
+}
+
+func TestServe_MinioWebrootRootPath(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+		minioCfg: &files.MinioProxyConfig{
+			Domain:        "example.com",
+			WebrootPrefix: "",
+			WebrootBucket: "bucket",
+			Fetch: func(_ context.Context, bucket, key string) (io.ReadSeekCloser, files.MinioObjectInfo, error) {
+				if bucket != "bucket" {
+					t.Fatalf("expected bucket bucket, got %s", bucket)
+				}
+				if key != "globular.io/webroot/index.html" {
+					t.Fatalf("unexpected key %s", key)
+				}
+				return nopSeekCloser{Reader: strings.NewReader("ROOT")}, files.MinioObjectInfo{ModTime: time.Unix(20, 0)}, nil
+			},
+		},
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Host = "globular.io"
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if rr.Body.String() == "" {
+		t.Fatalf("expected body served from minio")
+	}
+}
+
+func TestServe_NotFound(t *testing.T) {
+	tmp := t.TempDir()
+	p := &fakeServe{
+		webRoot:   tmp,
+		dataRoot:  tmp,
+		allowRead: true,
+	}
+
+	h := files.NewServeFile(p)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/missing.txt", nil)
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rr.Code)
 	}
 }
 

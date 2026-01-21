@@ -199,7 +199,7 @@ func TestUpload_MinioWebroot(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d (body: %s)", rr.Code, rr.Body.String())
 	}
-	if uploaded.bucket != "bucket" || uploaded.key != "example.com/webroot/globular.io/index.html" {
+	if uploaded.bucket != "bucket" || uploaded.key != "globular.io/webroot/index.html" {
 		t.Fatalf("unexpected object uploaded: %#v", uploaded)
 	}
 	if uploaded.data != "home" {

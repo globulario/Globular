@@ -64,3 +64,24 @@ func TestMinioConfigCache_StrictProbeBackoff(t *testing.T) {
 		t.Fatalf("strictUntil not set for backoff")
 	}
 }
+
+func TestMinioConfigCache_PartialOnError(t *testing.T) {
+	cache := &minioConfigCache{
+		ttl: minioConfigCacheTTL,
+	}
+	cfgShell := &filesHandlers.MinioProxyConfig{Bucket: "b"}
+	cache.strictProbe = func(context.Context) (*filesHandlers.MinioProxyConfig, error) {
+		return cfgShell, ErrObjectStoreUnavailable
+	}
+
+	cfg, err := cache.get()
+	if err == nil || cfg != cfgShell {
+		t.Fatalf("expected cfg shell with error, got cfg=%v err=%v", cfg, err)
+	}
+	if cache.strictOnce {
+		t.Fatalf("strictOnce should remain false on error")
+	}
+	if cache.strictUntil.IsZero() {
+		t.Fatalf("expected backoff set")
+	}
+}

@@ -30,20 +30,29 @@ var (
 	getServiceConfigurationByID = servicesConfig.GetServiceConfigurationById
 )
 
+func init() {
+	if custom := strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_CONTRACT_PATH")); custom != "" {
+		minioContractPaths = []string{custom}
+		minioContractSavePath = custom
+	}
+}
+
 // LoadMinioProxyConfig locates the MinIO contract, falls back to env/legacy config, and validates input.
 func LoadMinioProxyConfig() (*servicesConfig.MinioProxyConfig, error) {
 	if cfg, err := loadMinioContract(); err == nil {
 		return cfg, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
+		slog.Warn("objectstore contract invalid", "paths", strings.Join(minioContractPaths, ","), "err", err)
 		return nil, err
 	}
 
+	slog.Warn("objectstore contract not found; trying env/legacy", "paths", strings.Join(minioContractPaths, ","))
 	if cfg, err := loadMinioEnvConfig(); err != nil {
 		return nil, err
 	} else if cfg != nil {
 		return cfg, nil
 	}
-	return loadLegacyMinioConfig()
+	return nil, os.ErrNotExist
 }
 
 func loadMinioContract() (*servicesConfig.MinioProxyConfig, error) {
@@ -63,8 +72,10 @@ func loadMinioContract() (*servicesConfig.MinioProxyConfig, error) {
 			}
 			return nil, err
 		}
+		slog.Info("objectstore contract loaded", "path", path, "endpoint", cfg.Endpoint, "bucket", cfg.Bucket, "secure", cfg.Secure)
 		return cfg, nil
 	}
+	logContractNotFound(minioContractPaths)
 	return nil, os.ErrNotExist
 }
 
@@ -76,6 +87,16 @@ func logContractParseError(path string, err error) {
 	}
 	minioContractLogState.last = time.Now()
 	slog.Warn("failed to parse object store contract", "path", path, "err", err)
+}
+
+func logContractNotFound(paths []string) {
+	minioContractLogState.mu.Lock()
+	defer minioContractLogState.mu.Unlock()
+	if time.Since(minioContractLogState.last) < minioContractLogTTL {
+		return
+	}
+	minioContractLogState.last = time.Now()
+	slog.Warn("object store contract not found; serving disk webroot", "paths", strings.Join(paths, ","))
 }
 
 func loadMinioEnvConfig() (*servicesConfig.MinioProxyConfig, error) {

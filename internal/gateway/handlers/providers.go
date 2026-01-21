@@ -279,6 +279,9 @@ func (c *minioConfigCache) get() (*filesHandlers.MinioProxyConfig, error) {
 				c.mu.Unlock()
 				return strictCfg, nil
 			}
+			if strictCfg != nil {
+				c.cfg = strictCfg
+			}
 			c.err = strictErr
 			c.strictUntil = now.Add(strictProbeBackoff)
 			c.loadedAt = now
@@ -318,7 +321,7 @@ func (c *minioConfigCache) getStrict(ctx context.Context) (*filesHandlers.MinioP
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, strictProbeTimeout)
 	defer cancel()
-	return buildFilesMinioProxyConfigWithContext(probeCtx, cfg)
+	return buildFilesMinioProxyConfigWithContext(probeCtx, cfg, true)
 }
 
 func (c *minioConfigCache) refresh() (*filesHandlers.MinioProxyConfig, error) {
@@ -358,10 +361,10 @@ const (
 func buildFilesMinioProxyConfig(cfg *config_.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), minioHealthTimeout)
 	defer cancel()
-	return buildFilesMinioProxyConfigWithContext(ctx, cfg)
+	return buildFilesMinioProxyConfigWithContext(ctx, cfg, true)
 }
 
-func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.MinioProxyConfig) (*filesHandlers.MinioProxyConfig, error) {
+func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.MinioProxyConfig, allowPartial bool) (*filesHandlers.MinioProxyConfig, error) {
 	opts, err := buildMinioOptions(cfg)
 	if err != nil {
 		return nil, err
@@ -372,10 +375,16 @@ func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.Min
 	}
 	layout := deriveMinioLayout(cfg)
 	if err := validateBucketExists(ctx, client, layout.usersBucket); err != nil {
-		return nil, err
+		if !allowPartial {
+			return nil, err
+		}
+		return buildPartialMinioConfig(cfg, layout, client, err), err
 	}
 	if err := validateBucketExists(ctx, client, layout.webrootBucket); err != nil {
-		return nil, err
+		if !allowPartial {
+			return nil, err
+		}
+		return buildPartialMinioConfig(cfg, layout, client, err), err
 	}
 
 	prefix := strings.Trim(cfg.Prefix, "/")
@@ -427,6 +436,22 @@ func buildFilesMinioProxyConfigWithContext(ctx context.Context, cfg *config_.Min
 			return client.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
 		},
 	}, nil
+}
+
+func buildPartialMinioConfig(cfg *config_.MinioProxyConfig, layout minioLayout, client *minio.Client, cause error) *filesHandlers.MinioProxyConfig {
+	prefix := strings.Trim(cfg.Prefix, "/")
+	return &filesHandlers.MinioProxyConfig{
+		Endpoint:      cfg.Endpoint,
+		Bucket:        cfg.Bucket,
+		Prefix:        prefix,
+		UsersPrefix:   layout.usersPrefix,
+		WebrootPrefix: layout.webrootPrefix,
+		UsersBucket:   layout.usersBucket,
+		WebrootBucket: layout.webrootBucket,
+		Domain:        layout.domain,
+		UseSSL:        cfg.Secure,
+		Client:        client,
+	}
 }
 
 func buildMinioOptions(cfg *config_.MinioProxyConfig) (minio.Options, error) {

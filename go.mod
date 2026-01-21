@@ -1,6 +1,6 @@
 module github.com/globulario/Globular
 
-go 1.24.5
+go 1.23
 
 // set local replace github.com/globulario/services/golang => ../services/golang
 replace github.com/globulario/services/golang => ../services/golang

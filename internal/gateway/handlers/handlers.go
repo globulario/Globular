@@ -55,6 +55,10 @@ func (h *GatewayHandlers) Router(logger *slog.Logger) *http.ServeMux {
 	}, wrap(serve))
 
 	mux.Handle("/serve/", wrap(http.StripPrefix("/serve", serve)))
+	mux.Handle("/serve", wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/serve/", http.StatusMovedPermanently)
+	})))
+	mux.Handle("/globular/webroot/", wrap(http.StripPrefix("/globular/webroot", serve)))
 
 	h.wireConfig(mux, wrap)
 	h.wireFiles(mux, wrap)

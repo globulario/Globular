@@ -21,7 +21,7 @@ func TestWebrootObjectKeyMapping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("webrootObjectKey error: %v", err)
 	}
-	if key != "example.com/webroot/globular.io/index.html" {
+	if key != "globular.io/webroot/index.html" {
 		t.Fatalf("unexpected key %q", key)
 	}
 }
@@ -33,7 +33,7 @@ func TestPathSanitizationRejectsTraversal(t *testing.T) {
 	}
 	if key, err := webrootObjectKey(cfg, "globular.io", "//double//slash"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	} else if key != "example.com/webroot/globular.io/double/slash" {
+	} else if key != "globular.io/webroot/double/slash" {
 		t.Fatalf("unexpected normalized key %q", key)
 	}
 }

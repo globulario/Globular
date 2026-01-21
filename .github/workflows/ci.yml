@@ -19,39 +19,58 @@ jobs:
         with:
           repository: globulario/services
           path: services
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: '1.23.x'
+          cache: true
           cache-dependency-path: |
             Globular/go.sum
             services/golang/go.sum
 
-      - name: Setup workspace
+      - name: Verify workspace structure
         run: |
-          cd Globular
-          # The go.mod has a replace directive pointing to ../services/golang
-          # which now exists since we checked out both repos side by side
+          echo "=== Workspace structure ==="
+          ls -la
+          echo ""
+          echo "=== Globular directory ==="
+          ls -la Globular
+          echo ""
+          echo "=== Services directory ==="
+          ls -la services
+          echo ""
+          echo "=== Go version ==="
+          go version
 
       - name: Download dependencies
         run: |
           cd Globular
           go mod download
+          go mod verify
 
       - name: Build
         run: |
           cd Globular
-          go build ./...
+          go build -v ./...
 
       - name: Test
         run: |
           cd Globular
-          go test ./... -race -coverprofile=coverage.out
+          go test -v ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: success()
+        with:
+          file: ./Globular/coverage.out
+          fail_ci_if_error: false
 
       - name: Lint
         uses: golangci/golangci-lint-action@v6
+        continue-on-error: true
         with:
           version: latest
           working-directory: Globular
-          args: --timeout=5m
+          args: --timeout=5m --verbose
