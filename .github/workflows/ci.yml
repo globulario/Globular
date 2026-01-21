@@ -32,6 +32,11 @@ jobs:
             Globular/go.sum
             services/golang/go.sum
 
+      - name: Force module mode
+        run: |
+          go env -w GO111MODULE=on
+          go env
+
       - name: Verify workspace structure
         run: |
           echo "=== Workspace structure ==="
