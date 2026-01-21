@@ -54,14 +54,11 @@ jobs:
           fi
           cat go.mod | head -5
 
-      - name: Tidy dependencies
-        run: |
-          cd Globular
-          go mod tidy
-
       - name: Download dependencies
         run: |
           cd Globular
+          # Skip go mod tidy - use committed go.mod/go.sum as-is
+          # Internal packages should already be correctly configured
           go mod download
           go mod verify
 
