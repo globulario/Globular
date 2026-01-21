@@ -180,10 +180,10 @@ func main() {
 }
 
 func hasExistingTLSCert(g *globpkg.Globule) bool {
-	domainDir := tlsDomain(g)
+	_, certPath, _, _ := globconfig.CanonicalTLSPaths(globconfig.GetRuntimeConfigDir())
 	candidates := []string{
-		filepath.Join(globconfig.GetRuntimeTLSDir(), domainDir, "fullchain.pem"),
-		filepath.Join(globconfig.GetConfigDir(), "tls", domainDir, "fullchain.pem"),
+		certPath,
+		filepath.Join(globconfig.GetConfigDir(), "tls", "fullchain.pem"),
 	}
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {

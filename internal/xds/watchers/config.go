@@ -1,12 +1,11 @@
 package watchers
 
+import config_ "github.com/globulario/services/golang/config"
+
 const (
-	defaultIngressHTTPPort    = uint32(80)
-	defaultIngressHTTPSPort   = uint32(443)
-	defaultGatewayListenPort  = uint32(8080)
-	defaultIngressCertPath    = "/var/lib/globular/tls/fullchain.pem"
-	defaultIngressKeyPath     = "/var/lib/globular/tls/privkey.pem"
-	defaultIngressProvisionCA = "/var/lib/globular/tls/ca.pem"
+	defaultIngressHTTPPort   = uint32(80)
+	defaultIngressHTTPSPort  = uint32(443)
+	defaultGatewayListenPort = uint32(8080)
 )
 
 // XDSConfig describes the static configuration needed by globular-xds.
@@ -125,6 +124,7 @@ func (cfg *XDSConfig) normalize() {
 }
 
 func (ic *IngressConfig) normalize() {
+	_, certPath, keyPath, caPath := config_.CanonicalTLSPaths(config_.GetRuntimeConfigDir())
 	if ic.HTTPPort == 0 {
 		ic.HTTPPort = defaultIngressHTTPPort
 	}
@@ -135,16 +135,16 @@ func (ic *IngressConfig) normalize() {
 		ic.EnableHTTPRedirect = boolPtr(true)
 	}
 	if ic.TLS.CertChainPath == "" {
-		ic.TLS.CertChainPath = defaultIngressCertPath
+		ic.TLS.CertChainPath = certPath
 	}
 	if ic.TLS.PrivateKeyPath == "" {
-		ic.TLS.PrivateKeyPath = defaultIngressKeyPath
+		ic.TLS.PrivateKeyPath = keyPath
 	}
 	if ic.TLS.Enabled == nil {
 		ic.TLS.Enabled = boolPtr(true)
 	}
 	if ic.MTLS.CAPath == "" {
-		ic.MTLS.CAPath = defaultIngressProvisionCA
+		ic.MTLS.CAPath = caPath
 	}
 }
 

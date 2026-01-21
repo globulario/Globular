@@ -47,7 +47,6 @@ type Globule struct {
 	Certificate                string
 	CertificateAuthorityBundle string
 	CertURL, CertStableURL     string
-	creds                      string // config/tls/<domain>
 
 	// Admin / auth
 	AdminEmail     string
@@ -199,13 +198,6 @@ func (g *Globule) InitFS() error {
 		}
 	}
 
-	// TLS creds dir: runtime tls/<domain>
-	credsDomain := g.Domain
-	if credsDomain == "" {
-		credsDomain = "localhost"
-	}
-	g.creds = filepath.Join(tlsDir, credsDomain)
-
 	// Persist defaults on first run if config missing (single save later).
 	cfgPath := filepath.Join(g.configDir, "config.json")
 	needsSave := !Utility.Exists(cfgPath)
@@ -221,9 +213,11 @@ func (g *Globule) InitFS() error {
 	}
 
 	// Generate peer keys for this server if missing
-	if err := security.GeneratePeerKeys(g.Mac); err != nil {
-		g.log.Error("fail to generate peer keys", "err", err)
-		return err
+	if os.Getenv("GLOBULAR_SKIP_PEER_KEYS") != "1" {
+		if err := security.GeneratePeerKeys(g.Mac); err != nil {
+			g.log.Error("fail to generate peer keys", "err", err)
+			return err
+		}
 	}
 	if needsSave {
 		if err := g.SaveConfig(); err != nil {

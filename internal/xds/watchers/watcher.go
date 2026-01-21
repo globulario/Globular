@@ -552,6 +552,7 @@ func (w *Watcher) applyIngressSettings(spec *IngressSpec, cfg *XDSConfig) {
 	if spec == nil || cfg == nil {
 		return
 	}
+	domain, _ := config.GetDomain()
 	if spec.Listener.Host == "" {
 		spec.Listener.Host = "0.0.0.0"
 	}
@@ -569,6 +570,13 @@ func (w *Watcher) applyIngressSettings(spec *IngressSpec, cfg *XDSConfig) {
 		spec.EnableHTTPRedirect = cfg.ingressRedirectEnabled()
 	}
 	spec.GatewayPort = cfg.gatewayPort()
+	if domain != "" {
+		for i := range spec.Routes {
+			if len(spec.Routes[i].Domains) == 0 {
+				spec.Routes[i].Domains = []string{strings.ToLower(strings.TrimSpace(domain))}
+			}
+		}
+	}
 	w.applyIngressTLS(spec, cfg)
 }
 
