@@ -44,7 +44,7 @@ jobs:
           echo "=== Go version ==="
           go version
 
-      - name: Fix go.mod version if needed
+      - name: Fix go.mod version and tidy
         run: |
           cd Globular
           # Replace any non-existent Go version with a valid one
@@ -52,13 +52,16 @@ jobs:
             echo "Fixing go.mod version from 1.24.x to 1.23"
             sed -i 's/go 1\.24\.[0-9]*/go 1.23/' go.mod
           fi
+          echo "Current go.mod header:"
           cat go.mod | head -5
+          echo ""
+          echo "Running go mod tidy to ensure consistency..."
+          go mod tidy
+          echo "Tidy complete"
 
       - name: Download dependencies
         run: |
           cd Globular
-          # Skip go mod tidy - use committed go.mod/go.sum as-is
-          # Internal packages should already be correctly configured
           go mod download
           go mod verify
 
