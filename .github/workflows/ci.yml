@@ -44,24 +44,23 @@ jobs:
           echo "=== Go version ==="
           go version
 
-      - name: Fix go.mod version and tidy
+      - name: Fix go.mod version
         run: |
           cd Globular
           # Replace any non-existent Go version with a valid one
+          # DO NOT run go mod tidy - it incorrectly treats internal packages as external
           if grep -q "go 1.24" go.mod; then
             echo "Fixing go.mod version from 1.24.x to 1.23"
             sed -i 's/go 1\.24\.[0-9]*/go 1.23/' go.mod
           fi
           echo "Current go.mod header:"
           cat go.mod | head -5
-          echo ""
-          echo "Running go mod tidy to ensure consistency..."
-          go mod tidy
-          echo "Tidy complete"
 
       - name: Download dependencies
         run: |
           cd Globular
+          # Use committed go.mod/go.sum without modification
+          # go mod tidy causes issues with internal packages in CI
           go mod download
           go mod verify
 
