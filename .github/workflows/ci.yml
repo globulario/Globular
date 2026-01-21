@@ -24,7 +24,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: '>=1.23'
           cache: true
           cache-dependency-path: |
             Globular/go.sum
@@ -43,6 +43,21 @@ jobs:
           echo ""
           echo "=== Go version ==="
           go version
+
+      - name: Fix go.mod version if needed
+        run: |
+          cd Globular
+          # Replace any non-existent Go version with a valid one
+          if grep -q "go 1.24" go.mod; then
+            echo "Fixing go.mod version from 1.24.x to 1.23"
+            sed -i 's/go 1\.24\.[0-9]*/go 1.23/' go.mod
+          fi
+          cat go.mod | head -5
+
+      - name: Tidy dependencies
+        run: |
+          cd Globular
+          go mod tidy
 
       - name: Download dependencies
         run: |
