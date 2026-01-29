@@ -33,11 +33,13 @@ build: build-all
 
 build-gateway: check-gateway-no-exec
 	mkdir -p ./.bin
-	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/gateway ./cmd/globular-gateway
+	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/gateway_server ./cmd/globular-gateway
+	ln -sf gateway_server ./.bin/gateway
 
 build-xds:
 	mkdir -p ./.bin
-	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/xds ./cmd/globular-xds
+	CGO_ENABLED=$(CGO) go build -trimpath -ldflags "-s -w" -o ./.bin/xds_server ./cmd/globular-xds
+	ln -sf xds_server ./.bin/xds
 
 build-all: check-legacy-guard build-gateway build-xds
 

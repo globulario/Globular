@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,6 +22,8 @@ import (
 	globconfig "github.com/globulario/services/golang/config"
 )
 
+const gatewayServiceID = "gateway.GatewayService"
+
 var (
 	maxUpload           = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
 	rateRPS             = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
@@ -32,6 +35,7 @@ var (
 	httpsPortOverride   = flag.String("https", "", "override HTTPS port when config file is used")
 	gatewayConfigPath   = flag.String("config", "", "path to gateway config file (JSON)")
 	printDefaultGateway = flag.Bool("print-default-config", false, "print default gateway config and exit")
+	describeFlag        = flag.Bool("describe", false, "print gateway metadata as JSON and exit")
 )
 
 func main() {
@@ -87,6 +91,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	serviceCfg, err := loadServicePortConfig(gatewayServiceID)
+	if err != nil {
+		logger.Warn("read service port config", "service", gatewayServiceID, "err", err)
+	}
+
+	globule := globpkg.New(logger)
+	applyGatewayConfigToGlobule(logger, globule, finalCfg)
+	applyServicePortConfigToGlobule(globule, serviceCfg)
+
+	if *describeFlag {
+		if err := emitGatewayDescribe(serviceCfg, globule); err != nil {
+			logger.Error("describe failed", "err", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	bootstrapped, err := globconfig.EnsureLocalConfig()
 	if err != nil {
 		logger.Error("ensure local config failed", "err", err)
@@ -95,9 +116,6 @@ func main() {
 	if bootstrapped {
 		logger.Info("bootstrapped local config")
 	}
-
-	globule := globpkg.New(logger)
-	applyGatewayConfigToGlobule(logger, globule, finalCfg)
 
 	mode := strings.ToLower(strings.TrimSpace(finalCfg.Mode))
 	switch mode {
@@ -228,4 +246,114 @@ func applyGatewayConfigToGlobule(logger *slog.Logger, g *globpkg.Globule, cfg ga
 	if cfg.HTTPSPort > 0 {
 		g.PortHTTPS = cfg.HTTPSPort
 	}
+}
+
+type servicePortConfig struct {
+	Id      string `json:"Id"`
+	Address string `json:"Address"`
+	Port    int    `json:"Port"`
+}
+
+func loadServicePortConfig(serviceID string) (*servicePortConfig, error) {
+	if serviceID == "" {
+		return nil, fmt.Errorf("service id is empty")
+	}
+	path := filepath.Join(globconfig.GetServicesConfigDir(), serviceID+".json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	var cfg servicePortConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	if cfg.Port == 0 {
+		cfg.Port = portFromAddress(cfg.Address)
+	}
+	if cfg.Id == "" {
+		cfg.Id = serviceID
+	}
+	return &cfg, nil
+}
+
+func applyServicePortConfigToGlobule(g *globpkg.Globule, cfg *servicePortConfig) {
+	if g == nil || cfg == nil {
+		return
+	}
+	port := cfg.Port
+	if port == 0 {
+		port = portFromAddress(cfg.Address)
+	}
+	if port > 0 {
+		g.PortHTTP = port
+		g.PortHTTPS = port
+	}
+}
+
+func emitGatewayDescribe(cfg *servicePortConfig, g *globpkg.Globule) error {
+	port := gatewayListenPort(g, cfg)
+	if port <= 0 {
+		return fmt.Errorf("gateway port unavailable for describe")
+	}
+	addr := fmt.Sprintf("localhost:%d", port)
+	if cfg != nil && strings.TrimSpace(cfg.Address) != "" {
+		addr = strings.TrimSpace(cfg.Address)
+		if p := portFromAddress(addr); p > 0 {
+			port = p
+		}
+	}
+	payload := servicePortConfig{
+		Id:      gatewayServiceID,
+		Address: addr,
+		Port:    port,
+	}
+	out, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(out))
+	return nil
+}
+
+func gatewayListenPort(g *globpkg.Globule, cfg *servicePortConfig) int {
+	if cfg != nil && cfg.Port > 0 {
+		return cfg.Port
+	}
+	if g == nil {
+		return 0
+	}
+	if strings.EqualFold(strings.TrimSpace(g.Protocol), "https") && g.PortHTTPS > 0 {
+		return g.PortHTTPS
+	}
+	if g.PortHTTP > 0 {
+		return g.PortHTTP
+	}
+	return 0
+}
+
+func portFromAddress(addr string) int {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return 0
+	}
+	if strings.HasPrefix(addr, ":") {
+		addr = "localhost" + addr
+	}
+	if _, portStr, err := net.SplitHostPort(addr); err == nil {
+		if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
+			return p
+		}
+	}
+	if idx := strings.LastIndex(addr, ":"); idx > 0 {
+		if p, err := strconv.Atoi(addr[idx+1:]); err == nil && p > 0 {
+			return p
+		}
+	}
+	if p, err := strconv.Atoi(addr); err == nil && p > 0 {
+		return p
+	}
+	return 0
 }
