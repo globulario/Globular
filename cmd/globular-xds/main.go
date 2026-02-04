@@ -48,8 +48,16 @@ func main() {
 		watchInterval      = flag.Duration("watch_interval", 5*time.Second, "static config polling interval")
 		debugSignals       = flag.Bool("debug_signals", false, "log signals received while running")
 		describeFlag       = flag.Bool("describe", false, "print xds metadata as JSON and exit")
+		controllerAddr     = flag.String("controller_addr", "", "cluster controller address for DNS-based routing (optional, enables cluster mode)")
 	)
 	flag.Parse()
+
+	// Allow controller address to be set via environment variable (PR4)
+	if *controllerAddr == "" {
+		if envAddr := os.Getenv("CLUSTER_CONTROLLER_ADDR"); envAddr != "" {
+			*controllerAddr = envAddr
+		}
+	}
 
 	xdsCfg, cfgErr := loadXDSServiceConfig(*serviceConfigPath)
 	var missingConfigErr error
@@ -150,7 +158,7 @@ func main() {
 		}
 	}()
 
-	watcher := watchers.New(logger, xdsServer, *xdsConfigPath, *nodeID, *watchInterval, watchers.ParseDownstreamTLSMode(*downstreamTLSMode))
+	watcher := watchers.New(logger, xdsServer, *xdsConfigPath, *nodeID, *watchInterval, watchers.ParseDownstreamTLSMode(*downstreamTLSMode), *controllerAddr)
 	go func() {
 		if err := watcher.Run(ctx); err != nil {
 			if errors.Is(err, context.Canceled) {
