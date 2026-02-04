@@ -6,13 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/globulario/Globular/internal/controllerclient"
 	"github.com/globulario/Globular/internal/controlplane"
+	"github.com/globulario/Globular/internal/dnscache"
 	"github.com/globulario/Globular/internal/xds/builder"
 	"github.com/globulario/Globular/internal/xds/server"
+	clustercontrollerpb "github.com/globulario/services/golang/clustercontroller/clustercontrollerpb"
 	"github.com/globulario/services/golang/config"
 	Utility "github.com/globulario/utility"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -65,10 +69,16 @@ type Watcher struct {
 	ingressPortCollisionWarned  bool
 	configCached                *XDSConfig
 	configMod                   time.Time
+
+	// DNS-first routing (PR4)
+	controllerAddr string
+	clusterNetwork *clustercontrollerpb.ClusterNetwork
+	dnsCache       *dnscache.Cache
 }
 
 // New creates a watcher bound to the given server.
-func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, interval time.Duration, downstreamMode DownstreamTLSMode) *Watcher {
+// controllerAddr is optional - if provided, enables DNS-based service routing in cluster mode.
+func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, interval time.Duration, downstreamMode DownstreamTLSMode, controllerAddr string) *Watcher {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
@@ -93,6 +103,8 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 		interval:          interval,
 		downstreamTLSMode: downstreamMode,
 		protocol:          protocol,
+		controllerAddr:    strings.TrimSpace(controllerAddr),
+		dnsCache:          dnscache.New(30 * time.Second), // Default 30s TTL
 	}
 }
 
@@ -134,6 +146,20 @@ func (w *Watcher) Run(ctx context.Context) error {
 }
 
 func (w *Watcher) sync(ctx context.Context) error {
+	// Fetch cluster network config if controller address is configured (PR4)
+	if w.controllerAddr != "" && w.clusterNetwork == nil {
+		if err := w.fetchClusterNetwork(ctx); err != nil {
+			w.logger.Warn("failed to fetch cluster network config", "err", err, "controller_addr", w.controllerAddr)
+			// Continue without cluster config - fall back to IP-based routing
+		} else if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
+			ttl := time.Duration(w.clusterNetwork.Spec.DnsTtl) * time.Second
+			if ttl > 0 && ttl != 30*time.Second {
+				w.dnsCache = dnscache.New(ttl)
+				w.logger.Info("DNS cache configured", "ttl", ttl, "cluster_domain", w.clusterNetwork.Spec.ClusterDomain)
+			}
+		}
+	}
+
 	prevProtocol := w.protocol
 	w.protocol = detectLocalProtocol()
 	if w.logger != nil && prevProtocol != "" && prevProtocol != w.protocol {
@@ -161,6 +187,25 @@ func (w *Watcher) sync(ctx context.Context) error {
 		return fmt.Errorf("push snapshot: %w", err)
 	}
 	w.logger.Info("xDS snapshot pushed", "node_id", input.NodeID, "version", version)
+	return nil
+}
+
+// fetchClusterNetwork retrieves cluster network configuration from the controller (PR4)
+func (w *Watcher) fetchClusterNetwork(ctx context.Context) error {
+	if w.controllerAddr == "" {
+		return fmt.Errorf("controller address not configured")
+	}
+
+	client := controllerclient.New(w.controllerAddr)
+	clusterNet, err := client.GetClusterNetwork(ctx)
+	if err != nil {
+		return fmt.Errorf("get cluster network: %w", err)
+	}
+
+	w.clusterNetwork = clusterNet
+	w.logger.Info("fetched cluster network config",
+		"cluster_domain", clusterNet.Spec.GetClusterDomain(),
+		"gateway_fqdn", clusterNet.Spec.GetGatewayFqdn())
 	return nil
 }
 
@@ -328,7 +373,7 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 
 	for _, svc := range services {
 		name := strings.TrimSpace(fmt.Sprint(svc["Name"]))
-		host, port := resolveServiceHostPort(svc)
+		host, port := w.resolveServiceHostPort(ctx, svc)
 		if w.logger != nil && strings.TrimSpace(fmt.Sprint(svc["Address"])) == "" {
 			w.logger.Debug("service Address empty; defaulting to local endpoint", "service", name, "host", host, "port", port)
 		}
@@ -925,7 +970,10 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
 	return uint32(targetPort)
 }
 
-func resolveServiceHostPort(svc map[string]any) (string, int) {
+// resolveServiceHostPort extracts host and port from service config.
+// In cluster mode (when watcher has clusterNetwork config), prefers FQDN-based routing.
+// Falls back to IP-based routing if DNS lookup fails or cluster mode is not enabled.
+func (w *Watcher) resolveServiceHostPort(ctx context.Context, svc map[string]any) (string, int) {
 	addr := strings.TrimSpace(fmt.Sprint(svc["Address"]))
 
 	host := ""
@@ -938,11 +986,71 @@ func resolveServiceHostPort(svc map[string]any) (string, int) {
 		port = Utility.ToInt(svc["Proxy"])
 	}
 
+	// If no host specified, try DNS-based routing in cluster mode (PR4)
+	if host == "" && w.isClusterMode() {
+		// In cluster mode, try to construct FQDN from service name
+		// Services in cluster mode should have proper Address field set by node-agent,
+		// but if not, fall back to localhost
+		if fqdn := w.tryConstructServiceFQDN(svc); fqdn != "" {
+			if resolvedHost := w.resolveDNS(ctx, fqdn); resolvedHost != "" {
+				return resolvedHost, port
+			}
+		}
+	}
+
+	// Fallback to localhost for non-cluster mode or DNS resolution failure
 	if host == "" {
 		host = "127.0.0.1"
 	}
 
 	return host, port
+}
+
+// isClusterMode returns true if the watcher is operating in cluster mode
+func (w *Watcher) isClusterMode() bool {
+	return w.clusterNetwork != nil &&
+		w.clusterNetwork.Spec != nil &&
+		w.clusterNetwork.Spec.ClusterDomain != ""
+}
+
+// tryConstructServiceFQDN attempts to construct an FQDN for a service.
+// In practice, services should have their Address field set properly by node-agent.
+// This is a fallback to handle edge cases.
+func (w *Watcher) tryConstructServiceFQDN(svc map[string]any) string {
+	// Extract node information from service if available
+	// This is a simplified version - in production, services should have
+	// proper Address fields set (e.g., "service.node-01.cluster.local")
+	if addr := strings.TrimSpace(fmt.Sprint(svc["Address"])); addr != "" {
+		// If Address already looks like an FQDN, use it
+		if strings.Contains(addr, ".") && !net.ParseIP(addr).IsLoopback() {
+			return strings.Split(addr, ":")[0]
+		}
+	}
+
+	// Cannot construct FQDN without proper service metadata
+	return ""
+}
+
+// resolveDNS performs DNS lookup using the cache and returns the first IP as a string.
+// Returns empty string on failure (caller should fall back to IP-based routing).
+func (w *Watcher) resolveDNS(ctx context.Context, fqdn string) string {
+	if w.dnsCache == nil {
+		return ""
+	}
+
+	ips, err := w.dnsCache.Lookup(ctx, fqdn)
+	if err != nil {
+		w.logger.Warn("DNS lookup failed, falling back to IP routing",
+			"fqdn", fqdn, "err", err)
+		return ""
+	}
+
+	if len(ips) == 0 {
+		return ""
+	}
+
+	// Return first IP as string
+	return ips[0].String()
 }
 
 func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
