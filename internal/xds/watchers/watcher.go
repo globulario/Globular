@@ -972,7 +972,7 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
 
 // resolveServiceHostPort extracts host and port from service config.
 // In cluster mode (when watcher has clusterNetwork config), prefers FQDN-based routing.
-// Falls back to IP-based routing if DNS lookup fails or cluster mode is not enabled.
+// PR4.1: Tries SRV records first, then falls back to A/AAAA, then IP-based routing.
 func (w *Watcher) resolveServiceHostPort(ctx context.Context, svc map[string]any) (string, int) {
 	addr := strings.TrimSpace(fmt.Sprint(svc["Address"]))
 
@@ -986,9 +986,21 @@ func (w *Watcher) resolveServiceHostPort(ctx context.Context, svc map[string]any
 		port = Utility.ToInt(svc["Proxy"])
 	}
 
-	// If no host specified, try DNS-based routing in cluster mode (PR4)
+	// If no host specified, try DNS-based routing in cluster mode (PR4/PR4.1)
 	if host == "" && w.isClusterMode() {
-		// In cluster mode, try to construct FQDN from service name
+		// PR4.1: Try SRV lookup first for service port discovery
+		serviceName := strings.TrimSpace(fmt.Sprint(svc["Name"]))
+		if serviceName != "" {
+			if srvHost, srvPort := w.resolveSRV(ctx, serviceName); srvHost != "" && srvPort > 0 {
+				w.logger.Info("service resolved via SRV",
+					"service", serviceName,
+					"host", srvHost,
+					"port", srvPort)
+				return srvHost, srvPort
+			}
+		}
+
+		// PR4: Fall back to A/AAAA lookup
 		// Services in cluster mode should have proper Address field set by node-agent,
 		// but if not, fall back to localhost
 		if fqdn := w.tryConstructServiceFQDN(svc); fqdn != "" {
@@ -1051,6 +1063,73 @@ func (w *Watcher) resolveDNS(ctx context.Context, fqdn string) string {
 
 	// Return first IP as string
 	return ips[0].String()
+}
+
+// resolveSRV performs SRV lookup for a service and returns resolved host and port (PR4.1).
+// Returns empty host and 0 port on failure (caller should fall back to A/AAAA).
+func (w *Watcher) resolveSRV(ctx context.Context, serviceName string) (string, int) {
+	if w.dnsCache == nil || !w.isClusterMode() {
+		return "", 0
+	}
+
+	// Normalize service name for DNS (e.g., "echo.EchoService" -> "echo-echoservice")
+	normalizedName := normalizeDNSLabel(serviceName)
+	clusterDomain := w.clusterNetwork.Spec.ClusterDomain
+
+	// Perform SRV lookup: _service._tcp.cluster.local
+	records, err := w.dnsCache.LookupSRV(ctx, normalizedName, "tcp", clusterDomain)
+	if err != nil {
+		// Not an error - SRV records may not exist for all services
+		return "", 0
+	}
+
+	if len(records) == 0 {
+		return "", 0
+	}
+
+	// Select best SRV record (lowest priority, highest weight)
+	bestRecord := selectBestSRV(records)
+	if bestRecord == nil {
+		return "", 0
+	}
+
+	// Resolve SRV target via A/AAAA lookup
+	targetHost := w.resolveDNS(ctx, bestRecord.Target)
+	if targetHost == "" {
+		w.logger.Warn("SRV target resolution failed",
+			"service", serviceName,
+			"target", bestRecord.Target)
+		return "", 0
+	}
+
+	return targetHost, int(bestRecord.Port)
+}
+
+// selectBestSRV selects the best SRV record from a list (PR4.1).
+// Returns record with lowest priority; if tied, highest weight wins.
+func selectBestSRV(records []*dnscache.SRVRecord) *dnscache.SRVRecord {
+	if len(records) == 0 {
+		return nil
+	}
+
+	best := records[0]
+	for _, rec := range records[1:] {
+		if rec.Priority < best.Priority {
+			best = rec
+		} else if rec.Priority == best.Priority && rec.Weight > best.Weight {
+			best = rec
+		}
+	}
+
+	return best
+}
+
+// normalizeDNSLabel normalizes a service name for use as DNS label (PR4.1).
+// Converts dots to hyphens and lowercases (e.g., "echo.EchoService" -> "echo-echoservice").
+func normalizeDNSLabel(name string) string {
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, ".", "-")
+	return name
 }
 
 func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
