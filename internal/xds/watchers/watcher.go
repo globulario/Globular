@@ -251,7 +251,16 @@ func (w *Watcher) sync(ctx context.Context) error {
 			// Continue without cluster config - fall back to IP-based routing
 		} else if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
 			ttl := time.Duration(w.clusterNetwork.Spec.DnsTtl) * time.Second
-			if ttl > 0 && ttl != 30*time.Second {
+			if ttl <= 0 {
+				ttl = 30 * time.Second
+			}
+
+			// PR7: Configure DNS cache with nameservers for high availability
+			nameservers := w.clusterNetwork.Spec.DnsNameservers
+			if len(nameservers) > 0 {
+				w.dnsCache = dnscache.New(ttl, nameservers...)
+				w.logger.Info("DNS cache configured", "ttl", ttl, "cluster_domain", w.clusterNetwork.Spec.ClusterDomain, "nameservers", nameservers)
+			} else if ttl != 30*time.Second {
 				w.dnsCache = dnscache.New(ttl)
 				w.logger.Info("DNS cache configured", "ttl", ttl, "cluster_domain", w.clusterNetwork.Spec.ClusterDomain)
 			}
