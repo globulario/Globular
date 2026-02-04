@@ -14,11 +14,26 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
+// srvCacheEntry holds cached SRV lookup results with expiry (PR4.1)
+type srvCacheEntry struct {
+	records   []*SRVRecord
+	expiresAt time.Time
+}
+
+// SRVRecord represents a DNS SRV record result (PR4.1)
+type SRVRecord struct {
+	Priority uint16
+	Weight   uint16
+	Port     uint16
+	Target   string
+}
+
 // Cache provides thread-safe DNS caching with TTL support
 type Cache struct {
-	mu      sync.RWMutex
-	entries map[string]*cacheEntry
-	ttl     time.Duration
+	mu         sync.RWMutex
+	entries    map[string]*cacheEntry    // A/AAAA cache
+	srvEntries map[string]*srvCacheEntry // SRV cache (PR4.1)
+	ttl        time.Duration
 }
 
 // New creates a new DNS cache with the specified TTL.
@@ -28,8 +43,9 @@ func New(ttl time.Duration) *Cache {
 		ttl = 30 * time.Second
 	}
 	return &Cache{
-		entries: make(map[string]*cacheEntry),
-		ttl:     ttl,
+		entries:    make(map[string]*cacheEntry),
+		srvEntries: make(map[string]*srvCacheEntry),
+		ttl:        ttl,
 	}
 }
 
@@ -92,6 +108,7 @@ func (c *Cache) Invalidate(fqdn string) {
 func (c *Cache) InvalidateAll() {
 	c.mu.Lock()
 	c.entries = make(map[string]*cacheEntry)
+	c.srvEntries = make(map[string]*srvCacheEntry)
 	c.mu.Unlock()
 }
 
@@ -99,5 +116,76 @@ func (c *Cache) InvalidateAll() {
 func (c *Cache) Size() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return len(c.entries)
+	return len(c.entries) + len(c.srvEntries)
+}
+
+// LookupSRV performs a DNS SRV lookup with caching (PR4.1)
+// Service and proto should NOT include leading underscores (e.g., "echo-echoservice", "tcp")
+// Domain is the base domain (e.g., "cluster.local")
+// Returns SRV records sorted by priority (ascending) then weight (descending)
+func (c *Cache) LookupSRV(ctx context.Context, service, proto, domain string) ([]*SRVRecord, error) {
+	// Format: _service._proto.domain
+	name := fmt.Sprintf("_%s._%s.%s", service, proto, domain)
+
+	// Check cache first
+	c.mu.RLock()
+	entry, found := c.srvEntries[name]
+	c.mu.RUnlock()
+
+	if found && time.Now().Before(entry.expiresAt) {
+		return entry.records, nil
+	}
+
+	// Cache miss or expired - perform fresh lookup
+	records, err := c.lookupSRVFresh(ctx, service, proto, domain)
+	if err != nil {
+		// Fall back to stale cache if available
+		if found && entry.records != nil {
+			return entry.records, nil
+		}
+		return nil, err
+	}
+
+	// Update cache
+	c.mu.Lock()
+	c.srvEntries[name] = &srvCacheEntry{
+		records:   records,
+		expiresAt: time.Now().Add(c.ttl),
+	}
+	c.mu.Unlock()
+
+	return records, nil
+}
+
+// lookupSRVFresh performs a fresh DNS SRV lookup without consulting the cache
+func (c *Cache) lookupSRVFresh(ctx context.Context, service, proto, domain string) ([]*SRVRecord, error) {
+	resolver := &net.Resolver{}
+	_, srvs, err := resolver.LookupSRV(ctx, service, proto, domain)
+	if err != nil {
+		return nil, fmt.Errorf("srv lookup %s.%s.%s: %w", service, proto, domain, err)
+	}
+	if len(srvs) == 0 {
+		return nil, fmt.Errorf("srv lookup %s.%s.%s: no records found", service, proto, domain)
+	}
+
+	// Convert net.SRV to our SRVRecord
+	records := make([]*SRVRecord, len(srvs))
+	for i, srv := range srvs {
+		records[i] = &SRVRecord{
+			Priority: srv.Priority,
+			Weight:   srv.Weight,
+			Port:     srv.Port,
+			Target:   srv.Target,
+		}
+	}
+
+	return records, nil
+}
+
+// InvalidateSRV removes a specific SRV record from the cache (PR4.1)
+func (c *Cache) InvalidateSRV(service, proto, domain string) {
+	name := fmt.Sprintf("_%s._%s.%s", service, proto, domain)
+	c.mu.Lock()
+	delete(c.srvEntries, name)
+	c.mu.Unlock()
 }
