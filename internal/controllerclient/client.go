@@ -22,7 +22,7 @@ func New(addr string) *Client {
 	return &Client{addr: strings.TrimSpace(addr)}
 }
 
-func (c *Client) dial(ctx context.Context) (clustercontrollerpb.ClusterControllerServiceClient, func(), error) {
+func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, func(), error) {
 	if c == nil || c.addr == "" {
 		return nil, nil, fmt.Errorf("cluster controller address is empty")
 	}
@@ -32,7 +32,7 @@ func (c *Client) dial(ctx context.Context) (clustercontrollerpb.ClusterControlle
 		cancel()
 		return nil, nil, fmt.Errorf("dial %s: %w", c.addr, err)
 	}
-	return clustercontrollerpb.NewClusterControllerServiceClient(conn), func() {
+	return conn, func() {
 		conn.Close()
 		cancel()
 	}, nil
@@ -40,12 +40,13 @@ func (c *Client) dial(ctx context.Context) (clustercontrollerpb.ClusterControlle
 
 // CreateJoinToken requests a join token from the controller.
 func (c *Client) CreateJoinToken(ctx context.Context, expiresIn time.Duration) (*clustercontrollerpb.CreateJoinTokenResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
 
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	req := &clustercontrollerpb.CreateJoinTokenRequest{}
 	if expiresIn > 0 {
 		req.ExpiresAt = timestamppb.New(time.Now().Add(expiresIn))
@@ -55,22 +56,24 @@ func (c *Client) CreateJoinToken(ctx context.Context, expiresIn time.Duration) (
 
 // ListJoinRequests returns pending join requests.
 func (c *Client) ListJoinRequests(ctx context.Context) (*clustercontrollerpb.ListJoinRequestsResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	return client.ListJoinRequests(ctx, &clustercontrollerpb.ListJoinRequestsRequest{})
 }
 
 // ApproveJoin approves a join request with the provided profiles/metadata.
 func (c *Client) ApproveJoin(ctx context.Context, nodeID string, profiles []string, metadata map[string]string) (*clustercontrollerpb.ApproveJoinResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
 
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	req := &clustercontrollerpb.ApproveJoinRequest{
 		NodeId:   strings.TrimSpace(nodeID),
 		Profiles: profiles,
@@ -81,22 +84,24 @@ func (c *Client) ApproveJoin(ctx context.Context, nodeID string, profiles []stri
 
 // ListNodes returns the nodes registered to the cluster.
 func (c *Client) ListNodes(ctx context.Context) (*clustercontrollerpb.ListNodesResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	return client.ListNodes(ctx, &clustercontrollerpb.ListNodesRequest{})
 }
 
 // SetNodeProfiles updates the profiles assigned to a node.
 func (c *Client) SetNodeProfiles(ctx context.Context, nodeID string, profiles []string) (*clustercontrollerpb.SetNodeProfilesResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
 
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	req := &clustercontrollerpb.SetNodeProfilesRequest{
 		NodeId:   strings.TrimSpace(nodeID),
 		Profiles: profiles,
@@ -106,12 +111,13 @@ func (c *Client) SetNodeProfiles(ctx context.Context, nodeID string, profiles []
 
 // GetNodePlan requests the latest plan for the given node.
 func (c *Client) GetNodePlan(ctx context.Context, nodeID string) (*clustercontrollerpb.NodePlan, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
 
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	resp, err := client.GetNodePlan(ctx, &clustercontrollerpb.GetNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
 	if err != nil {
 		return nil, err
@@ -123,31 +129,34 @@ func (c *Client) GetNodePlan(ctx context.Context, nodeID string) (*clustercontro
 }
 
 func (c *Client) UpdateClusterNetwork(ctx context.Context, spec *clustercontrollerpb.ClusterNetworkSpec) (*clustercontrollerpb.UpdateClusterNetworkResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	return client.UpdateClusterNetwork(ctx, &clustercontrollerpb.UpdateClusterNetworkRequest{Spec: spec})
 }
 
 func (c *Client) ApplyNodePlan(ctx context.Context, nodeID string) (*clustercontrollerpb.ApplyNodePlanResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	return client.ApplyNodePlan(ctx, &clustercontrollerpb.ApplyNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
 }
 
 // RemoveNode removes a node from the cluster.
 func (c *Client) RemoveNode(ctx context.Context, nodeID string, force, drain bool) (*clustercontrollerpb.RemoveNodeResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
 
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	req := &clustercontrollerpb.RemoveNodeRequest{
 		NodeId: strings.TrimSpace(nodeID),
 		Force:  force,
@@ -158,12 +167,24 @@ func (c *Client) RemoveNode(ctx context.Context, nodeID string, force, drain boo
 
 // GetClusterHealth returns the overall health status of the cluster.
 func (c *Client) GetClusterHealth(ctx context.Context) (*clustercontrollerpb.GetClusterHealthResponse, error) {
-	client, closeFn, err := c.dial(ctx)
+	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer closeFn()
+	client := clustercontrollerpb.NewClusterControllerServiceClient(conn)
 	return client.GetClusterHealth(ctx, &clustercontrollerpb.GetClusterHealthRequest{})
+}
+
+// GetClusterNetwork returns the cluster network configuration.
+func (c *Client) GetClusterNetwork(ctx context.Context) (*clustercontrollerpb.ClusterNetwork, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := clustercontrollerpb.NewResourcesServiceClient(conn)
+	return client.GetClusterNetwork(ctx, &clustercontrollerpb.GetClusterNetworkRequest{})
 }
 
 // Address returns the configured controller address.
