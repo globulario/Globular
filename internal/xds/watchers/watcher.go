@@ -9,6 +9,8 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/globulario/Globular/internal/controllerclient"
@@ -51,6 +53,87 @@ func ParseDownstreamTLSMode(value string) DownstreamTLSMode {
 
 var errNoChange = errors.New("config unchanged")
 
+// EndpointSource indicates how an endpoint was resolved (PR5)
+type EndpointSource int
+
+const (
+	EndpointSourceUnknown   EndpointSource = iota
+	EndpointSourceSRV                      // Resolved via SRV record
+	EndpointSourceA                        // Resolved via A/AAAA record
+	EndpointSourceRegistry                 // From service registry (IP)
+	EndpointSourceLocalhost                // Localhost fallback
+)
+
+func (s EndpointSource) String() string {
+	switch s {
+	case EndpointSourceSRV:
+		return "SRV"
+	case EndpointSourceA:
+		return "A"
+	case EndpointSourceRegistry:
+		return "REGISTRY"
+	case EndpointSourceLocalhost:
+		return "LOCALHOST"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// EndpointIdentity represents a canonical service endpoint identity (PR5)
+type EndpointIdentity struct {
+	ServiceDNSLabel string         // Normalized service name for DNS (e.g., "echo-echoservice")
+	TargetFQDN      string         // Preferred FQDN (e.g., "node-01.cluster.local")
+	TargetIP        string         // Fallback IP address
+	Port            int            // Service port
+	Source          EndpointSource // How this endpoint was resolved
+}
+
+// SortKey returns a stable sorting key for deterministic ordering (PR5)
+// Ordering: FQDN → IP → Port
+func (e EndpointIdentity) SortKey() string {
+	if e.TargetFQDN != "" {
+		return fmt.Sprintf("fqdn:%s:%d", e.TargetFQDN, e.Port)
+	}
+	return fmt.Sprintf("ip:%s:%d", e.TargetIP, e.Port)
+}
+
+// Host returns the preferred host identifier (FQDN if available, else IP)
+func (e EndpointIdentity) Host() string {
+	if e.TargetFQDN != "" {
+		return e.TargetFQDN
+	}
+	return e.TargetIP
+}
+
+// logRateLimiter provides rate-limited logging per service per event type (PR5)
+type logRateLimiter struct {
+	mu       sync.RWMutex
+	lastLogs map[string]time.Time // key format: "service:event_type"
+	interval time.Duration
+}
+
+func newLogRateLimiter(interval time.Duration) *logRateLimiter {
+	return &logRateLimiter{
+		lastLogs: make(map[string]time.Time),
+		interval: interval,
+	}
+}
+
+func (l *logRateLimiter) shouldLog(service, eventType string) bool {
+	key := service + ":" + eventType
+	l.mu.RLock()
+	lastLog, exists := l.lastLogs[key]
+	l.mu.RUnlock()
+
+	if !exists || time.Since(lastLog) >= l.interval {
+		l.mu.Lock()
+		l.lastLogs[key] = time.Now()
+		l.mu.Unlock()
+		return true
+	}
+	return false
+}
+
 // Watcher reloads xDS configuration from file or service registry and pushes snapshots to the server.
 type Watcher struct {
 	logger              *slog.Logger
@@ -74,6 +157,18 @@ type Watcher struct {
 	controllerAddr string
 	clusterNetwork *clustercontrollerpb.ClusterNetwork
 	dnsCache       *dnscache.Cache
+
+	// Churn control (PR5)
+	endpointMu         sync.RWMutex
+	lastGoodEndpoints  map[string]EndpointIdentity // service name -> last successful endpoint
+	lastDNSFailure     time.Time                   // timestamp of last DNS resolution failure
+	dnsFailureCooldown time.Duration               // how long to use last-good on repeated failures
+
+	// Observability (PR5)
+	logLimiter         *logRateLimiter // rate limiter for routing logs
+	snapshotRegenTotal uint64          // total snapshot regenerations
+	snapshotNoopTotal  uint64          // snapshots skipped (no changes)
+	lastMetricsLog     time.Time       // timestamp of last metrics log
 }
 
 // New creates a watcher bound to the given server.
@@ -96,15 +191,18 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 	}
 	protocol := detectLocalProtocol()
 	return &Watcher{
-		logger:            logger,
-		server:            srv,
-		configPath:        strings.TrimSpace(configPath),
-		nodeID:            nodeID,
-		interval:          interval,
-		downstreamTLSMode: downstreamMode,
-		protocol:          protocol,
-		controllerAddr:    strings.TrimSpace(controllerAddr),
-		dnsCache:          dnscache.New(30 * time.Second), // Default 30s TTL
+		logger:             logger,
+		server:             srv,
+		configPath:         strings.TrimSpace(configPath),
+		nodeID:             nodeID,
+		interval:           interval,
+		downstreamTLSMode:  downstreamMode,
+		protocol:           protocol,
+		controllerAddr:     strings.TrimSpace(controllerAddr),
+		dnsCache:           dnscache.New(30 * time.Second), // Default 30s TTL
+		lastGoodEndpoints:  make(map[string]EndpointIdentity),
+		dnsFailureCooldown: 30 * time.Second,                    // PR5: Reuse last-good for 30s on DNS failure
+		logLimiter:         newLogRateLimiter(60 * time.Second), // PR5: Rate-limit logs to once per minute
 	}
 }
 
@@ -186,8 +284,38 @@ func (w *Watcher) sync(ctx context.Context) error {
 	if err := w.server.SetSnapshot(input.NodeID, snap); err != nil {
 		return fmt.Errorf("push snapshot: %w", err)
 	}
+	atomic.AddUint64(&w.snapshotRegenTotal, 1) // PR5: Track snapshot regen
 	w.logger.Info("xDS snapshot pushed", "node_id", input.NodeID, "version", version)
+
+	// PR5: Log metrics periodically (every 60s)
+	w.logMetricsPeriodically()
+
 	return nil
+}
+
+// logMetricsPeriodically logs DNS cache and snapshot metrics once per minute (PR5)
+func (w *Watcher) logMetricsPeriodically() {
+	now := time.Now()
+	if now.Sub(w.lastMetricsLog) < 60*time.Second {
+		return // Not time yet
+	}
+	w.lastMetricsLog = now
+
+	if w.dnsCache == nil {
+		return // No cache to report
+	}
+
+	cacheStats := w.dnsCache.Stats()
+	snapshotRegen := atomic.LoadUint64(&w.snapshotRegenTotal)
+	snapshotNoop := atomic.LoadUint64(&w.snapshotNoopTotal)
+
+	w.logger.Info("metrics summary",
+		"dnscache_a_hit", cacheStats.AHit,
+		"dnscache_a_miss", cacheStats.AMiss,
+		"dnscache_srv_hit", cacheStats.SRVHit,
+		"dnscache_srv_miss", cacheStats.SRVMiss,
+		"xds_snapshot_regen_total", snapshotRegen,
+		"xds_snapshot_noop_total", snapshotNoop)
 }
 
 // fetchClusterNetwork retrieves cluster network configuration from the controller (PR4)
@@ -373,26 +501,36 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 
 	for _, svc := range services {
 		name := strings.TrimSpace(fmt.Sprint(svc["Name"]))
-		host, port := w.resolveServiceHostPort(ctx, svc)
+		endpoint := w.resolveServiceEndpoint(ctx, svc)
+
 		if w.logger != nil && strings.TrimSpace(fmt.Sprint(svc["Address"])) == "" {
-			w.logger.Debug("service Address empty; defaulting to local endpoint", "service", name, "host", host, "port", port)
+			w.logger.Debug("service Address empty; defaulting to local endpoint",
+				"service", name,
+				"host", endpoint.Host(),
+				"port", endpoint.Port,
+				"source", endpoint.Source.String())
 		}
-		if name == "" || host == "" || port == 0 {
+
+		if name == "" || endpoint.Host() == "" || endpoint.Port == 0 {
 			continue
 		}
+
 		clusterName := strings.ReplaceAll(name, ".", "_") + "_cluster"
 		if _, ok := addedClusters[clusterName]; ok {
 			continue
 		}
 		addedClusters[clusterName] = struct{}{}
 
+		// PR5: Use FQDN for endpoint identity when available
+		endpointHost := endpoint.Host()
+
 		clusters = append(clusters, builder.Cluster{
 			Name:       clusterName,
-			Endpoints:  []builder.Endpoint{{Host: host, Port: uint32(port)}},
+			Endpoints:  []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
 			ServerCert: downCert,
 			KeyFile:    downKey,
 			CAFile:     downIssuer,
-			SNI:        host,
+			SNI:        endpointHost,
 		})
 		allClusterNames = append(allClusterNames, clusterName)
 		routes = append(routes, builder.Route{Prefix: "/" + name + "/", Cluster: clusterName})
@@ -970,10 +1108,11 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
 	return uint32(targetPort)
 }
 
-// resolveServiceHostPort extracts host and port from service config.
-// In cluster mode (when watcher has clusterNetwork config), prefers FQDN-based routing.
-// PR4.1: Tries SRV records first, then falls back to A/AAAA, then IP-based routing.
-func (w *Watcher) resolveServiceHostPort(ctx context.Context, svc map[string]any) (string, int) {
+// resolveServiceEndpoint resolves a service to a canonical endpoint identity (PR5).
+// In cluster mode, prefers FQDN-based routing with stable fallback chain.
+// Returns normalized EndpointIdentity with source tracking for observability.
+func (w *Watcher) resolveServiceEndpoint(ctx context.Context, svc map[string]any) EndpointIdentity {
+	serviceName := strings.TrimSpace(fmt.Sprint(svc["Name"]))
 	addr := strings.TrimSpace(fmt.Sprint(svc["Address"]))
 
 	host := ""
@@ -986,36 +1125,117 @@ func (w *Watcher) resolveServiceHostPort(ctx context.Context, svc map[string]any
 		port = Utility.ToInt(svc["Proxy"])
 	}
 
-	// If no host specified, try DNS-based routing in cluster mode (PR4/PR4.1)
-	if host == "" && w.isClusterMode() {
+	serviceDNSLabel := normalizeDNSLabel(serviceName)
+
+	// If explicit host is provided, check if it's an FQDN or IP
+	if host != "" {
+		// Check if host looks like an FQDN (contains domain suffix)
+		if w.isClusterMode() && strings.Contains(host, w.clusterNetwork.Spec.ClusterDomain) {
+			return EndpointIdentity{
+				ServiceDNSLabel: serviceDNSLabel,
+				TargetFQDN:      host,
+				TargetIP:        "",
+				Port:            port,
+				Source:          EndpointSourceRegistry,
+			}
+		}
+		// Treat as IP
+		return EndpointIdentity{
+			ServiceDNSLabel: serviceDNSLabel,
+			TargetFQDN:      "",
+			TargetIP:        host,
+			Port:            port,
+			Source:          EndpointSourceRegistry,
+		}
+	}
+
+	// No explicit host - try DNS-based routing in cluster mode
+	if w.isClusterMode() {
 		// PR4.1: Try SRV lookup first for service port discovery
-		serviceName := strings.TrimSpace(fmt.Sprint(svc["Name"]))
+		srvAttempted := false
 		if serviceName != "" {
-			if srvHost, srvPort := w.resolveSRV(ctx, serviceName); srvHost != "" && srvPort > 0 {
-				w.logger.Info("service resolved via SRV",
-					"service", serviceName,
-					"host", srvHost,
-					"port", srvPort)
-				return srvHost, srvPort
+			srvAttempted = true
+			if srvFQDN, srvPort := w.resolveSRV(ctx, serviceName); srvFQDN != "" && srvPort > 0 {
+				endpoint := EndpointIdentity{
+					ServiceDNSLabel: serviceDNSLabel,
+					TargetFQDN:      srvFQDN,
+					TargetIP:        "",
+					Port:            srvPort,
+					Source:          EndpointSourceSRV,
+				}
+				// PR5: Save successful resolution and log SRV hit
+				w.endpointMu.Lock()
+				w.lastGoodEndpoints[serviceName] = endpoint
+				w.endpointMu.Unlock()
+
+				if w.logLimiter.shouldLog(serviceName, "srv_hit") {
+					w.logger.Info("dns routing: SRV hit",
+						"service", serviceName,
+						"target", srvFQDN,
+						"port", srvPort)
+				}
+				return endpoint
 			}
 		}
 
 		// PR4: Fall back to A/AAAA lookup
-		// Services in cluster mode should have proper Address field set by node-agent,
-		// but if not, fall back to localhost
 		if fqdn := w.tryConstructServiceFQDN(svc); fqdn != "" {
-			if resolvedHost := w.resolveDNS(ctx, fqdn); resolvedHost != "" {
-				return resolvedHost, port
+			if resolvedIP := w.resolveDNS(ctx, fqdn); resolvedIP != "" {
+				endpoint := EndpointIdentity{
+					ServiceDNSLabel: serviceDNSLabel,
+					TargetFQDN:      fqdn,
+					TargetIP:        resolvedIP,
+					Port:            port,
+					Source:          EndpointSourceA,
+				}
+				// PR5: Save successful resolution and log fallback from SRV
+				w.endpointMu.Lock()
+				w.lastGoodEndpoints[serviceName] = endpoint
+				w.endpointMu.Unlock()
+
+				if srvAttempted && w.logLimiter.shouldLog(serviceName, "fallback_srv_to_a") {
+					w.logger.Info("dns routing: fallback",
+						"service", serviceName,
+						"from", "SRV",
+						"to", "A")
+				}
+				return endpoint
 			}
+		}
+
+		// PR5: DNS resolution failed - check cooldown period
+		w.endpointMu.RLock()
+		inCooldown := time.Since(w.lastDNSFailure) < w.dnsFailureCooldown
+		lastGood, hasLastGood := w.lastGoodEndpoints[serviceName]
+		w.endpointMu.RUnlock()
+
+		if inCooldown && hasLastGood {
+			// Reuse last-good endpoint during cooldown
+			if w.logLimiter.shouldLog(serviceName, "using_last_good") {
+				w.logger.Info("dns routing: using last-good endpoints",
+					"service", serviceName,
+					"reason", "DNS failure",
+					"source", lastGood.Source.String())
+			}
+			return lastGood
+		}
+
+		if !inCooldown {
+			// Cooldown expired - record new failure timestamp
+			w.endpointMu.Lock()
+			w.lastDNSFailure = time.Now()
+			w.endpointMu.Unlock()
 		}
 	}
 
 	// Fallback to localhost for non-cluster mode or DNS resolution failure
-	if host == "" {
-		host = "127.0.0.1"
+	return EndpointIdentity{
+		ServiceDNSLabel: serviceDNSLabel,
+		TargetFQDN:      "",
+		TargetIP:        "127.0.0.1",
+		Port:            port,
+		Source:          EndpointSourceLocalhost,
 	}
-
-	return host, port
 }
 
 // isClusterMode returns true if the watcher is operating in cluster mode

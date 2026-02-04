@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -34,6 +35,12 @@ type Cache struct {
 	entries    map[string]*cacheEntry    // A/AAAA cache
 	srvEntries map[string]*srvCacheEntry // SRV cache (PR4.1)
 	ttl        time.Duration
+
+	// Metrics (PR5)
+	aHit    uint64 // A/AAAA cache hits
+	aMiss   uint64 // A/AAAA cache misses
+	srvHit  uint64 // SRV cache hits
+	srvMiss uint64 // SRV cache misses
 }
 
 // New creates a new DNS cache with the specified TTL.
@@ -60,10 +67,12 @@ func (c *Cache) Lookup(ctx context.Context, fqdn string) ([]net.IP, error) {
 	c.mu.RUnlock()
 
 	if found && time.Now().Before(entry.expiresAt) {
+		atomic.AddUint64(&c.aHit, 1) // PR5: Track cache hit
 		return entry.ips, nil
 	}
 
 	// Cache miss or expired - perform fresh lookup
+	atomic.AddUint64(&c.aMiss, 1) // PR5: Track cache miss
 	ips, err := c.lookupFresh(ctx, fqdn)
 	if err != nil {
 		// If lookup fails but we have stale cache entry, use it as fallback
@@ -133,10 +142,12 @@ func (c *Cache) LookupSRV(ctx context.Context, service, proto, domain string) ([
 	c.mu.RUnlock()
 
 	if found && time.Now().Before(entry.expiresAt) {
+		atomic.AddUint64(&c.srvHit, 1) // PR5: Track cache hit
 		return entry.records, nil
 	}
 
 	// Cache miss or expired - perform fresh lookup
+	atomic.AddUint64(&c.srvMiss, 1) // PR5: Track cache miss
 	records, err := c.lookupSRVFresh(ctx, service, proto, domain)
 	if err != nil {
 		// Fall back to stale cache if available
@@ -188,4 +199,22 @@ func (c *Cache) InvalidateSRV(service, proto, domain string) {
 	c.mu.Lock()
 	delete(c.srvEntries, name)
 	c.mu.Unlock()
+}
+
+// CacheStats holds DNS cache statistics (PR5)
+type CacheStats struct {
+	AHit    uint64 // A/AAAA cache hits
+	AMiss   uint64 // A/AAAA cache misses
+	SRVHit  uint64 // SRV cache hits
+	SRVMiss uint64 // SRV cache misses
+}
+
+// Stats returns cache statistics (PR5)
+func (c *Cache) Stats() CacheStats {
+	return CacheStats{
+		AHit:    atomic.LoadUint64(&c.aHit),
+		AMiss:   atomic.LoadUint64(&c.aMiss),
+		SRVHit:  atomic.LoadUint64(&c.srvHit),
+		SRVMiss: atomic.LoadUint64(&c.srvMiss),
+	}
 }
