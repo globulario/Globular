@@ -31,10 +31,11 @@ type SRVRecord struct {
 
 // Cache provides thread-safe DNS caching with TTL support
 type Cache struct {
-	mu         sync.RWMutex
-	entries    map[string]*cacheEntry    // A/AAAA cache
-	srvEntries map[string]*srvCacheEntry // SRV cache (PR4.1)
-	ttl        time.Duration
+	mu          sync.RWMutex
+	entries     map[string]*cacheEntry    // A/AAAA cache
+	srvEntries  map[string]*srvCacheEntry // SRV cache (PR4.1)
+	ttl         time.Duration
+	nameservers []string // PR7: Multiple nameservers for failover
 
 	// Metrics (PR5)
 	aHit    uint64 // A/AAAA cache hits
@@ -45,15 +46,24 @@ type Cache struct {
 
 // New creates a new DNS cache with the specified TTL.
 // If ttl is 0 or negative, defaults to 30 seconds.
-func New(ttl time.Duration) *Cache {
+// PR7: Optionally accepts nameservers for multi-DNS failover.
+func New(ttl time.Duration, nameservers ...string) *Cache {
 	if ttl <= 0 {
 		ttl = 30 * time.Second
 	}
 	return &Cache{
-		entries:    make(map[string]*cacheEntry),
-		srvEntries: make(map[string]*srvCacheEntry),
-		ttl:        ttl,
+		entries:     make(map[string]*cacheEntry),
+		srvEntries:  make(map[string]*srvCacheEntry),
+		ttl:         ttl,
+		nameservers: nameservers,
 	}
+}
+
+// SetNameservers updates the list of nameservers for DNS queries (PR7)
+func (c *Cache) SetNameservers(nameservers []string) {
+	c.mu.Lock()
+	c.nameservers = nameservers
+	c.mu.Unlock()
 }
 
 // Lookup performs a DNS A/AAAA lookup for the given FQDN.
@@ -94,16 +104,47 @@ func (c *Cache) Lookup(ctx context.Context, fqdn string) ([]net.IP, error) {
 }
 
 // lookupFresh performs a fresh DNS lookup without consulting the cache
+// PR7: Tries each nameserver in sequence until one succeeds
 func (c *Cache) lookupFresh(ctx context.Context, fqdn string) ([]net.IP, error) {
-	resolver := &net.Resolver{}
-	ips, err := resolver.LookupIP(ctx, "ip", fqdn)
-	if err != nil {
-		return nil, fmt.Errorf("dns lookup %s: %w", fqdn, err)
+	c.mu.RLock()
+	nameservers := c.nameservers
+	c.mu.RUnlock()
+
+	// If no custom nameservers, use system default
+	if len(nameservers) == 0 {
+		resolver := &net.Resolver{}
+		ips, err := resolver.LookupIP(ctx, "ip", fqdn)
+		if err != nil {
+			return nil, fmt.Errorf("dns lookup %s: %w", fqdn, err)
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("dns lookup %s: no records found", fqdn)
+		}
+		return ips, nil
 	}
-	if len(ips) == 0 {
-		return nil, fmt.Errorf("dns lookup %s: no records found", fqdn)
+
+	// Try each nameserver in sequence
+	var lastErr error
+	for _, ns := range nameservers {
+		resolver := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{Timeout: 3 * time.Second}
+				return d.DialContext(ctx, "udp", ns)
+			},
+		}
+
+		ips, err := resolver.LookupIP(ctx, "ip", fqdn)
+		if err == nil && len(ips) > 0 {
+			return ips, nil
+		}
+		lastErr = err
 	}
-	return ips, nil
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("dns lookup %s (tried %d nameservers): %w", fqdn, len(nameservers), lastErr)
+	}
+	return nil, fmt.Errorf("dns lookup %s: no records found (tried %d nameservers)", fqdn, len(nameservers))
 }
 
 // Invalidate removes a specific FQDN from the cache
@@ -169,17 +210,51 @@ func (c *Cache) LookupSRV(ctx context.Context, service, proto, domain string) ([
 }
 
 // lookupSRVFresh performs a fresh DNS SRV lookup without consulting the cache
+// PR7: Tries each nameserver in sequence until one succeeds
 func (c *Cache) lookupSRVFresh(ctx context.Context, service, proto, domain string) ([]*SRVRecord, error) {
-	resolver := &net.Resolver{}
-	_, srvs, err := resolver.LookupSRV(ctx, service, proto, domain)
-	if err != nil {
-		return nil, fmt.Errorf("srv lookup %s.%s.%s: %w", service, proto, domain, err)
-	}
-	if len(srvs) == 0 {
-		return nil, fmt.Errorf("srv lookup %s.%s.%s: no records found", service, proto, domain)
+	c.mu.RLock()
+	nameservers := c.nameservers
+	c.mu.RUnlock()
+
+	// If no custom nameservers, use system default
+	if len(nameservers) == 0 {
+		resolver := &net.Resolver{}
+		_, srvs, err := resolver.LookupSRV(ctx, service, proto, domain)
+		if err != nil {
+			return nil, fmt.Errorf("srv lookup %s.%s.%s: %w", service, proto, domain, err)
+		}
+		if len(srvs) == 0 {
+			return nil, fmt.Errorf("srv lookup %s.%s.%s: no records found", service, proto, domain)
+		}
+		return c.convertSRVRecords(srvs), nil
 	}
 
-	// Convert net.SRV to our SRVRecord
+	// Try each nameserver in sequence
+	var lastErr error
+	for _, ns := range nameservers {
+		resolver := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{Timeout: 3 * time.Second}
+				return d.DialContext(ctx, "udp", ns)
+			},
+		}
+
+		_, srvs, err := resolver.LookupSRV(ctx, service, proto, domain)
+		if err == nil && len(srvs) > 0 {
+			return c.convertSRVRecords(srvs), nil
+		}
+		lastErr = err
+	}
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("srv lookup %s.%s.%s (tried %d nameservers): %w", service, proto, domain, len(nameservers), lastErr)
+	}
+	return nil, fmt.Errorf("srv lookup %s.%s.%s: no records found (tried %d nameservers)", service, proto, domain, len(nameservers))
+}
+
+// convertSRVRecords converts []*net.SRV to []*SRVRecord (PR7 helper)
+func (c *Cache) convertSRVRecords(srvs []*net.SRV) []*SRVRecord {
 	records := make([]*SRVRecord, len(srvs))
 	for i, srv := range srvs {
 		records[i] = &SRVRecord{
@@ -189,8 +264,7 @@ func (c *Cache) lookupSRVFresh(ctx context.Context, service, proto, domain strin
 			Target:   srv.Target,
 		}
 	}
-
-	return records, nil
+	return records
 }
 
 // InvalidateSRV removes a specific SRV record from the cache (PR4.1)
