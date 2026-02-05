@@ -8,20 +8,23 @@ Globular implements Envoy's Secret Discovery Service (SDS) to enable **hot certi
 
 ### Components
 
-1. **SDS Secret Builders** (`internal/xds/sds/`)
-   - `secrets.go`: Builds xDS Secret resources from certificate files
-   - Reads from canonical PKI paths (`/var/lib/globular/pki/`)
+1. **SDS Secret Builders** (`internal/controlplane/secret.go`)
+   - `MakeSecret()`: Builds xDS Secret resources from certificate files
+   - Reads PEM files and embeds them as inline bytes
    - Supports internal certs (cluster CA) and public certs (ACME)
+   - Content-based versioning using SHA256 hashing
 
-2. **Certificate Rotation Watcher** (`internal/xds/sds/watcher.go`)
-   - Polls etcd every 10 seconds for certificate generation changes
+2. **Certificate Rotation Detection** (`internal/xds/watchers/watcher.go`)
+   - Polls etcd for certificate generation changes in sync loop
    - Detects when PKI manager rotates certificates
-   - Reloads secrets from disk and pushes to Envoy via xDS snapshot
+   - Triggers snapshot rebuild when generation changes
+   - Pushes updated snapshot to Envoy via unified xDS cache
 
-3. **xDS Integration** (`internal/controlplane/resource.go`, `internal/xds/builder/`)
+3. **xDS Integration** (`internal/xds/builder/builder.go`, `internal/controlplane/resource.go`)
    - SDS-aware TLS configuration functions
-   - Secrets included in unified xDS snapshot (alongside CDS, LDS, RDS)
+   - Secrets included in unified xDS snapshot (alongside CDS, LDS, RDS, EDS)
    - Envoy fetches secrets via ADS (Aggregated Discovery Service)
+   - Single snapshot cache for all xDS resources
 
 ### Secret Types
 
@@ -36,92 +39,64 @@ Globular implements Envoy's Secret Discovery Service (SDS) to enable **hot certi
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌───────┐
-│ PKI Manager │────>│ etcd (gen++) │────>│  SDS Watcher │────>│ Envoy │
-│  (renews)   │     │  /pki/bundles│     │  (reloads)   │     │ (swap)│
+│ PKI Manager │────>│ etcd (gen++) │────>│ xDS Watcher  │────>│ Envoy │
+│  (renews)   │     │  /pki/bundles│     │ (snapshot++)│     │ (swap)│
 └─────────────┘     └──────────────┘     └──────────────┘     └───────┘
                                                  │
                                                  v
                                           ┌──────────────┐
                                           │ xDS Snapshot │
-                                          │   (secrets)  │
+                                          │ (CDS/LDS/RDS │
+                                          │  + Secrets)  │
                                           └──────────────┘
 ```
 
 1. **PKI Manager** rotates certificate (local CA or ACME renewal)
 2. **etcd** generation counter increments (`/globular/pki/bundles/{domain}`)
-3. **SDS Watcher** detects change via polling
-4. **SDS Watcher** reloads secrets from disk (`/var/lib/globular/pki/`)
-5. **xDS Snapshot** updated with new secret versions
-6. **Envoy** receives push notification and hot-swaps certificates
+3. **xDS Watcher** detects change via `checkCertificateGeneration()` polling
+4. **xDS Watcher** rebuilds complete snapshot with updated secrets
+5. **xDS Snapshot** pushed to unified cache via `SetSnapshot()`
+6. **Envoy** receives ADS push notification and hot-swaps certificates
 7. **Zero downtime**: existing connections continue, new connections use new cert
 
 ## Usage
 
 ### Enabling SDS
 
-SDS is controlled by the `EnableSDS` flag in the xDS builder input:
+SDS is automatically enabled when TLS certificates are configured. The xDS watcher (`internal/xds/watchers/watcher.go`) detects TLS configuration and sets `EnableSDS: true` in the builder input:
 
 ```go
-import (
-    "github.com/globulario/Globular/internal/xds/builder"
-    "github.com/globulario/Globular/internal/xds/sds"
-)
-
-// Build snapshot with SDS enabled
-input := builder.Input{
-    NodeID:    "envoy-node",
-    EnableSDS: true,  // Enable SDS
-    SDSSecrets: []builder.Secret{
+// In buildDynamicInput() - automatic SDS enablement
+if listener.CertFile != "" && listener.KeyFile != "" {
+    input.EnableSDS = true
+    input.SDSSecrets = []builder.Secret{
         {
             Name:     "internal-server-cert",
-            CertPath: "/var/lib/globular/pki/server.pem",
-            KeyPath:  "/var/lib/globular/pki/server-key.pem",
+            CertPath: listener.CertFile,
+            KeyPath:  listener.KeyFile,
         },
-        {
-            Name:     "internal-ca-bundle",
-            CAPath:   "/var/lib/globular/pki/ca.pem",
-        },
-    },
-    Listener: builder.Listener{
-        Name: "https_listener",
-        Port: 443,
-        // ... other config
-    },
-    // ... clusters, routes, etc.
+    }
+    if listener.IssuerFile != "" {
+        input.SDSSecrets = append(input.SDSSecrets, builder.Secret{
+            Name:   "internal-ca-bundle",
+            CAPath: listener.IssuerFile,
+        })
+    }
 }
-
-snapshot, err := builder.BuildSnapshot(input, "v1")
 ```
 
-### Starting the Rotation Watcher
+The watcher also monitors certificate generation changes and triggers snapshot updates:
 
 ```go
-import (
-    "context"
-    "github.com/globulario/Globular/internal/xds/sds"
-    clientv3 "go.etcd.io/etcd/client/v3"
-)
-
-// Create etcd client
-etcdClient, _ := clientv3.New(clientv3.Config{
-    Endpoints: []string{"localhost:2379"},
-})
-
-// Create SDS watcher
-watcher, err := sds.NewWatcher(sds.WatcherConfig{
-    EtcdClient:       etcdClient,
-    SDSServer:        sdsServer,  // Your SDS server instance
-    Domain:           "globular.internal",
-    InternalCertPath: "/var/lib/globular/pki/server.pem",
-    InternalKeyPath:  "/var/lib/globular/pki/server-key.pem",
-    CAPath:           "/var/lib/globular/pki/ca.pem",
-    PollInterval:     10 * time.Second,
-})
-
-// Start watcher (runs until context cancelled)
-ctx := context.Background()
-go watcher.Run(ctx)
+// In sync() loop - automatic rotation detection
+certChanged := w.checkCertificateGeneration(ctx)
+if certChanged {
+    w.logger.Info("certificate rotation detected - forcing snapshot update")
+    // Snapshot rebuild triggered, includes updated secrets
+}
 ```
+
+No manual watcher setup is required - rotation detection is built into the xDS watcher.
 
 ## Configuration
 
