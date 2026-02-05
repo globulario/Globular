@@ -699,6 +699,9 @@ func (w *Watcher) ingressFromFallback(fb *FallbackConfig) *IngressSpec {
 	if len(routes) == 0 || len(fb.Clusters) == 0 {
 		return nil
 	}
+	// Day-0 Security: Get CA for upstream TLS to internal services
+	_, _, caFile, _ := w.downstreamTLSConfig()
+
 	clusters := make([]builder.Cluster, 0, len(fb.Clusters))
 	for _, fc := range fb.Clusters {
 		name := strings.TrimSpace(fc.Name)
@@ -715,10 +718,19 @@ func (w *Watcher) ingressFromFallback(fb *FallbackConfig) *IngressSpec {
 		if len(endpoints) == 0 {
 			continue
 		}
-		clusters = append(clusters, builder.Cluster{
+		// Day-0 Security: Enable upstream TLS with cluster CA when available
+		cluster := builder.Cluster{
 			Name:      name,
 			Endpoints: endpoints,
-		})
+		}
+		if caFile != "" {
+			cluster.CAFile = caFile
+			// Set SNI to first endpoint hostname if not an IP
+			if len(endpoints) > 0 {
+				cluster.SNI = endpoints[0].Host
+			}
+		}
+		clusters = append(clusters, cluster)
 	}
 	if len(clusters) == 0 {
 		return nil
