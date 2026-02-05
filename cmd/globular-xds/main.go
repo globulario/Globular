@@ -152,8 +152,18 @@ func main() {
 		return
 	}
 
+	// Configure TLS if certificates are provided
+	var tlsConfig *server.TLSConfig
+	if xdsCfg != nil && xdsCfg.TLS.ServerCert != "" && xdsCfg.TLS.ServerKey != "" {
+		tlsConfig = &server.TLSConfig{
+			ServerCertPath: xdsCfg.TLS.ServerCert,
+			ServerKeyPath:  xdsCfg.TLS.ServerKey,
+			ClientCAPath:   xdsCfg.TLS.ClientCA,
+		}
+	}
+
 	go func() {
-		if err := xdsServer.Serve(ctx, grpcListenAddr); err != nil && !errors.Is(err, context.Canceled) {
+		if err := xdsServer.Serve(ctx, grpcListenAddr, tlsConfig); err != nil && !errors.Is(err, context.Canceled) {
 			errCh <- err
 		}
 	}()
@@ -210,6 +220,11 @@ type xdsServiceConfig struct {
 	GRPC struct {
 		Address string `yaml:"address"`
 	} `yaml:"grpc"`
+	TLS struct {
+		ServerCert string `yaml:"server_cert"` // Path to server certificate (PEM)
+		ServerKey  string `yaml:"server_key"`  // Path to server private key (PEM)
+		ClientCA   string `yaml:"client_ca"`   // Path to CA bundle for client cert validation (optional, enables mTLS)
+	} `yaml:"tls"`
 	Logging struct {
 		Level string `yaml:"level"`
 	} `yaml:"logging"`

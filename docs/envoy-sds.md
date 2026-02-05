@@ -282,11 +282,41 @@ curl localhost:9901/config_dump | jq '.configs[] | select(.["@type"] | contains(
 
 ## Security Considerations
 
-1. **mTLS Required**: SDS gRPC uses same mTLS as xDS control plane
-2. **No Insecure Fallback**: If SDS fails, Envoy rejects connections (fail-closed)
-3. **Secrets in Transit**: Encrypted via TLS (control plane → Envoy)
-4. **Secrets at Rest**: Standard file permissions on PKI directory
-5. **Version Tracking**: Content-based hashing prevents replay attacks
+### xDS Transport Security (Issue D)
+
+The xDS gRPC server (which delivers secrets to Envoy) supports both insecure and mTLS modes:
+
+**Insecure Mode** (default, localhost only):
+- No TLS encryption
+- Only safe when bound to `127.0.0.1` or `localhost`
+- **WARNING**: Do not expose to network in this mode
+
+**mTLS Mode** (recommended for production):
+- Configure via `/var/lib/globular/xds/xds.yaml`:
+  ```yaml
+  tls:
+    server_cert: /var/lib/globular/config/tls/fullchain.pem
+    server_key: /var/lib/globular/config/tls/privkey.pem
+    client_ca: /var/lib/globular/config/tls/ca.pem  # Requires client cert auth
+  ```
+- Uses cluster internal CA for server certificate
+- Requires Envoy to present valid client certificate
+- Secrets encrypted in transit over gRPC
+- Protects against man-in-the-middle attacks
+
+**Multi-Node Clusters**:
+- **MUST** use mTLS mode
+- xDS server must be reachable from other nodes
+- Envoy bootstrap must reference correct xDS host/port
+- Client certificates validated against internal CA
+
+### Secret Protection
+
+1. **Secrets in Transit**: Encrypted via TLS when mTLS mode enabled
+2. **Secrets at Rest**: Standard file permissions on PKI directory (`/var/lib/globular/pki/`)
+3. **No Insecure Fallback**: If SDS fails, Envoy rejects connections (fail-closed)
+4. **Version Tracking**: Content-based hashing prevents replay attacks
+5. **Client Authentication**: mTLS ensures only authorized Envoys can request secrets
 
 ## Performance
 
