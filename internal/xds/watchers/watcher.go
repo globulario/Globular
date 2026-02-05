@@ -17,6 +17,7 @@ import (
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/dnscache"
 	"github.com/globulario/Globular/internal/xds/builder"
+	"github.com/globulario/Globular/internal/xds/secrets"
 	"github.com/globulario/Globular/internal/xds/server"
 	clustercontrollerpb "github.com/globulario/services/golang/clustercontroller/clustercontrollerpb"
 	"github.com/globulario/services/golang/config"
@@ -496,7 +497,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		// Build SDS secrets using canonical TLS paths
 		sdsSecrets = []builder.Secret{
 			{
-				Name:     "internal-server-cert",
+				Name:     secrets.InternalServerCert,
 				CertPath: listener.CertFile,
 				KeyPath:  listener.KeyFile,
 			},
@@ -504,7 +505,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		// Add CA bundle if present
 		if listener.IssuerFile != "" {
 			sdsSecrets = append(sdsSecrets, builder.Secret{
-				Name:   "internal-ca-bundle",
+				Name:   secrets.InternalCABundle,
 				CAPath: listener.IssuerFile,
 			})
 		}

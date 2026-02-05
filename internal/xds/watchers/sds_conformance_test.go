@@ -10,6 +10,7 @@ import (
 	"time"
 
 	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
@@ -532,7 +533,155 @@ func TestSecretContentHash(t *testing.T) {
 	t.Logf("  hash2: %s", hash2[:16])
 }
 
+// TestNoFileBasedTLSWhenSDSEnabled is a guard test that ensures file-based TLS
+// is never used when SDS is enabled. This prevents regressions where secrets
+// might be delivered via SDS but TLS contexts still reference file paths.
+func TestNoFileBasedTLSWhenSDSEnabled(t *testing.T) {
+	certFile := writeTestFile(t, "cert.pem", testCert)
+	keyFile := writeTestFile(t, "key.pem", testKey)
+	caFile := writeTestFile(t, "ca.pem", testCA)
+
+	input := builder.Input{
+		NodeID:    "test-node",
+		EnableSDS: true, // SDS enabled
+		SDSSecrets: []builder.Secret{
+			{
+				Name:     "internal-server-cert",
+				CertPath: certFile,
+				KeyPath:  keyFile,
+			},
+			{
+				Name:   "internal-ca-bundle",
+				CAPath: caFile,
+			},
+		},
+		Listener: builder.Listener{
+			Name:       "test_listener",
+			RouteName:  "test_route",
+			Host:       "0.0.0.0",
+			Port:       8443,
+			CertFile:   certFile,
+			KeyFile:    keyFile,
+			IssuerFile: caFile,
+		},
+		Routes: []builder.Route{
+			{
+				Prefix:  "/",
+				Cluster: "test_cluster",
+			},
+		},
+		Clusters: []builder.Cluster{
+			{
+				Name: "test_cluster",
+				Endpoints: []builder.Endpoint{
+					{Host: "127.0.0.1", Port: 8080},
+				},
+				CAFile: caFile,
+			},
+		},
+	}
+
+	snapshot, err := builder.BuildSnapshot(input, "v1")
+	if err != nil {
+		t.Fatalf("failed to build snapshot: %v", err)
+	}
+
+	// Check listeners for file-based TLS (DataSource_Filename)
+	listeners := snapshot.GetResources(resource_v3.ListenerType)
+	for _, res := range listeners {
+		listener := res.(*listener_v3.Listener)
+		for _, filterChain := range listener.FilterChains {
+			if filterChain.TransportSocket == nil {
+				continue
+			}
+
+			// Parse transport socket to check for file-based TLS
+			var dtls tls_v3.DownstreamTlsContext
+			if err := filterChain.TransportSocket.GetTypedConfig().UnmarshalTo(&dtls); err != nil {
+				continue // Not a TLS socket, skip
+			}
+
+			// Check for file-based certificates (illegal when EnableSDS=true)
+			if dtls.CommonTlsContext != nil {
+				for _, tlsCert := range dtls.CommonTlsContext.TlsCertificates {
+					if tlsCert.CertificateChain != nil {
+						if _, ok := tlsCert.CertificateChain.Specifier.(*core_v3.DataSource_Filename); ok {
+							t.Errorf("listener %s uses file-based TLS (DataSource_Filename) when EnableSDS=true - this is illegal", listener.Name)
+						}
+					}
+					if tlsCert.PrivateKey != nil {
+						if _, ok := tlsCert.PrivateKey.Specifier.(*core_v3.DataSource_Filename); ok {
+							t.Errorf("listener %s uses file-based TLS key when EnableSDS=true - this is illegal", listener.Name)
+						}
+					}
+				}
+
+				// Check validation context for file-based CA
+				if vc, ok := dtls.CommonTlsContext.ValidationContextType.(*tls_v3.CommonTlsContext_ValidationContext); ok {
+					if vc.ValidationContext != nil && vc.ValidationContext.TrustedCa != nil {
+						if _, ok := vc.ValidationContext.TrustedCa.Specifier.(*core_v3.DataSource_Filename); ok {
+							t.Errorf("listener %s uses file-based CA when EnableSDS=true - this is illegal", listener.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Check clusters for file-based TLS (DataSource_Filename)
+	clusters := snapshot.GetResources(resource_v3.ClusterType)
+	for _, res := range clusters {
+		cluster := res.(*cluster_v3.Cluster)
+		if cluster.TransportSocket == nil {
+			continue
+		}
+
+		// Parse transport socket to check for file-based TLS
+		var utls tls_v3.UpstreamTlsContext
+		if err := cluster.TransportSocket.GetTypedConfig().UnmarshalTo(&utls); err != nil {
+			continue // Not a TLS socket, skip
+		}
+
+		// Check for file-based certificates (illegal when EnableSDS=true)
+		if utls.CommonTlsContext != nil {
+			for _, tlsCert := range utls.CommonTlsContext.TlsCertificates {
+				if tlsCert.CertificateChain != nil {
+					if _, ok := tlsCert.CertificateChain.Specifier.(*core_v3.DataSource_Filename); ok {
+						t.Errorf("cluster %s uses file-based TLS (DataSource_Filename) when EnableSDS=true - this is illegal", cluster.Name)
+					}
+				}
+				if tlsCert.PrivateKey != nil {
+					if _, ok := tlsCert.PrivateKey.Specifier.(*core_v3.DataSource_Filename); ok {
+						t.Errorf("cluster %s uses file-based TLS key when EnableSDS=true - this is illegal", cluster.Name)
+					}
+				}
+			}
+
+			// Check validation context for file-based CA
+			if vc, ok := utls.CommonTlsContext.ValidationContextType.(*tls_v3.CommonTlsContext_ValidationContext); ok {
+				if vc.ValidationContext != nil && vc.ValidationContext.TrustedCa != nil {
+					if _, ok := vc.ValidationContext.TrustedCa.Specifier.(*core_v3.DataSource_Filename); ok {
+						t.Errorf("cluster %s uses file-based CA when EnableSDS=true - this is illegal", cluster.Name)
+					}
+				}
+			}
+		}
+	}
+
+	t.Log("✓ No file-based TLS (DataSource_Filename) found when EnableSDS=true")
+}
+
 // Helper functions
+
+func writeTestFile(t *testing.T, filename, content string) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, filename)
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatalf("failed to write test file %s: %v", filename, err)
+	}
+	return path
+}
 
 func getSecretNames(secrets map[string]types.Resource) []string {
 	names := make([]string, 0, len(secrets))

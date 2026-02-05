@@ -13,6 +13,7 @@ import (
 	cache_v3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/globulario/Globular/internal/controlplane"
+	"github.com/globulario/Globular/internal/xds/secrets"
 )
 
 // Endpoint describes a single upstream endpoint for a cluster.
@@ -99,14 +100,13 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		var c *cluster_v3.Cluster
 		if input.EnableSDS {
 			// Use SDS for TLS certificates
-			// Map file paths to secret names for now (in production, secret names would be explicit)
 			caSecretName := ""
 			if cluster.CAFile != "" {
-				caSecretName = "internal-ca-bundle"
+				caSecretName = secrets.InternalCABundle
 			}
 			clientCertSecretName := ""
 			if cluster.ServerCert != "" && cluster.KeyFile != "" {
-				clientCertSecretName = "internal-client-cert"
+				clientCertSecretName = secrets.InternalClientCert
 			}
 
 			c = controlplane.MakeClusterWithSDS(
@@ -184,10 +184,10 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			var listener *listener_v3.Listener
 			if input.EnableSDS {
 				// Use SDS for TLS certificates
-				serverCertSecretName := "internal-server-cert"
+				serverCertSecretName := secrets.InternalServerCert
 				caSecretName := ""
 				if issuerFile != "" {
-					caSecretName = "internal-ca-bundle"
+					caSecretName = secrets.InternalCABundle
 				}
 
 				listener = controlplane.MakeHTTPListenerWithSDS(
