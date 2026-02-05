@@ -169,6 +169,11 @@ type Watcher struct {
 	snapshotRegenTotal uint64          // total snapshot regenerations
 	snapshotNoopTotal  uint64          // snapshots skipped (no changes)
 	lastMetricsLog     time.Time       // timestamp of last metrics log
+
+	// Certificate rotation tracking (SDS)
+	etcdClient            *clientv3.Client // etcd client for cert generation tracking
+	lastCertGeneration    uint64           // last known certificate generation
+	certGenerationChecked bool             // whether cert generation has been checked
 }
 
 // New creates a watcher bound to the given server.
@@ -203,6 +208,15 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 		lastGoodEndpoints:  make(map[string]EndpointIdentity),
 		dnsFailureCooldown: 30 * time.Second,                    // PR5: Reuse last-good for 30s on DNS failure
 		logLimiter:         newLogRateLimiter(60 * time.Second), // PR5: Rate-limit logs to once per minute
+	}
+}
+
+// SetEtcdClient configures the etcd client for certificate generation tracking.
+// This enables hot certificate rotation via SDS.
+func (w *Watcher) SetEtcdClient(client *clientv3.Client) {
+	w.etcdClient = client
+	if w.logger != nil && client != nil {
+		w.logger.Info("etcd client configured for certificate rotation tracking")
 	}
 }
 
@@ -271,6 +285,12 @@ func (w *Watcher) sync(ctx context.Context) error {
 	w.protocol = detectLocalProtocol()
 	if w.logger != nil && prevProtocol != "" && prevProtocol != w.protocol {
 		w.logger.Info("protocol changed", "from", prevProtocol, "to", w.protocol)
+	}
+
+	// Check if certificate generation changed (triggers snapshot rebuild for hot rotation)
+	certChanged := w.checkCertificateGeneration(ctx)
+	if certChanged && w.logger != nil {
+		w.logger.Info("certificate rotation detected - forcing snapshot update")
 	}
 
 	input, version, err := w.buildInput(ctx)
@@ -467,6 +487,32 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			w.logger.Info("xDS clusters resolved", "gateway_http", "missing")
 		}
 	}
+
+	// Enable SDS for TLS certificate delivery (hot rotation)
+	enableSDS := false
+	var sdsSecrets []builder.Secret
+	if listener.CertFile != "" && listener.KeyFile != "" {
+		enableSDS = true
+		// Build SDS secrets using canonical TLS paths
+		sdsSecrets = []builder.Secret{
+			{
+				Name:     "internal-server-cert",
+				CertPath: listener.CertFile,
+				KeyPath:  listener.KeyFile,
+			},
+		}
+		// Add CA bundle if present
+		if listener.IssuerFile != "" {
+			sdsSecrets = append(sdsSecrets, builder.Secret{
+				Name:   "internal-ca-bundle",
+				CAPath: listener.IssuerFile,
+			})
+		}
+		if w.logger != nil {
+			w.logger.Info("SDS enabled", "secrets", len(sdsSecrets))
+		}
+	}
+
 	input := builder.Input{
 		NodeID:             w.nodeID,
 		Listener:           listener,
@@ -476,6 +522,8 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		EnableHTTPRedirect: enableHTTPRedirect,
 		GatewayPort:        gatewayPort,
 		Version:            version,
+		EnableSDS:          enableSDS,
+		SDSSecrets:         sdsSecrets,
 	}
 	return input, version, nil
 }
@@ -1448,4 +1496,70 @@ func (w *Watcher) gatewayTLSPaths() (string, string, string, bool) {
 	}
 	ca := pathIfExists(config.GetLocalCACertificate())
 	return cert, key, ca, true
+}
+
+// checkCertificateGeneration checks if certificate generation has changed in etcd.
+// Returns true if generation changed (snapshot should be rebuilt).
+func (w *Watcher) checkCertificateGeneration(ctx context.Context) bool {
+	if w.etcdClient == nil {
+		return false
+	}
+
+	// Get cluster domain from network config
+	var domain string
+	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
+		domain = w.clusterNetwork.Spec.ClusterDomain
+	}
+	if domain == "" {
+		// Fallback to default domain
+		domain = "globular.internal"
+	}
+
+	// Query etcd for certificate generation
+	key := fmt.Sprintf("/globular/pki/bundles/%s", domain)
+	resp, err := w.etcdClient.Get(ctx, key)
+	if err != nil {
+		if w.logger != nil && w.certGenerationChecked {
+			w.logger.Debug("failed to check certificate generation", "err", err, "domain", domain)
+		}
+		return false
+	}
+
+	if len(resp.Kvs) == 0 {
+		return false
+	}
+
+	// Parse generation from bundle JSON
+	var payload struct {
+		Generation uint64 `json:"generation"`
+	}
+	if err := json.Unmarshal(resp.Kvs[0].Value, &payload); err != nil {
+		if w.logger != nil {
+			w.logger.Warn("failed to parse certificate generation", "err", err)
+		}
+		return false
+	}
+
+	// Check if generation changed
+	if !w.certGenerationChecked {
+		w.lastCertGeneration = payload.Generation
+		w.certGenerationChecked = true
+		if w.logger != nil {
+			w.logger.Info("certificate generation initialized", "generation", payload.Generation, "domain", domain)
+		}
+		return false
+	}
+
+	if payload.Generation != w.lastCertGeneration {
+		if w.logger != nil {
+			w.logger.Info("certificate generation changed - rebuilding snapshot",
+				"old", w.lastCertGeneration,
+				"new", payload.Generation,
+				"domain", domain)
+		}
+		w.lastCertGeneration = payload.Generation
+		return true
+	}
+
+	return false
 }
