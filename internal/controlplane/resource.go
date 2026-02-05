@@ -124,6 +124,55 @@ func MakeCluster(
 	return c
 }
 
+// MakeClusterWithSDS creates an Envoy Cluster using SDS for TLS certificate delivery.
+// Instead of reading certificates from files, Envoy fetches them dynamically via SDS.
+//
+// Parameters:
+//   - clusterName: Name of the cluster
+//   - caSecretName: SDS secret name for CA bundle (e.g., "internal-ca-bundle")
+//   - clientCertSecretName: SDS secret name for client cert (optional, for mTLS)
+//   - sni: Server Name Indication for TLS handshake
+//   - endPoints: List of upstream endpoints
+//
+// Returns:
+//   - *cluster_v3.Cluster configured with SDS for TLS
+func MakeClusterWithSDS(
+	clusterName, caSecretName, clientCertSecretName, sni string,
+	endPoints []EndPoint,
+) *cluster_v3.Cluster {
+	typed, _ := h2TypedOption() // HTTP/2 upstream
+
+	// STATIC for IPs, STRICT_DNS for hostnames
+	useStrictDNS := false
+	for _, ep := range endPoints {
+		if net.ParseIP(ep.Host) == nil {
+			useStrictDNS = true
+			break
+		}
+	}
+	discoveryType := cluster_v3.Cluster_STATIC
+	if useStrictDNS {
+		discoveryType = cluster_v3.Cluster_STRICT_DNS
+	}
+
+	c := &cluster_v3.Cluster{
+		Name:                          clusterName,
+		ConnectTimeout:                durationpb.New(5 * time.Second),
+		ClusterDiscoveryType:          &cluster_v3.Cluster_Type{Type: discoveryType},
+		LbPolicy:                      cluster_v3.Cluster_ROUND_ROBIN,
+		LoadAssignment:                makeEndpoint(clusterName, endPoints),
+		DnsLookupFamily:               cluster_v3.Cluster_V4_ONLY,
+		TypedExtensionProtocolOptions: typed,
+	}
+
+	// Enable TLS via SDS if CA secret provided
+	if caSecretName != "" {
+		c.TransportSocket = makeUpstreamTLSWithSDS(caSecretName, clientCertSecretName, sni)
+	}
+
+	return c
+}
+
 func toAny(msg protoreflect.ProtoMessage) *any.Any {
 	anyMsg, err := anypb.New(msg)
 	if err != nil {
@@ -238,6 +287,112 @@ func makeDownstreamTLS(certFilePath, keyFilePath, caFilePath string) *core_v3.Tr
 			TypedConfig: toAny(&tls_v3.DownstreamTlsContext{
 				CommonTlsContext: common,
 			}),
+		},
+	}
+}
+
+// makeDownstreamTLSWithSDS creates a downstream TLS transport socket using SDS for certificate delivery.
+// Instead of reading certificates from files, Envoy fetches them dynamically via the Secret Discovery Service.
+//
+// Parameters:
+//   - serverCertSecretName: Name of the SDS secret containing server cert/key (e.g., "internal-server-cert")
+//   - caSecretName: Name of the SDS secret containing CA bundle for client validation (optional)
+//
+// Returns:
+//   - *core_v3.TransportSocket configured for downstream TLS with SDS
+func makeDownstreamTLSWithSDS(serverCertSecretName, caSecretName string) *core_v3.TransportSocket {
+	common := &tls_v3.CommonTlsContext{
+		TlsCertificateSdsSecretConfigs: []*tls_v3.SdsSecretConfig{{
+			Name: serverCertSecretName,
+			SdsConfig: &core_v3.ConfigSource{
+				ResourceApiVersion: core_v3.ApiVersion_V3,
+				ConfigSourceSpecifier: &core_v3.ConfigSource_Ads{
+					Ads: &core_v3.AggregatedConfigSource{},
+				},
+			},
+		}},
+		AlpnProtocols: []string{"h2", "http/1.1"},
+		TlsParams: &tls_v3.TlsParameters{
+			TlsMinimumProtocolVersion: tls_v3.TlsParameters_TLSv1_3,
+			TlsMaximumProtocolVersion: tls_v3.TlsParameters_TLSv1_3,
+		},
+	}
+
+	// Optional CA validation for client certificates
+	if caSecretName != "" {
+		common.ValidationContextType = &tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: &tls_v3.SdsSecretConfig{
+				Name: caSecretName,
+				SdsConfig: &core_v3.ConfigSource{
+					ResourceApiVersion: core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &core_v3.ConfigSource_Ads{
+						Ads: &core_v3.AggregatedConfigSource{},
+					},
+				},
+			},
+		}
+	}
+
+	return &core_v3.TransportSocket{
+		Name: "envoy.transport_sockets.tls",
+		ConfigType: &core_v3.TransportSocket_TypedConfig{
+			TypedConfig: toAny(&tls_v3.DownstreamTlsContext{
+				CommonTlsContext: common,
+			}),
+		},
+	}
+}
+
+// makeUpstreamTLSWithSDS creates an upstream TLS transport socket using SDS for certificate delivery.
+// Envoy fetches upstream TLS certificates dynamically via the Secret Discovery Service.
+//
+// Parameters:
+//   - caSecretName: Name of the SDS secret containing CA bundle for server validation (required)
+//   - clientCertSecretName: Name of the SDS secret containing client cert/key for mTLS (optional)
+//   - sni: Server Name Indication value for TLS handshake
+//
+// Returns:
+//   - *core_v3.TransportSocket configured for upstream TLS with SDS
+func makeUpstreamTLSWithSDS(caSecretName, clientCertSecretName, sni string) *core_v3.TransportSocket {
+	utls := &tls_v3.UpstreamTlsContext{
+		Sni: sni,
+		CommonTlsContext: &tls_v3.CommonTlsContext{
+			AlpnProtocols: []string{"h2"}, // gRPC over TLS
+		},
+	}
+
+	// CA validation (required for upstream)
+	if caSecretName != "" {
+		utls.CommonTlsContext.ValidationContextType = &tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: &tls_v3.SdsSecretConfig{
+				Name: caSecretName,
+				SdsConfig: &core_v3.ConfigSource{
+					ResourceApiVersion: core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &core_v3.ConfigSource_Ads{
+						Ads: &core_v3.AggregatedConfigSource{},
+					},
+				},
+			},
+		}
+	}
+
+	// Optional mTLS client certificate
+	if clientCertSecretName != "" {
+		utls.CommonTlsContext.TlsCertificateSdsSecretConfigs = []*tls_v3.SdsSecretConfig{{
+			Name: clientCertSecretName,
+			SdsConfig: &core_v3.ConfigSource{
+				ResourceApiVersion: core_v3.ApiVersion_V3,
+				ConfigSourceSpecifier: &core_v3.ConfigSource_Ads{
+					Ads: &core_v3.AggregatedConfigSource{},
+				},
+			},
+		}}
+	}
+
+	return &core_v3.TransportSocket{
+		Name: "envoy.transport_sockets.tls",
+		ConfigType: &core_v3.TransportSocket_TypedConfig{
+			TypedConfig: toAny(utls),
 		},
 	}
 }
@@ -437,6 +592,88 @@ func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, ro
 	// I case of TLS, we need to set the transport socket
 	if len(keyFilePath) > 0 {
 		l.FilterChains[0].TransportSocket = makeDownstreamTLS(certFilePath, keyFilePath, caFilePath)
+	}
+
+	return l
+}
+
+// MakeHTTPListenerWithSDS creates an HTTP listener using SDS for TLS certificate delivery.
+// Instead of reading certificates from files, Envoy fetches them dynamically via SDS.
+//
+// Parameters:
+//   - listenerHost: Bind address (e.g., "0.0.0.0")
+//   - listenerPort: Port to listen on (e.g., 443)
+//   - listenerName: Logical name for the listener
+//   - routeName: Name of the route configuration to use
+//   - serverCertSecretName: SDS secret name for server cert (e.g., "internal-server-cert")
+//   - caSecretName: SDS secret name for CA bundle (optional, for client validation)
+//
+// Returns:
+//   - *listener_v3.Listener configured with SDS for TLS
+func MakeHTTPListenerWithSDS(listenerHost string, listenerPort uint32, listenerName, routeName, serverCertSecretName, caSecretName string) *listener_v3.Listener {
+	// HTTP filter configuration
+	manager := &hcm_v3.HttpConnectionManager{
+		CodecType:  hcm_v3.HttpConnectionManager_AUTO,
+		StatPrefix: "http",
+		RouteSpecifier: &hcm_v3.HttpConnectionManager_Rds{
+			Rds: &hcm_v3.Rds{
+				ConfigSource:    makeConfigSource(),
+				RouteConfigName: routeName,
+			},
+		},
+		HttpFilters: []*hcm_v3.HttpFilter{
+			{
+				Name: "envoy.filters.http.grpc_web",
+				ConfigType: &hcm_v3.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&grpc_web_v3.GrpcWeb{}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.cors",
+				ConfigType: &hcm_v3.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&cors_v3.Cors{}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.router",
+				ConfigType: &hcm_v3.HttpFilter_TypedConfig{
+					TypedConfig: toAny(&router.Router{}),
+				},
+			},
+		},
+	}
+
+	pbst, err := anypb.New(manager)
+	if err != nil {
+		panic(err)
+	}
+
+	l := &listener_v3.Listener{
+		Name: listenerName,
+		Address: &core_v3.Address{
+			Address: &core_v3.Address_SocketAddress{
+				SocketAddress: &core_v3.SocketAddress{
+					Protocol: core_v3.SocketAddress_TCP,
+					Address:  listenerHost,
+					PortSpecifier: &core_v3.SocketAddress_PortValue{
+						PortValue: listenerPort,
+					},
+				},
+			},
+		},
+		FilterChains: []*listener_v3.FilterChain{{
+			Filters: []*listener_v3.Filter{{
+				Name: "envoy.filters.network.http_connection_manager",
+				ConfigType: &listener_v3.Filter_TypedConfig{
+					TypedConfig: pbst,
+				},
+			}},
+		}},
+	}
+
+	// Configure TLS via SDS if server cert secret provided
+	if serverCertSecretName != "" {
+		l.FilterChains[0].TransportSocket = makeDownstreamTLSWithSDS(serverCertSecretName, caSecretName)
 	}
 
 	return l

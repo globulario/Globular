@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache_v3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -60,6 +62,16 @@ type Input struct {
 	IngressHTTPPort    uint32    `json:"ingress_http_port"`
 	EnableHTTPRedirect bool      `json:"enable_http_redirect"`
 	GatewayPort        uint32    `json:"gateway_port"`
+	EnableSDS          bool      `json:"enable_sds,omitempty"`  // Use SDS for TLS certificates
+	SDSSecrets         []Secret  `json:"sds_secrets,omitempty"` // Secrets to include in snapshot
+}
+
+// Secret represents a TLS secret for SDS.
+type Secret struct {
+	Name     string `json:"name"`
+	CertPath string `json:"cert_path"`
+	KeyPath  string `json:"key_path"`
+	CAPath   string `json:"ca_path,omitempty"`
 }
 
 // BuildSnapshot returns a go-control-plane snapshot based on the configured input.
@@ -84,14 +96,37 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		}
 		added[name] = struct{}{}
 
-		c := controlplane.MakeCluster(
-			name,
-			strings.TrimSpace(cluster.ServerCert),
-			strings.TrimSpace(cluster.KeyFile),
-			strings.TrimSpace(cluster.CAFile),
-			strings.TrimSpace(cluster.SNI),
-			toControlplaneEndpoints(cluster.Endpoints),
-		)
+		var c *cluster_v3.Cluster
+		if input.EnableSDS {
+			// Use SDS for TLS certificates
+			// Map file paths to secret names for now (in production, secret names would be explicit)
+			caSecretName := ""
+			if cluster.CAFile != "" {
+				caSecretName = "internal-ca-bundle"
+			}
+			clientCertSecretName := ""
+			if cluster.ServerCert != "" && cluster.KeyFile != "" {
+				clientCertSecretName = "internal-client-cert"
+			}
+
+			c = controlplane.MakeClusterWithSDS(
+				name,
+				caSecretName,
+				clientCertSecretName,
+				strings.TrimSpace(cluster.SNI),
+				toControlplaneEndpoints(cluster.Endpoints),
+			)
+		} else {
+			// File-based TLS (legacy)
+			c = controlplane.MakeCluster(
+				name,
+				strings.TrimSpace(cluster.ServerCert),
+				strings.TrimSpace(cluster.KeyFile),
+				strings.TrimSpace(cluster.CAFile),
+				strings.TrimSpace(cluster.SNI),
+				toControlplaneEndpoints(cluster.Endpoints),
+			)
+		}
 		resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], c)
 	}
 
@@ -146,15 +181,35 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		}
 
 		if tlsEnabled {
-			listener := controlplane.MakeHTTPListener(
-				host,
-				httpsPort,
-				listenerName,
-				routeName,
-				certFile,
-				keyFile,
-				issuerFile,
-			)
+			var listener *listener_v3.Listener
+			if input.EnableSDS {
+				// Use SDS for TLS certificates
+				serverCertSecretName := "internal-server-cert"
+				caSecretName := ""
+				if issuerFile != "" {
+					caSecretName = "internal-ca-bundle"
+				}
+
+				listener = controlplane.MakeHTTPListenerWithSDS(
+					host,
+					httpsPort,
+					listenerName,
+					routeName,
+					serverCertSecretName,
+					caSecretName,
+				)
+			} else {
+				// File-based TLS (legacy)
+				listener = controlplane.MakeHTTPListener(
+					host,
+					httpsPort,
+					listenerName,
+					routeName,
+					certFile,
+					keyFile,
+					issuerFile,
+				)
+			}
 
 			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], listener)
 			if input.EnableHTTPRedirect && httpAllowed {
@@ -172,6 +227,30 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
 			httpListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, routeName, "", "", "")
 			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], httpListener)
+		}
+	}
+
+	// Add SDS secrets if enabled
+	if input.EnableSDS && len(input.SDSSecrets) > 0 {
+		for _, secret := range input.SDSSecrets {
+			name := strings.TrimSpace(secret.Name)
+			if name == "" {
+				continue
+			}
+
+			certPath := strings.TrimSpace(secret.CertPath)
+			keyPath := strings.TrimSpace(secret.KeyPath)
+			caPath := strings.TrimSpace(secret.CAPath)
+
+			// Build secret resource
+			s, err := controlplane.MakeSecret(name, certPath, keyPath, caPath)
+			if err != nil {
+				// Log but don't fail the snapshot - secret may be optional
+				fmt.Fprintf(os.Stderr, "warning: failed to build secret %s: %v\n", name, err)
+				continue
+			}
+
+			resources[resource_v3.SecretType] = append(resources[resource_v3.SecretType], s)
 		}
 	}
 
