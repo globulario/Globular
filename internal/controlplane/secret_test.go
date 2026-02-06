@@ -1,43 +1,32 @@
 package controlplane
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 )
 
-// Test certificate and key (self-signed, for testing only)
-const testCert = `-----BEGIN CERTIFICATE-----
-MIIBkTCB+wIJAKHHCgVZU6jSMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNVBAMMB3Rl
-c3QtY2EwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjASMRAwDgYDVQQD
-DAd0ZXN0LWNhMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANLJhPHhITqQbPklG3ib
-SNKcz5RB7aFpVSYKL6vxKLQE6zxMkTx0l1N8FqwL5xQ9l7FZgQmCgIaF0OVc5GmC
-Ep8CAwEAATANBgkqhkiG9w0BAQsFAANBAGO6L0Qx9pMd5H2vqQKDyT8HVqKJDxCh
-4xP2qQtmR7E7gK7xQ5F2L4L0Q9hVFE9pNqHVXL1pQqJ3xC8VqN4L0pE=
------END CERTIFICATE-----`
+var (
+	testCert string
+	testKey  string
+	testCA   string
+)
 
-const testKey = `-----BEGIN PRIVATE KEY-----
-MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEA0smE8eEhOpBs+SUb
-eJtI0pzPlEHtoWlVJgovq/EotATrPEyRPHSXU3wWrAvnFD2XsVmBCYKAhoXQ5Vzk
-aYISnwIDAQABAkA0qOK+oE6EFOkXLdLQaH1PwX9F3xQmxKTY3Q5L7T4LxPSqYc8Z
-kK3D8A1HqP5RXJ9fC1qPQxLqYBbL6L9Q5xYhAiEA7VxL5QqH2L7F0Q9L4Q5L7Q8L
-5Q6L7Q7L5Q5L7Q4L5QkCIQDk5L7Q9L5Q8L7Q7L5Q6L7Q5L4Q3L2Q1L0QzLyQxLwwJ
-AiAL5Q7L5Q6L7Q5L4Q3L2Q1L0QzLyQxLwQvLuQtLsQrCQIgQqQpQoQnQmQlQkQjQ
-iQhQgQfQeQdQcQbQaQZQYQXQIhBAkEA5L7Q9L5Q8L7Q7L5Q6L7Q5L4Q3L2Q1L0Qz
-LyQxLwQvLuQtLsQrLqQpLoQnLmQlLkQjLiQhLgQfLeQdLcQbLaQ=
------END PRIVATE KEY-----`
-
-const testCA = `-----BEGIN CERTIFICATE-----
-MIIBkjCCATogAwIBAgIJAKHHCgVZU6jTMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNV
-BAMMB3Rlc3QtY2EwHhcNMjQwMTAxMDAwMDAwWhcNMzQwMTAxMDAwMDAwWjASMRAw
-DgYDVQQDDAd0ZXN0LWNhMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANLJhPHhITqQ
-bPklG3ibSNKcz5RB7aFpVSYKL6vxKLQE6zxMkTx0l1N8FqwL5xQ9l7FZgQmCgIaF
-0OVc5GmCEp8CAwEAAaMQMA4wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAANB
-AGO6L0Qx9pMd5H2vqQKDyT8HVqKJDxCh4xP2qQtmR7E7gK7xQ5F2L4L0Q9hVFE9p
-NqHVXL1pQqJ3xC8VqN4L0pE=
------END CERTIFICATE-----`
+func init() {
+	cert, key, ca := generateTestCertKey()
+	testCert = string(cert)
+	testKey = string(key)
+	testCA = string(ca)
+}
 
 func TestMakeSecret_TLSCertificate(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -323,4 +312,27 @@ func TestHashSecret_Nil(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for nil secret")
 	}
+}
+
+// generateTestCertKey creates a self-signed RSA certificate and returns cert, key, and CA PEM.
+// For test purposes the CA is the same self-signed cert.
+func generateTestCertKey() (certPEM, keyPEM, caPEM []byte) {
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	serial, _ := rand.Int(rand.Reader, big.NewInt(1<<62))
+	tpl := &x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: "test.local"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+	}
+	der, _ := x509.CreateCertificate(rand.Reader, tpl, tpl, &priv.PublicKey, priv)
+
+	certBuf := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyBuf := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+	return certBuf, keyBuf, certBuf
 }

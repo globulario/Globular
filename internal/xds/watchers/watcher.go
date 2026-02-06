@@ -1633,6 +1633,12 @@ func (w *Watcher) checkACMECertificateRotation(acmeCertPath, acmeKeyPath string)
 
 	// Initialize on first check
 	if w.lastACMECertHash == "" && w.lastACMEKeyHash == "" {
+		if w.validateACMESecret(acmeCertPath, acmeKeyPath) != nil {
+			if w.logger != nil {
+				w.logger.Warn("ACME certificate invalid on init; keeping state uninitialized", "cert", acmeCertPath, "key", acmeKeyPath)
+			}
+			return false
+		}
 		w.lastACMECertHash = currentCertHash
 		w.lastACMEKeyHash = currentKeyHash
 		if w.logger != nil {
@@ -1646,6 +1652,12 @@ func (w *Watcher) checkACMECertificateRotation(acmeCertPath, acmeKeyPath string)
 	keyChanged := currentKeyHash != w.lastACMEKeyHash
 
 	if certChanged || keyChanged {
+		if err := w.validateACMESecret(acmeCertPath, acmeKeyPath); err != nil {
+			if w.logger != nil {
+				w.logger.Warn("ACME renewal invalid, keeping last good cert", "err", err, "cert_file", acmeCertPath, "key_file", acmeKeyPath)
+			}
+			return false
+		}
 		if w.logger != nil {
 			w.logger.Info("ACME certificate rotation detected - rebuilding snapshot",
 				"cert_changed", certChanged,
@@ -1659,4 +1671,11 @@ func (w *Watcher) checkACMECertificateRotation(acmeCertPath, acmeKeyPath string)
 	}
 
 	return false
+}
+
+// validateACMESecret attempts to build the ACME SDS secret to ensure PEM is valid.
+// It does not mutate watcher state; callers must update hashes after success.
+func (w *Watcher) validateACMESecret(certPath, keyPath string) error {
+	_, err := controlplane.MakeSecret(secrets.PublicIngressCert, certPath, keyPath, "")
+	return err
 }

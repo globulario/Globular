@@ -2,7 +2,9 @@ package controlplane
 
 import (
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"os"
 
@@ -84,6 +86,10 @@ func MakeTLSCertificate(certPath, keyPath string) (*tls_v3.TlsCertificate, error
 		return nil, fmt.Errorf("key file %s is empty", keyPath)
 	}
 
+	if err := ValidateCertKeyPair(certPEM, keyPEM); err != nil {
+		return nil, err
+	}
+
 	return &tls_v3.TlsCertificate{
 		CertificateChain: &core_v3.DataSource{
 			Specifier: &core_v3.DataSource_InlineBytes{
@@ -159,8 +165,8 @@ func SecretVersion(secret *tls_v3.Secret) (string, error) {
 	return fmt.Sprintf("sds-%s", hash), nil
 }
 
-// ValidateCertKeyPair performs basic validation that cert and key are valid PEM.
-// This catches obvious errors before pushing to Envoy.
+// ValidateCertKeyPair performs validation that cert and key are valid PEM and parseable.
+// This rejects garbage-but-readable renewals before pushing to Envoy/SDS.
 func ValidateCertKeyPair(certPEM, keyPEM []byte) error {
 	if len(certPEM) == 0 {
 		return fmt.Errorf("certificate is empty")
@@ -169,18 +175,61 @@ func ValidateCertKeyPair(certPEM, keyPEM []byte) error {
 		return fmt.Errorf("private key is empty")
 	}
 
-	// Basic PEM format checks
-	if !isPEMFormat(certPEM) {
-		return fmt.Errorf("certificate is not in PEM format")
+	certBlockCount := 0
+	var firstCert *pem.Block
+	rest := certPEM
+	for {
+		var b *pem.Block
+		b, rest = pem.Decode(rest)
+		if b == nil {
+			break
+		}
+		if b.Type == "CERTIFICATE" {
+			certBlockCount++
+			if firstCert == nil {
+				firstCert = b
+			}
+		}
 	}
-	if !isPEMFormat(keyPEM) {
-		return fmt.Errorf("private key is not in PEM format")
+	if certBlockCount == 0 {
+		return fmt.Errorf("no CERTIFICATE block found in certificate PEM")
+	}
+	if firstCert != nil {
+		if _, err := x509.ParseCertificate(firstCert.Bytes); err != nil {
+			return fmt.Errorf("invalid certificate: %w", err)
+		}
+	}
+
+	keyBlockCount := 0
+	rest = keyPEM
+	for {
+		var b *pem.Block
+		b, rest = pem.Decode(rest)
+		if b == nil {
+			break
+		}
+		switch b.Type {
+		case "PRIVATE KEY":
+			if _, err := x509.ParsePKCS8PrivateKey(b.Bytes); err != nil {
+				return fmt.Errorf("invalid PKCS#8 private key: %w", err)
+			}
+			keyBlockCount++
+		case "RSA PRIVATE KEY":
+			if _, err := x509.ParsePKCS1PrivateKey(b.Bytes); err != nil {
+				return fmt.Errorf("invalid RSA private key: %w", err)
+			}
+			keyBlockCount++
+		case "EC PRIVATE KEY":
+			if _, err := x509.ParseECPrivateKey(b.Bytes); err != nil {
+				return fmt.Errorf("invalid EC private key: %w", err)
+			}
+			keyBlockCount++
+		}
+	}
+
+	if keyBlockCount == 0 {
+		return fmt.Errorf("no supported PRIVATE KEY block found in key PEM")
 	}
 
 	return nil
-}
-
-// isPEMFormat checks if data looks like PEM (starts with -----BEGIN)
-func isPEMFormat(data []byte) bool {
-	return len(data) > 0 && (data[0] == '-' || (len(data) > 10 && string(data[:10]) == "-----BEGIN"))
 }
