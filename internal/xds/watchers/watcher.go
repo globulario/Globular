@@ -1541,17 +1541,26 @@ func (w *Watcher) checkCertificateGeneration(ctx context.Context) bool {
 		return false
 	}
 
-	// Get cluster domain from network config
+	// v1 Conformance: Domain-based etcd keys (violations INV-1.8, INV-1.9)
+	// TODO: This violates v1 invariants - certificate tracking should use cert IDs
+	// Current implementation uses domain in etcd key: /globular/pki/bundles/{domain}
+	// This couples certificate lifecycle to domain configuration
+	// v1 Solution: Use /globular/pki/certs/{cert_id} with stable IDs
+	//
+	// For now, keeping existing behavior but documenting violation
+	// Full fix requires PKI service refactor to use certificate IDs
 	var domain string
 	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
 		domain = w.clusterNetwork.Spec.ClusterDomain
 	}
 	if domain == "" {
-		// Fallback to default domain
+		// VIOLATION INV-1.9: Hardcoded internal domain
+		// Should use clusterID instead of domain name
 		domain = "globular.internal"
 	}
 
-	// Query etcd for certificate generation
+	// VIOLATION INV-1.8: Domain-based persistent state key
+	// Query etcd for certificate generation (domain-partitioned)
 	key := fmt.Sprintf("/globular/pki/bundles/%s", domain)
 	resp, err := w.etcdClient.Get(ctx, key)
 	if err != nil {

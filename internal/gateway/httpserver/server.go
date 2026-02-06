@@ -31,11 +31,11 @@ func New(logger *slog.Logger, globule *globpkg.Globule, httpAddr, httpsAddr stri
 	}
 
 	if httpsAddr != "" {
-		domainDir := globule.Domain
-		if domainDir == "" {
-			domainDir = "localhost"
-		}
-		credDir := filepath.Join(config_.GetConfigDir(), "tls", domainDir)
+		// v1 Conformance: Use stable TLS directory (security violation INV-1.5)
+		// REMOVED: domain-based directory selection
+		// Certificate storage MUST NOT depend on domain configuration
+		// Using stable path ensures certs accessible across domain changes
+		credDir := filepath.Join(config_.GetConfigDir(), "tls")
 		sup.TLS = &server.TLSFiles{
 			CertFile: filepath.Join(credDir, "fullchain.pem"),
 			KeyFile:  filepath.Join(credDir, "server.key"),

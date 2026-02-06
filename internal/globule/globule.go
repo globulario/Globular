@@ -103,17 +103,21 @@ func New(logger *slog.Logger) *Globule {
 	}
 
 	g := &Globule{
-		log:                 logger,
-		startTime:           time.Now(),
-		Version:             "1.0.0",
-		Build:               0,
-		Platform:            runtime.GOOS + ":" + runtime.GOARCH,
-		PortHTTP:            8080,
-		PortHTTPS:           8443,
-		PortsRange:          "10000-10100",
-		AllowedOrigins:      []string{"*"},
-		AllowedMethods:      []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
-		AllowedHeaders:      []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "domain", "application", "token", "video-path", "index-path", "routing"},
+		log:            logger,
+		startTime:      time.Now(),
+		Version:        "1.0.0",
+		Build:          0,
+		Platform:       runtime.GOOS + ":" + runtime.GOARCH,
+		PortHTTP:       8080,
+		PortHTTPS:      8443,
+		PortsRange:     "10000-10100",
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		// v1 Conformance: Remove "domain" header (security violation INV-1.7)
+		// Domain is routing configuration, not authentication/authorization data
+		// Allowing client-supplied "domain" header could influence identity decisions
+		// REMOVED: "domain" from allowed headers list
+		AllowedHeaders:      []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "application", "token", "video-path", "index-path", "routing"},
 		Protocol:            "http",
 		CertExpirationDelay: 365,
 		CertPassword:        "1111",
