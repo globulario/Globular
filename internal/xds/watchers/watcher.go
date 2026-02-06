@@ -185,7 +185,9 @@ type Watcher struct {
 	lastACMEKeyHash  string // DEPRECATED: use certReconciler
 
 	// v1 Conformance (INV-6): Event-driven certificate reconciliation
-	certReconciler *CertReconciler
+	certReconciler  *CertReconciler
+	certInitPending bool
+	certStarted     bool
 }
 
 // New creates a watcher bound to the given server.
@@ -261,6 +263,11 @@ func (w *Watcher) initializeCertReconciler() {
 	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
 		domain = w.clusterNetwork.Spec.ClusterDomain
 	}
+	if domain == "" && w.controllerAddr != "" && !w.clusterNetworkReady() {
+		// Wait until cluster network is fetched to avoid nil deref / incorrect domain
+		w.certInitPending = true
+		return
+	}
 	if domain == "" {
 		domain = "globular.internal" // Hardcoded fallback
 	}
@@ -280,6 +287,8 @@ func (w *Watcher) initializeCertReconciler() {
 				"has_acme", hasACME)
 		}
 	}
+
+	w.certInitPending = false
 }
 
 // Run starts the watcher loop and blocks until the context is canceled.
@@ -291,19 +300,28 @@ func (w *Watcher) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Start certificate reconciler if configured
-	if w.certReconciler != nil {
-		if err := w.certReconciler.Start(); err != nil {
-			w.logger.Warn("failed to start certificate reconciler", "err", err)
-		} else {
+	var certChangedChan, acmeChangedChan <-chan struct{}
+
+	startReconciler := func() {
+		if w.certReconciler != nil && !w.certStarted {
+			if err := w.certReconciler.Start(); err != nil {
+				w.logger.Warn("failed to start certificate reconciler", "err", err)
+				return
+			}
+			w.certStarted = true
 			w.logger.Info("certificate reconciler started")
+			certChangedChan = w.certReconciler.CertChangedChan()
+			acmeChangedChan = w.certReconciler.ACMEChangedChan()
 		}
-		defer w.certReconciler.Stop()
 	}
 
 	if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 		w.logger.Warn("initial xDS sync failed", "err", err)
 	}
+	if w.certInitPending && w.clusterNetworkReady() {
+		w.initializeCertReconciler()
+	}
+	startReconciler()
 
 	interval := w.interval
 	if interval <= 0 {
@@ -313,19 +331,22 @@ func (w *Watcher) Run(ctx context.Context) error {
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
 
-	// Get certificate change channels (nil-safe)
-	var certChangedChan, acmeChangedChan <-chan struct{}
-	if w.certReconciler != nil {
-		certChangedChan = w.certReconciler.CertChangedChan()
-		acmeChangedChan = w.certReconciler.ACMEChangedChan()
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 
 		case <-timer.C:
+			// Initialize/start reconciler once cluster network is ready
+			if w.certInitPending && w.clusterNetworkReady() {
+				w.initializeCertReconciler()
+				startReconciler()
+				if w.certReconciler != nil {
+					certChangedChan = w.certReconciler.CertChangedChan()
+					acmeChangedChan = w.certReconciler.ACMEChangedChan()
+				}
+			}
+
 			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 				w.logger.Warn("xDS sync failed", "err", err)
 			}
@@ -1753,6 +1774,12 @@ func (w *Watcher) gatewayTLSPaths() (string, string, string, bool) {
 	}
 	ca := pathIfExists(config.GetLocalCACertificate())
 	return cert, key, ca, true
+}
+
+func (w *Watcher) clusterNetworkReady() bool {
+	return w.clusterNetwork != nil &&
+		w.clusterNetwork.Spec != nil &&
+		strings.TrimSpace(w.clusterNetwork.Spec.ClusterDomain) != ""
 }
 
 // checkCertificateGeneration checks if certificate generation has changed in etcd.

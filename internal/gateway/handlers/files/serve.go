@@ -32,6 +32,7 @@ type MinioProxyConfig struct {
 	Domain        string
 	UsersBucket   string
 	WebrootBucket string
+	UseHostPrefix bool
 	UseSSL        bool
 	Client        *minio.Client
 	Stat          MinioStatFunc
@@ -340,11 +341,14 @@ func NewServeFile(p ServeProvider) http.Handler {
 	})
 }
 
+// serveUsersFromMinio attempts to serve a file from MinIO's users bucket.
+// Returns true if the file was served (or an error was written to the response),
+// and false when MinIO does not contain the object and filesystem fallback should run.
 func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxyConfig, rqstPath string) bool {
 	if cfg == nil || cfg.Fetch == nil {
 		return false
 	}
-	key, err := usersObjectKey(cfg, rqstPath)
+	key, err := buildMinioObjectKey(rqstPath, r.Host, cfg, true)
 	if err != nil {
 		httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 		return true
@@ -402,7 +406,7 @@ func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioPro
 	if cfg == nil || cfg.Fetch == nil {
 		return false
 	}
-	key, err := webrootObjectKey(cfg, host, rqstPath)
+	key, err := buildMinioObjectKey(rqstPath, host, cfg, false)
 	if err != nil {
 		httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
 		return true
@@ -502,7 +506,7 @@ func (cfg *MinioProxyConfig) webrootPrefixValue() string {
 	if p := strings.Trim(cfg.Prefix, "/"); p != "" {
 		return path.Join(p, "webroot")
 	}
-	return path.Join(defaultDomain(cfg), "webroot")
+	return "webroot"
 }
 
 func defaultDomain(cfg *MinioProxyConfig) string {
@@ -513,50 +517,64 @@ func defaultDomain(cfg *MinioProxyConfig) string {
 }
 
 func usersObjectKey(cfg *MinioProxyConfig, rqstPath string) (string, error) {
-	cleanPath, err := sanitizeRequestPath(rqstPath)
-	if err != nil {
-		return "", err
-	}
-	logical := strings.TrimPrefix(cleanPath, "/users/")
-	return joinKey(cfg.usersPrefixValue(), logical)
+	return buildMinioObjectKey(rqstPath, "", cfg, true)
 }
 
 func webrootObjectKey(cfg *MinioProxyConfig, host, rqstPath string) (string, error) {
-	cleanPath, err := sanitizeRequestPath(rqstPath)
-	if err != nil {
-		return "", err
-	}
-	host = strings.TrimSpace(host)
-	if host == "" {
-		host = defaultDomain(cfg)
-	}
-	host = strings.Split(host, ":")[0]
-	host = strings.Trim(host, " /.")
-	if host == "" {
-		host = defaultDomain(cfg)
-	}
-	logical := strings.TrimPrefix(cleanPath, "/")
-	if logical == "" {
-		logical = "index.html"
-	}
-	switch {
-	case strings.TrimSpace(cfg.WebrootPrefix) != "":
-		return joinKey(cfg.webrootPrefixValue(), logical)
-	case strings.TrimSpace(cfg.Prefix) != "":
-		return joinKey(cfg.webrootPrefixValue(), logical)
-	default:
-		// v1 Conformance: Use stable prefix (security violation INV-1.4)
-		// REMOVED: path.Join(host, "webroot") - Host header MUST NOT determine storage paths
-		// Host is untrusted client input - using it creates tenant isolation bypass
-		// For multi-tenancy, use authenticated principalID in explicit prefix config
-		base := "webroot" // Stable prefix, independent of Host header
-		return joinKey(base, logical)
-	}
+	return buildMinioObjectKey(rqstPath, host, cfg, false)
 }
 
 // Exposed for tests
 func WebrootObjectKeyForTest(cfg *MinioProxyConfig, host, rqstPath string) (string, error) {
 	return webrootObjectKey(cfg, host, rqstPath)
+}
+
+// buildMinioObjectKey constructs a sanitized MinIO object key for either users or webroot content.
+// - User paths: /users/<user>/<file> -> users prefix + logical path
+// - Webroot: uses host prefix when cfg.UseHostPrefix is true, otherwise webroot prefix defaults
+// Returns error when the path is unsafe or malformed.
+func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isUserPath bool) (string, error) {
+	if cfg == nil {
+		return "", fmt.Errorf("config is nil")
+	}
+
+	decoded := reqPath
+	if strings.Contains(reqPath, "%") {
+		if unescaped, err := url.PathUnescape(reqPath); err == nil {
+			decoded = unescaped
+		}
+	}
+
+	cleanPath, err := sanitizeRequestPath(decoded)
+	if err != nil {
+		return "", err
+	}
+
+	if isUserPath {
+		if !strings.HasPrefix(cleanPath, "/users/") {
+			return "", fmt.Errorf("invalid user path")
+		}
+		logical := strings.TrimPrefix(cleanPath, "/users/")
+		return joinKey(cfg.usersPrefixValue(), logical)
+	}
+
+	// Webroot path handling
+	host = cleanRequestHost(host, cfg)
+	logical := strings.TrimPrefix(cleanPath, "/")
+	if logical == "" {
+		logical = "index.html"
+	}
+
+	useHost := true
+	if strings.TrimSpace(cfg.WebrootPrefix) != "" || strings.TrimSpace(cfg.Prefix) != "" {
+		useHost = cfg.UseHostPrefix
+	}
+
+	base := cfg.webrootPrefixValue()
+	if useHost {
+		return joinKey(host, base, logical)
+	}
+	return joinKey(base, logical)
 }
 
 func joinKey(parts ...string) (string, error) {
