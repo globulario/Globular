@@ -396,9 +396,9 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// For multi-tenancy, use authenticated principalID instead of Host header
 		info.dir = p.WebRoot()
 
-		// v2 Conformance: Token from Authorization header ONLY (security violation INV-3.1)
+		// v2 Conformance: Token from token header ONLY (security violation INV-3.1)
 		// REMOVED: Query parameter token extraction - tokens in URLs leak via logs
-		// Tokens MUST be in Authorization header to prevent exposure in:
+		// Tokens MUST be in headers to prevent exposure in:
 		// - Access logs, proxy logs, browser history
 		// - Referer headers, URL sharing
 		// - Server-side request logging
