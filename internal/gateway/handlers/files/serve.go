@@ -247,6 +247,61 @@ func (h *MinIOHandler) Serve(w http.ResponseWriter, r *http.Request, p *pathInfo
 	return false
 }
 
+// FilesystemHandler encapsulates local filesystem serving for ServeFile requests.
+type FilesystemHandler struct {
+	Provider ServeProvider
+}
+
+// Serve serves the request from the local filesystem, honoring streaming hooks,
+// caching headers, and content-type helpers. It returns true when it handled
+// the response (success or error).
+func (h *FilesystemHandler) Serve(w http.ResponseWriter, r *http.Request, p *pathInfo) bool {
+	if h == nil || h.Provider == nil || p == nil {
+		return false
+	}
+
+	lname := strings.ToLower(p.name)
+	if r.Method == http.MethodGet && strings.HasSuffix(lname, ".mkv") {
+		if h.Provider.MaybeStream(p.name, w, r) {
+			return true
+		}
+	}
+
+	f, ferr := openFile(h.Provider, p.name)
+	if ferr != nil {
+		httplib.WriteJSONError(w, http.StatusNotFound, ferr.Error())
+		return true
+	}
+	defer f.Close()
+
+	fi, _ := f.Stat()
+	mod := fi.ModTime().UTC()
+	etag := weakETag(fi)
+
+	// Conditional GET (304)
+	if inm := r.Header.Get("If-None-Match"); inm != "" && etagMatch(etag, inm) {
+		w.WriteHeader(http.StatusNotModified)
+		return true
+	}
+	if ims := r.Header.Get("If-Modified-Since"); ims != "" {
+		if t, err := time.Parse(http.TimeFormat, ims); err == nil && !fi.ModTime().After(t) {
+			w.WriteHeader(http.StatusNotModified)
+			return true
+		}
+	}
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Last-Modified", mod.Format(http.TimeFormat))
+
+	// Content type detection and optional transformations
+	if serveWithContentType(w, r, p.name, f, fi, h.Provider, p.isRoot, p.marker) {
+		return true
+	}
+
+	// Default: Range + Last-Modified supported by stdlib
+	http.ServeFile(w, r, p.name)
+	return true
+}
+
 // NewServeFile implements GET /serve/* with:
 // - Reverse-proxy passthrough for configured prefixes
 // - Host-based subroot under WebRoot()
@@ -437,48 +492,10 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
-		// Streaming hook
-		lname := strings.ToLower(name)
-		if r.Method == http.MethodGet && strings.HasSuffix(lname, ".mkv") {
-			if p.MaybeStream(name, w, r) {
-				return
-			}
-		}
-
-		// Open or hashed fallback
-		f, ferr := openFile(p, name)
-		if ferr != nil {
-			httplib.WriteJSONError(w, http.StatusNotFound, ferr.Error())
+		fsHandler := &FilesystemHandler{Provider: p}
+		if fsHandler.Serve(w, r, info) {
 			return
 		}
-		defer f.Close()
-
-		// Stat once for caching/etag/range
-		fi, _ := f.Stat()
-		mod := fi.ModTime().UTC()
-		etag := weakETag(fi)
-
-		// Conditional GET (304)
-		if inm := r.Header.Get("If-None-Match"); inm != "" && etagMatch(etag, inm) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
-			if t, err := time.Parse(http.TimeFormat, ims); err == nil && !fi.ModTime().After(t) {
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-		}
-		w.Header().Set("ETag", etag)
-		w.Header().Set("Last-Modified", mod.Format(http.TimeFormat))
-
-		// Content type detection and optional transformations
-		if serveWithContentType(w, r, name, f, fi, p, info.isRoot, info.marker) {
-			return
-		}
-
-		// Default: Range + Last-Modified supported by stdlib
-		http.ServeFile(w, r, name)
 	})
 }
 
