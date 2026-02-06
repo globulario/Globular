@@ -1,7 +1,6 @@
 package conformance
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

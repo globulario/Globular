@@ -21,6 +21,47 @@ import (
 	httplib "github.com/globulario/Globular/internal/gateway/http"
 )
 
+// serveWithContentType serves a file with appropriate Content-Type header and optional
+// transformations (JS import rewriting, root HTML marker injection). It returns true when
+// the content was served by this helper; false means the caller should continue with the
+// default serving path (e.g., http.ServeFile).
+func serveWithContentType(w http.ResponseWriter, r *http.Request, name string, f *os.File, fi os.FileInfo, p ServeProvider, isRoot bool, marker string) bool {
+	lname := strings.ToLower(name)
+
+	// JavaScript files with optional import rewriting
+	if strings.HasSuffix(lname, ".js") {
+		w.Header().Set("Content-Type", "application/javascript")
+		code, changed := maybeRewriteJSImports(p, name, f)
+		if changed {
+			http.ServeContent(w, r, name, fi.ModTime(), strings.NewReader(code))
+			return true
+		}
+		return false
+	}
+
+	// CSS files
+	if strings.HasSuffix(lname, ".css") {
+		w.Header().Set("Content-Type", "text/css")
+		return false
+	}
+
+	// HTML files with optional marker injection for root path
+	if strings.HasSuffix(lname, ".html") || strings.HasSuffix(lname, ".htm") {
+		w.Header().Set("Content-Type", "text/html")
+		if isRoot {
+			if data, err := os.ReadFile(name); err == nil {
+				htmlWithMarker := fmt.Sprintf("<!-- %s -->\n<div id=\"served-by\">%s</div>\n%s", marker, marker, string(data))
+				http.ServeContent(w, r, name, fi.ModTime(), strings.NewReader(htmlWithMarker))
+				return true
+			}
+		}
+		return false
+	}
+
+	// No special handling needed
+	return false
+}
+
 // MinioProxyConfig captures the subset of FileService MinIO settings required
 // to proxy /users/ requests directly to the MinIO gateway.
 type MinioProxyConfig struct {
@@ -314,26 +355,9 @@ func NewServeFile(p ServeProvider) http.Handler {
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Last-Modified", mod.Format(http.TimeFormat))
 
-		// Content type & optional JS import rewriting
-		switch {
-		case strings.HasSuffix(lname, ".js"):
-			w.Header().Set("Content-Type", "application/javascript")
-			code, changed := maybeRewriteJSImports(p, rqstPath, f)
-			if changed {
-				http.ServeContent(w, r, name, fi.ModTime(), strings.NewReader(code))
-				return
-			}
-		case strings.HasSuffix(lname, ".css"):
-			w.Header().Set("Content-Type", "text/css")
-		case strings.HasSuffix(lname, ".html") || strings.HasSuffix(lname, ".htm"):
-			w.Header().Set("Content-Type", "text/html")
-			if isRoot {
-				if data, err := os.ReadFile(name); err == nil {
-					htmlWithMarker := fmt.Sprintf("<!-- %s -->\n<div id=\"served-by\">%s</div>\n%s", marker, marker, string(data))
-					http.ServeContent(w, r, name, fi.ModTime(), strings.NewReader(htmlWithMarker))
-					return
-				}
-			}
+		// Content type detection and optional transformations
+		if serveWithContentType(w, r, name, f, fi, p, isRoot, marker) {
+			return
 		}
 
 		// Default: Range + Last-Modified supported by stdlib
@@ -695,6 +719,9 @@ func isPublicLike(reqPath string, publicRoots []string) bool {
 	return false
 }
 
+// maybeRewriteJSImports scans a JS file and rewrites import paths using the
+// provider's ResolveImportPath hook when the import begins with '@'.
+// Returns rewritten source and a flag indicating whether changes were applied.
 func maybeRewriteJSImports(p ServeProvider, base string, f io.ReadSeeker) (code string, changed bool) {
 	// reset to start
 	_, _ = f.Seek(0, io.SeekStart)
@@ -715,6 +742,8 @@ func maybeRewriteJSImports(p ServeProvider, base string, f io.ReadSeeker) (code 
 	return b.String(), changed
 }
 
+// openFile attempts to open a file by name, falling back to hashed filename lookups.
+// Caller is responsible for closing the returned file.
 func openFile(p ServeProvider, name string) (*os.File, error) {
 	if p.Exists(name) {
 		return os.Open(name) // #nosec G304
@@ -728,10 +757,12 @@ func openFile(p ServeProvider, name string) (*os.File, error) {
 	return nil, fmt.Errorf("file %s not found", name)
 }
 
+// weakETag produces a weak ETag for the given file info.
 func weakETag(fi os.FileInfo) string {
 	return fmt.Sprintf(`W/"%d-%d"`, fi.Size(), fi.ModTime().Unix())
 }
 
+// etagMatch reports whether an ETag matches any value in a comma-separated list or '*'.
 func etagMatch(etag, list string) bool {
 	// Very small matcher: "*", or exact match among comma-separated list
 	for _, v := range strings.Split(list, ",") {

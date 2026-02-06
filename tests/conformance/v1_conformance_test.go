@@ -9,15 +9,25 @@ import (
 	"github.com/globulario/services/golang/security"
 )
 
+// genTestTokenOrSkip generates a token for tests, skipping when local config is unavailable.
+func genTestTokenOrSkip(t *testing.T, mac, userID, userName, email string) string {
+	t.Helper()
+	token, err := security.GenerateToken(3600, mac, userID, userName, email)
+	if err != nil {
+		if strings.Contains(err.Error(), "no local Globular configuration") {
+			t.Skipf("skipping token-dependent test: %v", err)
+		}
+		t.Fatalf("failed to generate test token: %v", err)
+	}
+	return token
+}
+
 // TestTokenHeaderOnly verifies that tokens are ONLY accepted from Authorization header.
 // Query parameters and form values MUST be rejected.
 // This test enforces INV-3.1 and INV-3.2 (no token leakage via URLs/forms).
 func TestTokenHeaderOnly(t *testing.T) {
 	// Generate a valid token for testing
-	token, err := security.GenerateToken(3600, "00:11:22:33:44:55", "testuser", "Test User", "test@example.com")
-	if err != nil {
-		t.Fatalf("failed to generate test token: %v", err)
-	}
+	token := genTestTokenOrSkip(t, "00:11:22:33:44:55", "testuser", "Test User", "test@example.com")
 
 	tests := []struct {
 		name           string
@@ -120,10 +130,7 @@ func TestAudienceValidation(t *testing.T) {
 
 	// Test 1: Token without audience (should work with non-validating function)
 	t.Run("token_without_audience", func(t *testing.T) {
-		token, err := security.GenerateToken(3600, mac, userId, userName, email)
-		if err != nil {
-			t.Fatalf("failed to generate token: %v", err)
-		}
+		token := genTestTokenOrSkip(t, mac, userId, userName, email)
 
 		// Standard validation (no audience check) should succeed
 		claims, err := security.ValidateToken(token)
@@ -169,7 +176,7 @@ func TestAudienceValidation(t *testing.T) {
 	// Test 4: ValidateTokenWithAudience function exists
 	t.Run("audience_validation_function_exists", func(t *testing.T) {
 		// Verify the function exists (added in Phase 2)
-		token, _ := security.GenerateToken(3600, mac, userId, userName, email)
+		token := genTestTokenOrSkip(t, mac, userId, userName, email)
 
 		// This function was added in Phase 2
 		claims, err := security.ValidateTokenWithAudience(token, "")
@@ -268,10 +275,7 @@ func TestUserIDNoDomain(t *testing.T) {
 	userName := "Alice"
 	email := "alice@example.com"
 
-	token, err := security.GenerateToken(3600, mac, userId, userName, email)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
+	token := genTestTokenOrSkip(t, mac, userId, userName, email)
 
 	// Validate and extract claims
 	claims, err := security.ValidateToken(token)

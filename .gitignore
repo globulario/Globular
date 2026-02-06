@@ -50,3 +50,5 @@ secrets/**
 .bin/
 !internal/config/
 !internal/config/*
+!internal/gateway/handlers/config/
+!internal/gateway/handlers/config/*
