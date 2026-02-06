@@ -1383,6 +1383,134 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher, xdsCfg *XDSConfig) u
 	return uint32(targetPort)
 }
 
+// resolveExplicitHost handles explicit host/IP addresses from service registry.
+// Returns zero value if no explicit host is provided.
+func (w *Watcher) resolveExplicitHost(host, serviceDNSLabel string, port int) (EndpointIdentity, bool) {
+	if host == "" {
+		return EndpointIdentity{}, false
+	}
+
+	// Check if host looks like an FQDN (contains cluster domain)
+	if w.isClusterMode() && strings.Contains(host, w.clusterNetwork.Spec.ClusterDomain) {
+		return EndpointIdentity{
+			ServiceDNSLabel: serviceDNSLabel,
+			TargetFQDN:      host,
+			TargetIP:        "",
+			Port:            port,
+			Source:          EndpointSourceRegistry,
+		}, true
+	}
+
+	// Treat as IP address
+	return EndpointIdentity{
+		ServiceDNSLabel: serviceDNSLabel,
+		TargetFQDN:      "",
+		TargetIP:        host,
+		Port:            port,
+		Source:          EndpointSourceRegistry,
+	}, true
+}
+
+// trySRVResolution attempts DNS SRV record lookup for service discovery.
+// Returns endpoint and true if successful, zero value and false otherwise.
+func (w *Watcher) trySRVResolution(ctx context.Context, serviceName, serviceDNSLabel string) (EndpointIdentity, bool) {
+	if serviceName == "" {
+		return EndpointIdentity{}, false
+	}
+
+	srvFQDN, srvPort := w.resolveSRV(ctx, serviceName)
+	if srvFQDN == "" || srvPort == 0 {
+		return EndpointIdentity{}, false
+	}
+
+	endpoint := EndpointIdentity{
+		ServiceDNSLabel: serviceDNSLabel,
+		TargetFQDN:      srvFQDN,
+		TargetIP:        "",
+		Port:            srvPort,
+		Source:          EndpointSourceSRV,
+	}
+
+	// Save successful resolution and log SRV hit
+	w.endpointMu.Lock()
+	w.lastGoodEndpoints[serviceName] = endpoint
+	w.endpointMu.Unlock()
+
+	if w.logLimiter.shouldLog(serviceName, "srv_hit") {
+		w.logger.Info("dns routing: SRV hit",
+			"service", serviceName,
+			"target", srvFQDN,
+			"port", srvPort)
+	}
+
+	return endpoint, true
+}
+
+// tryARecordResolution attempts DNS A/AAAA record lookup for service discovery.
+// Returns endpoint and true if successful, zero value and false otherwise.
+func (w *Watcher) tryARecordResolution(ctx context.Context, svc map[string]any, serviceName, serviceDNSLabel string, port int, logFallback bool) (EndpointIdentity, bool) {
+	fqdn := w.tryConstructServiceFQDN(svc)
+	if fqdn == "" {
+		return EndpointIdentity{}, false
+	}
+
+	resolvedIP := w.resolveDNS(ctx, fqdn)
+	if resolvedIP == "" {
+		return EndpointIdentity{}, false
+	}
+
+	endpoint := EndpointIdentity{
+		ServiceDNSLabel: serviceDNSLabel,
+		TargetFQDN:      fqdn,
+		TargetIP:        resolvedIP,
+		Port:            port,
+		Source:          EndpointSourceA,
+	}
+
+	// Save successful resolution and log fallback if needed
+	w.endpointMu.Lock()
+	w.lastGoodEndpoints[serviceName] = endpoint
+	w.endpointMu.Unlock()
+
+	if logFallback && w.logLimiter.shouldLog(serviceName, "fallback_srv_to_a") {
+		w.logger.Info("dns routing: fallback",
+			"service", serviceName,
+			"from", "SRV",
+			"to", "A")
+	}
+
+	return endpoint, true
+}
+
+// handleDNSFailure manages cooldown period and last-good endpoint fallback.
+// Returns last-good endpoint and true if in cooldown, zero value and false otherwise.
+func (w *Watcher) handleDNSFailure(serviceName string) (EndpointIdentity, bool) {
+	w.endpointMu.RLock()
+	inCooldown := time.Since(w.lastDNSFailure) < w.dnsFailureCooldown
+	lastGood, hasLastGood := w.lastGoodEndpoints[serviceName]
+	w.endpointMu.RUnlock()
+
+	if inCooldown && hasLastGood {
+		// Reuse last-good endpoint during cooldown
+		if w.logLimiter.shouldLog(serviceName, "using_last_good") {
+			w.logger.Info("dns routing: using last-good endpoints",
+				"service", serviceName,
+				"reason", "DNS failure",
+				"source", lastGood.Source.String())
+		}
+		return lastGood, true
+	}
+
+	if !inCooldown {
+		// Cooldown expired - record new failure timestamp
+		w.endpointMu.Lock()
+		w.lastDNSFailure = time.Now()
+		w.endpointMu.Unlock()
+	}
+
+	return EndpointIdentity{}, false
+}
+
 // resolveServiceEndpoint resolves a service to a canonical endpoint identity (PR5).
 // In cluster mode, prefers FQDN-based routing with stable fallback chain.
 // Returns normalized EndpointIdentity with source tracking for observability.
@@ -1402,104 +1530,27 @@ func (w *Watcher) resolveServiceEndpoint(ctx context.Context, svc map[string]any
 
 	serviceDNSLabel := normalizeDNSLabel(serviceName)
 
-	// If explicit host is provided, check if it's an FQDN or IP
-	if host != "" {
-		// Check if host looks like an FQDN (contains domain suffix)
-		if w.isClusterMode() && strings.Contains(host, w.clusterNetwork.Spec.ClusterDomain) {
-			return EndpointIdentity{
-				ServiceDNSLabel: serviceDNSLabel,
-				TargetFQDN:      host,
-				TargetIP:        "",
-				Port:            port,
-				Source:          EndpointSourceRegistry,
-			}
-		}
-		// Treat as IP
-		return EndpointIdentity{
-			ServiceDNSLabel: serviceDNSLabel,
-			TargetFQDN:      "",
-			TargetIP:        host,
-			Port:            port,
-			Source:          EndpointSourceRegistry,
-		}
+	// If explicit host is provided, use it
+	if endpoint, ok := w.resolveExplicitHost(host, serviceDNSLabel, port); ok {
+		return endpoint
 	}
 
 	// No explicit host - try DNS-based routing in cluster mode
 	if w.isClusterMode() {
 		// PR4.1: Try SRV lookup first for service port discovery
-		srvAttempted := false
-		if serviceName != "" {
-			srvAttempted = true
-			if srvFQDN, srvPort := w.resolveSRV(ctx, serviceName); srvFQDN != "" && srvPort > 0 {
-				endpoint := EndpointIdentity{
-					ServiceDNSLabel: serviceDNSLabel,
-					TargetFQDN:      srvFQDN,
-					TargetIP:        "",
-					Port:            srvPort,
-					Source:          EndpointSourceSRV,
-				}
-				// PR5: Save successful resolution and log SRV hit
-				w.endpointMu.Lock()
-				w.lastGoodEndpoints[serviceName] = endpoint
-				w.endpointMu.Unlock()
-
-				if w.logLimiter.shouldLog(serviceName, "srv_hit") {
-					w.logger.Info("dns routing: SRV hit",
-						"service", serviceName,
-						"target", srvFQDN,
-						"port", srvPort)
-				}
-				return endpoint
-			}
+		if endpoint, ok := w.trySRVResolution(ctx, serviceName, serviceDNSLabel); ok {
+			return endpoint
 		}
 
 		// PR4: Fall back to A/AAAA lookup
-		if fqdn := w.tryConstructServiceFQDN(svc); fqdn != "" {
-			if resolvedIP := w.resolveDNS(ctx, fqdn); resolvedIP != "" {
-				endpoint := EndpointIdentity{
-					ServiceDNSLabel: serviceDNSLabel,
-					TargetFQDN:      fqdn,
-					TargetIP:        resolvedIP,
-					Port:            port,
-					Source:          EndpointSourceA,
-				}
-				// PR5: Save successful resolution and log fallback from SRV
-				w.endpointMu.Lock()
-				w.lastGoodEndpoints[serviceName] = endpoint
-				w.endpointMu.Unlock()
-
-				if srvAttempted && w.logLimiter.shouldLog(serviceName, "fallback_srv_to_a") {
-					w.logger.Info("dns routing: fallback",
-						"service", serviceName,
-						"from", "SRV",
-						"to", "A")
-				}
-				return endpoint
-			}
+		srvAttempted := serviceName != ""
+		if endpoint, ok := w.tryARecordResolution(ctx, svc, serviceName, serviceDNSLabel, port, srvAttempted); ok {
+			return endpoint
 		}
 
 		// PR5: DNS resolution failed - check cooldown period
-		w.endpointMu.RLock()
-		inCooldown := time.Since(w.lastDNSFailure) < w.dnsFailureCooldown
-		lastGood, hasLastGood := w.lastGoodEndpoints[serviceName]
-		w.endpointMu.RUnlock()
-
-		if inCooldown && hasLastGood {
-			// Reuse last-good endpoint during cooldown
-			if w.logLimiter.shouldLog(serviceName, "using_last_good") {
-				w.logger.Info("dns routing: using last-good endpoints",
-					"service", serviceName,
-					"reason", "DNS failure",
-					"source", lastGood.Source.String())
-			}
-			return lastGood
-		}
-
-		if !inCooldown {
-			// Cooldown expired - record new failure timestamp
-			w.endpointMu.Lock()
-			w.lastDNSFailure = time.Now()
-			w.endpointMu.Unlock()
+		if endpoint, ok := w.handleDNSFailure(serviceName); ok {
+			return endpoint
 		}
 	}
 
