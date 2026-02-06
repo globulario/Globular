@@ -574,17 +574,93 @@ func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Se
 	return true, sdsSecrets, nil
 }
 
+// modeResources holds the resources and configuration produced by mode selection (ingress vs legacy).
+type modeResources struct {
+	listener           builder.Listener
+	clusters           []builder.Cluster
+	routes             []builder.Route
+	gatewayPort        uint32
+	ingressHTTPPort    uint32
+	enableHTTPRedirect bool
+}
+
+// configureModeResources selects between ingress mode and legacy mode, applies the appropriate
+// configuration, and returns normalized resources ready for snapshot building.
+//
+// Mode selection:
+//   - If ingressSpec is non-nil: Use ingress mode (modern configuration)
+//   - If ingressSpec is nil: Use legacy mode (fallback for old configs)
+//
+// The function applies defaults and normalization to ensure the listener has valid
+// Host, RouteName, and Name fields regardless of which mode is selected.
+func (w *Watcher) configureModeResources(ingressSpec *IngressSpec, cfg *XDSConfig) (modeResources, error) {
+	var result modeResources
+
+	if ingressSpec != nil {
+		// Ingress mode: Use modern ingress configuration
+		result.listener = ingressSpec.Listener
+		result.clusters = ingressSpec.Clusters
+		result.routes = ingressSpec.Routes
+
+		// Normalize gateway port
+		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
+		ingressSpec.GatewayPort = normalizedGatewayPort
+		result.gatewayPort = ingressSpec.GatewayPort
+		result.ingressHTTPPort = ingressSpec.HTTPPort
+		result.enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
+
+		// Apply listener defaults for ingress mode
+		if result.listener.Host == "" {
+			result.listener.Host = "0.0.0.0"
+		}
+		if result.listener.RouteName == "" {
+			result.listener.RouteName = defaultRouteName
+		}
+		if result.listener.Name == "" {
+			port := result.listener.Port
+			if port == 0 {
+				port = controlplane.DefaultIngressPort(result.listener.Host)
+			}
+			result.listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
+		}
+	} else {
+		// Legacy mode: Use legacy gateway resources (fallback)
+		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources(cfg)
+		if err != nil {
+			return modeResources{}, err
+		}
+
+		result.listener = legacyListener
+		result.clusters = legacyClusters
+		result.routes = legacyRoutes
+		result.gatewayPort = legacyGatewayPort
+
+		// Configure HTTP redirect if TLS is enabled in legacy mode
+		if cfg != nil && legacyTLSEnabled && cfg.ingressRedirectEnabled() {
+			result.enableHTTPRedirect = cfg.ingressRedirectEnabled()
+			result.ingressHTTPPort = cfg.Ingress.HTTPPort
+		}
+	}
+
+	// Final normalization: Ensure RouteName is set regardless of mode
+	if result.listener.RouteName == "" {
+		result.listener.RouteName = defaultRouteName
+	}
+
+	return result, nil
+}
+
 func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builder.Input, string, error) {
 	clusters, routes, err := w.buildServiceResources(ctx, cfg)
 	if err != nil {
 		return builder.Input{}, "", err
 	}
 
-	var listener builder.Listener
 	ingressSpec, err := w.buildIngressSpec(ctx, cfg)
 	if err != nil {
 		return builder.Input{}, "", err
 	}
+	// Log mode selection
 	if w.logger != nil {
 		if ingressSpec != nil {
 			hasGatewayHTTP := findClusterByName(ingressSpec.Clusters, "gateway_http") != nil
@@ -600,49 +676,17 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			w.logger.Info("legacy path active")
 		}
 	}
-	var ingressHTTPPort uint32
-	var enableHTTPRedirect bool
-	var gatewayPort uint32
-	if ingressSpec != nil {
-		clusters = append(clusters, ingressSpec.Clusters...)
-		routes = append(routes, ingressSpec.Routes...)
-		listener = ingressSpec.Listener
-		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
-		ingressSpec.GatewayPort = normalizedGatewayPort
-		ingressHTTPPort = ingressSpec.HTTPPort
-		enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
-		gatewayPort = ingressSpec.GatewayPort
-		if listener.Host == "" {
-			listener.Host = "0.0.0.0"
-		}
-		if listener.RouteName == "" {
-			listener.RouteName = defaultRouteName
-		}
-		if listener.Name == "" {
-			port := listener.Port
-			if port == 0 {
-				port = controlplane.DefaultIngressPort(listener.Host)
-			}
-			listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
-		}
-	} else {
-		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources(cfg)
-		if err != nil {
-			return builder.Input{}, "", err
-		}
-		clusters = append(clusters, legacyClusters...)
-		routes = append(routes, legacyRoutes...)
-		listener = legacyListener
-		gatewayPort = legacyGatewayPort
-		if cfg != nil && legacyTLSEnabled && cfg.ingressRedirectEnabled() {
-			enableHTTPRedirect = cfg.ingressRedirectEnabled()
-			ingressHTTPPort = cfg.Ingress.HTTPPort
-		}
+
+	// Configure mode-specific resources (ingress vs legacy)
+	modeRes, err := w.configureModeResources(ingressSpec, cfg)
+	if err != nil {
+		return builder.Input{}, "", err
 	}
 
-	if listener.RouteName == "" {
-		listener.RouteName = defaultRouteName
-	}
+	// Merge mode-specific resources with service resources
+	listener := modeRes.listener
+	clusters = append(clusters, modeRes.clusters...)
+	routes = append(routes, modeRes.routes...)
 
 	version := fmt.Sprintf("%d", time.Now().UnixNano())
 	if w.logger != nil {
@@ -664,9 +708,9 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		Listener:           listener,
 		Routes:             routes,
 		Clusters:           clusters,
-		IngressHTTPPort:    ingressHTTPPort,
-		EnableHTTPRedirect: enableHTTPRedirect,
-		GatewayPort:        gatewayPort,
+		IngressHTTPPort:    modeRes.ingressHTTPPort,
+		EnableHTTPRedirect: modeRes.enableHTTPRedirect,
+		GatewayPort:        modeRes.gatewayPort,
 		Version:            version,
 		EnableSDS:          enableSDS,
 		SDSSecrets:         sdsSecrets,
