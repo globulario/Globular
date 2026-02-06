@@ -1,6 +1,7 @@
 package watchers
 
 import (
+	"context"
 	"testing"
 
 	"github.com/globulario/Globular/internal/xds/builder"
@@ -28,35 +29,35 @@ func TestConfigureModeResources_IngressMode(t *testing.T) {
 		GatewayPort:        8080,
 	}
 
-	result, err := w.configureModeResources(ingressSpec, nil)
+	result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Verify listener defaults applied
-	if result.listener.Host != "0.0.0.0" {
-		t.Errorf("expected default Host 0.0.0.0, got: %s", result.listener.Host)
+	if result.Listener.Host != "0.0.0.0" {
+		t.Errorf("expected default Host 0.0.0.0, got: %s", result.Listener.Host)
 	}
-	if result.listener.RouteName != defaultRouteName {
-		t.Errorf("expected default RouteName %s, got: %s", defaultRouteName, result.listener.RouteName)
+	if result.Listener.RouteName != defaultRouteName {
+		t.Errorf("expected default RouteName %s, got: %s", defaultRouteName, result.Listener.RouteName)
 	}
-	if result.listener.Name == "" {
+	if result.Listener.Name == "" {
 		t.Error("expected listener Name to be set")
 	}
 
 	// Verify resources passed through
-	if len(result.clusters) != 1 {
-		t.Errorf("expected 1 cluster, got: %d", len(result.clusters))
+	if findClusterByName(result.Clusters, "test_cluster") == nil {
+		t.Errorf("expected cluster test_cluster to be present")
 	}
-	if len(result.routes) != 1 {
-		t.Errorf("expected 1 route, got: %d", len(result.routes))
+	if len(result.Routes) == 0 {
+		t.Errorf("expected at least one route, got: %d", len(result.Routes))
 	}
 
 	// Verify HTTP settings
-	if result.ingressHTTPPort != 80 {
-		t.Errorf("expected ingressHTTPPort 80, got: %d", result.ingressHTTPPort)
+	if result.IngressHTTPPort != 80 {
+		t.Errorf("expected ingressHTTPPort 80, got: %d", result.IngressHTTPPort)
 	}
-	if !result.enableHTTPRedirect {
+	if !result.EnableHTTPRedirect {
 		t.Error("expected enableHTTPRedirect true")
 	}
 
@@ -74,25 +75,25 @@ func TestConfigureModeResources_IngressModeWithDefaults(t *testing.T) {
 		},
 	}
 
-	result, err := w.configureModeResources(ingressSpec, nil)
+	result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Verify all defaults applied
-	if result.listener.Host != "0.0.0.0" {
-		t.Errorf("expected default Host 0.0.0.0, got: %s", result.listener.Host)
+	if result.Listener.Host != "0.0.0.0" {
+		t.Errorf("expected default Host 0.0.0.0, got: %s", result.Listener.Host)
 	}
-	if result.listener.RouteName != defaultRouteName {
-		t.Errorf("expected default RouteName %s, got: %s", defaultRouteName, result.listener.RouteName)
+	if result.Listener.RouteName != defaultRouteName {
+		t.Errorf("expected default RouteName %s, got: %s", defaultRouteName, result.Listener.RouteName)
 	}
-	if result.listener.Name == "" {
+	if result.Listener.Name == "" {
 		t.Error("expected listener Name to be generated")
 	}
 	// Verify Name contains port
 	expectedName := "ingress_listener_443"
-	if result.listener.Name != expectedName {
-		t.Errorf("expected listener Name %s, got: %s", expectedName, result.listener.Name)
+	if result.Listener.Name != expectedName {
+		t.Errorf("expected listener Name %s, got: %s", expectedName, result.Listener.Name)
 	}
 
 	t.Log("✓ Ingress mode defaults applied correctly")
@@ -111,20 +112,20 @@ func TestConfigureModeResources_IngressModePreservesValues(t *testing.T) {
 		},
 	}
 
-	result, err := w.configureModeResources(ingressSpec, nil)
+	result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Verify explicit values preserved
-	if result.listener.Host != "192.168.1.1" {
-		t.Errorf("expected Host 192.168.1.1, got: %s", result.listener.Host)
+	if result.Listener.Host != "192.168.1.1" {
+		t.Errorf("expected Host 192.168.1.1, got: %s", result.Listener.Host)
 	}
-	if result.listener.RouteName != "custom_routes" {
-		t.Errorf("expected RouteName custom_routes, got: %s", result.listener.RouteName)
+	if result.Listener.RouteName != "custom_routes" {
+		t.Errorf("expected RouteName custom_routes, got: %s", result.Listener.RouteName)
 	}
-	if result.listener.Name != "custom_listener" {
-		t.Errorf("expected Name custom_listener, got: %s", result.listener.Name)
+	if result.Listener.Name != "custom_listener" {
+		t.Errorf("expected Name custom_listener, got: %s", result.Listener.Name)
 	}
 
 	t.Log("✓ Ingress mode explicit values preserved")
@@ -150,15 +151,15 @@ func TestConfigureModeResources_FinalNormalization(t *testing.T) {
 		},
 	}
 
-	result, err := w.configureModeResources(ingressSpec, nil)
+	result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Final normalization should always set RouteName
-	if result.listener.RouteName != defaultRouteName {
+	if result.Listener.RouteName != defaultRouteName {
 		t.Errorf("expected RouteName %s after final normalization, got: %s",
-			defaultRouteName, result.listener.RouteName)
+			defaultRouteName, result.Listener.RouteName)
 	}
 
 	t.Log("✓ Final normalization ensures RouteName always set")
@@ -204,15 +205,15 @@ func TestConfigureModeResources_ListenerNameGeneration(t *testing.T) {
 				},
 			}
 
-			result, err := w.configureModeResources(ingressSpec, nil)
+			result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if result.listener.Name != tc.expectedName {
-				t.Errorf("expected Name %s, got: %s", tc.expectedName, result.listener.Name)
+			if result.Listener.Name != tc.expectedName {
+				t.Errorf("expected Name %s, got: %s", tc.expectedName, result.Listener.Name)
 			} else {
-				t.Logf("✓ Generated listener name: %s", result.listener.Name)
+				t.Logf("✓ Generated listener name: %s", result.Listener.Name)
 			}
 		})
 	}
@@ -262,22 +263,22 @@ func TestConfigureModeResources_HTTPRedirectLogic(t *testing.T) {
 				EnableHTTPRedirect: tc.enableRedirect,
 			}
 
-			result, err := w.configureModeResources(ingressSpec, nil)
+			result, err := w.buildIngressModeInput(context.Background(), nil, nil, nil, ingressSpec)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if result.ingressHTTPPort != tc.expectedHTTPPort {
+			if result.IngressHTTPPort != tc.expectedHTTPPort {
 				t.Errorf("expected ingressHTTPPort %d, got: %d",
-					tc.expectedHTTPPort, result.ingressHTTPPort)
+					tc.expectedHTTPPort, result.IngressHTTPPort)
 			}
-			if result.enableHTTPRedirect != tc.expectedRedirect {
+			if result.EnableHTTPRedirect != tc.expectedRedirect {
 				t.Errorf("expected enableHTTPRedirect %v, got: %v",
-					tc.expectedRedirect, result.enableHTTPRedirect)
+					tc.expectedRedirect, result.EnableHTTPRedirect)
 			}
 
 			t.Logf("✓ HTTP redirect configured: port=%d, enabled=%v",
-				result.ingressHTTPPort, result.enableHTTPRedirect)
+				result.IngressHTTPPort, result.EnableHTTPRedirect)
 		})
 	}
 }

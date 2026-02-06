@@ -188,6 +188,10 @@ type Watcher struct {
 	certReconciler  *CertReconciler
 	certInitPending bool
 	certStarted     bool
+
+	// Test hooks (nil in production)
+	serviceResourcesFn func(context.Context, *XDSConfig) ([]builder.Cluster, []builder.Route, error)
+	ingressSpecFn      func(context.Context, *XDSConfig) (*IngressSpec, error)
 }
 
 // New creates a watcher bound to the given server.
@@ -536,21 +540,80 @@ func (w *Watcher) loadXDSConfig(fi os.FileInfo) (*XDSConfig, error) {
 	return &cfg, nil
 }
 
-// setupSDSSecrets configures SDS (Secret Discovery Service) for TLS certificate delivery.
-// It builds the secret resources from the listener's certificate configuration and validates
-// that SDS is only used with TLS-secured xDS control plane connections.
-//
-// Returns:
-//   - enableSDS: whether SDS should be enabled
-//   - secrets: list of SDS secrets to provide to Envoy
-//   - error: validation error if security constraints are violated
-func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Secret, error) {
-	// SDS requires certificate files to be configured
-	if listener.CertFile == "" || listener.KeyFile == "" {
-		return false, nil, nil
+func (w *Watcher) buildIngressModeInput(ctx context.Context, cfg *XDSConfig, svcClusters []builder.Cluster, svcRoutes []builder.Route, ingressSpec *IngressSpec) (*builder.Input, error) {
+	if ingressSpec == nil {
+		return nil, fmt.Errorf("ingress spec required for ingress mode")
 	}
 
-	// Build SDS secrets using canonical TLS paths
+	// Normalize gateway port
+	normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
+	ingressSpec.GatewayPort = normalizedGatewayPort
+
+	listener := ingressSpec.Listener
+	if listener.Host == "" {
+		listener.Host = "0.0.0.0"
+	}
+	if listener.RouteName == "" {
+		listener.RouteName = defaultRouteName
+	}
+	if listener.Name == "" {
+		port := listener.Port
+		if port == 0 {
+			port = controlplane.DefaultIngressPort(listener.Host)
+		}
+		listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
+	}
+
+	clusters := append(append([]builder.Cluster{}, svcClusters...), ingressSpec.Clusters...)
+	routes := append(append([]builder.Route{}, svcRoutes...), ingressSpec.Routes...)
+
+	input := &builder.Input{
+		Listener:           listener,
+		Routes:             routes,
+		Clusters:           clusters,
+		IngressHTTPPort:    ingressSpec.HTTPPort,
+		EnableHTTPRedirect: ingressSpec.EnableHTTPRedirect,
+		GatewayPort:        ingressSpec.GatewayPort,
+	}
+	return input, nil
+}
+
+func (w *Watcher) buildLegacyModeInput(ctx context.Context, cfg *XDSConfig, svcClusters []builder.Cluster, svcRoutes []builder.Route) (*builder.Input, error) {
+	legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	enableHTTPRedirect := false
+	ingressHTTPPort := uint32(0)
+	if cfg != nil && legacyTLSEnabled && cfg.ingressRedirectEnabled() {
+		enableHTTPRedirect = cfg.ingressRedirectEnabled()
+		ingressHTTPPort = cfg.Ingress.HTTPPort
+	}
+
+	clusters := append(append([]builder.Cluster{}, svcClusters...), legacyClusters...)
+	routes := append(append([]builder.Route{}, svcRoutes...), legacyRoutes...)
+
+	input := &builder.Input{
+		Listener:           legacyListener,
+		Routes:             routes,
+		Clusters:           clusters,
+		IngressHTTPPort:    ingressHTTPPort,
+		EnableHTTPRedirect: enableHTTPRedirect,
+		GatewayPort:        legacyGatewayPort,
+	}
+	return input, nil
+}
+
+// setupSDSSecrets configures SDS for TLS certificate delivery, updating the input in place.
+func (w *Watcher) setupSDSSecrets(in *builder.Input) error {
+	listener := in.Listener
+
+	// SDS requires certificate files to be configured
+	if listener.CertFile == "" || listener.KeyFile == "" {
+		return nil
+	}
+
 	sdsSecrets := []builder.Secret{
 		{
 			Name:     secrets.InternalServerCert,
@@ -567,23 +630,17 @@ func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Se
 		})
 	}
 
-	// Security invariant: SDS implies TLS-secured xDS
-	// Secrets contain private keys and MUST NOT traverse plaintext gRPC
 	if os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
-		return false, nil, fmt.Errorf(
-			"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
-				"secrets would be transmitted over plaintext")
+		return fmt.Errorf("security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - secrets would be transmitted over plaintext")
 	}
 
 	// Add public ACME certificate if available (for public HTTPS ingress)
-	// ACME certificates use fullchain.pem naming convention
 	if strings.Contains(listener.CertFile, "fullchain.pem") {
 		sdsSecrets = append(sdsSecrets, builder.Secret{
 			Name:     secrets.PublicIngressCert,
 			CertPath: listener.CertFile,
 			KeyPath:  listener.KeyFile,
 		})
-		// Store ACME cert paths for rotation detection
 		w.acmeCertPath = listener.CertFile
 		w.acmeKeyPath = listener.KeyFile
 	}
@@ -592,95 +649,41 @@ func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Se
 		w.logger.Info("SDS enabled", "secrets", len(sdsSecrets))
 	}
 
-	return true, sdsSecrets, nil
+	in.EnableSDS = true
+	in.SDSSecrets = sdsSecrets
+	return nil
 }
 
-// modeResources holds the resources and configuration produced by mode selection (ingress vs legacy).
-type modeResources struct {
-	listener           builder.Listener
-	clusters           []builder.Cluster
-	routes             []builder.Route
-	gatewayPort        uint32
-	ingressHTTPPort    uint32
-	enableHTTPRedirect bool
-}
-
-// configureModeResources selects between ingress mode and legacy mode, applies the appropriate
-// configuration, and returns normalized resources ready for snapshot building.
-//
-// Mode selection:
-//   - If ingressSpec is non-nil: Use ingress mode (modern configuration)
-//   - If ingressSpec is nil: Use legacy mode (fallback for old configs)
-//
-// The function applies defaults and normalization to ensure the listener has valid
-// Host, RouteName, and Name fields regardless of which mode is selected.
-func (w *Watcher) configureModeResources(ingressSpec *IngressSpec, cfg *XDSConfig) (modeResources, error) {
-	var result modeResources
-
-	if ingressSpec != nil {
-		// Ingress mode: Use modern ingress configuration
-		result.listener = ingressSpec.Listener
-		result.clusters = ingressSpec.Clusters
-		result.routes = ingressSpec.Routes
-
-		// Normalize gateway port
-		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
-		ingressSpec.GatewayPort = normalizedGatewayPort
-		result.gatewayPort = ingressSpec.GatewayPort
-		result.ingressHTTPPort = ingressSpec.HTTPPort
-		result.enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
-
-		// Apply listener defaults for ingress mode
-		if result.listener.Host == "" {
-			result.listener.Host = "0.0.0.0"
-		}
-		if result.listener.RouteName == "" {
-			result.listener.RouteName = defaultRouteName
-		}
-		if result.listener.Name == "" {
-			port := result.listener.Port
-			if port == 0 {
-				port = controlplane.DefaultIngressPort(result.listener.Host)
-			}
-			result.listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
-		}
-	} else {
-		// Legacy mode: Use legacy gateway resources (fallback)
-		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources(cfg)
-		if err != nil {
-			return modeResources{}, err
-		}
-
-		result.listener = legacyListener
-		result.clusters = legacyClusters
-		result.routes = legacyRoutes
-		result.gatewayPort = legacyGatewayPort
-
-		// Configure HTTP redirect if TLS is enabled in legacy mode
-		if cfg != nil && legacyTLSEnabled && cfg.ingressRedirectEnabled() {
-			result.enableHTTPRedirect = cfg.ingressRedirectEnabled()
-			result.ingressHTTPPort = cfg.Ingress.HTTPPort
-		}
-	}
-
-	// Final normalization: Ensure RouteName is set regardless of mode
-	if result.listener.RouteName == "" {
-		result.listener.RouteName = defaultRouteName
-	}
-
-	return result, nil
-}
-
+// buildDynamicInput orchestrates xDS snapshot input construction.
+// It selects between ingress mode (modern ingress spec) and legacy mode (fallback gateway),
+// merges service resources, configures SDS secrets, and returns a fully populated builder.Input.
 func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builder.Input, string, error) {
-	clusters, routes, err := w.buildServiceResources(ctx, cfg)
+	// Service resources (shared by both modes)
+	var (
+		clusters []builder.Cluster
+		routes   []builder.Route
+		err      error
+	)
+	if w.serviceResourcesFn != nil {
+		clusters, routes, err = w.serviceResourcesFn(ctx, cfg)
+	} else {
+		clusters, routes, err = w.buildServiceResources(ctx, cfg)
+	}
 	if err != nil {
 		return builder.Input{}, "", err
 	}
 
-	ingressSpec, err := w.buildIngressSpec(ctx, cfg)
+	// Mode-specific inputs
+	var ingressSpec *IngressSpec
+	if w.ingressSpecFn != nil {
+		ingressSpec, err = w.ingressSpecFn(ctx, cfg)
+	} else {
+		ingressSpec, err = w.buildIngressSpec(ctx, cfg)
+	}
 	if err != nil {
 		return builder.Input{}, "", err
 	}
+
 	// Log mode selection
 	if w.logger != nil {
 		if ingressSpec != nil {
@@ -698,45 +701,32 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		}
 	}
 
-	// Configure mode-specific resources (ingress vs legacy)
-	modeRes, err := w.configureModeResources(ingressSpec, cfg)
+	var input *builder.Input
+	if ingressSpec != nil {
+		input, err = w.buildIngressModeInput(ctx, cfg, clusters, routes, ingressSpec)
+	} else {
+		input, err = w.buildLegacyModeInput(ctx, cfg, clusters, routes)
+	}
 	if err != nil {
 		return builder.Input{}, "", err
 	}
 
-	// Merge mode-specific resources with service resources
-	listener := modeRes.listener
-	clusters = append(clusters, modeRes.clusters...)
-	routes = append(routes, modeRes.routes...)
+	input.NodeID = w.nodeID
+	input.Version = fmt.Sprintf("%d", time.Now().UnixNano())
 
-	version := fmt.Sprintf("%d", time.Now().UnixNano())
+	if err := w.setupSDSSecrets(input); err != nil {
+		return builder.Input{}, "", err
+	}
+
 	if w.logger != nil {
-		if gw := findClusterByName(clusters, "gateway_http"); gw != nil {
+		if gw := findClusterByName(input.Clusters, "gateway_http"); gw != nil {
 			w.logger.Info("xDS clusters resolved", "gateway_http", gw.Endpoints)
 		} else {
 			w.logger.Info("xDS clusters resolved", "gateway_http", "missing")
 		}
 	}
 
-	// Configure SDS for TLS certificate delivery (hot rotation)
-	enableSDS, sdsSecrets, err := w.setupSDSSecrets(listener)
-	if err != nil {
-		return builder.Input{}, "", err
-	}
-
-	input := builder.Input{
-		NodeID:             w.nodeID,
-		Listener:           listener,
-		Routes:             routes,
-		Clusters:           clusters,
-		IngressHTTPPort:    modeRes.ingressHTTPPort,
-		EnableHTTPRedirect: modeRes.enableHTTPRedirect,
-		GatewayPort:        modeRes.gatewayPort,
-		Version:            version,
-		EnableSDS:          enableSDS,
-		SDSSecrets:         sdsSecrets,
-	}
-	return input, version, nil
+	return *input, input.Version, nil
 }
 
 func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]builder.Cluster, []builder.Route, error) {
