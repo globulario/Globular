@@ -118,7 +118,16 @@ func (tokenParser) ParseUserID(tok string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return claims.ID + "@" + claims.UserDomain, nil
+	// v1 Conformance: Return PrincipalID (security violation INV-1.1)
+	// REMOVED: claims.ID + "@" + claims.UserDomain
+	// Identity MUST NOT include domain - domain is routing label, not identity
+	// Return opaque PrincipalID for stable, domain-independent identity
+	principalID := claims.PrincipalID
+	if principalID == "" {
+		// Fallback for legacy tokens without PrincipalID
+		principalID = claims.ID
+	}
+	return principalID, nil
 }
 
 type accessControl struct {
@@ -590,10 +599,16 @@ func deriveMinioLayout(cfg *config_.MinioProxyConfig) minioLayout {
 		layout.webrootPrefix = path.Join(basePrefix, "webroot")
 	}
 	if layout.usersPrefix == "" {
-		layout.usersPrefix = path.Join(layout.domain, "users")
+		// v1 Conformance: Use stable prefix (security violation INV-1.3)
+		// REMOVED: path.Join(layout.domain, "users") - Domain MUST NOT determine storage paths
+		// Domain is routing configuration, not identity - using it breaks on domain changes
+		// For multi-tenancy, use explicit prefix config with clusterID or principalID
+		layout.usersPrefix = "users" // Stable prefix, independent of domain config
 	}
 	if layout.webrootPrefix == "" {
-		layout.webrootPrefix = path.Join(layout.domain, "webroot")
+		// v1 Conformance: Use stable prefix (security violation INV-1.3)
+		// REMOVED: path.Join(layout.domain, "webroot")
+		layout.webrootPrefix = "webroot" // Stable prefix, independent of domain config
 	}
 	return layout
 }

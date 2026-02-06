@@ -162,11 +162,11 @@ func NewServeFile(p ServeProvider) http.Handler {
 		marker := fmt.Sprintf("Served-By: gateway at %s host=%s proto=%s", time.Now().UTC().Format(time.RFC3339), r.Host, protoHint)
 		w.Header().Set("X-Served-By", marker)
 
-		// Base root from webRoot, with vhost subdir if present
+		// v1 Conformance: Use stable webroot path
+		// REMOVED: Host header-based directory selection (security violation INV-1.2)
+		// Host header is untrusted client input and MUST NOT determine file access paths
+		// For multi-tenancy, use authenticated principalID instead of Host header
 		dir := p.WebRoot()
-		if p.Exists(filepath.Join(dir, r.Host)) {
-			dir = filepath.Join(dir, r.Host)
-		}
 
 		// token & application from header or query
 		app := headerOrQuery(r, "application")
@@ -563,7 +563,11 @@ func webrootObjectKey(cfg *MinioProxyConfig, host, rqstPath string) (string, err
 	case strings.TrimSpace(cfg.Prefix) != "":
 		return joinKey(cfg.webrootPrefixValue(), logical)
 	default:
-		base := path.Join(host, "webroot")
+		// v1 Conformance: Use stable prefix (security violation INV-1.4)
+		// REMOVED: path.Join(host, "webroot") - Host header MUST NOT determine storage paths
+		// Host is untrusted client input - using it creates tenant isolation bypass
+		// For multi-tenancy, use authenticated principalID in explicit prefix config
+		base := "webroot" // Stable prefix, independent of Host header
 		return joinKey(base, logical)
 	}
 }
