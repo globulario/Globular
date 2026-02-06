@@ -110,18 +110,6 @@ func main() {
 		}
 	}
 
-	opts := controlplane.BootstrapOptions{
-		NodeID:    *nodeID,
-		Cluster:   *bootstrapCluster,
-		XDSHost:   *bootstrapHost,
-		XDSPort:   *bootstrapPort,
-		AdminPort: *bootstrapAdminPort,
-	}
-	if *bootstrapMaxConn > 0 {
-		opts.MaxActiveDownstreamConns = *bootstrapMaxConn
-	}
-	writeBootstrap(logger, opts, *bootstrapPath)
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -140,8 +128,11 @@ func main() {
 	if grpcListenAddr == "" {
 		grpcListenAddr = defaultGRPCAddr
 	}
+
+	// Resolve xDS port for bootstrap
+	xdsPort := *bootstrapPort
 	if p := portFromAddress(grpcListenAddr); p > 0 {
-		opts.XDSPort = p
+		xdsPort = p
 	}
 
 	if *describeFlag {
@@ -152,15 +143,31 @@ func main() {
 		return
 	}
 
-	// Configure TLS if certificates are provided
-	var tlsConfig *server.TLSConfig
-	if xdsCfg != nil && xdsCfg.TLS.ServerCert != "" && xdsCfg.TLS.ServerKey != "" {
-		tlsConfig = &server.TLSConfig{
-			ServerCertPath: xdsCfg.TLS.ServerCert,
-			ServerKeyPath:  xdsCfg.TLS.ServerKey,
-			ClientCAPath:   xdsCfg.TLS.ClientCA,
-		}
+	// Configure TLS (secure by default, requires mTLS unless GLOBULAR_XDS_INSECURE=1)
+	tlsConfig, err := resolveXDSTLSConfig(logger, xdsCfg)
+	if err != nil {
+		logger.Error("failed to configure xDS TLS", "err", err)
+		os.Exit(1)
 	}
+
+	// Build bootstrap with TLS configuration for Envoy → xDS mTLS
+	opts := controlplane.BootstrapOptions{
+		NodeID:    *nodeID,
+		Cluster:   *bootstrapCluster,
+		XDSHost:   *bootstrapHost,
+		XDSPort:   xdsPort,
+		AdminPort: *bootstrapAdminPort,
+	}
+	if *bootstrapMaxConn > 0 {
+		opts.MaxActiveDownstreamConns = *bootstrapMaxConn
+	}
+	// If xDS server uses TLS, configure Envoy client to use mTLS
+	if tlsConfig != nil {
+		opts.XDSClientCertPath = tlsConfig.ServerCertPath // Reuse server cert as client cert (same identity)
+		opts.XDSClientKeyPath = tlsConfig.ServerKeyPath
+		opts.XDSCACertPath = tlsConfig.ClientCAPath
+	}
+	writeBootstrap(logger, opts, *bootstrapPath)
 
 	go func() {
 		if err := xdsServer.Serve(ctx, grpcListenAddr, tlsConfig); err != nil && !errors.Is(err, context.Canceled) {
@@ -398,4 +405,94 @@ func portFromAddress(addr string) int {
 		return p
 	}
 	return 0
+}
+
+// resolveXDSTLSConfig resolves xDS server TLS configuration, enforcing secure-by-default behavior.
+// Returns TLS config for mTLS (server cert + client CA validation) or nil if insecure mode allowed.
+// Fails fast if TLS certs are missing unless GLOBULAR_XDS_INSECURE=1 environment variable is set.
+func resolveXDSTLSConfig(logger *slog.Logger, xdsCfg *xdsServiceConfig) (*server.TLSConfig, error) {
+	// Check if insecure mode explicitly allowed (dev override)
+	insecureAllowed := strings.ToLower(os.Getenv("GLOBULAR_XDS_INSECURE")) == "1"
+
+	// If config explicitly provides TLS paths, use them
+	var serverCert, serverKey, clientCA string
+	if xdsCfg != nil {
+		serverCert = strings.TrimSpace(xdsCfg.TLS.ServerCert)
+		serverKey = strings.TrimSpace(xdsCfg.TLS.ServerKey)
+		clientCA = strings.TrimSpace(xdsCfg.TLS.ClientCA)
+	}
+
+	// If not explicitly configured, use canonical internal PKI paths
+	if serverCert == "" || serverKey == "" {
+		runtimeDir := strings.TrimSpace(os.Getenv("GLOBULAR_ROOT"))
+		if runtimeDir == "" {
+			runtimeDir = "/var/lib/globular"
+		}
+		_, fullchain, privkey, ca := globconfig.CanonicalTLSPaths(runtimeDir)
+
+		if serverCert == "" {
+			serverCert = fullchain
+		}
+		if serverKey == "" {
+			serverKey = privkey
+		}
+		if clientCA == "" {
+			clientCA = ca
+		}
+
+		logger.Info("using canonical TLS paths for xDS server",
+			"cert", serverCert,
+			"key", serverKey,
+			"ca", clientCA)
+	}
+
+	// Validate TLS files exist
+	certExists := fileExists(serverCert)
+	keyExists := fileExists(serverKey)
+	caExists := fileExists(clientCA)
+
+	if !certExists || !keyExists || !caExists {
+		missingFiles := []string{}
+		if !certExists {
+			missingFiles = append(missingFiles, serverCert)
+		}
+		if !keyExists {
+			missingFiles = append(missingFiles, serverKey)
+		}
+		if !caExists {
+			missingFiles = append(missingFiles, clientCA)
+		}
+
+		if insecureAllowed {
+			logger.Warn("⚠️  xDS TLS files missing, running INSECURE (GLOBULAR_XDS_INSECURE=1)",
+				"missing", strings.Join(missingFiles, ", "))
+			logger.Warn("⚠️  SECRETS WILL BE TRANSMITTED OVER PLAINTEXT - DO NOT USE IN PRODUCTION")
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("xDS TLS files missing (set GLOBULAR_XDS_INSECURE=1 to override): %s",
+			strings.Join(missingFiles, ", "))
+	}
+
+	// TLS enabled: require mTLS (client certificate authentication)
+	logger.Info("xDS server using mTLS (client certificate authentication required)",
+		"server_cert", serverCert,
+		"client_ca", clientCA)
+
+	return &server.TLSConfig{
+		ServerCertPath: serverCert,
+		ServerKeyPath:  serverKey,
+		ClientCAPath:   clientCA, // Requires client cert validation
+	}, nil
+}
+
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
 }
