@@ -200,6 +200,53 @@ func (h *AuthorizationHandler) Authorize(w http.ResponseWriter, r *http.Request,
 	return true
 }
 
+// MinIOHandler encapsulates MinIO routing (users/webroot) for ServeFile requests.
+// It delegates to the existing serving helpers and reports whether the request was
+// fully handled (served or error written).
+type MinIOHandler struct {
+	cfg            *MinioProxyConfig
+	useUsers       bool
+	useWeb         bool
+	fallbackToDisk bool
+	hostPart       string
+
+	serveUsers func(http.ResponseWriter, *http.Request, *MinioProxyConfig, string) bool
+	serveWeb   func(http.ResponseWriter, *http.Request, *MinioProxyConfig, string, string, bool) bool
+}
+
+// CanServe reports whether MinIO should be considered for this request.
+func (h *MinIOHandler) CanServe(_ *pathInfo) bool {
+	if h == nil || h.cfg == nil {
+		return false
+	}
+	return h.useUsers || h.useWeb
+}
+
+// Serve attempts to serve the request from MinIO and returns true when it handled
+// the response (success or error). A false return means callers should continue
+// with filesystem handling.
+func (h *MinIOHandler) Serve(w http.ResponseWriter, r *http.Request, p *pathInfo) bool {
+	if h == nil {
+		return false
+	}
+	usersFn := h.serveUsers
+	if usersFn == nil {
+		usersFn = serveUsersFromMinio
+	}
+	webFn := h.serveWeb
+	if webFn == nil {
+		webFn = serveWebrootFromMinio
+	}
+
+	if h.useUsers && usersFn(w, r, h.cfg, p.reqPath) {
+		return true
+	}
+	if h.useWeb && webFn(w, r, h.cfg, p.reqPath, h.hostPart, h.fallbackToDisk) {
+		return true
+	}
+	return false
+}
+
 // NewServeFile implements GET /serve/* with:
 // - Reverse-proxy passthrough for configured prefixes
 // - Host-based subroot under WebRoot()
@@ -340,6 +387,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		info.useMinioWeb = hasMinio && !isUsersPath
 		// Only fallback to disk if MinIO is not configured at all
 		info.fallbackToDisk = !minioConfigured
+		info.hostPart = cleanRequestHost(r.Host, minioCfg)
 
 		// Compute filename; "public" paths are absolute
 		name := filepath.Join(info.dir, rqstPath)
@@ -378,12 +426,14 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 
-		if info.useMinioUsers && serveUsersFromMinio(w, r, minioCfg, rqstPath) {
-			return
+		minioHandler := &MinIOHandler{
+			cfg:            minioCfg,
+			useUsers:       info.useMinioUsers,
+			useWeb:         info.useMinioWeb,
+			fallbackToDisk: info.fallbackToDisk,
+			hostPart:       info.hostPart,
 		}
-
-		info.hostPart = cleanRequestHost(r.Host, minioCfg)
-		if info.useMinioWeb && serveWebrootFromMinio(w, r, minioCfg, rqstPath, info.hostPart, info.fallbackToDisk) {
+		if minioHandler.CanServe(info) && minioHandler.Serve(w, r, info) {
 			return
 		}
 
