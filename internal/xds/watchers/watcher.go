@@ -175,14 +175,17 @@ type Watcher struct {
 
 	// Certificate rotation tracking (SDS)
 	etcdClient            *clientv3.Client // etcd client for cert generation tracking
-	lastCertGeneration    uint64           // last known certificate generation
-	certGenerationChecked bool             // whether cert generation has been checked
+	lastCertGeneration    uint64           // DEPRECATED: use certReconciler
+	certGenerationChecked bool             // DEPRECATED: use certReconciler
 
 	// ACME certificate rotation tracking (file-based hash polling)
 	acmeCertPath     string // Path to ACME fullchain.pem
 	acmeKeyPath      string // Path to ACME privkey.pem
-	lastACMECertHash string // SHA256 hash of fullchain.pem content
-	lastACMEKeyHash  string // SHA256 hash of privkey.pem content
+	lastACMECertHash string // DEPRECATED: use certReconciler
+	lastACMEKeyHash  string // DEPRECATED: use certReconciler
+
+	// v1 Conformance (INV-6): Event-driven certificate reconciliation
+	certReconciler *CertReconciler
 }
 
 // New creates a watcher bound to the given server.
@@ -222,20 +225,81 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 
 // SetEtcdClient configures the etcd client for certificate generation tracking.
 // This enables hot certificate rotation via SDS.
+// v1 Conformance (INV-6): Initializes CertReconciler for event-driven rotation.
 func (w *Watcher) SetEtcdClient(client *clientv3.Client) {
 	w.etcdClient = client
 	if w.logger != nil && client != nil {
 		w.logger.Info("etcd client configured for certificate rotation tracking")
 	}
+
+	// Initialize certificate reconciler if we have enough information
+	w.initializeCertReconciler()
+}
+
+// SetACMEPaths configures ACME certificate paths for rotation tracking.
+func (w *Watcher) SetACMEPaths(certPath, keyPath string) {
+	w.acmeCertPath = certPath
+	w.acmeKeyPath = keyPath
+
+	// Initialize certificate reconciler if we have enough information
+	w.initializeCertReconciler()
+}
+
+// initializeCertReconciler creates the CertReconciler if all required config is available.
+func (w *Watcher) initializeCertReconciler() {
+	// Need at least one certificate source to watch
+	hasEtcd := w.etcdClient != nil
+	hasACME := w.acmeCertPath != "" && w.acmeKeyPath != ""
+
+	if !hasEtcd && !hasACME {
+		return
+	}
+
+	// Determine domain for etcd key
+	// VIOLATION INV-1.8: Domain-based key (future: use cert ID)
+	domain := ""
+	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
+		domain = w.clusterNetwork.Spec.ClusterDomain
+	}
+	if domain == "" {
+		domain = "globular.internal" // Hardcoded fallback
+	}
+
+	// Create reconciler if not already created
+	if w.certReconciler == nil {
+		w.certReconciler = NewCertReconciler(
+			w.logger,
+			w.etcdClient,
+			domain,
+			w.acmeCertPath,
+			w.acmeKeyPath,
+		)
+		if w.logger != nil {
+			w.logger.Info("certificate reconciler initialized",
+				"has_etcd", hasEtcd,
+				"has_acme", hasACME)
+		}
+	}
 }
 
 // Run starts the watcher loop and blocks until the context is canceled.
+// v1 Conformance (INV-6): Event-driven with certificate reconciliation.
 func (w *Watcher) Run(ctx context.Context) error {
 	if w.server == nil {
 		return fmt.Errorf("server is nil")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	// Start certificate reconciler if configured
+	if w.certReconciler != nil {
+		if err := w.certReconciler.Start(); err != nil {
+			w.logger.Warn("failed to start certificate reconciler", "err", err)
+		} else {
+			w.logger.Info("certificate reconciler started")
+		}
+		defer w.certReconciler.Stop()
+	}
 
 	if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 		w.logger.Warn("initial xDS sync failed", "err", err)
@@ -249,10 +313,18 @@ func (w *Watcher) Run(ctx context.Context) error {
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
 
+	// Get certificate change channels (nil-safe)
+	var certChangedChan, acmeChangedChan <-chan struct{}
+	if w.certReconciler != nil {
+		certChangedChan = w.certReconciler.CertChangedChan()
+		acmeChangedChan = w.certReconciler.ACMEChangedChan()
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+
 		case <-timer.C:
 			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 				w.logger.Warn("xDS sync failed", "err", err)
@@ -262,6 +334,20 @@ func (w *Watcher) Run(ctx context.Context) error {
 				next = defaultInterval
 			}
 			timer.Reset(next)
+
+		case <-certChangedChan:
+			// v1 Conformance (INV-6.1): Event-driven internal certificate rotation
+			w.logger.Info("internal certificate changed - rebuilding snapshot")
+			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
+				w.logger.Warn("xDS sync after cert change failed", "err", err)
+			}
+
+		case <-acmeChangedChan:
+			// v1 Conformance (INV-6.2): Event-driven ACME certificate rotation
+			w.logger.Info("ACME certificate changed - rebuilding snapshot")
+			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
+				w.logger.Warn("xDS sync after ACME change failed", "err", err)
+			}
 		}
 	}
 }
@@ -296,16 +382,21 @@ func (w *Watcher) sync(ctx context.Context) error {
 		w.logger.Info("protocol changed", "from", prevProtocol, "to", w.protocol)
 	}
 
-	// Check if certificate generation changed (triggers snapshot rebuild for hot rotation)
-	certChanged := w.checkCertificateGeneration(ctx)
-	if certChanged && w.logger != nil {
-		w.logger.Info("certificate rotation detected - forcing snapshot update")
-	}
+	// v1 Conformance (INV-6): Certificate rotation now handled by CertReconciler
+	// Events are delivered via channels in Run loop (event-driven, not polling)
+	// Old polling functions (checkCertificateGeneration, checkACMECertificateRotation)
+	// are deprecated and only called if reconciler is not configured (backward compat)
+	if w.certReconciler == nil {
+		// Fallback to polling if reconciler not configured
+		certChanged := w.checkCertificateGeneration(ctx)
+		if certChanged && w.logger != nil {
+			w.logger.Info("certificate rotation detected - forcing snapshot update")
+		}
 
-	// Check if ACME certificate files changed (triggers snapshot rebuild for hot rotation)
-	acmeChanged := w.checkACMECertificateRotation(w.acmeCertPath, w.acmeKeyPath)
-	if acmeChanged && w.logger != nil {
-		w.logger.Info("ACME certificate rotation detected - forcing snapshot update")
+		acmeChanged := w.checkACMECertificateRotation(w.acmeCertPath, w.acmeKeyPath)
+		if acmeChanged && w.logger != nil {
+			w.logger.Info("ACME certificate rotation detected - forcing snapshot update")
+		}
 	}
 
 	input, version, err := w.buildInput(ctx)
