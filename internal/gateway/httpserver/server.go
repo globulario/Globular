@@ -3,11 +3,11 @@ package httpserver
 import (
 	"context"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"log/slog"
 
+	"github.com/globulario/Globular/internal/config"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	"github.com/globulario/Globular/internal/server"
 	config_ "github.com/globulario/services/golang/config"
@@ -31,14 +31,11 @@ func New(logger *slog.Logger, globule *globpkg.Globule, httpAddr, httpsAddr stri
 	}
 
 	if httpsAddr != "" {
-		// v1 Conformance: Use stable TLS directory (security violation INV-1.5)
-		// REMOVED: domain-based directory selection
-		// Certificate storage MUST NOT depend on domain configuration
-		// Using stable path ensures certs accessible across domain changes
-		credDir := filepath.Join(config_.GetConfigDir(), "tls")
+		// v1 Conformance: Use stable TLS directory (see config.CertPaths)
+		certPaths := config.NewCertPaths(config_.GetConfigDir())
 		sup.TLS = &server.TLSFiles{
-			CertFile: filepath.Join(credDir, "fullchain.pem"),
-			KeyFile:  filepath.Join(credDir, "server.key"),
+			CertFile: certPaths.InternalServerCert(),
+			KeyFile:  certPaths.InternalServerKey(),
 		}
 	}
 
