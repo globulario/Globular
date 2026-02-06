@@ -4,6 +4,70 @@
 
 Globular implements Envoy's Secret Discovery Service (SDS) to enable **hot certificate rotation** without Envoy restarts. Certificates are delivered dynamically over gRPC, allowing seamless updates when the internal CA or ACME certificates rotate.
 
+## Security: mTLS by Default
+
+**Day-0 Security Requirement**: xDS/SDS communication uses mTLS (mutual TLS) by default to protect secret material.
+
+### Secure-by-Default Behavior
+
+The xDS server (which delivers secrets to Envoy) **requires TLS** unless explicitly overridden:
+
+```bash
+# Production (default): Requires TLS certificates
+globular-xds
+# → Loads /var/lib/globular/config/tls/{fullchain.pem,privkey.pem,ca.pem}
+# → Fails fast if certificates missing
+
+# Development override: Allow insecure mode (NOT FOR PRODUCTION)
+GLOBULAR_XDS_INSECURE=1 globular-xds
+# → ⚠️  Runs without TLS
+# → ⚠️  Secrets transmitted over plaintext gRPC
+```
+
+### mTLS Configuration
+
+**xDS Server** (globular-xds):
+- Server certificate: `/var/lib/globular/config/tls/fullchain.pem`
+- Server private key: `/var/lib/globular/config/tls/privkey.pem`
+- Client CA bundle: `/var/lib/globular/config/tls/ca.pem`
+- **Requires** client certificate authentication (mTLS)
+
+**Envoy Client**:
+- Client certificate: Same as server cert (shared internal identity)
+- Client private key: Same as server key
+- CA bundle: Same as server CA (validates xDS server certificate)
+- Configured automatically in Envoy bootstrap
+
+### Security Invariant
+
+**SDS implies TLS**: If SDS is enabled (secrets delivered dynamically), xDS **must** use TLS. The system enforces this:
+
+```go
+// watcher.go - enforced at runtime
+if enableSDS && os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
+    return error("security violation: SDS enabled but xDS insecure")
+}
+```
+
+This prevents accidental secret leakage over plaintext gRPC.
+
+### Verification
+
+Verify your deployment is secure:
+
+```bash
+# Run automated security checks
+./scripts/verify-sds-mtls.sh
+
+# Expected output:
+# ✓ xDS server port is open (TLS expected)
+# ✓ xDS cluster has transport_socket configured
+# ✓ xDS cluster uses UpstreamTlsContext (TLS enabled)
+# ✓ xDS cluster has client certificate configured (mTLS)
+# ✓ Listener uses SDS for TLS certificates
+# ✓ No file-based TLS certificate references found
+```
+
 ## Architecture
 
 ### Components
