@@ -168,9 +168,14 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// For multi-tenancy, use authenticated principalID instead of Host header
 		dir := p.WebRoot()
 
-		// token & application from header or query
-		app := headerOrQuery(r, "application")
-		token := headerOrQuery(r, "token")
+		// v2 Conformance: Token from Authorization header ONLY (security violation INV-3.1)
+		// REMOVED: Query parameter token extraction - tokens in URLs leak via logs
+		// Tokens MUST be in Authorization header to prevent exposure in:
+		// - Access logs, proxy logs, browser history
+		// - Referer headers, URL sharing
+		// - Server-side request logging
+		app := r.Header.Get("application") // Application can still use header fallback
+		token := r.Header.Get("token")     // Token: Header ONLY (no query fallback)
 		if token == "null" || token == "undefined" {
 			token = ""
 		}

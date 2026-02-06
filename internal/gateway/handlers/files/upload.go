@@ -65,9 +65,12 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		// Cap request size early.
 		r.Body = http.MaxBytesReader(w, r.Body, opt.MaxBytes)
 
-		// Read auth context the same way as before.
-		app := firstNonEmpty(r.Header.Get("application"), r.URL.Query().Get("application"), r.FormValue("application"))
-		token := firstNonEmpty(r.Header.Get("token"), r.URL.Query().Get("token"), r.FormValue("token"))
+		// v2 Conformance: Token from header ONLY (security violations INV-3.1, INV-3.2)
+		// REMOVED: Query parameter and form value token extraction
+		// Tokens in URLs/forms leak via logs, history, and request bodies
+		// ONLY Authorization header prevents token exposure
+		app := r.Header.Get("application") // Application can use header
+		token := r.Header.Get("token")     // Token: Header ONLY (no query/form fallback)
 
 		// Client sends "path" (not "dir"). Keep backward-compat on query "dir" just in case.
 		dir := firstNonEmpty(r.FormValue("path"), r.URL.Query().Get("path"), r.URL.Query().Get("dir"), r.FormValue("dir"))
