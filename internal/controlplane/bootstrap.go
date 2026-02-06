@@ -18,6 +18,12 @@ type BootstrapOptions struct {
 
 	// set a global cap on active downstream connections (0 = omit)
 	MaxActiveDownstreamConns uint64
+
+	// TLS configuration for xDS cluster (mTLS to xDS server)
+	// If all three paths are provided, xDS uses TLS with client certificate authentication
+	XDSClientCertPath string // Envoy client certificate
+	XDSClientKeyPath  string // Envoy client private key
+	XDSCACertPath     string // CA bundle for validating xDS server certificate
 }
 
 // MarshalBootstrap builds the Envoy bootstrap JSON bytes without writing to disk.
@@ -76,38 +82,7 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 
 		"static_resources": map[string]any{
 			"clusters": []any{
-				map[string]any{
-					"type":            clusterTypeForHost(opt.XDSHost),
-					"connect_timeout": "1s",
-					"typed_extension_protocol_options": map[string]any{
-						"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": map[string]any{
-							"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-							"explicit_http_config": map[string]any{
-								"http2_protocol_options": map[string]any{},
-							},
-						},
-					},
-					"name": "xds_cluster",
-					"load_assignment": map[string]any{
-						"cluster_name": "xds_cluster",
-						"endpoints": []any{
-							map[string]any{
-								"lb_endpoints": []any{
-									map[string]any{
-										"endpoint": map[string]any{
-											"address": address{
-												SocketAddress: socketAddr{
-													Address:   opt.XDSHost,
-													PortValue: opt.XDSPort,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+				buildXDSCluster(opt),
 			},
 		},
 		"admin": map[string]any{
@@ -173,6 +148,82 @@ func WriteBootstrap(path string, opt BootstrapOptions) error {
 		return err
 	}
 	return nil
+}
+
+// buildXDSCluster builds the xds_cluster configuration with optional TLS transport socket.
+// If TLS certificate paths are provided, configures mTLS (client certificate authentication).
+func buildXDSCluster(opt BootstrapOptions) map[string]any {
+	type socketAddr struct {
+		Address   string `json:"address"`
+		PortValue int    `json:"port_value"`
+	}
+	type address struct {
+		SocketAddress socketAddr `json:"socket_address"`
+	}
+
+	cluster := map[string]any{
+		"type":            clusterTypeForHost(opt.XDSHost),
+		"connect_timeout": "1s",
+		"typed_extension_protocol_options": map[string]any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": map[string]any{
+				"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+				"explicit_http_config": map[string]any{
+					"http2_protocol_options": map[string]any{},
+				},
+			},
+		},
+		"name": "xds_cluster",
+		"load_assignment": map[string]any{
+			"cluster_name": "xds_cluster",
+			"endpoints": []any{
+				map[string]any{
+					"lb_endpoints": []any{
+						map[string]any{
+							"endpoint": map[string]any{
+								"address": address{
+									SocketAddress: socketAddr{
+										Address:   opt.XDSHost,
+										PortValue: opt.XDSPort,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Add TLS transport socket if certificate paths provided (mTLS to xDS server)
+	if opt.XDSClientCertPath != "" && opt.XDSClientKeyPath != "" && opt.XDSCACertPath != "" {
+		commonTLSContext := map[string]any{
+			"tls_certificates": []any{
+				map[string]any{
+					"certificate_chain": map[string]any{
+						"filename": opt.XDSClientCertPath,
+					},
+					"private_key": map[string]any{
+						"filename": opt.XDSClientKeyPath,
+					},
+				},
+			},
+			"validation_context": map[string]any{
+				"trusted_ca": map[string]any{
+					"filename": opt.XDSCACertPath,
+				},
+			},
+		}
+
+		cluster["transport_socket"] = map[string]any{
+			"name": "envoy.transport_sockets.tls",
+			"typed_config": map[string]any{
+				"@type":              "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+				"common_tls_context": commonTLSContext,
+			},
+		}
+	}
+
+	return cluster
 }
 
 func clusterTypeForHost(host string) string {
