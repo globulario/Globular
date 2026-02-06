@@ -151,6 +151,55 @@ func isHLSFile(path string) bool {
 	return false
 }
 
+// pathInfo carries the derived request context NewServeFile() uses while deciding
+// auth, storage backend, and how to serve content.
+type pathInfo struct {
+	reqPath        string
+	isRoot         bool
+	dir            string
+	name           string
+	app            string
+	token          string
+	minioCfg       *MinioProxyConfig
+	useMinioUsers  bool
+	useMinioWeb    bool
+	fallbackToDisk bool
+	hostPart       string
+	marker         string
+}
+
+// AuthorizationHandler wraps the authorization decision flow for ServeFile requests.
+// It delegates to the existing authorization engine and writes the denial response
+// itself so callers can simply branch on the returned allowed flag.
+type AuthorizationHandler struct {
+	Provider      ServeProvider
+	PublicDirs    []string
+	Token         string
+	App           string
+	EngineFactory func() *AuthorizationEngine
+}
+
+// Authorize evaluates access for the given path info. It returns true when the request
+// should proceed, or false when a denial response has already been written.
+func (h *AuthorizationHandler) Authorize(w http.ResponseWriter, r *http.Request, p *pathInfo) bool {
+	factory := h.EngineFactory
+	if factory == nil {
+		factory = func() *AuthorizationEngine {
+			return BuildAuthorizationEngine(h.Provider, h.PublicDirs, h.Token, h.App)
+		}
+	}
+	engine := factory()
+	if engine == nil {
+		httplib.WriteJSONError(w, http.StatusInternalServerError, "authorization engine unavailable")
+		return false
+	}
+	if engine.Decide(p.reqPath) == AuthDeny {
+		httplib.WriteJSONError(w, http.StatusUnauthorized, "unable to read the file "+p.reqPath+"; check your access privilege")
+		return false
+	}
+	return true
+}
+
 // NewServeFile implements GET /serve/* with:
 // - Reverse-proxy passthrough for configured prefixes
 // - Host-based subroot under WebRoot()
@@ -163,15 +212,26 @@ func isHLSFile(path string) bool {
 // - Range support via http.ServeFile/ServeContent
 func NewServeFile(p ServeProvider) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Decision pipeline overview:
+		// 1) Normalize path, sanitize traversal, log root, set marker header
+		// 2) Optional reverse proxy passthrough by prefix
+		// 3) Resolve index/app defaults and platform quirks (Windows drive prefix)
+		// 4) MinIO availability flags + path derivation (playlist redirect, ca.crt)
+		// 5) Authorization check (RBAC/token/application/HLS/public rules)
+		// 6) Try MinIO (users/webroot) then optional fallback to filesystem
+		// 7) Streaming hook, open/stat file, apply caching headers
+		// 8) Serve with content-type helpers or default http.ServeFile
+		info := &pathInfo{}
 		// Normalize to exactly one leading slash (works with/without StripPrefix)
 		reqPath := r.URL.Path
 		if reqPath == "" || reqPath[0] != '/' {
 			reqPath = "/" + reqPath
 		}
-		isRoot := reqPath == "/" || reqPath == ""
+		info.reqPath = reqPath
+		info.isRoot = reqPath == "/" || reqPath == ""
 		xfp := r.Header.Get("X-Forwarded-Proto")
 		xff := r.Header.Get("X-Forwarded-For")
-		if isRoot && r.Method == http.MethodGet {
+		if info.isRoot && r.Method == http.MethodGet {
 			slog.Info("gateway root request", "host", r.Host, "xfp", xfp, "xff", xff)
 		}
 
@@ -225,14 +285,14 @@ func NewServeFile(p ServeProvider) http.Handler {
 		if protoHint == "" {
 			protoHint = "http"
 		}
-		marker := fmt.Sprintf("Served-By: gateway at %s host=%s proto=%s", time.Now().UTC().Format(time.RFC3339), r.Host, protoHint)
-		w.Header().Set("X-Served-By", marker)
+		info.marker = fmt.Sprintf("Served-By: gateway at %s host=%s proto=%s", time.Now().UTC().Format(time.RFC3339), r.Host, protoHint)
+		w.Header().Set("X-Served-By", info.marker)
 
 		// v1 Conformance: Use stable webroot path
 		// REMOVED: Host header-based directory selection (security violation INV-1.2)
 		// Host header is untrusted client input and MUST NOT determine file access paths
 		// For multi-tenancy, use authenticated principalID instead of Host header
-		dir := p.WebRoot()
+		info.dir = p.WebRoot()
 
 		// v2 Conformance: Token from Authorization header ONLY (security violation INV-3.1)
 		// REMOVED: Query parameter token extraction - tokens in URLs leak via logs
@@ -240,22 +300,22 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// - Access logs, proxy logs, browser history
 		// - Referer headers, URL sharing
 		// - Server-side request logging
-		app := r.Header.Get("application") // Application can still use header fallback
-		token := r.Header.Get("token")     // Token: Header ONLY (no query fallback)
-		if token == "null" || token == "undefined" {
-			token = ""
+		info.app = r.Header.Get("application") // Application can still use header fallback
+		info.token = r.Header.Get("token")     // Token: Header ONLY (no query fallback)
+		if info.token == "null" || info.token == "undefined" {
+			info.token = ""
 		}
 
 		// Index resolution (keep legacy behavior)
 		if rqstPath == "/" {
 			if idx := p.IndexApplication(); idx != "" {
 				rqstPath = "/" + idx
-				app = idx
+				info.app = idx
 			} else {
 				rqstPath = "/index.html"
 			}
 		} else if strings.Count(rqstPath, "/") == 1 {
-			if hasExt(rqstPath, ".js", ".json", ".css", ".htm", ".html") && p.Exists(filepath.Join(dir, rqstPath)) {
+			if hasExt(rqstPath, ".js", ".json", ".css", ".htm", ".html") && p.Exists(filepath.Join(info.dir, rqstPath)) {
 				if idx := p.IndexApplication(); idx != "" {
 					rqstPath = "/" + idx + rqstPath
 				}
@@ -268,6 +328,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		}
 
 		minioCfg, minioErr := p.FileServiceMinioConfig()
+		info.minioCfg = minioCfg
 		isUsersPath := strings.HasPrefix(rqstPath, "/users/")
 		minioConfigured := minioCfg != nil || minioErr != nil
 		if minioConfigured && minioErr != nil {
@@ -275,13 +336,13 @@ func NewServeFile(p ServeProvider) http.Handler {
 			return
 		}
 		hasMinio := minioConfigured && minioErr == nil
-		useMinioUsers := hasMinio && isUsersPath
-		useMinioWeb := hasMinio && !isUsersPath
+		info.useMinioUsers = hasMinio && isUsersPath
+		info.useMinioWeb = hasMinio && !isUsersPath
 		// Only fallback to disk if MinIO is not configured at all
-		fallbackToDisk := !minioConfigured
+		info.fallbackToDisk = !minioConfigured
 
 		// Compute filename; "public" paths are absolute
-		name := filepath.Join(dir, rqstPath)
+		name := filepath.Join(info.dir, rqstPath)
 		// Directory request should redirect to a playlist manifest when available
 		if info, err := os.Stat(name); err == nil && info.IsDir() && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
 			playlist := filepath.Join(name, "playlist.m3u8")
@@ -303,20 +364,26 @@ func NewServeFile(p ServeProvider) http.Handler {
 			name = filepath.Join(p.CredsDir(), rqstPath)
 		}
 
+		info.reqPath = rqstPath
+		info.name = name
+
 		// Evaluate authorization using explicit rule engine
-		authEngine := BuildAuthorizationEngine(p, p.PublicDirs(), token, app)
-		authDecision := authEngine.Decide(rqstPath)
-		if authDecision == AuthDeny {
-			httplib.WriteJSONError(w, http.StatusUnauthorized, "unable to read the file "+rqstPath+"; check your access privilege")
+		authHandler := &AuthorizationHandler{
+			Provider:   p,
+			PublicDirs: p.PublicDirs(),
+			Token:      info.token,
+			App:        info.app,
+		}
+		if !authHandler.Authorize(w, r, info) {
 			return
 		}
 
-		if useMinioUsers && serveUsersFromMinio(w, r, minioCfg, rqstPath) {
+		if info.useMinioUsers && serveUsersFromMinio(w, r, minioCfg, rqstPath) {
 			return
 		}
 
-		hostPart := cleanRequestHost(r.Host, minioCfg)
-		if useMinioWeb && serveWebrootFromMinio(w, r, minioCfg, rqstPath, hostPart, fallbackToDisk) {
+		info.hostPart = cleanRequestHost(r.Host, minioCfg)
+		if info.useMinioWeb && serveWebrootFromMinio(w, r, minioCfg, rqstPath, info.hostPart, info.fallbackToDisk) {
 			return
 		}
 
@@ -356,7 +423,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		w.Header().Set("Last-Modified", mod.Format(http.TimeFormat))
 
 		// Content type detection and optional transformations
-		if serveWithContentType(w, r, name, f, fi, p, isRoot, marker) {
+		if serveWithContentType(w, r, name, f, fi, p, info.isRoot, info.marker) {
 			return
 		}
 
