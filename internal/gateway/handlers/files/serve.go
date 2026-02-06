@@ -220,18 +220,6 @@ func NewServeFile(p ServeProvider) http.Handler {
 			}
 		}
 
-		// Protected areas under data/files
-		hasAccess := true
-		if strings.HasPrefix(rqstPath, "/users/") {
-			hasAccess = false
-
-		}
-
-		// Allow access to hidden directories and HLS streaming files
-		if strings.Contains(rqstPath, "/.hidden/") || isHLSFile(rqstPath) {
-			hasAccess = true
-		}
-
 		// Windows drive quirk: "/C:..." -> "C:..."
 		if len(rqstPath) > 3 && runtime.GOOS == "windows" && rqstPath[0] == '/' && rqstPath[2] == ':' {
 			rqstPath = rqstPath[1:]
@@ -250,7 +238,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// Only fallback to disk if MinIO is not configured at all
 		fallbackToDisk := !minioConfigured
 
-		// Compute filename; "public" paths are absolute and force validation
+		// Compute filename; "public" paths are absolute
 		name := filepath.Join(dir, rqstPath)
 		// Directory request should redirect to a playlist manifest when available
 		if info, err := os.Stat(name); err == nil && info.IsDir() && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
@@ -266,12 +254,6 @@ func NewServeFile(p ServeProvider) http.Handler {
 		}
 		if isPublicLike(rqstPath, p.PublicDirs()) {
 			name = rqstPath
-			hasAccess = false
-		}
-
-		// Streaming allow list (hidden directories and HLS files)
-		if strings.Contains(rqstPath, "/.hidden/") || isHLSFile(rqstPath) {
-			hasAccess = true
 		}
 
 		// CA certificate special-case
@@ -279,26 +261,10 @@ func NewServeFile(p ServeProvider) http.Handler {
 			name = filepath.Join(p.CredsDir(), rqstPath)
 		}
 
-		// Access checks
-		var (
-			hasDenied bool
-			err       error
-		)
-		if token != "" && !hasAccess {
-			if uid, e := p.ParseUserID(token); e == nil && uid != "" {
-				hasAccess, hasDenied, err = p.ValidateAccount(uid, "read", rqstPath)
-			} else if e != nil {
-				httplib.WriteJSONError(w, http.StatusUnauthorized, "invalid access token")
-				return
-			}
-		}
-
-		if isPublicLike(rqstPath, p.PublicDirs()) && !hasDenied && !hasAccess {
-			hasAccess = true
-		} else if !hasAccess && !hasDenied && app != "" {
-			hasAccess, hasDenied, err = p.ValidateApplication(app, "read", rqstPath)
-		}
-		if !hasAccess || hasDenied || err != nil {
+		// Evaluate authorization using explicit rule engine
+		authEngine := BuildAuthorizationEngine(p, p.PublicDirs(), token, app)
+		authDecision := authEngine.Decide(rqstPath)
+		if authDecision == AuthDeny {
 			httplib.WriteJSONError(w, http.StatusUnauthorized, "unable to read the file "+rqstPath+"; check your access privilege")
 			return
 		}
