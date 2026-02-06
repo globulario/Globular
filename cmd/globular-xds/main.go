@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	xdsconfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/xds/server"
 	"github.com/globulario/Globular/internal/xds/watchers"
@@ -144,7 +145,12 @@ func main() {
 	}
 
 	// Configure TLS (secure by default, requires mTLS unless GLOBULAR_XDS_INSECURE=1)
-	tlsConfig, err := resolveXDSTLSConfig(logger, xdsCfg)
+	runtimeDir := strings.TrimSpace(os.Getenv("GLOBULAR_ROOT"))
+	if runtimeDir == "" {
+		runtimeDir = globconfig.GetStateRootDir()
+	}
+
+	tlsConfig, err := resolveXDSTLSConfig(logger, xdsCfg, runtimeDir)
 	if err != nil {
 		logger.Error("failed to configure xDS TLS", "err", err)
 		os.Exit(1)
@@ -152,20 +158,16 @@ func main() {
 
 	// Build bootstrap with TLS configuration for Envoy → xDS mTLS
 	opts := controlplane.BootstrapOptions{
-		NodeID:    *nodeID,
-		Cluster:   *bootstrapCluster,
-		XDSHost:   *bootstrapHost,
-		XDSPort:   xdsPort,
-		AdminPort: *bootstrapAdminPort,
+		NodeID:           *nodeID,
+		Cluster:          *bootstrapCluster,
+		XDSHost:          *bootstrapHost,
+		XDSPort:          xdsPort,
+		AdminPort:        *bootstrapAdminPort,
+		RuntimeConfigDir: runtimeDir,
+		DevInsecure:      tlsConfig == nil,
 	}
 	if *bootstrapMaxConn > 0 {
 		opts.MaxActiveDownstreamConns = *bootstrapMaxConn
-	}
-	// If xDS server uses TLS, configure Envoy client to use mTLS
-	if tlsConfig != nil {
-		opts.XDSClientCertPath = tlsConfig.ServerCertPath // Reuse server cert as client cert (same identity)
-		opts.XDSClientKeyPath = tlsConfig.ServerKeyPath
-		opts.XDSCACertPath = tlsConfig.ClientCAPath
 	}
 	writeBootstrap(logger, opts, *bootstrapPath)
 
@@ -410,9 +412,14 @@ func portFromAddress(addr string) int {
 // resolveXDSTLSConfig resolves xDS server TLS configuration, enforcing secure-by-default behavior.
 // Returns TLS config for mTLS (server cert + client CA validation) or nil if insecure mode allowed.
 // Fails fast if TLS certs are missing unless GLOBULAR_XDS_INSECURE=1 environment variable is set.
-func resolveXDSTLSConfig(logger *slog.Logger, xdsCfg *xdsServiceConfig) (*server.TLSConfig, error) {
+func resolveXDSTLSConfig(logger *slog.Logger, xdsCfg *xdsServiceConfig, runtimeDir string) (*server.TLSConfig, error) {
 	// Check if insecure mode explicitly allowed (dev override)
 	insecureAllowed := strings.ToLower(os.Getenv("GLOBULAR_XDS_INSECURE")) == "1"
+
+	// Ensure PKI artifacts exist (server + client identities) for secure defaults.
+	if err := xdsconfig.EnsureXDSMTLSMaterials(runtimeDir, insecureAllowed); err != nil {
+		return nil, fmt.Errorf("ensure xDS PKI: %w", err)
+	}
 
 	// If config explicitly provides TLS paths, use them
 	var serverCert, serverKey, clientCA string
@@ -423,21 +430,17 @@ func resolveXDSTLSConfig(logger *slog.Logger, xdsCfg *xdsServiceConfig) (*server
 	}
 
 	// If not explicitly configured, use canonical internal PKI paths
-	if serverCert == "" || serverKey == "" {
-		runtimeDir := strings.TrimSpace(os.Getenv("GLOBULAR_ROOT"))
-		if runtimeDir == "" {
-			runtimeDir = "/var/lib/globular"
-		}
-		_, fullchain, privkey, ca := globconfig.CanonicalTLSPaths(runtimeDir)
-
+	if serverCert == "" || serverKey == "" || clientCA == "" {
+		// Prefer dedicated xDS server identity
+		sCert, sKey := xdsconfig.GetXDSServerCertPaths(runtimeDir)
 		if serverCert == "" {
-			serverCert = fullchain
+			serverCert = sCert
 		}
 		if serverKey == "" {
-			serverKey = privkey
+			serverKey = sKey
 		}
 		if clientCA == "" {
-			clientCA = ca
+			clientCA = xdsconfig.GetClusterCABundlePath(runtimeDir)
 		}
 
 		logger.Info("using canonical TLS paths for xDS server",

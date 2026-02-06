@@ -57,7 +57,8 @@ else
         if jq -e '.static_resources.clusters[] | select(.name == "xds_cluster") | .transport_socket.typed_config.common_tls_context.tls_certificates' "$BOOTSTRAP_PATH" >/dev/null 2>&1; then
             echo "  ✓ xDS cluster has client certificate configured (mTLS)"
         else
-            echo "  ⚠️  xDS cluster does not have client certificate (mTLS not enforced)"
+            echo "  ❌ FAIL: xDS cluster does not have client certificate (mTLS required)"
+            exit 1
         fi
 
         # Check for CA validation

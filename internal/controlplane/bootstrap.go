@@ -3,10 +3,13 @@ package controlplane
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/globulario/Globular/internal/config"
 )
 
 type BootstrapOptions struct {
@@ -15,12 +18,17 @@ type BootstrapOptions struct {
 	XDSHost   string
 	XDSPort   int
 	AdminPort int
+	// Optional runtime config dir for resolving canonical PKI paths.
+	RuntimeConfigDir string
+	// DevInsecure allows plaintext bootstrap generation when true (GLOBULAR_XDS_INSECURE=1).
+	// Use only for local development; production must keep this false.
+	DevInsecure bool
 
 	// set a global cap on active downstream connections (0 = omit)
 	MaxActiveDownstreamConns uint64
 
-	// TLS configuration for xDS cluster (mTLS to xDS server)
-	// If all three paths are provided, xDS uses TLS with client certificate authentication
+	// TLS configuration for xDS cluster (mTLS to xDS server).
+	// These are resolved automatically when empty using canonical PKI paths.
 	XDSClientCertPath string // Envoy client certificate
 	XDSClientKeyPath  string // Envoy client private key
 	XDSCACertPath     string // CA bundle for validating xDS server certificate
@@ -28,6 +36,12 @@ type BootstrapOptions struct {
 
 // MarshalBootstrap builds the Envoy bootstrap JSON bytes without writing to disk.
 func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
+	var err error
+	opt.XDSClientCertPath, opt.XDSClientKeyPath, opt.XDSCACertPath, err = resolveXdsClientTLSPaths(opt, opt.RuntimeConfigDir)
+	if err != nil {
+		return nil, err
+	}
+
 	if opt.NodeID == "" {
 		opt.NodeID = "globular-xds"
 	}
@@ -194,36 +208,106 @@ func buildXDSCluster(opt BootstrapOptions) map[string]any {
 		},
 	}
 
-	// Add TLS transport socket if certificate paths provided (mTLS to xDS server)
-	if opt.XDSClientCertPath != "" && opt.XDSClientKeyPath != "" && opt.XDSCACertPath != "" {
-		commonTLSContext := map[string]any{
-			"tls_certificates": []any{
-				map[string]any{
-					"certificate_chain": map[string]any{
-						"filename": opt.XDSClientCertPath,
-					},
-					"private_key": map[string]any{
-						"filename": opt.XDSClientKeyPath,
-					},
-				},
-			},
-			"validation_context": map[string]any{
-				"trusted_ca": map[string]any{
-					"filename": opt.XDSCACertPath,
-				},
-			},
-		}
+	// If TLS material is missing (dev override), leave cluster plaintext.
+	if opt.XDSClientCertPath == "" || opt.XDSClientKeyPath == "" || opt.XDSCACertPath == "" {
+		return cluster
+	}
 
-		cluster["transport_socket"] = map[string]any{
-			"name": "envoy.transport_sockets.tls",
-			"typed_config": map[string]any{
-				"@type":              "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-				"common_tls_context": commonTLSContext,
+	commonTLSContext := map[string]any{
+		"tls_certificates": []any{
+			map[string]any{
+				"certificate_chain": map[string]any{
+					"filename": opt.XDSClientCertPath,
+				},
+				"private_key": map[string]any{
+					"filename": opt.XDSClientKeyPath,
+				},
 			},
-		}
+		},
+		"validation_context": map[string]any{
+			"trusted_ca": map[string]any{
+				"filename": opt.XDSCACertPath,
+			},
+		},
+	}
+
+	cluster["transport_socket"] = map[string]any{
+		"name": "envoy.transport_sockets.tls",
+		"typed_config": map[string]any{
+			"@type":              "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+			"common_tls_context": commonTLSContext,
+			"sni":                sniForHost(opt.XDSHost),
+		},
 	}
 
 	return cluster
+}
+
+// resolveXdsClientTLSPaths determines the client certificate, key, and CA bundle paths
+// for Envoy → xDS mTLS. If explicit options are empty, canonical PKI locations are used.
+// Returns an error when TLS material is missing unless DevInsecure (or env) permits plaintext.
+func resolveXdsClientTLSPaths(opts BootstrapOptions, runtimeConfigDir string) (cert, key, ca string, err error) {
+	insecureAllowed := opts.DevInsecure
+	if !insecureAllowed && strings.EqualFold(os.Getenv("GLOBULAR_XDS_INSECURE"), "1") {
+		insecureAllowed = true
+	}
+
+	// Prefer explicitly provided paths
+	cert = strings.TrimSpace(opts.XDSClientCertPath)
+	key = strings.TrimSpace(opts.XDSClientKeyPath)
+	ca = strings.TrimSpace(opts.XDSCACertPath)
+
+	// Fallback to canonical paths
+	if cert == "" || key == "" || ca == "" {
+		certPath, keyPath := config.GetEnvoyXDSClientCertPaths(runtimeConfigDir)
+		caPath := config.GetClusterCABundlePath(runtimeConfigDir)
+
+		if cert == "" {
+			cert = certPath
+		}
+		if key == "" {
+			key = keyPath
+		}
+		if ca == "" {
+			ca = caPath
+		}
+	}
+
+	certOK := fileExistsXDS(cert)
+	keyOK := fileExistsXDS(key)
+	caOK := fileExistsXDS(ca)
+
+	if certOK && keyOK && caOK {
+		return cert, key, ca, nil
+	}
+
+	if insecureAllowed {
+		// Plaintext bootstrap is allowed explicitly for development.
+		return "", "", "", nil
+	}
+
+	var missing []string
+	if !certOK {
+		missing = append(missing, cert)
+	}
+	if !keyOK {
+		missing = append(missing, key)
+	}
+	if !caOK {
+		missing = append(missing, ca)
+	}
+	return "", "", "", fmt.Errorf("xDS mTLS material missing: %s", strings.Join(missing, ", "))
+}
+
+func fileExistsXDS(path string) bool {
+	if path == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
 }
 
 func clusterTypeForHost(host string) string {
@@ -242,4 +326,11 @@ func isIP(host string) bool {
 		h = parsedHost
 	}
 	return net.ParseIP(h) != nil
+}
+
+func sniForHost(host string) string {
+	if isIP(host) {
+		return ""
+	}
+	return strings.TrimSpace(host)
 }
