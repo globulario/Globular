@@ -457,7 +457,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		clusters = append(clusters, ingressSpec.Clusters...)
 		routes = append(routes, ingressSpec.Routes...)
 		listener = ingressSpec.Listener
-		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w)
+		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
 		ingressSpec.GatewayPort = normalizedGatewayPort
 		ingressHTTPPort = ingressSpec.HTTPPort
 		enableHTTPRedirect = ingressSpec.EnableHTTPRedirect
@@ -476,7 +476,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			listener.Name = fmt.Sprintf("%s_%d", listenerNameBase, port)
 		}
 	} else {
-		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources()
+		legacyClusters, legacyRoutes, legacyListener, legacyGatewayPort, legacyTLSEnabled, err := w.buildLegacyGatewayResources(cfg)
 		if err != nil {
 			return builder.Input{}, "", err
 		}
@@ -646,11 +646,16 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 	return clusters, routes, nil
 }
 
-func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Route, builder.Listener, uint32, bool, error) {
+func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Cluster, []builder.Route, builder.Listener, uint32, bool, error) {
 	cfg, _ := config.GetLocalConfig(true)
 	host, listenPort := readGatewayAddress()
 	listenPort = defaultGatewayPort(listenPort)
-	domain, portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
+	portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
+	// v1 Conformance (INV-5.2): Use ClusterDomain for internal service-to-service SNI
+	clusterDomain := ""
+	if xdsCfg != nil {
+		clusterDomain = xdsCfg.ClusterDomain
+	}
 	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
 	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
@@ -674,7 +679,7 @@ func (w *Watcher) buildLegacyGatewayResources() ([]builder.Cluster, []builder.Ro
 		CAFile:     gatewayCA,
 		ServerCert: gatewayCert,
 		KeyFile:    gatewayKey,
-		SNI:        domain,
+		SNI:        clusterDomain,
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
@@ -840,7 +845,9 @@ func (w *Watcher) applyIngressSettings(spec *IngressSpec, cfg *XDSConfig) {
 	if spec == nil || cfg == nil {
 		return
 	}
-	domain, _ := config.GetDomain()
+	// v1 Conformance (INV-5.1): Use IngressDomains for virtual host matching, not cluster_domain
+	// cluster_domain is for internal DNS only (service discovery, internal FQDNs)
+	// ingress_domains are for public routing (virtual host matching, certificate SANs)
 	if spec.Listener.Host == "" {
 		spec.Listener.Host = "0.0.0.0"
 	}
@@ -858,10 +865,16 @@ func (w *Watcher) applyIngressSettings(spec *IngressSpec, cfg *XDSConfig) {
 		spec.EnableHTTPRedirect = cfg.ingressRedirectEnabled()
 	}
 	spec.GatewayPort = cfg.gatewayPort()
-	if domain != "" {
+	// Assign ingress domains to routes that don't have explicit domains
+	if len(cfg.IngressDomains) > 0 {
 		for i := range spec.Routes {
 			if len(spec.Routes[i].Domains) == 0 {
-				spec.Routes[i].Domains = []string{strings.ToLower(strings.TrimSpace(domain))}
+				// Normalize domains: lowercase and trim whitespace
+				normalizedDomains := make([]string, len(cfg.IngressDomains))
+				for j, d := range cfg.IngressDomains {
+					normalizedDomains[j] = strings.ToLower(strings.TrimSpace(d))
+				}
+				spec.Routes[i].Domains = normalizedDomains
 			}
 		}
 	}
@@ -1081,17 +1094,15 @@ func readGatewayAddress() (string, int) {
 	return readGatewayAddressFromConfig(cfg)
 }
 
-func readGatewayPortsFromConfig(cfg map[string]any) (string, int, int) {
-	domain := normalizeUpstreamHost(Utility.ToString(cfg["Domain"]))
-	if domain == "" {
-		domain = "127.0.0.1"
-	}
+// v1 Conformance (INV-5.4): Removed domain return value
+// Domain should not be used for service discovery or SNI - use ClusterDomain from XDSConfig instead
+func readGatewayPortsFromConfig(cfg map[string]any) (int, int) {
 	portHTTP := defaultGatewayPort(Utility.ToInt(cfg["PortHTTP"]))
 	portHTTPS := Utility.ToInt(cfg["PortHTTPS"])
 	if portHTTPS == 0 {
 		portHTTPS = 8443
 	}
-	return domain, portHTTP, portHTTPS
+	return portHTTP, portHTTPS
 }
 
 func defaultGatewayPort(port int) int {
@@ -1139,12 +1150,17 @@ func findClusterByName(clusters []builder.Cluster, name string) *builder.Cluster
 	return nil
 }
 
-func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
+func normalizeIngressGateway(spec *IngressSpec, w *Watcher, xdsCfg *XDSConfig) uint32 {
 	if spec == nil || w == nil {
 		return 0
 	}
 	cfg, _ := config.GetLocalConfig(true)
-	domain, portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
+	portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
+	// v1 Conformance (INV-5.2): Use ClusterDomain for internal service-to-service SNI
+	clusterDomain := ""
+	if xdsCfg != nil {
+		clusterDomain = xdsCfg.ClusterDomain
+	}
 	host, listenPort := readGatewayAddress()
 	upstreamHost := normalizeUpstreamHost(host)
 	if upstreamHost == "" {
@@ -1181,7 +1197,7 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher) uint32 {
 				}
 			}
 		}
-		cl.SNI = domain
+		cl.SNI = clusterDomain
 		if enableTLS {
 			cl.ServerCert = gatewayCert
 			cl.KeyFile = gatewayKey

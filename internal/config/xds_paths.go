@@ -101,8 +101,10 @@ func ensureXDSCertificate(server bool, caCertPath, caKeyPath, runtimeConfigDir s
 		return err
 	}
 
-	domain, _ := globconfig.GetDomain()
-	tpl, err := xdsCertTemplate(commonName, domain, server)
+	// v1 Conformance (INV-5.3): Use stable certificate identities
+	// Internal xDS mTLS certificates should not depend on domain (routing label)
+	// The commonName is the stable identity; cluster_domain SANs are optional for DNS resolution
+	tpl, err := xdsCertTemplate(commonName, server)
 	if err != nil {
 		return err
 	}
@@ -133,20 +135,21 @@ func ensureXDSCertificate(server bool, caCertPath, caKeyPath, runtimeConfigDir s
 	return nil
 }
 
-func xdsCertTemplate(commonName, domain string, isServer bool) (*x509.Certificate, error) {
+// v1 Conformance (INV-5.3): Certificate template with stable identity
+// commonName is the stable identity (e.g., "xds-server", "envoy-xds-client")
+// Does NOT include domain-based SANs which would tie identity to routing configuration
+func xdsCertTemplate(commonName string, isServer bool) (*x509.Certificate, error) {
 	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return nil, fmt.Errorf("serial: %w", err)
 	}
 
+	// Stable DNSNames: only the commonName itself
+	// This ensures certificates remain valid across domain configuration changes
+	// For xDS mTLS, the CN is sufficient for identity verification
 	dnsNames := []string{commonName}
-	if domain != "" {
-		dnsNames = append(dnsNames, fmt.Sprintf("%s.%s", commonName, domain))
-		if isServer {
-			dnsNames = append(dnsNames, fmt.Sprintf("xds.%s", domain))
-		}
-	}
 
+	// Localhost IP for local development and testing
 	ips := []net.IP{net.ParseIP("127.0.0.1")}
 
 	extUsages := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}

@@ -15,6 +15,9 @@ type XDSConfig struct {
 	Ingress             IngressConfig   `json:"ingress"`
 	Gateway             GatewayConfig   `json:"gateway"`
 	Fallback            *FallbackConfig `json:"fallback"`
+	// v1 Conformance: Separate cluster_domain (internal DNS) from ingress_domains (public routing)
+	ClusterDomain  string   `json:"cluster_domain"`  // Internal DNS only (e.g., "globular.internal")
+	IngressDomains []string `json:"ingress_domains"` // Public routing domains for virtual host matching
 }
 
 // IngressConfig defines HTTP/HTTPS ports, TLS paths, and redirect behavior.
