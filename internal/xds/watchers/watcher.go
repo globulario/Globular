@@ -515,6 +515,65 @@ func (w *Watcher) loadXDSConfig(fi os.FileInfo) (*XDSConfig, error) {
 	return &cfg, nil
 }
 
+// setupSDSSecrets configures SDS (Secret Discovery Service) for TLS certificate delivery.
+// It builds the secret resources from the listener's certificate configuration and validates
+// that SDS is only used with TLS-secured xDS control plane connections.
+//
+// Returns:
+//   - enableSDS: whether SDS should be enabled
+//   - secrets: list of SDS secrets to provide to Envoy
+//   - error: validation error if security constraints are violated
+func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Secret, error) {
+	// SDS requires certificate files to be configured
+	if listener.CertFile == "" || listener.KeyFile == "" {
+		return false, nil, nil
+	}
+
+	// Build SDS secrets using canonical TLS paths
+	sdsSecrets := []builder.Secret{
+		{
+			Name:     secrets.InternalServerCert,
+			CertPath: listener.CertFile,
+			KeyPath:  listener.KeyFile,
+		},
+	}
+
+	// Add CA bundle if present
+	if listener.IssuerFile != "" {
+		sdsSecrets = append(sdsSecrets, builder.Secret{
+			Name:   secrets.InternalCABundle,
+			CAPath: listener.IssuerFile,
+		})
+	}
+
+	// Security invariant: SDS implies TLS-secured xDS
+	// Secrets contain private keys and MUST NOT traverse plaintext gRPC
+	if os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
+		return false, nil, fmt.Errorf(
+			"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
+				"secrets would be transmitted over plaintext")
+	}
+
+	// Add public ACME certificate if available (for public HTTPS ingress)
+	// ACME certificates use fullchain.pem naming convention
+	if strings.Contains(listener.CertFile, "fullchain.pem") {
+		sdsSecrets = append(sdsSecrets, builder.Secret{
+			Name:     secrets.PublicIngressCert,
+			CertPath: listener.CertFile,
+			KeyPath:  listener.KeyFile,
+		})
+		// Store ACME cert paths for rotation detection
+		w.acmeCertPath = listener.CertFile
+		w.acmeKeyPath = listener.KeyFile
+	}
+
+	if w.logger != nil {
+		w.logger.Info("SDS enabled", "secrets", len(sdsSecrets))
+	}
+
+	return true, sdsSecrets, nil
+}
+
 func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builder.Input, string, error) {
 	clusters, routes, err := w.buildServiceResources(ctx, cfg)
 	if err != nil {
@@ -594,50 +653,10 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		}
 	}
 
-	// Enable SDS for TLS certificate delivery (hot rotation)
-	enableSDS := false
-	var sdsSecrets []builder.Secret
-	if listener.CertFile != "" && listener.KeyFile != "" {
-		enableSDS = true
-		// Build SDS secrets using canonical TLS paths
-		sdsSecrets = []builder.Secret{
-			{
-				Name:     secrets.InternalServerCert,
-				CertPath: listener.CertFile,
-				KeyPath:  listener.KeyFile,
-			},
-		}
-		// Add CA bundle if present
-		if listener.IssuerFile != "" {
-			sdsSecrets = append(sdsSecrets, builder.Secret{
-				Name:   secrets.InternalCABundle,
-				CAPath: listener.IssuerFile,
-			})
-		}
-		// Security invariant: SDS implies TLS-secured xDS
-		// Secrets contain private keys and MUST NOT traverse plaintext gRPC
-		if os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
-			return builder.Input{}, "", fmt.Errorf(
-				"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
-					"secrets would be transmitted over plaintext")
-		}
-
-		// Add public ACME certificate if available (for public HTTPS ingress)
-		// ACME certificates use fullchain.pem naming convention
-		if strings.Contains(listener.CertFile, "fullchain.pem") {
-			sdsSecrets = append(sdsSecrets, builder.Secret{
-				Name:     secrets.PublicIngressCert,
-				CertPath: listener.CertFile,
-				KeyPath:  listener.KeyFile,
-			})
-			// Store ACME cert paths for rotation detection
-			w.acmeCertPath = listener.CertFile
-			w.acmeKeyPath = listener.KeyFile
-		}
-
-		if w.logger != nil {
-			w.logger.Info("SDS enabled", "secrets", len(sdsSecrets))
-		}
+	// Configure SDS for TLS certificate delivery (hot rotation)
+	enableSDS, sdsSecrets, err := w.setupSDSSecrets(listener)
+	if err != nil {
+		return builder.Input{}, "", err
 	}
 
 	input := builder.Input{
