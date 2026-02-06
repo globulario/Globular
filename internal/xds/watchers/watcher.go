@@ -509,6 +509,14 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 				CAPath: listener.IssuerFile,
 			})
 		}
+		// Security invariant: SDS implies TLS-secured xDS
+		// Secrets contain private keys and MUST NOT traverse plaintext gRPC
+		if os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
+			return builder.Input{}, "", fmt.Errorf(
+				"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
+					"secrets would be transmitted over plaintext")
+		}
+
 		if w.logger != nil {
 			w.logger.Info("SDS enabled", "secrets", len(sdsSecrets))
 		}
