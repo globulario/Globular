@@ -27,4 +27,10 @@ const (
 	// Source: Let's Encrypt / ACME provider
 	// Status: Optional, for clusters with public ingress
 	PublicServerCert = "public-server-cert"
+
+	// PublicIngressCert is the primary ACME certificate for public HTTPS ingress.
+	// Used for downstream TLS on the main public listener.
+	// Source: ACME (Let's Encrypt) fullchain.pem + privkey.pem
+	// Rotation: Triggered by ACME renewal (file hash change)
+	PublicIngressCert = "public-ingress-cert"
 )

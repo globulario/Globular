@@ -184,7 +184,12 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			var listener *listener_v3.Listener
 			if input.EnableSDS {
 				// Use SDS for TLS certificates
+				// Choose secret name based on certificate type (ACME vs internal)
 				serverCertSecretName := secrets.InternalServerCert
+				if strings.Contains(certFile, "fullchain.pem") {
+					// ACME certificate (Let's Encrypt) for public ingress
+					serverCertSecretName = secrets.PublicIngressCert
+				}
 				caSecretName := ""
 				if issuerFile != "" {
 					caSecretName = secrets.InternalCABundle

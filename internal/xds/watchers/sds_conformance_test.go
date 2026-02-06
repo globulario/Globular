@@ -671,6 +671,259 @@ func TestNoFileBasedTLSWhenSDSEnabled(t *testing.T) {
 	t.Log("✓ No file-based TLS (DataSource_Filename) found when EnableSDS=true")
 }
 
+// TestACMECertificateUsesPublicIngressCert verifies that ACME certificates
+// (identified by fullchain.pem naming) use the public-ingress-cert secret name
+// instead of internal-server-cert when SDS is enabled.
+func TestACMECertificateUsesPublicIngressCert(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create ACME certificate files (using fullchain.pem naming convention)
+	acmeCertPath := filepath.Join(tmpDir, "fullchain.pem")
+	acmeKeyPath := filepath.Join(tmpDir, "privkey.pem")
+
+	if err := os.WriteFile(acmeCertPath, []byte(testCert), 0644); err != nil {
+		t.Fatalf("write ACME cert: %v", err)
+	}
+	if err := os.WriteFile(acmeKeyPath, []byte(testKey), 0600); err != nil {
+		t.Fatalf("write ACME key: %v", err)
+	}
+
+	// Build input with SDS enabled and ACME certificate
+	input := builder.Input{
+		NodeID:    "test-node",
+		EnableSDS: true,
+		SDSSecrets: []builder.Secret{
+			{
+				Name:     "public-ingress-cert",
+				CertPath: acmeCertPath,
+				KeyPath:  acmeKeyPath,
+			},
+		},
+		Listener: builder.Listener{
+			Name:      "public-ingress-listener",
+			Port:      443,
+			RouteName: "public-routes",
+			CertFile:  acmeCertPath, // Contains "fullchain.pem"
+			KeyFile:   acmeKeyPath,
+		},
+		Routes: []builder.Route{
+			{Prefix: "/", Cluster: "test-cluster"},
+		},
+		Clusters: []builder.Cluster{
+			{
+				Name:      "test-cluster",
+				Endpoints: []builder.Endpoint{{Host: "localhost", Port: 8080}},
+			},
+		},
+	}
+
+	// Build snapshot
+	snapshot, err := builder.BuildSnapshot(input, "v1")
+	if err != nil {
+		t.Fatalf("BuildSnapshot failed: %v", err)
+	}
+
+	// Verify snapshot contains public-ingress-cert secret
+	secrets := snapshot.GetResources(resource_v3.SecretType)
+	if _, exists := secrets["public-ingress-cert"]; !exists {
+		t.Error("snapshot should contain public-ingress-cert for ACME certificate")
+	}
+
+	// Get listener from snapshot
+	listeners := snapshot.GetResources(resource_v3.ListenerType)
+	if len(listeners) == 0 {
+		t.Fatal("snapshot should contain listeners")
+	}
+
+	// Verify listener uses public-ingress-cert secret (not internal-server-cert)
+	foundPublicIngressSecret := false
+	for _, resource := range listeners {
+		listener, ok := resource.(*listener_v3.Listener)
+		if !ok {
+			continue
+		}
+
+		// Check filter chains for TLS config
+		for _, chain := range listener.FilterChains {
+			if chain.TransportSocket == nil {
+				continue
+			}
+
+			// Unmarshal the transport socket config
+			var tlsContext tls_v3.DownstreamTlsContext
+			if err := chain.TransportSocket.GetTypedConfig().UnmarshalTo(&tlsContext); err != nil {
+				t.Logf("failed to unmarshal TLS context: %v", err)
+				continue
+			}
+
+			if tlsContext.CommonTlsContext == nil {
+				continue
+			}
+
+			// Verify SDS secret configs reference public-ingress-cert
+			sdsConfigs := tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs
+			if len(sdsConfigs) == 0 {
+				t.Error("ACME listener should have tls_certificate_sds_secret_configs")
+				continue
+			}
+
+			secretName := sdsConfigs[0].Name
+			if secretName == "public-ingress-cert" {
+				foundPublicIngressSecret = true
+				t.Logf("✓ ACME listener uses public-ingress-cert secret")
+			} else if secretName == "internal-server-cert" {
+				t.Error("ACME listener (fullchain.pem) should use public-ingress-cert, not internal-server-cert")
+			} else {
+				t.Errorf("ACME listener has unexpected secret name: %s", secretName)
+			}
+
+			// Verify ADS config
+			if sdsConfigs[0].SdsConfig == nil {
+				t.Error("SDS config missing sds_config")
+			} else if sdsConfigs[0].SdsConfig.GetAds() == nil {
+				t.Error("SDS config should use ADS")
+			}
+
+			// Verify no file-based TLS
+			for _, tlsCert := range tlsContext.CommonTlsContext.TlsCertificates {
+				if tlsCert.CertificateChain != nil {
+					if _, ok := tlsCert.CertificateChain.Specifier.(*core_v3.DataSource_Filename); ok {
+						t.Error("ACME listener uses file-based TLS when SDS is enabled - this is illegal")
+					}
+				}
+				if tlsCert.PrivateKey != nil {
+					if _, ok := tlsCert.PrivateKey.Specifier.(*core_v3.DataSource_Filename); ok {
+						t.Error("ACME listener uses file-based TLS key when SDS is enabled - this is illegal")
+					}
+				}
+			}
+		}
+	}
+
+	if !foundPublicIngressSecret {
+		t.Error("no listener found using public-ingress-cert secret for ACME certificate")
+	}
+}
+
+// TestACMERotationDetectsFileChanges verifies that ACME certificate file changes
+// are detected via hash comparison.
+func TestACMERotationDetectsFileChanges(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create initial ACME certificate files
+	acmeCertPath := filepath.Join(tmpDir, "fullchain.pem")
+	acmeKeyPath := filepath.Join(tmpDir, "privkey.pem")
+
+	if err := os.WriteFile(acmeCertPath, []byte(testCert), 0644); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := os.WriteFile(acmeKeyPath, []byte(testKey), 0600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	// Create watcher
+	watcher := &Watcher{
+		logger: nil,
+	}
+
+	// First check - should initialize hashes, not trigger rotation
+	changed1 := watcher.checkACMECertificateRotation(acmeCertPath, acmeKeyPath)
+	if changed1 {
+		t.Error("first check should not detect change (initialization)")
+	}
+
+	if watcher.lastACMECertHash == "" || watcher.lastACMEKeyHash == "" {
+		t.Error("hashes should be initialized after first check")
+	}
+
+	// Second check with same files - should not trigger rotation
+	changed2 := watcher.checkACMECertificateRotation(acmeCertPath, acmeKeyPath)
+	if changed2 {
+		t.Error("second check with unchanged files should not trigger rotation")
+	}
+
+	// Modify certificate file (simulate ACME renewal)
+	if err := os.WriteFile(acmeCertPath, []byte(testCert+" renewed"), 0644); err != nil {
+		t.Fatalf("write renewed cert: %v", err)
+	}
+
+	// Third check - should detect certificate change
+	changed3 := watcher.checkACMECertificateRotation(acmeCertPath, acmeKeyPath)
+	if !changed3 {
+		t.Error("third check should detect certificate renewal")
+	}
+
+	t.Log("✓ ACME certificate rotation detection works via file hash changes")
+
+	// Modify key file
+	if err := os.WriteFile(acmeKeyPath, []byte(testKey+" renewed"), 0600); err != nil {
+		t.Fatalf("write renewed key: %v", err)
+	}
+
+	// Fourth check - should detect key change
+	changed4 := watcher.checkACMECertificateRotation(acmeCertPath, acmeKeyPath)
+	if !changed4 {
+		t.Error("fourth check should detect key file change")
+	}
+
+	t.Log("✓ ACME key rotation detection works via file hash changes")
+}
+
+// TestACMERotationHandlesInvalidFiles verifies that invalid/missing ACME files
+// don't trigger rotation and don't break the watcher.
+func TestACMERotationHandlesInvalidFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	certPath := filepath.Join(tmpDir, "fullchain.pem")
+	keyPath := filepath.Join(tmpDir, "privkey.pem")
+
+	// Create watcher
+	watcher := &Watcher{
+		logger: nil,
+	}
+
+	// Check with missing files - should not panic or trigger rotation
+	changed := watcher.checkACMECertificateRotation(certPath, keyPath)
+	if changed {
+		t.Error("check with missing files should not trigger rotation")
+	}
+
+	// Create initial valid files
+	if err := os.WriteFile(certPath, []byte(testCert), 0644); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := os.WriteFile(keyPath, []byte(testKey), 0600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	// Initialize hashes
+	changed = watcher.checkACMECertificateRotation(certPath, keyPath)
+	if changed {
+		t.Error("initialization should not trigger rotation")
+	}
+
+	oldCertHash := watcher.lastACMECertHash
+	oldKeyHash := watcher.lastACMEKeyHash
+
+	// Simulate partial ACME renewal (cert file becomes unreadable)
+	if err := os.Remove(certPath); err != nil {
+		t.Fatalf("remove cert: %v", err)
+	}
+
+	// Check with missing cert - should not trigger rotation, should keep old hashes
+	changed = watcher.checkACMECertificateRotation(certPath, keyPath)
+	if changed {
+		t.Error("check with missing cert should not trigger rotation (keep old secret)")
+	}
+
+	// Verify old hashes are preserved (we don't lose the last known good state)
+	if watcher.lastACMECertHash != oldCertHash || watcher.lastACMEKeyHash != oldKeyHash {
+		t.Error("hashes should not change when files become unreadable")
+	}
+
+	t.Log("✓ ACME rotation safely handles invalid/missing files")
+}
+
 // Helper functions
 
 func writeTestFile(t *testing.T, filename, content string) string {

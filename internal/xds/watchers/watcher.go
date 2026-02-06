@@ -2,6 +2,8 @@ package watchers
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -175,6 +177,12 @@ type Watcher struct {
 	etcdClient            *clientv3.Client // etcd client for cert generation tracking
 	lastCertGeneration    uint64           // last known certificate generation
 	certGenerationChecked bool             // whether cert generation has been checked
+
+	// ACME certificate rotation tracking (file-based hash polling)
+	acmeCertPath     string // Path to ACME fullchain.pem
+	acmeKeyPath      string // Path to ACME privkey.pem
+	lastACMECertHash string // SHA256 hash of fullchain.pem content
+	lastACMEKeyHash  string // SHA256 hash of privkey.pem content
 }
 
 // New creates a watcher bound to the given server.
@@ -292,6 +300,12 @@ func (w *Watcher) sync(ctx context.Context) error {
 	certChanged := w.checkCertificateGeneration(ctx)
 	if certChanged && w.logger != nil {
 		w.logger.Info("certificate rotation detected - forcing snapshot update")
+	}
+
+	// Check if ACME certificate files changed (triggers snapshot rebuild for hot rotation)
+	acmeChanged := w.checkACMECertificateRotation(w.acmeCertPath, w.acmeKeyPath)
+	if acmeChanged && w.logger != nil {
+		w.logger.Info("ACME certificate rotation detected - forcing snapshot update")
 	}
 
 	input, version, err := w.buildInput(ctx)
@@ -515,6 +529,19 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 			return builder.Input{}, "", fmt.Errorf(
 				"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
 					"secrets would be transmitted over plaintext")
+		}
+
+		// Add public ACME certificate if available (for public HTTPS ingress)
+		// ACME certificates use fullchain.pem naming convention
+		if strings.Contains(listener.CertFile, "fullchain.pem") {
+			sdsSecrets = append(sdsSecrets, builder.Secret{
+				Name:     secrets.PublicIngressCert,
+				CertPath: listener.CertFile,
+				KeyPath:  listener.KeyFile,
+			})
+			// Store ACME cert paths for rotation detection
+			w.acmeCertPath = listener.CertFile
+			w.acmeKeyPath = listener.KeyFile
 		}
 
 		if w.logger != nil {
@@ -1567,6 +1594,67 @@ func (w *Watcher) checkCertificateGeneration(ctx context.Context) bool {
 				"domain", domain)
 		}
 		w.lastCertGeneration = payload.Generation
+		return true
+	}
+
+	return false
+}
+
+// computeFileHash computes SHA256 hash of file content.
+// Returns empty string if file cannot be read.
+func computeFileHash(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:])
+}
+
+// checkACMECertificateRotation checks if ACME certificate files have changed.
+// Returns true if fullchain.pem or privkey.pem content hash has changed.
+// This triggers snapshot rebuild for hot certificate rotation.
+func (w *Watcher) checkACMECertificateRotation(acmeCertPath, acmeKeyPath string) bool {
+	if acmeCertPath == "" || acmeKeyPath == "" {
+		return false
+	}
+
+	// Compute current hashes
+	currentCertHash := computeFileHash(acmeCertPath)
+	currentKeyHash := computeFileHash(acmeKeyPath)
+
+	// If files cannot be read, don't trigger rotation
+	if currentCertHash == "" || currentKeyHash == "" {
+		if w.logger != nil && (w.lastACMECertHash != "" || w.lastACMEKeyHash != "") {
+			w.logger.Warn("ACME certificate files unreadable", "cert", acmeCertPath, "key", acmeKeyPath)
+		}
+		return false
+	}
+
+	// Initialize on first check
+	if w.lastACMECertHash == "" && w.lastACMEKeyHash == "" {
+		w.lastACMECertHash = currentCertHash
+		w.lastACMEKeyHash = currentKeyHash
+		if w.logger != nil {
+			w.logger.Info("ACME certificate hashes initialized", "cert", acmeCertPath, "key", acmeKeyPath)
+		}
+		return false
+	}
+
+	// Check if hashes changed
+	certChanged := currentCertHash != w.lastACMECertHash
+	keyChanged := currentKeyHash != w.lastACMEKeyHash
+
+	if certChanged || keyChanged {
+		if w.logger != nil {
+			w.logger.Info("ACME certificate rotation detected - rebuilding snapshot",
+				"cert_changed", certChanged,
+				"key_changed", keyChanged,
+				"cert_file", acmeCertPath,
+				"key_file", acmeKeyPath)
+		}
+		w.lastACMECertHash = currentCertHash
+		w.lastACMEKeyHash = currentKeyHash
 		return true
 	}
 

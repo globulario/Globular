@@ -97,7 +97,7 @@ Verify your deployment is secure:
 | `internal-server-cert` | Server cert for `*.globular.internal` | Cluster local CA |
 | `internal-ca-bundle` | CA bundle for validating internal services | Cluster local CA |
 | `internal-client-cert` | (Future) mTLS client identity | Cluster local CA |
-| `public-server-cert` | ACME cert for public domain | Let's Encrypt/ACME |
+| `public-ingress-cert` | ACME cert for public HTTPS ingress | Let's Encrypt/ACME |
 
 ## Certificate Rotation Flow
 
@@ -122,6 +122,161 @@ Verify your deployment is secure:
 5. **xDS Snapshot** pushed to unified cache via `SetSnapshot()`
 6. **Envoy** receives ADS push notification and hot-swaps certificates
 7. **Zero downtime**: existing connections continue, new connections use new cert
+
+## ACME Certificate Support
+
+Globular automatically integrates **ACME certificates** (Let's Encrypt) with SDS for public HTTPS ingress. ACME certificates are detected by the `fullchain.pem` naming convention and delivered via the `public-ingress-cert` SDS secret.
+
+### ACME Detection and Configuration
+
+The xDS watcher automatically detects ACME certificates:
+
+```go
+// In buildDynamicInput() - automatic ACME detection
+if strings.Contains(listener.CertFile, "fullchain.pem") {
+    sdsSecrets = append(sdsSecrets, builder.Secret{
+        Name:     "public-ingress-cert",
+        CertPath: listener.CertFile,  // /path/to/fullchain.pem
+        KeyPath:  listener.KeyFile,   // /path/to/privkey.pem
+    })
+}
+```
+
+The builder automatically chooses the correct secret name:
+
+```go
+// In BuildSnapshot() - automatic secret name selection
+if strings.Contains(certFile, "fullchain.pem") {
+    // ACME certificate → use public-ingress-cert
+    serverCertSecretName = "public-ingress-cert"
+} else {
+    // Internal certificate → use internal-server-cert
+    serverCertSecretName = "internal-server-cert"
+}
+```
+
+### ACME Rotation Detection
+
+Unlike internal certificates (which use etcd generation tracking), ACME certificates use **file content hash polling** for rotation detection:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌───────┐
+│ ACME Client │────>│ fullchain.pem│────>│ xDS Watcher  │────>│ Envoy │
+│  (renews)   │     │  privkey.pem │     │ (hash check) │     │ (swap)│
+└─────────────┘     └──────────────┘     └──────────────┘     └───────┘
+                           │                      │
+                           v                      v
+                    SHA256 hash           Snapshot rebuild
+                    changes               + SetSnapshot()
+```
+
+**Rotation Flow**:
+
+1. **ACME Client** (certbot/acme.sh) renews certificate and writes new files
+2. **xDS Watcher** computes SHA256 hash of `fullchain.pem` and `privkey.pem` (every 10s)
+3. **Hash Change Detected** → triggers snapshot rebuild
+4. **xDS Watcher** rebuilds snapshot with updated `public-ingress-cert` secret
+5. **Envoy** receives ADS push and hot-swaps public ingress certificate
+6. **Zero Downtime**: HTTPS continues without interruption
+
+**Implementation** (`internal/xds/watchers/watcher.go`):
+
+```go
+func (w *Watcher) sync(ctx context.Context) error {
+    // Check if ACME certificate files changed
+    acmeChanged := w.checkACMECertificateRotation(w.acmeCertPath, w.acmeKeyPath)
+    if acmeChanged {
+        w.logger.Info("ACME certificate rotation detected - forcing snapshot update")
+        // Snapshot rebuild triggered automatically
+    }
+    // ...
+}
+
+func (w *Watcher) checkACMECertificateRotation(certPath, keyPath string) bool {
+    currentCertHash := computeFileHash(certPath)  // SHA256
+    currentKeyHash := computeFileHash(keyPath)
+
+    if currentCertHash != w.lastACMECertHash || currentKeyHash != w.lastACMEKeyHash {
+        w.lastACMECertHash = currentCertHash
+        w.lastACMEKeyHash = currentKeyHash
+        return true  // Trigger snapshot rebuild
+    }
+    return false
+}
+```
+
+### ACME Certificate Paths
+
+Standard ACME certificate locations:
+
+- **Fullchain**: `/etc/letsencrypt/live/{domain}/fullchain.pem`
+- **Private Key**: `/etc/letsencrypt/live/{domain}/privkey.pem`
+
+Or custom paths configured in Globular ingress configuration.
+
+### Safe Renewal Handling
+
+The watcher handles partial/invalid ACME renewals safely:
+
+- **Invalid Files**: If renewed certificates are unreadable/malformed, the watcher:
+  - Logs a warning
+  - Keeps the old secret in the snapshot
+  - Retries on next poll (10s later)
+  - **No broken snapshot pushed to Envoy**
+
+- **Atomic Reads**: Certificate files are read atomically to avoid partial reads during renewal
+
+- **Hash Validation**: Only successful file reads trigger hash updates
+
+This ensures that failed ACME renewals don't break the ingress.
+
+### Testing ACME Rotation
+
+1. **Simulate ACME renewal**:
+   ```bash
+   # Replace certificate files (simulates renewal)
+   cp new-fullchain.pem /etc/letsencrypt/live/example.com/fullchain.pem
+   cp new-privkey.pem /etc/letsencrypt/live/example.com/privkey.pem
+   ```
+
+2. **Verify rotation detection** (within 10 seconds):
+   ```bash
+   # Check xDS logs
+   journalctl -u globular-xds -f
+   # Look for: "ACME certificate rotation detected - rebuilding snapshot"
+   ```
+
+3. **Verify Envoy received update**:
+   ```bash
+   # Check SDS stats
+   curl localhost:9901/stats | grep "sds.public-ingress-cert"
+   # Look for: sds.public-ingress-cert.update_success: 1
+
+   # Check secret version
+   curl localhost:9901/config_dump | jq '.configs[] | select(.["@type"] | contains("SecretConfigDump")) | .dynamic_active_secrets[] | select(.name == "public-ingress-cert") | .version_info'
+   ```
+
+4. **Verify new certificate served**:
+   ```bash
+   # Check certificate details
+   echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | openssl x509 -noout -dates
+   ```
+
+### ACME + Internal Certificates
+
+A typical Globular cluster uses **both** certificate types:
+
+- **Internal Ingress** (`*.globular.internal`):
+  - Uses `internal-server-cert` secret
+  - Rotated via etcd generation tracking
+  - Validated against cluster CA (`internal-ca-bundle`)
+
+- **Public Ingress** (`example.com`):
+  - Uses `public-ingress-cert` secret
+  - Rotated via file content hash polling
+  - Trusted by public browsers (Let's Encrypt CA)
+
+Both secrets are included in the same xDS snapshot and rotated independently.
 
 ## Usage
 
