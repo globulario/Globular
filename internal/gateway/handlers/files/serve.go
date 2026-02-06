@@ -85,6 +85,30 @@ type ServeProvider interface {
 	ResolveProxy(reqPath string) (targetURL string, ok bool)
 }
 
+// hlsExtensions lists HLS (HTTP Live Streaming) file extensions that should be
+// allowed for streaming access even in protected directories.
+var hlsExtensions = []string{
+	".ts",        // MPEG-TS segment files
+	"240p.m3u8",  // Low quality playlist
+	"360p.m3u8",  // SD quality playlist
+	"480p.m3u8",  // SD quality playlist
+	"720p.m3u8",  // HD quality playlist
+	"1080p.m3u8", // Full HD quality playlist
+	"2160p.m3u8", // 4K quality playlist
+}
+
+// isHLSFile returns true if the path is an HLS streaming file that should be
+// accessible for playback. HLS files include .ts segments and resolution-specific
+// m3u8 playlists.
+func isHLSFile(path string) bool {
+	for _, ext := range hlsExtensions {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
+}
+
 // NewServeFile implements GET /serve/* with:
 // - Reverse-proxy passthrough for configured prefixes
 // - Host-based subroot under WebRoot()
@@ -203,14 +227,8 @@ func NewServeFile(p ServeProvider) http.Handler {
 
 		}
 
-		if strings.Contains(rqstPath, "/.hidden/") ||
-			strings.HasSuffix(rqstPath, ".ts") ||
-			strings.HasSuffix(rqstPath, "240p.m3u8") ||
-			strings.HasSuffix(rqstPath, "360p.m3u8") ||
-			strings.HasSuffix(rqstPath, "480p.m3u8") ||
-			strings.HasSuffix(rqstPath, "720p.m3u8") ||
-			strings.HasSuffix(rqstPath, "1080p.m3u8") ||
-			strings.HasSuffix(rqstPath, "2160p.m3u8") {
+		// Allow access to hidden directories and HLS streaming files
+		if strings.Contains(rqstPath, "/.hidden/") || isHLSFile(rqstPath) {
 			hasAccess = true
 		}
 
@@ -251,15 +269,8 @@ func NewServeFile(p ServeProvider) http.Handler {
 			hasAccess = false
 		}
 
-		// Streaming allow list
-		if strings.Contains(rqstPath, "/.hidden/") ||
-			strings.HasSuffix(rqstPath, ".ts") ||
-			strings.HasSuffix(rqstPath, "240p.m3u8") ||
-			strings.HasSuffix(rqstPath, "360p.m3u8") ||
-			strings.HasSuffix(rqstPath, "480p.m3u8") ||
-			strings.HasSuffix(rqstPath, "720p.m3u8") ||
-			strings.HasSuffix(rqstPath, "1080p.m3u8") ||
-			strings.HasSuffix(rqstPath, "2160p.m3u8") {
+		// Streaming allow list (hidden directories and HLS files)
+		if strings.Contains(rqstPath, "/.hidden/") || isHLSFile(rqstPath) {
 			hasAccess = true
 		}
 
