@@ -3,6 +3,8 @@ package watchers
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -745,7 +747,8 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		}
 	}
 
-	downCert, downKey, downIssuer, err := w.downstreamTLSConfig()
+	// Get CA bundle for validating service certificates
+	_, _, downIssuer, err := w.downstreamTLSConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -782,13 +785,15 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		// PR5: Use FQDN for endpoint identity when available
 		endpointHost := endpoint.Host()
 
+		// Service clusters use CA validation only (no client certificates).
+		// Services are internal gRPC servers that validate Envoy's connection
+		// using the CA bundle, but don't require Envoy to present client certs.
 		clusters = append(clusters, builder.Cluster{
-			Name:       clusterName,
-			Endpoints:  []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
-			ServerCert: downCert,
-			KeyFile:    downKey,
-			CAFile:     downIssuer,
-			SNI:        endpointHost,
+			Name:      clusterName,
+			Endpoints: []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
+			// No ServerCert/KeyFile - prevents referencing non-existent InternalClientCert SDS secret
+			CAFile: downIssuer, // CA bundle to validate service TLS certificates
+			SNI:    endpointHost,
 		})
 		allClusterNames = append(allClusterNames, clusterName)
 		routes = append(routes, builder.Route{Prefix: "/" + name + "/", Cluster: clusterName})
@@ -910,9 +915,20 @@ func (w *Watcher) ingressFromEtcd(ctx context.Context, cfg *XDSConfig) (*Ingress
 	if len(cfg.EtcdEndpoints) == 0 {
 		return nil, nil
 	}
+
+	// Load TLS configuration for etcd client
+	tlsConfig, err := loadEtcdTLSConfig()
+	if err != nil {
+		if w.logger != nil {
+			w.logger.Warn("ingressFromEtcd: failed to load TLS config", "err", err)
+		}
+		return nil, err
+	}
+
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   cfg.EtcdEndpoints,
 		DialTimeout: 5 * time.Second,
+		TLS:         tlsConfig,
 	})
 	if err != nil {
 		return nil, err
@@ -1689,15 +1705,80 @@ func normalizeDNSLabel(name string) string {
 	return name
 }
 
+// loadEtcdTLSConfig loads TLS certificates for etcd client authentication.
+// Returns nil if TLS certificates are not available (non-TLS connection will be attempted).
+func loadEtcdTLSConfig() (*tls.Config, error) {
+	certPath := "/var/lib/globular/tls/etcd/client.crt"
+	keyPath := "/var/lib/globular/tls/etcd/client.pem"
+	caPath := "/var/lib/globular/tls/etcd/ca.crt"
+
+	// Check if all required files exist
+	if !Utility.Exists(certPath) || !Utility.Exists(keyPath) || !Utility.Exists(caPath) {
+		return nil, fmt.Errorf("etcd TLS certificates not found (cert=%s, key=%s, ca=%s)",
+			certPath, keyPath, caPath)
+	}
+
+	// Load client certificate and key
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load etcd client certificate: %w", err)
+	}
+
+	// Load CA certificate
+	caCert, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read etcd CA certificate: %w", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to parse etcd CA certificate")
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+		MinVersion:   tls.VersionTLS12,
+		ServerName:   "localhost", // etcd certificate CN is "localhost"
+	}
+
+	return tlsConfig, nil
+}
+
 func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
 	if cfg == nil || len(cfg.EtcdEndpoints) == 0 {
+		if w.logger != nil {
+			w.logger.Debug("buildServiceResourcesFromEtcd: no etcd endpoints configured")
+		}
 		return nil, nil
 	}
+
+	if w.logger != nil {
+		w.logger.Info("buildServiceResourcesFromEtcd: attempting to connect", "endpoints", cfg.EtcdEndpoints)
+	}
+
+	// Load TLS configuration for etcd client
+	tlsConfig, err := loadEtcdTLSConfig()
+	if err != nil {
+		if w.logger != nil {
+			w.logger.Warn("buildServiceResourcesFromEtcd: failed to load TLS config", "err", err)
+		}
+		return nil, fmt.Errorf("etcd TLS configuration required but not available: %w", err)
+	}
+
+	if w.logger != nil {
+		w.logger.Info("buildServiceResourcesFromEtcd: TLS config loaded, ServerName", "servername", tlsConfig.ServerName)
+	}
+
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   cfg.EtcdEndpoints,
 		DialTimeout: 5 * time.Second,
+		TLS:         tlsConfig,
 	})
 	if err != nil {
+		if w.logger != nil {
+			w.logger.Warn("buildServiceResourcesFromEtcd: etcd client creation failed", "err", err)
+		}
 		return nil, err
 	}
 	defer cli.Close()
@@ -1707,9 +1788,20 @@ func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSCon
 
 	resp, err := cli.Get(etcdCtx, "/globular/services/", clientv3.WithPrefix())
 	if err != nil {
+		if w.logger != nil {
+			w.logger.Warn("buildServiceResourcesFromEtcd: etcd Get failed", "err", err)
+		}
 		return nil, err
 	}
+
+	if w.logger != nil {
+		w.logger.Info("buildServiceResourcesFromEtcd: etcd Get succeeded", "count", resp.Count)
+	}
+
 	if resp.Count == 0 {
+		if w.logger != nil {
+			w.logger.Warn("buildServiceResourcesFromEtcd: no services found in etcd")
+		}
 		return nil, nil
 	}
 
@@ -1724,6 +1816,11 @@ func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSCon
 		}
 		services = append(services, svc)
 	}
+
+	if w.logger != nil {
+		w.logger.Info("buildServiceResourcesFromEtcd: returning services", "count", len(services))
+	}
+
 	return services, nil
 }
 
