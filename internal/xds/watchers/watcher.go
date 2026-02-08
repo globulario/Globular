@@ -821,11 +821,6 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 	host, listenPort := readGatewayAddress()
 	listenPort = defaultGatewayPort(listenPort)
 	portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
-	// v1 Conformance (INV-5.2): Use ClusterDomain for internal service-to-service SNI
-	clusterDomain := ""
-	if xdsCfg != nil {
-		clusterDomain = xdsCfg.ClusterDomain
-	}
 	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
 	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
@@ -833,23 +828,25 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 		gatewayCert, gatewayKey, gatewayCA = "", "", ""
 	}
 
+	// TLS Termination Pattern:
+	// - When tlsEnabled=true: Envoy listener uses TLS (port 8443), but upstream gateway uses HTTP (port 8080)
+	// - When tlsEnabled=false: Both listener and upstream use HTTP (port 8080)
+	// This prevents routing loops and implements standard TLS termination.
 	gatewayCluster := "gateway_http"
-	upstreamPort := portHTTP
-	if tlsEnabled {
-		gatewayCluster = "globular_https"
-		upstreamPort = portHTTPS
-	}
-	if listenPort != defaultGatewayPort(0) {
+	upstreamPort := portHTTP // Always use HTTP port for upstream (TLS termination at Envoy)
+
+	// Special case: if a custom listen port is configured that differs from default,
+	// use it as the upstream port (for non-standard deployments)
+	if listenPort != defaultGatewayPort(0) && listenPort != portHTTPS {
 		upstreamPort = listenPort
 	}
 
+	// Gateway cluster uses plain HTTP (no TLS).
+	// Envoy terminates TLS on the listener side, then forwards plain HTTP to the gateway backend.
 	clusters := []builder.Cluster{{
-		Name:       gatewayCluster,
-		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
-		CAFile:     gatewayCA,
-		ServerCert: gatewayCert,
-		KeyFile:    gatewayKey,
-		SNI:        clusterDomain,
+		Name:      gatewayCluster,
+		Endpoints: []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
+		// No TLS config - backend gateway uses plain HTTP after Envoy TLS termination
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
