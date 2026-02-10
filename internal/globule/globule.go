@@ -118,7 +118,7 @@ func New(logger *slog.Logger) *Globule {
 		// Allowing client-supplied "domain" header could influence identity decisions
 		// REMOVED: "domain" from allowed headers list
 		AllowedHeaders:      []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "application", "token", "video-path", "index-path", "routing"},
-		Protocol:            "http",
+		Protocol:            "https", // Secure by default: HTTPS with TLS termination at Envoy
 		CertExpirationDelay: 365,
 		CertPassword:        "1111",
 		AdminEmail:          "sa@globular.cloud",

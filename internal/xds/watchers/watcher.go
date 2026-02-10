@@ -755,7 +755,8 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		}
 	}
 
-	downCert, downKey, downIssuer, err := w.downstreamTLSConfig()
+	// Service clusters use CA-only validation (no client certificates)
+	_, _, downIssuer, err := w.downstreamTLSConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -792,13 +793,13 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		// PR5: Use FQDN for endpoint identity when available
 		endpointHost := endpoint.Host()
 
+		// Service clusters use CA-only validation (no client certificates)
+		// Client certificates cause KEY_VALUES_MISMATCH errors in Envoy
 		clusters = append(clusters, builder.Cluster{
-			Name:       clusterName,
-			Endpoints:  []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
-			ServerCert: downCert,
-			KeyFile:    downKey,
-			CAFile:     downIssuer,
-			SNI:        endpointHost,
+			Name:      clusterName,
+			Endpoints: []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
+			CAFile:    downIssuer,
+			SNI:       endpointHost,
 		})
 		allClusterNames = append(allClusterNames, clusterName)
 		routes = append(routes, builder.Route{Prefix: "/" + name + "/", Cluster: clusterName})
@@ -826,11 +827,6 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 	host, listenPort := readGatewayAddress()
 	listenPort = defaultGatewayPort(listenPort)
 	portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
-	// v1 Conformance (INV-5.2): Use ClusterDomain for internal service-to-service SNI
-	clusterDomain := ""
-	if xdsCfg != nil {
-		clusterDomain = xdsCfg.ClusterDomain
-	}
 	upstreamHost := normalizeUpstreamHost(host)
 	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
 	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
@@ -838,23 +834,20 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 		gatewayCert, gatewayKey, gatewayCA = "", "", ""
 	}
 
+	// CRITICAL: Gateway cluster always uses portHTTP (8080) for TLS termination at Envoy
+	// Envoy terminates TLS on the listener, then connects to gateway via plain HTTP
+	// Using portHTTPS would create a routing loop (Envoy → itself on 8443)
 	gatewayCluster := "gateway_http"
 	upstreamPort := portHTTP
-	if tlsEnabled {
-		gatewayCluster = "globular_https"
-		upstreamPort = portHTTPS
-	}
 	if listenPort != defaultGatewayPort(0) {
 		upstreamPort = listenPort
 	}
 
+	// Gateway cluster uses plain HTTP (no TLS config) for TLS termination architecture
 	clusters := []builder.Cluster{{
-		Name:       gatewayCluster,
-		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
-		CAFile:     gatewayCA,
-		ServerCert: gatewayCert,
-		KeyFile:    gatewayKey,
-		SNI:        clusterDomain,
+		Name:      gatewayCluster,
+		Endpoints: []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
+		// No CAFile, ServerCert, KeyFile, or SNI - plain HTTP upstream
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
@@ -920,10 +913,20 @@ func (w *Watcher) ingressFromEtcd(ctx context.Context, cfg *XDSConfig) (*Ingress
 	if len(cfg.EtcdEndpoints) == 0 {
 		return nil, nil
 	}
-	cli, err := clientv3.New(clientv3.Config{
+
+	etcdCfg := clientv3.Config{
 		Endpoints:   cfg.EtcdEndpoints,
 		DialTimeout: 5 * time.Second,
-	})
+	}
+
+	// TLS is mandatory for etcd connections
+	tlsCfg, err := config.GetEtcdTLS()
+	if err != nil {
+		return nil, fmt.Errorf("etcd TLS configuration required: %w", err)
+	}
+	etcdCfg.TLS = tlsCfg
+
+	cli, err := clientv3.New(etcdCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -1330,31 +1333,22 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher, xdsCfg *XDSConfig) u
 		return 0
 	}
 	cfg, _ := config.GetLocalConfig(true)
-	portHTTP, portHTTPS := readGatewayPortsFromConfig(cfg)
-	// v1 Conformance (INV-5.2): Use ClusterDomain for internal service-to-service SNI
-	clusterDomain := ""
-	if xdsCfg != nil {
-		clusterDomain = xdsCfg.ClusterDomain
-	}
+	portHTTP, _ := readGatewayPortsFromConfig(cfg)
 	host, listenPort := readGatewayAddress()
 	upstreamHost := normalizeUpstreamHost(host)
 	if upstreamHost == "" {
 		upstreamHost = "127.0.0.1"
 	}
-	gatewayCert, gatewayKey, gatewayCA, ok := w.gatewayTLSPaths()
-	tlsEnabled := strings.ToLower(strings.TrimSpace(w.protocol)) == "https" && ok
-
+	// CRITICAL: Gateway cluster always uses portHTTP (8080) for TLS termination at Envoy
+	// Envoy terminates TLS on the listener, then connects to gateway via plain HTTP
+	// Using portHTTPS would create a routing loop (Envoy → itself on 8443)
 	targetCluster := "gateway_http"
 	targetPort := portHTTP
-	if tlsEnabled {
-		targetCluster = "globular_https"
-		targetPort = portHTTPS
-	}
 	if listenPort != defaultGatewayPort(0) {
 		targetPort = listenPort
 	}
 
-	ensureCluster := func(name string, port uint32, enableTLS bool) *builder.Cluster {
+	ensureCluster := func(name string, port uint32) *builder.Cluster {
 		cl := findClusterByName(spec.Clusters, name)
 		if cl == nil {
 			spec.Clusters = append(spec.Clusters, builder.Cluster{Name: name})
@@ -1372,23 +1366,13 @@ func normalizeIngressGateway(spec *IngressSpec, w *Watcher, xdsCfg *XDSConfig) u
 				}
 			}
 		}
-		cl.SNI = clusterDomain
-		if enableTLS {
-			cl.ServerCert = gatewayCert
-			cl.KeyFile = gatewayKey
-			cl.CAFile = gatewayCA
-		} else {
-			cl.ServerCert, cl.KeyFile, cl.CAFile = "", "", ""
-		}
+		// Gateway cluster uses plain HTTP - no TLS config
+		cl.ServerCert, cl.KeyFile, cl.CAFile, cl.SNI = "", "", "", ""
 		return cl
 	}
 
-	ensureCluster(targetCluster, uint32(targetPort), tlsEnabled)
-	if targetCluster == "gateway_http" {
-		ensureCluster("globular_https", uint32(portHTTPS), true) // keep available if present, but not default
-	} else {
-		ensureCluster("gateway_http", uint32(portHTTP), false)
-	}
+	// Always use gateway_http cluster (plain HTTP to gateway on port 8080)
+	ensureCluster(targetCluster, uint32(targetPort))
 
 	rootUpdated := false
 	for i := range spec.Routes {
@@ -1703,10 +1687,20 @@ func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSCon
 	if cfg == nil || len(cfg.EtcdEndpoints) == 0 {
 		return nil, nil
 	}
-	cli, err := clientv3.New(clientv3.Config{
+
+	etcdCfg := clientv3.Config{
 		Endpoints:   cfg.EtcdEndpoints,
 		DialTimeout: 5 * time.Second,
-	})
+	}
+
+	// TLS is mandatory for etcd connections
+	tlsCfg, err := config.GetEtcdTLS()
+	if err != nil {
+		return nil, fmt.Errorf("etcd TLS configuration required: %w", err)
+	}
+	etcdCfg.TLS = tlsCfg
+
+	cli, err := clientv3.New(etcdCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -1750,11 +1744,13 @@ func normalizeUpstreamHost(host string) string {
 func detectLocalProtocol() string {
 	cfg, err := config.GetLocalConfig(true)
 	if err != nil {
-		return "http"
+		// Default to HTTPS if config cannot be read (secure by default)
+		return "https"
 	}
 	protocol := strings.ToLower(strings.TrimSpace(Utility.ToString(cfg["Protocol"])))
 	if protocol == "" {
-		return "http"
+		// Default to HTTPS when not explicitly configured (secure by default)
+		return "https"
 	}
 	return protocol
 }
