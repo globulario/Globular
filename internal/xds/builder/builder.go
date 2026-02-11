@@ -53,18 +53,27 @@ type Route struct {
 	Authority   string   `json:"authority,omitempty"`
 }
 
+// ExternalDomain represents an external FQDN with TLS certificate for SNI routing (PR3c).
+type ExternalDomain struct {
+	FQDN          string `json:"fqdn"`           // Fully-qualified domain name
+	CertFile      string `json:"cert_file"`      // Path to fullchain.pem
+	KeyFile       string `json:"key_file"`       // Path to privkey.pem
+	TargetCluster string `json:"target_cluster"` // Backend cluster to route to (e.g., "gateway_http")
+}
+
 // Input is the data required to build an xDS snapshot.
 type Input struct {
-	NodeID             string    `json:"node_id"`
-	Version            string    `json:"version,omitempty"`
-	Listener           Listener  `json:"listener"`
-	Routes             []Route   `json:"routes"`
-	Clusters           []Cluster `json:"clusters"`
-	IngressHTTPPort    uint32    `json:"ingress_http_port"`
-	EnableHTTPRedirect bool      `json:"enable_http_redirect"`
-	GatewayPort        uint32    `json:"gateway_port"`
-	EnableSDS          bool      `json:"enable_sds,omitempty"`  // Use SDS for TLS certificates
-	SDSSecrets         []Secret  `json:"sds_secrets,omitempty"` // Secrets to include in snapshot
+	NodeID             string           `json:"node_id"`
+	Version            string           `json:"version,omitempty"`
+	Listener           Listener         `json:"listener"`
+	Routes             []Route          `json:"routes"`
+	Clusters           []Cluster        `json:"clusters"`
+	IngressHTTPPort    uint32           `json:"ingress_http_port"`
+	EnableHTTPRedirect bool             `json:"enable_http_redirect"`
+	GatewayPort        uint32           `json:"gateway_port"`
+	EnableSDS          bool             `json:"enable_sds,omitempty"`       // Use SDS for TLS certificates
+	SDSSecrets         []Secret         `json:"sds_secrets,omitempty"`      // Secrets to include in snapshot
+	ExternalDomains    []ExternalDomain `json:"external_domains,omitempty"` // External domains for SNI routing (PR3c)
 }
 
 // Secret represents a TLS secret for SDS.
@@ -73,6 +82,41 @@ type Secret struct {
 	CertPath string `json:"cert_path"`
 	KeyPath  string `json:"key_path"`
 	CAPath   string `json:"ca_path,omitempty"`
+}
+
+// buildExternalDomainVirtualHosts creates VirtualHost configurations for external domains (PR3c).
+// Each domain gets a VirtualHost that routes all traffic (prefix "/") to the target cluster.
+func buildExternalDomainVirtualHosts(domains []ExternalDomain) []controlplane.IngressRoute {
+	var routes []controlplane.IngressRoute
+	for _, domain := range domains {
+		routes = append(routes, controlplane.IngressRoute{
+			Prefix:  "/",
+			Cluster: domain.TargetCluster,
+			Domains: []string{domain.FQDN},
+		})
+	}
+	return routes
+}
+
+// buildExternalDomainSecrets creates SDS secrets for external domain certificates (PR3c).
+// Secret names follow the pattern: ext-cert/<fqdn>
+func buildExternalDomainSecrets(domains []ExternalDomain) ([]Secret, error) {
+	var secrets []Secret
+	for _, domain := range domains {
+		// Verify certificate files exist before creating secret
+		if !fileExists(domain.CertFile) || !fileExists(domain.KeyFile) {
+			return nil, fmt.Errorf("external domain %s: certificate files not found (cert=%s, key=%s)",
+				domain.FQDN, domain.CertFile, domain.KeyFile)
+		}
+
+		secrets = append(secrets, Secret{
+			Name:     fmt.Sprintf("ext-cert/%s", domain.FQDN),
+			CertPath: domain.CertFile,
+			KeyPath:  domain.KeyFile,
+			// CAPath is optional - ACME certificates include the full chain in CertPath
+		})
+	}
+	return secrets, nil
 }
 
 // BuildSnapshot returns a go-control-plane snapshot based on the configured input.
@@ -131,6 +175,15 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 	}
 
 	var ingressRoutes []controlplane.IngressRoute
+
+	// Add external domain VirtualHosts (PR3c)
+	// These go first to ensure external FQDNs match before internal routes
+	if len(input.ExternalDomains) > 0 {
+		extRoutes := buildExternalDomainVirtualHosts(input.ExternalDomains)
+		ingressRoutes = append(ingressRoutes, extRoutes...)
+	}
+
+	// Add internal service routes
 	for _, route := range input.Routes {
 		prefix := strings.TrimSpace(route.Prefix)
 		if prefix == "" {
@@ -194,6 +247,15 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				if issuerFile != "" {
 					caSecretName = secrets.InternalCABundle
 				}
+
+				// TODO(PR3c): Add SNI filter chains for external domains
+				// Currently, all external domains use the default filter chain (internal cert).
+				// To properly support per-domain certificates:
+				// 1. Add filter chains with server_names: [domain.FQDN] for each external domain
+				// 2. Each filter chain uses SDS secret ext-cert/<fqdn>
+				// 3. Keep default filter chain as fallback for internal domains
+				// This requires enhancing controlplane.MakeHTTPListenerWithSDS() to accept
+				// additional filter chains or post-processing the listener protobuf.
 
 				listener = controlplane.MakeHTTPListenerWithSDS(
 					host,

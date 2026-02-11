@@ -91,6 +91,18 @@ type EndpointIdentity struct {
 	Source          EndpointSource // How this endpoint was resolved
 }
 
+// ExternalDomainRuntime represents a loaded external domain with its certificate paths (PR3c)
+type ExternalDomainRuntime struct {
+	FQDN       string // Fully-qualified domain name (e.g., "test.globular.cloud")
+	CertDir    string // Directory containing fullchain.pem and privkey.pem
+	CertFile   string // Path to fullchain.pem
+	KeyFile    string // Path to privkey.pem
+	Service    string // Backend service to route to (typically "gateway")
+	Port       int    // Backend service port
+	Enabled    bool   // Whether ingress routing is enabled
+	ACMEIssuer string // Path to ACME CA certificate (chain.pem) if available
+}
+
 // SortKey returns a stable sorting key for deterministic ordering (PR5)
 // Ordering: FQDN → IP → Port
 func (e EndpointIdentity) SortKey() string {
@@ -493,6 +505,102 @@ func (w *Watcher) fetchClusterNetwork(ctx context.Context) error {
 	return nil
 }
 
+// loadExternalDomains retrieves external domain specs from etcd and filters to ready domains (PR3c)
+func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRuntime, error) {
+	if w.etcdClient == nil {
+		// No etcd client configured - skip external domain loading
+		return nil, nil
+	}
+
+	// Load domain specs from etcd
+	resp, err := w.etcdClient.Get(ctx, "/globular/domains/v1/", clientv3.WithPrefix())
+	if err != nil {
+		return nil, fmt.Errorf("failed to list external domains from etcd: %w", err)
+	}
+
+	var domains []ExternalDomainRuntime
+	for _, kv := range resp.Kvs {
+		var spec struct {
+			FQDN string `json:"fqdn"`
+			ACME struct {
+				Enabled bool `json:"enabled"`
+			} `json:"acme"`
+			Ingress struct {
+				Enabled bool   `json:"enabled"`
+				Service string `json:"service"`
+				Port    int    `json:"port"`
+			} `json:"ingress"`
+			Status struct {
+				Phase string `json:"phase"`
+			} `json:"status"`
+		}
+
+		if err := json.Unmarshal(kv.Value, &spec); err != nil {
+			w.logger.Warn("failed to unmarshal external domain spec", "key", string(kv.Key), "err", err)
+			continue
+		}
+
+		// Filter: only include domains with ingress enabled
+		if !spec.Ingress.Enabled {
+			continue
+		}
+
+		// Filter: only include domains with ACME enabled AND status "Ready"
+		// This ensures certificate files exist before we try to reference them
+		if !spec.ACME.Enabled || spec.Status.Phase != "Ready" {
+			continue
+		}
+
+		// Build certificate paths
+		certDir := fmt.Sprintf("/var/lib/globular/domains/%s", spec.FQDN)
+		certFile := fmt.Sprintf("%s/fullchain.pem", certDir)
+		keyFile := fmt.Sprintf("%s/privkey.pem", certDir)
+		chainFile := fmt.Sprintf("%s/chain.pem", certDir)
+
+		// Verify certificate files exist
+		if !fileExists(certFile) || !fileExists(keyFile) {
+			w.logger.Warn("external domain certificate files missing",
+				"fqdn", spec.FQDN,
+				"cert_file", certFile,
+				"key_file", keyFile)
+			continue
+		}
+
+		// Determine backend service and port
+		service := strings.TrimSpace(spec.Ingress.Service)
+		if service == "" {
+			service = "gateway" // Default to gateway
+		}
+		port := spec.Ingress.Port
+		if port == 0 {
+			port = 8080 // Default to gateway HTTP port
+		}
+
+		// Include ACME issuer (chain.pem) if available
+		acmeIssuer := ""
+		if fileExists(chainFile) {
+			acmeIssuer = chainFile
+		}
+
+		domains = append(domains, ExternalDomainRuntime{
+			FQDN:       spec.FQDN,
+			CertDir:    certDir,
+			CertFile:   certFile,
+			KeyFile:    keyFile,
+			Service:    service,
+			Port:       port,
+			Enabled:    true,
+			ACMEIssuer: acmeIssuer,
+		})
+	}
+
+	if len(domains) > 0 && w.logger != nil {
+		w.logger.Info("loaded external domains", "count", len(domains))
+	}
+
+	return domains, nil
+}
+
 func (w *Watcher) buildInput(ctx context.Context) (builder.Input, string, error) {
 	var cfg *XDSConfig
 	if w.configPath != "" {
@@ -672,6 +780,14 @@ func (w *Watcher) configureModeResources(ingressSpec *IngressSpec, cfg *XDSConfi
 }
 
 func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builder.Input, string, error) {
+	// Load external domains from etcd (PR3c)
+	externalDomains, err := w.loadExternalDomains(ctx)
+	if err != nil {
+		w.logger.Warn("failed to load external domains", "err", err)
+		// Continue without external domains - not fatal
+		externalDomains = nil
+	}
+
 	clusters, routes, err := w.buildServiceResources(ctx, cfg)
 	if err != nil {
 		return builder.Input{}, "", err
@@ -724,6 +840,47 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		return builder.Input{}, "", err
 	}
 
+	// Build external domain data for xDS snapshot (PR3c)
+	var builderExtDomains []builder.ExternalDomain
+	if len(externalDomains) > 0 {
+		// External domains require SDS to be enabled
+		enableSDS = true
+
+		for _, domain := range externalDomains {
+			// Determine target cluster (typically gateway_http)
+			targetCluster := "gateway_http"
+			if domain.Service == "gateway" {
+				// Gateway service always routes to gateway_http cluster
+				targetCluster = "gateway_http"
+			} else {
+				// For other services, use service_cluster naming convention
+				targetCluster = strings.ReplaceAll(domain.Service, ".", "_") + "_cluster"
+			}
+
+			builderExtDomains = append(builderExtDomains, builder.ExternalDomain{
+				FQDN:          domain.FQDN,
+				CertFile:      domain.CertFile,
+				KeyFile:       domain.KeyFile,
+				TargetCluster: targetCluster,
+			})
+
+			// Add SDS secret for this external domain
+			secretName := fmt.Sprintf("ext-cert/%s", domain.FQDN)
+			sdsSecrets = append(sdsSecrets, builder.Secret{
+				Name:     secretName,
+				CertPath: domain.CertFile,
+				KeyPath:  domain.KeyFile,
+				CAPath:   domain.ACMEIssuer, // Optional ACME CA chain
+			})
+		}
+
+		if w.logger != nil {
+			w.logger.Info("external domains configured for SNI routing",
+				"count", len(builderExtDomains),
+				"sds_enabled", enableSDS)
+		}
+	}
+
 	input := builder.Input{
 		NodeID:             w.nodeID,
 		Listener:           listener,
@@ -735,6 +892,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		Version:            version,
 		EnableSDS:          enableSDS,
 		SDSSecrets:         sdsSecrets,
+		ExternalDomains:    builderExtDomains,
 	}
 	return input, version, nil
 }
@@ -1739,6 +1897,18 @@ func normalizeUpstreamHost(host string) string {
 	default:
 		return h
 	}
+}
+
+// fileExists returns true if the path exists and is a regular file (PR3c)
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
 }
 
 func detectLocalProtocol() string {
