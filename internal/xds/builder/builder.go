@@ -248,23 +248,43 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 					caSecretName = secrets.InternalCABundle
 				}
 
-				// TODO(PR3c): Add SNI filter chains for external domains
-				// Currently, all external domains use the default filter chain (internal cert).
-				// To properly support per-domain certificates:
-				// 1. Add filter chains with server_names: [domain.FQDN] for each external domain
-				// 2. Each filter chain uses SDS secret ext-cert/<fqdn>
-				// 3. Keep default filter chain as fallback for internal domains
-				// This requires enhancing controlplane.MakeHTTPListenerWithSDS() to accept
-				// additional filter chains or post-processing the listener protobuf.
+				// Build SNI filter chains for external domains
+				var extraChains []*listener_v3.FilterChain
+				if len(input.ExternalDomains) > 0 {
+					for _, d := range input.ExternalDomains {
+						fc, err := controlplane.MakeSNIHTTPFilterChainWithSDS(
+							routeName,
+							[]string{d.FQDN},
+							fmt.Sprintf("ext-cert/%s", d.FQDN),
+							caSecretName,
+						)
+						if err != nil {
+							return nil, fmt.Errorf("failed to create SNI filter chain for %s: %w", d.FQDN, err)
+						}
+						extraChains = append(extraChains, fc)
+					}
 
-				listener = controlplane.MakeHTTPListenerWithSDS(
-					host,
-					httpsPort,
-					listenerName,
-					routeName,
-					serverCertSecretName,
-					caSecretName,
-				)
+					// Use listener with SNI chains + default fallback
+					listener = controlplane.MakeHTTPListenerWithSDSFilterChains(
+						host,
+						httpsPort,
+						listenerName,
+						routeName,
+						serverCertSecretName,
+						caSecretName,
+						extraChains,
+					)
+				} else {
+					// No external domains - use simple listener with default cert
+					listener = controlplane.MakeHTTPListenerWithSDS(
+						host,
+						httpsPort,
+						listenerName,
+						routeName,
+						serverCertSecretName,
+						caSecretName,
+					)
+				}
 			} else {
 				// File-based TLS (legacy)
 				listener = controlplane.MakeHTTPListener(

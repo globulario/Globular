@@ -597,22 +597,11 @@ func MakeHTTPListener(listenerHost string, listenerPort uint32, listenerName, ro
 	return l
 }
 
-// MakeHTTPListenerWithSDS creates an HTTP listener using SDS for TLS certificate delivery.
-// Instead of reading certificates from files, Envoy fetches them dynamically via SDS.
-//
-// Parameters:
-//   - listenerHost: Bind address (e.g., "0.0.0.0")
-//   - listenerPort: Port to listen on (e.g., 443)
-//   - listenerName: Logical name for the listener
-//   - routeName: Name of the route configuration to use
-//   - serverCertSecretName: SDS secret name for server cert (e.g., "internal-server-cert")
-//   - caSecretName: SDS secret name for CA bundle (optional, for client validation)
-//
-// Returns:
-//   - *listener_v3.Listener configured with SDS for TLS
-func MakeHTTPListenerWithSDS(listenerHost string, listenerPort uint32, listenerName, routeName, serverCertSecretName, caSecretName string) *listener_v3.Listener {
-	// HTTP filter configuration
-	manager := &hcm_v3.HttpConnectionManager{
+// makeHTTPConnectionManager creates an HTTP Connection Manager configuration
+// that can be reused across filter chains. This helper prevents code duplication
+// when creating multiple filter chains with the same HCM config.
+func makeHTTPConnectionManager(routeName string) *hcm_v3.HttpConnectionManager {
+	return &hcm_v3.HttpConnectionManager{
 		CodecType:  hcm_v3.HttpConnectionManager_AUTO,
 		StatPrefix: "http",
 		RouteSpecifier: &hcm_v3.HttpConnectionManager_Rds{
@@ -642,6 +631,70 @@ func MakeHTTPListenerWithSDS(listenerHost string, listenerPort uint32, listenerN
 			},
 		},
 	}
+}
+
+// MakeSNIHTTPFilterChainWithSDS creates a FilterChain with SNI matching and SDS-based TLS.
+// This is used for per-domain certificate routing in Envoy listeners.
+//
+// Parameters:
+//   - routeName: Name of the route configuration to use
+//   - serverNames: List of SNI hostnames to match (e.g., ["globule-ryzen.globular.cloud"])
+//   - serverCertSecretName: SDS secret name for this domain's certificate (e.g., "ext-cert/globule-ryzen.globular.cloud")
+//   - caSecretName: SDS secret name for CA bundle (optional, for client validation)
+//
+// Returns:
+//   - *listener_v3.FilterChain configured with SNI matching and SDS TLS
+//   - error if configuration fails
+func MakeSNIHTTPFilterChainWithSDS(
+	routeName string,
+	serverNames []string,
+	serverCertSecretName string,
+	caSecretName string,
+) (*listener_v3.FilterChain, error) {
+	// Build HCM config
+	manager := makeHTTPConnectionManager(routeName)
+
+	pbst, err := anypb.New(manager)
+	if err != nil {
+		return nil, err
+	}
+
+	fc := &listener_v3.FilterChain{
+		FilterChainMatch: &listener_v3.FilterChainMatch{
+			ServerNames: serverNames,
+		},
+		Filters: []*listener_v3.Filter{{
+			Name: "envoy.filters.network.http_connection_manager",
+			ConfigType: &listener_v3.Filter_TypedConfig{
+				TypedConfig: pbst,
+			},
+		}},
+	}
+
+	// Add TLS transport socket with SDS
+	if serverCertSecretName != "" {
+		fc.TransportSocket = makeDownstreamTLSWithSDS(serverCertSecretName, caSecretName)
+	}
+
+	return fc, nil
+}
+
+// MakeHTTPListenerWithSDS creates an HTTP listener using SDS for TLS certificate delivery.
+// Instead of reading certificates from files, Envoy fetches them dynamically via SDS.
+//
+// Parameters:
+//   - listenerHost: Bind address (e.g., "0.0.0.0")
+//   - listenerPort: Port to listen on (e.g., 443)
+//   - listenerName: Logical name for the listener
+//   - routeName: Name of the route configuration to use
+//   - serverCertSecretName: SDS secret name for server cert (e.g., "internal-server-cert")
+//   - caSecretName: SDS secret name for CA bundle (optional, for client validation)
+//
+// Returns:
+//   - *listener_v3.Listener configured with SDS for TLS
+func MakeHTTPListenerWithSDS(listenerHost string, listenerPort uint32, listenerName, routeName, serverCertSecretName, caSecretName string) *listener_v3.Listener {
+	// HTTP filter configuration
+	manager := makeHTTPConnectionManager(routeName)
 
 	pbst, err := anypb.New(manager)
 	if err != nil {
@@ -674,6 +727,73 @@ func MakeHTTPListenerWithSDS(listenerHost string, listenerPort uint32, listenerN
 	// Configure TLS via SDS if server cert secret provided
 	if serverCertSecretName != "" {
 		l.FilterChains[0].TransportSocket = makeDownstreamTLSWithSDS(serverCertSecretName, caSecretName)
+	}
+
+	return l
+}
+
+// MakeHTTPListenerWithSDSFilterChains creates an HTTP listener with custom SNI filter chains.
+// This allows per-domain certificate routing by prepending SNI-matched chains before the default chain.
+//
+// Parameters:
+//   - listenerHost: Bind address (e.g., "0.0.0.0")
+//   - listenerPort: Port to listen on (e.g., 443)
+//   - listenerName: Logical name for the listener
+//   - routeName: Name of the route configuration to use
+//   - defaultServerCertSecretName: SDS secret for default/fallback certificate
+//   - caSecretName: SDS secret name for CA bundle (optional)
+//   - extraFilterChains: SNI-matched filter chains to prepend (matched before default)
+//
+// Returns:
+//   - *listener_v3.Listener with SNI chains + default fallback chain
+func MakeHTTPListenerWithSDSFilterChains(
+	listenerHost string,
+	listenerPort uint32,
+	listenerName string,
+	routeName string,
+	defaultServerCertSecretName string,
+	caSecretName string,
+	extraFilterChains []*listener_v3.FilterChain,
+) *listener_v3.Listener {
+	// Build default filter chain (fallback when no SNI match)
+	manager := makeHTTPConnectionManager(routeName)
+
+	pbst, err := anypb.New(manager)
+	if err != nil {
+		panic(err)
+	}
+
+	defaultChain := &listener_v3.FilterChain{
+		Filters: []*listener_v3.Filter{{
+			Name: "envoy.filters.network.http_connection_manager",
+			ConfigType: &listener_v3.Filter_TypedConfig{
+				TypedConfig: pbst,
+			},
+		}},
+	}
+
+	// Add TLS to default chain
+	if defaultServerCertSecretName != "" {
+		defaultChain.TransportSocket = makeDownstreamTLSWithSDS(defaultServerCertSecretName, caSecretName)
+	}
+
+	// Prepend SNI chains before default (Envoy matches in order)
+	allChains := append(extraFilterChains, defaultChain)
+
+	l := &listener_v3.Listener{
+		Name: listenerName,
+		Address: &core_v3.Address{
+			Address: &core_v3.Address_SocketAddress{
+				SocketAddress: &core_v3.SocketAddress{
+					Protocol: core_v3.SocketAddress_TCP,
+					Address:  listenerHost,
+					PortSpecifier: &core_v3.SocketAddress_PortValue{
+						PortValue: listenerPort,
+					},
+				},
+			},
+		},
+		FilterChains: allChains,
 	}
 
 	return l

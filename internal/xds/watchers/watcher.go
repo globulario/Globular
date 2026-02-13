@@ -506,13 +506,14 @@ func (w *Watcher) fetchClusterNetwork(ctx context.Context) error {
 }
 
 // loadExternalDomains retrieves external domain specs from etcd and filters to ready domains (PR3c)
+// Updated to read from separate spec/status keys (PR-A)
 func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRuntime, error) {
 	if w.etcdClient == nil {
 		// No etcd client configured - skip external domain loading
 		return nil, nil
 	}
 
-	// Load domain specs from etcd
+	// Load domain specs from etcd (exclude /status subkeys)
 	resp, err := w.etcdClient.Get(ctx, "/globular/domains/v1/", clientv3.WithPrefix())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list external domains from etcd: %w", err)
@@ -520,6 +521,11 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 
 	var domains []ExternalDomainRuntime
 	for _, kv := range resp.Kvs {
+		// Skip status keys (separate from spec)
+		if strings.HasSuffix(string(kv.Key), "/status") {
+			continue
+		}
+
 		var spec struct {
 			FQDN string `json:"fqdn"`
 			ACME struct {
@@ -530,9 +536,6 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 				Service string `json:"service"`
 				Port    int    `json:"port"`
 			} `json:"ingress"`
-			Status struct {
-				Phase string `json:"phase"`
-			} `json:"status"`
 		}
 
 		if err := json.Unmarshal(kv.Value, &spec); err != nil {
@@ -545,9 +548,35 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 			continue
 		}
 
-		// Filter: only include domains with ACME enabled AND status "Ready"
+		// Filter: only include domains with ACME enabled
+		if !spec.ACME.Enabled {
+			continue
+		}
+
+		// Load status from separate key to check if domain is ready (PR-A)
+		statusKey := string(kv.Key) + "/status"
+		statusResp, err := w.etcdClient.Get(ctx, statusKey)
+		if err != nil {
+			w.logger.Warn("failed to read domain status", "fqdn", spec.FQDN, "err", err)
+			continue
+		}
+
+		if len(statusResp.Kvs) == 0 {
+			// No status yet - domain not ready
+			continue
+		}
+
+		var status struct {
+			Phase string `json:"phase"`
+		}
+		if err := json.Unmarshal(statusResp.Kvs[0].Value, &status); err != nil {
+			w.logger.Warn("failed to unmarshal domain status", "fqdn", spec.FQDN, "err", err)
+			continue
+		}
+
+		// Filter: only include domains with status "Ready"
 		// This ensures certificate files exist before we try to reference them
-		if !spec.ACME.Enabled || spec.Status.Phase != "Ready" {
+		if status.Phase != "Ready" {
 			continue
 		}
 

@@ -13,7 +13,11 @@ import (
 	"testing"
 	"time"
 
+	listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // generateTestCertificate creates a self-signed certificate and private key for testing
@@ -165,9 +169,75 @@ func TestBuildSnapshot_ExternalDomains_Conformance(t *testing.T) {
 		t.Error("expected cluster 'gateway_http' in snapshot")
 	}
 
+	// Test 6: Verify listener has SNI filter chains configured
+	var mainListener *listener_v3.Listener
+	for _, resource := range listeners {
+		if l, ok := resource.(*listener_v3.Listener); ok {
+			mainListener = l
+			break
+		}
+	}
+	if mainListener == nil {
+		t.Fatal("failed to extract listener from snapshot")
+	}
+
+	// Test 6a: Verify listener has at least 2 filter chains (SNI + default)
+	if len(mainListener.FilterChains) < 2 {
+		t.Errorf("expected at least 2 filter chains (SNI + default), got %d", len(mainListener.FilterChains))
+	}
+
+	// Test 6b: Verify SNI filter chain with test.globular.cloud exists
+	foundSNIChain := false
+	foundSNISecretRef := false
+	for _, fc := range mainListener.FilterChains {
+		if fc.FilterChainMatch != nil && len(fc.FilterChainMatch.ServerNames) > 0 {
+			for _, sni := range fc.FilterChainMatch.ServerNames {
+				if sni == "test.globular.cloud" {
+					foundSNIChain = true
+
+					// Test 6c: Verify transport socket references correct SDS secret
+					if fc.TransportSocket != nil {
+						var dtls tls_v3.DownstreamTlsContext
+						if err := anypb.UnmarshalTo(fc.TransportSocket.GetTypedConfig(), &dtls, proto.UnmarshalOptions{}); err == nil {
+							if dtls.CommonTlsContext != nil && len(dtls.CommonTlsContext.TlsCertificateSdsSecretConfigs) > 0 {
+								secretName := dtls.CommonTlsContext.TlsCertificateSdsSecretConfigs[0].Name
+								if secretName == "ext-cert/test.globular.cloud" {
+									foundSNISecretRef = true
+								} else {
+									t.Errorf("expected SDS secret 'ext-cert/test.globular.cloud', got %q", secretName)
+								}
+							}
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	if !foundSNIChain {
+		t.Error("expected filter chain with ServerNames containing 'test.globular.cloud'")
+	}
+	if !foundSNISecretRef {
+		t.Error("expected filter chain to reference SDS secret 'ext-cert/test.globular.cloud'")
+	}
+
+	// Test 7: Verify default filter chain exists (no ServerNames match)
+	foundDefaultChain := false
+	for _, fc := range mainListener.FilterChains {
+		if fc.FilterChainMatch == nil || len(fc.FilterChainMatch.ServerNames) == 0 {
+			foundDefaultChain = true
+			break
+		}
+	}
+	if !foundDefaultChain {
+		t.Error("expected default filter chain (fallback) with no ServerNames")
+	}
+
 	t.Logf("✓ Snapshot conformance test passed")
 	t.Logf("  - Routes: %d", len(routes))
 	t.Logf("  - Listeners: %d", len(listeners))
+	t.Logf("  - Filter chains: %d", len(mainListener.FilterChains))
 	t.Logf("  - Clusters: %d", len(clusters))
 	t.Logf("  - Secrets: %d", len(secrets))
 }
