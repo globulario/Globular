@@ -1582,6 +1582,26 @@ func (w *Watcher) resolveExplicitHost(host, serviceDNSLabel string, port int) (E
 		return EndpointIdentity{}, false
 	}
 
+	// Normalize "localhost" to actual IP address
+	// Gateway and XDS services should use loopback, but other services need the node IP
+	if strings.ToLower(strings.TrimSpace(host)) == "localhost" {
+		// Try to get the actual node IP from config
+		if cfg, err := config.GetLocalConfig(true); err == nil {
+			// Check if there's an external IP address configured
+			if extIP := strings.TrimSpace(Utility.ToString(cfg["ExternalIPAddress"])); extIP != "" && extIP != "0.0.0.0" {
+				host = extIP
+			} else {
+				// Try to get the primary local IP (not loopback)
+				if ip, ipErr := Utility.GetPrimaryIPAddress(); ipErr == nil && ip != "" && ip != "127.0.0.1" {
+					host = ip
+				} else {
+					// Fallback to loopback if we can't determine the node IP
+					host = "127.0.0.1"
+				}
+			}
+		}
+	}
+
 	// Check if host looks like an FQDN (contains cluster domain)
 	if w.isClusterMode() && strings.Contains(host, w.clusterNetwork.Spec.ClusterDomain) {
 		return EndpointIdentity{
