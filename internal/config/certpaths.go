@@ -32,21 +32,21 @@ func (c *CertPaths) BaseDir() string {
 }
 
 // InternalServerCert returns the internal server certificate path.
-// /var/lib/globular/config/tls/fullchain.pem
+// INV-PKI-1: Use canonical path /var/lib/globular/pki/issued/services/service.crt
 func (c *CertPaths) InternalServerCert() string {
-	return filepath.Join(c.baseDir, "config", "tls", "fullchain.pem")
+	return filepath.Join(c.baseDir, "pki", "issued", "services", "service.crt")
 }
 
 // InternalServerKey returns the internal server private key path.
-// /var/lib/globular/config/tls/privkey.pem
+// INV-PKI-1: Use canonical path /var/lib/globular/pki/issued/services/service.key
 func (c *CertPaths) InternalServerKey() string {
-	return filepath.Join(c.baseDir, "config", "tls", "privkey.pem")
+	return filepath.Join(c.baseDir, "pki", "issued", "services", "service.key")
 }
 
 // InternalCABundle returns the internal CA bundle path.
-// /var/lib/globular/config/tls/ca.pem
+// INV-PKI-1: Use canonical path /var/lib/globular/pki/ca.pem
 func (c *CertPaths) InternalCABundle() string {
-	return filepath.Join(c.baseDir, "config", "tls", "ca.pem")
+	return filepath.Join(c.baseDir, "pki", "ca.pem")
 }
 
 // PKICABundle returns the PKI root CA bundle path.
