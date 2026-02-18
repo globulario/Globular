@@ -51,6 +51,7 @@ type Route struct {
 	HostRewrite string   `json:"host_rewrite,omitempty"`
 	Domains     []string `json:"domains,omitempty"`
 	Authority   string   `json:"authority,omitempty"`
+	Timeout     int      `json:"timeout,omitempty"` // 0 = disabled, >0 = seconds
 }
 
 // ExternalDomain represents an external FQDN with TLS certificate for SNI routing (PR3c).
@@ -131,6 +132,10 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 	resources := make(map[string][]types.Resource)
 	added := map[string]struct{}{}
 
+	// DEBUG: Log function entry
+	fmt.Fprintf(os.Stderr, "[DEBUG] === BuildSnapshot ENTERED === version=%s, len(ExternalDomains)=%d, len(Routes)=%d\n",
+		version, len(input.ExternalDomains), len(input.Routes))
+
 	for _, cluster := range input.Clusters {
 		name := strings.TrimSpace(cluster.Name)
 		if name == "" || len(cluster.Endpoints) == 0 {
@@ -178,8 +183,13 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 
 	// Add external domain VirtualHosts (PR3c)
 	// These go first to ensure external FQDNs match before internal routes
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Before routes - len(ExternalDomains)=%d, len(Routes)=%d\n", len(input.ExternalDomains), len(input.Routes))
 	if len(input.ExternalDomains) > 0 {
 		extRoutes := buildExternalDomainVirtualHosts(input.ExternalDomains)
+		fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Created %d external routes from %d domains\n", len(extRoutes), len(input.ExternalDomains))
+		for i, d := range input.ExternalDomains {
+			fmt.Fprintf(os.Stderr, "[DEBUG]   Domain %d: FQDN=%s, TargetCluster=%s\n", i, d.FQDN, d.TargetCluster)
+		}
 		ingressRoutes = append(ingressRoutes, extRoutes...)
 	}
 
@@ -195,9 +205,11 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			HostRewrite: strings.TrimSpace(route.HostRewrite),
 			Domains:     trimValues(route.Domains),
 			Authority:   strings.TrimSpace(route.Authority),
+			Timeout:     route.Timeout,
 		})
 	}
 
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Total ingressRoutes=%d\n", len(ingressRoutes))
 	if len(ingressRoutes) > 0 {
 		routeName := strings.TrimSpace(input.Listener.RouteName)
 		if routeName == "" {
@@ -239,7 +251,9 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				// Use SDS for TLS certificates
 				// Choose secret name based on certificate type (ACME vs internal)
 				serverCertSecretName := secrets.InternalServerCert
-				if strings.Contains(certFile, "fullchain.pem") {
+				fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Listener creation - EnableSDS=true, len(ExternalDomains)=%d\n", len(input.ExternalDomains))
+				// When external domains are configured, use public ingress cert for default fallback
+				if len(input.ExternalDomains) > 0 || strings.Contains(certFile, "fullchain.pem") {
 					// ACME certificate (Let's Encrypt) for public ingress
 					serverCertSecretName = secrets.PublicIngressCert
 				}
@@ -252,9 +266,16 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				var extraChains []*listener_v3.FilterChain
 				if len(input.ExternalDomains) > 0 {
 					for _, d := range input.ExternalDomains {
+						// Include both apex domain and wildcard subdomain in SNI match
+						// This allows matching both "example.com" and "*.example.com"
+						serverNames := []string{
+							d.FQDN,                      // apex domain (e.g., "globular.app")
+							fmt.Sprintf("*.%s", d.FQDN), // wildcard (e.g., "*.globular.app")
+						}
+						fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Creating SNI filter chain for domain=%s with serverNames=%v\n", d.FQDN, serverNames)
 						fc, err := controlplane.MakeSNIHTTPFilterChainWithSDS(
 							routeName,
-							[]string{d.FQDN},
+							serverNames,
 							fmt.Sprintf("ext-cert/%s", d.FQDN),
 							caSecretName,
 						)
@@ -318,10 +339,13 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 	}
 
 	// Add SDS secrets if enabled
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: EnableSDS=%v, SDSSecrets count=%d\n", input.EnableSDS, len(input.SDSSecrets))
 	if input.EnableSDS && len(input.SDSSecrets) > 0 {
-		for _, secret := range input.SDSSecrets {
+		fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Processing %d SDS secrets\n", len(input.SDSSecrets))
+		for i, secret := range input.SDSSecrets {
 			name := strings.TrimSpace(secret.Name)
 			if name == "" {
+				fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Skipping secret %d (empty name)\n", i)
 				continue
 			}
 
@@ -329,19 +353,42 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			keyPath := strings.TrimSpace(secret.KeyPath)
 			caPath := strings.TrimSpace(secret.CAPath)
 
+			fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Creating secret %d: name=%s, cert=%s, key=%s, ca=%s\n",
+				i, name, certPath, keyPath, caPath)
+
 			// Build secret resource
 			s, err := controlplane.MakeSecret(name, certPath, keyPath, caPath)
 			if err != nil {
 				// Log but don't fail the snapshot - secret may be optional
-				fmt.Fprintf(os.Stderr, "warning: failed to build secret %s: %v\n", name, err)
+				fmt.Fprintf(os.Stderr, "[ERROR] BuildSnapshot: Failed to build secret %s: %v\n", name, err)
 				continue
 			}
 
+			fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Successfully created secret %s\n", name)
 			resources[resource_v3.SecretType] = append(resources[resource_v3.SecretType], s)
 		}
+		fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Added %d secrets to snapshot\n", len(resources[resource_v3.SecretType]))
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: SDS disabled or no secrets to add\n")
 	}
 
-	return cache_v3.NewSnapshot(version, resources)
+	// Debug: Log all resource types before creating snapshot
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Creating snapshot with resources:\n")
+	for resType, resList := range resources {
+		fmt.Fprintf(os.Stderr, "[DEBUG]   - %s: %d resources\n", resType, len(resList))
+	}
+
+	snapshot, err := cache_v3.NewSnapshot(version, resources)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create snapshot: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Snapshot created, version=%s\n", version)
+
+	// Debug: Verify secrets are in the snapshot
+	secretResources := snapshot.GetResources(resource_v3.SecretType)
+	fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Snapshot contains %d secrets after NewSnapshot\n", len(secretResources))
+
+	return snapshot, nil
 }
 
 func toControlplaneEndpoints(ends []Endpoint) []controlplane.EndPoint {

@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"sort"
 	"strings"
+	"time"
 
 	route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	cors_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
@@ -28,6 +29,8 @@ type IngressRoute struct {
 	Domains []string
 	// Authority enables an exact :authority match within the route.
 	Authority string
+	// Timeout sets the route timeout in seconds (0 = disabled for streaming)
+	Timeout int
 }
 
 // MakeRoutes builds the shared ingress RouteConfiguration with per-route prefixes.
@@ -60,8 +63,16 @@ func MakeRoutes(routeName string, rs []IngressRoute) *route_v3.RouteConfiguratio
 		}
 		action := &route_v3.RouteAction{
 			ClusterSpecifier: &route_v3.RouteAction_Cluster{Cluster: r.Cluster},
-			Timeout:          durationpb.New(0),
 		}
+
+		// Set timeout (0 = disabled for streaming)
+		if r.Timeout == 0 {
+			action.Timeout = durationpb.New(0)
+		} else if r.Timeout > 0 {
+			action.Timeout = durationpb.New(time.Duration(r.Timeout) * time.Second)
+		}
+		// If not set, use Envoy default
+
 		if r.HostRewrite != "" {
 			action.HostRewriteSpecifier = &route_v3.RouteAction_HostRewriteLiteral{
 				HostRewriteLiteral: r.HostRewrite,

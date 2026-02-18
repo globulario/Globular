@@ -875,6 +875,15 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		// External domains require SDS to be enabled
 		enableSDS = true
 
+		// Use first external domain cert as the public ingress cert (for default fallback)
+		firstDomain := externalDomains[0]
+		sdsSecrets = append(sdsSecrets, builder.Secret{
+			Name:     secrets.PublicIngressCert,
+			CertPath: firstDomain.CertFile,
+			KeyPath:  firstDomain.KeyFile,
+			CAPath:   firstDomain.ACMEIssuer,
+		})
+
 		for _, domain := range externalDomains {
 			// Determine target cluster (typically gateway_http)
 			targetCluster := "gateway_http"
@@ -948,48 +957,113 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		return nil, nil, err
 	}
 
+	// Extract base domain for subdomain generation
+	baseDomain := ""
+	if cfg != nil && len(cfg.IngressDomains) > 0 {
+		baseDomain = strings.ToLower(strings.TrimSpace(cfg.IngressDomains[0]))
+	}
+
 	var (
 		clusters        []builder.Cluster
 		routes          []builder.Route
-		addedClusters   = map[string]struct{}{}
 		allClusterNames []string
 	)
 
+	// Group service instances by service name
+	servicesByName := make(map[string][]map[string]interface{})
 	for _, svc := range services {
-		name := strings.TrimSpace(fmt.Sprint(svc["Name"]))
-		endpoint := w.resolveServiceEndpoint(ctx, svc)
+		name := fmt.Sprint(svc["Name"])
+		if name == "" {
+			continue
+		}
+		servicesByName[name] = append(servicesByName[name], svc)
+	}
 
-		if w.logger != nil && strings.TrimSpace(fmt.Sprint(svc["Address"])) == "" {
-			w.logger.Debug("service Address empty; defaulting to local endpoint",
-				"service", name,
-				"host", endpoint.Host(),
-				"port", endpoint.Port,
-				"source", endpoint.Source.String())
+	// Create clusters and routes (one per service name)
+	for serviceName, instances := range servicesByName {
+		clusterName := strings.ReplaceAll(serviceName, ".", "_") + "_cluster"
+
+		// Collect all endpoints for this service
+		endpoints := make([]builder.Endpoint, 0, len(instances))
+		for _, instance := range instances {
+			endpoint := w.resolveServiceEndpoint(ctx, instance)
+			if endpoint.Host() == "" || endpoint.Port == 0 {
+				continue
+			}
+			endpoints = append(endpoints, builder.Endpoint{
+				Host: endpoint.Host(),
+				Port: uint32(endpoint.Port),
+			})
 		}
 
-		if name == "" || endpoint.Host() == "" || endpoint.Port == 0 {
+		if len(endpoints) == 0 {
+			w.logger.Warn("no valid endpoints for service", "name", serviceName)
 			continue
 		}
 
-		clusterName := strings.ReplaceAll(name, ".", "_") + "_cluster"
-		if _, ok := addedClusters[clusterName]; ok {
-			continue
+		// Determine upstream transport
+		// CRITICAL: Most services use plaintext gRPC inside cluster
+		// Do NOT set TLS/SNI for plaintext upstream
+		useTLS := false
+		var caFile, sniName string
+
+		// Check if service explicitly requires TLS
+		if firstInstance := instances[0]; firstInstance != nil {
+			if protocol := fmt.Sprint(firstInstance["Protocol"]); protocol == "https" {
+				useTLS = true
+				caFile = downIssuer
+				// Use service DNS name for SNI, NOT IP
+				if cfg != nil && cfg.ClusterDomain != "" {
+					sniName = serviceName + "." + cfg.ClusterDomain
+				} else {
+					sniName = endpoints[0].Host // Fallback to host if no cluster domain
+				}
+			}
 		}
-		addedClusters[clusterName] = struct{}{}
 
-		// PR5: Use FQDN for endpoint identity when available
-		endpointHost := endpoint.Host()
-
-		// Service clusters use CA-only validation (no client certificates)
-		// Client certificates cause KEY_VALUES_MISMATCH errors in Envoy
-		clusters = append(clusters, builder.Cluster{
+		// Create ONE cluster with MULTIPLE endpoints
+		cluster := builder.Cluster{
 			Name:      clusterName,
-			Endpoints: []builder.Endpoint{{Host: endpointHost, Port: uint32(endpoint.Port)}},
-			CAFile:    downIssuer,
-			SNI:       endpointHost,
-		})
+			Endpoints: endpoints,
+		}
+
+		if useTLS {
+			cluster.CAFile = caFile
+			cluster.SNI = sniName
+		}
+		// If plaintext: no CAFile, no SNI, no TLS transport socket
+
+		clusters = append(clusters, cluster)
 		allClusterNames = append(allClusterNames, clusterName)
-		routes = append(routes, builder.Route{Prefix: "/" + name + "/", Cluster: clusterName})
+
+		w.logger.Debug("created service cluster",
+			"service", serviceName,
+			"cluster", clusterName,
+			"instances", len(instances),
+			"endpoints", len(endpoints),
+			"tls", useTLS)
+
+		// Create prefix route (EXISTING - backward compatibility)
+		routes = append(routes, builder.Route{Prefix: "/" + serviceName + "/", Cluster: clusterName})
+
+		// Create subdomain route (NEW)
+		if baseDomain != "" {
+			serviceKey := serviceKeyFromName(serviceName)
+			subdomain := serviceKey + "." + baseDomain // e.g., "resource.globular.app"
+
+			routes = append(routes, builder.Route{
+				Prefix:  "/",
+				Cluster: clusterName,
+				Domains: []string{subdomain},
+				Timeout: 0, // Disable timeout for streaming gRPC
+			})
+
+			w.logger.Debug("generated service subdomain route",
+				"service", serviceName,
+				"key", serviceKey,
+				"subdomain", subdomain,
+				"cluster", clusterName)
+		}
 	}
 
 	healthTarget := ""
@@ -1022,30 +1096,33 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 	}
 
 	// Gateway cluster port selection:
-	// - External ingress (listener on 443): Use portHTTPS (8443) - no routing loop
-	// - Internal ingress (listener on 8443): Use portHTTP (8080) - avoid routing loop
-	// HTTPS-only architecture: No plain HTTP, always use 8443 for backend
+	// End-to-end encryption: External TLS + Internal TLS
+	// - Envoy listens on external port 443 (HTTPS with Let's Encrypt certs for public domains)
+	// - Envoy re-encrypts and proxies to gateway on port 8443 (HTTPS with internal CA certs)
+	// - Gateway listens on port 8443 (HTTPS with internal certificates)
 	gatewayCluster := "gateway_http"
-	upstreamPort := portHTTPS // Use HTTPS port 8443 for HTTPS-only architecture
+	upstreamPort := portHTTPS // Use gateway HTTPS port 8443 for end-to-end encryption
 
 	// Legacy compatibility: If explicitly configured to use a different port, respect it
-	if listenPort != defaultGatewayPort(0) && listenPort != int(portHTTPS) {
+	if listenPort != defaultGatewayPort(0) && listenPort != int(portHTTPS) && listenPort != int(portHTTP) {
 		upstreamPort = listenPort
 	}
 
 	// Gateway cluster uses HTTPS with internal certificates (end-to-end encryption)
-	// Configure TLS for backend connection to gateway (port 8443)
+	// Configure TLS for backend connection to gateway
 	clusters := []builder.Cluster{{
 		Name:       gatewayCluster,
 		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
-		CAFile:     gatewayCA,    // Verify gateway's certificate
-		ServerCert: "",           // No client certificate needed for gateway backend
-		KeyFile:    "",           // No client certificate needed for gateway backend
+		CAFile:     gatewayCA,    // Verify gateway's internal certificate
+		ServerCert: "",           // No client certificate needed
+		KeyFile:    "",           // No client certificate needed
 		SNI:        upstreamHost, // SNI for TLS handshake
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
-	listenerPort := uint32(portHTTPS)
+	// Listener port: Use standard ingress HTTPS port (443) for external access
+	// This is different from gateway backend port (8443)
+	listenerPort := uint32(443) // Standard HTTPS port for external ingress
 	if !tlsEnabled {
 		listenerPort = uint32(portHTTP)
 	}
@@ -1897,6 +1974,15 @@ func normalizeDNSLabel(name string) string {
 	return name
 }
 
+// serviceKeyFromName extracts the short service key for subdomain generation.
+// Takes only the part BEFORE the first dot.
+// Example: "resource.ResourceService" → "resource"
+func serviceKeyFromName(grpcName string) string {
+	parts := strings.SplitN(grpcName, ".", 2)
+	key := strings.ToLower(strings.TrimSpace(parts[0]))
+	return normalizeDNSLabel(key)
+}
+
 func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
 	if cfg == nil || len(cfg.EtcdEndpoints) == 0 {
 		return nil, nil
@@ -1985,7 +2071,8 @@ func (w *Watcher) gatewayTLSPaths() (string, string, string, bool) {
 	if strings.ToLower(strings.TrimSpace(w.protocol)) != "https" {
 		return "", "", "", false
 	}
-	cert := pathIfExists(config.GetLocalCertificate())
+	// Use consistent canonical service certificate lookup (both from GetServiceCertPath)
+	cert := pathIfExists(config.GetLocalServerCertificatePath())
 	key := pathIfExists(config.GetLocalServerKeyPath())
 	if cert == "" || key == "" {
 		if w.logger != nil && !w.gatewayTLSWarned {
