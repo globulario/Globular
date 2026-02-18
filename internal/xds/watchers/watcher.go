@@ -1021,20 +1021,27 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 		gatewayCert, gatewayKey, gatewayCA = "", "", ""
 	}
 
-	// CRITICAL: Gateway cluster always uses portHTTP (8080) for TLS termination at Envoy
-	// Envoy terminates TLS on the listener, then connects to gateway via plain HTTP
-	// Using portHTTPS would create a routing loop (Envoy → itself on 8443)
+	// Gateway cluster port selection:
+	// - External ingress (listener on 443): Use portHTTPS (8443) - no routing loop
+	// - Internal ingress (listener on 8443): Use portHTTP (8080) - avoid routing loop
+	// HTTPS-only architecture: No plain HTTP, always use 8443 for backend
 	gatewayCluster := "gateway_http"
-	upstreamPort := portHTTP
-	if listenPort != defaultGatewayPort(0) {
+	upstreamPort := portHTTPS // Use HTTPS port 8443 for HTTPS-only architecture
+
+	// Legacy compatibility: If explicitly configured to use a different port, respect it
+	if listenPort != defaultGatewayPort(0) && listenPort != int(portHTTPS) {
 		upstreamPort = listenPort
 	}
 
-	// Gateway cluster uses plain HTTP (no TLS config) for TLS termination architecture
+	// Gateway cluster uses HTTPS with internal certificates (end-to-end encryption)
+	// Configure TLS for backend connection to gateway (port 8443)
 	clusters := []builder.Cluster{{
-		Name:      gatewayCluster,
-		Endpoints: []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
-		// No CAFile, ServerCert, KeyFile, or SNI - plain HTTP upstream
+		Name:       gatewayCluster,
+		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
+		CAFile:     gatewayCA,    // Verify gateway's certificate
+		ServerCert: "",           // No client certificate needed for gateway backend
+		KeyFile:    "",           // No client certificate needed for gateway backend
+		SNI:        upstreamHost, // SNI for TLS handshake
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
 
