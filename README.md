@@ -1,4 +1,4 @@
-<img src="https://github.com/globulario/Globular/blob/refactor/clean-structure/starter_page/img/logo_small.png?raw=true" alt="Globular Logo" width="300">
+<img src="https://github.com/globulario/Globular/blob/master/starter_page/img/logo.png?raw=true" alt="Globular Logo" width="300">
 
 # Globular
 
