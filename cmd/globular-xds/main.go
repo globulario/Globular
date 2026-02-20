@@ -178,6 +178,15 @@ func main() {
 	}()
 
 	watcher := watchers.New(logger, xdsServer, *xdsConfigPath, *nodeID, *watchInterval, watchers.ParseDownstreamTLSMode(*downstreamTLSMode), *controllerAddr)
+
+	// Configure etcd client for external domain loading (PR3c)
+	if etcdClient, err := globconfig.GetEtcdClient(); err != nil {
+		logger.Warn("failed to connect to etcd; external domains will not be loaded", "err", err)
+	} else {
+		watcher.SetEtcdClient(etcdClient)
+		logger.Info("etcd client configured for external domain loading")
+	}
+
 	go func() {
 		if err := watcher.Run(ctx); err != nil {
 			if errors.Is(err, context.Canceled) {

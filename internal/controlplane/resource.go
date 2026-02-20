@@ -18,7 +18,9 @@
 package controlplane
 
 import (
+	"fmt"
 	"net"
+	"os"
 	"time"
 
 	cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -755,6 +757,8 @@ func MakeHTTPListenerWithSDSFilterChains(
 	caSecretName string,
 	extraFilterChains []*listener_v3.FilterChain,
 ) *listener_v3.Listener {
+	fmt.Fprintf(os.Stderr, "[DEBUG] MakeHTTPListenerWithSDSFilterChains called: name=%s, port=%d, extraChains=%d\n",
+		listenerName, listenerPort, len(extraFilterChains))
 	// Build default filter chain (fallback when no SNI match)
 	manager := makeHTTPConnectionManager(routeName)
 
@@ -794,8 +798,19 @@ func MakeHTTPListenerWithSDSFilterChains(
 			},
 		},
 		FilterChains: allChains,
+		// Add TLS Inspector to enable SNI-based filter chain matching
+		// The TLS Inspector must be configured to extract SNI for filter chain matching
+		ListenerFilters: []*listener_v3.ListenerFilter{{
+			Name: "envoy.filters.listener.tls_inspector",
+			ConfigType: &listener_v3.ListenerFilter_TypedConfig{
+				TypedConfig: &anypb.Any{
+					TypeUrl: "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector",
+				},
+			},
+		}},
 	}
 
+	fmt.Fprintf(os.Stderr, "[DEBUG] MakeHTTPListenerWithSDSFilterChains: Created listener with %d ListenerFilters\n", len(l.ListenerFilters))
 	return l
 }
 
