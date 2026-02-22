@@ -18,6 +18,10 @@ type XDSConfig struct {
 	// v1 Conformance: Separate cluster_domain (internal DNS) from ingress_domains (public routing)
 	ClusterDomain  string   `json:"cluster_domain"`  // Internal DNS only (e.g., "globular.internal")
 	IngressDomains []string `json:"ingress_domains"` // Public routing domains for virtual host matching
+	// AllowedOrigins lists the CORS origins permitted to call gRPC-web endpoints.
+	// Each entry is an exact origin string (e.g. "https://admin.example.com").
+	// When empty the xDS snapshot uses a permissive default that accepts any http(s) origin.
+	AllowedOrigins []string `json:"allowed_origins,omitempty"`
 }
 
 // IngressConfig defines HTTP/HTTPS ports, TLS paths, and redirect behavior.

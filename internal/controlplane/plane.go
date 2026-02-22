@@ -129,7 +129,7 @@ func AddSnapshot(id, version string, values []Snapshot) error {
 				redirectAllowed = false
 			}
 
-			rc := MakeRoutes(routeName, v.IngressRoutes)
+			rc := MakeRoutes(routeName, v.IngressRoutes, nil)
 			resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], rc)
 
 			if tlsEnabled {

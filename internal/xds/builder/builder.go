@@ -75,6 +75,7 @@ type Input struct {
 	EnableSDS          bool             `json:"enable_sds,omitempty"`       // Use SDS for TLS certificates
 	SDSSecrets         []Secret         `json:"sds_secrets,omitempty"`      // Secrets to include in snapshot
 	ExternalDomains    []ExternalDomain `json:"external_domains,omitempty"` // External domains for SNI routing (PR3c)
+	AllowedOrigins     []string         `json:"allowed_origins,omitempty"`  // CORS allowed origins; empty = permissive default
 }
 
 // Secret represents a TLS secret for SDS.
@@ -215,7 +216,7 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		if routeName == "" {
 			routeName = fmt.Sprintf("ingress_routes_%d", controlplane.DefaultIngressPort(strings.TrimSpace(input.Listener.Host)))
 		}
-		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(routeName, ingressRoutes))
+		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(routeName, ingressRoutes, input.AllowedOrigins))
 
 		host := strings.TrimSpace(input.Listener.Host)
 		if host == "" {

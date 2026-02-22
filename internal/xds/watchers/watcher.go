@@ -919,6 +919,11 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		}
 	}
 
+	var allowedOrigins []string
+	if cfg != nil {
+		allowedOrigins = cfg.AllowedOrigins
+	}
+
 	input := builder.Input{
 		NodeID:             w.nodeID,
 		Listener:           listener,
@@ -931,6 +936,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		EnableSDS:          enableSDS,
 		SDSSecrets:         sdsSecrets,
 		ExternalDomains:    builderExtDomains,
+		AllowedOrigins:     allowedOrigins,
 	}
 	return input, version, nil
 }
@@ -951,16 +957,20 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		}
 	}
 
-	// Service clusters use CA-only validation (no client certificates)
-	_, _, downIssuer, err := w.downstreamTLSConfig()
-	if err != nil {
+	// downstreamTLSConfig is still called to surface any cert errors early,
+	// but the CA for upstream validation is taken directly from the internal PKI.
+	if _, _, _, err := w.downstreamTLSConfig(); err != nil {
 		return nil, nil, err
 	}
 
-	// Extract base domain for subdomain generation
-	baseDomain := ""
-	if cfg != nil && len(cfg.IngressDomains) > 0 {
-		baseDomain = strings.ToLower(strings.TrimSpace(cfg.IngressDomains[0]))
+	// Collect all ingress domains for subdomain generation (one subdomain per domain).
+	var ingressDomains []string
+	if cfg != nil {
+		for _, d := range cfg.IngressDomains {
+			if d = strings.ToLower(strings.TrimSpace(d)); d != "" {
+				ingressDomains = append(ingressDomains, d)
+			}
+		}
 	}
 
 	var (
@@ -1007,14 +1017,28 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		useTLS := false
 		var caFile, sniName string
 
-		// Check if service explicitly requires TLS
+		// Check if service explicitly requires TLS.
+		// A service uses TLS when either its Protocol is "https" OR its TLS flag is
+		// true (set by InitGrpcServer when cert files are present). Without this
+		// second check, Envoy generates a plaintext upstream cluster for services
+		// whose Protocol is still "grpc" but whose gRPC listener is TLS-only,
+		// causing "upstream connect error / connection termination" (503).
+		//
+		// Use config.GetLocalCACertificate() directly rather than downstreamTLSConfig()
+		// because downstreamTLSConfig() returns "" when client certs don't exist, making
+		// the CA always empty and TLS never actually enabled on the upstream cluster.
+		//
+		// SNI must match a SAN in the service cert, which is issued for the cluster
+		// domain (e.g. "globular.cloud") — use the base domain, not a subdomain.
 		if firstInstance := instances[0]; firstInstance != nil {
-			if protocol := fmt.Sprint(firstInstance["Protocol"]); protocol == "https" {
+			protocol := fmt.Sprint(firstInstance["Protocol"])
+			tlsFlag := Utility.ToBool(firstInstance["TLS"])
+			if protocol == "https" || tlsFlag {
 				useTLS = true
-				caFile = downIssuer
-				// Use service DNS name for SNI, NOT IP
+				caFile = config.GetLocalCACertificate()
+				// SNI: use the base cluster domain (matches SAN in the internal service cert)
 				if cfg != nil && cfg.ClusterDomain != "" {
-					sniName = serviceName + "." + cfg.ClusterDomain
+					sniName = cfg.ClusterDomain
 				} else {
 					sniName = endpoints[0].Host // Fallback to host if no cluster domain
 				}
@@ -1046,22 +1070,27 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		// Create prefix route (EXISTING - backward compatibility)
 		routes = append(routes, builder.Route{Prefix: "/" + serviceName + "/", Cluster: clusterName})
 
-		// Create subdomain route (NEW)
-		if baseDomain != "" {
+		// Create subdomain routes — one entry per IngressDomain so that both
+		// "event.globule-ryzen.globular.cloud" and "event.globular.cloud"
+		// (or any other listed ingress domain) all hit the same cluster.
+		if len(ingressDomains) > 0 {
 			serviceKey := serviceKeyFromName(serviceName)
-			subdomain := serviceKey + "." + baseDomain // e.g., "resource.globular.app"
+			var subdomains []string
+			for _, base := range ingressDomains {
+				subdomains = append(subdomains, serviceKey+"."+base)
+			}
 
 			routes = append(routes, builder.Route{
 				Prefix:  "/",
 				Cluster: clusterName,
-				Domains: []string{subdomain},
+				Domains: subdomains,
 				Timeout: 0, // Disable timeout for streaming gRPC
 			})
 
-			w.logger.Debug("generated service subdomain route",
+			w.logger.Debug("generated service subdomain routes",
 				"service", serviceName,
 				"key", serviceKey,
-				"subdomain", subdomain,
+				"domains", subdomains,
 				"cluster", clusterName)
 		}
 	}

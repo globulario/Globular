@@ -35,10 +35,29 @@ type IngressRoute struct {
 
 // MakeRoutes builds the shared ingress RouteConfiguration with per-route prefixes.
 // IMPORTANT: Enables CORS (with credentials) for browser callers.
-func MakeRoutes(routeName string, rs []IngressRoute) *route_v3.RouteConfiguration {
-	allowedOrigins := []*matcher_v3.StringMatcher{
-		{MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: "http://localhost:5173"}},
-		{MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: "https://globule-ryzen.globular.io"}},
+// allowedOrigins is the list of permitted CORS origins (exact strings). When empty,
+// a permissive regex matcher ("https?://.*") is used as the default so that any
+// HTTPS or localhost origin is accepted.
+func MakeRoutes(routeName string, rs []IngressRoute, allowedOrigins []string) *route_v3.RouteConfiguration {
+	var originMatchers []*matcher_v3.StringMatcher
+	for _, o := range allowedOrigins {
+		o = strings.TrimSpace(o)
+		if o == "" {
+			continue
+		}
+		originMatchers = append(originMatchers, &matcher_v3.StringMatcher{
+			MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: o},
+		})
+	}
+	if len(originMatchers) == 0 {
+		// Permissive default: accept any http(s) origin so the admin panel works
+		// from any deployment URL. Envoy reflects the exact Origin back (not "*"),
+		// so AllowCredentials: true remains valid per CORS spec.
+		originMatchers = []*matcher_v3.StringMatcher{
+			{MatchPattern: &matcher_v3.StringMatcher_SafeRegex{
+				SafeRegex: &matcher_v3.RegexMatcher{Regex: `https?://.*`},
+			}},
+		}
 	}
 
 	routeGroups := map[string][]*route_v3.Route{}
@@ -99,7 +118,7 @@ func MakeRoutes(routeName string, rs []IngressRoute) *route_v3.RouteConfiguratio
 			Routes:  routes,
 			TypedPerFilterConfig: map[string]*anypb.Any{
 				"envoy.filters.http.cors": toAny(&cors_v3.CorsPolicy{
-					AllowOriginStringMatch: allowedOrigins,
+					AllowOriginStringMatch: originMatchers,
 					AllowCredentials:       wrapperspb.Bool(true),
 					AllowMethods:           "GET, PUT, DELETE, POST, OPTIONS",
 					AllowHeaders:           "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,domain,address,token,application,path,routing,authorization",

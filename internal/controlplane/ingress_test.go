@@ -370,7 +370,7 @@ func TestMakeRoutesGroupsByDomains(t *testing.T) {
 		},
 	}
 
-	rc := MakeRoutes("test", routes)
+	rc := MakeRoutes("test", routes, nil)
 	if got, want := len(rc.VirtualHosts), 3; got != want {
 		t.Fatalf("expected %d virtual hosts, got %d", want, got)
 	}
