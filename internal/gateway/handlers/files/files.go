@@ -17,5 +17,6 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.Upload != nil {
 		mux.Handle("/api/file-upload", d.Upload)
+		mux.Handle("/uploads", d.Upload) // legacy alias used by globular-web-client
 	}
 }

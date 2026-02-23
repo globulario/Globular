@@ -35,7 +35,7 @@ func (g *Globule) ValidateAccess(subject string, subjectType rbacpb.SubjectType,
 	if err != nil {
 		return false, false, err
 	}
-	defer rbac.Close()
+	// NOTE: do NOT close — GetClient returns a shared cached connection.
 	return rbac.ValidateAccess(subject, subjectType, action, path)
 }
 
@@ -45,10 +45,11 @@ func (g *Globule) AddResourceOwner(path, resourceType, subject string, subjectTy
 	if err != nil {
 		return err
 	}
-	defer rbac.Close()
+	// NOTE: do NOT close — GetClient returns a shared cached connection.
 	token, err := security.GetLocalToken(g.Mac)
 	if err != nil {
 		return err
 	}
-	return rbac.AddResourceOwner(token, path, resourceType, subject, subjectType)
+	// RBAC client signature: AddResourceOwner(token, path, owner, resourceType, subjectType)
+	return rbac.AddResourceOwner(token, path, subject, resourceType, subjectType)
 }

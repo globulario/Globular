@@ -123,7 +123,19 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		if token != "" {
 			if uid, e := p.ParseUserID(token); e == nil && uid != "" {
 				ownerID = uid
-				has, denied, err = p.ValidateAccount(uid, action, dir)
+				// Shortcut: a user always has write access to their own home directory.
+				// This avoids RBAC→Resource service dependency, which can break when
+				// domain changes cause identity mismatches (uid vs uid@domain).
+				bareUID := uid
+				if i := strings.Index(uid, "@"); i > 0 {
+					bareUID = uid[:i]
+				}
+				homeDirMatch := !isWebrootTarget && (dir == "/users/"+bareUID || strings.HasPrefix(dir, "/users/"+bareUID+"/"))
+				if homeDirMatch {
+					has = true
+				} else {
+					has, denied, err = p.ValidateAccount(uid, action, dir)
+				}
 			}
 		}
 		if !has && !denied && app != "" {

@@ -77,6 +77,29 @@ func TestUpload_DenyWithoutWrite_401(t *testing.T) {
 	}
 }
 
+// TestUpload_HomeDir_BypassesRBAC verifies that a user can upload to their own
+// home directory (/users/<uid>) even when RBAC says "no write".  This is the
+// home-dir shortcut: token identity drives the decision, not RBAC, to avoid
+// breakage when RBAC→Resource-service identity lookups fail after domain changes.
+// ParseUserID("ok") returns "u@d" → bareUID = "u", so /users/u is the home dir.
+func TestUpload_HomeDir_BypassesRBAC(t *testing.T) {
+	p := fakeUpload{allowWrite: false} // RBAC would deny
+
+	h := files.NewUploadFile(p)
+
+	body, ctype := newMultipart("/users/u", "note.txt", "hello")
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/file-upload", body)
+	req.Header.Set("Content-Type", ctype)
+	req.Header.Set("token", "ok")
+
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 (home-dir shortcut), got %d (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
 func TestUpload_Success_201(t *testing.T) {
 	p := fakeUpload{allowWrite: true}
 
@@ -199,7 +222,7 @@ func TestUpload_MinioWebroot(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d (body: %s)", rr.Code, rr.Body.String())
 	}
-	if uploaded.bucket != "bucket" || uploaded.key != "globular.io/webroot/index.html" {
+	if uploaded.bucket != "bucket" || uploaded.key != "webroot/index.html" {
 		t.Fatalf("unexpected object uploaded: %#v", uploaded)
 	}
 	if uploaded.data != "home" {

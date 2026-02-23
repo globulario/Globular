@@ -223,6 +223,19 @@ func (g *Globule) InitFS() error {
 			return err
 		}
 	}
+
+	// Ensure the local service token exists so that internal RBAC calls
+	// (e.g. AddResourceOwner) can authenticate without requiring an
+	// external token.  Use a one-year lifetime; GetLocalToken refreshes
+	// automatically when the token is close to expiry.
+	const localTokenLifetimeMinutes = 365 * 24 * 60
+	if err := security.SetLocalToken(g.Mac, "sa", "sa", "", localTokenLifetimeMinutes); err != nil {
+		// Non-fatal: log and continue.  Internal RBAC calls will fail until
+		// the token is available, but the gateway can still serve traffic.
+		g.log.Warn("failed to set local service token", "mac", g.Mac, "err", err)
+	} else {
+		g.log.Info("local service token refreshed", "mac", g.Mac)
+	}
 	if needsSave {
 		if err := g.SaveConfig(); err != nil {
 			g.log.Error("fail to save config file", "err", err)

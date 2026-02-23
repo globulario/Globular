@@ -651,7 +651,9 @@ func (cfg *MinioProxyConfig) usersPrefixValue() string {
 	if p := strings.Trim(cfg.Prefix, "/"); p != "" {
 		return path.Join(p, "users")
 	}
-	return path.Join(defaultDomain(cfg), "users")
+	// v1 Conformance: Domain MUST NOT determine storage paths (security violation INV-1.3)
+	// Use stable prefix independent of domain configuration.
+	return "users"
 }
 
 func (cfg *MinioProxyConfig) webrootPrefixValue() string {
@@ -688,8 +690,8 @@ func WebrootObjectKeyForTest(cfg *MinioProxyConfig, host, rqstPath string) (stri
 }
 
 // buildMinioObjectKey constructs a sanitized MinIO object key for either users or webroot content.
-// - User paths: /users/<user>/<file> -> users prefix + logical path
-// - Webroot: uses host prefix when cfg.UseHostPrefix is true, otherwise webroot prefix defaults
+// - User paths: /users/<user>/<file> -> users prefix + logical path (e.g. "users/alice/file.txt")
+// - Webroot: always uses the stable webroot prefix; host/domain is never included in the key
 // Returns error when the path is unsafe or malformed.
 func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isUserPath bool) (string, error) {
 	if cfg == nil {
@@ -716,22 +718,17 @@ func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isU
 		return joinKey(cfg.usersPrefixValue(), logical)
 	}
 
-	// Webroot path handling
-	host = cleanRequestHost(host, cfg)
+	// Webroot path handling.
+	// v1 Conformance: Host/domain MUST NOT determine storage paths (security violation INV-1.3).
+	// Host header is untrusted client input; using it for storage paths breaks on domain changes
+	// and enables path traversal via Host manipulation.
+	// Always use a stable, domain-independent prefix.
 	logical := strings.TrimPrefix(cleanPath, "/")
 	if logical == "" {
 		logical = "index.html"
 	}
 
-	useHost := true
-	if strings.TrimSpace(cfg.WebrootPrefix) != "" || strings.TrimSpace(cfg.Prefix) != "" {
-		useHost = cfg.UseHostPrefix
-	}
-
 	base := cfg.webrootPrefixValue()
-	if useHost {
-		return joinKey(host, base, logical)
-	}
 	return joinKey(base, logical)
 }
 

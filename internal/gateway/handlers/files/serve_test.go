@@ -354,7 +354,7 @@ func TestServe_MinioWebroot(t *testing.T) {
 				if bucket != "bucket" {
 					t.Fatalf("expected bucket bucket, got %s", bucket)
 				}
-				if key != "globular.io/webroot/index.html" {
+				if key != "webroot/index.html" {
 					t.Fatalf("unexpected key %s", key)
 				}
 				return nopSeekCloser{Reader: strings.NewReader("WEBROOT")}, files.MinioObjectInfo{ModTime: time.Unix(20, 0)}, nil
@@ -377,13 +377,13 @@ func TestServe_MinioWebroot(t *testing.T) {
 	}
 }
 
-func TestWebrootObjectKey_DefaultPrefixUsesHost(t *testing.T) {
+func TestWebrootObjectKey_DefaultPrefixStableNoDomain(t *testing.T) {
 	cfg := &files.MinioProxyConfig{Domain: "localhost"}
 	key, err := files.WebrootObjectKeyForTest(cfg, "localhost", "/")
 	if err != nil {
 		t.Fatalf("webroot key err: %v", err)
 	}
-	if key != "localhost/webroot/index.html" {
+	if key != "webroot/index.html" {
 		t.Fatalf("unexpected key %s", key)
 	}
 }
@@ -413,7 +413,7 @@ func TestServe_MinioWebrootRootPath(t *testing.T) {
 				if bucket != "bucket" {
 					t.Fatalf("expected bucket bucket, got %s", bucket)
 				}
-				if key != "globular.io/webroot/index.html" {
+				if key != "webroot/index.html" {
 					t.Fatalf("unexpected key %s", key)
 				}
 				return nopSeekCloser{Reader: strings.NewReader("ROOT")}, files.MinioObjectInfo{ModTime: time.Unix(20, 0)}, nil
