@@ -1841,7 +1841,13 @@ func (w *Watcher) handleDNSFailure(serviceName string) (EndpointIdentity, bool) 
 // Returns normalized EndpointIdentity with source tracking for observability.
 func (w *Watcher) resolveServiceEndpoint(ctx context.Context, svc map[string]any) EndpointIdentity {
 	serviceName := strings.TrimSpace(fmt.Sprint(svc["Name"]))
-	addr := strings.TrimSpace(fmt.Sprint(svc["Address"]))
+
+	// Guard against missing Address key: map access returns nil interface{} when absent,
+	// and fmt.Sprint(nil) produces "<nil>" which is mistakenly treated as a hostname.
+	addr := ""
+	if raw := svc["Address"]; raw != nil {
+		addr = strings.TrimSpace(fmt.Sprint(raw))
+	}
 
 	host := ""
 	if addr != "" {
