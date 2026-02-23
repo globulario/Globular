@@ -396,14 +396,16 @@ func NewServeFile(p ServeProvider) http.Handler {
 		// For multi-tenancy, use authenticated principalID instead of Host header
 		info.dir = p.WebRoot()
 
-		// v2 Conformance: Token from token header ONLY (security violation INV-3.1)
-		// REMOVED: Query parameter token extraction - tokens in URLs leak via logs
-		// Tokens MUST be in headers to prevent exposure in:
-		// - Access logs, proxy logs, browser history
-		// - Referer headers, URL sharing
-		// - Server-side request logging
-		info.app = r.Header.Get("application") // Application can still use header fallback
-		info.token = r.Header.Get("token")     // Token: Header ONLY (no query fallback)
+		// Token extraction: header preferred, query param fallback for file serving.
+		// Query param fallback is required here because browsers cannot set custom
+		// headers on <video>, <img>, or direct GET requests — the token must be
+		// embedded in the URL for media playback to work.
+		// Upload endpoints keep header-only enforcement (no media URLs there).
+		info.app = r.Header.Get("application")
+		info.token = r.Header.Get("token")
+		if info.token == "" {
+			info.token = r.URL.Query().Get("token")
+		}
 		if info.token == "null" || info.token == "undefined" {
 			info.token = ""
 		}
