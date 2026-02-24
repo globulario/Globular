@@ -143,6 +143,8 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 	describeService := cfgHandlers.NewDescribeService(describeProvider{})
 
 	ca := cfgHandlers.NewCAProvider()
+	getServicesCors := cfgHandlers.NewGetServicesCors(cfgProvider{globule: h.globule, cache: serviceConfigCache})
+	setServiceCors := cfgHandlers.NewSetServiceCors(cfgSaver{globule: h.globule})
 
 	cfgHandlers.Mount(mux, cfgHandlers.Deps{
 		GetConfig:             wrap(getConfig),
@@ -153,6 +155,8 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 		GetCACertificate:      wrap(cfgHandlers.NewGetCACertificate(ca)),
 		SignCACertificate:     wrap(cfgHandlers.NewSignCACertificate(ca)),
 		GetSANConf:            wrap(cfgHandlers.NewGetSANConf(ca)),
+		GetServicesCors:       wrap(getServicesCors),
+		SetServiceCors:        wrap(setServiceCors),
 	})
 }
 

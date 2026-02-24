@@ -183,6 +183,27 @@ func (tokenValidator) Validate(tok string) error {
 
 func (s cfgSaver) Save(m map[string]any) error { return s.globule.SetConfig(m) }
 
+func (cfgSaver) Validate(tok string) error {
+	_, err := security.ValidateToken(tok)
+	return err
+}
+
+func (cfgSaver) SaveServiceConfig(cfg map[string]any) error {
+	return config_.SaveServiceConfiguration(cfg)
+}
+
+func (cfgProvider) AllServiceConfigs() ([]map[string]any, error) {
+	cfgs, err := config_.GetServicesConfigurations()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]any, len(cfgs))
+	for i, c := range cfgs {
+		result[i] = c
+	}
+	return result, nil
+}
+
 type svcPermsProvider struct {
 	globule *globpkg.Globule
 }
