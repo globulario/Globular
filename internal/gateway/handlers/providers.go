@@ -192,6 +192,10 @@ func (cfgSaver) SaveServiceConfig(cfg map[string]any) error {
 	return config_.SaveServiceConfiguration(cfg)
 }
 
+func (cfgSaver) GetServiceConfig(idOrName string) (map[string]any, error) {
+	return config_.GetServiceConfigurationById(idOrName)
+}
+
 func (cfgProvider) AllServiceConfigs() ([]map[string]any, error) {
 	cfgs, err := config_.GetServicesConfigurations()
 	if err != nil {

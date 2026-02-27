@@ -7,6 +7,7 @@ type Deps struct {
 	GetConfig             http.Handler
 	GetServiceConfig      http.Handler
 	SaveConfig            http.Handler
+	SaveServiceConfig     http.Handler
 	GetServicePermissions http.Handler
 	GetCACertificate      http.Handler
 	SignCACertificate     http.Handler
@@ -27,6 +28,9 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.SaveConfig != nil {
 		mux.Handle("/api/save-config", d.SaveConfig)
+	}
+	if d.SaveServiceConfig != nil {
+		mux.Handle("/api/save-service-config", d.SaveServiceConfig)
 	}
 	if d.GetServicePermissions != nil {
 		mux.Handle("/api/get-service-permissions", d.GetServicePermissions)

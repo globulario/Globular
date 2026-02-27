@@ -139,6 +139,7 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 	getConfig := cfgHandlers.NewGetConfig(cfgProvider{globule: h.globule, cache: serviceConfigCache})
 	getServiceConfig := cfgHandlers.NewGetServiceConfig(cfgProvider{globule: h.globule})
 	saveConfig := cfgHandlers.NewSaveConfig(cfgSaver{globule: h.globule}, tokenValidator{})
+	saveServiceConfig := cfgHandlers.NewSaveServiceConfig(cfgSaver{globule: h.globule}, tokenValidator{})
 	getSvcPerms := cfgHandlers.NewGetServicePermissions(svcPermsProvider{globule: h.globule})
 	describeService := cfgHandlers.NewDescribeService(describeProvider{})
 
@@ -150,6 +151,7 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 		GetConfig:             wrap(getConfig),
 		GetServiceConfig:      wrap(getServiceConfig),
 		SaveConfig:            wrap(saveConfig),
+		SaveServiceConfig:     wrap(saveServiceConfig),
 		GetServicePermissions: wrap(getSvcPerms),
 		DescribeService:       wrap(describeService),
 		GetCACertificate:      wrap(cfgHandlers.NewGetCACertificate(ca)),
