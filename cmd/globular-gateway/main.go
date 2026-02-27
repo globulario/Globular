@@ -17,6 +17,7 @@ import (
 
 	gatewayconfig "github.com/globulario/Globular/internal/config"
 	gatewayhandlers "github.com/globulario/Globular/internal/gateway/handlers"
+	fileshandler "github.com/globulario/Globular/internal/gateway/handlers/files"
 	gatewayhttp "github.com/globulario/Globular/internal/gateway/httpserver"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	globconfig "github.com/globulario/services/golang/config"
@@ -176,6 +177,11 @@ func main() {
 		Mode:           mode,
 	})
 	mux := handlerSet.Router(logger)
+
+	// Register the background MP4 faststart optimizer.  The hook runs ffmpeg in
+	// a goroutine after each first-serve of an eligible video file; the HTTP
+	// response is never delayed.  ffmpeg must be on PATH; if absent it's a no-op.
+	fileshandler.SetFaststartHook(runFaststartOptimize)
 
 	httpServer := gatewayhttp.New(logger, globule, httpAddr, httpsAddr)
 	if err := httpServer.Start(mux); err != nil {

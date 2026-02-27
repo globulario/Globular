@@ -297,6 +297,10 @@ func (h *FilesystemHandler) Serve(w http.ResponseWriter, r *http.Request, p *pat
 		return true
 	}
 
+	// Trigger background faststart optimization for eligible video files.
+	// The goroutine runs concurrently; http.ServeFile below is not delayed.
+	globalFaststartOptimizer.Schedule(p.name)
+
 	// Default: Range + Last-Modified supported by stdlib
 	http.ServeFile(w, r, p.name)
 	return true
