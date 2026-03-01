@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"testing"
 
-	clustercontrollerpb "github.com/globulario/services/golang/clustercontroller/clustercontrollerpb"
+	cluster_controllerpb "github.com/globulario/services/golang/cluster_controller/cluster_controllerpb"
 )
 
 // TestCertReconcilerWaitsForClusterNetwork ensures reconciler creation defers until cluster config exists.
@@ -24,7 +24,7 @@ func TestCertReconcilerWaitsForClusterNetwork(t *testing.T) {
 		t.Fatalf("expected certInitPending to be true when cluster not ready")
 	}
 
-	w.clusterNetwork = &clustercontrollerpb.ClusterNetwork{Spec: &clustercontrollerpb.ClusterNetworkSpec{ClusterDomain: "example.local"}}
+	w.clusterNetwork = &cluster_controllerpb.ClusterNetwork{Spec: &cluster_controllerpb.ClusterNetworkSpec{ClusterDomain: "example.local"}}
 	w.initializeCertReconciler()
 	if w.certReconciler == nil {
 		t.Fatalf("expected certReconciler to be created after cluster network available")

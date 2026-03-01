@@ -21,7 +21,7 @@ import (
 	"github.com/globulario/Globular/internal/xds/builder"
 	"github.com/globulario/Globular/internal/xds/secrets"
 	"github.com/globulario/Globular/internal/xds/server"
-	clustercontrollerpb "github.com/globulario/services/golang/clustercontroller/clustercontrollerpb"
+	cluster_controllerpb "github.com/globulario/services/golang/cluster_controller/cluster_controllerpb"
 	"github.com/globulario/services/golang/config"
 	Utility "github.com/globulario/utility"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -170,7 +170,7 @@ type Watcher struct {
 
 	// DNS-first routing (PR4)
 	controllerAddr string
-	clusterNetwork *clustercontrollerpb.ClusterNetwork
+	clusterNetwork *cluster_controllerpb.ClusterNetwork
 	dnsCache       *dnscache.Cache
 
 	// Churn control (PR5)

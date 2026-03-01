@@ -6,26 +6,26 @@ import (
 	"strings"
 	"time"
 
-	clustercontrollerpb "github.com/globulario/services/golang/clustercontroller/clustercontrollerpb"
-	nodeagentpb "github.com/globulario/services/golang/nodeagent/nodeagentpb"
+	cluster_controllerpb "github.com/globulario/services/golang/cluster_controller/cluster_controllerpb"
+	node_agentpb "github.com/globulario/services/golang/node_agent/node_agentpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 // ApplySingleUnitAction sends one unit action plan to the NodeAgent and waits for completion.
 func ApplySingleUnitAction(ctx context.Context, nodeAgentAddr, unit, action string) error {
-	plan := &clustercontrollerpb.NodePlan{
-		UnitActions: []*clustercontrollerpb.UnitAction{{UnitName: strings.TrimSpace(unit), Action: strings.TrimSpace(action)}},
+	plan := &cluster_controllerpb.NodePlan{
+		UnitActions: []*cluster_controllerpb.UnitAction{{UnitName: strings.TrimSpace(unit), Action: strings.TrimSpace(action)}},
 	}
 	return applyPlan(ctx, nodeAgentAddr, plan)
 }
 
 // ApplyPlan sends the provided NodePlan to the NodeAgent.
-func ApplyPlan(ctx context.Context, nodeAgentAddr string, plan *clustercontrollerpb.NodePlan) error {
+func ApplyPlan(ctx context.Context, nodeAgentAddr string, plan *cluster_controllerpb.NodePlan) error {
 	return applyPlan(ctx, nodeAgentAddr, plan)
 }
 
-func applyPlan(ctx context.Context, nodeAgentAddr string, plan *clustercontrollerpb.NodePlan) error {
+func applyPlan(ctx context.Context, nodeAgentAddr string, plan *cluster_controllerpb.NodePlan) error {
 	nodeAgentAddr = strings.TrimSpace(nodeAgentAddr)
 	if nodeAgentAddr == "" {
 		return fmt.Errorf("node-agent address is empty")
@@ -42,11 +42,11 @@ func applyPlan(ctx context.Context, nodeAgentAddr string, plan *clustercontrolle
 	}
 	defer conn.Close()
 
-	client := nodeagentpb.NewNodeAgentServiceClient(conn)
+	client := node_agentpb.NewNodeAgentServiceClient(conn)
 
 	respCtx, respCancel := context.WithTimeout(ctx, 10*time.Second)
 	defer respCancel()
-	resp, err := client.ApplyPlan(respCtx, &nodeagentpb.ApplyPlanRequest{Plan: plan})
+	resp, err := client.ApplyPlan(respCtx, &node_agentpb.ApplyPlanRequest{Plan: plan})
 	if err != nil {
 		return fmt.Errorf("apply plan: %w", err)
 	}
@@ -57,7 +57,7 @@ func applyPlan(ctx context.Context, nodeAgentAddr string, plan *clustercontrolle
 
 	streamCtx, streamCancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer streamCancel()
-	stream, err := client.WatchOperation(streamCtx, &nodeagentpb.WatchOperationRequest{OperationId: opID})
+	stream, err := client.WatchOperation(streamCtx, &node_agentpb.WatchOperationRequest{OperationId: opID})
 	if err != nil {
 		return fmt.Errorf("watch operation: %w", err)
 	}
