@@ -125,6 +125,28 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 			s["StartVideoConversionHour"] = services[i]["StartVideoConversionHour"]
 		}
 
+		if name, _ := services[i]["Name"].(string); name == "backup_manager.BackupManagerService" {
+			for _, key := range []string{
+				"DataDir", "MaxConcurrentJobs", "Destinations",
+				"EtcdEndpoints", "EtcdCACert", "EtcdCert", "EtcdKey",
+				"CompressCapsule", "AllowResticPruneOnDelete", "AllowRemoteDelete",
+				"RetentionKeepLastN", "RetentionKeepDays", "RetentionMaxTotalBytes",
+				"MinRestoreTestedToKeep", "ProviderTimeoutSeconds",
+				"ClusterDefaultProviders", "ClusterProviderOrder", "ClusterStrictDefaults",
+				"HookTargets", "HookTimeoutSeconds", "HookStrict", "HookDiscovery",
+				"HookAllowInsecureFallback",
+				"ResticRepo", "ResticPassword", "ResticPaths",
+				"RcloneRemote", "RcloneSource",
+				"ScyllaManagerAPI", "ScyllaCluster", "ScyllaLocation",
+				"MinioEndpoint", "MinioAccessKey", "MinioSecretKey", "MinioSecure",
+				"ScheduleInterval",
+			} {
+				if v := services[i][key]; v != nil {
+					s[key] = v
+				}
+			}
+		}
+
 		// specific configuration values...
 		if services[i]["Root"] != nil {
 			s["Root"] = services[i]["Root"]
