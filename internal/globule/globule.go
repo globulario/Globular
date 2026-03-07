@@ -292,6 +292,9 @@ func machineIDDerivedID() (string, error) {
 	return fmt.Sprintf("%x", sum[:8]), nil
 }
 
+// StartTime returns the instant the Globule was created (used by /stats uptime).
+func (g *Globule) StartTime() time.Time { return g.startTime }
+
 // WatchConfig hot-reloads the process-level config.json into Globule.
 func (g *Globule) WatchConfig() { g.watchConfig() }
 

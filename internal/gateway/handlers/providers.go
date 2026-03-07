@@ -19,9 +19,11 @@ import (
 	"time"
 
 	coreConfig "github.com/globulario/Globular/internal/config"
+	adminHandlers "github.com/globulario/Globular/internal/gateway/handlers/admin"
 	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
 	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	globpkg "github.com/globulario/Globular/internal/globule"
+	"github.com/globulario/Globular/internal/journal"
 	config_ "github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
@@ -206,6 +208,42 @@ func (cfgProvider) AllServiceConfigs() ([]map[string]any, error) {
 		result[i] = c
 	}
 	return result, nil
+}
+
+// adminProvider satisfies admin.AdminProvider for the /admin/metrics/* surface.
+type adminProvider struct {
+	globule *globpkg.Globule
+}
+
+func (adminProvider) AllServiceConfigs() ([]map[string]any, error) {
+	cfgs, err := config_.GetServicesConfigurations()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]any, len(cfgs))
+	for i, c := range cfgs {
+		result[i] = c
+	}
+	return result, nil
+}
+
+func (adminProvider) PublicDirs() []string { return config_.GetPublicDirs() }
+func (adminProvider) DataDir() string      { return config_.GetDataDir() }
+func (adminProvider) StateDir() string     { return config_.GetStateRootDir() }
+func (p adminProvider) Hostname() string   { return p.globule.Name }
+func (adminProvider) IP() string           { return Utility.MyIP() }
+
+// journalAdapter bridges internal/journal → admin.JournalReader.
+type journalAdapter struct{}
+
+func (journalAdapter) ReadUnit(ctx context.Context, unit string, lines int, sinceSec int) adminHandlers.JournalResult {
+	r := journal.ReadUnit(ctx, unit, lines, sinceSec)
+	return adminHandlers.JournalResult{
+		Unit:      r.Unit,
+		Lines:     r.Lines,
+		Truncated: r.Truncated,
+		Error:     r.Error,
+	}
 }
 
 type svcPermsProvider struct {

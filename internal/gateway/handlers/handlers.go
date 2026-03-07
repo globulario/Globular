@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/globulario/Globular/internal/controllerclient"
+	adminHandlers "github.com/globulario/Globular/internal/gateway/handlers/admin"
 	clusterHandlers "github.com/globulario/Globular/internal/gateway/handlers/cluster"
 	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
 	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	mediaHandlers "github.com/globulario/Globular/internal/gateway/handlers/media"
+	statsHandlers "github.com/globulario/Globular/internal/gateway/handlers/stats"
 	httplib "github.com/globulario/Globular/internal/gateway/http"
 	middleware "github.com/globulario/Globular/internal/gateway/http/middleware"
 	globpkg "github.com/globulario/Globular/internal/globule"
@@ -65,6 +67,8 @@ func (h *GatewayHandlers) Router(logger *slog.Logger) *http.ServeMux {
 	h.wireObjectStoreHealth(mux, wrap)
 	h.wireMedia(mux, wrap)
 	h.wireCluster(mux, wrap)
+	h.wireStats(mux, wrap)
+	h.wireAdmin(mux, wrap)
 
 	return mux
 }
@@ -217,5 +221,21 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 		JoinToken:   wrap(clusterHandlers.NewJoinTokenHandler(deps)),
 		Nodes:       wrap(clusterHandlers.NewNodesHandler(deps)),
 		NodeActions: wrap(clusterHandlers.NewNodeActionsHandler(deps)),
+	})
+}
+
+func (h *GatewayHandlers) wireStats(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
+	statsHandlers.Mount(mux, statsHandlers.Deps{
+		Stats: wrap(statsHandlers.NewStatsHandler(h.globule)),
+	})
+}
+
+func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
+	prov := adminProvider{globule: h.globule}
+	adminHandlers.Mount(mux, adminHandlers.Deps{
+		MetricsServices: wrap(adminHandlers.NewServicesHandler(prov)),
+		MetricsStorage:  wrap(adminHandlers.NewStorageHandler(prov)),
+		MetricsEnvoy:    wrap(adminHandlers.NewEnvoyHandler()),
+		ServiceLogs:     wrap(adminHandlers.NewLogsHandler(journalAdapter{})),
 	})
 }

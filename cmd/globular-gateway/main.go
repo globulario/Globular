@@ -21,6 +21,10 @@ import (
 	gatewayhttp "github.com/globulario/Globular/internal/gateway/httpserver"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	globconfig "github.com/globulario/services/golang/config"
+
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const gatewayServiceID = "gateway.GatewayService"
@@ -191,6 +195,13 @@ func main() {
 
 	<-httpServer.Ready()
 
+	// Start a dedicated Prometheus metrics HTTP listener.
+	// The main gateway may be HTTPS-only, so we need a plain HTTP endpoint
+	// that Prometheus can scrape without TLS.
+	if metricsPort := startGatewayMetrics(logger); metricsPort > 0 {
+		writePromTargetFile("gateway", metricsPort)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -324,6 +335,31 @@ func emitGatewayDescribe(cfg *servicePortConfig, g *globpkg.Globule) error {
 	return nil
 }
 
+// startGatewayMetrics starts a plain-HTTP Prometheus metrics server on a free
+// port bound to localhost. Returns the port number, or 0 on failure.
+func startGatewayMetrics(logger *slog.Logger) int {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		logger.Warn("gateway metrics: cannot allocate port", "err", err)
+		return 0
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	srv := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+	go func() {
+		logger.Info("gateway metrics listening", "addr", ln.Addr().String())
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			logger.Warn("gateway metrics server error", "err", err)
+		}
+	}()
+	return port
+}
+
 func gatewayListenPort(g *globpkg.Globule, cfg *servicePortConfig) int {
 	if cfg != nil && cfg.Port > 0 {
 		return cfg.Port
@@ -338,6 +374,21 @@ func gatewayListenPort(g *globpkg.Globule, cfg *servicePortConfig) int {
 		return g.PortHTTP
 	}
 	return 0
+}
+
+const promTargetsDir = "/var/lib/globular/prometheus/targets"
+
+// writePromTargetFile writes a Prometheus file_sd YAML target file so that
+// Prometheus auto-discovers this service's /metrics endpoint.
+func writePromTargetFile(job string, port int) {
+	content := fmt.Sprintf("- targets: [\"127.0.0.1:%d\"]\n  labels:\n    job: %s\n", port, job)
+	path := filepath.Join(promTargetsDir, job+".yaml")
+	if err := os.MkdirAll(promTargetsDir, 0750); err != nil {
+		return
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		slog.Warn("failed to write prometheus target file", "path", path, "err", err)
+	}
 }
 
 func portFromAddress(addr string) int {
