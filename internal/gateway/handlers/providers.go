@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -535,7 +536,14 @@ func buildMinioOptions(cfg *config_.MinioProxyConfig) (minio.Options, error) {
 		return opts, err
 	}
 	opts.Creds = creds
-	if cfg.CABundlePath != "" {
+	// Loopback endpoints always skip TLS verification — traffic is local-only
+	// and after a backup restore the CA may not match MinIO's current cert.
+	host, _, _ := net.SplitHostPort(cfg.Endpoint)
+	if host == "127.0.0.1" || host == "::1" || host == "localhost" {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // loopback only
+		opts.Transport = transport
+	} else if cfg.CABundlePath != "" {
 		pool, err := loadCABundle(cfg.CABundlePath)
 		if err != nil {
 			return opts, err
