@@ -32,11 +32,11 @@ type CertProvider interface {
 
 // CertOverview is the top-level response for GET /admin/certificates.
 type CertOverview struct {
-	InternalPKI InternalPKIState `json:"internalPKI"`
-	PublicTLS   PublicTLSState   `json:"publicTLS"`
-	Envoy       EnvoyState       `json:"envoy"`
-	Warnings    []Warning        `json:"warnings"`
-	DebugGraph  []DebugNode      `json:"debugGraph"`
+	InternalPKI InternalPKIState   `json:"internalPKI"`
+	PublicTLS   PublicTLSState     `json:"publicTLS"`
+	Envoy       EnvoyStateEnriched `json:"envoy"`
+	Warnings    []Warning          `json:"warnings"`
+	DebugGraph  []DebugNode        `json:"debugGraph"`
 }
 
 // InternalPKIState describes the internal CA and service certificate.
@@ -182,7 +182,7 @@ func NewCertificatesHandler(prov CertProvider) http.HandlerFunc {
 			}
 		}
 
-		// Envoy xDS
+		// Envoy xDS — build legacy usage entries for backward compat
 		xdsServerCertPath, xdsServerKeyPath := coreConfig.GetXDSServerCertPaths(runtimeDir)
 		xdsClientCertPath, xdsClientKeyPath := coreConfig.GetEnvoyXDSClientCertPaths(runtimeDir)
 		caBundle := coreConfig.GetClusterCABundlePath(runtimeDir)
@@ -208,6 +208,9 @@ func NewCertificatesHandler(prov CertProvider) http.HandlerFunc {
 			}
 		}
 
+		// Build enriched Envoy state (PR3: listeners, upstreams, secrets, xDS client)
+		envoyState := buildEnrichedEnvoyState(runtimeDir, extDomains, envoyUsage, prov)
+
 		overview := CertOverview{
 			InternalPKI: InternalPKIState{
 				CA:          caCert,
@@ -224,10 +227,7 @@ func NewCertificatesHandler(prov CertProvider) http.HandlerFunc {
 				AlternateDomains: prov.AlternateDomains(),
 				ExternalDomains:  extDomains,
 			},
-			Envoy: EnvoyState{
-				SDSEnabled: true, // SDS is always enabled in current architecture
-				Usage:      envoyUsage,
-			},
+			Envoy: envoyState,
 		}
 
 		overview.Warnings = collectWarnings(&overview, prov)
@@ -475,12 +475,15 @@ func collectWarnings(overview *CertOverview, prov CertProvider) []Warning {
 		}
 	}
 
-	// Envoy usage warnings
+	// Envoy usage warnings (legacy flat list)
 	for _, u := range overview.Envoy.Usage {
 		if u.Status == "missing" {
 			ws = append(ws, Warning{Severity: "warning", Message: fmt.Sprintf("Envoy secret %q has missing files", u.Name)})
 		}
 	}
+
+	// Enriched Envoy warnings (PR3: listeners, upstreams, secrets, xDS client)
+	ws = append(ws, collectEnvoyEnrichedWarnings(overview.Envoy)...)
 
 	return ws
 }
