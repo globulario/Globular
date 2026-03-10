@@ -23,6 +23,8 @@ type Deps struct {
 	MetricsEnvoy         http.Handler // GET /admin/metrics/envoy
 	ServiceLogs          http.Handler // GET /admin/service/logs
 	CertificatesOverview http.Handler // GET /admin/certificates
+	RenewPublic          http.Handler // POST /admin/certificates/renew-public
+	RegenerateInternal   http.Handler // POST /admin/certificates/regenerate-internal
 }
 
 // Mount registers only the endpoints provided.
@@ -41,5 +43,11 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.CertificatesOverview != nil {
 		mux.Handle("/admin/certificates", d.CertificatesOverview)
+	}
+	if d.RenewPublic != nil {
+		mux.Handle("/admin/certificates/renew-public", d.RenewPublic)
+	}
+	if d.RegenerateInternal != nil {
+		mux.Handle("/admin/certificates/regenerate-internal", d.RegenerateInternal)
 	}
 }

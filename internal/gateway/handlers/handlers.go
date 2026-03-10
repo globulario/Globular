@@ -239,5 +239,7 @@ func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) 
 		MetricsEnvoy:         wrap(adminHandlers.NewEnvoyHandler()),
 		ServiceLogs:          wrap(adminHandlers.NewLogsHandler(journalAdapter{})),
 		CertificatesOverview: wrap(adminHandlers.NewCertificatesHandler(certProv)),
+		RenewPublic:          wrap(adminHandlers.NewRenewPublicHandler(certProv)),
+		RegenerateInternal:   wrap(adminHandlers.NewRegenerateInternalHandler(certProv)),
 	})
 }
