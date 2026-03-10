@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/Globular/internal/controllerclient"
 )
 
@@ -74,10 +75,17 @@ type ClusterCertOverview struct {
 
 // ── Handler ─────────────────────────────────────────────────────────────────
 
+// ClusterCertDeps holds what the cluster certificates handler needs.
+type ClusterCertDeps struct {
+	Controller  *controllerclient.Client
+	GatewayPort int
+	LocalProv   CertProvider // local node cert provider (avoids HTTP loopback)
+}
+
 // NewClusterCertificatesHandler returns a GET handler for /admin/certificates/cluster.
-func NewClusterCertificatesHandler(controller *controllerclient.Client, gatewayPort int) http.HandlerFunc {
-	if gatewayPort == 0 {
-		gatewayPort = 8080
+func NewClusterCertificatesHandler(deps ClusterCertDeps) http.HandlerFunc {
+	if deps.GatewayPort == 0 {
+		deps.GatewayPort = 8080
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -85,14 +93,14 @@ func NewClusterCertificatesHandler(controller *controllerclient.Client, gatewayP
 			return
 		}
 
-		if controller == nil || controller.Address() == "" {
+		if deps.Controller == nil || deps.Controller.Address() == "" {
 			writeActionResponse(w, http.StatusServiceUnavailable, false,
 				"Cluster controller not configured")
 			return
 		}
 
 		ctx := r.Context()
-		nodes := fetchClusterCertStates(ctx, controller, gatewayPort)
+		nodes := fetchClusterCertStates(ctx, deps)
 
 		overview := ClusterCertOverview{
 			Summary: computeClusterSummary(nodes),
@@ -110,12 +118,12 @@ func NewClusterCertificatesHandler(controller *controllerclient.Client, gatewayP
 // ── Cluster data gathering ──────────────────────────────────────────────────
 
 // fetchClusterCertStates queries all known cluster peers in parallel.
-func fetchClusterCertStates(ctx context.Context, controller *controllerclient.Client, gatewayPort int) []ClusterNodeCertStatus {
-	resp, err := controller.ListNodes(ctx)
+func fetchClusterCertStates(ctx context.Context, deps ClusterCertDeps) []ClusterNodeCertStatus {
+	resp, err := deps.Controller.ListNodes(ctx)
 	if err != nil {
 		return []ClusterNodeCertStatus{{
 			NodeID:  "(controller)",
-			Address: controller.Address(),
+			Address: deps.Controller.Address(),
 			Status:  "unreachable",
 			Warnings: []Warning{{
 				Severity: "error",
@@ -129,19 +137,142 @@ func fetchClusterCertStates(ctx context.Context, controller *controllerclient.Cl
 		return nil
 	}
 
+	// Determine local node identity for loopback detection
+	localHostname := ""
+	localIP := ""
+	if deps.LocalProv != nil {
+		localHostname = deps.LocalProv.Hostname()
+		localIP = deps.LocalProv.IP()
+	}
+
 	results := make([]ClusterNodeCertStatus, len(records))
 	var wg sync.WaitGroup
 
 	for i, rec := range records {
 		wg.Add(1)
-		go func(idx int, nodeID, address, fqdn string) {
+		go func(idx int, nodeID, agentEndpoint, fqdn string) {
 			defer wg.Done()
-			results[idx] = fetchNodeCertStatus(ctx, nodeID, address, fqdn, gatewayPort)
+
+			// Detect local node: compare hostname or IP to avoid HTTP loopback
+			if deps.LocalProv != nil && isLocalNode(agentEndpoint, fqdn, localHostname, localIP) {
+				results[idx] = buildLocalNodeCertStatus(nodeID, fqdn, deps.LocalProv)
+				return
+			}
+
+			results[idx] = fetchNodeCertStatus(ctx, nodeID, agentEndpoint, fqdn, deps.GatewayPort)
 		}(i, rec.GetNodeId(), rec.GetAgentEndpoint(), rec.GetAdvertiseFqdn())
 	}
 
 	wg.Wait()
 	return results
+}
+
+// isLocalNode checks if a cluster node record refers to this node.
+func isLocalNode(agentEndpoint, fqdn, localHostname, localIP string) bool {
+	host := resolveNodeHost(agentEndpoint, fqdn)
+	if host == "" {
+		return false
+	}
+	if localHostname != "" && (host == localHostname || fqdn == localHostname) {
+		return true
+	}
+	if localIP != "" && host == localIP {
+		return true
+	}
+	// Also check if agent endpoint IP matches local IP
+	epHost := resolveNodeHost(agentEndpoint, "")
+	if localIP != "" && epHost == localIP {
+		return true
+	}
+	return false
+}
+
+// buildLocalNodeCertStatus generates the cert overview for the local node
+// directly from the CertProvider, avoiding an HTTP roundtrip.
+func buildLocalNodeCertStatus(nodeID, address string, prov CertProvider) ClusterNodeCertStatus {
+	overview := buildLocalCertOverview(prov)
+	return normalizeNodeCertStatus(nodeID, address, &overview)
+}
+
+// buildLocalCertOverview replicates the logic from NewCertificatesHandler
+// but returns the struct directly instead of writing HTTP JSON.
+func buildLocalCertOverview(prov CertProvider) CertOverview {
+	cp := prov.CertPaths()
+	domain := prov.Domain()
+	runtimeDir := prov.RuntimeConfigDir()
+
+	caPath, _, caBundlePath := canonicalCAPaths(runtimeDir)
+	caCert := parsePEMCertificate(caPath, "Internal CA", "internal", "ca", "internal-ca")
+	svcCert := parsePEMCertificate(cp.InternalServerCert(), "Internal Service", "internal", "service", "internal-ca")
+	bundleCert := parsePEMCertificate(caBundlePath, "CA Bundle", "internal", "issuer_bundle", "internal-ca")
+
+	sanConfig := ""
+	if sanData, err := readSANConf(cp.InternalServerCert()); err == nil {
+		sanConfig = string(sanData)
+	}
+
+	internalConsumers := []string{"gRPC services", "Envoy upstream TLS", "Node-to-node trust"}
+
+	acmePath := cp.ACMECert(domain)
+	var leafCertPtr *CertRecord
+	if acmePath != "" && fileExists(acmePath) {
+		rec := parsePEMCertificate(acmePath, "Public Leaf (ACME)", "public", "public_leaf", "acme")
+		leafCertPtr = &rec
+	}
+
+	extDomains := scanExternalDomainCerts(runtimeDir)
+	hasPrimaryACME := leafCertPtr != nil
+
+	var issuerBundlePtr *CertRecord
+	if leafCertPtr == nil && len(extDomains) > 0 {
+		leafCertPtr = extDomains[0].LeafCert
+	}
+	for _, ext := range extDomains {
+		if fileExists(ext.ChainPath) {
+			rec := parsePEMCertificate(ext.ChainPath, fmt.Sprintf("Issuer Chain (%s)", ext.FQDN), "public", "issuer_bundle", "acme")
+			issuerBundlePtr = &rec
+			break
+		}
+	}
+
+	xdsServerCertPath, xdsServerKeyPath := coreConfig.GetXDSServerCertPaths(runtimeDir)
+	xdsClientCertPath, xdsClientKeyPath := coreConfig.GetEnvoyXDSClientCertPaths(runtimeDir)
+	caBundle := coreConfig.GetClusterCABundlePath(runtimeDir)
+
+	envoyUsage := []EnvoyTLSUsage{
+		makeEnvoyUsage("internal-server-cert", "listener", xdsServerCertPath, xdsServerKeyPath, ""),
+		makeEnvoyUsage("internal-ca-bundle", "upstream", "", "", caBundle),
+		makeEnvoyUsage("xds-server", "xds_server", xdsServerCertPath, xdsServerKeyPath, caBundle),
+		makeEnvoyUsage("envoy-xds-client", "xds_client", xdsClientCertPath, xdsClientKeyPath, caBundle),
+	}
+
+	if hasPrimaryACME {
+		acmeKeyPath := cp.ACMEKey(domain)
+		envoyUsage = append(envoyUsage, makeEnvoyUsage("public-ingress-cert", "listener", acmePath, acmeKeyPath, ""))
+	}
+	for _, ext := range extDomains {
+		if ext.LeafCert != nil && ext.LeafCert.Exists {
+			secretName := fmt.Sprintf("ext-cert/%s", ext.FQDN)
+			envoyUsage = append(envoyUsage, makeEnvoyUsage(secretName, "listener", ext.LeafCert.Path, ext.KeyPath, ext.ChainPath))
+		}
+	}
+
+	envoyState := buildEnrichedEnvoyState(runtimeDir, extDomains, envoyUsage, prov)
+
+	overview := CertOverview{
+		InternalPKI: InternalPKIState{
+			CA: caCert, ServiceCert: svcCert, Bundle: bundleCert,
+			SANConfig: sanConfig, Consumers: internalConsumers,
+		},
+		PublicTLS: PublicTLSState{
+			LeafCert: leafCertPtr, IssuerBundle: issuerBundlePtr,
+			Protocol: prov.Protocol(), Domain: domain,
+			AlternateDomains: prov.AlternateDomains(), ExternalDomains: extDomains,
+		},
+		Envoy: envoyState,
+	}
+	overview.Warnings = collectWarnings(&overview, prov)
+	return overview
 }
 
 // fetchNodeCertStatus fetches /admin/certificates from a single node.

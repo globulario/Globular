@@ -240,8 +240,12 @@ func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) 
 		MetricsEnvoy:         wrap(adminHandlers.NewEnvoyHandler()),
 		ServiceLogs:          wrap(adminHandlers.NewLogsHandler(journalAdapter{})),
 		CertificatesOverview: wrap(adminHandlers.NewCertificatesHandler(certProv)),
-		CertificatesCluster:  wrap(adminHandlers.NewClusterCertificatesHandler(controller, h.globule.PortHTTP)),
-		RenewPublic:          wrap(adminHandlers.NewRenewPublicHandler(certProv)),
-		RegenerateInternal:   wrap(adminHandlers.NewRegenerateInternalHandler(certProv)),
+		CertificatesCluster: wrap(adminHandlers.NewClusterCertificatesHandler(adminHandlers.ClusterCertDeps{
+			Controller:  controller,
+			GatewayPort: h.globule.PortHTTP,
+			LocalProv:   certProv,
+		})),
+		RenewPublic:        wrap(adminHandlers.NewRenewPublicHandler(certProv)),
+		RegenerateInternal: wrap(adminHandlers.NewRegenerateInternalHandler(certProv)),
 	})
 }
