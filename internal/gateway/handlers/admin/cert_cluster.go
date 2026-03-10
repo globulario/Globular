@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -167,22 +169,58 @@ func fetchClusterCertStates(ctx context.Context, deps ClusterCertDeps) []Cluster
 	return results
 }
 
-// isLocalNode checks if a cluster node record refers to this node.
+// isLocalNode checks if a cluster node record refers to this node by
+// comparing against all local network interface addresses and the hostname.
 func isLocalNode(agentEndpoint, fqdn, localHostname, localIP string) bool {
-	host := resolveNodeHost(agentEndpoint, fqdn)
-	if host == "" {
+	// Extract the IP from the agent endpoint (e.g., "10.0.0.63:11000" → "10.0.0.63")
+	epHost := resolveNodeHost(agentEndpoint, "")
+
+	// Check hostname match (e.g., "globule-ryzen" vs "globule-ryzen" or FQDN prefix)
+	if localHostname != "" {
+		if fqdn == localHostname || strings.HasPrefix(fqdn, localHostname+".") {
+			return true
+		}
+		if epHost == localHostname {
+			return true
+		}
+	}
+
+	// Check if the agent endpoint IP is one of our local interface IPs
+	if epHost != "" && isLocalIP(epHost) {
+		return true
+	}
+
+	// Fallback: check the explicit local IP from provider
+	if localIP != "" && epHost != "" && epHost == localIP {
+		return true
+	}
+
+	return false
+}
+
+// isLocalIP returns true if the given IP belongs to a local network interface.
+func isLocalIP(ip string) bool {
+	if ip == "127.0.0.1" || ip == "::1" || ip == "localhost" {
+		return true
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
 		return false
 	}
-	if localHostname != "" && (host == localHostname || fqdn == localHostname) {
-		return true
-	}
-	if localIP != "" && host == localIP {
-		return true
-	}
-	// Also check if agent endpoint IP matches local IP
-	epHost := resolveNodeHost(agentEndpoint, "")
-	if localIP != "" && epHost == localIP {
-		return true
+	for _, addr := range addrs {
+		var ifaceIP string
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ifaceIP = v.IP.String()
+		case *net.IPAddr:
+			ifaceIP = v.IP.String()
+		default:
+			// addr.String() is typically "ip/mask", strip the mask
+			ifaceIP = strings.Split(addr.String(), "/")[0]
+		}
+		if ifaceIP == ip {
+			return true
+		}
 	}
 	return false
 }
