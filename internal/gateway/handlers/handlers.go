@@ -12,6 +12,7 @@ import (
 	adminHandlers "github.com/globulario/Globular/internal/gateway/handlers/admin"
 	clusterHandlers "github.com/globulario/Globular/internal/gateway/handlers/cluster"
 	cfgHandlers "github.com/globulario/Globular/internal/gateway/handlers/config"
+	domainHandlers "github.com/globulario/Globular/internal/gateway/handlers/domains"
 	filesHandlers "github.com/globulario/Globular/internal/gateway/handlers/files"
 	mediaHandlers "github.com/globulario/Globular/internal/gateway/handlers/media"
 	statsHandlers "github.com/globulario/Globular/internal/gateway/handlers/stats"
@@ -70,6 +71,7 @@ func (h *GatewayHandlers) Router(logger *slog.Logger) *http.ServeMux {
 	h.wireCluster(mux, wrap)
 	h.wireStats(mux, wrap)
 	h.wireAdmin(mux, wrap)
+	h.wireDomains(mux, wrap)
 
 	return mux
 }
@@ -311,5 +313,19 @@ func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) 
 		})),
 		RenewPublic:        wrap(adminHandlers.NewRenewPublicHandler(certProv)),
 		RegenerateInternal: wrap(adminHandlers.NewRegenerateInternalHandler(certProv)),
+	})
+}
+
+func (h *GatewayHandlers) wireDomains(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
+	prov := domainStoreProvider{}
+	domainHandlers.Mount(mux, domainHandlers.Deps{
+		ListProviders:  wrap(domainHandlers.NewListProviders(prov)),
+		GetProvider:    wrap(domainHandlers.NewGetProvider(prov)),
+		PutProvider:    wrap(domainHandlers.NewPutProvider(prov)),
+		DeleteProvider: wrap(domainHandlers.NewDeleteProvider(prov)),
+		ListDomains:    wrap(domainHandlers.NewListDomains(prov)),
+		GetDomain:      wrap(domainHandlers.NewGetDomain(prov)),
+		PutDomain:      wrap(domainHandlers.NewPutDomain(prov)),
+		DeleteDomain:   wrap(domainHandlers.NewDeleteDomain(prov)),
 	})
 }

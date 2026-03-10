@@ -26,6 +26,7 @@ import (
 	globpkg "github.com/globulario/Globular/internal/globule"
 	"github.com/globulario/Globular/internal/journal"
 	config_ "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/domain"
 	"github.com/globulario/services/golang/rbac/rbacpb"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
@@ -750,4 +751,16 @@ func (h *GatewayHandlers) newServeProvider() serveProvider {
 
 func (h *GatewayHandlers) newUploadProvider() uploadProvider {
 	return uploadProvider{globule: h.globule}
+}
+
+// domainStoreProvider satisfies domains.StoreProvider.
+// It lazily creates the domain store from the etcd client.
+type domainStoreProvider struct{}
+
+func (domainStoreProvider) DomainStore() domain.DomainStore {
+	cli, err := config_.GetEtcdClient()
+	if err != nil || cli == nil {
+		return nil
+	}
+	return domain.NewEtcdDomainStore(cli)
 }

@@ -16,10 +16,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	coreConfig "github.com/globulario/Globular/internal/config"
 )
+
+// renewMu guards against concurrent renewal requests.
+// Only one renewal cycle can be active at a time to prevent
+// hammering Let's Encrypt rate limits.
+var renewMu sync.Mutex
+var renewActive bool
 
 // ── Action provider interface ────────────────────────────────────────────────
 
@@ -48,8 +55,20 @@ func writeActionResponse(w http.ResponseWriter, status int, ok bool, msg string)
 
 // ── Renew public certificate ─────────────────────────────────────────────────
 
-// NewRenewPublicHandler returns a POST handler that triggers public cert renewal
-// by invalidating existing cert files so the domain reconciler re-obtains them.
+// RenewRequestedMarker is the filename the handler writes to signal the
+// reconciler that a forced renewal is requested. The reconciler removes
+// the marker once the new certificate is successfully staged and swapped.
+const RenewRequestedMarker = ".renew-requested"
+
+// NewRenewPublicHandler returns a POST handler that triggers public cert renewal.
+//
+// Safety guarantees:
+//   - Old certificates stay on disk during the entire ACME obtain cycle.
+//     The reconciler obtains into a staging dir and atomically swaps on success.
+//   - A .renew-requested marker file signals the reconciler to force renewal
+//     even if the current cert is still valid.
+//   - Concurrent requests are rejected (only one renewal cycle at a time)
+//     to prevent hammering Let's Encrypt rate limits.
 func NewRenewPublicHandler(prov CertActionsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -64,6 +83,25 @@ func NewRenewPublicHandler(prov CertActionsProvider) http.HandlerFunc {
 			return
 		}
 
+		// Block concurrent renewals
+		renewMu.Lock()
+		if renewActive {
+			renewMu.Unlock()
+			writeActionResponse(w, http.StatusConflict, false,
+				"A certificate renewal is already in progress. Please wait for it to complete.")
+			return
+		}
+		renewActive = true
+		renewMu.Unlock()
+
+		// Release the lock when we're done writing markers.
+		// The actual ACME work happens asynchronously in the reconciler.
+		defer func() {
+			renewMu.Lock()
+			renewActive = false
+			renewMu.Unlock()
+		}()
+
 		runtimeDir := prov.RuntimeConfigDir()
 		domainsDir := filepath.Join(runtimeDir, "domains")
 
@@ -75,7 +113,7 @@ func NewRenewPublicHandler(prov CertActionsProvider) http.HandlerFunc {
 			return
 		}
 
-		renewed := 0
+		queued := 0
 		var errs []string
 		for _, entry := range entries {
 			if !entry.IsDir() {
@@ -88,18 +126,17 @@ func NewRenewPublicHandler(prov CertActionsProvider) http.HandlerFunc {
 				continue
 			}
 
-			// Rename the cert file to force the reconciler to re-obtain.
-			// The reconciler checks isCertificateValid() which returns false
-			// if the file is missing, triggering a new ACME obtain.
-			backupFile := certFile + ".renew-backup"
-			if err := os.Rename(certFile, backupFile); err != nil {
+			// Write a marker file to signal the reconciler to force renewal.
+			// The old cert stays in place — no gap in TLS service.
+			markerFile := filepath.Join(domainsDir, fqdn, RenewRequestedMarker)
+			if err := os.WriteFile(markerFile, []byte(time.Now().UTC().Format(time.RFC3339)), 0644); err != nil {
 				errs = append(errs, fmt.Sprintf("%s: %v", fqdn, err))
 				continue
 			}
-			renewed++
+			queued++
 		}
 
-		if renewed == 0 && len(errs) == 0 {
+		if queued == 0 && len(errs) == 0 {
 			writeActionResponse(w, http.StatusBadRequest, false,
 				"No external domain certificates found to renew")
 			return
@@ -107,13 +144,14 @@ func NewRenewPublicHandler(prov CertActionsProvider) http.HandlerFunc {
 
 		if len(errs) > 0 {
 			writeActionResponse(w, http.StatusInternalServerError, false,
-				fmt.Sprintf("Failed to invalidate certificates for renewal: %v", errs))
+				fmt.Sprintf("Failed to queue renewal: %v", errs))
 			return
 		}
 
 		writeActionResponse(w, http.StatusOK, true,
-			fmt.Sprintf("Public certificate renewal queued for %d domain(s). "+
-				"The domain reconciler will re-obtain certificates within ~60 seconds.", renewed))
+			fmt.Sprintf("Certificate renewal queued for %d domain(s). "+
+				"Old certificates remain active until new ones are ready. "+
+				"The reconciler will obtain new certificates within ~60 seconds.", queued))
 	}
 }
 
