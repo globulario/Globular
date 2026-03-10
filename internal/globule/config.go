@@ -3,6 +3,10 @@ package globule
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"os"
 	"path/filepath"
@@ -105,6 +109,19 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 		s["Proxy"] = services[i]["Proxy"]
 		s["PublisherID"] = services[i]["PublisherID"]
 		s["State"] = services[i]["State"]
+
+		// Cross-validate: if etcd says stopped/closed but the service port
+		// is listening, the service is actually running (stale etcd state).
+		if st, _ := s["State"].(string); st == "stopped" || st == "closed" || st == "" {
+			if port, ok := asInt(services[i]["Port"]); ok && port > 0 {
+				conn, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(port), 200*time.Millisecond)
+				if err == nil {
+					conn.Close()
+					s["State"] = "running"
+				}
+			}
+		}
+
 		s["TLS"] = services[i]["TLS"]
 		s["Dependencies"] = services[i]["Dependencies"]
 		s["Version"] = services[i]["Version"]
