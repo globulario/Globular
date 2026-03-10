@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ type SvcThresholds struct {
 	CPUCrit float64 `json:"cpu_crit_pct"`
 	MemWarn float64 `json:"mem_warn_pct"`
 	MemCrit float64 `json:"mem_crit_pct"`
+	NumCPU  int     `json:"num_cpu"`
 }
 
 // ServiceGroup is a named category of services.
@@ -175,6 +177,11 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 
 	// CPU: rate(process_cpu_seconds_total[1m]) * 100
+	// Normalize from per-core (0–N*100%) to system-wide (0–100%).
+	numCPU := float64(runtime.NumCPU())
+	if numCPU < 1 {
+		numCPU = 1
+	}
 	if results, err := prom.query(ctx, "rate(process_cpu_seconds_total[1m])*100"); err == nil {
 		for _, r := range results {
 			key := promJobKey(r.Metric)
@@ -182,7 +189,7 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 				continue
 			}
 			val := parsePromValue(r.Value[1])
-			ensure(key).cpuPct = val
+			ensure(key).cpuPct = val / numCPU
 		}
 	}
 
@@ -445,8 +452,15 @@ func deriveServiceHealth(state string, pm *svcMetrics, promConnected bool) (stri
 	case "failed", "error", "dead":
 		reasons = append(reasons, "service state: "+state)
 		return "critical", reasons
-	case "stopped":
-		return "critical", []string{"service state: stopped"}
+	case "stopped", "closed":
+		// Cross-validate: if Prometheus shows process metrics, the service
+		// is actually running — etcd state is stale.
+		if promConnected && pm != nil {
+			// Fall through to Prometheus-based health checks below.
+			reasons = append(reasons, "etcd state stale ("+state+"), process metrics present")
+			break
+		}
+		return "critical", []string{"service state: " + state}
 	case "restarting", "degraded":
 		reasons = append(reasons, "service state: "+state)
 		// Don't return yet — Prometheus may escalate to critical
@@ -580,6 +594,13 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 			inst.DerivedStatus = status
 			inst.Reasons = reasons
 
+			// Correct stale etcd state: if Prometheus proves the process is
+			// alive but etcd says stopped/closed, show the true state.
+			lowerState := strings.ToLower(inst.State)
+			if promConnected && pm != nil && (lowerState == "stopped" || lowerState == "closed") {
+				inst.State = "running"
+			}
+
 			all = append(all, inst)
 		}
 
@@ -613,6 +634,7 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 				CPUCrit: cpuCritPct,
 				MemWarn: memWarnPct,
 				MemCrit: memCritPct,
+				NumCPU:  runtime.NumCPU(),
 			},
 			Groups:  grouped,
 			Summary: summary,

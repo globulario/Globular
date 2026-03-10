@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"bufio"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -143,16 +144,15 @@ func NewStorageHandler(provider AdminProvider) http.Handler {
 
 func buildAppPaths(provider AdminProvider, mounts []MountInfo) []ApplicationPath {
 	stateDir := provider.StateDir()
-	dataDir := provider.DataDir()
 
 	known := []struct {
 		name string
 		path string
 	}{
-		{"etcd", filepath.Join(dataDir, "etcd")},
+		{"etcd", filepath.Join(stateDir, "etcd")},
 		{"ScyllaDB", "/var/lib/scylla"},
-		{"Prometheus", filepath.Join(dataDir, "prometheus-data")},
-		{"MinIO", filepath.Join(stateDir, "minio", "data")},
+		{"Prometheus", filepath.Join(stateDir, "prometheus", "data")},
+		{"MinIO", resolveMinIODataDir(stateDir)},
 	}
 
 	// Add file service public dirs
@@ -236,6 +236,34 @@ func isWritable(p string) bool {
 	f.Close()
 	os.Remove(tmp)
 	return true
+}
+
+// resolveMinIODataDir reads MINIO_VOLUMES from the minio env file.
+// Falls back to {stateDir}/minio/data if the env file is missing or unset.
+func resolveMinIODataDir(stateDir string) string {
+	envFile := filepath.Join(stateDir, "minio", "minio.env")
+	f, err := os.Open(envFile)
+	if err != nil {
+		return filepath.Join(stateDir, "minio", "data")
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+			continue
+		}
+		k, v, _ := strings.Cut(line, "=")
+		if strings.TrimSpace(k) == "MINIO_VOLUMES" {
+			v = strings.TrimSpace(v)
+			v = strings.Trim(v, "\"'")
+			if v != "" {
+				return v
+			}
+		}
+	}
+	return filepath.Join(stateDir, "minio", "data")
 }
 
 func fmtFloat(v float64) string {
