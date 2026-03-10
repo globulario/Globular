@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"net"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -443,7 +444,7 @@ const (
 	memCritPct = 95.0
 )
 
-func deriveServiceHealth(state string, pm *svcMetrics, promConnected bool) (string, []string) {
+func deriveServiceHealth(state string, pm *svcMetrics, promConnected bool, port int) (string, []string) {
 	state = strings.ToLower(state)
 	var reasons []string
 
@@ -466,10 +467,19 @@ func deriveServiceHealth(state string, pm *svcMetrics, promConnected bool) (stri
 		// Don't return yet — Prometheus may escalate to critical
 	case "running", "active":
 		// Cross-validate with Prometheus: if Prometheus is connected but
-		// has no process metrics for this service, the etcd state may be
-		// stale (e.g. the process was killed without updating etcd).
+		// has no process metrics for this service, verify with a TCP port
+		// probe. Some services (node_agent, cluster_controller, etc.)
+		// don't expose Prometheus metrics at all.
 		if promConnected && pm == nil {
-			return "critical", []string{"service state: " + state + " (no process metrics — likely not running)"}
+			if port > 0 {
+				conn, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(port), 200*time.Millisecond)
+				if err == nil {
+					conn.Close()
+					// Port is alive — service is running, just not scraped by Prometheus.
+					break
+				}
+			}
+			return "critical", []string{"service state: " + state + " (no process metrics, port not responding)"}
 		}
 	default:
 		if state == "" || state == "unknown" {
@@ -590,7 +600,7 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 			}
 
 			// Derive health status
-			status, reasons := deriveServiceHealth(inst.State, pm, promConnected)
+			status, reasons := deriveServiceHealth(inst.State, pm, promConnected, inst.Port)
 			inst.DerivedStatus = status
 			inst.Reasons = reasons
 
