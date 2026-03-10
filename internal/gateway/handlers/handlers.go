@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/globulario/Globular/internal/controllerclient"
@@ -106,9 +107,38 @@ func (h *GatewayHandlers) HandleRedirect(to *middleware.Target, w http.ResponseW
 }
 
 func (h *GatewayHandlers) setHeaders(w http.ResponseWriter, r *http.Request) {
+	policy := h.globule.GetCorsPolicy()
+
+	// If CORS is disabled, skip all headers.
+	if !policy.Enabled {
+		return
+	}
+
 	origin := r.Header.Get("Origin")
-	allowedOrigin := h.globule.Protocol + "://" + h.globule.Domain
-	if origin != "" {
+	allowedOrigin := ""
+
+	if policy.AllowAllOrigins {
+		if policy.AllowCredentials {
+			// Spec: wildcard + credentials is invalid; reflect the origin instead.
+			allowedOrigin = origin
+		} else {
+			allowedOrigin = "*"
+		}
+	} else if origin != "" {
+		for _, allowed := range policy.AllowedOrigins {
+			if allowed == origin {
+				allowedOrigin = origin
+				break
+			}
+		}
+	}
+	// Fallback: if no origin matched, use protocol://domain for same-site.
+	if allowedOrigin == "" && origin == "" {
+		allowedOrigin = h.globule.Protocol + "://" + h.globule.Domain
+	}
+
+	// Also check legacy fields as fallback (backward compat).
+	if allowedOrigin == "" && origin != "" {
 		for _, allowed := range h.globule.AllowedOrigins {
 			if allowed == "*" || allowed == origin {
 				allowedOrigin = origin
@@ -117,23 +147,45 @@ func (h *GatewayHandlers) setHeaders(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	allowedMethods := strings.Join(h.globule.AllowedMethods, ",")
-	allowedHeaders := strings.Join(h.globule.AllowedHeaders, ",")
-
 	header := w.Header()
 	if allowedOrigin != "" {
 		header.Set("Access-Control-Allow-Origin", allowedOrigin)
-		if allowedOrigin != "*" {
+		if policy.AllowCredentials && allowedOrigin != "*" {
 			header.Set("Access-Control-Allow-Credentials", "true")
 		}
 		header.Add("Vary", "Origin")
 	}
-	header.Set("Access-Control-Allow-Methods", allowedMethods)
-	header.Set("Access-Control-Allow-Headers", allowedHeaders)
-	header.Set("Access-Control-Allow-Private-Network", "true")
+
+	// Methods
+	if len(policy.AllowedMethods) > 0 {
+		header.Set("Access-Control-Allow-Methods", strings.Join(policy.AllowedMethods, ","))
+	} else {
+		header.Set("Access-Control-Allow-Methods", strings.Join(h.globule.AllowedMethods, ","))
+	}
+
+	// Headers
+	if len(policy.AllowedHeaders) > 0 {
+		header.Set("Access-Control-Allow-Headers", strings.Join(policy.AllowedHeaders, ","))
+	} else {
+		header.Set("Access-Control-Allow-Headers", strings.Join(h.globule.AllowedHeaders, ","))
+	}
+
+	// Exposed headers
+	if len(policy.ExposedHeaders) > 0 {
+		header.Set("Access-Control-Expose-Headers", strings.Join(policy.ExposedHeaders, ","))
+	}
+
+	// Private network
+	if policy.AllowPrivateNetwork {
+		header.Set("Access-Control-Allow-Private-Network", "true")
+	}
 
 	if r.Method == http.MethodOptions {
-		header.Set("Access-Control-Max-Age", "3600")
+		if policy.MaxAgeSeconds > 0 {
+			header.Set("Access-Control-Max-Age", strconv.Itoa(policy.MaxAgeSeconds))
+		} else {
+			header.Set("Access-Control-Max-Age", "3600")
+		}
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -151,6 +203,10 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 	getServicesCors := cfgHandlers.NewGetServicesCors(cfgProvider{globule: h.globule, cache: serviceConfigCache})
 	setServiceCors := cfgHandlers.NewSetServiceCors(cfgSaver{globule: h.globule})
 
+	// Structured CORS policy handlers (PR1)
+	corsProvider := cfgProvider{globule: h.globule, cache: serviceConfigCache}
+	corsSaver := cfgSaver{globule: h.globule}
+
 	cfgHandlers.Mount(mux, cfgHandlers.Deps{
 		GetConfig:             wrap(getConfig),
 		GetServiceConfig:      wrap(getServiceConfig),
@@ -163,6 +219,14 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 		GetSANConf:            wrap(cfgHandlers.NewGetSANConf(ca)),
 		GetServicesCors:       wrap(getServicesCors),
 		SetServiceCors:        wrap(setServiceCors),
+
+		// Structured CORS policy (PR1)
+		GetGatewayCorsPolicy:     wrap(cfgHandlers.NewGetGatewayCorsPolicy(corsProvider)),
+		SetGatewayCorsPolicy:     wrap(cfgHandlers.NewSetGatewayCorsPolicy(corsSaver)),
+		GetServiceCorsPolicy:     wrap(cfgHandlers.NewGetServiceCorsPolicy(corsProvider)),
+		SetServiceCorsPolicy:     wrap(cfgHandlers.NewSetServiceCorsPolicy(corsSaver)),
+		GetAllServicesCorsPolicy: wrap(cfgHandlers.NewGetAllServicesCorsPolicy(corsProvider, corsProvider)),
+		CorsDiagnostics:          wrap(cfgHandlers.NewCorsDiagnostics(corsProvider)),
 	})
 }
 

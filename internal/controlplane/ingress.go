@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	cors_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -35,30 +37,13 @@ type IngressRoute struct {
 
 // MakeRoutes builds the shared ingress RouteConfiguration with per-route prefixes.
 // IMPORTANT: Enables CORS (with credentials) for browser callers.
-// allowedOrigins is the list of permitted CORS origins (exact strings). When empty,
-// a permissive regex matcher ("https?://.*") is used as the default so that any
-// HTTPS or localhost origin is accepted.
-func MakeRoutes(routeName string, rs []IngressRoute, allowedOrigins []string) *route_v3.RouteConfiguration {
-	var originMatchers []*matcher_v3.StringMatcher
-	for _, o := range allowedOrigins {
-		o = strings.TrimSpace(o)
-		if o == "" {
-			continue
-		}
-		originMatchers = append(originMatchers, &matcher_v3.StringMatcher{
-			MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: o},
-		})
-	}
-	if len(originMatchers) == 0 {
-		// Permissive default: accept any http(s) origin so the admin panel works
-		// from any deployment URL. Envoy reflects the exact Origin back (not "*"),
-		// so AllowCredentials: true remains valid per CORS spec.
-		originMatchers = []*matcher_v3.StringMatcher{
-			{MatchPattern: &matcher_v3.StringMatcher_SafeRegex{
-				SafeRegex: &matcher_v3.RegexMatcher{Regex: `https?://.*`},
-			}},
-		}
-	}
+//
+// corsPolicy (optional) provides the structured CORS configuration from the gateway.
+// When nil, falls back to allowedOrigins (legacy []string) and hardcoded defaults.
+// When allowedOrigins is also empty, a permissive regex ("https?://.*") is used.
+func MakeRoutes(routeName string, rs []IngressRoute, allowedOrigins []string, corsPolicy ...*coreConfig.CorsPolicy) *route_v3.RouteConfiguration {
+	// Build the Envoy CORS policy from the structured config or legacy fields.
+	envoyCors := buildEnvoyCorsPolicy(allowedOrigins, firstOrNil(corsPolicy))
 
 	routeGroups := map[string][]*route_v3.Route{}
 	domainsByKey := map[string][]string{}
@@ -117,14 +102,7 @@ func MakeRoutes(routeName string, rs []IngressRoute, allowedOrigins []string) *r
 			Domains: domains,
 			Routes:  routes,
 			TypedPerFilterConfig: map[string]*anypb.Any{
-				"envoy.filters.http.cors": toAny(&cors_v3.CorsPolicy{
-					AllowOriginStringMatch: originMatchers,
-					AllowCredentials:       wrapperspb.Bool(true),
-					AllowMethods:           "GET, PUT, DELETE, POST, OPTIONS",
-					AllowHeaders:           "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,domain,address,token,application,path,routing,authorization",
-					ExposeHeaders:          "custom-header-1,grpc-status,grpc-message",
-					MaxAge:                 "1728000",
-				}),
+				"envoy.filters.http.cors": toAny(envoyCors),
 			},
 		})
 	}
@@ -133,6 +111,108 @@ func MakeRoutes(routeName string, rs []IngressRoute, allowedOrigins []string) *r
 		Name:         routeName,
 		VirtualHosts: vhosts,
 	}
+}
+
+// buildEnvoyCorsPolicy converts the structured CorsPolicy (or legacy AllowedOrigins)
+// into an Envoy cors_v3.CorsPolicy proto.
+func buildEnvoyCorsPolicy(allowedOrigins []string, policy *coreConfig.CorsPolicy) *cors_v3.CorsPolicy {
+	if policy != nil && !policy.Enabled {
+		// CORS disabled — return a minimal policy with no origin matchers.
+		return &cors_v3.CorsPolicy{}
+	}
+
+	// Origin matchers
+	var originMatchers []*matcher_v3.StringMatcher
+
+	if policy != nil {
+		if policy.AllowAllOrigins {
+			// Permissive: match any http(s) origin.
+			// Envoy reflects the exact Origin back (not "*"), so credentials remain valid.
+			originMatchers = []*matcher_v3.StringMatcher{
+				{MatchPattern: &matcher_v3.StringMatcher_SafeRegex{
+					SafeRegex: &matcher_v3.RegexMatcher{Regex: `https?://.*`},
+				}},
+			}
+		} else {
+			for _, o := range policy.AllowedOrigins {
+				o = strings.TrimSpace(o)
+				if o == "" {
+					continue
+				}
+				originMatchers = append(originMatchers, &matcher_v3.StringMatcher{
+					MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: o},
+				})
+			}
+		}
+	} else {
+		// Legacy path: use allowedOrigins []string
+		for _, o := range allowedOrigins {
+			o = strings.TrimSpace(o)
+			if o == "" {
+				continue
+			}
+			originMatchers = append(originMatchers, &matcher_v3.StringMatcher{
+				MatchPattern: &matcher_v3.StringMatcher_Exact{Exact: o},
+			})
+		}
+	}
+
+	if len(originMatchers) == 0 {
+		// Default permissive fallback
+		originMatchers = []*matcher_v3.StringMatcher{
+			{MatchPattern: &matcher_v3.StringMatcher_SafeRegex{
+				SafeRegex: &matcher_v3.RegexMatcher{Regex: `https?://.*`},
+			}},
+		}
+	}
+
+	// Methods, headers, exposed headers, max age
+	allowMethods := "GET, PUT, DELETE, POST, OPTIONS"
+	allowHeaders := "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,token,application,routing,authorization"
+	exposeHeaders := "custom-header-1,grpc-status,grpc-message,grpc-status-details-bin"
+	maxAge := "1728000"
+	allowCredentials := true
+	allowPrivateNetwork := false
+
+	if policy != nil {
+		if len(policy.AllowedMethods) > 0 {
+			allowMethods = strings.Join(policy.AllowedMethods, ", ")
+		}
+		if len(policy.AllowedHeaders) > 0 {
+			allowHeaders = strings.Join(policy.AllowedHeaders, ",")
+		}
+		if len(policy.ExposedHeaders) > 0 {
+			exposeHeaders = strings.Join(policy.ExposedHeaders, ",")
+		}
+		if policy.MaxAgeSeconds > 0 {
+			maxAge = strconv.Itoa(policy.MaxAgeSeconds)
+		}
+		allowCredentials = policy.AllowCredentials
+		allowPrivateNetwork = policy.AllowPrivateNetwork
+	}
+
+	cp := &cors_v3.CorsPolicy{
+		AllowOriginStringMatch: originMatchers,
+		AllowCredentials:       wrapperspb.Bool(allowCredentials),
+		AllowMethods:           allowMethods,
+		AllowHeaders:           allowHeaders,
+		ExposeHeaders:          exposeHeaders,
+		MaxAge:                 maxAge,
+	}
+
+	// Private network access (Envoy 1.29+ supports this via allow_private_network_access)
+	if allowPrivateNetwork {
+		cp.AllowPrivateNetworkAccess = wrapperspb.Bool(true)
+	}
+
+	return cp
+}
+
+func firstOrNil(ps []*coreConfig.CorsPolicy) *coreConfig.CorsPolicy {
+	if len(ps) > 0 {
+		return ps[0]
+	}
+	return nil
 }
 
 func normalizeDomains(in []string) ([]string, string) {

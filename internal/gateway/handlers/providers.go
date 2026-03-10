@@ -191,12 +191,20 @@ func (cfgSaver) Validate(tok string) error {
 	return err
 }
 
+func (s cfgSaver) SetCorsPolicy(p *cfgHandlers.CorsPolicy) error {
+	return s.globule.SetCorsPolicy(p)
+}
+
 func (cfgSaver) SaveServiceConfig(cfg map[string]any) error {
 	return config_.SaveServiceConfiguration(cfg)
 }
 
 func (cfgSaver) GetServiceConfig(idOrName string) (map[string]any, error) {
 	return config_.GetServiceConfigurationById(idOrName)
+}
+
+func (p cfgProvider) GetCorsPolicy() *cfgHandlers.CorsPolicy {
+	return p.globule.GetCorsPolicy()
 }
 
 func (cfgProvider) AllServiceConfigs() ([]map[string]any, error) {

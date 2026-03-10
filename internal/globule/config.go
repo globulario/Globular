@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/services/golang/config"
 	Utility "github.com/globulario/utility"
 )
@@ -40,7 +41,14 @@ func (g *Globule) SetConfig(m map[string]interface{}) error {
 		g.PortHTTPS = v
 	}
 
-	// CORS
+	// CORS — structured policy (PR1)
+	if raw, ok := m["Cors"]; ok && raw != nil {
+		if corsMap, ok := raw.(map[string]interface{}); ok {
+			g.applyCorsPolicy(corsMap)
+		}
+	}
+
+	// CORS — legacy fields (backward compatibility)
 	if v, ok := asStrings(m["AllowedOrigins"]); ok {
 		g.AllowedOrigins = v
 	}
@@ -223,6 +231,46 @@ func asString(v interface{}) (string, bool) {
 		return s, true
 	}
 	return "", false
+}
+
+// GetCorsPolicy returns the gateway-level structured CORS policy.
+// If none is configured, returns the default gateway policy.
+func (g *Globule) GetCorsPolicy() *coreConfig.CorsPolicy {
+	if g.Cors != nil {
+		return g.Cors
+	}
+	return coreConfig.DefaultGatewayCorsPolicy()
+}
+
+// SetCorsPolicy sets the gateway-level structured CORS policy and persists it.
+func (g *Globule) SetCorsPolicy(p *coreConfig.CorsPolicy) error {
+	g.Cors = p
+	// Sync legacy fields for backward compatibility
+	if p.AllowAllOrigins {
+		g.AllowedOrigins = []string{"*"}
+	} else if len(p.AllowedOrigins) > 0 {
+		g.AllowedOrigins = p.AllowedOrigins
+	}
+	if len(p.AllowedMethods) > 0 {
+		g.AllowedMethods = p.AllowedMethods
+	}
+	if len(p.AllowedHeaders) > 0 {
+		g.AllowedHeaders = p.AllowedHeaders
+	}
+	return g.SaveConfig()
+}
+
+// applyCorsPolicy unmarshals a map into the structured Cors field.
+func (g *Globule) applyCorsPolicy(m map[string]interface{}) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return
+	}
+	var p coreConfig.CorsPolicy
+	if err := json.Unmarshal(b, &p); err != nil {
+		return
+	}
+	g.Cors = &p
 }
 
 func (g *Globule) watchConfig() {

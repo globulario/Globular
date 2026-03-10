@@ -1,6 +1,9 @@
 package watchers
 
-import config_ "github.com/globulario/services/golang/config"
+import (
+	coreConfig "github.com/globulario/Globular/internal/config"
+	config_ "github.com/globulario/services/golang/config"
+)
 
 const (
 	defaultIngressHTTPPort   = uint32(80)
@@ -21,7 +24,8 @@ type XDSConfig struct {
 	// AllowedOrigins lists the CORS origins permitted to call gRPC-web endpoints.
 	// Each entry is an exact origin string (e.g. "https://admin.example.com").
 	// When empty the xDS snapshot uses a permissive default that accepts any http(s) origin.
-	AllowedOrigins []string `json:"allowed_origins,omitempty"`
+	AllowedOrigins []string               `json:"allowed_origins,omitempty"`
+	CorsPolicy     *coreConfig.CorsPolicy `json:"cors_policy,omitempty"` // Structured CORS policy (PR1)
 }
 
 // IngressConfig defines HTTP/HTTPS ports, TLS paths, and redirect behavior.

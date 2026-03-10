@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/security"
 	Utility "github.com/globulario/utility"
@@ -68,10 +69,13 @@ type Globule struct {
 	OAuth2ClientSecret string
 	OAuth2RedirectURI  string
 
-	// CORS
+	// CORS — legacy fields (kept for backward compatibility with config.json)
 	AllowedOrigins []string
 	AllowedMethods []string
 	AllowedHeaders []string
+
+	// Structured CORS policy (PR1 — supersedes legacy fields when present)
+	Cors *coreConfig.CorsPolicy `json:"Cors,omitempty"`
 
 	// Versioning / updates
 	Version          string

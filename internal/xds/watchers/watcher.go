@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/Globular/internal/controllerclient"
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/dnscache"
@@ -26,6 +27,23 @@ import (
 	Utility "github.com/globulario/utility"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+// loadGatewayCorsPolicy reads the structured Cors policy from the gateway's
+// runtime config.json.  Returns nil if unavailable (xDS will use legacy fallback).
+func loadGatewayCorsPolicy() *coreConfig.CorsPolicy {
+	cfgPath := config.GetRuntimeConfigDir() + "/config.json"
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return nil
+	}
+	var cfg struct {
+		Cors *coreConfig.CorsPolicy `json:"Cors"`
+	}
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil
+	}
+	return cfg.Cors
+}
 
 type DownstreamTLSMode string
 
@@ -920,8 +938,14 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	}
 
 	var allowedOrigins []string
+	var corsPolicy *coreConfig.CorsPolicy
 	if cfg != nil {
 		allowedOrigins = cfg.AllowedOrigins
+		corsPolicy = cfg.CorsPolicy
+	}
+	// If no explicit CorsPolicy in xDS config, try reading from the gateway config.json
+	if corsPolicy == nil {
+		corsPolicy = loadGatewayCorsPolicy()
 	}
 
 	input := builder.Input{
@@ -937,6 +961,7 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		SDSSecrets:         sdsSecrets,
 		ExternalDomains:    builderExtDomains,
 		AllowedOrigins:     allowedOrigins,
+		CorsPolicy:         corsPolicy,
 	}
 	return input, version, nil
 }

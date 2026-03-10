@@ -12,6 +12,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache_v3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	coreConfig "github.com/globulario/Globular/internal/config"
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/xds/secrets"
 )
@@ -64,18 +65,19 @@ type ExternalDomain struct {
 
 // Input is the data required to build an xDS snapshot.
 type Input struct {
-	NodeID             string           `json:"node_id"`
-	Version            string           `json:"version,omitempty"`
-	Listener           Listener         `json:"listener"`
-	Routes             []Route          `json:"routes"`
-	Clusters           []Cluster        `json:"clusters"`
-	IngressHTTPPort    uint32           `json:"ingress_http_port"`
-	EnableHTTPRedirect bool             `json:"enable_http_redirect"`
-	GatewayPort        uint32           `json:"gateway_port"`
-	EnableSDS          bool             `json:"enable_sds,omitempty"`       // Use SDS for TLS certificates
-	SDSSecrets         []Secret         `json:"sds_secrets,omitempty"`      // Secrets to include in snapshot
-	ExternalDomains    []ExternalDomain `json:"external_domains,omitempty"` // External domains for SNI routing (PR3c)
-	AllowedOrigins     []string         `json:"allowed_origins,omitempty"`  // CORS allowed origins; empty = permissive default
+	NodeID             string                 `json:"node_id"`
+	Version            string                 `json:"version,omitempty"`
+	Listener           Listener               `json:"listener"`
+	Routes             []Route                `json:"routes"`
+	Clusters           []Cluster              `json:"clusters"`
+	IngressHTTPPort    uint32                 `json:"ingress_http_port"`
+	EnableHTTPRedirect bool                   `json:"enable_http_redirect"`
+	GatewayPort        uint32                 `json:"gateway_port"`
+	EnableSDS          bool                   `json:"enable_sds,omitempty"`       // Use SDS for TLS certificates
+	SDSSecrets         []Secret               `json:"sds_secrets,omitempty"`      // Secrets to include in snapshot
+	ExternalDomains    []ExternalDomain       `json:"external_domains,omitempty"` // External domains for SNI routing (PR3c)
+	AllowedOrigins     []string               `json:"allowed_origins,omitempty"`  // CORS allowed origins (legacy); empty = permissive default
+	CorsPolicy         *coreConfig.CorsPolicy `json:"cors_policy,omitempty"`      // Structured CORS policy (PR1); supersedes AllowedOrigins when set
 }
 
 // Secret represents a TLS secret for SDS.
@@ -216,7 +218,7 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 		if routeName == "" {
 			routeName = fmt.Sprintf("ingress_routes_%d", controlplane.DefaultIngressPort(strings.TrimSpace(input.Listener.Host)))
 		}
-		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(routeName, ingressRoutes, input.AllowedOrigins))
+		resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], controlplane.MakeRoutes(routeName, ingressRoutes, input.AllowedOrigins, input.CorsPolicy))
 
 		host := strings.TrimSpace(input.Listener.Host)
 		if host == "" {

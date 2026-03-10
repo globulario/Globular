@@ -13,8 +13,16 @@ type Deps struct {
 	SignCACertificate     http.Handler
 	GetSANConf            http.Handler
 	DescribeService       http.Handler
-	GetServicesCors       http.Handler
-	SetServiceCors        http.Handler
+	GetServicesCors       http.Handler // legacy
+	SetServiceCors        http.Handler // legacy
+
+	// Structured CORS policy (PR1)
+	GetGatewayCorsPolicy     http.Handler
+	SetGatewayCorsPolicy     http.Handler
+	GetServiceCorsPolicy     http.Handler
+	SetServiceCorsPolicy     http.Handler
+	GetAllServicesCorsPolicy http.Handler
+	CorsDiagnostics          http.Handler
 }
 
 // Mount registers only the endpoints provided.
@@ -52,5 +60,25 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.SetServiceCors != nil {
 		mux.Handle("/api/service-cors", d.SetServiceCors)
+	}
+
+	// Structured CORS policy endpoints (PR1)
+	if d.GetGatewayCorsPolicy != nil {
+		mux.Handle("/api/cors-policy", d.GetGatewayCorsPolicy)
+	}
+	if d.SetGatewayCorsPolicy != nil {
+		mux.Handle("/api/set-cors-policy", d.SetGatewayCorsPolicy)
+	}
+	if d.GetServiceCorsPolicy != nil {
+		mux.Handle("/api/service-cors-policy", d.GetServiceCorsPolicy)
+	}
+	if d.SetServiceCorsPolicy != nil {
+		mux.Handle("/api/set-service-cors-policy", d.SetServiceCorsPolicy)
+	}
+	if d.GetAllServicesCorsPolicy != nil {
+		mux.Handle("/api/services-cors-policy", d.GetAllServicesCorsPolicy)
+	}
+	if d.CorsDiagnostics != nil {
+		mux.Handle("/api/cors-diagnostics", d.CorsDiagnostics)
 	}
 }
