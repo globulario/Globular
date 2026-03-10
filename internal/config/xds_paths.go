@@ -61,7 +61,7 @@ func EnsureXDSMTLSMaterials(runtimeConfigDir string, insecureAllowed bool) error
 		return nil
 	}
 
-	caKeyPath, caCertPath, caBundlePath := canonicalCAPaths(runtimeConfigDir)
+	caKeyPath, caCertPath, caBundlePath := CanonicalCAPaths(runtimeConfigDir)
 	if !fileExists(caKeyPath) || !fileExists(caCertPath) {
 		return fmt.Errorf("cluster CA missing: %s or %s", caKeyPath, caCertPath)
 	}
@@ -248,8 +248,8 @@ func parsePrivateKey(pemData []byte) (crypto.Signer, error) {
 	}
 }
 
-// canonicalCAPaths returns the CA key, cert, and bundle paths under the canonical PKI root.
-func canonicalCAPaths(runtimeConfigDir string) (keyPath, certPath, bundlePath string) {
+// CanonicalCAPaths returns the CA key, cert, and bundle paths under the canonical PKI root.
+func CanonicalCAPaths(runtimeConfigDir string) (keyPath, certPath, bundlePath string) {
 	pkiDir := filepath.Join(runtimeRoot(runtimeConfigDir), "pki")
 	keyPath = filepath.Join(pkiDir, "ca.key")
 	certPath = filepath.Join(pkiDir, "ca.crt")

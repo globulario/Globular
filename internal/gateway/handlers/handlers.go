@@ -232,10 +232,12 @@ func (h *GatewayHandlers) wireStats(mux *http.ServeMux, wrap func(http.Handler) 
 
 func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
 	prov := adminProvider{globule: h.globule}
+	certProv := certProvider{globule: h.globule}
 	adminHandlers.Mount(mux, adminHandlers.Deps{
-		MetricsServices: wrap(adminHandlers.NewServicesHandler(prov)),
-		MetricsStorage:  wrap(adminHandlers.NewStorageHandler(prov)),
-		MetricsEnvoy:    wrap(adminHandlers.NewEnvoyHandler()),
-		ServiceLogs:     wrap(adminHandlers.NewLogsHandler(journalAdapter{})),
+		MetricsServices:      wrap(adminHandlers.NewServicesHandler(prov)),
+		MetricsStorage:       wrap(adminHandlers.NewStorageHandler(prov)),
+		MetricsEnvoy:         wrap(adminHandlers.NewEnvoyHandler()),
+		ServiceLogs:          wrap(adminHandlers.NewLogsHandler(journalAdapter{})),
+		CertificatesOverview: wrap(adminHandlers.NewCertificatesHandler(certProv)),
 	})
 }

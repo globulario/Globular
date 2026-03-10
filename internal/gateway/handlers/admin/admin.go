@@ -18,10 +18,11 @@ type AdminProvider interface {
 
 // Deps lists handlers to mount (all optional).
 type Deps struct {
-	MetricsServices http.Handler // GET /admin/metrics/services
-	MetricsStorage  http.Handler // GET /admin/metrics/storage
-	MetricsEnvoy    http.Handler // GET /admin/metrics/envoy
-	ServiceLogs     http.Handler // GET /admin/service/logs
+	MetricsServices      http.Handler // GET /admin/metrics/services
+	MetricsStorage       http.Handler // GET /admin/metrics/storage
+	MetricsEnvoy         http.Handler // GET /admin/metrics/envoy
+	ServiceLogs          http.Handler // GET /admin/service/logs
+	CertificatesOverview http.Handler // GET /admin/certificates
 }
 
 // Mount registers only the endpoints provided.
@@ -37,5 +38,8 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.ServiceLogs != nil {
 		mux.Handle("/admin/service/logs", d.ServiceLogs)
+	}
+	if d.CertificatesOverview != nil {
+		mux.Handle("/admin/certificates", d.CertificatesOverview)
 	}
 }

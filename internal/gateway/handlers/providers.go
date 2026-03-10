@@ -234,6 +234,47 @@ func (adminProvider) StateDir() string     { return config_.GetStateRootDir() }
 func (p adminProvider) Hostname() string   { return p.globule.Name }
 func (adminProvider) IP() string           { return Utility.MyIP() }
 
+// certProvider satisfies admin.CertProvider for the /admin/certificates surface.
+type certProvider struct {
+	globule *globpkg.Globule
+}
+
+func (certProvider) AllServiceConfigs() ([]map[string]any, error) {
+	cfgs, err := config_.GetServicesConfigurations()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]any, len(cfgs))
+	for i, c := range cfgs {
+		result[i] = c
+	}
+	return result, nil
+}
+
+func (certProvider) PublicDirs() []string { return config_.GetPublicDirs() }
+func (certProvider) DataDir() string      { return config_.GetDataDir() }
+func (certProvider) StateDir() string     { return config_.GetStateRootDir() }
+func (p certProvider) Hostname() string   { return p.globule.Name }
+func (certProvider) IP() string           { return Utility.MyIP() }
+
+func (p certProvider) Protocol() string { return p.globule.Protocol }
+func (p certProvider) Domain() string   { return p.globule.Domain }
+func (p certProvider) AlternateDomains() []string {
+	var out []string
+	for _, v := range p.globule.AlternateDomains {
+		if s, ok := v.(string); ok && s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+func (certProvider) CertPaths() *coreConfig.CertPaths {
+	return coreConfig.NewCertPaths(config_.GetStateRootDir())
+}
+func (certProvider) RuntimeConfigDir() string {
+	return config_.GetRuntimeConfigDir()
+}
+
 // journalAdapter bridges internal/journal → admin.JournalReader.
 type journalAdapter struct{}
 
