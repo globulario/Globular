@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -19,7 +20,9 @@ type ServicePatcher interface {
 // fields to etcd /config and runtime fields — State, Process, ProxyProcess —
 // to etcd /runtime).
 //
-// This is a patch operation: fields absent from the body are not changed.
+// This is an upsert: if the service has no config in etcd yet (e.g. fresh
+// Day-0 install), the patch itself becomes the initial config. When the
+// service already exists, fields absent from the body are not changed.
 func NewSaveServiceConfig(p ServicePatcher, auth TokenValidator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -51,15 +54,17 @@ func NewSaveServiceConfig(p ServicePatcher, auth TokenValidator) http.Handler {
 		}
 
 		// Fetch the full current config so we only overwrite the supplied fields.
+		// If the service doesn't exist yet (fresh install, config not bootstrapped
+		// to etcd), use the patch as the initial config (upsert semantics).
 		current, err := p.GetServiceConfig(id)
 		if err != nil || current == nil {
-			http.Error(w, "service not found: "+id, http.StatusNotFound)
-			return
-		}
-
-		// Merge patch fields into current (Id is always preserved from current).
-		for k, v := range patch {
-			current[k] = v
+			log.Printf("save-service-config: service %q not in etcd, creating from patch", id)
+			current = patch
+		} else {
+			// Merge patch fields into current (Id is always preserved from current).
+			for k, v := range patch {
+				current[k] = v
+			}
 		}
 
 		if err := p.SaveServiceConfig(current); err != nil {
