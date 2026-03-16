@@ -2,15 +2,25 @@ package controllerclient
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	cluster_controllerpb "github.com/globulario/services/golang/cluster_controller/cluster_controllerpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// Well-known CA cert locations searched in order.
+var caCertPaths = []string{
+	"/var/lib/globular/pki/ca.crt",
+	"/var/lib/globular/pki/ca.pem",
+}
 
 // Client wraps the ClusterController gRPC service.
 type Client struct {
@@ -27,7 +37,15 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, func(), error) {
 		return nil, nil, fmt.Errorf("cluster controller address is empty")
 	}
 	dialCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	conn, err := grpc.DialContext(dialCtx, c.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	// Try TLS with the Globular CA cert. Fall back to plaintext if no CA is
+	// found (pre-TLS installations or test environments).
+	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
+	if tc := loadTLSCreds(); tc != nil {
+		creds = grpc.WithTransportCredentials(tc)
+	}
+
+	conn, err := grpc.DialContext(dialCtx, c.addr, creds)
 	if err != nil {
 		cancel()
 		return nil, nil, fmt.Errorf("dial %s: %w", c.addr, err)
@@ -36,6 +54,25 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, func(), error) {
 		conn.Close()
 		cancel()
 	}, nil
+}
+
+// loadTLSCreds attempts to load the Globular CA cert for TLS connections.
+// Returns nil if no CA cert is found (caller should fall back to plaintext).
+func loadTLSCreds() credentials.TransportCredentials {
+	for _, path := range caCertPaths {
+		pem, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			continue
+		}
+		return credentials.NewTLS(&tls.Config{
+			RootCAs: pool,
+		})
+	}
+	return nil
 }
 
 // CreateJoinToken requests a join token from the controller.
