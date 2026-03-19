@@ -205,13 +205,17 @@ func makeUpstreamTLS(certFilePath, keyFilePath, caFilePath, sni string) *core_v3
 		},
 	}
 
-	// Validate server (Globular) with CA if provided
+	// Validate server (Globular) with CA if provided.
+	// Use an empty MatchTypedSubjectAltNames list to skip SAN-vs-SNI
+	// verification — internal cluster services share the same CA but may
+	// present certs whose SANs don't match the xDS-visible hostname.
 	if caFilePath != "" {
 		utls.CommonTlsContext.ValidationContextType = &tls_v3.CommonTlsContext_ValidationContext{
 			ValidationContext: &tls_v3.CertificateValidationContext{
 				TrustedCa: &core_v3.DataSource{
 					Specifier: &core_v3.DataSource_Filename{Filename: caFilePath},
 				},
+				MatchTypedSubjectAltNames: []*tls_v3.SubjectAltNameMatcher{},
 			},
 		}
 	}
@@ -443,6 +447,11 @@ func makeEndpoint(clusterName string, endPoints []EndPoint) *endpoint_v3.Cluster
 					},
 				},
 			},
+		}
+
+		// Apply AI Router weight if set (1-100). Weight 0 = use Envoy default (equal).
+		if endPoint.Weight > 0 {
+			lbEndpoint.LoadBalancingWeight = wrapperspb.UInt32(endPoint.Weight)
 		}
 
 		lbEndpoints = append(lbEndpoints, lbEndpoint)

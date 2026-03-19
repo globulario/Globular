@@ -48,6 +48,7 @@ type EndPoint struct {
 	Host     string
 	Port     uint32
 	Priority uint32
+	Weight   uint32 // 0 = use default (equal), 1-100 = relative weight from AI Router
 }
 
 // Snapshot can describe either:

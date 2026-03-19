@@ -197,6 +197,9 @@ type Watcher struct {
 	lastDNSFailure     time.Time                   // timestamp of last DNS resolution failure
 	dnsFailureCooldown time.Duration               // how long to use last-good on repeated failures
 
+	// AI Router integration (adaptive traffic shaping)
+	routerClient *routerConn
+
 	// Observability (PR5)
 	logLimiter         *logRateLimiter // rate limiter for routing logs
 	snapshotRegenTotal uint64          // total snapshot regenerations
@@ -839,6 +842,10 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	if err != nil {
 		return builder.Input{}, "", err
 	}
+
+	// Apply AI Router weights to endpoints (Phase 1).
+	// Safe no-op when router is unavailable or in neutral/observe mode.
+	clusters = w.applyRoutingPolicy(ctx, clusters)
 
 	ingressSpec, err := w.buildIngressSpec(ctx, cfg)
 	if err != nil {

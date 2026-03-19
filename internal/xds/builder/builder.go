@@ -22,6 +22,7 @@ type Endpoint struct {
 	Host     string `json:"host"`
 	Port     uint32 `json:"port"`
 	Priority uint32 `json:"priority,omitempty"`
+	Weight   uint32 `json:"weight,omitempty"` // 0 = equal, 1-100 = AI Router weight
 }
 
 // Cluster describes an Envoy cluster and its TLS settings.
@@ -405,6 +406,7 @@ func toControlplaneEndpoints(ends []Endpoint) []controlplane.EndPoint {
 			Host:     host,
 			Port:     ep.Port,
 			Priority: ep.Priority,
+			Weight:   ep.Weight,
 		})
 	}
 	return out
