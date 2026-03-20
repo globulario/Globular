@@ -18,6 +18,8 @@ type HandlerDeps struct {
 // Deps groups HTTP handlers to register.
 type Deps struct {
 	JoinToken   http.Handler
+	JoinScript  http.Handler // GET /join — self-contained join script
+	JoinBin     http.Handler // GET /join/bin/<name> — binary downloads
 	Nodes       http.Handler
 	NodeActions http.Handler
 	Health      http.Handler
@@ -25,6 +27,12 @@ type Deps struct {
 
 // Mount registers the cluster-related routes.
 func Mount(mux *http.ServeMux, d Deps) {
+	if d.JoinScript != nil {
+		mux.Handle("/join", d.JoinScript)
+	}
+	if d.JoinBin != nil {
+		mux.Handle("/join/bin/", d.JoinBin)
+	}
 	if d.JoinToken != nil {
 		mux.Handle("/api/cluster/join-token", d.JoinToken)
 	}
