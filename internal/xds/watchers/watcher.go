@@ -717,6 +717,14 @@ func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Se
 		},
 	}
 
+	// Add client certificate for mTLS to upstream services (e.g. gateway)
+	// Uses the same service cert/key — valid as both server and client cert
+	sdsSecrets = append(sdsSecrets, builder.Secret{
+		Name:     secrets.InternalClientCert,
+		CertPath: listener.CertFile,
+		KeyPath:  listener.KeyFile,
+	})
+
 	// Add CA bundle if present
 	if listener.IssuerFile != "" {
 		sdsSecrets = append(sdsSecrets, builder.Secret{
