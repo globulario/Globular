@@ -1170,13 +1170,13 @@ func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Clus
 	}
 
 	// Gateway cluster uses HTTPS with internal certificates (end-to-end encryption)
-	// Configure TLS for backend connection to gateway
+	// Envoy must present a client certificate (mTLS) when connecting to the gateway
 	clusters := []builder.Cluster{{
 		Name:       gatewayCluster,
 		Endpoints:  []builder.Endpoint{{Host: upstreamHost, Port: uint32(upstreamPort)}},
 		CAFile:     gatewayCA,    // Verify gateway's internal certificate
-		ServerCert: "",           // No client certificate needed
-		KeyFile:    "",           // No client certificate needed
+		ServerCert: gatewayCert,  // Client cert for mTLS to gateway
+		KeyFile:    gatewayKey,   // Client key for mTLS to gateway
 		SNI:        upstreamHost, // SNI for TLS handshake
 	}}
 	routes := []builder.Route{{Prefix: "/", Cluster: gatewayCluster}}
