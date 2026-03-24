@@ -100,6 +100,36 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 	// Get the array of service and set it back in the configurations.
 	localConfig["Services"] = make(map[string]interface{})
 
+	// Pre-probe ports in parallel for services with stale/empty state.
+	// This avoids sequential 200ms timeouts per service.
+	type probeResult struct {
+		idx   int
+		alive bool
+	}
+	probeCh := make(chan probeResult, len(services))
+	probeCount := 0
+	for i := range services {
+		st, _ := services[i]["State"].(string)
+		if st == "stopped" || st == "closed" || st == "" {
+			if port, ok := asInt(services[i]["Port"]); ok && port > 0 {
+				probeCount++
+				go func(idx, p int) {
+					conn, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(p), 200*time.Millisecond)
+					alive := err == nil
+					if alive {
+						conn.Close()
+					}
+					probeCh <- probeResult{idx: idx, alive: alive}
+				}(i, port)
+			}
+		}
+	}
+	probeAlive := make(map[int]bool, probeCount)
+	for j := 0; j < probeCount; j++ {
+		r := <-probeCh
+		probeAlive[r.idx] = r.alive
+	}
+
 	// Here I will set in a map and put in the Services key
 	for i := range services {
 		s := make(map[string]interface{})
@@ -120,14 +150,8 @@ func (globule *Globule) GetConfig() map[string]interface{} {
 
 		// Cross-validate: if etcd says stopped/closed but the service port
 		// is listening, the service is actually running (stale etcd state).
-		if st, _ := s["State"].(string); st == "stopped" || st == "closed" || st == "" {
-			if port, ok := asInt(services[i]["Port"]); ok && port > 0 {
-				conn, err := net.DialTimeout("tcp", "127.0.0.1:"+strconv.Itoa(port), 200*time.Millisecond)
-				if err == nil {
-					conn.Close()
-					s["State"] = "running"
-				}
-			}
+		if probeAlive[i] {
+			s["State"] = "running"
 		}
 
 		s["TLS"] = services[i]["TLS"]

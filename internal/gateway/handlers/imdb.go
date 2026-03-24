@@ -4,17 +4,70 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/StalkR/imdb"
 	mediaHandlers "github.com/globulario/Globular/internal/gateway/handlers/media"
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/title/titlepb"
 	Utility "github.com/globulario/utility"
 )
+
+// tmdbAPIKey returns the TMDb API key, trying env var first then title service config.
+var (
+	tmdbKeyMu    sync.Mutex
+	tmdbKeyValue string
+	tmdbKeyDone  bool
+)
+
+func tmdbAPIKey() string {
+	tmdbKeyMu.Lock()
+	defer tmdbKeyMu.Unlock()
+
+	// If already resolved successfully, return cached value.
+	if tmdbKeyDone {
+		return tmdbKeyValue
+	}
+
+	// 1. Environment variable
+	if k := strings.TrimSpace(os.Getenv("TMDB_API_KEY")); k != "" {
+		tmdbKeyValue = k
+		tmdbKeyDone = true
+		return tmdbKeyValue
+	}
+
+	// 2. Title or media service config in etcd (may not be available yet at startup).
+	for _, svcName := range []string{"title.TitleService", "media.MediaService"} {
+		cfg, err := config.GetServiceConfigurationById(svcName)
+		if err != nil {
+			slog.Debug("tmdbAPIKey: GetServiceConfigurationById failed", "svc", svcName, "err", err)
+			cfgs, err2 := config.GetServicesConfigurationsByName(svcName)
+			if err2 == nil && len(cfgs) > 0 {
+				cfg = cfgs[0]
+			}
+		}
+		if cfg != nil {
+			if v, ok := cfg["TmdbApiKey"].(string); ok && v != "" {
+				tmdbKeyValue = strings.TrimSpace(v)
+				tmdbKeyDone = true
+				slog.Info("TMDb API key loaded from service config", "svc", svcName)
+				return tmdbKeyValue
+			}
+		}
+	}
+
+	slog.Warn("TMDb API key not found — set TMDB_API_KEY env var or TmdbApiKey in title service config")
+	// Not found yet — will retry on next call.
+	return ""
+}
 
 // ----- IMDb helpers (shared by media adapters) ----
 
@@ -50,7 +103,7 @@ func (s imdbSeasonEpisode) ResolveSeasonEpisode(titleID string) (int, int, strin
 		return -1, -1, "", err
 	}
 
-	reSE := regexp.MustCompile(`>S(\d{1,2})<!-- -->\.<!-- -->E(\d{1,2})<`)
+	reSE := regexp.MustCompile(`>S(\d+)<!-- -->\.<!-- -->E(\d+)<`)
 	season, episode := 0, 0
 	if m := reSE.FindSubmatch(page); len(m) == 3 {
 		if v, e := strconv.Atoi(string(m[1])); e == nil {
@@ -65,6 +118,12 @@ func (s imdbSeasonEpisode) ResolveSeasonEpisode(titleID string) (int, int, strin
 	seriesID := ""
 	if m := reSeries.FindSubmatch(page); len(m) == 2 {
 		seriesID = string(m[1])
+	} else {
+		// Alternate pattern — IMDb sometimes reorders attributes.
+		re2 := regexp.MustCompile(`href="/title/(tt\d{7,8})/[^"]*"[^>]*data-testid="hero-title-block__series-link"`)
+		if m2 := re2.FindSubmatch(page); len(m2) == 2 {
+			seriesID = string(m2[1])
+		}
 	}
 	return season, episode, seriesID, nil
 }
@@ -293,17 +352,39 @@ func (imdbTitles) SearchIMDBTitles(q mediaHandlers.TitlesQuery) ([]map[string]an
 		return nil, fmt.Errorf("empty query")
 	}
 
-	client := newIMDBClient(10 * time.Second)
-	resolver := imdbSeasonEpisode{Client: client}
+	apiKey := tmdbAPIKey()
 
+	// Direct IMDb ID lookup — use TMDb find API (reliable, no WAF).
 	if imdbIDRE.MatchString(query) {
-		it, err := imdb.NewTitle(client, query)
-		if err != nil {
-			return nil, err
+		if apiKey != "" {
+			if t := tmdbFindByIMDbID(apiKey, query); t != nil {
+				return []map[string]any{titleProtoToMap(t)}, nil
+			}
 		}
-		return []map[string]any{titleProtoToMap(buildTitleProto(*it, resolver))}, nil
+		// TMDb miss or no API key — try IMDb suggestion API as last resort.
+		client := newIMDBClient(10 * time.Second)
+		resolver := imdbSeasonEpisode{Client: client}
+		if t, err := fetchTitleFromSuggestionAPI(client, query, resolver); err == nil {
+			return []map[string]any{titleProtoToMap(t)}, nil
+		}
+		return nil, fmt.Errorf("title %s not found", query)
 	}
 
+	// Text search — use TMDb multi-search for rich results.
+	if apiKey != "" {
+		results := tmdbSearchMulti(apiKey, query, q.Year, q.Limit, q.Offset)
+		if len(results) > 0 {
+			out := make([]map[string]any, 0, len(results))
+			for _, t := range results {
+				out = append(out, titleProtoToMap(t))
+			}
+			return out, nil
+		}
+	}
+
+	// Fallback: IMDb search (may fail with WAF).
+	client := newIMDBClient(10 * time.Second)
+	resolver := imdbSeasonEpisode{Client: client}
 	results, err := imdb.SearchTitle(client, query)
 	if err != nil {
 		return nil, err
@@ -442,10 +523,17 @@ func buildTitleProto(it imdb.Title, resolver imdbSeasonEpisode) *titlepb.Title {
 	}
 
 	if strings.EqualFold(it.Type, "TVEpisode") {
-		if season, episode, serie, err := resolver.ResolveSeasonEpisode(it.ID); err == nil {
+		if season, episode, serie, err := resolver.ResolveSeasonEpisode(it.ID); err == nil && (season > 0 || episode > 0 || serie != "") {
 			title.Season = int32(season)
 			title.Episode = int32(episode)
 			title.Serie = serie
+		} else {
+			// IMDb HTML scraping failed (WAF) — fall back to TMDb API.
+			if s, e, sid, ok := tmdbResolveEpisodeInfo(it.ID); ok {
+				title.Season = int32(s)
+				title.Episode = int32(e)
+				title.Serie = sid
+			}
 		}
 	}
 
@@ -497,6 +585,12 @@ func personsToMaps(list []*titlepb.Person) []map[string]any {
 func fetchIMDBPosterURL(imdbID string) (string, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
+	// Try the suggestion API first — it's reliable and not blocked by WAF
+	if u := fetchPosterFromSuggestionAPI(client, imdbID); u != "" {
+		return u, nil
+	}
+
+	// Fall back to HTML scraping (may fail with WAF challenge)
 	req, _ := http.NewRequest(http.MethodGet, "https://www.imdb.com/title/"+imdbID+"/", nil)
 	req.Header.Set("User-Agent", defaultUA())
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
@@ -506,6 +600,11 @@ func fetchIMDBPosterURL(imdbID string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	// If WAF blocks us (202/403), return what we have
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("imdb returned %d (WAF challenge)", resp.StatusCode)
+	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -571,6 +670,49 @@ func fetchIMDBPosterURL(imdbID string) (string, error) {
 	}
 
 	return "", fmt.Errorf("poster not found")
+}
+
+// fetchPosterFromSuggestionAPI gets the poster URL from the IMDb suggestion API.
+func fetchPosterFromSuggestionAPI(client *http.Client, imdbID string) string {
+	if len(imdbID) < 3 {
+		return ""
+	}
+	url := fmt.Sprintf("https://v2.sg.media-imdb.com/suggestion/%s/%s.json",
+		string(imdbID[0]), imdbID)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", defaultUA())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	var data struct {
+		D []struct {
+			ID string `json:"id"`
+			I  struct {
+				ImageURL string `json:"imageUrl"`
+			} `json:"i"`
+		} `json:"d"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return ""
+	}
+	for _, d := range data.D {
+		if d.ID == imdbID && d.I.ImageURL != "" {
+			return d.I.ImageURL
+		}
+	}
+	return ""
 }
 
 func pickMaxWidthFromSrcset(srcset string) string {
@@ -679,4 +821,620 @@ func lookupPath(v any, keys ...string) any {
 
 func defaultUA() string {
 	return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+}
+
+// fetchTitleFromSuggestionAPI uses the IMDb suggestion API (JSON, no WAF) as a
+// fallback when HTML scraping is blocked. Returns basic title info.
+func fetchTitleFromSuggestionAPI(client *http.Client, imdbID string, resolver imdbSeasonEpisode) (*titlepb.Title, error) {
+	// The suggestion API indexes by the first letter after "tt"
+	if len(imdbID) < 3 {
+		return nil, fmt.Errorf("invalid imdb id: %s", imdbID)
+	}
+	url := fmt.Sprintf("https://v2.sg.media-imdb.com/suggestion/%s/%s.json",
+		string(imdbID[0]), imdbID)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", defaultUA())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("suggestion API returned %d", resp.StatusCode)
+	}
+
+	var data struct {
+		D []struct {
+			ID  string `json:"id"`
+			L   string `json:"l"`   // title name
+			Q   string `json:"q"`   // type label (e.g. "TV episode")
+			QID string `json:"qid"` // type key (e.g. "tvEpisode")
+			S   string `json:"s"`   // stars
+			Y   int    `json:"y"`   // year
+			I   struct {
+				ImageURL string `json:"imageUrl"`
+				Height   int    `json:"height"`
+				Width    int    `json:"width"`
+			} `json:"i"`
+		} `json:"d"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	// Find our specific title in the results
+	for _, d := range data.D {
+		if d.ID != imdbID {
+			continue
+		}
+
+		titleType := mapSuggestionType(d.QID)
+		title := &titlepb.Title{
+			ID:   d.ID,
+			URL:  fmt.Sprintf("https://www.imdb.com/title/%s/", d.ID),
+			Name: d.L,
+			Type: titleType,
+			Year: int32(d.Y),
+		}
+
+		if d.I.ImageURL != "" {
+			title.Poster = &titlepb.Poster{URL: d.I.ImageURL}
+		}
+
+		// Parse stars into actors
+		if d.S != "" {
+			for _, name := range strings.Split(d.S, ", ") {
+				name = strings.TrimSpace(name)
+				if name != "" {
+					title.Actors = append(title.Actors, &titlepb.Person{FullName: name})
+				}
+			}
+		}
+
+		// Resolve season/episode for TV episodes
+		if strings.EqualFold(titleType, "TVEpisode") || d.QID == "tvEpisode" {
+			if season, episode, serie, err := resolver.ResolveSeasonEpisode(d.ID); err == nil && (season > 0 || episode > 0 || serie != "") {
+				title.Season = int32(season)
+				title.Episode = int32(episode)
+				title.Serie = serie
+			} else {
+				// IMDb HTML scraping failed (WAF) — fall back to TMDb API.
+				if s, e, sid, ok := tmdbResolveEpisodeInfo(d.ID); ok {
+					title.Season = int32(s)
+					title.Episode = int32(e)
+					title.Serie = sid
+				}
+			}
+		}
+
+		return title, nil
+	}
+
+	return nil, fmt.Errorf("title %s not found in suggestion API", imdbID)
+}
+
+// mapSuggestionType converts IMDb suggestion API qid values to display types.
+func mapSuggestionType(qid string) string {
+	switch qid {
+	case "movie":
+		return "Movie"
+	case "tvSeries":
+		return "TV Series"
+	case "tvEpisode":
+		return "TVEpisode"
+	case "tvMiniSeries":
+		return "TV Mini Series"
+	case "tvMovie":
+		return "TV Movie"
+	case "tvSpecial":
+		return "TV Special"
+	case "short":
+		return "Short"
+	case "videoGame":
+		return "Video Game"
+	default:
+		return qid
+	}
+}
+
+// ---- TMDb-first title resolution ----
+
+const tmdbImageBase = "https://image.tmdb.org/t/p/w500"
+
+// tmdbFindByIMDbID looks up a title by IMDb ID via TMDb's find endpoint,
+// then fetches full details (cast, genres, description, rating, etc.).
+func tmdbFindByIMDbID(apiKey, imdbID string) *titlepb.Title {
+	findURL := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id",
+		url.PathEscape(imdbID), url.QueryEscape(apiKey))
+
+	var findResp struct {
+		MovieResults []struct {
+			ID               int     `json:"id"`
+			Title            string  `json:"title"`
+			Overview         string  `json:"overview"`
+			ReleaseDate      string  `json:"release_date"`
+			VoteAverage      float32 `json:"vote_average"`
+			VoteCount        int     `json:"vote_count"`
+			PosterPath       string  `json:"poster_path"`
+			GenreIDs         []int   `json:"genre_ids"`
+			OriginalLanguage string  `json:"original_language"`
+		} `json:"movie_results"`
+		TvResults []struct {
+			ID               int     `json:"id"`
+			Name             string  `json:"name"`
+			Overview         string  `json:"overview"`
+			FirstAirDate     string  `json:"first_air_date"`
+			VoteAverage      float32 `json:"vote_average"`
+			VoteCount        int     `json:"vote_count"`
+			PosterPath       string  `json:"poster_path"`
+			GenreIDs         []int   `json:"genre_ids"`
+			OriginalLanguage string  `json:"original_language"`
+		} `json:"tv_results"`
+		TvEpisodeResults []struct {
+			ID            int     `json:"id"`
+			Name          string  `json:"name"`
+			Overview      string  `json:"overview"`
+			AirDate       string  `json:"air_date"`
+			VoteAverage   float32 `json:"vote_average"`
+			VoteCount     int     `json:"vote_count"`
+			StillPath     string  `json:"still_path"`
+			ShowID        int     `json:"show_id"`
+			SeasonNumber  int     `json:"season_number"`
+			EpisodeNumber int     `json:"episode_number"`
+		} `json:"tv_episode_results"`
+	}
+	if err := tmdbGET(findURL, &findResp); err != nil {
+		slog.Warn("tmdb find failed", "imdbID", imdbID, "err", err)
+		return nil
+	}
+
+	if len(findResp.MovieResults) > 0 {
+		r := findResp.MovieResults[0]
+		title := &titlepb.Title{
+			ID:          imdbID,
+			URL:         fmt.Sprintf("https://www.imdb.com/title/%s/", imdbID),
+			Name:        r.Title,
+			Type:        "Movie",
+			Description: r.Overview,
+			Rating:      r.VoteAverage,
+			RatingCount: int32(r.VoteCount),
+		}
+		if y := extractYear(r.ReleaseDate); y > 0 {
+			title.Year = int32(y)
+		}
+		if r.PosterPath != "" {
+			title.Poster = &titlepb.Poster{URL: tmdbImageBase + r.PosterPath}
+		}
+		title.Genres = tmdbGenreIDsToNames(r.GenreIDs)
+		tmdbEnrichMovieDetails(apiKey, r.ID, title)
+		return title
+	}
+
+	if len(findResp.TvResults) > 0 {
+		r := findResp.TvResults[0]
+		title := &titlepb.Title{
+			ID:          imdbID,
+			URL:         fmt.Sprintf("https://www.imdb.com/title/%s/", imdbID),
+			Name:        r.Name,
+			Type:        "TVSeries",
+			Description: r.Overview,
+			Rating:      r.VoteAverage,
+			RatingCount: int32(r.VoteCount),
+		}
+		if y := extractYear(r.FirstAirDate); y > 0 {
+			title.Year = int32(y)
+		}
+		if r.PosterPath != "" {
+			title.Poster = &titlepb.Poster{URL: tmdbImageBase + r.PosterPath}
+		}
+		title.Genres = tmdbGenreIDsToNames(r.GenreIDs)
+		tmdbEnrichTVDetails(apiKey, r.ID, title)
+		return title
+	}
+
+	if len(findResp.TvEpisodeResults) > 0 {
+		r := findResp.TvEpisodeResults[0]
+		title := &titlepb.Title{
+			ID:          imdbID,
+			URL:         fmt.Sprintf("https://www.imdb.com/title/%s/", imdbID),
+			Name:        r.Name,
+			Type:        "TVEpisode",
+			Description: r.Overview,
+			Rating:      r.VoteAverage,
+			RatingCount: int32(r.VoteCount),
+			Season:      int32(r.SeasonNumber),
+			Episode:     int32(r.EpisodeNumber),
+		}
+		if y := extractYear(r.AirDate); y > 0 {
+			title.Year = int32(y)
+		}
+		if r.StillPath != "" {
+			title.Poster = &titlepb.Poster{URL: tmdbImageBase + r.StillPath}
+		}
+		// Resolve parent series IMDb ID.
+		if r.ShowID != 0 {
+			if sid := tmdbGetSeriesIMDbID(apiKey, r.ShowID); sid != "" {
+				title.Serie = sid
+			}
+			// Enrich episode with series genres and credits.
+			tmdbEnrichEpisodeDetails(apiKey, r.ShowID, r.SeasonNumber, r.EpisodeNumber, title)
+		}
+		return title
+	}
+
+	return nil
+}
+
+// tmdbSearchMulti performs a TMDb multi-search and returns titlepb.Title results.
+func tmdbSearchMulti(apiKey, query string, year, limit, offset int) []*titlepb.Title {
+	page := (offset / max(limit, 1)) + 1
+	searchURL := fmt.Sprintf("https://api.themoviedb.org/3/search/multi?api_key=%s&query=%s&page=%d",
+		url.QueryEscape(apiKey), url.QueryEscape(query), page)
+	if year > 0 {
+		searchURL += fmt.Sprintf("&year=%d", year)
+	}
+
+	var searchResp struct {
+		Results []struct {
+			ID               int     `json:"id"`
+			MediaType        string  `json:"media_type"` // movie, tv, person
+			Title            string  `json:"title"`      // movie
+			Name             string  `json:"name"`       // tv/person
+			Overview         string  `json:"overview"`
+			ReleaseDate      string  `json:"release_date"`
+			FirstAirDate     string  `json:"first_air_date"`
+			VoteAverage      float32 `json:"vote_average"`
+			VoteCount        int     `json:"vote_count"`
+			PosterPath       string  `json:"poster_path"`
+			ProfilePath      string  `json:"profile_path"`
+			GenreIDs         []int   `json:"genre_ids"`
+			OriginalLanguage string  `json:"original_language"`
+		} `json:"results"`
+	}
+	if err := tmdbGET(searchURL, &searchResp); err != nil {
+		slog.Warn("tmdb multi-search failed", "query", query, "err", err)
+		return nil
+	}
+
+	var out []*titlepb.Title
+	for _, r := range searchResp.Results {
+		if r.MediaType == "person" {
+			continue // skip person results
+		}
+
+		// Get the IMDb ID for this TMDb entry.
+		imdbID := ""
+		switch r.MediaType {
+		case "movie":
+			imdbID = tmdbGetMovieIMDbID(apiKey, r.ID)
+		case "tv":
+			imdbID = tmdbGetSeriesIMDbID(apiKey, r.ID)
+		}
+		if imdbID == "" {
+			continue
+		}
+
+		title := &titlepb.Title{
+			ID:          imdbID,
+			URL:         fmt.Sprintf("https://www.imdb.com/title/%s/", imdbID),
+			Description: r.Overview,
+			Rating:      r.VoteAverage,
+			RatingCount: int32(r.VoteCount),
+			Genres:      tmdbGenreIDsToNames(r.GenreIDs),
+		}
+
+		switch r.MediaType {
+		case "movie":
+			title.Name = r.Title
+			title.Type = "Movie"
+			if y := extractYear(r.ReleaseDate); y > 0 {
+				title.Year = int32(y)
+			}
+			if r.PosterPath != "" {
+				title.Poster = &titlepb.Poster{URL: tmdbImageBase + r.PosterPath}
+			}
+			tmdbEnrichMovieDetails(apiKey, r.ID, title)
+		case "tv":
+			title.Name = r.Name
+			title.Type = "TVSeries"
+			if y := extractYear(r.FirstAirDate); y > 0 {
+				title.Year = int32(y)
+			}
+			if r.PosterPath != "" {
+				title.Poster = &titlepb.Poster{URL: tmdbImageBase + r.PosterPath}
+			}
+			tmdbEnrichTVDetails(apiKey, r.ID, title)
+		}
+
+		out = append(out, title)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+// tmdbGetSeriesIMDbID resolves a TMDb TV show ID to its IMDb ID.
+func tmdbGetSeriesIMDbID(apiKey string, tmdbShowID int) string {
+	extURL := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/external_ids?api_key=%s",
+		tmdbShowID, url.QueryEscape(apiKey))
+	var resp struct {
+		IMDbID string `json:"imdb_id"`
+	}
+	if err := tmdbGET(extURL, &resp); err == nil {
+		return resp.IMDbID
+	}
+	return ""
+}
+
+// tmdbGetMovieIMDbID resolves a TMDb movie ID to its IMDb ID.
+func tmdbGetMovieIMDbID(apiKey string, tmdbMovieID int) string {
+	extURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%d/external_ids?api_key=%s",
+		tmdbMovieID, url.QueryEscape(apiKey))
+	var resp struct {
+		IMDbID string `json:"imdb_id"`
+	}
+	if err := tmdbGET(extURL, &resp); err == nil {
+		return resp.IMDbID
+	}
+	return ""
+}
+
+// tmdbEnrichMovieDetails adds cast/crew/duration/language from TMDb movie details+credits.
+func tmdbEnrichMovieDetails(apiKey string, tmdbID int, title *titlepb.Title) {
+	// Details (runtime, languages, genres)
+	detailURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%d?api_key=%s",
+		tmdbID, url.QueryEscape(apiKey))
+	var details struct {
+		Runtime         int `json:"runtime"`
+		SpokenLanguages []struct {
+			Name string `json:"english_name"`
+		} `json:"spoken_languages"`
+		ProductionCountries []struct {
+			Name string `json:"name"`
+		} `json:"production_countries"`
+		Genres []struct {
+			Name string `json:"name"`
+		} `json:"genres"`
+	}
+	if err := tmdbGET(detailURL, &details); err == nil {
+		if title.Duration == "" && details.Runtime > 0 {
+			title.Duration = fmt.Sprintf("%dm", details.Runtime)
+		}
+		if len(title.Language) == 0 {
+			for _, l := range details.SpokenLanguages {
+				if l.Name != "" {
+					title.Language = append(title.Language, l.Name)
+				}
+			}
+		}
+		if len(title.Nationalities) == 0 {
+			for _, c := range details.ProductionCountries {
+				if c.Name != "" {
+					title.Nationalities = append(title.Nationalities, c.Name)
+				}
+			}
+		}
+		if len(title.Genres) == 0 && len(details.Genres) > 0 {
+			for _, g := range details.Genres {
+				if g.Name != "" {
+					title.Genres = append(title.Genres, g.Name)
+				}
+			}
+		}
+	}
+
+	// Credits (cast + crew)
+	tmdbEnrichCredits(apiKey, fmt.Sprintf("https://api.themoviedb.org/3/movie/%d/credits?api_key=%s",
+		tmdbID, url.QueryEscape(apiKey)), title)
+}
+
+// tmdbEnrichTVDetails adds cast/crew/duration/language from TMDb TV details+credits.
+func tmdbEnrichTVDetails(apiKey string, tmdbID int, title *titlepb.Title) {
+	detailURL := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d?api_key=%s",
+		tmdbID, url.QueryEscape(apiKey))
+	var details struct {
+		EpisodeRunTime  []int `json:"episode_run_time"`
+		SpokenLanguages []struct {
+			Name string `json:"english_name"`
+		} `json:"spoken_languages"`
+		ProductionCountries []struct {
+			Name string `json:"name"`
+		} `json:"production_countries"`
+		Genres []struct {
+			Name string `json:"name"`
+		} `json:"genres"`
+		CreatedBy []struct {
+			Name string `json:"name"`
+		} `json:"created_by"`
+	}
+	if err := tmdbGET(detailURL, &details); err == nil {
+		if title.Duration == "" && len(details.EpisodeRunTime) > 0 && details.EpisodeRunTime[0] > 0 {
+			title.Duration = fmt.Sprintf("%dm", details.EpisodeRunTime[0])
+		}
+		if len(title.Language) == 0 {
+			for _, l := range details.SpokenLanguages {
+				if l.Name != "" {
+					title.Language = append(title.Language, l.Name)
+				}
+			}
+		}
+		if len(title.Nationalities) == 0 {
+			for _, c := range details.ProductionCountries {
+				if c.Name != "" {
+					title.Nationalities = append(title.Nationalities, c.Name)
+				}
+			}
+		}
+		if len(title.Genres) == 0 && len(details.Genres) > 0 {
+			for _, g := range details.Genres {
+				if g.Name != "" {
+					title.Genres = append(title.Genres, g.Name)
+				}
+			}
+		}
+	}
+
+	tmdbEnrichCredits(apiKey, fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/credits?api_key=%s",
+		tmdbID, url.QueryEscape(apiKey)), title)
+}
+
+// tmdbEnrichEpisodeDetails adds credits and genres from the parent show.
+func tmdbEnrichEpisodeDetails(apiKey string, showID, season, episode int, title *titlepb.Title) {
+	// Get episode credits
+	creditsURL := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/season/%d/episode/%d/credits?api_key=%s",
+		showID, season, episode, url.QueryEscape(apiKey))
+	tmdbEnrichCredits(apiKey, creditsURL, title)
+
+	// Get episode details for runtime
+	epURL := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/season/%d/episode/%d?api_key=%s",
+		showID, season, episode, url.QueryEscape(apiKey))
+	var epDetails struct {
+		Runtime int `json:"runtime"`
+	}
+	if err := tmdbGET(epURL, &epDetails); err == nil && epDetails.Runtime > 0 && title.Duration == "" {
+		title.Duration = fmt.Sprintf("%dm", epDetails.Runtime)
+	}
+
+	// Get genres from parent series
+	if len(title.Genres) == 0 {
+		showURL := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d?api_key=%s",
+			showID, url.QueryEscape(apiKey))
+		var showDetails struct {
+			Genres []struct {
+				Name string `json:"name"`
+			} `json:"genres"`
+		}
+		if err := tmdbGET(showURL, &showDetails); err == nil {
+			for _, g := range showDetails.Genres {
+				if g.Name != "" {
+					title.Genres = append(title.Genres, g.Name)
+				}
+			}
+		}
+	}
+}
+
+// tmdbEnrichCredits fetches credits from a TMDb credits URL and adds actors/directors/writers.
+func tmdbEnrichCredits(apiKey, creditsURL string, title *titlepb.Title) {
+	var credits struct {
+		Cast []struct {
+			Name string `json:"name"`
+		} `json:"cast"`
+		GuestStars []struct {
+			Name string `json:"name"`
+		} `json:"guest_stars"`
+		Crew []struct {
+			Name       string `json:"name"`
+			Department string `json:"department"`
+			Job        string `json:"job"`
+		} `json:"crew"`
+	}
+	if err := tmdbGET(creditsURL, &credits); err != nil {
+		return
+	}
+
+	if len(title.Actors) == 0 {
+		seen := make(map[string]bool)
+		for _, c := range credits.Cast {
+			if c.Name != "" && !seen[c.Name] {
+				title.Actors = append(title.Actors, &titlepb.Person{FullName: c.Name})
+				seen[c.Name] = true
+			}
+		}
+		for _, c := range credits.GuestStars {
+			if c.Name != "" && !seen[c.Name] {
+				title.Actors = append(title.Actors, &titlepb.Person{FullName: c.Name})
+				seen[c.Name] = true
+			}
+		}
+	}
+	if len(title.Directors) == 0 {
+		for _, c := range credits.Crew {
+			if c.Job == "Director" && c.Name != "" {
+				title.Directors = append(title.Directors, &titlepb.Person{FullName: c.Name})
+			}
+		}
+	}
+	if len(title.Writers) == 0 {
+		for _, c := range credits.Crew {
+			if (c.Department == "Writing" || c.Job == "Writer" || c.Job == "Screenplay" || c.Job == "Story") && c.Name != "" {
+				title.Writers = append(title.Writers, &titlepb.Person{FullName: c.Name})
+			}
+		}
+	}
+}
+
+func extractYear(dateStr string) int {
+	if len(dateStr) >= 4 {
+		if y, err := strconv.Atoi(dateStr[:4]); err == nil {
+			return y
+		}
+	}
+	return 0
+}
+
+// tmdbGenreIDsToNames converts TMDb genre IDs to names using a static map.
+func tmdbGenreIDsToNames(ids []int) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if name, ok := tmdbGenreMap[id]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// TMDb genre ID → name (combined movie + TV).
+var tmdbGenreMap = map[int]string{
+	28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
+	80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+	14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
+	9648: "Mystery", 10749: "Romance", 878: "Science Fiction",
+	10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
+	10759: "Action & Adventure", 10762: "Kids", 10763: "News",
+	10764: "Reality", 10765: "Sci-Fi & Fantasy", 10766: "Soap",
+	10767: "Talk", 10768: "War & Politics",
+}
+
+// tmdbResolveEpisodeInfo uses TMDb to resolve episode season/episode/serie
+// when IMDb HTML scraping is blocked. Used by buildTitleProto and fetchTitleFromSuggestionAPI.
+func tmdbResolveEpisodeInfo(imdbID string) (season, episode int, serieIMDbID string, ok bool) {
+	apiKey := tmdbAPIKey()
+	if apiKey == "" {
+		return 0, 0, "", false
+	}
+	t := tmdbFindByIMDbID(apiKey, imdbID)
+	if t == nil || t.Type != "TVEpisode" {
+		return 0, 0, "", false
+	}
+	return int(t.Season), int(t.Episode), t.Serie, t.Season > 0 || t.Episode > 0 || t.Serie != ""
+}
+
+func tmdbGET(u string, out any) error {
+	c := &http.Client{Timeout: 8 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("tmdb returned %d", resp.StatusCode)
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
 }

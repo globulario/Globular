@@ -18,6 +18,8 @@ func NewJoinBinHandler(binDir string) http.Handler {
 	allowed := map[string]bool{
 		"node_agent_server": true,
 		"globularcli":       true,
+		"etcd":              true,
+		"etcdctl":           true,
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
