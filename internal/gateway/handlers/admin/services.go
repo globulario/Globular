@@ -56,6 +56,7 @@ type ServiceInstance struct {
 	State         string      `json:"state"`
 	Port          int         `json:"port"`
 	Category      string      `json:"category"`
+	Kind          string      `json:"kind,omitempty"` // "SERVICE", "APPLICATION", "INFRASTRUCTURE"
 	Node          string      `json:"node"`
 	DerivedStatus string      `json:"derived_status"` // healthy | degraded | critical | unknown
 	Reasons       []string    `json:"reasons"`
@@ -133,6 +134,14 @@ func categorize(baseName string) string {
 		return "Media"
 	}
 	return "Other"
+}
+
+// kindForService returns the package kind for a base service name.
+func kindForService(baseName string) string {
+	if infraSet[baseName] {
+		return "INFRASTRUCTURE"
+	}
+	return "SERVICE"
 }
 
 func newSet(items ...string) map[string]bool {
@@ -565,6 +574,7 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 				State:       mapStr(cfg, "State"),
 				Port:        mapInt(cfg, "Port"),
 				Category:    categorize(base),
+				Kind:        kindForService(base),
 				Node:        provider.Hostname(),
 				GRPCHealth:  &GRPCHealth{Enabled: false, Status: "NOT_CHECKED"},
 			}

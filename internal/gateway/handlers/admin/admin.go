@@ -26,6 +26,17 @@ type Deps struct {
 	CertificatesCluster  http.Handler // GET /admin/certificates/cluster
 	RenewPublic          http.Handler // POST /admin/certificates/renew-public
 	RegenerateInternal   http.Handler // POST /admin/certificates/regenerate-internal
+	UpgradesStatus       http.Handler // GET /admin/upgrades/status
+	UpgradesPlan         http.Handler // POST /admin/upgrades/plan
+	UpgradesApply        http.Handler // POST /admin/upgrades/apply
+	UpgradesJobStatus    http.Handler // GET /admin/upgrades/jobs
+	UpgradesHistory      http.Handler // GET /admin/upgrades/history
+	InstalledPackages    http.Handler // GET /admin/packages
+	RepoSearch           http.Handler // GET /admin/repository/search
+	RepoManifest         http.Handler // GET /admin/repository/manifest
+	RepoVersions         http.Handler // GET /admin/repository/versions
+	RepoDelete           http.Handler // DELETE /admin/repository/artifact
+	StateAlignment       http.Handler // GET /admin/state-alignment
 }
 
 // Mount registers only the endpoints provided.
@@ -53,5 +64,38 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.RegenerateInternal != nil {
 		mux.Handle("/admin/certificates/regenerate-internal", d.RegenerateInternal)
+	}
+	if d.UpgradesStatus != nil {
+		mux.Handle("/admin/upgrades/status", d.UpgradesStatus)
+	}
+	if d.UpgradesPlan != nil {
+		mux.Handle("/admin/upgrades/plan", d.UpgradesPlan)
+	}
+	if d.UpgradesApply != nil {
+		mux.Handle("/admin/upgrades/apply", d.UpgradesApply)
+	}
+	if d.UpgradesJobStatus != nil {
+		mux.Handle("/admin/upgrades/jobs", d.UpgradesJobStatus)
+	}
+	if d.UpgradesHistory != nil {
+		mux.Handle("/admin/upgrades/history", d.UpgradesHistory)
+	}
+	if d.InstalledPackages != nil {
+		mux.Handle("/admin/packages", d.InstalledPackages)
+	}
+	if d.RepoSearch != nil {
+		mux.Handle("/admin/repository/search", d.RepoSearch)
+	}
+	if d.RepoManifest != nil {
+		mux.Handle("/admin/repository/manifest", d.RepoManifest)
+	}
+	if d.RepoVersions != nil {
+		mux.Handle("/admin/repository/versions", d.RepoVersions)
+	}
+	if d.RepoDelete != nil {
+		mux.Handle("/admin/repository/artifact", d.RepoDelete)
+	}
+	if d.StateAlignment != nil {
+		mux.Handle("/admin/state-alignment", d.StateAlignment)
 	}
 }
