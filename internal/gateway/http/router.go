@@ -37,8 +37,9 @@ func NewRouter(logger *slog.Logger, cfg Config, rootHandler http.Handler) *http.
 		base.Handle("/", rootHandler)
 	}
 
-	// middleware chain (order matters)
+	// middleware chain (order matters — Metrics outermost so it captures everything)
 	middlewares := []func(http.Handler) http.Handler{
+		middleware.Metrics,
 		middleware.Recoverer(logger),
 		middleware.SecurityHeaders,
 		middleware.CORS(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders),

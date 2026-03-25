@@ -1,16 +1,91 @@
 // Package middleware provides HTTP middleware functions for common tasks such as
-// security headers, CORS, logging, recovery, and rate limiting.
+// security headers, CORS, logging, recovery, rate limiting, and Prometheus metrics.
 package middleware
 
 import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/time/rate"
 )
+
+// ---- Prometheus HTTP metrics ------------------------------------------------
+//
+// These metrics give the same visibility into gateway HTTP traffic that
+// grpc_prometheus gives for gRPC services. Alert rules can query them to
+// detect storms, error spikes, and latency explosions on the HTTP surface.
+
+var (
+	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gateway_http_requests_total",
+		Help: "Total HTTP requests by method, path pattern, and status code.",
+	}, []string{"method", "path", "code"})
+
+	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "gateway_http_request_duration_seconds",
+		Help:    "HTTP request latency in seconds.",
+		Buckets: []float64{0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30},
+	}, []string{"method", "path"})
+
+	httpRequestsInFlight = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gateway_http_requests_in_flight",
+		Help: "Number of HTTP requests currently being handled.",
+	})
+)
+
+// statusRecorder wraps http.ResponseWriter to capture the status code.
+type statusRecorder struct {
+	http.ResponseWriter
+	code int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.code = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// normalizePath collapses high-cardinality path segments to keep label cardinality bounded.
+// e.g., /users/abc123/files/photo.jpg → /users/*/files/*
+func normalizePath(p string) string {
+	parts := strings.Split(strings.Trim(p, "/"), "/")
+	if len(parts) == 0 {
+		return "/"
+	}
+	// Keep first segment (handler category), collapse the rest.
+	// This keeps cardinality manageable: /api/*, /admin/*, /users/*, etc.
+	if len(parts) <= 2 {
+		return "/" + strings.Join(parts, "/")
+	}
+	return "/" + parts[0] + "/" + parts[1] + "/*"
+}
+
+// Metrics returns a middleware that records Prometheus metrics for every HTTP request:
+//   - gateway_http_requests_total (counter): method, path, status code
+//   - gateway_http_request_duration_seconds (histogram): method, path
+//   - gateway_http_requests_in_flight (gauge): concurrent requests
+func Metrics(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := normalizePath(r.URL.Path)
+		rec := &statusRecorder{ResponseWriter: w, code: http.StatusOK}
+
+		httpRequestsInFlight.Inc()
+		start := time.Now()
+
+		next.ServeHTTP(rec, r)
+
+		duration := time.Since(start).Seconds()
+		httpRequestsInFlight.Dec()
+
+		httpRequestsTotal.WithLabelValues(r.Method, path, strconv.Itoa(rec.code)).Inc()
+		httpRequestDuration.WithLabelValues(r.Method, path).Observe(duration)
+	})
+}
 
 type Chain func(http.Handler) http.Handler
 
