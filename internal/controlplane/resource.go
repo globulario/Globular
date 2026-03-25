@@ -615,6 +615,9 @@ func makeHTTPConnectionManager(routeName string) *hcm_v3.HttpConnectionManager {
 	return &hcm_v3.HttpConnectionManager{
 		CodecType:  hcm_v3.HttpConnectionManager_AUTO,
 		StatPrefix: "http",
+		// Disable stream idle timeout (default 5min) — gRPC streaming RPCs
+		// like artifact downloads can take longer and are not truly idle.
+		StreamIdleTimeout: durationpb.New(0),
 		RouteSpecifier: &hcm_v3.HttpConnectionManager_Rds{
 			Rds: &hcm_v3.Rds{
 				ConfigSource:    makeConfigSource(),
