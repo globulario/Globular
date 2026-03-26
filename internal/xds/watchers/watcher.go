@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -601,18 +602,30 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 			continue
 		}
 
-		// Build certificate paths
-		certDir := fmt.Sprintf("/var/lib/globular/domains/%s", spec.FQDN)
-		certFile := fmt.Sprintf("%s/fullchain.pem", certDir)
-		keyFile := fmt.Sprintf("%s/privkey.pem", certDir)
-		chainFile := fmt.Sprintf("%s/chain.pem", certDir)
+		// Build certificate paths using canonical PKI locations.
+		// Primary: /var/lib/globular/pki/letsencrypt/{domain}/
+		// Fallback: /var/lib/globular/domains/{domain}/ (legacy)
+		// Fallback: /var/lib/globular/config/tls/acme/{domain}/ (CertPaths convention)
+		var certFile, keyFile, chainFile string
+		for _, dir := range []string{
+			fmt.Sprintf("/var/lib/globular/pki/letsencrypt/%s", spec.FQDN),
+			fmt.Sprintf("/var/lib/globular/domains/%s", spec.FQDN),
+			fmt.Sprintf("/var/lib/globular/config/tls/acme/%s", spec.FQDN),
+		} {
+			cf := fmt.Sprintf("%s/fullchain.pem", dir)
+			kf := fmt.Sprintf("%s/privkey.pem", dir)
+			if fileExists(cf) && fileExists(kf) {
+				certFile = cf
+				keyFile = kf
+				chainFile = fmt.Sprintf("%s/chain.pem", dir)
+				break
+			}
+		}
 
 		// Verify certificate files exist
-		if !fileExists(certFile) || !fileExists(keyFile) {
+		if certFile == "" || keyFile == "" {
 			w.logger.Warn("external domain certificate files missing",
-				"fqdn", spec.FQDN,
-				"cert_file", certFile,
-				"key_file", keyFile)
+				"fqdn", spec.FQDN)
 			continue
 		}
 
@@ -634,7 +647,7 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 
 		domains = append(domains, ExternalDomainRuntime{
 			FQDN:       spec.FQDN,
-			CertDir:    certDir,
+			CertDir:    certFile[:strings.LastIndex(certFile, "/")],
 			CertFile:   certFile,
 			KeyFile:    keyFile,
 			Service:    service,
@@ -707,51 +720,39 @@ func (w *Watcher) setupSDSSecrets(listener builder.Listener) (bool, []builder.Se
 	if listener.CertFile == "" || listener.KeyFile == "" {
 		return false, nil, nil
 	}
+	// Internal server/client certs ALWAYS use the canonical PKI paths.
+	// These are the internal-CA-signed certs for service-to-service traffic.
+	// The listener.CertFile may point to a LE cert if the ingress config
+	// was overridden — but the internal secrets must use the internal cert.
+	internalCert := filepath.Join(config.GetStateRootDir(), "pki", "issued", "services", "service.crt")
+	internalKey := filepath.Join(config.GetStateRootDir(), "pki", "issued", "services", "service.key")
+	caPath := filepath.Join(config.GetStateRootDir(), "pki", "ca.crt")
 
-	// Build SDS secrets using canonical TLS paths
 	sdsSecrets := []builder.Secret{
 		{
 			Name:     secrets.InternalServerCert,
-			CertPath: listener.CertFile,
-			KeyPath:  listener.KeyFile,
+			CertPath: internalCert,
+			KeyPath:  internalKey,
+		},
+		{
+			Name:     secrets.InternalClientCert,
+			CertPath: internalCert,
+			KeyPath:  internalKey,
 		},
 	}
 
-	// Add client certificate for mTLS to upstream services (e.g. gateway)
-	// Uses the same service cert/key — valid as both server and client cert
-	sdsSecrets = append(sdsSecrets, builder.Secret{
-		Name:     secrets.InternalClientCert,
-		CertPath: listener.CertFile,
-		KeyPath:  listener.KeyFile,
-	})
-
-	// Add CA bundle if present
-	if listener.IssuerFile != "" {
+	if fileExists(caPath) {
 		sdsSecrets = append(sdsSecrets, builder.Secret{
 			Name:   secrets.InternalCABundle,
-			CAPath: listener.IssuerFile,
+			CAPath: caPath,
 		})
 	}
 
 	// Security invariant: SDS implies TLS-secured xDS
-	// Secrets contain private keys and MUST NOT traverse plaintext gRPC
 	if os.Getenv("GLOBULAR_XDS_INSECURE") == "1" {
 		return false, nil, fmt.Errorf(
 			"security violation: SDS enabled but xDS running insecure (GLOBULAR_XDS_INSECURE=1) - " +
 				"secrets would be transmitted over plaintext")
-	}
-
-	// Add public ACME certificate if available (for public HTTPS ingress)
-	// ACME certificates use fullchain.pem naming convention
-	if strings.Contains(listener.CertFile, "fullchain.pem") {
-		sdsSecrets = append(sdsSecrets, builder.Secret{
-			Name:     secrets.PublicIngressCert,
-			CertPath: listener.CertFile,
-			KeyPath:  listener.KeyFile,
-		})
-		// Store ACME cert paths for rotation detection
-		w.acmeCertPath = listener.CertFile
-		w.acmeKeyPath = listener.KeyFile
 	}
 
 	if w.logger != nil {
@@ -908,14 +909,9 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		// External domains require SDS to be enabled
 		enableSDS = true
 
-		// Use first external domain cert as the public ingress cert (for default fallback)
-		firstDomain := externalDomains[0]
-		sdsSecrets = append(sdsSecrets, builder.Secret{
-			Name:     secrets.PublicIngressCert,
-			CertPath: firstDomain.CertFile,
-			KeyPath:  firstDomain.KeyFile,
-			CAPath:   firstDomain.ACMEIssuer,
-		})
+		// External domain certs are handled by per-domain SNI filter chains (ext-cert/<fqdn>).
+		// The default filter chain always uses the internal cert (internal-server-cert)
+		// for service-to-service traffic that doesn't match any SNI domain.
 
 		for _, domain := range externalDomains {
 			// Determine target cluster (typically gateway_http)

@@ -253,14 +253,10 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 			var listener *listener_v3.Listener
 			if input.EnableSDS {
 				// Use SDS for TLS certificates
-				// Choose secret name based on certificate type (ACME vs internal)
+				// Default filter chain ALWAYS uses the internal cert (for service-to-service traffic).
+				// External domains get their own SNI filter chains with the LE cert.
 				serverCertSecretName := secrets.InternalServerCert
 				fmt.Fprintf(os.Stderr, "[DEBUG] BuildSnapshot: Listener creation - EnableSDS=true, len(ExternalDomains)=%d\n", len(input.ExternalDomains))
-				// When external domains are configured, use public ingress cert for default fallback
-				if len(input.ExternalDomains) > 0 || strings.Contains(certFile, "fullchain.pem") {
-					// ACME certificate (Let's Encrypt) for public ingress
-					serverCertSecretName = secrets.PublicIngressCert
-				}
 				caSecretName := ""
 				if issuerFile != "" {
 					caSecretName = secrets.InternalCABundle
@@ -289,7 +285,7 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 						extraChains = append(extraChains, fc)
 					}
 
-					// Use listener with SNI chains + default fallback
+					// Use listener with SNI chains + default fallback (internal cert)
 					listener = controlplane.MakeHTTPListenerWithSDSFilterChains(
 						host,
 						httpsPort,

@@ -769,8 +769,8 @@ func MakeHTTPListenerWithSDSFilterChains(
 	caSecretName string,
 	extraFilterChains []*listener_v3.FilterChain,
 ) *listener_v3.Listener {
-	fmt.Fprintf(os.Stderr, "[DEBUG] MakeHTTPListenerWithSDSFilterChains called: name=%s, port=%d, extraChains=%d\n",
-		listenerName, listenerPort, len(extraFilterChains))
+	fmt.Fprintf(os.Stderr, "[DEBUG] MakeHTTPListenerWithSDSFilterChains: name=%s, port=%d, extraChains=%d, DEFAULT_CERT=%s\n",
+		listenerName, listenerPort, len(extraFilterChains), defaultServerCertSecretName)
 	// Build default filter chain (fallback when no SNI match)
 	manager := makeHTTPConnectionManager(routeName)
 
