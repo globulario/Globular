@@ -531,8 +531,16 @@ func (w *Watcher) fetchClusterNetwork(ctx context.Context) error {
 // Updated to read from separate spec/status keys (PR-A)
 func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRuntime, error) {
 	if w.etcdClient == nil {
-		// No etcd client configured - skip external domain loading
-		return nil, nil
+		// etcd client not yet available — attempt to connect.
+		// This handles the case where etcd was down at xDS startup but
+		// has since recovered; without this retry, external domains would
+		// remain empty until xDS is manually restarted.
+		client, err := config.GetEtcdClient()
+		if err != nil {
+			return nil, nil // still not available — try again next cycle
+		}
+		w.SetEtcdClient(client)
+		w.logger.Info("etcd client connected (deferred)")
 	}
 
 	// Load domain specs from etcd (exclude /status subkeys)
