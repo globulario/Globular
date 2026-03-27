@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/globulario/services/golang/security"
 )
 
 // Provider is the minimal surface the handler needs.
@@ -47,12 +49,27 @@ func NewGetConfig(p Provider) http.Handler {
 			conf = svc
 		}
 
+		// Mask secret fields unless ?reveal=true with a valid auth token.
+		if r.URL.Query().Get("reveal") != "true" || !isTokenValid(r) {
+			conf = MaskConfigSecrets(conf)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(conf)
 	})
+}
+
+// isTokenValid checks the token header for a valid JWT.
+func isTokenValid(r *http.Request) bool {
+	tok := r.Header.Get("token")
+	if tok == "" {
+		return false
+	}
+	_, err := security.ValidateToken(tok)
+	return err == nil
 }
 
 func toInt(s string) int {

@@ -25,6 +25,11 @@ func NewGetServiceConfig(p Provider) http.Handler {
 			return
 		}
 
+		// Mask secret fields unless ?reveal=true with a valid auth token.
+		if r.URL.Query().Get("reveal") != "true" || !isTokenValid(r) {
+			svc = MaskConfigSecrets(svc)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		enc := json.NewEncoder(w)

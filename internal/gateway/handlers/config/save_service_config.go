@@ -61,6 +61,12 @@ func NewSaveServiceConfig(p ServicePatcher, auth TokenValidator) http.Handler {
 			log.Printf("save-service-config: service %q not in etcd, creating from patch", id)
 			current = patch
 		} else {
+			// Replace masked values in the patch with the real values from
+			// the current config. This prevents the UI (which receives masked
+			// secrets) from accidentally overwriting credentials with "****..."
+			// when saving non-secret fields.
+			UnmaskPatch(patch, current)
+
 			// Merge patch fields into current (Id is always preserved from current).
 			for k, v := range patch {
 				current[k] = v
