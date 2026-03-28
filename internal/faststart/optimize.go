@@ -36,6 +36,7 @@ func Optimize(path string) {
 		"-i", path,
 		"-movflags", "faststart",
 		"-codec", "copy", // remux only — no re-encoding, fast even over NFS
+		"-f", "mp4", // explicit format — .tmp extension is not recognized by ffmpeg
 		"-y", // overwrite output without interactive prompt
 		tmp,
 	)
