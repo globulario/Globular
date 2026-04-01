@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	defaultGRPCAddr           = "127.0.0.1:18000"
+	defaultGRPCAddr           = "0.0.0.0:18000"
 	defaultXDSConfig          = "/var/lib/globular/xds/config.json"
 	defaultEnvoyBootstrapPath = "/run/globular/envoy/envoy-bootstrap.json"
 	defaultServiceConfigPath  = "/var/lib/globular/xds/xds.yaml"
@@ -322,7 +322,7 @@ func applyServicePort(addr string, cfg *servicePortConfig) string {
 	if port == 0 {
 		port = portFromAddress(cfg.Address)
 	}
-	host := hostFromAddress(addr, "127.0.0.1")
+	host := hostFromAddress(addr, "0.0.0.0")
 	if strings.TrimSpace(cfg.Address) != "" {
 		host = hostFromAddress(cfg.Address, host)
 	}

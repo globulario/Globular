@@ -48,8 +48,14 @@ func MarshalBootstrap(opt BootstrapOptions) ([]byte, error) {
 	if opt.Cluster == "" {
 		opt.Cluster = "globular-cluster"
 	}
-	if opt.XDSHost == "" {
-		opt.XDSHost = "127.0.0.1"
+	if opt.XDSHost == "" || opt.XDSHost == "127.0.0.1" {
+		// Use the node's real IP — xDS binds to the advertised address,
+		// not localhost. 127.0.0.1 fails on multi-node clusters.
+		if ip := detectOutboundIP(); ip != "" {
+			opt.XDSHost = ip
+		} else {
+			opt.XDSHost = "127.0.0.1"
+		}
 	}
 	if opt.XDSPort == 0 {
 		opt.XDSPort = 18000
@@ -162,6 +168,16 @@ func WriteBootstrap(path string, opt BootstrapOptions) error {
 		return err
 	}
 	return nil
+}
+
+// detectOutboundIP returns the local IP used for outbound connections.
+func detectOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
 // buildXDSCluster builds the xds_cluster configuration with optional TLS transport socket.
