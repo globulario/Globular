@@ -552,10 +552,13 @@ DEPEOF
     [[ -f /etc/scylla.d/cpuset.conf ]]   || echo "# cpuset" > /etc/scylla.d/cpuset.conf
     [[ -f /etc/sysconfig/scylla-server ]] || { mkdir -p /etc/sysconfig; echo 'SCYLLA_ARGS="--log-to-syslog 1 --log-to-stdout 0 --default-log-level info --network-stack posix --developer-mode=1"' > /etc/sysconfig/scylla-server; }
 
-    # Disable housekeeping (prevents unexpected restarts during join)
-    systemctl disable scylla-housekeeping-restart.timer 2>/dev/null || true
-    systemctl stop scylla-housekeeping-restart.timer 2>/dev/null || true
-    systemctl mask scylla-housekeeping-restart.timer 2>/dev/null || true
+    # Disable ALL housekeeping timers (prevents unexpected restarts that
+    # break Raft quorum by generating new host IDs)
+    for timer in scylla-housekeeping-restart.timer scylla-housekeeping-daily.timer; do
+      systemctl disable "$timer" 2>/dev/null || true
+      systemctl stop "$timer" 2>/dev/null || true
+      systemctl mask "$timer" 2>/dev/null || true
+    done
     systemctl daemon-reload
 
     # Start ScyllaDB
