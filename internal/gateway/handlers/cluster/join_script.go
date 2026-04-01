@@ -448,159 +448,21 @@ else
   echo "  Continuing (controller may recover)..."
 fi
 
-# -- Install ScyllaDB (Day-1 Rule 10) --------------------------------------
-# ScyllaDB is a bootstrap prerequisite for control-plane nodes. Without it,
-# the controller's storage_joining phase stalls forever.
+# -- ScyllaDB apt source (Day-1 Rule 10) ------------------------------------
+# Install the GPG key and apt source so the workflow engine can install
+# ScyllaDB via the scylladb package's post-install script later.
+# The actual install + config + start is handled by the node.join workflow.
 if [[ -n "${SCYLLA_GPG_B64}" && -n "${SCYLLA_APT_SOURCE}" ]]; then
-  echo "  [3.3] Installing ScyllaDB..."
-
-  # Install GPG key (idempotent).
+  echo "  [3.3] Preparing ScyllaDB apt source..."
   if [[ ! -f /etc/apt/keyrings/scylladb.gpg ]]; then
     mkdir -p /etc/apt/keyrings
     echo "${SCYLLA_GPG_B64}" | base64 -d > /etc/apt/keyrings/scylladb.gpg
     chmod 644 /etc/apt/keyrings/scylladb.gpg
   fi
-
-  # Install apt source.
   echo "${SCYLLA_APT_SOURCE}" > /etc/apt/sources.list.d/scylladb.list
-
-  # Wait for any existing apt/dpkg lock to be released (another process
-  # may be installing packages concurrently).
-  wait_apt_lock() {
-    for i in $(seq 1 30); do
-      if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
-        return 0
-      fi
-      echo -n "."
-      sleep 2
-    done
-    echo " (apt lock timeout)"
-  }
-
-  # Install the package (skip if already installed).
-  if ! dpkg -l scylla-server 2>/dev/null | grep -q '^ii'; then
-    wait_apt_lock
-    apt-get update -qq 2>/dev/null || true
-    wait_apt_lock
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq scylla-server 2>/dev/null || true
-  fi
-
-  if dpkg -l scylla-server 2>/dev/null | grep -q '^ii'; then
-    echo "  OK: ScyllaDB package installed"
-
-    # Configure and start ScyllaDB for cluster join.
-    # This must happen NOW, before the controller starts driving bootstrap
-    # phases — ScyllaDB is a prerequisite for storage_joining phase.
-    LOCAL_IP=$(ip route get 8.8.8.8 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
-    [[ -z "${LOCAL_IP}" ]] && LOCAL_IP=$(hostname -I | awk '{print $1}')
-    CTRL_HOST=$(echo "${CONTROLLER}" | sed 's/:.*//')
-    SEED_IP="${CTRL_HOST},${LOCAL_IP}"
-
-    # TLS certs (Globular PKI → ScyllaDB)
-    SCYLLA_TLS="/etc/scylla/tls"
-    mkdir -p "${SCYLLA_TLS}"
-    if [[ -f /var/lib/globular/pki/issued/services/service.crt ]]; then
-      cp /var/lib/globular/pki/issued/services/service.crt "${SCYLLA_TLS}/server.crt"
-      cp /var/lib/globular/pki/issued/services/service.key "${SCYLLA_TLS}/server.key"
-      cp /var/lib/globular/pki/ca.pem "${SCYLLA_TLS}/ca.crt"
-      chown -R scylla:scylla "${SCYLLA_TLS}" 2>/dev/null || true
-      chmod 644 "${SCYLLA_TLS}/server.crt" "${SCYLLA_TLS}/ca.crt"
-      chmod 400 "${SCYLLA_TLS}/server.key"
-    fi
-
-    # Write scylla.yaml
-    cat > /etc/scylla/scylla.yaml <<SCYLLAEOF
-cluster_name: 'globular.internal'
-seed_provider:
-  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
-    parameters:
-      - seeds: '${SEED_IP}'
-listen_address: '${LOCAL_IP}'
-rpc_address: '${LOCAL_IP}'
-broadcast_address: '${LOCAL_IP}'
-broadcast_rpc_address: '${LOCAL_IP}'
-native_transport_port: 9042
-endpoint_snitch: SimpleSnitch
-developer_mode: true
-client_encryption_options:
-  enabled: true
-  certificate: /etc/scylla/tls/server.crt
-  keyfile: /etc/scylla/tls/server.key
-  truststore: /etc/scylla/tls/ca.crt
-  require_client_auth: false
-native_transport_port_ssl: 9142
-data_file_directories:
-  - /var/lib/scylla/data
-commitlog_directory: /var/lib/scylla/commitlog
-commitlog_sync: batch
-commitlog_sync_batch_window_in_ms: 2
-commitlog_sync_period_in_ms: 10000
-auto_adjust_flush_quota: true
-api_port: 10000
-api_address: '${LOCAL_IP}'
-SCYLLAEOF
-
-    # Data dirs + symlink
-    mkdir -p /var/lib/scylla/data /var/lib/scylla/commitlog
-    chown -R scylla:scylla /var/lib/scylla 2>/dev/null || true
-    [[ -L /var/lib/scylla/conf || -d /var/lib/scylla/conf ]] || ln -sfn /etc/scylla /var/lib/scylla/conf
-
-    # Systemd overrides for Debian/Ubuntu
-    SCYLLA_OVR="/etc/systemd/system/scylla-server.service.d"
-    mkdir -p "${SCYLLA_OVR}"
-    [[ -f "${SCYLLA_OVR}/sysconfdir.conf" ]] || cat > "${SCYLLA_OVR}/sysconfdir.conf" <<'SYSEOF'
-[Service]
-EnvironmentFile=
-EnvironmentFile=-/etc/default/scylla-server
-EnvironmentFile=-/etc/scylla.d/*.conf
-SYSEOF
-    [[ -f "${SCYLLA_OVR}/dependencies.conf" ]] || cat > "${SCYLLA_OVR}/dependencies.conf" <<'DEPEOF'
-[Unit]
-After=network-online.target
-Wants=network-online.target
-DEPEOF
-    mkdir -p /etc/scylla.d
-    [[ -f /etc/scylla.d/dev-mode.conf ]] || echo "DEV_MODE=--developer-mode=1" > /etc/scylla.d/dev-mode.conf
-    [[ -f /etc/scylla.d/memory.conf ]]   || echo "# memory" > /etc/scylla.d/memory.conf
-    [[ -f /etc/scylla.d/io.conf ]]       || echo "# io" > /etc/scylla.d/io.conf
-    [[ -f /etc/scylla.d/cpuset.conf ]]   || echo "# cpuset" > /etc/scylla.d/cpuset.conf
-    [[ -f /etc/sysconfig/scylla-server ]] || { mkdir -p /etc/sysconfig; echo 'SCYLLA_ARGS="--log-to-syslog 1 --log-to-stdout 0 --default-log-level info --network-stack posix --developer-mode=1"' > /etc/sysconfig/scylla-server; }
-
-    # Disable ALL housekeeping timers (prevents unexpected restarts that
-    # break Raft quorum by generating new host IDs)
-    for timer in scylla-housekeeping-restart.timer scylla-housekeeping-daily.timer; do
-      systemctl disable "$timer" 2>/dev/null || true
-      systemctl stop "$timer" 2>/dev/null || true
-      systemctl mask "$timer" 2>/dev/null || true
-    done
-    systemctl daemon-reload
-
-    # Start ScyllaDB
-    systemctl enable scylla-server.service 2>/dev/null || true
-    systemctl start scylla-server.service || true
-    echo "  OK: ScyllaDB configured and starting (seeds: ${SEED_IP})"
-
-    # Wait for CQL (up to 4 min — Raft join takes time)
-    echo -n "  Waiting for CQL..."
-    for i in $(seq 1 120); do
-      if ss -tlnp | grep -q ":9042 "; then
-        echo " ready!"
-        echo "  OK: ScyllaDB CQL on ${LOCAL_IP}:9042"
-        break
-      fi
-      sleep 2
-      echo -n "."
-    done
-    if ! ss -tlnp | grep -q ":9042 "; then
-      echo ""
-      echo "  WARN: ScyllaDB CQL not ready after 4min — Raft join may still be in progress"
-    fi
-  else
-    echo "  WARN: ScyllaDB apt install failed -- install manually: apt install scylla-server"
-  fi
+  echo "  OK: ScyllaDB apt source configured (install handled by workflow)"
 else
-  echo "  [3.3] ScyllaDB GPG key not available from bootstrap node -- skipping"
-  echo "       (install manually or controller will handle via plan)"
+  echo "  [3.3] ScyllaDB GPG key not available — workflow will handle install"
 fi
 
 echo "  OK: Prerequisites ready"
