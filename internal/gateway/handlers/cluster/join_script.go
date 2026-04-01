@@ -464,10 +464,24 @@ if [[ -n "${SCYLLA_GPG_B64}" && -n "${SCYLLA_APT_SOURCE}" ]]; then
   # Install apt source.
   echo "${SCYLLA_APT_SOURCE}" > /etc/apt/sources.list.d/scylladb.list
 
+  # Wait for any existing apt/dpkg lock to be released (another process
+  # may be installing packages concurrently).
+  wait_apt_lock() {
+    for i in $(seq 1 30); do
+      if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+        return 0
+      fi
+      echo -n "."
+      sleep 2
+    done
+    echo " (apt lock timeout)"
+  }
+
   # Install the package (skip if already installed).
-  # Use || true to prevent set -eu from aborting on apt failure.
   if ! dpkg -l scylla-server 2>/dev/null | grep -q '^ii'; then
+    wait_apt_lock
     apt-get update -qq 2>/dev/null || true
+    wait_apt_lock
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq scylla-server 2>/dev/null || true
   fi
 
