@@ -99,6 +99,8 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 		} else if resolved, ok := resolvePublicDir(dir, publicDirs); ok {
 			targetDir = resolved
 			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
+			// MinIO public dirs (e.g. /public/datasets) should write to object storage.
+			minioTargetPath = strings.HasPrefix(dir, "/public/")
 		} else {
 			targetDir = filepath.Join(p.DataRoot(), "webroot", filepath.FromSlash(strings.TrimPrefix(dir, "/")))
 			cleanTarget = filepath.Clean(targetDir) + string(filepath.Separator)
@@ -203,6 +205,9 @@ func NewUploadFileWithOptions(p UploadProvider, opt UploadOptions) http.Handler 
 				if strings.HasPrefix(dir, "/users/") {
 					bucket = minioCfg.usersBucket()
 					objKey, err = usersObjectKey(minioCfg, logicalPath)
+				} else if strings.HasPrefix(dir, "/public/") {
+					bucket = minioCfg.publicBucket()
+					objKey, err = publicObjectKey(minioCfg, logicalPath)
 				} else {
 					bucket = minioCfg.webrootBucket()
 					host := cleanRequestHost(r.Host, minioCfg)

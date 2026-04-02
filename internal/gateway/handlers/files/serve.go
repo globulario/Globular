@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -163,6 +164,7 @@ type pathInfo struct {
 	minioCfg       *MinioProxyConfig
 	useMinioUsers  bool
 	useMinioWeb    bool
+	useMinioPublic bool
 	fallbackToDisk bool
 	hostPart       string
 	marker         string
@@ -207,6 +209,7 @@ type MinIOHandler struct {
 	cfg            *MinioProxyConfig
 	useUsers       bool
 	useWeb         bool
+	usePublic      bool
 	fallbackToDisk bool
 	hostPart       string
 
@@ -219,7 +222,7 @@ func (h *MinIOHandler) CanServe(_ *pathInfo) bool {
 	if h == nil || h.cfg == nil {
 		return false
 	}
-	return h.useUsers || h.useWeb
+	return h.useUsers || h.useWeb || h.usePublic
 }
 
 // Serve attempts to serve the request from MinIO and returns true when it handled
@@ -240,6 +243,9 @@ func (h *MinIOHandler) Serve(w http.ResponseWriter, r *http.Request, p *pathInfo
 
 	if h.useUsers && usersFn(w, r, h.cfg, p.reqPath) {
 		return true
+	}
+	if h.usePublic {
+		return servePublicFromMinio(w, r, h.cfg, p.reqPath)
 	}
 	if h.useWeb && webFn(w, r, h.cfg, p.reqPath, h.hostPart, h.fallbackToDisk) {
 		return true
@@ -466,6 +472,17 @@ func NewServeFile(p ServeProvider) http.Handler {
 		}
 		if isPublicLike(rqstPath, p.PublicDirs()) {
 			name = rqstPath
+			if strings.HasPrefix(rqstPath, "/public/") && hasMinio {
+				// MinIO public dirs: read from object storage with "public" prefix.
+				info.useMinioPublic = true
+				info.useMinioWeb = false
+				info.fallbackToDisk = false
+			} else {
+				// Local/external public paths (e.g. /mnt/...) live on the local
+				// filesystem, not in MinIO.
+				info.useMinioWeb = false
+				info.fallbackToDisk = true
+			}
 		}
 
 		// CA certificate special-case
@@ -491,6 +508,7 @@ func NewServeFile(p ServeProvider) http.Handler {
 			cfg:            minioCfg,
 			useUsers:       info.useMinioUsers,
 			useWeb:         info.useMinioWeb,
+			usePublic:      info.useMinioPublic,
 			fallbackToDisk: info.fallbackToDisk,
 			hostPart:       info.hostPart,
 		}
@@ -533,11 +551,15 @@ func serveUsersFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxy
 					redirectToPlaylist(w, r, playlistPath)
 					return true
 				}
-				if !isMinioNoSuchKey(perr) {
+				if !isMinioNoSuchKey(perr) && !isMinioUnavailable(perr) {
 					httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
 					return true
 				}
 			}
+			return false
+		}
+		if isMinioUnavailable(err) {
+			slog.Warn("minio unavailable, falling back to filesystem", "path", rqstPath, "error", err)
 			return false
 		}
 		httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
@@ -566,6 +588,38 @@ func isDirCandidate(rqstPath string) bool {
 	return !strings.Contains(base, ".")
 }
 
+// servePublicFromMinio serves files from the MinIO /public/ prefix.
+func servePublicFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxyConfig, rqstPath string) bool {
+	if cfg == nil || cfg.Fetch == nil {
+		return false
+	}
+	key, err := publicObjectKey(cfg, rqstPath)
+	if err != nil {
+		httplib.WriteJSONError(w, http.StatusBadRequest, "invalid path")
+		return true
+	}
+	reader, info, err := cfg.Fetch(r.Context(), cfg.publicBucket(), key)
+	if err != nil {
+		if isMinioNoSuchKey(err) {
+			return false
+		}
+		httplib.WriteJSONError(w, http.StatusServiceUnavailable, "object store unavailable")
+		return true
+	}
+	defer reader.Close()
+	ct := mime.TypeByExtension(path.Ext(rqstPath))
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", ct)
+	if info.Size > 0 {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size))
+	}
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, reader)
+	return true
+}
+
 func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProxyConfig, rqstPath, host string, fallbackOnError bool) bool {
 	if cfg == nil || cfg.Fetch == nil {
 		return false
@@ -578,6 +632,10 @@ func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioPro
 	reader, info, err := cfg.Fetch(r.Context(), cfg.webrootBucket(), key)
 	if err != nil {
 		if isMinioNoSuchKey(err) {
+			return false
+		}
+		if isMinioUnavailable(err) {
+			slog.Warn("minio unavailable, falling back to filesystem", "path", rqstPath, "error", err)
 			return false
 		}
 		if !fallbackOnError {
@@ -627,6 +685,35 @@ func isMinioNoSuchKey(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "nosuchkey")
 }
 
+// isMinioUnavailable returns true when the error indicates MinIO itself is
+// down, unreachable, or degraded (e.g. disk not mounted, quorum lost, TLS
+// handshake failure).  Callers should fall through to filesystem serving
+// instead of returning 503 to the client.
+func isMinioUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, signal := range []string{
+		"drives provided",           // "0 drives provided" — disk not mounted
+		"drive not found",           // individual drive offline
+		"quorum",                    // read/write quorum lost
+		"insufficient",              // InsufficientReadQuorum / InsufficientWriteQuorum
+		"connection refused",        // MinIO not listening
+		"connect: connection",       // TCP connect failure
+		"i/o timeout",               // network timeout
+		"tls:",                      // TLS handshake failure
+		"no such host",              // DNS failure
+		"server misbehaving",        // DNS resolver error
+		"context deadline exceeded", // request timeout
+	} {
+		if strings.Contains(msg, signal) {
+			return true
+		}
+	}
+	return false
+}
+
 func (cfg *MinioProxyConfig) usersBucket() string {
 	if cfg == nil {
 		return ""
@@ -645,6 +732,38 @@ func (cfg *MinioProxyConfig) webrootBucket() string {
 		return bucket
 	}
 	return strings.TrimSpace(cfg.Bucket)
+}
+
+// publicBucket returns the bucket for /public/ MinIO paths (same default bucket).
+func (cfg *MinioProxyConfig) publicBucket() string {
+	if cfg == nil {
+		return ""
+	}
+	return strings.TrimSpace(cfg.Bucket)
+}
+
+// publicObjectKey builds a MinIO object key for /public/ paths.
+// /public/datasets/file.csv → "public/datasets/file.csv"
+func publicObjectKey(cfg *MinioProxyConfig, reqPath string) (string, error) {
+	if cfg == nil {
+		return "", fmt.Errorf("config is nil")
+	}
+	decoded := reqPath
+	if strings.Contains(reqPath, "%") {
+		if unescaped, err := url.PathUnescape(reqPath); err == nil {
+			decoded = unescaped
+		}
+	}
+	cleanPath, err := sanitizeRequestPath(decoded)
+	if err != nil {
+		return "", err
+	}
+	// Strip leading /public/ and use "public" as the key prefix.
+	logical := strings.TrimPrefix(cleanPath, "/public/")
+	if logical == "" {
+		return "", fmt.Errorf("empty public path")
+	}
+	return joinKey("public", logical)
 }
 
 func (cfg *MinioProxyConfig) usersPrefixValue() string {
