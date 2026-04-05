@@ -3,12 +3,16 @@ package admin
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"math"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -152,11 +156,29 @@ func buildAppPaths(provider AdminProvider, mounts []MountInfo) []ApplicationPath
 		{"etcd", filepath.Join(stateDir, "etcd")},
 		{"ScyllaDB", "/var/lib/scylla"},
 		{"Prometheus", filepath.Join(stateDir, "prometheus", "data")},
-		{"MinIO", resolveMinIODataDir(stateDir)},
+	}
+	// MinIO may resolve to multiple local paths in distributed mode.
+	for _, p := range resolveMinIODataDirs(stateDir) {
+		name := "MinIO"
+		if base := filepath.Base(p); base != "" && base != "." && base != "/" {
+			name = "MinIO: " + base
+		}
+		known = append(known, struct {
+			name string
+			path string
+		}{name, p})
 	}
 
-	// Add file service public dirs
+	// Add file service public dirs. Deduplicate because PublicDirs()
+	// aggregates Public[] from every FileService instance across the
+	// cluster, and nodes generally share identical config — without this
+	// the same path shows up once per node.
+	seenPublic := make(map[string]struct{})
 	for _, dir := range provider.PublicDirs() {
+		if _, dup := seenPublic[dir]; dup {
+			continue
+		}
+		seenPublic[dir] = struct{}{}
 		known = append(known, struct {
 			name string
 			path string
@@ -218,36 +240,58 @@ func mountStatusForPath(mountPoint string, mounts []MountInfo) string {
 	return "healthy"
 }
 
-// isWritable tests if the path is writable by attempting to create a temp file.
+// isWritable reports whether the path can be written to. Because the gateway
+// process generally runs as the "globular" user but many application data
+// directories are owned by their own service account (scylla, minio, mongodb,
+// …), a raw os.Create as our process yields false negatives. We use the
+// following logic:
+//
+//  1. Try creating a probe file directly. Success ⇒ writable.
+//  2. If the filesystem itself is read-only (EROFS) ⇒ not writable.
+//  3. Otherwise (EACCES/EPERM) we couldn't write but the owning service
+//     likely can. If the directory's owner-write bit is set, report it as
+//     writable — that matches how the service process will see it.
 func isWritable(p string) bool {
 	info, err := os.Stat(p)
 	if err != nil {
 		return false
 	}
 	if !info.IsDir() {
-		// For files, check the parent directory
 		p = filepath.Dir(p)
+		info, err = os.Stat(p)
+		if err != nil {
+			return false
+		}
 	}
 	tmp := filepath.Join(p, ".globular_write_test")
-	f, err := os.Create(tmp)
-	if err != nil {
+	if f, createErr := os.Create(tmp); createErr == nil {
+		f.Close()
+		os.Remove(tmp)
+		return true
+	} else if errors.Is(createErr, syscall.EROFS) {
 		return false
 	}
-	f.Close()
-	os.Remove(tmp)
-	return true
+	return info.Mode().Perm()&0200 != 0
 }
 
-// resolveMinIODataDir reads MINIO_VOLUMES from the minio env file.
-// Falls back to {stateDir}/minio/data if the env file is missing or unset.
-func resolveMinIODataDir(stateDir string) string {
+// resolveMinIODataDirs reads MINIO_VOLUMES from the minio env file and returns
+// the set of LOCAL filesystem paths that this node owns. In distributed mode
+// MINIO_VOLUMES is a space-separated list of URLs (e.g.
+// "https://host1:9000/data1 https://host2:9000/data1 ..."); only entries whose
+// host resolves to one of this node's identities are returned. In single-node
+// mode it's a plain path. Falls back to {stateDir}/minio/data on any parse
+// failure.
+func resolveMinIODataDirs(stateDir string) []string {
+	fallback := []string{filepath.Join(stateDir, "minio", "data")}
+
 	envFile := filepath.Join(stateDir, "minio", "minio.env")
 	f, err := os.Open(envFile)
 	if err != nil {
-		return filepath.Join(stateDir, "minio", "data")
+		return fallback
 	}
 	defer f.Close()
 
+	var raw string
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
@@ -256,14 +300,73 @@ func resolveMinIODataDir(stateDir string) string {
 		}
 		k, v, _ := strings.Cut(line, "=")
 		if strings.TrimSpace(k) == "MINIO_VOLUMES" {
-			v = strings.TrimSpace(v)
-			v = strings.Trim(v, "\"'")
-			if v != "" {
-				return v
+			raw = strings.Trim(strings.TrimSpace(v), "\"'")
+			break
+		}
+	}
+	if raw == "" {
+		return fallback
+	}
+
+	// Distributed mode: space-separated URL list. Extract local paths.
+	if strings.Contains(raw, "://") {
+		local := extractLocalMinIOPaths(raw)
+		if len(local) == 0 {
+			return fallback
+		}
+		return local
+	}
+
+	// Single-node mode: plain path (may contain a brace-expansion ellipsis
+	// like "/data/{1...4}", but we don't attempt to expand it here — report
+	// the literal value so the operator sees what MinIO was configured with).
+	return []string{raw}
+}
+
+// extractLocalMinIOPaths parses a space-separated URL list and returns the
+// URL.Path components whose host matches one of this node's identities
+// (hostname or any interface IP). Duplicates are preserved so the operator
+// sees each volume entry.
+func extractLocalMinIOPaths(raw string) []string {
+	ids := localHostIdentities()
+	var paths []string
+	for _, tok := range strings.Fields(raw) {
+		u, err := url.Parse(tok)
+		if err != nil || u.Host == "" || u.Path == "" {
+			continue
+		}
+		if _, ok := ids[strings.ToLower(u.Hostname())]; !ok {
+			continue
+		}
+		paths = append(paths, u.Path)
+	}
+	return paths
+}
+
+// localHostIdentities returns a set of lowercase names/IPs that identify this
+// node: loopback names, os.Hostname(), and every interface IP address.
+func localHostIdentities() map[string]struct{} {
+	ids := map[string]struct{}{
+		"localhost": {},
+		"127.0.0.1": {},
+		"::1":       {},
+	}
+	if h, err := os.Hostname(); err == nil && h != "" {
+		ids[strings.ToLower(h)] = struct{}{}
+		// Also add the short hostname (before the first dot) in case
+		// MINIO_VOLUMES uses FQDN or vice versa.
+		if short, _, ok := strings.Cut(h, "."); ok && short != "" {
+			ids[strings.ToLower(short)] = struct{}{}
+		}
+	}
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok {
+				ids[ipnet.IP.String()] = struct{}{}
 			}
 		}
 	}
-	return filepath.Join(stateDir, "minio", "data")
+	return ids
 }
 
 func fmtFloat(v float64) string {
