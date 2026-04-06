@@ -116,6 +116,7 @@ func MakeCluster(
 		LoadAssignment:                makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:               cluster_v3.Cluster_V4_ONLY,
 		TypedExtensionProtocolOptions: typed, // HTTP/2 upstream
+		HealthChecks:                  makeGRPCHealthChecks(),
 	}
 
 	// Enable TLS if we have any trust material (CA) or mTLS (cert+key).
@@ -165,6 +166,7 @@ func MakeClusterWithSDS(
 		LoadAssignment:                makeEndpoint(clusterName, endPoints),
 		DnsLookupFamily:               cluster_v3.Cluster_V4_ONLY,
 		TypedExtensionProtocolOptions: typed,
+		HealthChecks:                  makeGRPCHealthChecks(),
 	}
 
 	// Enable TLS via SDS if CA secret provided
@@ -851,4 +853,31 @@ func fileDS(path string) *core_v3.DataSource {
 		return nil
 	}
 	return &core_v3.DataSource{Specifier: &core_v3.DataSource_Filename{Filename: path}}
+}
+
+// makeGRPCHealthChecks returns the health check configuration for Envoy
+// clusters. Uses the standard gRPC Health Checking Protocol which every
+// Globular service implements via the grpc/health stdlib package.
+//
+// Configuration:
+//   - Interval: 5 seconds
+//   - Timeout: 3 seconds per check
+//   - Unhealthy threshold: 3 consecutive failures (15s to remove)
+//   - Healthy threshold: 1 success (immediate re-add)
+//
+// See docs/architecture/HA-control-plane-design.md §Class D.
+func makeGRPCHealthChecks() []*core_v3.HealthCheck {
+	grpcCheck := &core_v3.HealthCheck_GrpcHealthCheck_{
+		GrpcHealthCheck: &core_v3.HealthCheck_GrpcHealthCheck{},
+	}
+
+	return []*core_v3.HealthCheck{
+		{
+			Timeout:            durationpb.New(3 * time.Second),
+			Interval:           durationpb.New(5 * time.Second),
+			UnhealthyThreshold: wrapperspb.UInt32(3),
+			HealthyThreshold:   wrapperspb.UInt32(1),
+			HealthChecker:      &core_v3.HealthCheck_GrpcHealthCheck_{GrpcHealthCheck: grpcCheck.GrpcHealthCheck},
+		},
+	}
 }
