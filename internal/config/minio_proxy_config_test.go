@@ -45,6 +45,15 @@ func TestLoadMinioProxyConfigEnvFallback(t *testing.T) {
 	t.Cleanup(func() { minioContractPaths = oldPaths })
 	minioContractPaths = []string{missing}
 
+	// Disable the etcd fallback so this test isolates the env path and
+	// doesn't depend on whether a live cluster is reachable from the test
+	// runner.
+	oldEtcd := loadMinioEtcdFallback
+	t.Cleanup(func() { loadMinioEtcdFallback = oldEtcd })
+	loadMinioEtcdFallback = func() (*servicesConfig.MinioProxyConfig, error) {
+		return nil, nil
+	}
+
 	t.Setenv("GLOBULAR_MINIO_ENDPOINT", " https://env.example ")
 	t.Setenv("GLOBULAR_MINIO_BUCKET", " bucket ")
 	t.Setenv("GLOBULAR_MINIO_PREFIX", " /env/prefix/ ")
@@ -85,12 +94,58 @@ func TestLoadMinioProxyConfigInvalidContract(t *testing.T) {
 	t.Cleanup(func() { minioContractPaths = oldPaths })
 	minioContractPaths = []string{path}
 
+	// Disable etcd and env fallbacks so the parse error surfaces.
+	oldEtcd := loadMinioEtcdFallback
+	t.Cleanup(func() { loadMinioEtcdFallback = oldEtcd })
+	loadMinioEtcdFallback = func() (*servicesConfig.MinioProxyConfig, error) {
+		return nil, nil
+	}
+	t.Setenv("GLOBULAR_MINIO_ENDPOINT", "")
+	t.Setenv("GLOBULAR_MINIO_BUCKET", "")
+
+	// When every fallback is unavailable we surface os.ErrNotExist so the
+	// caller can make a clean "no object store" decision; the raw parse
+	// error is demoted to a warn log.
 	_, err := LoadMinioProxyConfig()
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !errors.Is(err, servicesConfig.ErrInvalidObjectStoreContract) {
+	if !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestLoadMinioProxyConfigCorruptContractFallsBackToEtcd verifies that a
+// corrupt on-disk contract no longer crashes the loader — it falls through
+// to the injected etcd fallback. Regression test for the node_agent
+// minio.json corruption that caused the admin gateway to 503 on nuc.
+func TestLoadMinioProxyConfigCorruptContractFallsBackToEtcd(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "minio.json")
+	// Two lines of plaintext — this is the exact shape of the clobbered
+	// file we observed in production on nuc.
+	if err := os.WriteFile(path, []byte("globular-ak\nglobular-sk\n"), 0o644); err != nil {
+		t.Fatalf("write corrupt contract: %v", err)
+	}
+	oldPaths := minioContractPaths
+	t.Cleanup(func() { minioContractPaths = oldPaths })
+	minioContractPaths = []string{path}
+
+	oldEtcd := loadMinioEtcdFallback
+	t.Cleanup(func() { loadMinioEtcdFallback = oldEtcd })
+	loadMinioEtcdFallback = func() (*servicesConfig.MinioProxyConfig, error) {
+		return &servicesConfig.MinioProxyConfig{
+			Endpoint: "etcd.example:9000",
+			Bucket:   "globular",
+		}, nil
+	}
+
+	cfg, err := LoadMinioProxyConfig()
+	if err != nil {
+		t.Fatalf("expected etcd fallback to succeed, got error: %v", err)
+	}
+	if cfg == nil || cfg.Endpoint != "etcd.example:9000" {
+		t.Fatalf("expected etcd fallback endpoint, got %+v", cfg)
 	}
 }
 

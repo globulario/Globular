@@ -28,6 +28,14 @@ var (
 		last time.Time
 	}{}
 	getServiceConfigurationByID = servicesConfig.GetServiceConfigurationById
+
+	// loadMinioEtcdFallback returns the cluster MinIO config from etcd, which
+	// is the authoritative source of truth when the on-disk contract is
+	// missing or corrupt. Exposed as a package variable so unit tests can
+	// replace it with a stub (the default reads from a live etcd cluster).
+	loadMinioEtcdFallback = func() (*servicesConfig.MinioProxyConfig, error) {
+		return servicesConfig.BuildMinioProxyConfig()
+	}
 )
 
 func init() {
@@ -37,16 +45,42 @@ func init() {
 	}
 }
 
-// LoadMinioProxyConfig locates the MinIO contract, falls back to env/legacy config, and validates input.
+// LoadMinioProxyConfig locates the MinIO contract, falls back to etcd / env
+// / legacy config, and validates input.
+//
+// The on-disk contract at /var/lib/globular/objectstore/minio.json is a
+// convenience written by the installer and the MinIO package pre-start hook,
+// but the authoritative source of MinIO connection info is etcd (the cluster
+// config). On nodes where the contract file got corrupted — e.g. overwritten
+// with plain-text credentials instead of the JSON shape — we previously
+// returned the parse error directly, which bubbled up as a 503 on the admin
+// gateway. Treat a parse failure the same way we treat a missing file: log
+// it, then fall through to etcd and env fallbacks. This mirrors the design
+// principle that etcd is the single source of truth — the file is only a
+// hint.
 func LoadMinioProxyConfig() (*servicesConfig.MinioProxyConfig, error) {
 	if cfg, err := loadMinioContract(); err == nil {
 		return cfg, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
-		slog.Warn("objectstore contract invalid", "paths", strings.Join(minioContractPaths, ","), "err", err)
-		return nil, err
+		slog.Warn("objectstore contract invalid, falling back to etcd/env",
+			"paths", strings.Join(minioContractPaths, ","), "err", err)
+		// fall through to etcd / env instead of returning the error
 	}
 
-	slog.Warn("objectstore contract not found; trying env/legacy", "paths", strings.Join(minioContractPaths, ","))
+	// Fallback 1: etcd cluster config (authoritative).
+	if loadMinioEtcdFallback != nil {
+		if cfg, err := loadMinioEtcdFallback(); err == nil && cfg != nil {
+			slog.Info("objectstore contract loaded from etcd fallback",
+				"endpoint", cfg.Endpoint, "bucket", cfg.Bucket, "secure", cfg.Secure)
+			return cfg, nil
+		} else if err != nil {
+			slog.Debug("etcd fallback unavailable", "err", err)
+		}
+	}
+
+	// Fallback 2: environment variables (legacy).
+	slog.Warn("objectstore contract not found; trying env/legacy",
+		"paths", strings.Join(minioContractPaths, ","))
 	if cfg, err := loadMinioEnvConfig(); err != nil {
 		return nil, err
 	} else if cfg != nil {
