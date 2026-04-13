@@ -192,7 +192,7 @@ Globular implements **production-grade security** with multiple layers of defens
 | Service | Purpose | Port |
 |---------|---------|------|
 | **Gateway** | HTTP/gRPC gateway | 8080/8443 |
-| **Cluster Controller** | Orchestration & reconciliation | 10000 |
+| **Cluster Controller** | Orchestration & reconciliation | 12000 |
 | **Node Agent** | Per-node management | 11000 |
 | **Discovery** | Service registry API | 10002 |
 
