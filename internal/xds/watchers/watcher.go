@@ -222,6 +222,9 @@ type Watcher struct {
 	certReconciler  *CertReconciler
 	certInitPending bool
 	certStarted     bool
+
+	// Routing refresh on leader change
+	routingReconciler *routingReconciler
 }
 
 // New creates a watcher bound to the given server.
@@ -270,6 +273,9 @@ func (w *Watcher) SetEtcdClient(client *clientv3.Client) {
 
 	// Initialize certificate reconciler if we have enough information
 	w.initializeCertReconciler()
+
+	// Initialize routing reconciler for leader-change routing refresh
+	w.routingReconciler = newRoutingReconciler(w.logger, client)
 }
 
 // SetACMEPaths configures ACME certificate paths for rotation tracking.
@@ -335,6 +341,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	defer cancel()
 
 	var certChangedChan, acmeChangedChan <-chan struct{}
+	var routingChangedChan <-chan struct{}
 
 	startReconciler := func() {
 		if w.certReconciler != nil && !w.certStarted {
@@ -347,6 +354,13 @@ func (w *Watcher) Run(ctx context.Context) error {
 			certChangedChan = w.certReconciler.CertChangedChan()
 			acmeChangedChan = w.certReconciler.ACMEChangedChan()
 		}
+	}
+
+	// Start routing reconciler if available
+	if w.routingReconciler != nil {
+		w.routingReconciler.Start(ctx)
+		routingChangedChan = w.routingReconciler.RoutingChangedChan()
+		w.logger.Info("routing reconciler started")
 	}
 
 	if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
@@ -402,6 +416,13 @@ func (w *Watcher) Run(ctx context.Context) error {
 			w.logger.Info("ACME certificate changed - rebuilding snapshot")
 			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 				w.logger.Warn("xDS sync after ACME change failed", "err", err)
+			}
+
+		case <-routingChangedChan:
+			// Routing refresh on leader change
+			w.logger.Info("routing refresh triggered - rebuilding snapshot")
+			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
+				w.logger.Warn("xDS sync after routing refresh failed", "err", err)
 			}
 		}
 	}
@@ -798,6 +819,14 @@ func (w *Watcher) configureModeResources(ingressSpec *IngressSpec, cfg *XDSConfi
 		result.clusters = ingressSpec.Clusters
 		result.routes = ingressSpec.Routes
 
+		// The gateway is an HTTP service — use HTTP health check at /healthz
+		// instead of gRPC, which the gateway doesn't implement.
+		for i := range result.clusters {
+			if result.clusters[i].Name == "gateway_http" {
+				result.clusters[i].HTTPHealthPath = "/healthz"
+			}
+		}
+
 		// Normalize gateway port
 		normalizedGatewayPort := normalizeIngressGateway(ingressSpec, w, cfg)
 		ingressSpec.GatewayPort = normalizedGatewayPort
@@ -896,6 +925,13 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 	clusters = append(clusters, modeRes.clusters...)
 	routes = append(routes, modeRes.routes...)
 
+	// The gateway is HTTP-only — use HTTP health check instead of gRPC.
+	for i := range clusters {
+		if clusters[i].Name == "gateway_http" {
+			clusters[i].HTTPHealthPath = "/healthz"
+		}
+	}
+
 	version := fmt.Sprintf("%d", time.Now().UnixNano())
 	if w.logger != nil {
 		if gw := findClusterByName(clusters, "gateway_http"); gw != nil {
@@ -947,6 +983,19 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 				KeyPath:  domain.KeyFile,
 				CAPath:   domain.ACMEIssuer, // Optional ACME CA chain
 			})
+
+			// Create a cluster for non-gateway external domain backends.
+			// These are plain HTTP clusters pointing to localhost:<port> where
+			// a local static server or application runs.
+			if domain.Service != "gateway" && domain.Port > 0 {
+				clusters = append(clusters, builder.Cluster{
+					Name: targetCluster,
+					Endpoints: []builder.Endpoint{
+						{Host: "127.0.0.1", Port: uint32(domain.Port)},
+					},
+					HTTPHealthPath: "/", // HTTP health check (not gRPC)
+				})
+			}
 		}
 
 		if w.logger != nil {
@@ -1080,11 +1129,17 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 			if protocol == "https" || tlsFlag {
 				useTLS = true
 				caFile = config.GetLocalCACertificate()
-				// SNI: use the base cluster domain (matches SAN in the internal service cert)
+				// SNI: use the base cluster domain (matches SAN in the internal service cert).
+				// Resolution order:
+				//   1. Explicit config file cluster_domain
+				//   2. Cluster network spec from controller (etcd)
+				//   3. Endpoint hostname (last resort — may be an IP, which breaks TLS)
 				if cfg != nil && cfg.ClusterDomain != "" {
 					sniName = cfg.ClusterDomain
+				} else if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil && w.clusterNetwork.Spec.ClusterDomain != "" {
+					sniName = w.clusterNetwork.Spec.ClusterDomain
 				} else {
-					sniName = endpoints[0].Host // Fallback to host if no cluster domain
+					sniName = endpoints[0].Host
 				}
 			}
 		}
@@ -2096,16 +2151,74 @@ func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSCon
 		return nil, nil
 	}
 
-	services := make([]map[string]any, 0, resp.Count)
+	// Parse etcd keys into config and instance data, grouped by service ID.
+	// Key structure:
+	//   /globular/services/{id}/config              — shared service definition
+	//   /globular/services/{id}/runtime             — legacy shared runtime (single-node)
+	//   /globular/services/{id}/instances/{node}     — per-node endpoint data
+	type svcData struct {
+		config    map[string]any
+		instances []map[string]any
+	}
+	byID := map[string]*svcData{}
+
 	for _, kv := range resp.Kvs {
-		var svc map[string]any
-		if err := json.Unmarshal(kv.Value, &svc); err != nil {
+		key := string(kv.Key)
+		rest := strings.TrimPrefix(key, "/globular/services/")
+		if rest == key {
+			continue // not under our prefix
+		}
+		parts := strings.SplitN(rest, "/", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		id, leaf := parts[0], parts[1]
+
+		if byID[id] == nil {
+			byID[id] = &svcData{}
+		}
+		sd := byID[id]
+
+		var data map[string]any
+		if err := json.Unmarshal(kv.Value, &data); err != nil {
 			if w.logger != nil {
-				w.logger.Warn("failed to unmarshal service from etcd", "key", string(kv.Key), "err", err)
+				w.logger.Warn("failed to unmarshal service from etcd", "key", key, "err", err)
 			}
 			continue
 		}
-		services = append(services, svc)
+
+		switch {
+		case leaf == "config":
+			sd.config = data
+		case strings.HasPrefix(leaf, "instances/"):
+			sd.instances = append(sd.instances, data)
+			// runtime keys are ignored when instances exist
+		}
+	}
+
+	services := make([]map[string]any, 0, len(byID))
+	for _, sd := range byID {
+		if sd.config == nil {
+			continue
+		}
+		if len(sd.instances) > 0 {
+			// Multi-node: produce one entry per instance with the shared
+			// config merged with per-node Address/Port/State.
+			for _, inst := range sd.instances {
+				merged := make(map[string]any, len(sd.config)+len(inst))
+				for k, v := range sd.config {
+					merged[k] = v
+				}
+				// Instance fields override config (Address, Port, State, Process).
+				for k, v := range inst {
+					merged[k] = v
+				}
+				services = append(services, merged)
+			}
+		} else {
+			// Legacy single-node: use config as-is.
+			services = append(services, sd.config)
+		}
 	}
 	return services, nil
 }
