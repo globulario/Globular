@@ -13,9 +13,11 @@ import (
 	"github.com/globulario/Globular/internal/xds/builder"
 	ai_routerpb "github.com/globulario/services/golang/ai_router/ai_routerpb"
 	"github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/security"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // Policy staleness thresholds (from AI-Router-Final-Tightenings.md).
@@ -85,6 +87,11 @@ func (w *Watcher) applyRoutingPolicy(ctx context.Context, clusters []builder.Clu
 
 	callCtx, cancel := context.WithTimeout(ctx, routerCallTimeout)
 	defer cancel()
+
+	// Inject service auth metadata so the ai_router's interceptor accepts
+	// the call. Without this, the request arrives as anonymous and is rejected
+	// with cluster_id_missing after cluster initialization.
+	callCtx = injectServiceAuth(callCtx)
 
 	resp, err := client.GetRoutingPolicy(callCtx, &ai_routerpb.GetRoutingPolicyRequest{})
 	if err != nil {
@@ -195,6 +202,28 @@ func loadRouterTLSCreds() credentials.TransportCredentials {
 		})
 	}
 	return nil
+}
+
+// injectServiceAuth generates a short-lived service token and adds it to
+// the outgoing gRPC metadata. This allows internal service-to-service calls
+// (like xDS → ai_router) to pass the auth interceptor's cluster_id check.
+func injectServiceAuth(ctx context.Context) context.Context {
+	mac, err := config.GetMacAddress()
+	if err != nil {
+		return ctx
+	}
+	token, err := security.GenerateServiceToken(mac)
+	if err != nil {
+		return ctx
+	}
+	domain, _ := config.GetDomain()
+	md := metadata.New(map[string]string{
+		"token":         token,
+		"authorization": "Bearer " + token,
+		"mac":           mac,
+		"domain":        domain,
+	})
+	return metadata.NewOutgoingContext(ctx, md)
 }
 
 // logRoutingPolicy logs the routing policy details at debug level.
